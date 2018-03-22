@@ -33,11 +33,11 @@ class NTM(nn.Module):
                 continue
 
             if output is None:
-                output = tm_output
+                output = tm_output[None, ...]
                 continue
 
             # concatenate output
-            output = torch.cat([output, tm_output], dim=0)
+            output = torch.cat([output, tm_output[None, ...]], dim=-2)
 
         return output, state
 
