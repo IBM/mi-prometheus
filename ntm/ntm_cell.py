@@ -7,11 +7,21 @@ from ntm.interface import Interface
 class NTMCell(nn.Module):
     def __init__(self, tm_in_dim, tm_output_units, tm_state_units,
                  num_heads, is_cam, num_shift, M):
+        """Initialize an NTM cell.
+
+        :param tm_in_dim: input size.
+        :param tm_output_units: output size.
+        :param tm_state_units: state size.
+        :param num_heads: number of heads.
+        :param is_cam: is it content_addressable.
+        :param num_shift: number of shifts of heads.
+        :param M: Number of slots per address in the memory bank.
+        """
         super(NTMCell, self).__init__()
 
         # build the interface and controller
         self.interface = Interface(num_heads, is_cam, num_shift, M)
-        self.controller = Controller(tm_output_units, tm_in_dim, tm_state_units,
+        self.controller = Controller(tm_in_dim, tm_output_units, tm_state_units,
                                      self.interface.read_size, self.interface.update_size)
 
     def forward(self, tm_input, state):

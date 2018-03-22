@@ -5,8 +5,8 @@ import numpy as np
 
 
 class Controller(nn.Module):
-    def __init__(self, tm_in_dim, tm_output_units,
-                 tm_state_units, read_size, update_size):
+    def __init__(self, tm_in_dim, tm_output_units, tm_state_units,
+                 read_size, update_size):
 
         """Initialize an Controller.
 

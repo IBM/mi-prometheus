@@ -1,22 +1,25 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
-from torch.autograd import Variable
+
+# All input tensors are assumed to have hidden shapes (called "batch")
+# as the first few dimensions
 
 
-# Batch normalize last dimension with fuzzy factor
+# Normalize last dimension with fuzzy factor
 def normalize(x):
     return F.normalize(x, p=1, dim=-1)
 
 
-# batch similarity
-def sim(query, data, l2_normalize=False, transpose=False):
-    # query.shape = hidden_shape_1 x h x M, if transpose is False
-    # query.shape = hidden_shape_1 x h x N, if transpose is True
-    # data.shape = hidden_shape_2 x M x N
-    # the hidden shapes must be broadcastable (numpy style)
-    # out[...,i,j] = sum_k q[...,i,k] * data[...,k,j] for the default options
-    if transpose:
+# Batch cross-product similarity computed using matrix multiplication
+# the hidden shapes must be broadcastable (numpy style)
+def sim(query, data, l2_normalize=False, aligned=True):
+    # data.shape = hidden_shape_1 x M x N
+    # query.shape = hidden_shape_2 x h x p, where:
+    #        p = N if aligned is True and p = M if aligned is False
+    # out[...,i,j] = sum_k q[...,i,k] * data[...,j,k] for the default options
+
+    if aligned:  # transpose last 2 dims to enable matrix multiplication
         data = torch.transpose(data, -1, -2)
 
     assert query.size()[-1] == data.size()[-2]
@@ -29,16 +32,16 @@ def sim(query, data, l2_normalize=False, transpose=False):
 
 
 # Batch outer product of two vectors
+# the hidden shapes must be broadcastable (numpy style)
 def outer_prod(x, y):
     return x[..., :, None] * y[..., None, :]
 
 
-# Batch 1D convolution of unequal length vectors
+# Batch 1D convolution with matching hidden shapes
 def circular_conv(x, f):
     # computes y[...,i] = sum_{j=-ceil(s/2)+1}^{floor(s/2)} x[...,i-j] * f[...,j]
 
     f_last = f.size()[-1]
-    print("f_size:", f.size(), "x.size", x.size())
     assert (f_last >= 3) and (f_last <= x.size()[-1]), "filter size constraint violated"
 
     f_other = f.size()[:-1]
@@ -52,7 +55,5 @@ def circular_conv(x, f):
 
     # loop over indices in the hidden shape
     for ix in np.ndindex(f_other):
-        print("ix",ix)
-        y[ix] = F.conv1d(x[ix[0], ix[1], :][None, None, :], f[ix[0], ix[1], :][None, None, :])
-
+        y[ix] = F.conv1d(x[ix][None, None, :], f[ix][None, None, :])
     return y

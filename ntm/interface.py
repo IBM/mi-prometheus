@@ -25,7 +25,7 @@ class Interface:
 
         # create the parameter lengths and store their cumulative sum
         lengths = np.fromiter(self.param_dict.values(), dtype=int)
-        self.cum_lengths = np.cumsum(np.insert(lengths, 0, 0)).tolist()
+        self.cum_lengths = np.cumsum(np.insert(lengths, 0, 0), dtype=int).tolist()
 
     @property
     def read_size(self):
@@ -71,8 +71,8 @@ class Interface:
         memory = Memory(mem)
 
         # Write to memory
-        memory.attention_erase(wt, erase)
-        memory.attention_add(wt, add)
+        memory.erase_weighted(erase, wt)
+        memory.add_weighted(add, wt)
 
         # Update attention
         if self.is_cam:

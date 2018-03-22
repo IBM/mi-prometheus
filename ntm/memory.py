@@ -8,18 +8,18 @@ class Memory:
         self._memory = mem_t
 
     def attention_read(self, wt):
-        return sim(wt, self._memory, transpose=True)
+        return sim(wt, self._memory)
 
-    def attention_add(self, wt, add):
+    def add_weighted(self, add, wt):
         # memory = memory + sum_{head h} weighted add(h)
-        self._memory = self._memory + torch.sum(outer_prod(wt, add), dim=-3)
+        self._memory = self._memory + torch.sum(outer_prod(add, wt), dim=-3)
 
-    def attention_erase(self, wt, erase):
+    def erase_weighted(self, erase, wt):
         # memory = memory * product_{head h} (1 - weighted erase(h))
-        self._memory = self._memory * torch.prod(1 - outer_prod(wt, erase), dim=-3)
+        self._memory = self._memory * torch.prod(1 - outer_prod(erase, wt), dim=-3)
 
     def content_similarity(self, k):
-        return sim(k, self._memory, l2_normalize=True)
+        return sim(k, self._memory, l2_normalize=True, aligned=False)
 
     @property
     def size(self):
