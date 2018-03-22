@@ -27,14 +27,24 @@ class NTMCell(nn.Module):
     def forward(self, tm_input, state):
         tm_state, wt, mem = state
 
+        print("attention in :", wt)
+        print("memory in", mem)
+
         # step1: read from memory using attention
         read_data = self.interface.read(wt, mem)
+
+        print("read_data in:", read_data)
 
         # step2: controller
         tm_output, tm_state, update_data = self.controller(tm_input, tm_state, read_data)
 
+        print("update data out:", update_data)
+
         # step3: update memory and attention
         wt, mem = self.interface.update(update_data, wt, mem)
+
+        print("attention out:", wt)
+        #input("pass")
 
         state = tm_state, wt, mem
         return tm_output, state

@@ -9,10 +9,10 @@ tm_in_dim = 8
 seq = 7
 tm_output_units = 3
 tm_state_units = 5
-batch_size = 1
+batch_size = 3
 n_heads = 2
-N = 10
-M = 6
+N = 6
+M = 3
 is_cam = False
 num_shift = 3
 

@@ -47,6 +47,8 @@ class Controller(nn.Module):
             # hidden = F.relu(hidden)
             tm_output = self.tm_i2o(hidden)
             tm_output = F.sigmoid(tm_output)
+            #print("tm_output",tm_output)
+            #input("pass")
 
         # Get the state and update; no activation is applied
         tm_state = self.tm_i2s(combined)
