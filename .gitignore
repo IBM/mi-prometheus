@@ -3,6 +3,7 @@
 .idea/
 __pycache__
 msgs.log
+.Models/
 
 
 
