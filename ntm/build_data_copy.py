@@ -26,7 +26,7 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size):
 
     target = seq
 
-    dummy_input = np.zeros((batch_size, seq_length+1, dummy_size))
+    dummy_input = np.zeros((batch_size, seq_length, dummy_size))
     inputs = np.concatenate((encoder_input, dummy_input), axis=1)
 
     inputs = torch.from_numpy(inputs).float()

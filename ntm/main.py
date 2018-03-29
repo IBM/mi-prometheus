@@ -14,8 +14,8 @@ element_size = 8
 # init state, memory, attention
 tm_in_dim = element_size + 1
 tm_output_units = element_size
-tm_state_units = 2
-n_heads = 1
+tm_state_units = 4
+n_heads = 2
 N = 30
 M = 10
 is_cam = False
@@ -44,7 +44,7 @@ while Train:
         output, _ = ntm(inputs, states)
         loss = criterion(output[:, -seq_length:, :], targets)
 
-        print(", epoch: %d, loss: %1.3f" % (epoch + 1, loss))
+        print(", epoch: %d, loss: %1.3f, seq_length %d" % (epoch + 1, loss, seq_length))
 
         loss.backward()
         optimizer.step()

@@ -56,6 +56,9 @@ def data_gen_type2(min_len, max_len, batch_size, bias, element_size):
     yield inputs, target, seq_length
 
 
+data = data_gen_type2(5,5,2,0.5,4)
+
+
 def build_data_gen(min_len, max_len, batch_size, bias, element_size):
     selector = np.random.randint(0, 2)
     if selector:
@@ -63,4 +66,8 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size):
     else:
         return data_gen_type2(min_len, max_len, batch_size, bias, element_size)
 
+
+for inputs, target, seq_length in data:
+    print("inputs", inputs)
+    print("target", target)
 
