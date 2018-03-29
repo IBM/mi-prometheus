@@ -1,37 +1,88 @@
 import torch
 from torch import nn
-from torch.autograd import Variable
-import numpy as np
-
+from ntm.build_data_copy import init_state, build_data_gen
+import pdb
 from ntm.ntm_layer import NTM
 
-tm_in_dim = 8
-seq = 7
-tm_output_units = 3
-tm_state_units = 5
-batch_size = 3
-n_heads = 2
-N = 6
-M = 3
+# data generator x,y
+batch_size = 1
+min_len = 10
+max_len = 20
+bias = 0.5
+element_size = 8
+
+# init state, memory, attention
+tm_in_dim = element_size + 1
+tm_output_units = element_size
+tm_state_units = 2
+n_heads = 1
+N = 30
+M = 10
 is_cam = False
 num_shift = 3
 
+# Instantiate
+ntm = NTM(tm_in_dim, tm_output_units,tm_state_units, n_heads, is_cam, num_shift, M)
 
-def init_state(batch_size):
-    tm_state = Variable(torch.ones((batch_size, tm_state_units))) * 0.01
+# Init state, memory, attention
+tm_output, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
 
-    wt = Variable(torch.zeros((batch_size, n_heads, N)))
-    wt[:, :, 0] = 1.0
+# Set loss and optimizer
+criterion = nn.BCELoss()
+optimizer = torch.optim.Adam(ntm.parameters(), lr=0.01)
 
-    mem_t = Variable(torch.ones((batch_size, M, N))) * 0.01
+# Training
+epoch = 0
+Train = True
+while Train:
+    # Data generator : input & target
+    data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size)
 
-    return tm_state, wt, mem_t
+    for inputs, targets, seq_length in data_gen:
+        optimizer.zero_grad()
+
+        output, _ = ntm(inputs, states)
+        loss = criterion(output[:, -seq_length:, :], targets)
+
+        print(", epoch: %d, loss: %1.3f" % (epoch + 1, loss))
+
+        loss.backward()
+        optimizer.step()
+
+        #if loss < 1e-5 and inputs.size()[1] == 2*seq_length:
+        #    print("Task 1 converged")
+
+        if loss < 1e-5: #and inputs.size()[1] > 2*seq_length:
+            Train = False
+            Path = "/Users/younesbouhadajr/Documents/Neural_Network/working_memory/Models/model"
+            torch.save(ntm.state_dict(), Path)
+        epoch += 1
+
+print("Learning finished!")
+
+# Initial Test
+print("Testing")
+print("input")
+
+min_len = 80
+max_len = 80
+N = 100
+# New sequence
+data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size)
+_, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
+
+for inputs, targets, seq_length in data_gen:
+    output, states = ntm(inputs, states)
+    print("output", output[:, -seq_length:, :])
+    print("targets", targets)
+    print("memory", states[2])
+
+    # test accuracy
+    output = torch.round(output[:, -seq_length:, :])
+    acc = 1 - torch.abs(output-targets)
+    accuracy = acc.mean()
+    print("Accuracy: %.6f" % (accuracy * 100) + "%")
 
 
-states = init_state(batch_size)
-x = Variable(torch.ones(batch_size, seq, tm_in_dim))
 
-ntm = NTM(tm_in_dim, tm_output_units, tm_state_units, n_heads, is_cam, num_shift, M)
 
-output, states = ntm(x, states)
-print("output", output, "memory", states[2])

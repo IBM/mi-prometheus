@@ -1,4 +1,6 @@
+import torch
 from torch import nn
+import torch.nn.functional as F
 
 from ntm.controller import Controller
 from ntm.interface import Interface
@@ -18,6 +20,8 @@ class NTMCell(nn.Module):
         :param M: Number of slots per address in the memory bank.
         """
         super(NTMCell, self).__init__()
+        tm_state_in = tm_state_units + tm_in_dim
+        self.tm_i2w = nn.Linear(tm_state_in, 1)
 
         # build the interface and controller
         self.interface = Interface(num_heads, is_cam, num_shift, M)
@@ -27,24 +31,22 @@ class NTMCell(nn.Module):
     def forward(self, tm_input, state):
         tm_state, wt, mem = state
 
-        print("attention in :", wt)
-        print("memory in", mem)
+        # step 0 : shift to address 0?
+        combined = torch.cat((tm_state, tm_input), dim=-1)
+        f = self.tm_i2w(combined)
+        f = F.sigmoid(f)
+        wt_address_0 = torch.zeros_like(wt)
+        wt_address_0[:, :, 0] = 1
+        wt = f * wt_address_0 + (1 - f) * wt
 
         # step1: read from memory using attention
         read_data = self.interface.read(wt, mem)
 
-        print("read_data in:", read_data)
-
         # step2: controller
         tm_output, tm_state, update_data = self.controller(tm_input, tm_state, read_data)
 
-        print("update data out:", update_data)
-
         # step3: update memory and attention
         wt, mem = self.interface.update(update_data, wt, mem)
-
-        print("attention out:", wt)
-        #input("pass")
 
         state = tm_state, wt, mem
         return tm_output, state

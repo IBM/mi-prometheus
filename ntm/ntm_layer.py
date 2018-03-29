@@ -28,7 +28,8 @@ class NTM(nn.Module):
         output = None
         for j in range(x.size()[-2]):
             tm_output, state = self.NTMCell(x[..., j, :], state)
-
+            #print("state", state[1])
+            #input("pass")
             if tm_output is None:
                 continue
 

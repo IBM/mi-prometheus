@@ -8,7 +8,7 @@ import numpy as np
 
 # Normalize last dimension with fuzzy factor
 def normalize(x):
-    return F.normalize(x, p=1, dim=-1)
+    return torch.div(x, torch.sum(x,dim=-1, keepdim=True))
 
 
 # Batch cross-product similarity computed using matrix multiplication
@@ -57,3 +57,13 @@ def circular_conv(x, f):
     for ix in np.ndindex(f_other):
         y[ix] = F.conv1d(x[ix][None, None, :], f[ix][None, None, :])
     return y
+
+
+def sharpen(ws, γ):
+    #print("before", ws)
+    #print(torch.sum(ws, -1).view(-1,1))
+    w = ws ** γ
+    w = torch.div(w, torch.sum(w, -1).view(-1,1) + 1e-16)
+    #print("after", w)
+    #input("pass")
+    return w

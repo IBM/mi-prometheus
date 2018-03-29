@@ -1,7 +1,8 @@
+from torch import nn
 import torch.nn.functional as F
 import numpy as np
 
-from ntm.tensor_utils import circular_conv, normalize
+from ntm.tensor_utils import circular_conv, normalize, sharpen
 from ntm.memory import Memory
 
 
@@ -81,6 +82,9 @@ class Interface:
             wt = g * wt_β + (1 - g) * wt              # scalar interpolation
 
         wt_s = circular_conv(wt, s)                   # convolution with shift
-        wt = normalize(wt_s ** γ)                     # sharpening with normalization
+
+        eps = 1e-12
+        wt = (wt_s + eps) ** γ
+        wt = normalize(wt)                    # sharpening with normalization
         mem = memory.content
         return wt, mem

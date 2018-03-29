@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import numpy as np
+import pdb
 
 
 class Controller(nn.Module):
@@ -35,6 +36,9 @@ class Controller(nn.Module):
         # Update layer
         self.tm_i2u = nn.Linear(tm_ctrl_in_dim, self.update_size)
 
+        #rest parameters
+        #self.reset_parameters()
+
     def forward(self, tm_input, tm_state, read_data):
         # Concatenate the 3 inputs to controller
         combined = torch.cat((tm_input, tm_state, read_data), dim=-1)
@@ -43,14 +47,28 @@ class Controller(nn.Module):
         tm_output = None
         if self.tm_output_units > 0:
             hidden = combined
-            # hidden = self.tm_i2i(hidden)
-            # hidden = F.relu(hidden)
             tm_output = self.tm_i2o(hidden)
             tm_output = F.sigmoid(tm_output)
-            #print("tm_output",tm_output)
-            #input("pass")
+            if np.isnan(np.sum(tm_output.data.numpy())):
+                pdb.set_trace()
 
         # Get the state and update; no activation is applied
         tm_state = self.tm_i2s(combined)
+        if np.isnan(np.sum(tm_state.data.numpy())):
+            pdb.set_trace()
         update_data = self.tm_i2u(combined)
+        if np.isnan(np.sum(update_data.data.numpy())):
+            pdb.set_trace()
+
         return tm_output, tm_state, update_data
+
+    def reset_parameters(self):
+        # Initialize the linear layers
+        nn.init.xavier_uniform(self.tm_i2s.weight, gain=1.4)
+        nn.init.normal(self.tm_i2s.bias, std=0.01)
+
+        nn.init.xavier_uniform(self.tm_i2o.weight, gain=1.4)
+        nn.init.normal(self.tm_i2o.bias, std=0.01)
+
+        nn.init.xavier_uniform(self.tm_i2u.weight, gain=1.4)
+        nn.init.normal(self.tm_i2u.bias, std=0.01)
