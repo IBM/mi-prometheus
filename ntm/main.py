@@ -57,6 +57,7 @@ for inputs, targets, seq_length in data_gen:
     # print attention
     if not(epoch % 2000) and epoch != 0:
         print(states_test[2])
+        input("pause")
 
     if loss < 1e-5: #and inputs.size()[1] > 2*seq_length:
 
