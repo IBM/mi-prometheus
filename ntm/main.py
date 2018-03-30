@@ -89,7 +89,7 @@ N = 100
 data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size)
 _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
 
-for inputs, targets, seq_length in data_gen:
+for inputs, targets, seq_length, nb_markers in data_gen:
     output, states = ntm(inputs, states)
     print("output", output[:, -seq_length:, :])
     print("targets", targets)
