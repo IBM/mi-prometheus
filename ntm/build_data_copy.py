@@ -18,11 +18,7 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
 
 
 def build_data_gen(min_len, max_len, batch_size, bias, element_size):
-    seed = 0
     while True:
-        # Pseudo Random
-        np.random.seed(seed)
-
         seq_length = np.random.randint(low=min_len, high=max_len + 1)
         seq = np.random.binomial(1, bias, (batch_size, seq_length, element_size))
         encoder_input = np.insert(seq, 0, 1, axis=2)
@@ -34,7 +30,6 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size):
 
         inputs = torch.from_numpy(inputs).float()
         target = torch.from_numpy(target).float()
-        seed += 1
 
         yield inputs, target, seq_length
 

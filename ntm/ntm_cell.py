@@ -32,13 +32,13 @@ class NTMCell(nn.Module):
         tm_state, wt, mem = state
 
         # step 0 : shift to address 0?
-        # combined = torch.cat((tm_state, tm_input), dim=-1)
-        # f = self.tm_i2w(combined)
-        # f = F.sigmoid(f)
-        # wt_address_0 = torch.zeros_like(wt)
-        # wt_address_0[:, :, 0] = 1
-        # f = f[...,None]
-        # wt = f * wt_address_0 + (1 - f) * wt
+        combined = torch.cat((tm_state, tm_input), dim=-1)
+        f = self.tm_i2w(combined)
+        f = F.sigmoid(f)
+        wt_address_0 = torch.zeros_like(wt)
+        wt_address_0[:, :, 0] = 1
+        f = f[...,None]
+        wt = f * wt_address_0 + (1 - f) * wt
 
         # step1: read from memory using attention
         read_data = self.interface.read(wt, mem)

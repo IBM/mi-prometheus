@@ -1,30 +1,34 @@
 import torch
 from torch import nn
-from ntm.build_data_copy import init_state, build_data_gen
+from ntm.build_data_scratch_pad import init_state, build_data_gen
 import pdb
 from ntm.ntm_layer import NTM
 import numpy as np
+torch.manual_seed(2)
 
 # data generator x,y
 batch_size = 1
-min_len = 5
+min_len = 10
 max_len = 20
 bias = 0.5
 element_size = 8
-N = 50
+N = 22
+
+# Pseudo Random
+np.random.seed(0)
 
 # init state, memory, attention
-tm_in_dim = element_size + 1
+tm_in_dim = element_size + 2
 tm_output_units = element_size
 tm_state_units = 2
-n_heads = 2
+n_heads = 1
 M = 10
 is_cam = False
 num_shift = 3
 
 # To be saved for testing
 args_save = {'tm_in_dim' : tm_in_dim, 'tm_output_units' : tm_output_units, 'tm_state_units' : tm_state_units
-             , 'n_heads': n_heads, 'is_cam' : is_cam, 'num_shift':num_shift, 'M': M}
+             , 'n_heads': n_heads, 'is_cam' : is_cam, 'num_shift':num_shift, 'M': M, 'element_size':element_size}
 
 # Instantiate
 ntm = NTM(tm_in_dim, tm_output_units,tm_state_units, n_heads, is_cam, num_shift, M)
@@ -41,25 +45,25 @@ epoch = 0
 
 # Data generator : input & target
 data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size)
-for inputs, targets, seq_length in data_gen:
+for inputs, targets, seq_length, nb_markers in data_gen:
     optimizer.zero_grad()
 
     output, states_test = ntm(inputs, states)
     loss = criterion(output[:, -seq_length:, :], targets)
 
-    print(", epoch: %d, loss: %1.3f, seq_length %d" % (epoch + 1, loss, seq_length))
+    print(", epoch: %d, loss: %1.3f, seq_length %d, nb_markers %d" % (epoch + 1, loss, seq_length, nb_markers))
 
     loss.backward()
     optimizer.step()
 
-    #if loss < 1e-5 and inputs.size()[1] == 2*seq_length:
-    #    print("Task 1 converged")
-    # print attention
-    if not(epoch % 2000) and epoch != 0:
+    if not(epoch % 2000) and epoch != 0 and 0:
         print(states_test[1])
         input("pause")
 
-    if loss < 1e-5: #and inputs.size()[1] > 2*seq_length:
+    if loss < 1e-5:
+        print("convergence of sequence type:", nb_markers)
+
+    if loss < 1e-5 and nb_markers == 3:
 
         path = "/Users/younesbouhadajr/Documents/Neural_Network/working_memory/Models/"
         # save model parameters

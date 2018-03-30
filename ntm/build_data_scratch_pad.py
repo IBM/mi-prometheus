@@ -17,57 +17,49 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
     return tm_output, states
 
 
-def data_gen_type1(min_len, max_len, batch_size, bias, element_size):
-    dummy_size = element_size + 2
-
-    seq_length = np.random.randint(low=min_len, high=max_len + 1)
-    seq = np.random.binomial(1, bias, (batch_size, seq_length, element_size))
-    inputs = np.insert(seq, (0,0), (1,1), axis=2)
-
-    target = seq
-
-    dummy_input = np.zeros((batch_size, seq_length, dummy_size))
-    inputs = np.concatenate((inputs, dummy_input), axis=1)
-
-    inputs = torch.from_numpy(inputs).float()
-    target = torch.from_numpy(target).float()
-
-    yield inputs, target, seq_length
-
-
-def data_gen_type2(min_len, max_len, batch_size, bias, element_size):
-    dummy_size = element_size + 2
-
-    seq_length = np.random.randint(low=min_len, high=max_len + 1)
-    seq = np.random.binomial(1, bias, (batch_size, 2*seq_length, element_size))
-    input_marker = np.insert(seq, seq_length, 0, axis=1)
-    inputs = np.insert(input_marker, (0,0), (1,1), axis=2)
-    # put a separator
-    inputs[:, seq_length, 1] = 0
-
-    target = seq[:, -seq_length:, :]
-
-    dummy_input = np.zeros((batch_size, seq_length, dummy_size))
-    inputs = np.concatenate((inputs, dummy_input), axis=1)
-
-    inputs = torch.from_numpy(inputs).float()
-    target = torch.from_numpy(target).float()
-
-    yield inputs, target, seq_length
-
-
-data = data_gen_type2(5,5,2,0.5,4)
-
-
 def build_data_gen(min_len, max_len, batch_size, bias, element_size):
-    selector = np.random.randint(0, 2)
-    if selector:
-        return data_gen_type1(min_len, max_len, batch_size, bias, element_size)
-    else:
-        return data_gen_type2(min_len, max_len, batch_size, bias, element_size)
+    dummy_size = element_size + 2
+    while True:
+        # number of markers
+        nb_markers = np.random.randint(0, 4)
+
+        # set the sequence length of each marker
+        seq_lengths = np.random.randint(low=min_len, high=max_len + 1, size=nb_markers+1)
+
+        # set the position of markers
+        position_markers = tuple(np.cumsum(seq_lengths))
+        shift = tuple(np.arange(nb_markers))
+
+        # create the sequence
+        seq = np.random.binomial(1, bias, (batch_size, sum(seq_lengths), element_size))
+
+        # Add markers
+        if nb_markers != 0:
+            seq = np.insert(seq, position_markers[:-1], 0, axis=1)
+
+        # Add two channels
+        inputs = np.insert(seq, (0, 0), 0, axis=2)
+
+        # set the channel values of separator
+        if nb_markers != 0:
+            pos_marker = tuple(map(sum, zip(position_markers[:-1], shift)))
+            inputs[:, pos_marker, 1] = 1
+
+        target = seq[:, -seq_lengths[-1]:, :]
+
+        dummy_input = np.zeros((batch_size, seq_lengths[-1], dummy_size))
+        dummy_input[:, :, 0] = 1
+        inputs = np.concatenate((inputs, dummy_input), axis=1)
+
+        inputs = torch.from_numpy(inputs).float()
+        target = torch.from_numpy(target).float()
+
+        yield inputs, target, seq_lengths[-1], nb_markers
 
 
-for inputs, target, seq_length in data:
-    print("inputs", inputs)
-    print("target", target)
+#a = build_data_gen(3, 6, 1, 0.5, 5)
 
+#for inputs, target, seq_length in a:
+#    print(inputs)
+#    print(target)
+#    break

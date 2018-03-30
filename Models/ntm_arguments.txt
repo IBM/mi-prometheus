@@ -1,1 +1,0 @@
-{'tm_in_dim': 9, 'tm_output_units': 8, 'tm_state_units': 2, 'n_heads': 1, 'is_cam': False, 'num_shift': 3, 'M': 10}
