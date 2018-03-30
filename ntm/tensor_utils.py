@@ -8,8 +8,7 @@ import numpy as np
 
 # Normalize last dimension with fuzzy factor
 def normalize(x):
-    return torch.div(x, torch.sum(x,dim=-1, keepdim=True))
-
+    return x / torch.max(torch.sum(x, dim=-1, keepdim=True), torch.Tensor([1e-12]))
 
 # Batch cross-product similarity computed using matrix multiplication
 # the hidden shapes must be broadcastable (numpy style)

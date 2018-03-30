@@ -54,6 +54,7 @@ class Controller(nn.Module):
 
         # Get the state and update; no activation is applied
         tm_state = self.tm_i2s(combined)
+        tm_state = F.sigmoid(tm_state)
         if np.isnan(np.sum(tm_state.data.numpy())):
             pdb.set_trace()
         update_data = self.tm_i2u(combined)

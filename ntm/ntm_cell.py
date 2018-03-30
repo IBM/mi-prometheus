@@ -38,7 +38,6 @@ class NTMCell(nn.Module):
         # wt_address_0 = torch.zeros_like(wt)
         # wt_address_0[:, :, 0] = 1
         # f = f[...,None]
-        #
         # wt = f * wt_address_0 + (1 - f) * wt
 
         # step1: read from memory using attention

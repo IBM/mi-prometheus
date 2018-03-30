@@ -1,9 +1,11 @@
+import torch
 from torch import nn
 import torch.nn.functional as F
 import numpy as np
 
 from ntm.tensor_utils import circular_conv, normalize, sharpen
 from ntm.memory import Memory
+import pdb
 
 
 class Interface:
@@ -86,5 +88,9 @@ class Interface:
         eps = 1e-12
         wt = (wt_s + eps) ** γ
         wt = normalize(wt)                    # sharpening with normalization
+
+        if torch.sum(torch.abs(torch.sum(wt, dim=-1) - 1.0)) > 1e-6:
+            pdb.set_trace()
+
         mem = memory.content
         return wt, mem

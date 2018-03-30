@@ -6,17 +6,17 @@ from ntm.ntm_layer import NTM
 import numpy as np
 
 # data generator x,y
-batch_size = 2
-min_len = 10
+batch_size = 1
+min_len = 5
 max_len = 20
 bias = 0.5
 element_size = 8
-N = 30
+N = 50
 
 # init state, memory, attention
 tm_in_dim = element_size + 1
 tm_output_units = element_size
-tm_state_units = 3
+tm_state_units = 2
 n_heads = 2
 M = 10
 is_cam = False
@@ -44,7 +44,7 @@ data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size)
 for inputs, targets, seq_length in data_gen:
     optimizer.zero_grad()
 
-    output, _ = ntm(inputs, states)
+    output, states_test = ntm(inputs, states)
     loss = criterion(output[:, -seq_length:, :], targets)
 
     print(", epoch: %d, loss: %1.3f, seq_length %d" % (epoch + 1, loss, seq_length))
@@ -54,6 +54,9 @@ for inputs, targets, seq_length in data_gen:
 
     #if loss < 1e-5 and inputs.size()[1] == 2*seq_length:
     #    print("Task 1 converged")
+    # print attention
+    if not(epoch % 2000) and epoch != 0:
+        print(states_test[2])
 
     if loss < 1e-5: #and inputs.size()[1] > 2*seq_length:
 
