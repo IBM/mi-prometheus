@@ -5,6 +5,7 @@ import pdb
 from ntm.ntm_layer import NTM
 import numpy as np
 torch.manual_seed(2)
+np.random.seed(0)
 
 # data generator x,y
 batch_size = 1
@@ -12,10 +13,8 @@ min_len = 10
 max_len = 20
 bias = 0.5
 element_size = 8
-N = 22
-
-# Pseudo Random
-np.random.seed(0)
+nb_markers_max = 3
+loss_sequences_types = [0,] * (nb_markers_max+1)
 
 # init state, memory, attention
 tm_in_dim = element_size + 2
@@ -33,9 +32,6 @@ args_save = {'tm_in_dim' : tm_in_dim, 'tm_output_units' : tm_output_units, 'tm_s
 # Instantiate
 ntm = NTM(tm_in_dim, tm_output_units,tm_state_units, n_heads, is_cam, num_shift, M)
 
-# Init state, memory, attention
-tm_output, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
-
 # Set loss and optimizer
 criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(ntm.parameters(), lr=0.01)
@@ -44,26 +40,35 @@ optimizer = torch.optim.Adam(ntm.parameters(), lr=0.01)
 epoch = 0
 
 # Data generator : input & target
-data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size)
-for inputs, targets, seq_length, nb_markers in data_gen:
+data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_max)
+for inputs, targets, seq_length in data_gen:
+
+    # Init state, memory, attention
+    N = max(seq_length) + 1
+    _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
+
     optimizer.zero_grad()
 
     output, states_test = ntm(inputs, states)
-    loss = criterion(output[:, -seq_length:, :], targets)
+    loss = criterion(output[:, -seq_length[-1]:, :], targets)
 
-    print(", epoch: %d, loss: %1.3f, seq_length %d, nb_markers %d" % (epoch + 1, loss, seq_length, nb_markers))
+    print(", epoch: %d, loss: %1.5f, N %d " % (epoch + 1, loss, N), "seq_lengths:", seq_length)
 
     loss.backward()
     optimizer.step()
 
-    if not(epoch % 2000) and epoch != 0 and 0:
+    # assign loss to each sequence type
+    loss_sequences_types[len(seq_length)-1] = float(loss)
+
+    if not(epoch % 5000) and epoch != 0 and 0:
         print(states_test[1])
         input("pause")
 
     if loss < 1e-5:
-        print("convergence of sequence type:", nb_markers)
+        print("convergence of sequence type:", len(seq_length)-1)
 
-    if loss < 1e-5 and nb_markers == 3:
+    # check if all sequence types are converged
+    if all(item < 1e-5 for item in loss_sequences_types):
 
         path = "/Users/younesbouhadajr/Documents/Neural_Network/working_memory/Models/"
         # save model parameters
@@ -86,17 +91,14 @@ min_len = 80
 max_len = 80
 N = 100
 # New sequence
-data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size)
+data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_max)
 _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
 
-for inputs, targets, seq_length, nb_markers in data_gen:
+for inputs, targets, seq_length in data_gen:
     output, states = ntm(inputs, states)
-    print("output", output[:, -seq_length:, :])
-    print("targets", targets)
-    print("memory", states[2])
 
     # test accuracy
-    output = torch.round(output[:, -seq_length:, :])
+    output = torch.round(output[:, -seq_length[-1]:, :])
     acc = 1 - torch.abs(output-targets)
     accuracy = acc.mean()
     print("Accuracy: %.6f" % (accuracy * 100) + "%")

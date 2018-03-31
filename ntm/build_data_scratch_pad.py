@@ -17,11 +17,11 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
     return tm_output, states
 
 
-def build_data_gen(min_len, max_len, batch_size, bias, element_size):
+def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_max):
     dummy_size = element_size + 2
     while True:
         # number of markers
-        nb_markers = np.random.randint(0, 4)
+        nb_markers = np.random.randint(0, nb_markers_max+1)
 
         # set the sequence length of each marker
         seq_lengths = np.random.randint(low=min_len, high=max_len + 1, size=nb_markers+1)
@@ -53,8 +53,10 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size):
 
         inputs = torch.from_numpy(inputs).float()
         target = torch.from_numpy(target).float()
+        #print("seq_length:", seq_lengths)
+        #print("nb_markers:", nb_markers)
 
-        yield inputs, target, seq_lengths[-1], nb_markers
+        yield inputs, target, seq_lengths
 
 
 #a = build_data_gen(3, 6, 1, 0.5, 5)
