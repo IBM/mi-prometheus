@@ -1,12 +1,12 @@
 import torch
 from torch import nn
-from data.build_data_scratch_pad import init_state, build_data_gen
+from data_gen.build_data_scratch_pad import init_state, build_data_gen
 from ntm.ntm_layer import NTM
 import numpy as np
 torch.manual_seed(2)
 np.random.seed(0)
 
-# data generator x,y
+# data_gen generator x,y
 batch_size = 1
 min_len = 10
 max_len = 20

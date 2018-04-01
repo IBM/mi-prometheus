@@ -13,10 +13,10 @@ def normalize(x):
 # Batch cross-product similarity computed using matrix multiplication
 # the hidden shapes must be broadcastable (numpy style)
 def sim(query, data, l2_normalize=False, aligned=True):
-    # data.shape = hidden_shape_1 x M x N
+    # data_gen.shape = hidden_shape_1 x M x N
     # query.shape = hidden_shape_2 x h x p, where:
     #        p = N if aligned is True and p = M if aligned is False
-    # out[...,i,j] = sum_k q[...,i,k] * data[...,j,k] for the default options
+    # out[...,i,j] = sum_k q[...,i,k] * data_gen[...,j,k] for the default options
 
     if aligned:  # transpose last 2 dims to enable matrix multiplication
         data = torch.transpose(data, -1, -2)

@@ -14,8 +14,8 @@ class Controller(nn.Module):
         :param tm_in_dim: input size.
         :param tm_output_units: output size.
         :param tm_state_units: state size.
-        :param read_size: size of data read from memory
-        :param update_size: size of data for updating attention and memory
+        :param read_size: size of data_gen read from memory
+        :param update_size: size of data_gen for updating attention and memory
         """
         super(Controller, self).__init__()
 

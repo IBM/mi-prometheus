@@ -1,5 +1,5 @@
 import torch
-from data.build_data_scratch_pad import init_state, build_data_gen
+from data_gen.build_data_scratch_pad import init_state, build_data_gen
 from ntm.ntm_layer import NTM
 import numpy as np
 np.random.seed(19092)
@@ -8,7 +8,7 @@ np.random.seed(19092)
 path = "/Users/younesbouhadajr/Documents/Neural_Network/working_memory/Models/"
 read_arguments = np.load(path+"ntm_arguments.npy").item()
 
-# data generator x,y
+# data_gen generator x,y
 batch_size = 1
 min_len = 50
 max_len = 80

@@ -40,18 +40,18 @@ class Interface:
     def read(self, wt, mem):
         memory = Memory(mem)
         read_data = memory.attention_read(wt)
-        # flatten the data in the last 2 dimensions
+        # flatten the data_gen in the last 2 dimensions
         sz = read_data.size()[:-2]
         return read_data.view(*sz, self.read_size)
 
     def update(self, update_data, wt, mem):
         assert update_data.size()[-1] == self.update_size, "Mismatch in update sizes"
 
-        # reshape update data by heads and total parameter size
+        # reshape update data_gen by heads and total parameter size
         sz = update_data.size()[:-1]
         update_data = update_data.view(*sz, self.num_heads, self.cum_lengths[-1])
 
-        # split the data according to the different parameters
+        # split the data_gen according to the different parameters
         data_splits = [update_data[..., self.cum_lengths[i]:self.cum_lengths[i+1]]
                        for i in range(len(self.cum_lengths)-1)]
 

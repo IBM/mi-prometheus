@@ -3,7 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 from ntm.controller import Controller
 from ntm.interface import Interface
-from data.plot_data import plot_memory_attention
+from data_gen.plot_data import plot_memory_attention
 
 class NTMCell(nn.Module):
     def __init__(self, tm_in_dim, tm_output_units, tm_state_units,
