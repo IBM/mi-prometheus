@@ -1,12 +1,8 @@
 import torch
-from torch import nn
-from ntm.build_data_scratch_pad import init_state, build_data_gen
-import pdb
+from data.build_data_scratch_pad import init_state, build_data_gen
 from ntm.ntm_layer import NTM
 import numpy as np
-import matplotlib.pyplot as plt
-torch.manual_seed(2)
-np.random.seed(207)
+np.random.seed(19092)
 
 # read training arguments
 path = "/Users/younesbouhadajr/Documents/Neural_Network/working_memory/Models/"
@@ -17,7 +13,7 @@ batch_size = 1
 min_len = 50
 max_len = 80
 bias = 0.5
-nb_markers_max = 5
+nb_markers_max = 6
 element_size = read_arguments['element_size']
 
 # init state, memory, attention
@@ -45,6 +41,7 @@ for inputs, targets, seq_length in data_gen:
     # Init state, memory, attention
     N = max(seq_length)
     _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
+    print('sub_sequences_length', seq_length)
 
     output, states = ntm(inputs, states)
 
@@ -54,8 +51,6 @@ for inputs, targets, seq_length in data_gen:
     accuracy = acc.mean()
     print("Accuracy: %.6f" % (accuracy * 100) + "%")
 
-    plt.ioff()
-    plt.show()
     break   # one test sample
 
 

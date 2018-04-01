@@ -1,43 +1,9 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-
 from ntm.controller import Controller
 from ntm.interface import Interface
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-from time import sleep
-import numpy as np
-
-def plot_attention(wt):
-    # Temporary plot
-    plt.clf()
-    fig = plt.figure(1, figsize=(80, 40))
-
-    ax1 = fig.add_subplot(111)
-    for tick in ax1.xaxis.get_ticklabels():
-        tick.set_fontsize('large')
-        tick.set_fontname('Times New Roman')
-        # tick.set_color('blue')
-        tick.set_weight('bold')
-
-    for tick in ax1.yaxis.get_ticklabels():
-        tick.set_fontsize('large')
-        tick.set_fontname('Times New Roman')
-        # tick.set_color('blue')
-        tick.set_weight('bold')
-
-    ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-    ax1.set_ylabel("Attention", fontname='Times New Roman', fontsize=15)
-    ax1.set_xlabel("Memory addresses", fontname='Times New Roman', fontsize=15)
-    ax1.set_title('Scratch Pad task, seq_lengths: [16 12 15 10 11 13]', fontname='Times New Roman', fontsize=15)
-
-    ax1.plot(np.arange(wt.size()[-1]), wt[0, 0, :].detach().numpy(), 'ro')
-
-    plt.pause(1e-17)
-    sleep(0.05)
-    # input("pause")
-
+from data.plot_data import plot_memory_attention
 
 class NTMCell(nn.Module):
     def __init__(self, tm_in_dim, tm_output_units, tm_state_units,
@@ -64,8 +30,8 @@ class NTMCell(nn.Module):
     def forward(self, tm_input, state):
         tm_state, wt, mem = state
 
-        # plot attention
-        #plot_attention(wt)
+        # plot attention/memory
+        # plot_memory_attention(mem, wt)
 
         # step 0 : shift to address 0?
         combined = torch.cat((tm_state, tm_input), dim=-1)

@@ -1,5 +1,4 @@
 import torch
-from torch.autograd import Variable
 import pdb
 
 import numpy as np

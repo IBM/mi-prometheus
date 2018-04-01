@@ -1,7 +1,6 @@
 import torch
 from torch import nn
-from ntm.build_data_scratch_pad import init_state, build_data_gen
-import pdb
+from data.build_data_scratch_pad import init_state, build_data_gen
 from ntm.ntm_layer import NTM
 import numpy as np
 torch.manual_seed(2)
