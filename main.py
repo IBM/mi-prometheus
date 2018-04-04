@@ -69,7 +69,7 @@ for inputs, targets, seq_length in data_gen:
     # check if all sequence types are converged
     if all(item < 1e-5 for item in loss_sequences_types):
 
-        path = "/Users/younesbouhadajr/Documents/Neural_Network/working_memory/Models/"
+        path = "./Models/"
         # save model parameters
         torch.save(ntm.state_dict(), path+"model_parameters")
         # save initial arguments of ntm

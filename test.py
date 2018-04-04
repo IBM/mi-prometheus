@@ -5,7 +5,7 @@ import numpy as np
 np.random.seed(19092)
 
 # read training arguments
-path = "/Users/younesbouhadajr/Documents/Neural_Network/working_memory/Models/"
+path = "./Models/"
 read_arguments = np.load(path+"ntm_arguments.npy").item()
 
 # data_gen generator x,y
