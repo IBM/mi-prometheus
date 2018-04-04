@@ -59,7 +59,7 @@ for inputs, targets, seq_length in data_gen:
     # assign loss to each sequence type
     loss_sequences_types[len(seq_length)-1] = float(loss)
 
-    if not(epoch % 5000) and epoch != 0 and 0:
+    if not(epoch % 5000) and epoch != 0:
         print(states_test[1])
         input("pause")
 
