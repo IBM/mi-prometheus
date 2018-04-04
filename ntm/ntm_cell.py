@@ -37,10 +37,15 @@ class NTMCell(nn.Module):
         combined = torch.cat((tm_state, tm_input), dim=-1)
         f = self.tm_i2w(combined)
         f = F.sigmoid(f)
-        wt_address_0 = torch.zeros_like(wt)
-        wt_address_0[:, :, 0] = 1
+        #input("pause")
+        rN = 7
+        wt_address = torch.zeros_like(wt)
+        wt_address[:, 0, 0] = 1
+        wt_address[:, 1, rN-1] = 1
+
         f = f[..., None]
-        wt = f * wt_address_0 + (1 - f) * wt
+        #print(wt_address.size(), wt[:, 0, :].size())
+        wt = f * wt_address + (1 - f) * wt
 
         # step1: read from memory using attention
         read_data = self.interface.read(wt, mem)

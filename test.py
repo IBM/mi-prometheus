@@ -1,19 +1,23 @@
 import torch
-from data_gen.build_data_scratch_pad import init_state, build_data_gen
+from data_gen.build_data_scratch_pad_t3 import init_state, build_data_gen
 from ntm.ntm_layer import NTM
 import numpy as np
-np.random.seed(19092)
+import os
+
+os.system('pwd')
+input("pause")
+#np.random.seed(19092)
 
 # read training arguments
-path = "/Users/younesbouhadajr/Documents/Neural_Network/working_memory/Models/"
+path = "./Models/"
 read_arguments = np.load(path+"ntm_arguments.npy").item()
 
 # data_gen generator x,y
 batch_size = 1
-min_len = 50
-max_len = 80
+min_len = 20
+max_len = 40
 bias = 0.5
-nb_markers_max = 6
+nb_markers_max = 8
 element_size = read_arguments['element_size']
 
 # init state, memory, attention

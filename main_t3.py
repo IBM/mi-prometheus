@@ -2,7 +2,6 @@ import torch
 from torch import nn
 from data_gen.build_data_scratch_pad import init_state, build_data_gen
 from ntm.ntm_layer import NTM
-from data_gen.plot_data import plot_memory_attention
 import numpy as np
 torch.manual_seed(2)
 np.random.seed(0)
@@ -20,7 +19,7 @@ loss_sequences_types = [0,] * (nb_markers_max+1)
 tm_in_dim = element_size + 2
 tm_output_units = element_size
 tm_state_units = 2
-n_heads = 2
+n_heads = 1
 M = 10
 is_cam = False
 num_shift = 3
@@ -44,14 +43,13 @@ data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_m
 for inputs, targets, seq_length in data_gen:
 
     # Init state, memory, attention
-    nb_recall = len(seq_length)-1
-    N = 21# max(seq_length) + 1
+    N = max(seq_length) + 1
     _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
 
     optimizer.zero_grad()
 
     output, states_test = ntm(inputs, states)
-    loss = criterion(output[:, -(seq_length[-1]+nb_recall):, :], targets)
+    loss = criterion(output[:, -seq_length[-1]:, :], targets)
 
     print(", epoch: %d, loss: %1.5f, N %d " % (epoch + 1, loss, N), "seq_lengths:", seq_length)
 
@@ -61,8 +59,7 @@ for inputs, targets, seq_length in data_gen:
     # assign loss to each sequence type
     loss_sequences_types[len(seq_length)-1] = float(loss)
 
-    if not(epoch % 10000) and epoch != 0:
-        plot_memory_attention(states_test[2], states_test[1])
+    if not(epoch % 5000) and epoch != 0 and 0:
         print(states_test[1])
         input("pause")
 
