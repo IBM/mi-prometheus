@@ -9,15 +9,15 @@ np.random.seed(0)
 
 # data_gen generator x,y
 batch_size = 1
-min_len = 10
-max_len = 20
+min_len = 5
+max_len = 15
 bias = 0.5
 element_size = 8
 nb_markers_max = 3
 loss_sequences_types = [0,] * (nb_markers_max+1)
 
 # init state, memory, attention
-tm_in_dim = element_size + 2
+tm_in_dim = element_size + 3
 tm_output_units = element_size
 tm_state_units = 2
 n_heads = 2
@@ -35,6 +35,7 @@ ntm = NTM(tm_in_dim, tm_output_units,tm_state_units, n_heads, is_cam, num_shift,
 # Set loss and optimizer
 criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(ntm.parameters(), lr=0.01)
+#optimizer = torch.optim.RMSprop(ntm.parameters(), lr=0.001, momentum=0.9, alpha=0.95)
 
 # Start Training
 epoch = 0
@@ -45,7 +46,7 @@ for inputs, targets, seq_length in data_gen:
 
     # Init state, memory, attention
     nb_recall = len(seq_length)-1
-    N = 21# max(seq_length) + 1
+    N = 130# max(seq_length) + 1
     _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
 
     optimizer.zero_grad()
@@ -61,10 +62,9 @@ for inputs, targets, seq_length in data_gen:
     # assign loss to each sequence type
     loss_sequences_types[len(seq_length)-1] = float(loss)
 
-    if not(epoch % 10000) and epoch != 0:
+    if not(epoch % 10000) and epoch != 0 and 0:
         plot_memory_attention(states_test[2], states_test[1])
         print(states_test[1])
-        input("pause")
 
     if loss < 1e-5:
         print("convergence of sequence type:", len(seq_length)-1)

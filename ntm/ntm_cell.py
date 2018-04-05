@@ -38,13 +38,12 @@ class NTMCell(nn.Module):
         f = self.tm_i2w(combined)
         f = F.sigmoid(f)
         #input("pause")
-        rN = 7
+        rN = 60
         wt_address = torch.zeros_like(wt)
         wt_address[:, 0, 0] = 1
-        wt_address[:, 1, rN-1] = 1
+        wt_address[:, 1, rN] = 1
 
         f = f[..., None]
-        #print(wt_address.size(), wt[:, 0, :].size())
         wt = f * wt_address + (1 - f) * wt
 
         # step1: read from memory using attention
