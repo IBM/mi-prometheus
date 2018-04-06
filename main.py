@@ -6,7 +6,7 @@ from data_gen.plot_data import plot_memory_attention
 import numpy as np
 import torch.cuda as cuda
 
-CUDA = cuda.is_available()
+CUDA = False
 # set seed
 torch.manual_seed(2)
 np.random.seed(0)
@@ -38,7 +38,7 @@ args_save = {'tm_in_dim': tm_in_dim, 'tm_output_units': tm_output_units, 'tm_sta
 # Instantiate
 ntm = NTM(tm_in_dim, tm_output_units, tm_state_units, n_heads, is_cam, num_shift, M)
 if CUDA:
-    ntm = NTM(tm_in_dim, tm_output_units, tm_state_units, n_heads, is_cam, num_shift, M)
+    ntm.cuda()
 
 # Set loss and optimizer
 criterion = nn.BCELoss()

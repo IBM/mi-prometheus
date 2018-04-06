@@ -3,7 +3,7 @@ import pdb
 
 import numpy as np
 
-CUDA = torch.cuda.is_available()
+CUDA = False
 dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 
 def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
