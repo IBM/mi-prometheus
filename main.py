@@ -4,6 +4,7 @@ from data_gen.build_data_scratch_pad import init_state, build_data_gen
 from ntm.ntm_layer import NTM
 from data_gen.plot_data import plot_memory_attention
 import numpy as np
+from torch.autograd import Variable
 import torch.cuda as cuda
 
 CUDA = False

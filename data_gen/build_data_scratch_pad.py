@@ -1,19 +1,20 @@
 import torch
 import pdb
-
+from torch.autograd import Variable
 import numpy as np
 
 CUDA = False
 dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 
+
 def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
     rN = 60
-    tm_output = torch.ones((batch_size, tm_output_units)).type(dtype)
-    tm_state = torch.ones((batch_size, tm_state_units)).type(dtype)
-    wt = torch.zeros((batch_size, n_heads, N)).type(dtype)
+    tm_output = Variable(torch.ones((batch_size, tm_output_units)).type(dtype))
+    tm_state = Variable(torch.ones((batch_size, tm_state_units)).type(dtype))
+    wt = Variable(torch.zeros((batch_size, n_heads, N)).type(dtype))
     wt[:, 0, 0] = 1.0
 
-    mem_t = (torch.ones((batch_size, M, N)) * 0.01).type(dtype)
+    mem_t = Variable((torch.ones((batch_size, M, N)) * 0.01).type(dtype))
 
     states = [tm_state, wt, mem_t]
     return tm_output, states
@@ -66,9 +67,9 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_
         dummy_input[:, :, 2] = 1
         inputs = np.concatenate((inputs, dummy_input), axis=1)
 
-        inputs = torch.from_numpy(inputs).type(dtype)
-        target = torch.from_numpy(target).type(dtype)
-        #print("seq_length:", seq_lengths)
+        inputs = Variable(torch.from_numpy(inputs).type(dtype))
+        target = Variable(torch.from_numpy(target).type(dtype))
+        #print("seq_length:", seq_lengths))
         #print("nb_markers:", nb_markers)
 
         yield inputs, target, seq_lengths
