@@ -38,21 +38,21 @@ def plot_memory(memory):
     plt.pause(0.1)
     #input("pause")
 
-mem_t = np.ones((1, 8, 60)) * 0.01
-
-i=0
-while True:
-    for i in range(i, i+3):
-        seq = np.random.binomial(1, 0.5, (1, 1, 8))
-        mem_t[:,:,i] = seq
-        plot_memory(mem_t)
-
-    for j in range(5):
-        seq = np.random.binomial(1, 0.5, (1, 1, 8))
-        mem_t[:,:,j+45] = seq
-        plot_memory(mem_t)
-        if i == 40:
-            break
+# mem_t = np.ones((1, 8, 60)) * 0.01
+#
+# i=0
+# while True:
+#     for i in range(i, i+3):
+#         seq = np.random.binomial(1, 0.5, (1, 1, 8))
+#         mem_t[:,:,i] = seq
+#         plot_memory(mem_t)
+#
+#     for j in range(5):
+#         seq = np.random.binomial(1, 0.5, (1, 1, 8))
+#         mem_t[:,:,j+45] = seq
+#         plot_memory(mem_t)
+#         if i == 40:
+#             break
 
 
 #ax = plt.axes(xlim=(0, 10), ylim=(0, 10))

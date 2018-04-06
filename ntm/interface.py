@@ -66,7 +66,7 @@ class Interface:
             s, γ, erase, add = data_splits
 
         s = F.softmax(F.softplus(s), dim=-1)    # shift weighting (determines how the weight is rotated)
-        γ = 1 + F.softplus(γ)                   # used for weight sharpening
+        γ = 1 + F.relu(γ)                   # used for weight sharpening
         erase = F.sigmoid(erase)                # erase memory content
 
         # Update memory and attention
