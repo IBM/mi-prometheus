@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from data_gen.build_data_scratch_pad_t3 import init_state, build_data_gen
+from data_gen.build_data_scratch_pad import init_state, build_data_gen
 from ntm.ntm_layer import NTM
 from data_gen.plot_data import plot_memory_attention
 import numpy as np
@@ -20,7 +20,7 @@ loss_sequences_types = [0,] * (nb_markers_max+1)
 tm_in_dim = element_size + 3
 tm_output_units = element_size
 tm_state_units = 2
-n_heads = 2
+n_heads = 1
 M = 10
 is_cam = False
 num_shift = 3
