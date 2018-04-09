@@ -4,6 +4,10 @@ import pdb
 import numpy as np
 
 
+##################################
+## Descritption of data generation:
+## input: x,y,x,y,x,y,x,y,x,y,x,y
+###################################
 def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
     tm_output = torch.ones((batch_size, tm_output_units))
     tm_state = torch.ones((batch_size, tm_state_units))

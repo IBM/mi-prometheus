@@ -21,6 +21,7 @@ class NTMCell(nn.Module):
         super(NTMCell, self).__init__()
         tm_state_in = tm_state_units + tm_in_dim
         self.tm_i2w_0 = nn.Linear(tm_state_in, num_heads)
+        self.tm_i2w_N = nn.Linear(tm_state_in, num_heads)
         self.tm_i2w_dynamic = nn.Linear(tm_state_in, num_heads)
 
         # build the interface and controller
@@ -39,18 +40,25 @@ class NTMCell(nn.Module):
         f = self.tm_i2w_0(combined)
         f = F.sigmoid(f)
 
+        g = self.tm_i2w_N(combined)
+        g = F.sigmoid(g)
+
         h = self.tm_i2w_dynamic(combined)
         h = F.sigmoid(h)
 
         #input("pause")
         rN = 60
         wt_address_0 = torch.zeros_like(wt)
+        wt_address_N = torch.zeros_like(wt)
+
         wt_address_0[:, 0, 0] = 1
+        wt_address_N[:, 0, rN] = 1
 
         #f = f[..., None]
-        # wt_address = h * wt_address_0 + (1 - h) * wt
-        wt_address = f * wt_address_0 + (1 - f) * wt
+
+        wt_address = h * wt_address_0 + (1 - h) * wt
         wt = f * wt_address + (1 - f) * wt
+        wt = g * wt_address_N + (1 - g) * wt
 
         # step1: read from memory using attention
         read_data = self.interface.read(wt, mem)

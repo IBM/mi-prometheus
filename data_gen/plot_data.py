@@ -19,7 +19,7 @@ def plot_memory_attention(memory, wt):
     ax1.set_ylabel("Attention", fontname='Times New Roman', fontsize=15)
     ax1.set_title('Scratch Pad task, seq_lengths: ', fontname='Times New Roman', fontsize=15)
 
-    ax1.plot(np.arange(wt.size()[-1]), wt[0, 1, :].detach().numpy(), 'go')
+    ax1.plot(np.arange(wt.size()[-1]), wt[0, 0, :].detach().numpy(), 'go')
 
     plt.pause(0.01)
 
