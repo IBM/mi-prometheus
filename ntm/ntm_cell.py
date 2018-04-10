@@ -3,7 +3,8 @@ from torch import nn
 import torch.nn.functional as F
 from ntm.controller import Controller
 from ntm.interface import Interface
-from data_gen.plot_data import plot_memory_attention
+# from data_gen.plot_data import plot_memory_attention
+
 
 class NTMCell(nn.Module):
     def __init__(self, tm_in_dim, tm_output_units, tm_state_units,
@@ -19,6 +20,7 @@ class NTMCell(nn.Module):
         :param M: Number of slots per address in the memory bank.
         """
         super(NTMCell, self).__init__()
+
         tm_state_in = tm_state_units + tm_in_dim
         self.tm_i2w = nn.Linear(tm_state_in, num_heads)
 
