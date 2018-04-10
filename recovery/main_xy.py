@@ -9,12 +9,11 @@ np.random.seed(0)
 
 # data_gen generator x,y
 batch_size = 1
-min_len = 5
-max_len = 15
+min_len = 1
+max_len = 8
 bias = 0.5
 element_size = 8
 nb_markers_max = 3
-loss_sequences_types = [0,] * (nb_markers_max+1)
 
 # init state, memory, attention
 tm_in_dim = element_size + 1
@@ -39,13 +38,15 @@ optimizer = torch.optim.Adam(ntm.parameters(), lr=0.01)
 
 # Start Training
 epoch = 0
+debug_active = False
+debug = 7000
 
 # Data generator : input & target
 data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_max)
 for inputs, targets, seq_length in data_gen:
 
     # Init state, memory, attention
-    N = 130# max(seq_length) + 1
+    N = 30# max(seq_length) + 1
     _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
 
     optimizer.zero_grad()
@@ -57,6 +58,11 @@ for inputs, targets, seq_length in data_gen:
 
     loss.backward()
     optimizer.step()
+
+    if not(epoch % debug) and epoch != 0 and debug_active:
+        plot_memory_attention(states_test[2], states_test[1])
+        print(states_test[1])
+        debug = 200
 
     # check if all sequence types are converged
     if loss < 1e-5 :

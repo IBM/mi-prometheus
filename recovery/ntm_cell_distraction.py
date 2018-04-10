@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from ntm.controller import Controller
 from ntm.interface import Interface
 from data_gen.plot_data import plot_memory_attention
+from ntm.tensor_utils import normalize
 
 class NTMCell(nn.Module):
     def __init__(self, tm_in_dim, tm_output_units, tm_state_units,
@@ -21,14 +22,14 @@ class NTMCell(nn.Module):
         super(NTMCell, self).__init__()
         tm_state_in = tm_state_units + tm_in_dim
         self.tm_i2w_0 = nn.Linear(tm_state_in, num_heads)
-        self.tm_i2w_dynamic = nn.Linear(tm_state_in, num_heads)
+        self.tm_i2w_dynamic = nn.Linear(tm_state_in, 2)
 
         # build the interface and controller
         self.interface = Interface(num_heads, is_cam, num_shift, M)
         self.controller = Controller(tm_in_dim, tm_output_units, tm_state_units,
                                      self.interface.read_size, self.interface.update_size)
 
-    def forward(self, tm_input, state):
+    def forward(self, tm_input, state, wt_address_dynamic):
         tm_state, wt, mem = state
 
         # plot attention/memory
@@ -39,16 +40,17 @@ class NTMCell(nn.Module):
         f = self.tm_i2w_0(combined)
         f = F.sigmoid(f)
 
-        # h = self.tm_i2w_dynamic(combined)
-        # h = F.sigmoid(h)
-        rN = 30
+        h = self.tm_i2w_dynamic(combined)
+        h = F.sigmoid(h)
+
         wt_address_0 = torch.zeros_like(wt)
         wt_address_0[:, 0, 0] = 1
-        #wt_address[:, 1, rN] = 1
 
-        #f = f[..., None]
-        # wt_address = h * wt_address_0 + (1 - h) * wt
-        wt = f * wt_address_0 + (1 - f) * wt
+        wt_address_dynamic = (1 - h) * wt + h * wt_address_dynamic
+
+        wt = (1 - f[:,0]) * (1 - f[:,1]) * wt_address_0 \
+                 + (1 - f[:,0]) * f[:,1] * wt \
+                 + f[:, 0] * (1 - f[:, 1]) * wt_address_dynamic
 
         # step1: read from memory using attention
         read_data = self.interface.read(wt, mem)
@@ -60,4 +62,4 @@ class NTMCell(nn.Module):
         wt, mem = self.interface.update(update_data, wt, mem)
 
         state = tm_state, wt, mem
-        return tm_output, state
+        return tm_output, state, wt_address_dynamic

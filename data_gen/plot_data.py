@@ -21,7 +21,7 @@ def plot_memory_attention(memory, wt):
 
     ax1.plot(np.arange(wt.size()[-1]), wt[0, 0, :].detach().numpy(), 'go')
 
-    plt.pause(0.01)
+    plt.pause(3)
 
 
 def plot_memory(memory):

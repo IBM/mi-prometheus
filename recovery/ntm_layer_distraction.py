@@ -24,10 +24,10 @@ class NTM(nn.Module):
         self.NTMCell = NTMCell(tm_in_dim, tm_output_units, tm_state_units,
                                num_heads, is_cam, num_shift, M)
 
-    def forward(self, x, state):           # x : batch_size, seq_len, input_size
+    def forward(self, x, state, wt_dynamic):           # x : batch_size, seq_len, input_size
         output = None
         for j in range(x.size()[-2]):
-            tm_output, state = self.NTMCell(x[..., j, :], state)
+            tm_output, state, wt_dynamic = self.NTMCell(x[..., j, :], state, wt_dynamic)
 
             if tm_output is None:
                 continue

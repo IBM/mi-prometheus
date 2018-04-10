@@ -42,13 +42,12 @@ class NTMCell(nn.Module):
         # h = self.tm_i2w_dynamic(combined)
         # h = F.sigmoid(h)
         rN = 30
-        wt_address_0 = torch.zeros_like(wt)
-        wt_address_0[:, 0, 0] = 1
-        #wt_address[:, 1, rN] = 1
+        wt_address = torch.zeros_like(wt)
+        wt_address[:, 0, 0] = 1
+        wt_address[:, 1, rN] = 1
 
         #f = f[..., None]
-        # wt_address = h * wt_address_0 + (1 - h) * wt
-        wt = f * wt_address_0 + (1 - f) * wt
+        wt = f * wt_address + (1 - f) * wt
 
         # step1: read from memory using attention
         read_data = self.interface.read(wt, mem)

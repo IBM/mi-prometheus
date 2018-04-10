@@ -49,7 +49,7 @@ class Controller(nn.Module):
             hidden = combined
             tm_output = self.tm_i2o(hidden)
             tm_output = F.sigmoid(tm_output)
-            if np.isnan(np.sum(tm_output.data.numpy())):
+            if np.isnan(torch.sum(tm_output.data)):
                 pdb.set_trace()
 
         # Get the state and update; no activation is applied

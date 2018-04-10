@@ -2,6 +2,7 @@ import torch
 import pdb
 from torch.autograd import Variable
 import numpy as np
+import sys
 
 CUDA = False
 dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
@@ -20,6 +21,9 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
 
 
 def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_max):
+    for x in sys.argv:
+        print("Argument: ", x)
+
     channel_length = 3
     dummy_size = element_size + channel_length
 
@@ -35,6 +39,8 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_
         # set the position of markers
         shift = np.arange(nb_sub_seq_a)
         position_markers_a = np.cumsum(seq_lengths_a[:-1] + seq_lengths_b[:-1])
+        position_markers_a = np.append(position_markers_a, sum(seq_lengths_a)+sum(seq_lengths_b))
+
         position_markers_b = np.cumsum(seq_lengths_a[1:] + seq_lengths_b[:-1])
         position_markers_b = np.append(seq_lengths_a[0], position_markers_b+seq_lengths_a[0])
 
@@ -74,7 +80,6 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_
 a = build_data_gen(3, 6, 1, 0.5, 8, 5)
 
 for inputs, target, seq_length in a:
-    print("seq_length", seq_length)
     print("inputs", inputs)
     print("target", target)
     break
