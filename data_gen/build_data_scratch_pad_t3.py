@@ -57,10 +57,10 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_
 
         yield inputs, target, seq_lengths
 
-
-#a = build_data_gen(3, 6, 1, 0.5, 5)
+#a = build_data_gen(3, 6, 1, 0.5, 8, 5)
 
 #for inputs, target, seq_length in a:
-#    print(inputs)
-#    print(target)
+#    print("seq_length", seq_length)
+#    print("inputs", inputs)
+#    print("target", target)
 #    break
