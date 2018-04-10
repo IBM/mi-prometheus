@@ -48,8 +48,8 @@ class NTMCell(nn.Module):
         wt_address_0[:, 0, 0] = 1
 
         #f = f[..., None]
-        # wt_address = h * wt_address_0 + (1 - h) * wt
-        wt_address = f * wt_address_0 + (1 - f) * wt
+        wt_address = h * wt_address_0 + (1 - h) * wt
+        #wt_address = f * wt_address_0 + (1 - f) * wt
         wt = f * wt_address + (1 - f) * wt
 
         # step1: read from memory using attention

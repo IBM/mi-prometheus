@@ -48,8 +48,8 @@ optimizer = torch.optim.Adam(ntm.parameters(), lr=0.01)
 # Start Training
 epoch = 0
 debug = 10000
-valid = 50
-debug_active = 1
+valid = 100
+debug_active = 0
 # Data generator : input & target
 data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_max)
 for inputs, targets, seq_length in data_gen:
@@ -73,7 +73,7 @@ for inputs, targets, seq_length in data_gen:
         print(states_test[1])
         debug = 50
 
-    if epoch == 8000:
+    if (epoch==40000) or (loss < 1e-5 and len(seq_length)>=2):
         print("convergence of sequence type:", len(seq_length)-1)
         path = "./Models/"
         # save model parameters
