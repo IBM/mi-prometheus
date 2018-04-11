@@ -22,7 +22,7 @@ class NTMCell(nn.Module):
         super(NTMCell, self).__init__()
         tm_state_in = tm_state_units + tm_in_dim
         self.tm_i2w_0 = nn.Linear(tm_state_in, num_heads)
-        self.tm_i2w_dynamic = nn.Linear(tm_state_in, 3)
+        self.tm_i2w_dynamic = nn.Linear(tm_state_in, 2)
 
         # build the interface and controller
         self.interface = Interface(num_heads, is_cam, num_shift, M)
@@ -41,20 +41,20 @@ class NTMCell(nn.Module):
         f = F.sigmoid(f)
 
         h = self.tm_i2w_dynamic(combined)
-        h = F.softmax(h, dim=-1)
+        h = F.sigmoid(h)
 
         wt_address_0 = torch.zeros_like(wt)
         wt_address_0[:, 0, 0] = 1
 
         wt_address_dynamic = (1 - f) * wt + f * wt_address_dynamic
 
-        # wt = (1 - h[:,0]) * (1 - h[:,1]) * wt_address_0 \
-        #          + (1 - h[:,0]) * h[:,1] * wt \
-        #          + h[:, 0] * (1 - h[:, 1]) * wt_address_dynamic
+        wt = (1 - h[:,0]) * (1 - h[:,1]) * wt_address_0 \
+                  + (1 - h[:,0]) * h[:,1] * wt \
+                  + h[:, 0] * (1 - h[:, 1]) * wt_address_dynamic
 
-        wt = h[:,0]* wt_address_0 \
-           + h[:,1] * wt \
-           + h[:,2] * wt_address_dynamic
+        # wt = h[:,0]* wt_address_0 \
+        #    + h[:,1] * wt \
+        #    + h[:,2] * wt_address_dynamic
 
 
         # step1: read from memory using attention

@@ -33,8 +33,8 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_
         seq_lengths_a = np.random.randint(low=min_len, high=max_len + 1, size= nb_sub_seq_a)
         seq_lengths_b = np.random.randint(low=min_len, high=max_len + 1, size= nb_sub_seq_b)
 
-        print("x", seq_lengths_a)
-        print("y", seq_lengths_b)
+        #print("x", seq_lengths_a)
+        #print("y", seq_lengths_b)
 
         # set the position of markers
         shift = np.arange(nb_sub_seq_a)
@@ -47,9 +47,11 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_
         # set values of marker
         marker_a = np.zeros((1, 1, element_size + channel_length))
         marker_b = np.zeros((1, 1, element_size + channel_length))
+        marker_c = np.zeros((1, 1, element_size + channel_length))
 
-        marker_a[:, :, 0] = 1
-        marker_b[:, :, 1] = 1
+        marker_a[:, :, 1] = 1
+        marker_b[:, :, 0] = 1
+        marker_c[:, :, 0:2] = 1
 
         # Create the sequence
         seq = np.random.binomial(1, bias, (batch_size, sum(seq_lengths_b)+sum(seq_lengths_a), element_size))
@@ -60,17 +62,19 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_
         # Add markers
         if nb_sub_seq_a != 0:
             inputs = np.insert(inputs, tuple(position_markers_a), marker_a, axis=1)
-            inputs = np.insert(inputs, tuple(position_markers_b)+shift, marker_b, axis=1)
+            inputs = np.insert(inputs, tuple(position_markers_b)+ shift, marker_b, axis=1)
 
         # insert_dummies for ys reading
-        temp = 2
-        for i in range(nb_sub_seq_a):
-            shift_dummy = shift + temp
+        shift_dummy = 2*np.arange(1, nb_sub_seq_a+1)
+        for i in range(nb_sub_seq_b):
             dummy_y = np.zeros((batch_size, seq_lengths_b[i], dummy_size))
             dummy_y[:,:,2] = 1
+
+            dummy_y = np.append(dummy_y, marker_c, axis=1)
+
             inputs = np.insert(inputs, [position_markers_a[i] + shift_dummy[i]], dummy_y, axis=1)
-            j = i + 1
-            temp = seq_lengths_b[i] + j + 2
+            temp = seq_lengths_b[i] + 1
+            shift_dummy = shift_dummy + temp
 
         target = seq[:, position_markers_b[0]:position_markers_a[0], :]
         for i in range(1, nb_sub_seq_b):
@@ -82,18 +86,20 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_
             target = np.concatenate((target, seq[:, position_markers_a[i]:position_markers_b[i+1], :]),
                                     axis=1)
 
-        dummy_input = np.zeros((batch_size, sum(seq_lengths_a)+seq_lengths_b[-1], dummy_size))
+        dummy_input = np.zeros((batch_size, sum(seq_lengths_a), dummy_size))
         dummy_input[:, :, 2] = 1
         inputs = np.concatenate((inputs, dummy_input), axis=1)
 
         inputs = Variable(torch.from_numpy(inputs).type(dtype))
         target = Variable(torch.from_numpy(target).type(dtype))
+        mask = (inputs[0,:,2] == 1)
 
-        yield inputs, target, sum(seq_lengths_a)+seq_lengths_b[-1]
+        yield inputs, target, nb_sub_seq_b, mask
 
 a = build_data_gen(3, 6, 1, 0.5, 8, 5)
 
-for inputs, target, seq_length in a:
-    print("inputs", inputs)
-    print("target", target)
-    break
+# for inputs, target, nb_marker, mask in a:
+#     print(mask)
+#     print("inputs", inputs)
+#     print("target", target)
+#     break
