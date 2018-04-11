@@ -41,7 +41,7 @@ class NTMCell(nn.Module):
         f = F.sigmoid(f)
 
         h = self.tm_i2w_dynamic(combined)
-        h = F.sigmoid(h)
+        h = F.softmax(h, dim=-1)
 
         wt_address_0 = torch.zeros_like(wt)
         wt_address_0[:, 0, 0] = 1
@@ -51,8 +51,6 @@ class NTMCell(nn.Module):
         # wt = (1 - h[:,0]) * (1 - h[:,1]) * wt_address_0 \
         #          + (1 - h[:,0]) * h[:,1] * wt \
         #          + h[:, 0] * (1 - h[:, 1]) * wt_address_dynamic
-
-        h = normalize(h)
 
         wt = h[:,0]* wt_address_0 \
            + h[:,1] * wt \
