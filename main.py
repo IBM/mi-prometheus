@@ -53,7 +53,7 @@ valid = 100
 debug_active = 0
 # Data generator : input & target
 data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_max)
-for inputs, targets, seq_length_x in data_gen:
+for inputs, targets, seq_length in data_gen:
 
     # Init state, memory, attention
     N = 50# max(seq_length) + 1
@@ -61,10 +61,10 @@ for inputs, targets, seq_length_x in data_gen:
 
     optimizer.zero_grad()
 
-    output, states_test = ntm(inputs, states)
-    loss = criterion(output[:, -(sum(seq_length_x)):, :], targets)
+    output, states_test = ntm(inputs, states, states[1])
+    loss = criterion(output[:, -seq_length:, :], targets)
 
-    print(", epoch: %d, loss: %1.5f, N %d " % (epoch + 1, loss, N), "seq_lengths:", seq_length_x)
+    print(", epoch: %d, loss: %1.5f, N %d " % (epoch + 1, loss, N), "seq_lengths:", seq_length)
 
     loss.backward()
     optimizer.step()
@@ -74,8 +74,7 @@ for inputs, targets, seq_length_x in data_gen:
         print(states_test[1])
         debug = 50
 
-    if (epoch==40000) or (loss < 1e-5 and len(seq_length_x)>=2):
-        print("convergence of sequence type:", len(seq_length_x)-1)
+    if (epoch==40000) or (loss < 1e-5):
         path = "./Models/"
         # save model parameters
         torch.save(ntm.state_dict(), path+"model_parameters")
@@ -85,7 +84,7 @@ for inputs, targets, seq_length_x in data_gen:
 
     if not(epoch % valid) and epoch != 0:
         # test accuracy
-        output = torch.round(output[:, -(sum(seq_length_x)):, :])
+        output = torch.round(output[:, -seq_length:, :])
         acc = 1 - torch.abs(output - targets)
         accuracy = acc.mean()
         print("Accuracy: %.6f" % (accuracy * 100) + "%")

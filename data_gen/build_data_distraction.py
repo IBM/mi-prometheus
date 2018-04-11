@@ -21,9 +21,6 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
 
 
 def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_max):
-    for x in sys.argv:
-        print("Argument: ", x)
-
     channel_length = 3
     dummy_size = element_size + channel_length
 
@@ -35,6 +32,9 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_
         # set the sequence length of each marker
         seq_lengths_a = np.random.randint(low=min_len, high=max_len + 1, size= nb_sub_seq_a)
         seq_lengths_b = np.random.randint(low=min_len, high=max_len + 1, size= nb_sub_seq_b)
+
+        #print("x", seq_lengths_a)
+        #print("y", seq_lengths_b)
 
         # set the position of markers
         shift = np.arange(nb_sub_seq_a)
@@ -62,20 +62,20 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_
             inputs = np.insert(inputs, tuple(position_markers_a), marker_a, axis=1)
             inputs = np.insert(inputs, tuple(position_markers_b)+shift, marker_b, axis=1)
 
-        #position_target = np.append(np.arange())
         target = seq[:, :position_markers_b[0], :]
         for i in range(nb_sub_seq_a-1):
             target = np.concatenate((target, seq[:, position_markers_a[i]:position_markers_b[i+1], :]),
                                     axis=1)
+        target = np.concatenate((target, seq[:, -seq_lengths_b[-1]:, :]), axis=1)
 
-        dummy_input = np.zeros((batch_size, sum(seq_lengths_a), dummy_size))
+        dummy_input = np.zeros((batch_size, sum(seq_lengths_a)+seq_lengths_b[-1], dummy_size))
         dummy_input[:, :, 2] = 1
         inputs = np.concatenate((inputs, dummy_input), axis=1)
 
         inputs = Variable(torch.from_numpy(inputs).type(dtype))
         target = Variable(torch.from_numpy(target).type(dtype))
 
-        yield inputs, target, seq_lengths_a
+        yield inputs, target, sum(seq_lengths_a)+seq_lengths_b[-1]
 
 a = build_data_gen(3, 6, 1, 0.5, 8, 5)
 

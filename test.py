@@ -42,14 +42,13 @@ for inputs, targets, seq_length in data_gen:
 
     # Init state, memory, attention
     N = 80 #max(seq_length)
-    print(len(seq_length))
     _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
     print('sub_sequences_length', seq_length)
 
-    output, states = ntm(inputs, states)
+    output, states = ntm(inputs, states, states[1])
 
     # test accuracy
-    output = torch.round(output[:, -sum(seq_length):, :])
+    output = torch.round(output[:, -seq_length:, :])
     acc = 1 - torch.abs(output-targets)
     accuracy = acc.mean()
     print("Accuracy: %.6f" % (accuracy * 100) + "%")

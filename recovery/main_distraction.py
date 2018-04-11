@@ -95,6 +95,5 @@ for inputs, targets, seq_length_x in data_gen:
 print("Learning finished!")
 
 
-#ok I see...thank u once again for your effort
 
 
