@@ -3,8 +3,9 @@ from torch import nn
 import torch.nn.functional as F
 from ntm.controller import Controller
 from ntm.interface import Interface
-from data_gen.plot_data import plot_memory_attention
+
 from ntm.tensor_utils import normalize
+
 
 class NTMCell(nn.Module):
     def __init__(self, tm_in_dim, tm_output_units, tm_state_units,
@@ -22,6 +23,7 @@ class NTMCell(nn.Module):
         super(NTMCell, self).__init__()
         tm_state_in = tm_state_units + tm_in_dim
         self.tm_i2w_0 = nn.Linear(tm_state_in, num_heads)
+
         self.tm_i2w_dynamic = nn.Linear(tm_state_in, 3)
 
         # build the interface and controller
@@ -31,9 +33,6 @@ class NTMCell(nn.Module):
 
     def forward(self, tm_input, state, wt_address_dynamic):
         tm_state, wt, mem = state
-
-        # plot attention/memory
-        # plot_memory_attention(mem, wt)
 
         # step 0 : shift to address 0?
         combined = torch.cat((tm_state, tm_input), dim=-1)
@@ -56,7 +55,6 @@ class NTMCell(nn.Module):
         wt = h[:,0]* wt_address_0 \
             + h[:,1] * wt \
             + h[:,2] * wt_address_dynamic
-
 
         # step1: read from memory using attention
         read_data = self.interface.read(wt, mem)

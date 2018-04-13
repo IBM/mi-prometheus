@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from data_gen.build_data_distraction import init_state, build_data_gen
+from data_gen.build_data_distraction import init_state, build_data_distraction
 from ntm.ntm_layer import NTM
 from data_gen.plot_data import plot_memory_attention
 import numpy as np
@@ -24,7 +24,7 @@ element_size = 8
 nb_markers_max = 4
 
 # init state, memory, attention
-tm_in_dim = element_size + 3
+tm_in_dim = element_size + 4
 tm_output_units = element_size
 tm_state_units = 5
 n_heads = 1
@@ -52,7 +52,7 @@ debug = 10000
 valid = 100
 debug_active = 0
 # Data generator : input & target
-data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_max)
+data_gen = build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_markers_max)
 for inputs, targets, nb_marker, mask in data_gen:
 
     # Init state, memory, attention
@@ -75,7 +75,7 @@ for inputs, targets, nb_marker, mask in data_gen:
         print(states_test[1])
         debug = 50
 
-    if (epoch==40000) or (loss < 1e-5):
+    if nb_marker == 3 and (loss < 1e-5):
         path = "./Models/"
         # save model parameters
         torch.save(ntm.state_dict(), path+"model_parameters")

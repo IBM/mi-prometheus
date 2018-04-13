@@ -1,11 +1,16 @@
-import torch
-import pdb
-from torch.autograd import Variable
 import numpy as np
-import sys
+import torch
+from torch.autograd import Variable
 
 CUDA = False
 dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
+
+
+def my_print(name, var):
+    print('=================')
+    print(name)
+    print(var)
+    print('================')
 
 
 def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
@@ -20,86 +25,76 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
     return tm_output, states
 
 
-def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_max):
-    channel_length = 3
-    dummy_size = element_size + channel_length
+############################################################
+#####                    Data generation            ########
+############################################################
 
+
+# now creating channel markers
+pos = [0,0,0,0]
+ctrl_data = [0,0,0,0]
+ctrl_dummy = [1,0,0,0]
+ctrl_inter = [0,0,0,1]
+
+
+# add control channels to a sequence
+def add_ctrl(seq, ctrl): return np.insert(seq, pos, ctrl, axis=-1)
+
+
+# create augmented sequence as well as end marker and a dummy sequence
+def augment(seq, ctrl_end):
+    w = add_ctrl(seq, ctrl_data)
+    end = add_ctrl(np.zeros((seq.shape[0], 1, seq.shape[2])), ctrl_end)
+    dummy = add_ctrl(np.zeros_like(seq), ctrl_dummy)
+    return [w, end, dummy]
+
+
+def build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_markers_max):
+
+    # Create a generator
     while True:
         # number of sub_sequences
         nb_sub_seq_a = np.random.randint(1, nb_markers_max)
-        nb_sub_seq_b = nb_sub_seq_a
+        nb_sub_seq_b = nb_sub_seq_a              # might be different in future implementation
 
         # set the sequence length of each marker
-        seq_lengths_a = np.random.randint(low=min_len, high=max_len + 1, size= nb_sub_seq_a)
-        seq_lengths_b = np.random.randint(low=min_len, high=max_len + 1, size= nb_sub_seq_b)
+        seq_lengths_a = np.random.randint(low=min_len, high=max_len + 1, size=nb_sub_seq_a)
+        seq_lengths_b = np.random.randint(low=min_len, high=max_len + 1, size=nb_sub_seq_b)
 
-        #print("x", seq_lengths_a)
-        #print("y", seq_lengths_b)
+        #  generate subsequences for x and y
+        x = [np.random.binomial(1, bias, (batch_size, n, element_size)) for n in seq_lengths_a]
+        y = [np.random.binomial(1, bias, (batch_size, n, element_size)) for n in seq_lengths_b]
 
-        # set the position of markers
-        shift = np.arange(nb_sub_seq_a)
-        position_markers_a = np.cumsum(seq_lengths_a[:-1] + seq_lengths_b[:-1])
-        position_markers_a = np.append(position_markers_a, sum(seq_lengths_a)+sum(seq_lengths_b))
+        # create the target
+        target = np.concatenate(y + x, axis=1)
 
-        position_markers_b = np.cumsum(seq_lengths_a[1:] + seq_lengths_b[:-1])
-        position_markers_b = np.append(seq_lengths_a[0], position_markers_b+seq_lengths_a[0])
+        xx = [augment(seq, ctrl_end=[0,1,0,0]) for seq in x]
+        yy = [augment(seq, ctrl_end=[0,0,1,0]) for seq in y]
 
-        # set values of marker
-        marker_a = np.zeros((1, 1, element_size + channel_length))
-        marker_b = np.zeros((1, 1, element_size + channel_length))
-        marker_c = np.zeros((1, 1, element_size + channel_length))
-
-        marker_a[:, :, 1] = 1
-        marker_b[:, :, 0] = 1
-        marker_c[:, :, 0:2] = 1
-
-        # Create the sequence
-        seq = np.random.binomial(1, bias, (batch_size, sum(seq_lengths_b)+sum(seq_lengths_a), element_size))
-
-        # Add two channels
-        inputs = np.insert(seq, (0, 0, 0), 0, axis=2)
-
-        # Add markers
-        if nb_sub_seq_a != 0:
-            inputs = np.insert(inputs, tuple(position_markers_a), marker_a, axis=1)
-            inputs = np.insert(inputs, tuple(position_markers_b)+ shift, marker_b, axis=1)
-
-        # insert_dummies for ys reading
-        shift_dummy = 2*np.arange(1, nb_sub_seq_a+1)
-        for i in range(nb_sub_seq_b):
-            dummy_y = np.zeros((batch_size, seq_lengths_b[i], dummy_size))
-            dummy_y[:,:,2] = 1
-
-            dummy_y = np.append(dummy_y, marker_c, axis=1)
-
-            inputs = np.insert(inputs, [position_markers_a[i] + shift_dummy[i]], dummy_y, axis=1)
-            temp = seq_lengths_b[i] + 1
-            shift_dummy = shift_dummy + temp
-
-        target = seq[:, position_markers_b[0]:position_markers_a[0], :]
-        for i in range(1, nb_sub_seq_b):
-            target = np.concatenate((target, seq[:, position_markers_b[i]:position_markers_a[i], :]),
-                                    axis=1)
-
-        target = np.concatenate((target, seq[:, :position_markers_b[0]:, :]), axis=1)
-        for i in range(nb_sub_seq_a-1):
-            target = np.concatenate((target, seq[:, position_markers_a[i]:position_markers_b[i+1], :]),
-                                    axis=1)
-
-        dummy_input = np.zeros((batch_size, sum(seq_lengths_a), dummy_size))
-        dummy_input[:, :, 2] = 1
-        inputs = np.concatenate((inputs, dummy_input), axis=1)
+        inter_seq = add_ctrl(np.zeros((batch_size, 1, element_size)), ctrl_inter)
+        data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b + [inter_seq]]
+        data_2 = [a[-1] for a in xx]
+        inputs = np.concatenate(data_1 + data_2, axis=1)
 
         inputs = Variable(torch.from_numpy(inputs).type(dtype))
         target = Variable(torch.from_numpy(target).type(dtype))
-        mask = (inputs[0,:,2] == 1)
+        mask = (inputs[0, :, 0] == 1)
 
-        yield inputs, target, nb_sub_seq_b, mask
+        yield inputs, target, nb_sub_seq_a, mask
 
-a = build_data_gen(3, 6, 1, 0.5, 8, 5)
+#########################################################################
 
-# for inputs, target, nb_marker, mask in a:
-#     print(mask)
-#     print("inputs", inputs)
-#     print("target", target)
-#     break
+a = build_data_distraction(3, 6, 1, 0.5, 8, 5)
+
+for inputs, target, nb_marker, mask in a:
+    print(mask)
+    my_print('inputs', inputs)
+    my_print('target', target)
+    break
+
+
+
+
+
+
+

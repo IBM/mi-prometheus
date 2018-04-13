@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from data_gen.plot_data import plot_memory_attention
 
 from ntm.ntm_cell import NTMCell
 
@@ -26,8 +27,30 @@ class NTM(nn.Module):
 
     def forward(self, x, state, wt_dynamic):           # x : batch_size, seq_len, input_size
         output = None
+        labelx = ''
+        i = 0
+        k = 0
         for j in range(x.size()[-2]):
             tm_output, state, wt_dynamic = self.NTMCell(x[..., j, :], state, wt_dynamic)
+
+            # plot attention/memory
+            if 0:
+                label = 'Writing sequence x' + str(k)
+                if x[..., j, 0] == 1 and x[..., j, 1] != 1 :
+                    labelx = 'Writing sequence y'+ str(i)
+                elif x[..., j, 1] == 1 and x[..., j, 0] != 1:
+                    labelx = 'Reading sequence y' + str(i)
+                    i = i + 1
+                elif x[..., j, 1] == 1 and x[..., j, 0] == 1 and x[..., j+1, 2] != 1:
+                    k = k + 1
+                    labelx = 'Writing sequence x' + str(k)
+                elif x[..., j, 1] == 1 and x[..., j, 0] == 1 and x[..., j+1, 2] == 1:
+                    labelx = 'Reading sequences x'
+
+                if labelx:
+                    label = labelx
+
+                plot_memory_attention(state[2], state[1], label)
 
             if tm_output is None:
                 continue

@@ -3,7 +3,7 @@ import matplotlib.ticker as ticker
 from time import sleep
 import numpy as np
 
-def plot_memory_attention(memory, wt):
+def plot_memory_attention(memory, wt, label):
     plt.clf()
     fig = plt.figure(1)
     ax1 = fig.add_subplot(211)
@@ -17,9 +17,12 @@ def plot_memory_attention(memory, wt):
 
     ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
     ax1.set_ylabel("Attention", fontname='Times New Roman', fontsize=15)
-    ax1.set_title('Distraction task, seq_lengths: ', fontname='Times New Roman', fontsize=15)
+    # ax1.set_title('Distraction task: ', fontname='Times New Roman', fontsize=15)
 
     ax1.plot(np.arange(wt.size()[-1]), wt[0, 0, :].detach().numpy(), 'go')
+
+    plt.text(18.5, -19, label, fontsize=15, color = 'blue')
+    plt.text(4.5, -19, 'Distraction task:', fontsize=15)
 
     plt.pause(0.1)
 
