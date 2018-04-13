@@ -8,15 +8,16 @@ from torch.autograd import Variable
 import torch.cuda as cuda
 import sys
 
+torch.set_num_threads(1)
 CUDA = False
 # set seed
 torch.manual_seed(2)
-#np.random.seed(0)
+np.random.seed(0)
 if CUDA:
     torch.cuda.manual_seed(2)
 
 # data_gen generator x,y
-batch_size = 4
+batch_size = 1
 min_len = 1
 max_len = 10
 bias = 0.5
