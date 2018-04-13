@@ -11,12 +11,12 @@ import sys
 CUDA = False
 # set seed
 torch.manual_seed(2)
-np.random.seed(0)
+#np.random.seed(0)
 if CUDA:
     torch.cuda.manual_seed(2)
 
 # data_gen generator x,y
-batch_size = 1
+batch_size = 4
 min_len = 1
 max_len = 10
 bias = 0.5

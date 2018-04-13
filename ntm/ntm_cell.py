@@ -45,16 +45,18 @@ class NTMCell(nn.Module):
         wt_address_0 = torch.zeros_like(wt)
         wt_address_0[:, 0, 0] = 1
 
+        f = f[..., None]
         wt_address_dynamic = (1 - f) * wt + f * wt_address_dynamic
 
         # wt = (1 - h[:,0]) * (1 - h[:,1]) * wt_address_0 \
         #           + (1 - h[:,0]) * h[:,1] * wt \
         #           + h[:, 0] * (1 - h[:, 1]) * wt_address_dynamic
-
+        h = h[:, None, None, :]
         h = normalize(h)
-        wt = h[:,0]* wt_address_0 \
-            + h[:,1] * wt \
-            + h[:,2] * wt_address_dynamic
+
+        wt = h[..., 0] * wt_address_0 \
+            + h[..., 1] * wt \
+            + h[..., 2] * wt_address_dynamic
 
         # step1: read from memory using attention
         read_data = self.interface.read(wt, mem)
