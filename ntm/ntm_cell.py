@@ -32,7 +32,7 @@ class NTMCell(nn.Module):
                                      self.interface.read_size, self.interface.update_size)
 
     def forward(self, tm_input, state, wt_address_dynamic):
-        tm_state, wt, cx, mem  = state
+        tm_state, wt, mem  = state
 
         # step 0 : shift to address 0?
         combined = torch.cat((tm_state, tm_input), dim=-1)
@@ -63,10 +63,10 @@ class NTMCell(nn.Module):
         read_data = self.interface.read(wt, mem)
 
         # step2: controller
-        tm_output, tm_state, cx, update_data = self.controller(tm_input, tm_state, cx, read_data)
+        tm_output, tm_state, update_data = self.controller(tm_input, tm_state, read_data)
 
         # step3: update memory and attention
         wt, mem = self.interface.update(update_data, wt, mem)
 
-        state = tm_state, wt, cx, mem
+        state = tm_state, wt, mem
         return tm_output, state, wt_address_dynamic

@@ -21,7 +21,7 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
 
     mem_t = Variable((torch.ones((batch_size, M, N)) * 0.01).type(dtype))
 
-    states = [tm_state, wt, tm_state,  mem_t]
+    states = [tm_state, wt,  mem_t]
     return tm_output, states
 
 
