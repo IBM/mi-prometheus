@@ -12,7 +12,7 @@ torch.set_num_threads(1)
 CUDA = False
 # set seed
 torch.manual_seed(2)
-np.random.seed(0)
+np.random.seed(3)
 if CUDA:
     torch.cuda.manual_seed(2)
 
@@ -27,7 +27,7 @@ nb_markers_max = 4
 # init state, memory, attention
 tm_in_dim = element_size + 4
 tm_output_units = element_size
-tm_state_units = 5
+tm_state_units = 6
 n_heads = 1
 M = 10
 is_cam = False
