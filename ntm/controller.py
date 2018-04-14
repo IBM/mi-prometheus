@@ -23,6 +23,7 @@ class Controller(nn.Module):
         self.update_size = update_size
 
         tm_ctrl_in_dim = tm_in_dim + tm_state_units + self.read_size
+        tm_mem_in_dim = tm_in_dim + self.read_size
 
         # Output layer
         self.tm_output_units = tm_output_units
@@ -31,7 +32,8 @@ class Controller(nn.Module):
             self.tm_i2o = nn.Linear(tm_ctrl_in_dim, tm_output_units)
 
         # State layer
-        self.tm_i2s = nn.Linear(tm_ctrl_in_dim, tm_state_units)
+        #self.tm_i2s = nn.Linear(tm_ctrl_in_dim, tm_state_units)
+        self.lstm = nn.LSTMCell(tm_mem_in_dim, tm_state_units)
 
         # Update layer
         self.tm_i2u = nn.Linear(tm_ctrl_in_dim, self.update_size)
@@ -39,9 +41,10 @@ class Controller(nn.Module):
         #rest parameters
         #self.reset_parameters()
 
-    def forward(self, tm_input, tm_state, read_data):
+    def forward(self, tm_input, tm_state, cx, read_data):
         # Concatenate the 3 inputs to controller
         combined = torch.cat((tm_input, tm_state, read_data), dim=-1)
+        combined_lstm = torch.cat((tm_input, read_data), dim=-1)
 
         # Get output with activation
         tm_output = None
@@ -53,15 +56,14 @@ class Controller(nn.Module):
                 pdb.set_trace()
 
         # Get the state and update; no activation is applied
-        tm_state = self.tm_i2s(combined)
-        tm_state = F.sigmoid(tm_state)
+        tm_state, cx = self.lstm(combined_lstm, (tm_state, cx))
         if np.isnan(torch.sum(tm_state.data)):
             pdb.set_trace()
         update_data = self.tm_i2u(combined)
         if np.isnan(torch.sum(update_data.data)):
             pdb.set_trace()
 
-        return tm_output, tm_state, update_data
+        return tm_output, tm_state, cx, update_data
 
     def reset_parameters(self):
         # Initialize the linear layers

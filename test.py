@@ -1,5 +1,5 @@
 import torch
-from data_gen.build_data_distraction import init_state, build_data_distraction
+from data_gen.build_data_gen_v1 import init_state, build_data_distraction
 from ntm.ntm_layer import NTM
 import numpy as np
 import os

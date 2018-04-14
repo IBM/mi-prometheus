@@ -32,7 +32,7 @@ class NTMCell(nn.Module):
                                      self.interface.read_size, self.interface.update_size)
 
     def forward(self, tm_input, state, wt_address_dynamic):
-        tm_state, wt, mem = state
+        tm_state, wt, cx, mem  = state
 
         # step 0 : shift to address 0?
         combined = torch.cat((tm_state, tm_input), dim=-1)
@@ -49,24 +49,24 @@ class NTMCell(nn.Module):
         wt_address_dynamic = (1 - f) * wt + f * wt_address_dynamic
 
         h = h[:, None, None, :]
-        wt = (1 - h[..., 0]) * (1 - h[..., 1]) * wt_address_0 \
-                  + (1 - h[..., 0]) * h[..., 1] * wt \
-                  + h[..., 0] * (1 - h[..., 1]) * wt_address_dynamic
+        # wt = (1 - h[..., 0]) * (1 - h[..., 1]) * wt_address_0 \
+        #           + (1 - h[..., 0]) * h[..., 1] * wt \
+        #           + h[..., 0] * (1 - h[..., 1]) * wt_address_dynamic
 
-        # h = normalize(h)
-        #
-        # wt = h[..., 0] * wt_address_0 \
-        #     + h[..., 1] * wt \
-        #     + h[..., 2] * wt_address_dynamic
+        h = normalize(h)
+
+        wt = h[..., 0] * wt_address_0 \
+             + h[..., 1] * wt \
+             + h[..., 2] * wt_address_dynamic
 
         # step1: read from memory using attention
         read_data = self.interface.read(wt, mem)
 
         # step2: controller
-        tm_output, tm_state, update_data = self.controller(tm_input, tm_state, read_data)
+        tm_output, tm_state, cx, update_data = self.controller(tm_input, tm_state, cx, read_data)
 
         # step3: update memory and attention
         wt, mem = self.interface.update(update_data, wt, mem)
 
-        state = tm_state, wt, mem
+        state = tm_state, wt, cx, mem
         return tm_output, state, wt_address_dynamic

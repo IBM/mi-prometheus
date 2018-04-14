@@ -16,11 +16,11 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
 
     mem_t = Variable((torch.ones((batch_size, M, N)) * 0.01).type(dtype))
 
-    states = [tm_state, wt, mem_t]
+    states = [tm_state, wt, tm_state, mem_t]
     return tm_output, states
 
 
-def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_max):
+def build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_markers_max):
     channel_length = 3
     dummy_size = element_size + channel_length
 
@@ -95,7 +95,7 @@ def build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_
 
         yield inputs, target, nb_sub_seq_b, mask
 
-a = build_data_gen(3, 6, 1, 0.5, 8, 5)
+a = build_data_distraction(3, 6, 1, 0.5, 8, 5)
 
 for inputs, target, nb_marker, mask in a:
     print(mask)

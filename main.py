@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from data_gen.build_data_distraction import init_state, build_data_distraction
+from data_gen.build_data_gen_v0 import init_state, build_data_distraction
 from ntm.ntm_layer import NTM
 from data_gen.plot_data import plot_memory_attention
 import numpy as np
@@ -25,7 +25,7 @@ element_size = 8
 nb_markers_max = 4
 
 # init state, memory, attention
-tm_in_dim = element_size + 4
+tm_in_dim = element_size + 3
 tm_output_units = element_size
 tm_state_units = 5
 n_heads = 1

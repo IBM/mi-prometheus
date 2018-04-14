@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from data_gen.build_data_distraction import init_state, build_data_gen
+from data_gen.build_data_gen_v1 import init_state, build_data_gen
 from ntm.ntm_layer import NTM
 from data_gen.plot_data import plot_memory_attention
 import numpy as np
