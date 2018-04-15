@@ -2,17 +2,14 @@ import torch
 from torch import nn
 from data_gen.build_data_gen_v1 import init_state, build_data_distraction
 from ntm.ntm_layer import NTM
-from data_gen.plot_data import plot_memory_attention
 import numpy as np
-from torch.autograd import Variable
 import torch.cuda as cuda
-import sys
 
 torch.set_num_threads(1)
 CUDA = False
 # set seed
 torch.manual_seed(2)
-np.random.seed(3)
+np.random.seed(1)
 if CUDA:
     torch.cuda.manual_seed(2)
 
@@ -25,7 +22,7 @@ element_size = 8
 nb_markers_max = 4
 
 # init state, memory, attention
-tm_in_dim = element_size + 4
+tm_in_dim = element_size + 3
 tm_output_units = element_size
 tm_state_units = 6
 n_heads = 1
@@ -45,7 +42,7 @@ if CUDA:
 # Set loss and optimizer
 criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(ntm.parameters(), lr=0.01)
-#optimizer = torch.optim.RMSprop(ntm.parameters(), lr=0.001, momentum=0.9, alpha=0.95)
+#optimizer = torch.optim.RMSprop(ntm.parameters(), lr=0.01, momentum=0.9, alpha=0.95)
 
 # Start Training
 epoch = 0
@@ -57,7 +54,7 @@ data_gen = build_data_distraction(min_len, max_len, batch_size, bias, element_si
 for inputs, targets, nb_marker, mask in data_gen:
 
     # Init state, memory, attention
-    N = 50# max(seq_length) + 1
+    N = 60# max(seq_length) + 1
     _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
 
     optimizer.zero_grad()
@@ -71,12 +68,7 @@ for inputs, targets, nb_marker, mask in data_gen:
     loss.backward()
     optimizer.step()
 
-    if not(epoch % debug) and epoch != 0 and debug_active:
-        plot_memory_attention(states_test[2], states_test[1])
-        print(states_test[1])
-        debug = 50
-
-    if nb_marker == 3 and (loss < 1e-5):
+    if (nb_marker == 3 and (loss < 1e-5)) or epoch == 800000:
         path = "./Models/"
         # save model parameters
         torch.save(ntm.state_dict(), path+"model_parameters")
@@ -96,6 +88,5 @@ for inputs, targets, nb_marker, mask in data_gen:
 print("Learning finished!")
 
 
-#ok I see...thank u once again for your effort
 
 
