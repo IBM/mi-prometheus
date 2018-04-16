@@ -20,13 +20,13 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
     return tm_output, states
 
 
-def build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_markers_max):
+def build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_markers_min, nb_markers_max):
     channel_length = 3
     dummy_size = element_size + channel_length
 
     while True:
         # number of sub_sequences
-        nb_sub_seq_a = np.random.randint(1, nb_markers_max)
+        nb_sub_seq_a = np.random.randint(nb_markers_min, nb_markers_max)
         nb_sub_seq_b = nb_sub_seq_a
 
         # set the sequence length of each marker
@@ -95,7 +95,7 @@ def build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_
 
         yield inputs, target, nb_sub_seq_b, mask
 
-a = build_data_distraction(3, 6, 1, 0.5, 8, 5)
+a = build_data_distraction(3, 6, 1, 0.5, 8, 3, 4)
 
 for inputs, target, nb_marker, mask in a:
     print(mask)

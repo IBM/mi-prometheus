@@ -16,10 +16,11 @@ if CUDA:
 # data_gen generator x,y
 batch_size = 1
 min_len = 1
-max_len = 10
+max_len = 3
 bias = 0.5
 element_size = 8
 nb_markers_max = 4
+nb_markers_min = 1
 
 # init state, memory, attention
 tm_in_dim = element_size + 3
@@ -48,7 +49,7 @@ valid_step = False
 if valid_step:
     # generate data for validation
     _, states_valid = init_state(batch_size, tm_output_units, tm_state_units, n_heads, 100, M)
-    data_gen = build_data_distraction(20, 20, batch_size, bias, element_size, 5)
+    data_gen = build_data_distraction(20, 20, batch_size, bias, element_size, 5, 6)
     for inputs, targets, nb_marker, mask in data_gen:
         inputs_valid = inputs
         targets_valid = targets
@@ -62,11 +63,11 @@ debug = 10000
 valid = 100
 debug_active = 0
 # Data generator : input & target
-data_gen = build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_markers_max)
+data_gen = build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_markers_min, nb_markers_max)
 for inputs, targets, nb_marker, mask in data_gen:
 
     # Init state, memory, attention
-    N = 50# max(seq_length) + 1
+    N = 30# max(seq_length) + 1
     _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
 
     optimizer.zero_grad()
@@ -80,7 +81,7 @@ for inputs, targets, nb_marker, mask in data_gen:
     loss.backward()
     optimizer.step()
 
-    if (nb_marker == 3 and (loss < 1e-5)) or epoch == 800000:
+    if (nb_marker == 2 and (loss < 1e-5)) or epoch == 800000:
         path = "./Models/"
         # save model parameters
         torch.save(ntm.state_dict(), path+"model_parameters")
@@ -95,7 +96,7 @@ for inputs, targets, nb_marker, mask in data_gen:
         acc = 1 - torch.abs(output - targets_valid)
         accuracy = acc.mean()
         print("Accuracy: %.6f" % (accuracy * 100) + "%")
-        print("nb markers valid", nb_marker)
+        print("nb markers valid", nb_markers_valid)
 
     epoch += 1
 

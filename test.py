@@ -16,6 +16,7 @@ min_len = 5
 max_len = 5
 bias = 0.5
 nb_markers_max = 5
+nb_makers_min = 1
 element_size = read_arguments['element_size']
 
 # init state, memory, attention
@@ -31,7 +32,7 @@ num_shift = read_arguments['num_shift']
 print("Testing")
 
 # New sequence
-data_gen = build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_markers_max)
+data_gen = build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_makers_min, nb_markers_max)
 
 # Instantiate
 ntm = NTM(tm_in_dim, tm_output_units,tm_state_units, n_heads, is_cam, num_shift, M)
