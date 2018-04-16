@@ -88,8 +88,8 @@ class Interface:
         wt = (wt_s + eps) ** γ
         wt = normalize(wt)                    # sharpening with normalization
 
-        if torch.sum(torch.abs(torch.sum(wt, dim=-1) - 1.0)) > 1e-6:
-            pdb.set_trace()
+        #if torch.sum(torch.abs(torch.sum(wt, dim=-1) - 1.0)) > 1e-6:
+        #    pdb.set_trace()
 
         mem = memory.content
         return wt, mem

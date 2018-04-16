@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from data_gen.build_data_gen_v1 import init_state, build_data_distraction
+from data_gen.build_data_gen_v0 import init_state, build_data_distraction
 from ntm.ntm_layer import NTM
 import numpy as np
 import torch.cuda as cuda
@@ -9,7 +9,7 @@ torch.set_num_threads(1)
 CUDA = False
 # set seed
 torch.manual_seed(2)
-np.random.seed(1)
+np.random.seed(0)
 if CUDA:
     torch.cuda.manual_seed(2)
 
@@ -24,7 +24,7 @@ nb_markers_max = 4
 # init state, memory, attention
 tm_in_dim = element_size + 3
 tm_output_units = element_size
-tm_state_units = 6
+tm_state_units = 5
 n_heads = 1
 M = 10
 is_cam = False
@@ -44,6 +44,18 @@ criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(ntm.parameters(), lr=0.01)
 #optimizer = torch.optim.RMSprop(ntm.parameters(), lr=0.01, momentum=0.9, alpha=0.95)
 
+valid_step = False
+if valid_step:
+    # generate data for validation
+    _, states_valid = init_state(batch_size, tm_output_units, tm_state_units, n_heads, 100, M)
+    data_gen = build_data_distraction(20, 20, batch_size, bias, element_size, 5)
+    for inputs, targets, nb_marker, mask in data_gen:
+        inputs_valid = inputs
+        targets_valid = targets
+        nb_markers_valid = nb_marker
+        mask_valid = mask
+        break
+
 # Start Training
 epoch = 0
 debug = 10000
@@ -54,7 +66,7 @@ data_gen = build_data_distraction(min_len, max_len, batch_size, bias, element_si
 for inputs, targets, nb_marker, mask in data_gen:
 
     # Init state, memory, attention
-    N = 60# max(seq_length) + 1
+    N = 50# max(seq_length) + 1
     _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
 
     optimizer.zero_grad()
@@ -76,12 +88,14 @@ for inputs, targets, nb_marker, mask in data_gen:
         np.save(path + 'ntm_arguments', args_save)
         break
 
-    if not(epoch % valid) and epoch != 0:
+    if not(epoch % valid) and epoch != 0 and valid_step:
         # test accuracy
-        output = torch.round(output[:, mask, :])
-        acc = 1 - torch.abs(output - targets)
+        output, states_test = ntm(inputs_valid, states_valid, states_valid[1])
+        output = torch.round(output[:, mask_valid, :])
+        acc = 1 - torch.abs(output - targets_valid)
         accuracy = acc.mean()
         print("Accuracy: %.6f" % (accuracy * 100) + "%")
+        print("nb markers valid", nb_marker)
 
     epoch += 1
 
