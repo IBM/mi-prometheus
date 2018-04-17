@@ -39,9 +39,6 @@ ntm = NTM(tm_in_dim, tm_output_units,tm_state_units, n_heads, is_cam, num_shift,
 
 ntm.load_state_dict(torch.load(path+"model_parameters"))
 
-for i in ntm.parameters():
-    print(i.data)
-    input("pause")
 
 for inputs, targets, nb_markers, mask in data_gen:
 

@@ -57,9 +57,9 @@ class Controller(nn.Module):
         tm_state = F.sigmoid(tm_state)
 
         update_hidden_1 = self.tm_i2u_1(combined)
-        update_hidden_1 = F.tanh(update_hidden_1)
+        update_hidden_1 = F.sigmoid(update_hidden_1)
         update_hidden_2 = self.tm_i2u_2(update_hidden_1)
-        update_hidden_2 = F.tanh(update_hidden_2)
+        update_hidden_2 = F.sigmoid(update_hidden_2)
         update_data = self.tm_i2u_3(update_hidden_2)
 
         return tm_output, tm_state, update_data
