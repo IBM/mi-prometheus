@@ -15,7 +15,7 @@ batch_size = 1
 min_len = 5
 max_len = 5
 bias = 0.5
-nb_markers_max = 5
+nb_markers_max = 4
 nb_makers_min = 1
 element_size = read_arguments['element_size']
 
@@ -39,10 +39,14 @@ ntm = NTM(tm_in_dim, tm_output_units,tm_state_units, n_heads, is_cam, num_shift,
 
 ntm.load_state_dict(torch.load(path+"model_parameters"))
 
+for i in ntm.parameters():
+    print(i.data)
+    input("pause")
+
 for inputs, targets, nb_markers, mask in data_gen:
 
     # Init state, memory, attention
-    N = 40 #max(seq_length)
+    N = 50 #max(seq_length)
     _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
     print('nb_markers', nb_markers)
 

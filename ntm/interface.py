@@ -21,7 +21,7 @@ class Interface:
 
         # Define a dictionary for attentional parameters
         self.is_cam = is_cam
-        self.param_dict = {'s': num_shift, 'γ': 1, 'erase': M, 'add': M}
+        self.param_dict = {'s': num_shift, 'f': 1, 'h': 3 ,'γ': 1, 'erase': M, 'add': M}
         if self.is_cam:
             self.param_dict.update({'k': M, 'β': 1, 'g': 1})
 
@@ -44,7 +44,7 @@ class Interface:
         sz = read_data.size()[:-2]
         return read_data.view(*sz, self.read_size)
 
-    def update(self, update_data, wt, mem):
+    def update(self, update_data, wt, wt_address_dynamic, mem):
         assert update_data.size()[-1] == self.update_size, "Mismatch in update sizes"
 
         # reshape update data_gen by heads and total parameter size
@@ -57,22 +57,34 @@ class Interface:
 
         # Obtain update parameters
         if self.is_cam:
-            s, γ, erase, add, k, β, g = data_splits
+            s, f, h, γ, erase, add, k, β, g = data_splits
             # Apply Activations
             k = F.tanh(k)                  # key vector used for content-based addressing
             β = F.softplus(β)              # key strength used for content-based addressing
             g = F.sigmoid(g)               # interpolation gate
         else:
-            s, γ, erase, add = data_splits
+            s, f, h, γ, erase, add = data_splits
 
         s = F.softmax(F.softplus(s), dim=-1)    # shift weighting (determines how the weight is rotated)
         γ = 1 + F.softplus(γ)                   # used for weight sharpening
         erase = F.sigmoid(erase)                # erase memory content
+        f = F.sigmoid(f)
+        h = F.softmax(h, dim=-1)
 
         # Update memory and attention
-        memory = Memory(mem)
+
+        # step 0 : shift to address 0?
+        wt_address_0 = torch.zeros_like(wt)
+        wt_address_0[:, 0, 0] = 1
+
+        wt_address_dynamic = (1 - f) * wt + f * wt_address_dynamic
+
+        wt = h[..., 0] * wt_address_0 \
+             + h[..., 1] * wt \
+             + h[..., 2] * wt_address_dynamic
 
         # Write to memory
+        memory = Memory(mem)
         memory.erase_weighted(erase, wt)
         memory.add_weighted(add, wt)
 
@@ -88,8 +100,8 @@ class Interface:
         wt = (wt_s + eps) ** γ
         wt = normalize(wt)                    # sharpening with normalization
 
-        #if torch.sum(torch.abs(torch.sum(wt, dim=-1) - 1.0)) > 1e-6:
-        #    pdb.set_trace()
+        if torch.sum(torch.abs(torch.sum(wt, dim=-1) - 1.0)) > 1e-6:
+            pdb.set_trace()
 
         mem = memory.content
-        return wt, mem
+        return wt, wt_address_dynamic, mem

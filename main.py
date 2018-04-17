@@ -67,7 +67,7 @@ data_gen = build_data_distraction(min_len, max_len, batch_size, bias, element_si
 for inputs, targets, nb_marker, mask in data_gen:
 
     # Init state, memory, attention
-    N = 30# max(seq_length) + 1
+    N = 60# max(seq_length) + 1
     _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
 
     optimizer.zero_grad()
@@ -81,7 +81,7 @@ for inputs, targets, nb_marker, mask in data_gen:
     loss.backward()
     optimizer.step()
 
-    if (nb_marker == 2 and (loss < 1e-5)) or epoch == 8000:
+    if (nb_marker == 3 and (loss < 1e-5)) or epoch == 8000:
         path = "./Models/"
         # save model parameters
         torch.save(ntm.state_dict(), path+"model_parameters")

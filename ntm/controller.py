@@ -34,7 +34,9 @@ class Controller(nn.Module):
         self.tm_i2s = nn.Linear(tm_ctrl_in_dim, tm_state_units)
 
         # Update layer
-        self.tm_i2u = nn.Linear(tm_ctrl_in_dim, self.update_size)
+        self.tm_i2u_1 = nn.Linear(tm_ctrl_in_dim, 10)
+        self.tm_i2u_2 = nn.Linear(10, 10)
+        self.tm_i2u_3 = nn.Linear(10, self.update_size)
 
         #rest parameters
         #self.reset_parameters()
@@ -54,7 +56,11 @@ class Controller(nn.Module):
         tm_state = self.tm_i2s(combined)
         tm_state = F.sigmoid(tm_state)
 
-        update_data = self.tm_i2u(combined)
+        update_hidden_1 = self.tm_i2u_1(combined)
+        update_hidden_1 = F.tanh(update_hidden_1)
+        update_hidden_2 = self.tm_i2u_2(update_hidden_1)
+        update_hidden_2 = F.tanh(update_hidden_2)
+        update_data = self.tm_i2u_3(update_hidden_2)
 
         return tm_output, tm_state, update_data
 
