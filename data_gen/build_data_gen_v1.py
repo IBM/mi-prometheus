@@ -31,10 +31,10 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
 
 
 # now creating channel markers
-pos = [0,0,0]
-ctrl_data = [0,0,0]
-ctrl_dummy = [0,0,1]
-ctrl_inter = [1,1,0]
+pos = [0,0,0,0]
+ctrl_data = [0,0,0,0]
+ctrl_dummy = [0,0,1,0]
+ctrl_inter = [0,0,0,1]
 
 
 # add control channels to a sequence
@@ -68,20 +68,18 @@ def build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_
         # create the target
         target = np.concatenate(y + x, axis=1)
 
-        xx = [augment(seq, ctrl_end=[1,0,0]) for seq in x]
-        yy = [augment(seq, ctrl_end=[0,1,0]) for seq in y]
+        xx = [augment(seq, ctrl_end=[1,0,0,0]) for seq in x]
+        yy = [augment(seq, ctrl_end=[0,1,0,0]) for seq in y]
 
         inter_seq = add_ctrl(np.zeros((batch_size, 1, element_size)), ctrl_inter)
         data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b + [inter_seq]]
-
-        data_1[-1][-1][:,2] = 1
 
         data_2 = [a[-1] for a in xx]
         inputs = np.concatenate(data_1 + data_2, axis=1)
 
         inputs = Variable(torch.from_numpy(inputs).type(dtype))
         target = Variable(torch.from_numpy(target).type(dtype))
-        mask = (inputs[0, :, 0] == 0) * (inputs[0, :, 2] == 1)
+        mask = inputs[0, :, 2] == 1
 
         yield inputs, target, nb_sub_seq_a, mask
 
