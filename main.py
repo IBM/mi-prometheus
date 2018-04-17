@@ -42,7 +42,7 @@ if CUDA:
 
 # Set loss and optimizer
 criterion = nn.BCELoss()
-optimizer = torch.optim.Adam(ntm.parameters(), lr=0.1)
+optimizer = torch.optim.Adam(ntm.parameters(), lr=0.01)
 #optimizer = torch.optim.RMSprop(ntm.parameters(), lr=0.01, momentum=0.9, alpha=0.95)
 
 valid_step = False

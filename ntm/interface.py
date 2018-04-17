@@ -21,7 +21,7 @@ class Interface:
 
         # Define a dictionary for attentional parameters
         self.is_cam = is_cam
-        self.param_dict = {'s': num_shift, 'c': 1, 'f': 1, 'h': 3 ,'γ': 1, 'erase': M, 'add': M}
+        self.param_dict = {'s': num_shift,'γ': 1, 'erase': M, 'add': M}
         if self.is_cam:
             self.param_dict.update({'k': M, 'β': 1, 'g': 1})
 
@@ -57,34 +57,17 @@ class Interface:
 
         # Obtain update parameters
         if self.is_cam:
-            s, c, f, h, γ, erase, add, k, β, g = data_splits
+            s, γ, erase, add, k, β, g = data_splits
             # Apply Activations
             k = F.tanh(k)                  # key vector used for content-based addressing
             β = F.softplus(β)              # key strength used for content-based addressing
             g = F.sigmoid(g)               # interpolation gate
         else:
-            s, c, f, h, γ, erase, add = data_splits
+            s, γ, erase, add = data_splits
 
         s = F.softmax(F.softplus(s), dim=-1)    # shift weighting (determines how the weight is rotated)
         γ = 1 + F.softplus(γ)                   # used for weight sharpening
         erase = F.sigmoid(erase)                # erase memory content
-        f = F.sigmoid(f)
-        h = F.softmax(h, dim=-1)
-        c = 1 + F.softplus(c)
-
-        # Update memory and attention
-        # step 0 : shift to address 0?
-        wt_address_0 = torch.zeros_like(wt)
-        wt_address_0[:, 0, 0] = 1
-
-        wt_address_dynamic = (1 - f) * wt + f * wt_address_dynamic
-        eps = 1e-12
-        wt_address_dynamic = (wt_address_dynamic + eps) ** c
-        wt_address_dynamic = normalize(wt_address_dynamic)  # sharpening with normalization
-
-        wt = h[..., 0] * wt_address_0 \
-             + h[..., 1] * wt \
-             + h[..., 2] * wt_address_dynamic
 
         # Write to memory
         memory = Memory(mem)
