@@ -34,7 +34,7 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
 pos = [0,0,0]
 ctrl_data = [0,0,0]
 ctrl_dummy = [0,0,1]
-ctrl_inter = [1,1,0]
+ctrl_inter = [1,0,0]
 
 
 # add control channels to a sequence
@@ -42,12 +42,16 @@ def add_ctrl(seq, ctrl): return np.insert(seq, pos, ctrl, axis=-1)
 
 
 # create augmented sequence as well as end marker and a dummy sequence
-def augment(seq, ctrl_end):
+def augment_x(seq, ctrl_end):
     w = add_ctrl(seq, ctrl_data)
     end = add_ctrl(np.zeros((seq.shape[0], 1, seq.shape[2])), ctrl_end)
     dummy = add_ctrl(np.zeros_like(seq), ctrl_dummy)
     return [w, end, dummy]
 
+def augment_y(seq):
+    w = add_ctrl(seq, ctrl_data)
+    dummy = add_ctrl(np.zeros_like(seq), ctrl_dummy)
+    return [w, dummy]
 
 def build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_makers_min, nb_markers_max):
 
@@ -68,16 +72,15 @@ def build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_
         # create the target
         target = np.concatenate(y + x, axis=1)
 
-        xx = [augment(seq, ctrl_end=[1,0,0]) for seq in x]
-        yy = [augment(seq, ctrl_end=[0,1,0]) for seq in y]
+        xx = [augment_x(seq, ctrl_end=[0,1,0]) for seq in x]
+        yy = [augment_y(seq) for seq in y]
 
-        inter_seq = add_ctrl(np.zeros((batch_size, 1, element_size)), ctrl_inter)
-        data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b + [inter_seq]]
+        inter_seq = [add_ctrl(np.zeros((batch_size, 1, element_size)), ctrl_inter)]
+        data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b]
 
-        data_1[-1][-1][:,2] = 1
 
         data_2 = [a[-1] for a in xx]
-        inputs = np.concatenate(data_1 + data_2, axis=1)
+        inputs = np.concatenate(data_1 + inter_seq + data_2, axis=1)
 
         inputs = Variable(torch.from_numpy(inputs).type(dtype))
         target = Variable(torch.from_numpy(target).type(dtype))

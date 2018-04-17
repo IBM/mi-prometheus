@@ -16,7 +16,7 @@ if CUDA:
 # data_gen generator x,y
 batch_size = 1
 min_len = 1
-max_len = 3
+max_len = 10
 bias = 0.5
 element_size = 8
 nb_markers_max = 4
@@ -81,7 +81,7 @@ for inputs, targets, nb_marker, mask in data_gen:
     loss.backward()
     optimizer.step()
 
-    if (nb_marker == 2 and (loss < 1e-5)) or epoch == 800000:
+    if (nb_marker == 2 and (loss < 1e-5)) or epoch == 8000:
         path = "./Models/"
         # save model parameters
         torch.save(ntm.state_dict(), path+"model_parameters")

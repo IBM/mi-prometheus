@@ -57,7 +57,7 @@ class Interface:
 
         # Obtain update parameters
         if self.is_cam:
-            k, β, g, s, γ, erase, add = data_splits
+            s, γ, erase, add, k, β, g = data_splits
             # Apply Activations
             k = F.tanh(k)                  # key vector used for content-based addressing
             β = F.softplus(β)              # key strength used for content-based addressing
@@ -79,7 +79,7 @@ class Interface:
         # Update attention
         if self.is_cam:
             wt_k = memory.content_similarity(k)       # content addressing ...
-            wt_β = F.softmax(β * wt_k)                # ... modulated by β
+            wt_β = F.softmax(β * wt_k, dim=-1)                # ... modulated by β
             wt = g * wt_β + (1 - g) * wt              # scalar interpolation
 
         wt_s = circular_conv(wt, s)                   # convolution with shift
