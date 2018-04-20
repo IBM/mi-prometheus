@@ -1,5 +1,5 @@
 import torch
-from data_gen.build_data_gen_v1 import init_state, build_data_distraction
+from data_gen.build_data_gen_v0 import init_state, build_data_distraction
 from ntm.ntm_layer import NTM
 import numpy as np
 import os
@@ -15,8 +15,8 @@ batch_size = 1
 min_len = 5
 max_len = 5
 bias = 0.5
-nb_markers_max = 4
-nb_makers_min = 1
+nb_markers_max = 5
+nb_makers_min = 4
 element_size = read_arguments['element_size']
 
 # init state, memory, attention

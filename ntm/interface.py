@@ -21,7 +21,7 @@ class Interface:
 
         # Define a dictionary for attentional parameters
         self.is_cam = is_cam
-        self.param_dict = {'s': num_shift,'γ': 1, 'erase': M, 'add': M}
+        self.param_dict = {'s': num_shift,'f': 1, 'γ': 1, 'erase': M, 'add': M}
         if self.is_cam:
             self.param_dict.update({'k': M, 'β': 1, 'g': 1})
 
@@ -57,17 +57,22 @@ class Interface:
 
         # Obtain update parameters
         if self.is_cam:
-            s, γ, erase, add, k, β, g = data_splits
+            s, f, γ, erase, add, k, β, g = data_splits
             # Apply Activations
             k = F.tanh(k)                  # key vector used for content-based addressing
             β = F.softplus(β)              # key strength used for content-based addressing
             g = F.sigmoid(g)               # interpolation gate
         else:
-            s, γ, erase, add = data_splits
+            s, f, γ, erase, add = data_splits
 
         s = F.softmax(F.softplus(s), dim=-1)    # shift weighting (determines how the weight is rotated)
         γ = 1 + F.softplus(γ)                   # used for weight sharpening
         erase = F.sigmoid(erase)                # erase memory content
+
+        wt_address_0 = torch.zeros_like(wt)
+        wt_address_0[:, 0, 0] = 1
+        f = F.sigmoid(f)
+        wt = f * wt_address_0 + (1-f) * wt
 
         # Write to memory
         memory = Memory(mem)
