@@ -54,7 +54,7 @@ def generate_forget_distraction(min_len, max_len, batch_size, bias, element_size
     # Create a generator
     while True:
         # number of sub_sequences
-        nb_sub_seq_a = np.random.randint(nb_seq_min, nb_seq_max)
+        nb_sub_seq_a = np.random.randint(nb_seq_min, nb_seq_max + 1)
         nb_sub_seq_b = nb_sub_seq_a              # might be different in future implementation
 
         # set the sequence length of each marker
