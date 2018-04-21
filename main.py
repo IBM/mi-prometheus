@@ -19,8 +19,8 @@ min_len = 1
 max_len = 10
 bias = 0.5
 element_size = 8
-nb_markers_max = 4
-nb_markers_min = 1
+num_subseq_max = 4
+num_subseq_min = 1
 
 # init state, memory, attention
 tm_in_dim = element_size + 3
@@ -63,8 +63,8 @@ debug = 10000
 valid = 100
 debug_active = 0
 # Data generator : input & target
-data_gen = build_data_distraction_v1(min_len, max_len, batch_size, bias, element_size, nb_markers_min, nb_markers_max)
-for inputs, targets, nb_marker, mask in data_gen:
+data_gen = build_data_distraction_v1(min_len, max_len, batch_size, bias, element_size, num_subseq_min, num_subseq_max)
+for inputs, targets, num_subseq, mask in data_gen:
 
     # Init state, memory, attention
     N = 60# max(seq_length) + 1
@@ -76,12 +76,12 @@ for inputs, targets, nb_marker, mask in data_gen:
 
     loss = criterion(output[:, mask, :], targets)
 
-    print(", epoch: %d, loss: %1.5f, N %d " % (epoch + 1, loss, N), "nb_marker:", nb_marker)
+    print(", epoch: %d, loss: %1.5f, N %d " % (epoch + 1, loss, N), "nb_marker:", num_subseq)
 
     loss.backward()
     optimizer.step()
 
-    if (nb_marker == 3 and (loss < 1e-5)) or epoch == 8000:
+    if (num_subseq == 3 and (loss < 1e-5)) or epoch == 8000:
         path = "./Models/"
         # save model parameters
         torch.save(ntm.state_dict(), path+"model_parameters")
