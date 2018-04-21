@@ -44,7 +44,7 @@ class Interface:
         sz = read_data.size()[:-2]
         return read_data.view(*sz, self.read_size)
 
-    def update(self, update_data, wt, wt_address_dynamic, mem):
+    def update(self, update_data, wt, mem):
         assert update_data.size()[-1] == self.update_size, "Mismatch in update sizes"
 
         # reshape update data_gen by heads and total parameter size
@@ -90,4 +90,4 @@ class Interface:
             print(error )
 
         mem = memory.content
-        return wt, wt_address_dynamic, mem
+        return wt, mem

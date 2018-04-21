@@ -19,7 +19,7 @@ min_len = 1
 max_len = 10
 bias = 0.5
 element_size = 8
-num_subseq_max = 4
+num_subseq_max = 3
 num_subseq_min = 1
 
 # init state, memory, attention
@@ -72,7 +72,7 @@ for inputs, targets, num_subseq, mask in data_gen:
 
     optimizer.zero_grad()
 
-    output, states_test = ntm(inputs, states, states[1])
+    output, states_test = ntm(inputs, states)
 
     loss = criterion(output[:, mask, :], targets)
 
