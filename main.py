@@ -76,7 +76,7 @@ for inputs, targets, num_subseq, mask in data_gen:
 
     loss = criterion(output[:, mask, :], targets)
 
-    print(", epoch: %d, loss: %1.5f, N %d " % (epoch + 1, loss, N), "nb_marker:", num_subseq)
+    print(", epoch: %d, loss: %1.5f, N %d " % (epoch + 1, loss, N), "nb_subseq:", num_subseq)
 
     loss.backward()
     optimizer.step()

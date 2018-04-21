@@ -47,7 +47,7 @@ for inputs, targets, nb_markers, mask in data_gen:
     _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
     print('nb_markers', nb_markers)
 
-    output, states = ntm(inputs, states, states[1])
+    output, states = ntm(inputs, states)
 
     # test accuracy
     output = torch.round(output[:, mask, :])

@@ -9,7 +9,7 @@ from ntm.ntm_cell import NTMCell
 class NTM(nn.Module):
 
     def __init__(self, tm_in_dim, tm_output_units, tm_state_units,
-                 num_heads, is_cam, num_shift, M):
+                 num_heads, is_cam, num_shift, M, plot_active=False):
         """Initialize an NTM Layer.
 
         :param tm_in_dim: input size.
@@ -25,15 +25,15 @@ class NTM(nn.Module):
         # Create the NTM components
         self.NTMCell = NTMCell(tm_in_dim, tm_output_units, tm_state_units,
                                num_heads, is_cam, num_shift, M)
+        self.plot_active = plot_active 
 
     def forward(self, x, state):           # x : batch_size, seq_len, input_size
         output = None
         for j in range(x.size()[-2]):
             tm_output, state = self.NTMCell(x[..., j, :], state)
 
-            # plot attention/memory
-            plot_active = False
-            if plot_active:
+            # plot attention/memory 
+            if self.plot_active:
                 label = 'Write/Read sequences x,y'
                 plot_memory_attention(state[2], state[1], label)
 
