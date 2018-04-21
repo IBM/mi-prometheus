@@ -87,7 +87,7 @@ class Interface:
         wt = normalize(wt)                    # sharpening with normalization
 
         if torch.sum(torch.abs(torch.sum(wt, dim=-1) - 1.0)) > 1e-6:
-            pdb.set_trace()
+            print(error )
 
         mem = memory.content
         return wt, wt_address_dynamic, mem

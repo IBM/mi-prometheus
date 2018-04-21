@@ -49,7 +49,7 @@ def augment(seq, ctrl_end):
     return [w, end, dummy]
 
 
-def build_data_distraction_v1(min_len, max_len, batch_size, bias, element_size, nb_seq_min, nb_seq_max):
+def generate_forget_distraction(min_len, max_len, batch_size, bias, element_size, nb_seq_min, nb_seq_max):
 
     # Create a generator
     while True:
@@ -84,7 +84,7 @@ def build_data_distraction_v1(min_len, max_len, batch_size, bias, element_size, 
         yield inputs, target, nb_sub_seq_a, mask
 
 
-a = build_data_distraction_v1(3, 6, 1, 0.5, 8, 3, 4)
+a = generate_forget_distraction(3, 6, 1, 0.5, 8, 3, 4)
 
 for inputs, target, nb_marker, mask in a:
     print(mask)

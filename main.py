@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from data_gen.build_data_gen import init_state, build_data_distraction_v1
+from data_gen.build_data_gen import init_state, generate_forget_distraction
 from ntm.ntm_layer import NTM
 import numpy as np
 import torch.cuda as cuda
@@ -49,7 +49,7 @@ valid_step = False
 if valid_step:
     # generate data for validation
     _, states_valid = init_state(batch_size, tm_output_units, tm_state_units, n_heads, 100, M)
-    data_gen = build_data_distraction_v1(20, 20, batch_size, bias, element_size, 5, 6)
+    data_gen = generate_forget_distraction(20, 20, batch_size, bias, element_size, 5, 6)
     for inputs, targets, nb_marker, mask in data_gen:
         inputs_valid = inputs
         targets_valid = targets
@@ -63,7 +63,7 @@ debug = 10000
 valid = 100
 debug_active = 0
 # Data generator : input & target
-data_gen = build_data_distraction_v1(min_len, max_len, batch_size, bias, element_size, num_subseq_min, num_subseq_max)
+data_gen = generate_forget_distraction(min_len, max_len, batch_size, bias, element_size, num_subseq_min, num_subseq_max)
 for inputs, targets, num_subseq, mask in data_gen:
 
     # Init state, memory, attention

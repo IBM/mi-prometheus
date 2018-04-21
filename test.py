@@ -1,5 +1,5 @@
 import torch
-from data_gen.build_data_gen_v0 import init_state, build_data_distraction
+from data_gen.build_data_gen import init_state, generate_forget_distraction
 from ntm.ntm_layer import NTM
 import numpy as np
 import os
@@ -32,7 +32,7 @@ num_shift = read_arguments['num_shift']
 print("Testing")
 
 # New sequence
-data_gen = build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_makers_min, nb_markers_max)
+data_gen = generate_forget_distraction(min_len, max_len, batch_size, bias, element_size, nb_makers_min, nb_markers_max)
 
 # Instantiate
 ntm = NTM(tm_in_dim, tm_output_units,tm_state_units, n_heads, is_cam, num_shift, M)
