@@ -24,7 +24,7 @@ class NTMCell(nn.Module):
         tm_state_in = tm_state_units + tm_in_dim
         self.tm_i2w = nn.Linear(tm_state_in, num_heads)
 
-        self.tm_i2w_dynamic = nn.Linear(tm_state_in, 2)
+        self.tm_i2w_dynamic = nn.Linear(tm_state_in, 3)
 
         # build the interface and controller
         self.interface = Interface(num_heads, is_cam, num_shift, M)
@@ -54,8 +54,9 @@ class NTMCell(nn.Module):
         #           + h[..., 0] * (1 - h[..., 1]) * wt_address_dynamic
 
         h = normalize(h)
-        wt = h[..., 0] * wt_address_dynamic \
-           + h[..., 1] * wt
+        wt = h[..., 0] * wt_address_0 \
+           + h[..., 1] * wt \
+           + h[..., 2] * wt_address_dynamic
 
         # step1: read from memory using attention
         read_data = self.interface.read(wt, mem)

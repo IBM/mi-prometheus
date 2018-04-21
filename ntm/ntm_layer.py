@@ -34,7 +34,7 @@ class NTM(nn.Module):
         for j in range(x.size()[-2]):
             tm_output, state, wt_dynamic = self.NTMCell(x[..., j, :], state, wt_dynamic)
 
-            c = np.where(wt_dynamic[0,0,:]>0.5)
+            c = np.where(wt_dynamic[0,0,:]>0.3)
             # plot attention/memory
             if 0:
                 label = 'Writing sequence x' + str(k)
@@ -52,7 +52,7 @@ class NTM(nn.Module):
                 if labelx:
                     label = labelx
 
-                plot_memory_attention(state[2], state[1], label, c[0][0])
+                plot_memory_attention(state[2], state[1], label, 1)
 
             if tm_output is None:
                 continue
