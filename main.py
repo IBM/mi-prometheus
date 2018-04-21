@@ -9,7 +9,7 @@ torch.set_num_threads(1)
 CUDA = False
 # set seed
 torch.manual_seed(2)
-np.random.seed(200)
+np.random.seed(0)
 if CUDA:
     torch.cuda.manual_seed(2)
 
