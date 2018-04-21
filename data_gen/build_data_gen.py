@@ -31,10 +31,10 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
 
 
 # now creating channel markers
-pos = [0,0,0,0]
-ctrl_data = [0,0,0,0]
-ctrl_dummy = [0,0,1,0]
-ctrl_inter = [0,0,0,1]
+pos = [0,0,0]
+ctrl_data = [0,0,0]
+ctrl_dummy = [0,0,1]
+ctrl_inter = [1,1,0]
 
 
 # add control channels to a sequence
@@ -49,7 +49,7 @@ def augment(seq, ctrl_end):
     return [w, end, dummy]
 
 
-def build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_makers_min, nb_markers_max):
+def build_data_distraction_v1(min_len, max_len, batch_size, bias, element_size, nb_makers_min, nb_markers_max):
 
     # Create a generator
     while True:
@@ -68,8 +68,8 @@ def build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_
         # create the target
         target = np.concatenate(y + x, axis=1)
 
-        xx = [augment(seq, ctrl_end=[1,0,0,0]) for seq in x]
-        yy = [augment(seq, ctrl_end=[0,1,0,0]) for seq in y]
+        xx = [augment(seq, ctrl_end=[1,0,0]) for seq in x]
+        yy = [augment(seq, ctrl_end=[0,1,0]) for seq in y]
 
         inter_seq = add_ctrl(np.zeros((batch_size, 1, element_size)), ctrl_inter)
         data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b + [inter_seq]]
@@ -83,43 +83,8 @@ def build_data_distraction(min_len, max_len, batch_size, bias, element_size, nb_
 
         yield inputs, target, nb_sub_seq_a, mask
 
-####################################  odd task #####################################
 
-
-def build_data_odd(min_len, max_len, batch_size, bias, element_size, nb_makers_min, nb_markers_max):
-
-    # Create a generator
-    while True:
-        # number of sub_sequences
-        nb_sub_seq_a = np.random.randint(nb_makers_min, nb_markers_max)
-        nb_sub_seq_b = nb_sub_seq_a              # might be different in future implementation
-
-        # set the sequence length of each marker
-        seq_lengths_a = np.random.randint(low=min_len, high=max_len + 1, size=nb_sub_seq_a)
-        seq_lengths_b = np.random.randint(low=min_len, high=max_len + 1, size=nb_sub_seq_b)
-
-        #  generate subsequences for x and y
-        x = [np.random.binomial(1, bias, (batch_size, n, element_size)) for n in seq_lengths_a]
-        y = [np.random.binomial(1, bias, (batch_size, n, element_size)) for n in seq_lengths_b]
-
-        # create the target
-        target = np.concatenate(y + x, axis=1)
-
-        xx = [augment(seq, ctrl_end=[1,0,0,0]) for seq in x]
-        yy = [augment(seq, ctrl_end=[0,1,0,0]) for seq in y]
-
-        inter_seq = add_ctrl(np.zeros((batch_size, 1, element_size)), ctrl_inter)
-        data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b + [inter_seq]]
-        data_2 = [a[-1] for a in xx]
-        inputs = np.concatenate(data_1 + data_2, axis=1)
-
-        inputs = Variable(torch.from_numpy(inputs).type(dtype))
-        target = Variable(torch.from_numpy(target).type(dtype))
-        mask = (inputs[0, :, 2] == 1)
-
-        yield inputs, target, nb_sub_seq_a, mask
-
-a = build_data_distraction(3, 6, 1, 0.5, 8, 3, 4)
+a = build_data_distraction_v1(3, 6, 1, 0.5, 8, 3, 4)
 
 for inputs, target, nb_marker, mask in a:
     print(mask)
