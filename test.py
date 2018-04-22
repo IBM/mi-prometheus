@@ -1,5 +1,5 @@
 import torch
-from data_gen.build_data_gen import init_state, generate_forget_distraction
+from data_gen.build_data_gen import init_state, generate_copy
 from ntm.ntm_layer import NTM
 import numpy as np
 import os
@@ -12,8 +12,8 @@ read_arguments = np.load(path+"ntm_arguments.npy").item()
 
 # data_gen generator x,y
 batch_size = 1
-min_len = 5
-max_len = 5
+min_len = 10
+max_len = 10
 bias = 0.5
 nb_markers_max = 5
 nb_makers_min = 4
@@ -32,7 +32,7 @@ num_shift = read_arguments['num_shift']
 print("Testing")
 
 # New sequence
-data_gen = generate_forget_distraction(min_len, max_len, batch_size, bias, element_size, nb_makers_min, nb_markers_max)
+data_gen = generate_copy(min_len, max_len, batch_size, bias, element_size, nb_makers_min, nb_markers_max)
 
 # Instantiate
 ntm = NTM(tm_in_dim, tm_output_units,tm_state_units, n_heads, is_cam, num_shift, M)
@@ -47,7 +47,7 @@ for inputs, targets, nb_markers, mask in data_gen:
     _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
     print('nb_markers', nb_markers)
 
-    output, states = ntm(inputs, states, states[1])
+    output, states = ntm(inputs, states)
 
     # test accuracy
     output = torch.round(output[:, mask, :])

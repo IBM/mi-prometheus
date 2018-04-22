@@ -18,7 +18,7 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
     tm_state = Variable(torch.ones((batch_size, tm_state_units)).type(dtype))
     # initial attention  vector
     wt = Variable(torch.zeros((batch_size, n_heads, N)).type(dtype))
-    wt[:, 0, 0] = 1.0
+    wt[:, 0:n_heads, 0] = 1.0
     # bookmark
     wt_dynamic = wt
 
@@ -32,32 +32,34 @@ def init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M):
 #####                    Data generation            ########
 ############################################################
 
-
-# now creating channel markers
-pos = [0,0,0]
-ctrl_data = [0,0,0]
-ctrl_dummy = [0,0,1]
-ctrl_inter = [1,1,0]
-
-
 # add control channels to a sequence
-def add_ctrl(seq, ctrl): return np.insert(seq, pos, ctrl, axis=-1)
-
+def add_ctrl(seq, ctrl, pos): return np.insert(seq, pos, ctrl, axis=-1)
 
 # create augmented sequence as well as end marker and a dummy sequence
-def augment(seq, ctrl_end):
-    w = add_ctrl(seq, ctrl_data)
-    end = add_ctrl(np.zeros((seq.shape[0], 1, seq.shape[2])), ctrl_end)
-    dummy = add_ctrl(np.zeros_like(seq), ctrl_dummy)
-    return [w, end, dummy]
+def augment(seq, markers, ctrl_end=None, add_marker=False):
+    ctrl_data, ctrl_dummy, pos = markers
+
+    w = add_ctrl(seq, ctrl_data, pos)
+    end = add_ctrl(np.zeros((seq.shape[0], 1, seq.shape[2])), ctrl_end, pos)
+    if add_marker:
+        w = np.concatenate((w, end), axis=1)
+    dummy = add_ctrl(np.zeros_like(seq), ctrl_dummy, pos)
+
+    return [w, dummy]
 
 
 def generate_forget_distraction(min_len, max_len, batch_size, bias, element_size, nb_seq_min, nb_seq_max):
+    pos = [0, 0, 0]
+    ctrl_data = [0, 0, 0]
+    ctrl_dummy = [0, 0, 1]
+    ctrl_inter = [1, 1, 0]
+
+    markers = ctrl_data, ctrl_dummy, pos
 
     # Create a generator
     while True:
         # number of sub_sequences
-        nb_sub_seq_a = np.random.randint(nb_seq_min, nb_seq_max + 1)
+        nb_sub_seq_a = np.random.randint(nb_seq_min, nb_seq_max)
         nb_sub_seq_b = nb_sub_seq_a              # might be different in future implementation
 
         # set the sequence length of each marker
@@ -71,10 +73,10 @@ def generate_forget_distraction(min_len, max_len, batch_size, bias, element_size
         # create the target
         target = np.concatenate(y + x, axis=1)
 
-        xx = [augment(seq, ctrl_end=[1,0,0]) for seq in x]
-        yy = [augment(seq, ctrl_end=[0,1,0]) for seq in y]
+        xx = [augment(seq, markers, ctrl_end=[1,0,0], add_marker=True) for seq in x]
+        yy = [augment(seq, markers, ctrl_end=[0,1,0], add_marker=True) for seq in y]
 
-        inter_seq = add_ctrl(np.zeros((batch_size, 1, element_size)), ctrl_inter)
+        inter_seq = add_ctrl(np.zeros((batch_size, 1, element_size)), ctrl_inter, pos)
         data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b + [inter_seq]]
 
         data_2 = [a[-1] for a in xx]
@@ -87,9 +89,39 @@ def generate_forget_distraction(min_len, max_len, batch_size, bias, element_size
         yield inputs, target, nb_sub_seq_a, mask
 
 
-a = generate_forget_distraction(3, 6, 1, 0.5, 8, 3, 4)
+def generate_copy(min_len, max_len, batch_size, bias, element_size, nb_seq_min, nb_seq_max):
+    pos = [0, 0]
+    ctrl_data = [0, 0]
+    ctrl_dummy = [0, 1]
 
-for inputs, target, nb_marker, mask in a:
+    markers = ctrl_data, ctrl_dummy, pos
+    # Create a generator
+    while True:
+        # set the sequence length of each marker
+        seq_length = np.random.randint(low=min_len, high=max_len + 1)
+
+        #  generate subsequences for x and y
+        x = np.random.binomial(1, bias, (batch_size, seq_length, element_size))
+
+        # create the target
+        target = x
+
+        xx = augment(x, markers)
+
+        inputs = np.concatenate(xx, axis=1)
+
+        inputs = Variable(torch.from_numpy(inputs).type(dtype))
+        target = Variable(torch.from_numpy(target).type(dtype))
+        mask = inputs[0, :, 1] == 1
+        nb_seq = 1          # I added this just so we have the same main
+                            # for this task as well
+
+        yield inputs, target, nb_seq, mask
+
+
+a = generate_copy(3, 6, 1, 0.5, 8, 3, 4)
+
+for inputs, target, _, mask in a:
     print(mask)
     my_print('inputs', inputs)
     my_print('target', target)

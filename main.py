@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from data_gen.build_data_gen import init_state, generate_forget_distraction
+from data_gen.build_data_gen import init_state, generate_copy
 from ntm.ntm_layer import NTM
 import numpy as np
 import torch.cuda as cuda
@@ -19,13 +19,13 @@ min_len = 1
 max_len = 10
 bias = 0.5
 element_size = 8
-num_subseq_max = 3
+num_subseq_max = 4
 num_subseq_min = 1
 
 # init state, memory, attention
-tm_in_dim = element_size + 3
+tm_in_dim = element_size + 2
 tm_output_units = element_size
-tm_state_units = 5
+tm_state_units = 6
 n_heads = 1
 M = 10
 is_cam = False
@@ -45,25 +45,14 @@ criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(ntm.parameters(), lr=0.01)
 #optimizer = torch.optim.RMSprop(ntm.parameters(), lr=0.01, momentum=0.9, alpha=0.95)
 
-valid_step = False
-if valid_step:
-    # generate data for validation
-    _, states_valid = init_state(batch_size, tm_output_units, tm_state_units, n_heads, 100, M)
-    data_gen = generate_forget_distraction(20, 20, batch_size, bias, element_size, 5, 6)
-    for inputs, targets, nb_marker, mask in data_gen:
-        inputs_valid = inputs
-        targets_valid = targets
-        nb_markers_valid = nb_marker
-        mask_valid = mask
-        break
-
 # Start Training
 epoch = 0
 debug = 10000
-valid = 100
+valid_steps = 100
+active_valid = False
 debug_active = 0
 # Data generator : input & target
-data_gen = generate_forget_distraction(min_len, max_len, batch_size, bias, element_size, num_subseq_min, num_subseq_max)
+data_gen = generate_copy(min_len, max_len, batch_size, bias, element_size, num_subseq_min, num_subseq_max)
 for inputs, targets, num_subseq, mask in data_gen:
 
     # Init state, memory, attention
@@ -76,7 +65,7 @@ for inputs, targets, num_subseq, mask in data_gen:
 
     loss = criterion(output[:, mask, :], targets)
 
-    print(", epoch: %d, loss: %1.5f, N %d " % (epoch + 1, loss, N), "nb_marker:", num_subseq)
+    print(", epoch: %d, loss: %1.5f, N %d " % (epoch + 1, loss, N), "nb_sub_sequences:", num_subseq)
 
     loss.backward()
     optimizer.step()
@@ -89,14 +78,14 @@ for inputs, targets, num_subseq, mask in data_gen:
         np.save(path + 'ntm_arguments', args_save)
         break
 
-    if not(epoch % valid) and epoch != 0 and valid_step:
+    if not(epoch % valid_steps) and epoch != 0 and active_valid:
         # test accuracy
-        output, states_test = ntm(inputs_valid, states_valid, states_valid[1])
-        output = torch.round(output[:, mask_valid, :])
-        acc = 1 - torch.abs(output - targets_valid)
+        output, states_test = ntm(inputs, states, states[1])
+        output = torch.round(output[:, mask, :])
+        acc = 1 - torch.abs(output - targets)
         accuracy = acc.mean()
         print("Accuracy: %.6f" % (accuracy * 100) + "%")
-        print("nb markers valid", nb_markers_valid)
+        print("nb markers valid", num_subseq)
 
     epoch += 1
 

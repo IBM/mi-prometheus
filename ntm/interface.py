@@ -86,8 +86,8 @@ class Interface:
         wt = (wt_s + eps) ** γ
         wt = normalize(wt)                    # sharpening with normalization
 
-        if torch.sum(torch.abs(torch.sum(wt, dim=-1) - 1.0)) > 1e-6:
-            print(error )
+        if torch.sum(torch.abs(torch.sum(wt[:,0,:], dim=-1) - 1.0)) > 1e-6:
+            print("error: gamma very high, normalization problem")
 
         mem = memory.content
         return wt, mem
