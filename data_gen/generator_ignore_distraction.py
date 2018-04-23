@@ -38,8 +38,9 @@ def data_generator(min_len, max_len, batch_size, bias, element_size, nb_seq_min,
         inter_seq = add_ctrl(np.zeros((batch_size, 1, element_size)), ctrl_inter, pos)
         data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b[:-1]]
 
-        # dummies y and x
-        data_2 = [yy[-1][-1]] + [a[-1] for a in xx]
+
+        # dummies of y and xs
+        data_2 = [yy[-1][-1]] + [inter_seq] + [a[-1] for a in xx]
         inputs = np.concatenate(data_1 + data_2, axis=1)
 
         inputs = Variable(torch.from_numpy(inputs).type(dtype))

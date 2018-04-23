@@ -26,7 +26,7 @@ num_subseq_min = 1
 # init state, memory, attention
 tm_in_dim = element_size + 3
 tm_output_units = element_size
-tm_state_units = 6
+tm_state_units = 5
 n_heads = 1
 M = 10
 is_cam = False
