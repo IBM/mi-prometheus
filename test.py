@@ -1,5 +1,5 @@
 import torch
-from data_gen.generator_scratch_pad import data_generator
+from data_gen.generate_copy import data_generator
 from data_gen.init_state import init_state
 from ntm.ntm_layer import NTM
 import numpy as np

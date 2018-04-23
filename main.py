@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from data_gen.generator_ignore_distraction import data_generator
+from data_gen.generate_copy import data_generator
 from data_gen.init_state import init_state
 from ntm.ntm_layer import NTM
 import numpy as np
@@ -24,7 +24,7 @@ num_subseq_max = 4
 num_subseq_min = 1
 
 # init state, memory, attention
-tm_in_dim = element_size + 3
+tm_in_dim = element_size +2
 tm_output_units = element_size
 tm_state_units = 5
 n_heads = 1

@@ -9,7 +9,7 @@ from ntm.ntm_cell import NTMCell
 class NTM(nn.Module):
 
     def __init__(self, tm_in_dim, tm_output_units, tm_state_units,
-                 num_heads, is_cam, num_shift, M, plot_active=False):
+                 num_heads, is_cam, num_shift, M, plot_active=True):
         """Initialize an NTM Layer.
 
         :param tm_in_dim: input size.
