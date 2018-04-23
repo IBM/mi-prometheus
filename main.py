@@ -1,6 +1,7 @@
 import torch
 from torch import nn
-from data_gen.build_data_gen import init_state, generate_copy
+from data_gen.generator_ignore_distraction import data_generator
+from data_gen.init_state import init_state
 from ntm.ntm_layer import NTM
 import numpy as np
 import torch.cuda as cuda
@@ -23,7 +24,7 @@ num_subseq_max = 4
 num_subseq_min = 1
 
 # init state, memory, attention
-tm_in_dim = element_size + 2
+tm_in_dim = element_size + 3
 tm_output_units = element_size
 tm_state_units = 6
 n_heads = 1
@@ -43,7 +44,6 @@ if CUDA:
 # Set loss and optimizer
 criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(ntm.parameters(), lr=0.01)
-#optimizer = torch.optim.RMSprop(ntm.parameters(), lr=0.01, momentum=0.9, alpha=0.95)
 
 # Start Training
 epoch = 0
@@ -52,7 +52,7 @@ valid_steps = 100
 active_valid = False
 debug_active = 0
 # Data generator : input & target
-data_gen = generate_copy(min_len, max_len, batch_size, bias, element_size, num_subseq_min, num_subseq_max)
+data_gen = data_generator(min_len, max_len, batch_size, bias, element_size, num_subseq_min, num_subseq_max)
 for inputs, targets, num_subseq, mask in data_gen:
 
     # Init state, memory, attention

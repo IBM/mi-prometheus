@@ -32,7 +32,7 @@ class NTM(nn.Module):
             tm_output, state = self.NTMCell(x[..., j, :], state)
 
             # plot attention/memory
-            plot_active = True
+            plot_active = False
             if plot_active:
                 label = 'Write/Read sequences x,y'
                 plot_memory_attention(state[3], state[1], label)

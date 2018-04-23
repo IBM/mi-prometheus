@@ -1,5 +1,6 @@
 import torch
-from data_gen.build_data_gen import init_state, generate_copy
+from data_gen.generator_scratch_pad import data_generator
+from data_gen.init_state import init_state
 from ntm.ntm_layer import NTM
 import numpy as np
 import os
@@ -32,7 +33,7 @@ num_shift = read_arguments['num_shift']
 print("Testing")
 
 # New sequence
-data_gen = generate_copy(min_len, max_len, batch_size, bias, element_size, nb_makers_min, nb_markers_max)
+data_gen = data_generator(min_len, max_len, batch_size, bias, element_size, nb_makers_min, nb_markers_max)
 
 # Instantiate
 ntm = NTM(tm_in_dim, tm_output_units,tm_state_units, n_heads, is_cam, num_shift, M)
