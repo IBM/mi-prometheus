@@ -7,6 +7,14 @@ import yaml
 import os.path
 import argparse
 
+import sys
+# Import problems and problem factory.
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'problems'))
+from problem_factory import ProblemFactory
+# Import models and model factory.
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'models'))
+from model_factory import ModelFactory
+
 if __name__ == '__main__':
  
     # Create parser with list of  runtime arguments.
@@ -34,6 +42,14 @@ if __name__ == '__main__':
     #print("Loaded configuration",  config_loaded)    
     print("Problem configuration:\n",  config_loaded['problem'])
     print("Model configuration:\n",  config_loaded['model'])
+    
+    # Build problem
+    problem = ProblemFactory.build_problem(config_loaded['problem'])
+    print("Builded ",  problem)
+
+    # Build model
+    model = ModelFactory.build_model(config_loaded['model'])
+    print("Builded ",  model)
     
     # Run mode: training or inference.
     #if FLAGS.mode:

@@ -1,6 +1,6 @@
 # Problem parameters:
 problem:
-    name: copy_task_v1
+    name: serial_recall_v1
     # Size of generated input: [batch_size x sequence_length x number of command and data bits].
     command_bits: &cbits 2
     data_bits: &dbits 8
