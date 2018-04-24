@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from problems.generate_serial_recall import generate_serial_recall
-from problems.generator_scratch_pad import generator_scratch_pad
-from problems.generator_ignore_distraction import generator_ignore_distraction
-from problems.generate_forget_distraction import generate_forget_distraction
+from problems.generate_serial_recall import GenerateSerialRecall
+from problems.generator_scratch_pad import GeneratorScratchPad
+from problems.generator_ignore_distraction import GeneratorIgnoreDistraction
+from problems.generate_forget_distraction import GenerateForgetDistraction
 """problem_factory.py: Factory building problems"""
 __author__ = "Tomasz Kornuta"
 
@@ -26,13 +26,13 @@ class ProblemFactory(object):
         # Try to load model
         name = params['name']
         if name == 'serial_recall':
-            return generate_serial_recall(params)
+            return GenerateSerialRecall(params)
         elif name == 'scratch_pad':
-            return generator_scratch_pad(params)
+            return GeneratorScratchPad(params)
         elif name == 'forget_distraction':
-            return generate_forget_distraction(params)
+            return GeneratorIgnoreDistraction(params)
         elif name == 'ignore_distraction':
-            return generator_ignore_distraction(params)
+            return GenerateForgetDistraction(params)
         else:
             raise ValueError
 

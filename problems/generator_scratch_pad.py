@@ -6,7 +6,7 @@ from problems.utils import augment
 CUDA = False
 dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 
-class generator_scratch_pad(object):
+class GeneratorScratchPad(object):
     def __init__(self, params):
         self.min_sequence_length = params["min_sequence_length"]
         self.max_sequence_length = params["max_sequence_length"]
@@ -55,7 +55,7 @@ params = {"min_sequence_length":1,
          "num_seq_min":1,
          "num_seq_max": 4}
 
-data = generator_scratch_pad(params)
+data = GeneratorScratchPad(params)
 
 for inputs, target, mask in data.data_generator():
     print(mask)

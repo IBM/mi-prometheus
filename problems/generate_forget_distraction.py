@@ -7,7 +7,7 @@ CUDA = False
 dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 
 
-class generate_forget_distraction(object):
+class GenerateForgetDistraction(object):
     def __init__(self, params):
         self.min_sequence_length = params["min_sequence_length"]
         self.max_sequence_length = params["max_sequence_length"]
@@ -64,7 +64,7 @@ params = {"min_sequence_length":1,
          "num_seq_min":1,
          "num_seq_max": 4}
 
-data = generate_forget_distraction(params)
+data = GenerateForgetDistraction(params)
 
 for inputs, target, mask in data.data_generator():
     print(mask)

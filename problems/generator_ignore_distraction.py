@@ -6,7 +6,7 @@ from problems.utils import augment, add_ctrl
 CUDA = False
 dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 
-class generator_ignore_distraction(object):
+class GeneratorIgnoreDistraction(object):
     def __init__(self, params):
         self.min_sequence_length = params["min_sequence_length"]
         self.max_sequence_length = params["max_sequence_length"]
@@ -65,7 +65,7 @@ params = {"min_sequence_length":1,
          "num_seq_min":1,
          "num_seq_max": 4}
 
-data = generator_ignore_distraction(params)
+data = GeneratorIgnoreDistraction(params)
 
 for inputs, target, mask in data.data_generator():
     print(mask)

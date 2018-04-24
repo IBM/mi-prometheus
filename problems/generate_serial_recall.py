@@ -7,7 +7,7 @@ CUDA = False
 dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 
 
-class generate_serial_recall(object):
+class GenerateSerialRecall(object):
     def __init__(self, params):
         self.min_sequence_length = params["min_sequence_length"]
         self.max_sequence_length = params["max_sequence_length"]
@@ -48,7 +48,7 @@ params = {"min_sequence_length":1,
          "batch_size":1,
          "data_bits": 8}
 
-data = generate_serial_recall(params)
+data = GenerateSerialRecall(params)
 
 for inputs, target, mask in data.data_generator():
     print(mask)
