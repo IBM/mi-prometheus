@@ -1,8 +1,10 @@
 import torch
-from data_gen.build_data_scratch_pad import init_state, build_data_gen
+from data_gen.build_data_distraction import init_state, build_data_gen
 from ntm.ntm_layer import NTM
 import numpy as np
-np.random.seed(19092)
+import os
+
+#np.random.seed(19092)
 
 # read training arguments
 path = "./Models/"
@@ -10,10 +12,10 @@ read_arguments = np.load(path+"ntm_arguments.npy").item()
 
 # data_gen generator x,y
 batch_size = 1
-min_len = 50
-max_len = 80
+min_len = 10
+max_len = 20
 bias = 0.5
-nb_markers_max = 6
+nb_markers_max = 5
 element_size = read_arguments['element_size']
 
 # init state, memory, attention
@@ -39,14 +41,15 @@ ntm.load_state_dict(torch.load(path+"model_parameters"))
 for inputs, targets, seq_length in data_gen:
 
     # Init state, memory, attention
-    N = max(seq_length)
+    N = 80 #max(seq_length)
+    print(len(seq_length))
     _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
     print('sub_sequences_length', seq_length)
 
     output, states = ntm(inputs, states)
 
     # test accuracy
-    output = torch.round(output[:, -seq_length[-1]:, :])
+    output = torch.round(output[:, -sum(seq_length):, :])
     acc = 1 - torch.abs(output-targets)
     accuracy = acc.mean()
     print("Accuracy: %.6f" % (accuracy * 100) + "%")
