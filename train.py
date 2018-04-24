@@ -48,7 +48,8 @@ if __name__ == '__main__':
     problem = ProblemFactory.build_problem(config_loaded['problem'])
 
     # Build model
-    model, states = ModelFactory.build_model(config_loaded['model'])
+    model = ModelFactory.build_model(config_loaded['model'])
+    states = model.init_state()
 
     # Run mode: training or inference.
     # if FLAGS.mode:
@@ -64,7 +65,7 @@ if __name__ == '__main__':
     epoch = 0
 
     # Data generator : input & target
-    for inputs, targets, mask in problem:
+    for inputs, targets, mask in problem.data_generator():
 
         optimizer.zero_grad()
 
@@ -81,6 +82,8 @@ if __name__ == '__main__':
         if loss < 1e-5:
             path = "./checkpoints/"
             # save model parameters
+            if not os.path.exists(path):
+                os.makedirs(path)
             torch.save(model.state_dict(), path+"model_parameters")
             break
 

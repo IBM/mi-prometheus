@@ -15,7 +15,7 @@ class ProblemFactory(object):
     @staticmethod
     def build_problem(params):
         """ Static method returning particular problem, depending on the name provided in the list of parameters.
-        
+
         :param params: Dictionary of parameters (in particular containing 'name' which is equivalend to problem name)
         :returns: Instance of a given problem.
         """

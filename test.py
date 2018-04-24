@@ -45,12 +45,13 @@ if __name__ == '__main__':
     problem = ProblemFactory.build_problem(config_loaded['problem'])
 
     # Build model
-    model, states = ModelFactory.build_model(config_loaded['model'])
+    model = ModelFactory.build_model(config_loaded['model'])
+    states = model.init_state()
 
     # load the trained model
     model.load_state_dict(torch.load(path+"model_parameters"))
 
-    for inputs, targets, mask in problem:
+    for inputs, targets, mask in problem.data_generator():
         # apply the trained model
         output, states = model(inputs, states)
 

@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """model_factory.py: Factory building models"""
 from models.ntm.ntm_layer import NTM
-from models.init_state import init_state
 __author__ = "Tomasz Kornuta"
 
 class ModelFactory(object):
@@ -24,7 +23,7 @@ class ModelFactory(object):
         # Try to load model
         name = params['name']
         if name == 'dwm':
-            return NTM(params), init_state(params)
+            return NTM(params)
         else:
             raise ValueError
 

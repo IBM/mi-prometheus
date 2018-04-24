@@ -1,9 +1,12 @@
 import torch
 from torch import nn
 from problems.plot_data import plot_memory_attention
+from torch.autograd import Variable
 
 from models.ntm.ntm_cell import NTMCell
 
+CUDA = False
+dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 
 class NTM(nn.Module):
 
@@ -18,19 +21,21 @@ class NTM(nn.Module):
         :param num_shift: number of shifts of heads.
         :param M: Number of slots per address in the memory bank.
         """
-        tm_in_dim = params["command_bits"] + params["data_bits"]
-        tm_output_units = params["data_bits"]
-        tm_state_units =params["hidden_state_dim"]
-        num_heads = params["num_heads"]
-        is_cam = params["use_content_addressing"]
-        num_shift = params["shift_size"]
-        M = params["memory_content_size"]
-        plot_active = plot_active
+        self.tm_in_dim = params["command_bits"] + params["data_bits"]
+        self.tm_output_units = params["data_bits"]
+        self.tm_state_units =params["hidden_state_dim"]
+        self.num_heads = params["num_heads"]
+        self.is_cam = params["use_content_addressing"]
+        self.num_shift = params["shift_size"]
+        self.M = params["memory_content_size"]
+        self.batch_size = params["batch_size"]
+        self.memory_addresses_size = params["memory_addresses_size"]
+        self.plot_active = plot_active
         super(NTM, self).__init__()
 
         # Create the NTM components
-        self.NTMCell = NTMCell(tm_in_dim, tm_output_units, tm_state_units,
-                               num_heads, is_cam, num_shift, M)
+        self.NTMCell = NTMCell(self.tm_in_dim, self.tm_output_units, self.tm_state_units,
+                               self.num_heads, self.is_cam, self.num_shift, self.M)
         self.plot_active = plot_active 
 
     def forward(self, x, state):       # x : batch_size, seq_len, input_size
@@ -62,5 +67,24 @@ class NTM(nn.Module):
             output = torch.cat([output, tm_output], dim=-2)
 
         return output, state
+
+    def init_state(self):
+
+        tm_state = Variable(torch.ones((self.batch_size, self.tm_state_units)).type(dtype))
+
+        # initial attention  vector
+        wt = Variable(torch.zeros((self.batch_size, self.num_heads, self.memory_addresses_size)).type(dtype))
+        wt[:, 0:self.num_heads, 0] = 1.0
+
+        # bookmark
+        wt_dynamic = wt
+
+        mem_t = Variable((torch.ones((self.batch_size, self.M, self.memory_addresses_size)) * 0.01).type(dtype))
+
+        states = [tm_state, wt, wt_dynamic, mem_t]
+        return states
+
+    def change_memory_size(self, memory_addresses_size):
+        self.memory_addresses_size = memory_addresses_size
 
 

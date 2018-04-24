@@ -9,6 +9,7 @@ problem:
     max_sequence_length: 10
     num_seq_min: 1
     num_seq_max: 4
+
 # Model parameters:
 model:
     name: dwm   # dynamic_working_memory
