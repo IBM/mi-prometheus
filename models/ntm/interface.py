@@ -30,13 +30,29 @@ class Interface:
 
     @property
     def read_size(self):
+        """
+        Returns the size of the data read by all heads
+        
+        :return: (num_head*content_size)
+        """
         return self.num_heads * self.M
 
     @property
     def update_size(self):
+        """
+        Returns the total number of parameters output by the controller
+        
+        :return: (num_heads*parameters_per_head)
+        """
         return self.num_heads * self.cum_lengths[-1]
 
     def read(self, wt, mem):
+        """Returns the data read from memory
+
+        :param wt: the read weight [BATCH_SIZE, MEMORY_SIZE]
+        :param mem: the memory [BATCH_SIZE, CONTENT_SIZE, MEMORY_SIZE] 
+        :return: the read data [BATCH_SIZE, CONTENT_SIZE]
+        """
         memory = Memory(mem)
         read_data = memory.attention_read(wt)
         # flatten the data_gen in the last 2 dimensions
@@ -44,6 +60,12 @@ class Interface:
         return read_data.view(*sz, self.read_size)
 
     def update(self, update_data, wt, mem):
+        """Erases from memory, writes to memory, updates the weights using various attention mechanisms
+        :param update_data: the parameters from the controllers [update_size]
+        :param wt: the read weight [BATCH_SIZE, MEMORY_SIZE]
+        :param mem: the memory [BATCH_SIZE, CONTENT_SIZE, MEMORY_SIZE] 
+        :return: TUPLE [wt, mem]
+        """
         assert update_data.size()[-1] == self.update_size, "Mismatch in update sizes"
 
         # reshape update data_gen by heads and total parameter size

@@ -33,6 +33,13 @@ class NTMCell(nn.Module):
                                      self.interface.read_size, self.interface.update_size)
 
     def forward(self, tm_input, state):
+        """
+        Builds the NTM cell
+        
+        :param tm_input: Current input (from time t)  [BATCH_SIZE x INPUT_SIZE]
+        :param state: Previous hidden state (from time t-1)  [BATCH_SIZE x TM_STATE_UNITS]
+        :return: Tuple [output, hidden_state]
+        """
         tm_state, wt, wt_dynamic, mem = state
 
         # step 0 : shift to address 0?

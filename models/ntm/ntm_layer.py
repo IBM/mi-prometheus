@@ -34,6 +34,13 @@ class NTM(nn.Module):
         self.plot_active = plot_active 
 
     def forward(self, x, state):       # x : batch_size, seq_len, input_size
+        """
+        Runs the NTM cell and plots if necessary
+        
+        :param x: input sequence  [BATCH_SIZE x seq_len x input_size ]
+        :param state: Input hidden state  [BATCH_SIZE x state_size]
+        :return: Tuple [output, hidden_state] 
+        """
         output = None
         for j in range(x.size()[-2]):
             tm_output, state = self.NTMCell(x[..., j, :], state)
