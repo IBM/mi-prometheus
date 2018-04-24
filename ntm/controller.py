@@ -40,6 +40,13 @@ class Controller(nn.Module):
         #self.reset_parameters()
 
     def forward(self, tm_input, tm_state, read_data):
+        """
+        Calculates the output, the hidden state and the controller parameters
+        
+        :param tm_input: Current input (from time t)  [BATCH_SIZE x INPUT_SIZE]
+        :param tm_state: Previous hidden state (from time t-1)  [BATCH_SIZE x TM_STATE_UNITS]
+        :return: Tuple [output, hidden_state, update_data] (update_data contains all of the controller parameters)
+        """
         # Concatenate the 3 inputs to controller
         combined = torch.cat((tm_input, tm_state, read_data), dim=-1)
 
@@ -58,13 +65,4 @@ class Controller(nn.Module):
 
         return tm_output, tm_state, update_data
 
-    def reset_parameters(self):
-        # Initialize the linear layers
-        nn.init.xavier_uniform(self.tm_i2s.weight, gain=1.4)
-        nn.init.normal(self.tm_i2s.bias, std=0.01)
 
-        nn.init.xavier_uniform(self.tm_i2o.weight, gain=1.4)
-        nn.init.normal(self.tm_i2o.bias, std=0.01)
-
-        nn.init.xavier_uniform(self.tm_i2u.weight, gain=1.4)
-        nn.init.normal(self.tm_i2u.bias, std=0.01)
