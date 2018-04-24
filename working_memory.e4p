@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-5.1.dtd">
 <!-- eric project file for project working_memory -->
-<!-- Saved: 2018-04-23, 10:29:45 -->
+<!-- Saved: 2018-04-23, 19:58:31 -->
 <!-- Copyright (C) 2018 ,  -->
 <Project version="5.1">
   <Language>en_US</Language>
@@ -14,7 +14,6 @@
   <Eol index="0"/>
   <Sources>
     <Source>__init__.py</Source>
-    <Source>data_gen/build_data_gen.py</Source>
     <Source>data_gen/plot_data.py</Source>
     <Source>main.py</Source>
     <Source>ntm/__init__.py</Source>
@@ -41,6 +40,7 @@
   <Interfaces/>
   <Others>
     <Other>README.md</Other>
+    <Other>configs/test2.yaml</Other>
   </Others>
   <Vcs>
     <VcsType>None</VcsType>
