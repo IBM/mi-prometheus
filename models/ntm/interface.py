@@ -2,9 +2,8 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
-from ntm.tensor_utils import circular_conv, normalize, sharpen
-from ntm.memory import Memory
-import pdb
+from models.ntm.tensor_utils import circular_conv, normalize
+from models.ntm.memory import Memory
 
 
 class Interface:

@@ -1,0 +1,30 @@
+# Problem parameters:
+problem:
+    name: forget_distraction
+    # Size of generated input: [batch_size x sequence_length x number of command and data bits].
+    data_bits: &dbits 8
+    batch_size: &bs 1
+    # Parameters denoting min and max lengths. 
+    min_sequence_length: 1
+    max_sequence_length: 10
+    num_seq_min: 1
+    num_seq_max: 4
+# Model parameters:
+model:
+    name: dwm   # dynamic_working_memory
+    # Input bits = [command_bits, data_bits]
+    # Output bits = [data_bits]
+    command_bits: 3
+    data_bits: *dbits
+    batch_size: *bs
+    # Controller hidden state.
+    hidden_state_dim: 5
+    # Memory (?).
+    memory_content_size: 10
+    memory_addresses_size: 60
+    # Number of heads.
+    num_heads: 1
+    # Addressing parameters.
+    use_content_addressing: False
+    shift_size: 3
+    

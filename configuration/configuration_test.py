@@ -39,7 +39,7 @@ if __name__ == '__main__':
         config_loaded = yaml.load(stream)
 
     # Print loaded configuration
-    #print("Loaded configuration",  config_loaded)    
+    # print("Loaded configuration",  config_loaded)
     print("Problem configuration:\n",  config_loaded['problem'])
     print("Model configuration:\n",  config_loaded['model'])
     

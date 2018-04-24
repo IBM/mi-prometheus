@@ -1,62 +1,66 @@
 import torch
-from data_gen.generate_copy import data_generator
-from data_gen.init_state import init_state
-from ntm.ntm_layer import NTM
 import numpy as np
+import argparse
+import yaml
 import os
 
-np.random.seed(999999999)
+# Import problems and problem factory.
+from problems.problem_factory import ProblemFactory
+# Import models and model factory.
+from models.model_factory import ModelFactory
 
-# read training arguments
-path = "./Models/"
-read_arguments = np.load(path+"ntm_arguments.npy").item()
+if __name__ == '__main__':
+    # set random seed
+    np.random.seed(999999999)
 
-# data_gen generator x,y
-batch_size = 1
-min_len = 10
-max_len = 10
-bias = 0.5
-nb_markers_max = 5
-nb_makers_min = 4
-element_size = read_arguments['element_size']
+    # Create parser with list of  runtime arguments.
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-t', type=str, default='', dest='task',
+                        help='Name of the task configuration file to be loaded')
+    parser.add_argument('-m', action='store_true', dest='mode',
+                        help='Mode (TRUE: trains a new model, FALSE: tests existing model)')
+    # Parse arguments.
+    FLAGS, unparsed = parser.parse_known_args()
 
-# init state, memory, attention
-tm_in_dim = read_arguments['tm_in_dim']
-tm_output_units = read_arguments['tm_output_units']
-tm_state_units = read_arguments['tm_state_units']
-n_heads = read_arguments['n_heads']
-M = read_arguments['M']
-is_cam = read_arguments['is_cam']
-num_shift = read_arguments['num_shift']
+    # read training arguments
+    path = "./checkpoints/"
 
-# Test
-print("Testing")
+    # Test
+    print("Testing")
 
-# New sequence
-data_gen = data_generator(min_len, max_len, batch_size, bias, element_size, nb_makers_min, nb_markers_max)
+    # Check if config file was selected.
+    if (FLAGS.task == ''):
+        print('Please pass task configuration file as -t parameter')
+        exit(-1)
+    # Check it file exists.
+    if not os.path.isfile(FLAGS.task):
+        print('Task configuration file {} does not exists'.format(FLAGS.task))
+        exit(-2)
 
-# Instantiate
-ntm = NTM(tm_in_dim, tm_output_units,tm_state_units, n_heads, is_cam, num_shift, M)
+    # Read YAML file
+    with open(FLAGS.task, 'r') as stream:
+        config_loaded = yaml.load(stream)
 
-ntm.load_state_dict(torch.load(path+"model_parameters"))
+    # Build new problem
+    problem = ProblemFactory.build_problem(config_loaded['problem'])
 
+    # Build model
+    model, states = ModelFactory.build_model(config_loaded['model'])
 
-for inputs, targets, nb_markers, mask in data_gen:
+    # load the trained model
+    model.load_state_dict(torch.load(path+"model_parameters"))
 
-    # Init state, memory, attention
-    N = 50 #max(seq_length)
-    _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
-    print('nb_markers', nb_markers)
+    for inputs, targets, mask in problem:
+        # apply the trained model
+        output, states = model(inputs, states)
 
-    output, states = ntm(inputs, states)
+        # test accuracy
+        output = torch.round(output[:, mask, :])
+        acc = 1 - torch.abs(output-targets)
+        accuracy = acc.mean()
+        print("Accuracy: %.6f" % (accuracy * 100) + "%")
 
-    # test accuracy
-    output = torch.round(output[:, mask, :])
-    acc = 1 - torch.abs(output-targets)
-    accuracy = acc.mean()
-    print("Accuracy: %.6f" % (accuracy * 100) + "%")
-
-    break   # one test sample
+        break   # one test sample
 
 
 

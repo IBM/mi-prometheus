@@ -1,6 +1,6 @@
 """NTM Memory"""
 import torch
-from ntm.tensor_utils import sim, outer_prod
+from models.ntm.tensor_utils import sim, outer_prod
 
 
 class Memory:

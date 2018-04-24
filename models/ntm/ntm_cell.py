@@ -1,9 +1,11 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from ntm.controller import Controller
-from ntm.interface import Interface
-from data_gen.plot_data import plot_memory_attention
+from models.ntm.controller import Controller
+from models.ntm.interface import Interface
+
+from models.ntm.tensor_utils import normalize
+
 
 class NTMCell(nn.Module):
     def __init__(self, tm_in_dim, tm_output_units, tm_state_units,
@@ -19,9 +21,11 @@ class NTMCell(nn.Module):
         :param M: Number of slots per address in the memory bank.
         """
         super(NTMCell, self).__init__()
+        self.num_heads = num_heads
         tm_state_in = tm_state_units + tm_in_dim
-        self.tm_i2w_0 = nn.Linear(tm_state_in, num_heads)
-        self.tm_i2w_dynamic = nn.Linear(tm_state_in, num_heads)
+        self.tm_i2w = nn.Linear(tm_state_in, num_heads)
+
+        self.tm_i2w_dynamic = nn.Linear(tm_state_in, 3*num_heads)
 
         # build the interface and controller
         self.interface = Interface(num_heads, is_cam, num_shift, M)
@@ -29,25 +33,31 @@ class NTMCell(nn.Module):
                                      self.interface.read_size, self.interface.update_size)
 
     def forward(self, tm_input, state):
-        tm_state, wt, mem = state
-
-        # plot attention/memory
-        #plot_memory_attention(mem, wt)
+        tm_state, wt, wt_dynamic, mem = state
 
         # step 0 : shift to address 0?
         combined = torch.cat((tm_state, tm_input), dim=-1)
-        f = self.tm_i2w_0(combined)
+        f = self.tm_i2w(combined)
         f = F.sigmoid(f)
+        f = f[..., None]
 
-        # h = self.tm_i2w_dynamic(combined)
-        # h = F.sigmoid(h)
-        rN = 30
-        wt_address = torch.zeros_like(wt)
-        wt_address[:, 0, 0] = 1
-        wt_address[:, 1, rN] = 1
+        h = self.tm_i2w_dynamic(combined)
+        h = F.sigmoid(h)
+        h = h.view(-1, self.num_heads, 3)
+        h = h[:, :, None, :]
 
-        #f = f[..., None]
-        wt = f * wt_address + (1 - f) * wt
+        wt_address_0 = torch.zeros_like(wt)
+        wt_address_0[:, 0:self.num_heads, 0] = 1
+
+        wt_dynamic = (1 - f) * wt + f * wt_dynamic
+
+        # wt = (1 - h[..., 0]) * (1 - h[..., 1]) * wt_address_0 \
+        #           + (1 - h[..., 0]) * h[..., 1] * wt \
+        #           + h[..., 0] * (1 - h[..., 1]) * wt_address_dynamic
+        h = normalize(h)
+        wt = h[..., 0] * wt_address_0 \
+           + h[..., 1] * wt \
+           + h[..., 2] * wt_dynamic
 
         # step1: read from memory using attention
         read_data = self.interface.read(wt, mem)
@@ -58,5 +68,5 @@ class NTMCell(nn.Module):
         # step3: update memory and attention
         wt, mem = self.interface.update(update_data, wt, mem)
 
-        state = tm_state, wt, mem
+        state = tm_state, wt, wt_dynamic, mem
         return tm_output, state

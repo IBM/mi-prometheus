@@ -1,15 +1,13 @@
 import torch
 from torch import nn
-from data_gen.plot_data import plot_memory_attention
-import numpy as np
+from problems.plot_data import plot_memory_attention
 
-from ntm.ntm_cell import NTMCell
+from models.ntm.ntm_cell import NTMCell
 
 
 class NTM(nn.Module):
 
-    def __init__(self, tm_in_dim, tm_output_units, tm_state_units,
-                 num_heads, is_cam, num_shift, M, plot_active=True):
+    def __init__(self, params, plot_active=False):
         """Initialize an NTM Layer.
 
         :param tm_in_dim: input size.
@@ -20,6 +18,14 @@ class NTM(nn.Module):
         :param num_shift: number of shifts of heads.
         :param M: Number of slots per address in the memory bank.
         """
+        tm_in_dim = params["command_bits"] + params["data_bits"]
+        tm_output_units = params["data_bits"]
+        tm_state_units =params["hidden_state_dim"]
+        num_heads = params["num_heads"]
+        is_cam = params["use_content_addressing"]
+        num_shift = params["shift_size"]
+        M = params["memory_content_size"]
+        plot_active = plot_active
         super(NTM, self).__init__()
 
         # Create the NTM components
