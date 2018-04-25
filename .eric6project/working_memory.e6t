@@ -1,7 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Tasks SYSTEM "Tasks-6.0.dtd">
 <!-- eric6 tasks file for project working_memory -->
-<!-- Saved: 2018-04-23, 19:58:31 -->
+<!-- Saved: 2018-04-24, 20:37:07 -->
 <Tasks version="6.0">
   <ProjectScanFilter></ProjectScanFilter>
+  <Task priority="1" completed="False" type="1" uid="{bd9a3aaf-9a21-4367-9cdf-3de08fc9c410}">
+    <Summary>TODO: sequences of different lengths in batch (filling with zeros?)</Summary>
+    <Description></Description>
+    <Created>2018-04-24, 19:43:15</Created>
+    <Resource>
+      <Filename>problems/serial_recall.py</Filename>
+      <Linenumber>23</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" type="1" uid="{a18a9269-83d9-42eb-8e73-ee93a6578673}">
+    <Summary>TODO: evey item in batch has now the same seq_length.</Summary>
+    <Description></Description>
+    <Created>2018-04-24, 19:43:15</Created>
+    <Resource>
+      <Filename>problems/serial_recall.py</Filename>
+      <Linenumber>63</Linenumber>
+    </Resource>
+  </Task>
 </Tasks>
