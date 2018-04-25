@@ -3,11 +3,16 @@
 """configuration_test.py: Test of YAML configuration"""
 __author__ = "Tomasz Kornuta"
 
+# Force MKL (CPU BLAS) to use one core, faster
+import os
+os.environ["OMP_NUM_THREADS"] = '1'
+
 import yaml
 import os.path
 import argparse
 import torch
 from torch import nn
+
 
 # Import problems and problem factory.
 from problems.problem_factory import ProblemFactory
