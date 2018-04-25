@@ -1,33 +1,29 @@
 # Problem parameters:
 problem:
-    name: copy_task_v1
+    name: serial_recall_simplified
     # Size of generated input: [batch_size x sequence_length x number of command and data bits].
-    command_bits: &cbits 2
     data_bits: &dbits 8
-    batch_size: 1
-    # Parameters denoting min and max lengths.
+    batch_size: &bs 1
+    # Parameters denoting min and max lengths. 
     min_sequence_length: 1
     max_sequence_length: 10
+
 # Model parameters:
 model:
-    name: ntm_v1
+    name: dwm   # dynamic_working_memory
     # Input bits = [command_bits, data_bits]
     # Output bits = [data_bits]
-    command_bits: *cbits
+    command_bits: 2
     data_bits: *dbits
+    batch_size: *bs
     # Controller hidden state.
     hidden_state_dim: 5
     # Memory (?).
     memory_content_size: 10
+    memory_addresses_size: 60
     # Number of heads.
     num_heads: 1
     # Addressing parameters.
     use_content_addressing: False
     shift_size: 3
-
-optimizer:
-    # Exact name of the pytorch optimizer function
-    name: Adam
-    # Function arguments of the optimizer, by name
-    lr: 0.01
-
+    
