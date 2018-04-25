@@ -48,6 +48,7 @@ if __name__ == '__main__':
     # print("Loaded configuration",  config_loaded)
     print("Problem configuration:\n", config_loaded['problem'])
     print("Model configuration:\n", config_loaded['model'])
+    print("Optimizer configuration:\n", config_loaded['optimizer'])
 
     # Build problem
     problem = ProblemFactory.build_problem(config_loaded['problem'])
@@ -63,8 +64,12 @@ if __name__ == '__main__':
     #    run_inference(FLAGS.checkpoint)
 
     # Set loss and optimizer
+    optimizer_conf = dict(config_loaded['optimizer'])
+    optimizer_name = optimizer_conf['name']
+    del optimizer_conf['name']
+
     criterion = nn.BCELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), **optimizer_conf)
 
     # Start Training
     epoch = 0

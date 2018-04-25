@@ -28,4 +28,7 @@ model:
     # Addressing parameters.
     use_content_addressing: False
     shift_size: 3
-    
+
+optimizer:
+    name: Adam
+    lr: 0.01
