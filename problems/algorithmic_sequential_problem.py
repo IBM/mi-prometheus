@@ -58,6 +58,6 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
         # Set data.
         ax1.imshow(np.transpose(inputs[sample_number, :, :],  [1, 0]))        
         ax2.imshow(np.transpose(targets[sample_number, :, :],  [1, 0]))
-        #ax3.imshow(mask[sample_number:sample_number+1, :])
+        ax3.imshow(mask[None, :])
         # Plot!
         plt.show()
