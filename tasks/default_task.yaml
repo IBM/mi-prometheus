@@ -26,5 +26,7 @@ model:
     shift_size: 3
 
 optimizer:
+    # Exact name of the pytorch optimizer function
     name: Adam
+    # Function arguments of the optimizer, by name
     lr: 0.01
