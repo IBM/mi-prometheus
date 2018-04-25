@@ -49,7 +49,6 @@ if __name__ == '__main__':
 
     # Build model
     model = ModelFactory.build_model(config_loaded['model'])
-    states = model.init_state()
 
     # Run mode: training or inference.
     # if FLAGS.mode:
@@ -65,12 +64,13 @@ if __name__ == '__main__':
     epoch = 0
 
     # Data generator : input & target
-    for inputs, targets, mask in problem.data_generator():
+    for inputs, targets, mask in problem.return_generator_random_length():
 
         optimizer.zero_grad()
 
         # apply model
-        output, states_test = model(inputs, states)
+        output = model(inputs)
+
         # compute loss
         loss = criterion(output[:, mask, :], targets)
 

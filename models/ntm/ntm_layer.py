@@ -38,22 +38,24 @@ class NTM(nn.Module):
                                self.num_heads, self.is_cam, self.num_shift, self.M)
         self.plot_active = plot_active 
 
-    def forward(self, x, state):       # x : batch_size, seq_len, input_size
+    def forward(self, x):       # x : batch_size, seq_len, input_size
         """
         Runs the NTM cell and plots if necessary
         
         :param x: input sequence  [BATCH_SIZE x seq_len x input_size ]
         :param state: Input hidden state  [BATCH_SIZE x state_size]
-        :return: Tuple [output, hidden_state] 
+        :return: Tuple [output, hidden_state]
         """
         output = None
+        memory_addresses_size = self.memory_addresses_size
+        states = self.init_state(memory_addresses_size)
         for j in range(x.size()[-2]):
-            tm_output, state = self.NTMCell(x[..., j, :], state)
+            tm_output, states = self.NTMCell(x[..., j, :], states)
 
             # plot attention/memory 
             if self.plot_active:
                 label = 'Write/Read sequences x,y'
-                plot_memory_attention(state[3], state[1], label)
+                plot_memory_attention(states[3], states[1], label)
 
             if tm_output is None:
                 continue
@@ -66,25 +68,22 @@ class NTM(nn.Module):
             # concatenate output
             output = torch.cat([output, tm_output], dim=-2)
 
-        return output, state
+        return output
 
-    def init_state(self):
+    def init_state(self, memory_addresses_size):
 
         tm_state = Variable(torch.ones((self.batch_size, self.tm_state_units)).type(dtype))
 
         # initial attention  vector
-        wt = Variable(torch.zeros((self.batch_size, self.num_heads, self.memory_addresses_size)).type(dtype))
+        wt = Variable(torch.zeros((self.batch_size, self.num_heads, memory_addresses_size)).type(dtype))
         wt[:, 0:self.num_heads, 0] = 1.0
 
         # bookmark
         wt_dynamic = wt
 
-        mem_t = Variable((torch.ones((self.batch_size, self.M, self.memory_addresses_size)) * 0.01).type(dtype))
+        mem_t = Variable((torch.ones((self.batch_size, self.M, memory_addresses_size)) * 0.01).type(dtype))
 
         states = [tm_state, wt, wt_dynamic, mem_t]
         return states
-
-    def change_memory_size(self, memory_addresses_size):
-        self.memory_addresses_size = memory_addresses_size
 
 
