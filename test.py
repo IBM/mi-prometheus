@@ -4,6 +4,9 @@ import argparse
 import yaml
 import os
 
+# Force MKL (CPU BLAS) to use one core, faster
+os.environ["OMP_NUM_THREADS"] = '1'
+
 # Import problems and problem factory.
 from problems.problem_factory import ProblemFactory
 # Import models and model factory.

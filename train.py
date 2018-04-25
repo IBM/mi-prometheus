@@ -9,6 +9,10 @@ import argparse
 import torch
 from torch import nn
 
+# Force MKL (CPU BLAS) to use one core, faster
+from os import environ
+os.environ["OMP_NUM_THREADS"] = '1'
+
 # Import problems and problem factory.
 from problems.problem_factory import ProblemFactory
 # Import models and model factory.
