@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""simplified_serial_recall.py: Simplified serial recall problem (a.k.a. copy task)"""
+"""serial_recall_simplified.py: Simplified serial recall problem (a.k.a. copy task)"""
 __author__      = "Tomasz Kornuta"
 
 import numpy as np
@@ -9,7 +9,7 @@ from torch.autograd import Variable
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 @AlgorithmicSequentialProblem.register
-class SimplifiedSerialRecallProblem(AlgorithmicSequentialProblem):
+class SerialRecallSimplifiedProblem(AlgorithmicSequentialProblem):
     """   
     Class generating sequences of random bit-patterns and targets forcing the system to learn serial recall problem (a.k.a. copy task).
     Assumes several simplifications in comparison to copy task from NTM paper, i.e.:
@@ -65,7 +65,7 @@ class SimplifiedSerialRecallProblem(AlgorithmicSequentialProblem):
         # Generate input:  [BATCH_SIZE, 2*SEQ_LENGTH, CONTROL_BITS+DATA_BITS]
         inputs = np.zeros([self.batch_size, 2*seq_length, self.control_bits +  self.data_bits], dtype=np.float32)
         # Set memorization bit for the whole bit sequence that need to be memorized.
-        inputs[:, :seq_length, 0] = 1
+        inputs[:, seq_length:, 0] = 1
         # Set bit sequence.
         inputs[:, :seq_length,  self.control_bits:self.control_bits+self.data_bits] = bit_seq
 
@@ -90,9 +90,9 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'name': 'serial_recall_v1', 'control_bits': 1, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
+    params = {'name': 'serial_recall_simplified', 'control_bits': 1, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
     # Create problem object.
-    problem = SimplifiedSerialRecallProblem(params)
+    problem = SerialRecallSimplifiedProblem(params)
     # Get generator
     generator = problem.return_generator_random_length()
     # Get batch.

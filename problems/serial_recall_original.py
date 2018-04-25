@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""original_serial_recall.py: Original serial recall problem (a.k.a. copy task)"""
+"""serial_recall_original.py: Original serial recall problem (a.k.a. copy task)"""
 __author__      = "Tomasz Kornuta"
 
 import numpy as np
@@ -9,7 +9,7 @@ from torch.autograd import Variable
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 @AlgorithmicSequentialProblem.register
-class OriginalSerialRecallProblem(AlgorithmicSequentialProblem):
+class SerialRecallOriginalProblem(AlgorithmicSequentialProblem):
     """   
     Class generating sequences of random bit-patterns and targets forcing the system to learn serial recall problem (a.k.a. copy task).
     The formulation follows the original copy task from NTM paper, where:
@@ -94,9 +94,9 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'name': 'serial_recall_v1', 'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
+    params = {'name': 'serial_recall_original', 'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
     # Create problem object.
-    problem = OriginalSerialRecallProblem(params)
+    problem = SerialRecallOriginalProblem(params)
     # Get generator
     generator = problem.return_generator_random_length()
     # Get batch.
