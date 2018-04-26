@@ -5,16 +5,17 @@ problem:
     control_bits: &cbits 2
     data_bits: &dbits 8
     batch_size: &bs 1
-    # Parameters denoting min and max lengths.
+    # Parameters denoting min and max lengths. 
     min_sequence_length: 1
     max_sequence_length: 10
     bias: 0.5
+
 # Model parameters:
 model:
-    name: ntm_v1
-    # Input dim = [command_bits, data_bits]
-    # Output dim = [data_bits]
-    command_bits: *cbits
+    name: dwm   # dynamic_working_memory
+    # Input bits = [control_bits, data_bits]
+    # Output bits = [data_bits]
+    control_bits: *cbits
     data_bits: *dbits
     batch_size: *bs
     # Controller hidden state.
@@ -28,6 +29,7 @@ model:
     use_content_addressing: False
     shift_size: 3
 
+# optimizer parameters:
 optimizer:
     # Exact name of the pytorch optimizer function
     name: Adam

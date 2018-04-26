@@ -14,12 +14,13 @@ import torch
 from torch import nn
 
 # Import problems and problem factory.
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
 from problems.problem_factory import ProblemFactory
-# Import models and model factory.
 from models.model_factory import ModelFactory
 
 if __name__ == '__main__':
-
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', type=str, default='', dest='task',
@@ -47,7 +48,6 @@ if __name__ == '__main__':
     # print("Loaded configuration",  config_loaded)
     print("Problem configuration:\n", config_loaded['problem'])
     print("Model configuration:\n", config_loaded['model'])
-    print("Optimizer configuration:\n", config_loaded['optimizer'])
 
     # Build problem
     problem = ProblemFactory.build_problem(config_loaded['problem'])
@@ -73,17 +73,17 @@ if __name__ == '__main__':
     epoch = 0
 
     # Data generator : input & target
-    for inputs, targets, mask in problem.return_generator_random_length():
+    for inputs, targets, mask in problem.return_generator():
 
         optimizer.zero_grad()
 
         # apply model
         output = model(inputs)
-        print(output)
-        input()
+
 
         # compute loss
-        loss = criterion(output[:, mask, :], targets)
+        # TODO: solution for now - mask[0]
+        loss = criterion(output[:, mask[0], :], targets[:, mask[0], :])
 
         print(", epoch: %d, loss: %1.5f" % (epoch + 1, loss))
 
@@ -101,7 +101,4 @@ if __name__ == '__main__':
         epoch += 1
 
     print("Learning finished!")
-
-
-
 

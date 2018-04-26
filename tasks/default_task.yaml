@@ -1,8 +1,8 @@
 # Problem parameters:
 problem:
     name: copy_task_v1
-    # Size of generated input: [batch_size x sequence_length x number of command and data bits].
-    command_bits: &cbits 2
+    # Size of generated input: [batch_size x sequence_length x number of control and data bits].
+    control_bits: &cbits 2
     data_bits: &dbits 8
     batch_size: 1
     # Parameters denoting min and max lengths.
@@ -11,9 +11,9 @@ problem:
 # Model parameters:
 model:
     name: ntm_v1
-    # Input bits = [command_bits, data_bits]
+    # Input bits = [control, data_bits]
     # Output bits = [data_bits]
-    command_bits: *cbits
+    control_bits: *cbits
     data_bits: *dbits
     # Controller hidden state.
     hidden_state_dim: 5

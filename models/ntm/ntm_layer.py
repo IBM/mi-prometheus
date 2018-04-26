@@ -21,7 +21,7 @@ class NTM(nn.Module):
         :param num_shift: number of shifts of heads.
         :param M: Number of slots per address in the memory bank.
         """
-        self.tm_in_dim = params["command_bits"] + params["data_bits"]
+        self.tm_in_dim = params["control_bits"] + params["data_bits"]
         self.tm_output_units = params["data_bits"]
         self.tm_state_units =params["hidden_state_dim"]
         self.num_heads = params["num_heads"]

@@ -1,22 +1,36 @@
 import numpy as np
 import torch
 from torch.autograd import Variable
-from problems.utils import augment, add_ctrl
-from problems.algorithmic_sequential_problem import AlgorithmicSequentialProblem
+from utils import augment, add_ctrl
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 
 @AlgorithmicSequentialProblem.register
 class GeneratorIgnoreDistraction(AlgorithmicSequentialProblem):
     def __init__(self, params):
-        self.min_sequence_length = params["min_sequence_length"]
-        self.max_sequence_length = params["max_sequence_length"]
+        self.batch_size = params["batch_size"]
+        # Number of bits in one element.
+        self.control_bits = params['control_bits']
+        self.data_bits = params['data_bits']
+        assert self.control_bits >=3, "Problem requires at least 3 control bits (currently %r)" % self.control_bits
+        assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+        # Min and max lengts of a single subsequence (number of elements).
+        self.min_sequence_length = params['min_sequence_length']
+        self.max_sequence_length = params['max_sequence_length']
+        # Number of subsequences.
         self.num_subseq_min = params["num_subseq_min"]
         self.num_subseq_max = params["num_subseq_max"]
-        self.batch_size = params["batch_size"]
-        self.data_bits = params["data_bits"]
+        # Parameter  denoting 0-1 distribution (0.5 is equal).
+        self.bias = params['bias']
         self.dtype = torch.FloatTensor
 
-    def generate_batch(self, seq_length):
+    def generate_batch(self):
+        """Generates a batch  of size [BATCH_SIZE, ?, CONTROL_BITS+DATA_BITS].
+       
+        :returns: Tuple consisting of: input, output and mask
+        
+        TODO: deal with batch_size > 1
+        """
         pos = [0, 0, 0]
         ctrl_data = [0, 0, 0]
         ctrl_dummy = [0, 0, 1]
@@ -51,11 +65,8 @@ class GeneratorIgnoreDistraction(AlgorithmicSequentialProblem):
 
         inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
         target = Variable(torch.from_numpy(target).type(self.dtype))
-        mask = inputs[0, :, 2] == 1
-
-        mask = np.where(inputs[0, :, 2] == 1)
-        print(mask)
-        input()
+        # Mask: batch_size x total length (x 1)
+        mask = inputs[:, :, 2] == 1
 
         return inputs, target, mask
 
@@ -63,12 +74,12 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'name': 'serial_recall_original', 'control_bits': 2, 'data_bits': 8, 'batch_size': 1,
+    params = {'name': 'serial_recall_original', 'control_bits': 3, 'data_bits': 8, 'batch_size': 1,
               'min_sequence_length': 1, 'max_sequence_length': 10, 'bias': 0.5, 'num_subseq_min':1 ,'num_subseq_max': 4}
     # Create problem object.
     problem = GeneratorIgnoreDistraction(params)
     # Get generator
-    generator = problem.return_generator_random_length()
+    generator = problem.return_generator()
     # Get batch.
     (x, y, mask) = next(generator)
     # Display single sample (0) from batch.

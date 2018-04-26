@@ -6,7 +6,7 @@ __author__      = "Tomasz Kornuta"
 import numpy as np
 import torch
 from torch.autograd import Variable
-from problems.algorithmic_sequential_problem import AlgorithmicSequentialProblem
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 @AlgorithmicSequentialProblem.register
 class SerialRecallSimplifiedProblem(AlgorithmicSequentialProblem):
@@ -31,7 +31,7 @@ class SerialRecallSimplifiedProblem(AlgorithmicSequentialProblem):
         self.control_bits = params['control_bits']
         self.data_bits = params['data_bits']
         assert self.control_bits >=1, "Problem requires at least 1 control bit (currently %r)" % self.control_bits
-        assert self.data_bits >=2, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+        assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
         # Min and max lengts (number of elements).
         self.min_sequence_length = params['min_sequence_length']
         self.max_sequence_length = params['max_sequence_length']
@@ -48,7 +48,7 @@ class SerialRecallSimplifiedProblem(AlgorithmicSequentialProblem):
         """
         return np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
 
-    def generate_batch(self,  seq_length):
+    def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
        
@@ -59,6 +59,9 @@ class SerialRecallSimplifiedProblem(AlgorithmicSequentialProblem):
 
         TODO: every item in batch has now the same seq_length.
         """
+        # Set sequence length
+        seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
+
         # Generate batch of random bit sequences.
         bit_seq = self.generate_bit_sequence(seq_length)
         
@@ -76,27 +79,27 @@ class SerialRecallSimplifiedProblem(AlgorithmicSequentialProblem):
         targets[:, seq_length:,  :] = bit_seq
         
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH]
-        targets_mask = np.zeros([self.batch_size, 2*seq_length ])
-        targets_mask[:, seq_length:] = 1
-
-        targets_mask = torch.from_numpy(targets_mask).type(torch.uint8)
+        mask = np.zeros([self.batch_size, 2*seq_length ])
+        mask[:, seq_length:] = 1
 
         # PyTorch variables.
         ptinputs = Variable(torch.from_numpy(inputs).type(self.dtype))
         pttargets = Variable(torch.from_numpy(targets).type(self.dtype))
+        ptmask = torch.from_numpy(mask).type(torch.uint8)
     
         # Return batch.
-        return ptinputs,  pttargets,  targets_mask
-
+        return ptinputs,  pttargets,  ptmask
+        
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'name': 'serial_recall_simplified', 'control_bits': 1, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
+    params = {'name': 'serial_recall_original', 'control_bits': 2, 'data_bits': 8, 'batch_size': 1,
+              'min_sequence_length': 1, 'max_sequence_length': 10, 'bias': 0.5}
     # Create problem object.
     problem = SerialRecallSimplifiedProblem(params)
     # Get generator
-    generator = problem.return_generator_random_length()
+    generator = problem.return_generator()
     # Get batch.
     (x, y, mask) = next(generator)
     # Display single sample (0) from batch.

@@ -1,28 +1,42 @@
 import torch
 from torch.autograd import Variable
 import numpy as np
-from problems.utils import augment
-from problems.algorithmic_sequential_problem import AlgorithmicSequentialProblem
+from utils import augment
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 
 @AlgorithmicSequentialProblem.register
 class GeneratorScratchPad(AlgorithmicSequentialProblem):
     def __init__(self, params):
-        self.min_sequence_length = params["min_sequence_length"]
-        self.max_sequence_length = params["max_sequence_length"]
+        # Retrieve parameters from the dictionary.
+        self.batch_size = params['batch_size']
+        # Number of bits in one element.
+        self.control_bits = params['control_bits']
+        self.data_bits = params['data_bits']
+        assert self.control_bits >=2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
+        assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+        # Min and max lengts (number of elements).
+        self.min_sequence_length = params['min_sequence_length']
+        self.max_sequence_length = params['max_sequence_length']
+        # Number of subsequences.
         self.num_subseq_min = params["num_subseq_min"]
         self.num_subseq_max = params["num_subseq_max"]
-        self.batch_size = params["batch_size"]
-        self.data_bits = params["data_bits"]
+        # Parameter  denoting 0-1 distribution (0.5 is equal).
+        self.bias = params['bias']
         self.dtype = torch.FloatTensor
 
-    def generate_batch(self, seq_length):
+    def generate_batch(self):
+        """Generates a batch  of size [BATCH_SIZE, ?, CONTROL_BITS+DATA_BITS].
+       
+        :returns: Tuple consisting of: input, output and mask
+
+        TODO: deal with batch_size > 1
+        """
         pos = [0, 0]
         ctrl_data = [0, 0]
         ctrl_dummy = [0, 1]
 
         markers = ctrl_data, ctrl_dummy, pos
-        # Create a generator
 
         # number sub sequences
         num_sub_seq = np.random.randint(self.num_subseq_min, self.num_subseq_max)
@@ -45,7 +59,7 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
 
         inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
         target = Variable(torch.from_numpy(target).type(self.dtype))
-        mask = inputs[0, :, 1] == 1
+        mask = inputs[:, :, 1] == 1
 
         return inputs, target, mask
 
@@ -59,7 +73,7 @@ if __name__ == "__main__":
     # Create problem object.
     problem = GeneratorScratchPad(params)
     # Get generator
-    generator = problem.return_generator_random_length()
+    generator = problem.return_generator()
     # Get batch.
     (x, y, mask) = next(generator)
     # Display single sample (0) from batch.
