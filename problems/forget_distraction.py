@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 from torch.autograd import Variable
-from utils import augment, add_ctrl
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem
+from problems.utils import augment, add_ctrl
+from problems.algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 
 @AlgorithmicSequentialProblem.register
@@ -25,10 +25,9 @@ class GenerateForgetDistraction(AlgorithmicSequentialProblem):
         self.bias = params['bias']
         self.dtype = torch.FloatTensor
 
-    def generate_batch(self,  seq_length):
+    def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, ?, CONTROL_BITS+DATA_BITS].
        
-        :param seq_length: the length of the copy sequence. (NOT USED NOW!)
         :returns: Tuple consisting of: input, output and mask
 
         TODO: deal with batch_size > 1

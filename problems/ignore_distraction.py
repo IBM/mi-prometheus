@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 from torch.autograd import Variable
-from utils import augment, add_ctrl
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem
+from problems.utils import augment, add_ctrl
+from problems.algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 
 @AlgorithmicSequentialProblem.register
@@ -24,10 +24,9 @@ class GeneratorIgnoreDistraction(AlgorithmicSequentialProblem):
         self.bias = params['bias']
         self.dtype = torch.FloatTensor
 
-    def generate_batch(self,  seq_length):
+    def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, ?, CONTROL_BITS+DATA_BITS].
        
-        :param seq_length: the length of the copy sequence. (NOT USED NOW!)
         :returns: Tuple consisting of: input, output and mask
         
         TODO: deal with batch_size > 1
@@ -54,15 +53,15 @@ class GeneratorIgnoreDistraction(AlgorithmicSequentialProblem):
         # create the target
         target = np.concatenate([y[-1]] + x, axis=1)
 
-        xx = [augment(seq, markers, ctrl_end=[1,0,0], add_marker=True) for seq in x]
-        yy = [augment(seq, markers, ctrl_end=[0,1,0], add_marker=True) for seq in y]
+            xx = [augment(seq, markers, ctrl_end=[1,0,0], add_marker=True) for seq in x]
+            yy = [augment(seq, markers, ctrl_end=[0,1,0], add_marker=True) for seq in y]
 
-        inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
-        data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b[:-1]]
+            inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
+            data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b[:-1]]
 
-        # dummies of y and xs
-        data_2 = [yy[-1][-1]] + [inter_seq] + [a[-1] for a in xx]
-        inputs = np.concatenate(data_1 + data_2, axis=1)
+            # dummies of y and xs
+            data_2 = [yy[-1][-1]] + [inter_seq] + [a[-1] for a in xx]
+            inputs = np.concatenate(data_1 + data_2, axis=1)
 
         inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
         target = Variable(torch.from_numpy(target).type(self.dtype))

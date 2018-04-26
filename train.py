@@ -62,8 +62,12 @@ if __name__ == '__main__':
     #    run_inference(FLAGS.checkpoint)
 
     # Set loss and optimizer
+    optimizer_conf = dict(config_loaded['optimizer'])
+    optimizer_name = optimizer_conf['name']
+    del optimizer_conf['name']
+
     criterion = nn.BCELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), **optimizer_conf)
 
     # Start Training
     epoch = 0
@@ -76,8 +80,8 @@ if __name__ == '__main__':
         # apply model
         output = model(inputs)
 
+
         # compute loss
-        # TODO: solve problem with mask of size [batch_size, total_length] when batch > 1
         loss = criterion(output[:, mask, :], targets)
 
         print(", epoch: %d, loss: %1.5f" % (epoch + 1, loss))
@@ -90,7 +94,7 @@ if __name__ == '__main__':
             # save model parameters
             if not os.path.exists(path):
                 os.makedirs(path)
-            torch.save(model.state_dict(), path+"model_parameters")
+            torch.save(model.state_dict(), path+"model_parameters"+ '_' +config_loaded['problem']['name'])
             break
 
         epoch += 1

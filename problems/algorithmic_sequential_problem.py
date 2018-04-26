@@ -12,28 +12,19 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
     ''' Abstract base class for algorithmic, sequential problems. Provides some basic functionality usefull in all problems of such type'''
 
     @abc.abstractmethod
-    def generate_batch(self, seq_length):
+    def generate_batch(self):
         """Generates batch of sequences of given length. """
 
     def return_generator(self,  seq_length):
         """Returns a generator yielding a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
        
-        :param seq_length: the length of the copy sequence.
         : returns: A tuple: input with shape [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS], output 
         """
         # Create "generator".
         while True:        
             # Yield batch.
-            yield self.generate_batch(seq_length)
-
-    
-    def return_generator_random_length(self):
-        """ Returns a generator yielding a batch of sequences with length ranging from min_length to max_length"""
-        # Create "generator".
-        while True:        
-            # Yield batch.
-            yield self.generate_batch(np.random.randint(self.min_sequence_length, self.max_sequence_length+1))
+            yield self.generate_batch()
 
 
     def show_sample(self,  inputs,  targets, mask,  sample_number = 0):
@@ -58,6 +49,10 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
         # Set data.
         ax1.imshow(np.transpose(inputs[sample_number, :, :],  [1, 0]))        
         ax2.imshow(np.transpose(targets[sample_number, :, :],  [1, 0]))
+<<<<<<< Temporary merge branch 1
         ax3.imshow(mask[sample_number:sample_number+1, :])  
+=======
+        ax3.imshow(mask[None, :])
+>>>>>>> Temporary merge branch 2
         # Plot!
         plt.show()

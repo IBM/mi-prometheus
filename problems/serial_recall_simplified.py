@@ -57,7 +57,7 @@ class SerialRecallSimplifiedProblem(AlgorithmicSequentialProblem):
         output [BATCH_SIZE, 2*SEQ_LENGTH, DATA_BITS],
         mask [BATCH_SIZE, 2*SEQ_LENGTH]
 
-        TODO: deal with batch_size > 1
+        TODO: every item in batch has now the same seq_length.
         """
         # Generate batch of random bit sequences.
         bit_seq = self.generate_bit_sequence(seq_length)
@@ -76,22 +76,22 @@ class SerialRecallSimplifiedProblem(AlgorithmicSequentialProblem):
         targets[:, seq_length:,  :] = bit_seq
         
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH]
-        mask = np.zeros([self.batch_size, 2*seq_length ])
-        mask[:, seq_length:] = 1
+        targets_mask = np.zeros([self.batch_size, 2*seq_length ], dtype=bool)
+        targets_mask[:, seq_length:] = True
 
         # PyTorch variables.
         ptinputs = Variable(torch.from_numpy(inputs).type(self.dtype))
         pttargets = Variable(torch.from_numpy(targets).type(self.dtype))
-        ptmask = Variable(torch.from_numpy(mask).type(self.dtype))
     
         # Return batch.
-        return ptinputs,  pttargets,  ptmask
+        return ptinputs,  pttargets,  targets_mask
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'name': 'serial_recall_simplified', 'control_bits': 1, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
+    params = {'name': 'serial_recall_original', 'control_bits': 2, 'data_bits': 8, 'batch_size': 1,
+              'min_sequence_length': 1, 'max_sequence_length': 10, 'bias': 0.5}
     # Create problem object.
     problem = SerialRecallSimplifiedProblem(params)
     # Get generator
@@ -100,3 +100,4 @@ if __name__ == "__main__":
     (x, y, mask) = next(generator)
     # Display single sample (0) from batch.
     problem.show_sample(x, y, mask)
+

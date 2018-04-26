@@ -22,7 +22,7 @@ class ModelFactory(object):
             raise ValueError
         # Try to load model
         name = params['name']
-        if name == 'dwm':
+        if name == 'ntm_v1':
             return NTM(params)
         else:
             raise ValueError

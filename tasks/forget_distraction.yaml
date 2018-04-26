@@ -11,6 +11,7 @@ problem:
     num_subseq_min: 1
     num_subseq_max: 4
     bias: 0.5
+
 # Model parameters:
 model:
     name: dwm   # dynamic_working_memory
@@ -29,4 +30,9 @@ model:
     # Addressing parameters.
     use_content_addressing: False
     shift_size: 3
-    
+
+optimizer:
+    # Exact name of the pytorch optimizer function
+    name: Adam
+    # Function arguments of the optimizer, by name
+    lr: 0.01

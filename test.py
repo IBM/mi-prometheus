@@ -3,9 +3,11 @@ import os
 os.environ["OMP_NUM_THREADS"] = '1'
 
 import torch
-import numpy as np
 import argparse
 import yaml
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import numpy as np
 
 # Force MKL (CPU BLAS) to use one core, faster
 os.environ["OMP_NUM_THREADS"] = '1'
@@ -14,6 +16,31 @@ os.environ["OMP_NUM_THREADS"] = '1'
 from problems.problem_factory import ProblemFactory
 # Import models and model factory.
 from models.model_factory import ModelFactory
+
+
+def show_sample(inputs, targets, mask, sample_number=0):
+    """ Shows the sample (both input and target sequences) using matplotlib."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 1]}, sharex=True)
+    # Set ticks.
+    ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+    ax1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+    ax2.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
+    # Set labels.
+    ax1.set_title('Output')
+    ax1.set_ylabel('Control/Data bits')
+    ax1.set_xlabel('Item number')
+    ax2.set_title('Target')
+    # ax2.set_ylabel('Data bits')
+    ax2.set_xlabel('Item number')
+
+    # Set data.
+    ax1.imshow((inputs[sample_number, :, :]).detach().numpy())
+    ax2.imshow((targets[sample_number, :, :]).detach().numpy())
+
+    plt.show()
+
+    # Plot!
 
 if __name__ == '__main__':
     # set random seed
@@ -54,17 +81,20 @@ if __name__ == '__main__':
     model = ModelFactory.build_model(config_loaded['model'])
 
     # load the trained model
-    model.load_state_dict(torch.load(path+"model_parameters"))
+    model.load_state_dict(torch.load(path+"model_parameters" + '_' +config_loaded['problem']['name']))
 
     for inputs, targets, mask in problem.return_generator_random_length():
         # apply the trained model
         output = model(inputs)
 
         # test accuracy
-        output = torch.round(output[:, mask, :])
+        output = torch.round(output)
         acc = 1 - torch.abs(output-targets)
         accuracy = acc.mean()
         print("Accuracy: %.6f" % (accuracy * 100) + "%")
+
+        # plot data
+        show_sample(output, targets, mask)
 
         break   # one test sample
 
