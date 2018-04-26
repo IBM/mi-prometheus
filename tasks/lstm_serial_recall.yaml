@@ -1,0 +1,29 @@
+# Problem parameters:
+problem:
+    name: serial_recall_simplified
+    # Size of generated input: [batch_size x sequence_length x number of command and data bits].
+    data_bits: &dbits 8
+    control_bits: &cbits 2
+    batch_size: &bs 100
+    # Parameters denoting min and max lengths. 
+    min_sequence_length: 1
+    max_sequence_length: 5
+    bias: 0.5
+
+# Model parameters:
+model:
+    name: lstm
+    # Input bits = [command_bits, data_bits]
+    # Output bits = [data_bits]
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: *bs
+    num_layers: 3
+    hidden_state_dim: 256
+
+optimizer:
+    # Exact name of the pytorch optimizer function
+    name: RMSprop
+    # Function arguments of the optimizer, by name
+    lr: 0.00003
+    momentum: 0.9
