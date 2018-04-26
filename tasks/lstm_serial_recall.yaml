@@ -1,3 +1,4 @@
+# These settings come from the LSTM serial recall baseline from the original NTM paper
 # Problem parameters:
 problem:
     name: serial_recall_simplified
@@ -7,7 +8,7 @@ problem:
     batch_size: &bs 100
     # Parameters denoting min and max lengths. 
     min_sequence_length: 1
-    max_sequence_length: 5
+    max_sequence_length: 20
     bias: 0.5
 
 # Model parameters:
@@ -22,8 +23,6 @@ model:
     hidden_state_dim: 256
 
 optimizer:
-    # Exact name of the pytorch optimizer function
     name: RMSprop
-    # Function arguments of the optimizer, by name
     lr: 0.00003
     momentum: 0.9
