@@ -52,14 +52,13 @@ if __name__ == '__main__':
 
     # Build model
     model = ModelFactory.build_model(config_loaded['model'])
-    states = model.init_state()
 
     # load the trained model
     model.load_state_dict(torch.load(path+"model_parameters"))
 
-    for inputs, targets, mask in problem.data_generator():
+    for inputs, targets, mask in problem.return_generator_random_length():
         # apply the trained model
-        output, states = model(inputs, states)
+        output = model(inputs)
 
         # test accuracy
         output = torch.round(output[:, mask, :])

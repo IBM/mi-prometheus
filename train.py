@@ -13,14 +13,14 @@ import argparse
 import torch
 from torch import nn
 
-
+import sys
 # Import problems and problem factory.
+sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
 from problems.problem_factory import ProblemFactory
 # Import models and model factory.
 from models.model_factory import ModelFactory
 
 if __name__ == '__main__':
-
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', type=str, default='', dest='task',
@@ -77,6 +77,7 @@ if __name__ == '__main__':
         output = model(inputs)
 
         # compute loss
+        # TODO: solve problem with mask of size [batch_size, total_length] when batch > 1
         loss = criterion(output[:, mask, :], targets)
 
         print(", epoch: %d, loss: %1.5f" % (epoch + 1, loss))

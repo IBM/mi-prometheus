@@ -6,7 +6,7 @@ __author__      = "Tomasz Kornuta"
 import numpy as np
 import torch
 from torch.autograd import Variable
-from problems.algorithmic_sequential_problem import AlgorithmicSequentialProblem
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 @AlgorithmicSequentialProblem.register
 class SerialRecallOriginalProblem(AlgorithmicSequentialProblem):
@@ -31,15 +31,15 @@ class SerialRecallOriginalProblem(AlgorithmicSequentialProblem):
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
         # Number of bits in one element.
-        self.control_bits = 2
+        self.control_bits = params['control_bits']
         self.data_bits = params['data_bits']
         assert self.control_bits >=2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
-        assert self.data_bits >=2, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+        assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
         # Min and max lengts (number of elements).
         self.min_sequence_length = params['min_sequence_length']
         self.max_sequence_length = params['max_sequence_length']
         # Parameter  denoting 0-1 distribution (0.5 is equal).
-        self.bias = 0.5
+        self.bias = params['bias']
         self.dtype = torch.FloatTensor
 
     def generate_bit_sequence(self,  seq_length):
@@ -51,22 +51,19 @@ class SerialRecallOriginalProblem(AlgorithmicSequentialProblem):
         """
         return np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
 
-    def generate_batch(self):
+    def generate_batch(self,  seq_length):
         """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
        
         :param seq_length: the length of the copy sequence.
-        : returns: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS], 
+        :returns: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS], 
         output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],
         mask [BATCH_SIZE, 2*SEQ_LENGTH+2]
 
-        TODO: every item in batch has now the same seq_length.
+        TODO: deal with batch_size > 1
         """
-        # Set sequence length
-        seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
-
         # Generate batch of random bit sequences.
-        bit_seq = np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
+        bit_seq = self.generate_bit_sequence(seq_length)
         
         # Generate input:  [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
         inputs = np.zeros([self.batch_size, 2*seq_length + 2, self.control_bits +  self.data_bits], dtype=np.float32)
@@ -81,17 +78,18 @@ class SerialRecallOriginalProblem(AlgorithmicSequentialProblem):
         targets = np.zeros([self.batch_size, 2*seq_length + 2,  self.data_bits], dtype=np.float32)
         # Set bit sequence.
         targets[:, seq_length+2:,  :] = bit_seq
-
+        
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
-        targets_mask = np.zeros([self.batch_size, 2*seq_length + 2])
-        targets_mask[:, seq_length+2:] = 1
+        mask = np.zeros([self.batch_size, 2*seq_length + 2])
+        mask[:, seq_length+2:] = 1
 
         # PyTorch variables.
         ptinputs = Variable(torch.from_numpy(inputs).type(self.dtype))
         pttargets = Variable(torch.from_numpy(targets).type(self.dtype))
-
+        ptmask = Variable(torch.from_numpy(mask).type(self.dtype))
+    
         # Return batch.
-        return ptinputs,  pttargets,  targets_mask[0]
+        return ptinputs,  pttargets,  ptmask
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""

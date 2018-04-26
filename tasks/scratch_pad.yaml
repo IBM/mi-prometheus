@@ -1,7 +1,8 @@
 # Problem parameters:
 problem:
     name: scratch_pad
-    # Size of generated input: [batch_size x sequence_length x number of command and data bits].
+    # Size of generated input: [batch_size x sequence_length x number of control and data bits].
+    control_bits: &cbits 2
     data_bits: &dbits 8
     batch_size: &bs 1
     # Parameters denoting min and max lengths. 
@@ -13,9 +14,9 @@ problem:
 # Model parameters:
 model:
     name: dwm   # dynamic_working_memory
-    # Input bits = [command_bits, data_bits]
+    # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
-    command_bits: 2
+    control_bits: *cbits
     data_bits: *dbits
     batch_size: *bs
     # Controller hidden state.

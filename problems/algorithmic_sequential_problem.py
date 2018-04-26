@@ -12,10 +12,10 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
     ''' Abstract base class for algorithmic, sequential problems. Provides some basic functionality usefull in all problems of such type'''
 
     @abc.abstractmethod
-    def generate_batch(self):
+    def generate_batch(self, seq_length):
         """Generates batch of sequences of given length. """
 
-    def return_generator(self):
+    def return_generator(self,  seq_length):
         """Returns a generator yielding a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
        
@@ -25,7 +25,7 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
         # Create "generator".
         while True:        
             # Yield batch.
-            yield self.generate_batch()
+            yield self.generate_batch(seq_length)
 
     
     def return_generator_random_length(self):
@@ -33,7 +33,7 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
         # Create "generator".
         while True:        
             # Yield batch.
-            yield self.generate_batch()
+            yield self.generate_batch(np.random.randint(self.min_sequence_length, self.max_sequence_length+1))
 
 
     def show_sample(self,  inputs,  targets, mask,  sample_number = 0):
@@ -58,6 +58,6 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
         # Set data.
         ax1.imshow(np.transpose(inputs[sample_number, :, :],  [1, 0]))        
         ax2.imshow(np.transpose(targets[sample_number, :, :],  [1, 0]))
-        ax3.imshow(mask[None, :])
+        ax3.imshow(mask[sample_number:sample_number+1, :])  
         # Plot!
         plt.show()

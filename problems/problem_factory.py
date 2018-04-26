@@ -10,7 +10,7 @@ __author__ = "Tomasz Kornuta"
 
 class ProblemFactory(object):
     """   
-    Class returning concrete models depending on the name provided in the list of parameters.
+    Class returning concrete problem/generator depending on the name provided in the list of parameters.
     """
     
     @staticmethod
