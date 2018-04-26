@@ -13,8 +13,10 @@ import numpy as np
 os.environ["OMP_NUM_THREADS"] = '1'
 
 # Import problems and problem factory.
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
 from problems.problem_factory import ProblemFactory
-# Import models and model factory.
 from models.model_factory import ModelFactory
 
 
@@ -83,7 +85,7 @@ if __name__ == '__main__':
     # load the trained model
     model.load_state_dict(torch.load(path+"model_parameters" + '_' +config_loaded['problem']['name']))
 
-    for inputs, targets, mask in problem.return_generator_random_length():
+    for inputs, targets, mask in problem.return_generator():
         # apply the trained model
         output = model(inputs)
 

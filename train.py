@@ -13,11 +13,11 @@ import argparse
 import torch
 from torch import nn
 
-import sys
 # Import problems and problem factory.
+import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
 from problems.problem_factory import ProblemFactory
-# Import models and model factory.
 from models.model_factory import ModelFactory
 
 if __name__ == '__main__':
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     epoch = 0
 
     # Data generator : input & target
-    for inputs, targets, mask in problem.return_generator_random_length():
+    for inputs, targets, mask in problem.return_generator():
 
         optimizer.zero_grad()
 
@@ -82,7 +82,8 @@ if __name__ == '__main__':
 
 
         # compute loss
-        loss = criterion(output[:, mask, :], targets)
+        # TODO: solution for now - mask[0]
+        loss = criterion(output[:, mask[0], :], targets[:, mask[0], :])
 
         print(", epoch: %d, loss: %1.5f" % (epoch + 1, loss))
 

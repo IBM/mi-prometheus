@@ -15,7 +15,7 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
     def generate_batch(self):
         """Generates batch of sequences of given length. """
 
-    def return_generator(self,  seq_length):
+    def return_generator(self):
         """Returns a generator yielding a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
        
@@ -49,10 +49,6 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
         # Set data.
         ax1.imshow(np.transpose(inputs[sample_number, :, :],  [1, 0]))        
         ax2.imshow(np.transpose(targets[sample_number, :, :],  [1, 0]))
-<<<<<<< Temporary merge branch 1
         ax3.imshow(mask[sample_number:sample_number+1, :])  
-=======
-        ax3.imshow(mask[None, :])
->>>>>>> Temporary merge branch 2
         # Plot!
         plt.show()

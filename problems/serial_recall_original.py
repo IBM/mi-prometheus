@@ -61,7 +61,6 @@ class SerialRecallOriginalProblem(AlgorithmicSequentialProblem):
 
         TODO: every item in batch has now the same seq_length.
         """
-
         # Set sequence length
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
 
@@ -101,7 +100,7 @@ if __name__ == "__main__":
     # Create problem object.
     problem = SerialRecallOriginalProblem(params)
     # Get generator
-    generator = problem.return_generator_random_length()
+    generator = problem.return_generator()
     # Get batch.
     (x, y, mask) = next(generator)
     # Display single sample (0) from batch.

@@ -1,8 +1,8 @@
 import torch
 from torch.autograd import Variable
 import numpy as np
-from problems.utils import augment
-from problems.algorithmic_sequential_problem import AlgorithmicSequentialProblem
+from utils import augment
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 
 @AlgorithmicSequentialProblem.register
@@ -37,10 +37,6 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
         ctrl_dummy = [0, 1]
 
         markers = ctrl_data, ctrl_dummy, pos
-        # Create a generator
-
-
-
 
         # number sub sequences
         num_sub_seq = np.random.randint(self.num_subseq_min, self.num_subseq_max)
@@ -77,7 +73,7 @@ if __name__ == "__main__":
     # Create problem object.
     problem = GeneratorScratchPad(params)
     # Get generator
-    generator = problem.return_generator_random_length()
+    generator = problem.return_generator()
     # Get batch.
     (x, y, mask) = next(generator)
     # Display single sample (0) from batch.

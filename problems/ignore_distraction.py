@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 from torch.autograd import Variable
-from problems.utils import augment, add_ctrl
-from problems.algorithmic_sequential_problem import AlgorithmicSequentialProblem
+from utils import augment, add_ctrl
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 
 @AlgorithmicSequentialProblem.register
@@ -53,15 +53,15 @@ class GeneratorIgnoreDistraction(AlgorithmicSequentialProblem):
         # create the target
         target = np.concatenate([y[-1]] + x, axis=1)
 
-            xx = [augment(seq, markers, ctrl_end=[1,0,0], add_marker=True) for seq in x]
-            yy = [augment(seq, markers, ctrl_end=[0,1,0], add_marker=True) for seq in y]
+        xx = [augment(seq, markers, ctrl_end=[1,0,0], add_marker=True) for seq in x]
+        yy = [augment(seq, markers, ctrl_end=[0,1,0], add_marker=True) for seq in y]
 
-            inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
-            data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b[:-1]]
+        inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
+        data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b[:-1]]
 
-            # dummies of y and xs
-            data_2 = [yy[-1][-1]] + [inter_seq] + [a[-1] for a in xx]
-            inputs = np.concatenate(data_1 + data_2, axis=1)
+        # dummies of y and xs
+        data_2 = [yy[-1][-1]] + [inter_seq] + [a[-1] for a in xx]
+        inputs = np.concatenate(data_1 + data_2, axis=1)
 
         inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
         target = Variable(torch.from_numpy(target).type(self.dtype))
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # Create problem object.
     problem = GeneratorIgnoreDistraction(params)
     # Get generator
-    generator = problem.return_generator_random_length()
+    generator = problem.return_generator()
     # Get batch.
     (x, y, mask) = next(generator)
     # Display single sample (0) from batch.

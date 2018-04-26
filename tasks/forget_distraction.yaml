@@ -31,6 +31,7 @@ model:
     use_content_addressing: False
     shift_size: 3
 
+# optimizer parameters:
 optimizer:
     # Exact name of the pytorch optimizer function
     name: Adam

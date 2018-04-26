@@ -9,6 +9,7 @@ problem:
     min_sequence_length: 1
     max_sequence_length: 10
     bias: 0.5
+
 # Model parameters:
 model:
     name: dwm   # dynamic_working_memory
@@ -28,6 +29,7 @@ model:
     use_content_addressing: False
     shift_size: 3
     
+# optimizer parameters:
 optimizer:
     # Exact name of the pytorch optimizer function
     name: Adam

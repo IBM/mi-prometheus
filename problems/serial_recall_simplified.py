@@ -48,7 +48,7 @@ class SerialRecallSimplifiedProblem(AlgorithmicSequentialProblem):
         """
         return np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
 
-    def generate_batch(self,  seq_length):
+    def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
        
@@ -59,6 +59,9 @@ class SerialRecallSimplifiedProblem(AlgorithmicSequentialProblem):
 
         TODO: every item in batch has now the same seq_length.
         """
+        # Set sequence length
+        seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
+
         # Generate batch of random bit sequences.
         bit_seq = self.generate_bit_sequence(seq_length)
         
@@ -76,16 +79,17 @@ class SerialRecallSimplifiedProblem(AlgorithmicSequentialProblem):
         targets[:, seq_length:,  :] = bit_seq
         
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH]
-        targets_mask = np.zeros([self.batch_size, 2*seq_length ], dtype=bool)
-        targets_mask[:, seq_length:] = True
+        mask = np.zeros([self.batch_size, 2*seq_length ])
+        mask[:, seq_length:] = 1
 
         # PyTorch variables.
         ptinputs = Variable(torch.from_numpy(inputs).type(self.dtype))
         pttargets = Variable(torch.from_numpy(targets).type(self.dtype))
+        ptmask = torch.from_numpy(mask).type(torch.uint8)
     
         # Return batch.
-        return ptinputs,  pttargets,  targets_mask
-
+        return ptinputs,  pttargets,  ptmask
+        
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
@@ -95,7 +99,7 @@ if __name__ == "__main__":
     # Create problem object.
     problem = SerialRecallSimplifiedProblem(params)
     # Get generator
-    generator = problem.return_generator_random_length()
+    generator = problem.return_generator()
     # Get batch.
     (x, y, mask) = next(generator)
     # Display single sample (0) from batch.

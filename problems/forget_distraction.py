@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 from torch.autograd import Variable
-from problems.utils import augment, add_ctrl
-from problems.algorithmic_sequential_problem import AlgorithmicSequentialProblem
+from utils import augment, add_ctrl
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 
 @AlgorithmicSequentialProblem.register
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # Create problem object.
     problem = GenerateForgetDistraction(params)
     # Get generator
-    generator = problem.return_generator_random_length()
+    generator = problem.return_generator()
     # Get batch.
     (x, y, mask) = next(generator)
     # Display single sample (0) from batch.
