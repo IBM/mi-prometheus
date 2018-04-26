@@ -1,19 +1,20 @@
 # Problem parameters:
 problem:
-    name: serial_recall_original
-    # Size of generated input: [batch_size x sequence_length x number of command and data bits].
+    name: serial_recall_v1
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: &cbits 2
     data_bits: &dbits 8
     batch_size: &bs 1
     # Parameters denoting min and max lengths. 
     min_sequence_length: 1
     max_sequence_length: 10
-
+    bias: 0.5
 # Model parameters:
 model:
-    name: dwm   # dynamic_working_memory
-    # Input bits = [command_bits, data_bits]
-    # Output bits = [data_bits]
-    command_bits: 2
+    name: ntm_v1
+    # Input dim = [command_bits, data_bits]
+    # Output dim = [data_bits]
+    command_bits: *cbits
     data_bits: *dbits
     batch_size: *bs
     # Controller hidden state.

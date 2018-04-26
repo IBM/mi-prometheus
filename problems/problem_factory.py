@@ -17,7 +17,8 @@ class ProblemFactory(object):
     def build_problem(params):
         """ Static method returning particular problem, depending on the name provided in the list of parameters.
 
-        :param params: Dictionary of parameters (in particular containing 'name' which is equivalend to problem name)
+        
+        :param params: Dictionary of parameters (in particular containing 'name' which is equivalent to problem name)
         :returns: Instance of a given problem.
         """
         # Check name
@@ -26,9 +27,10 @@ class ProblemFactory(object):
             raise ValueError
         # Try to load model
         name = params['name']
+
         if name == 'serial_recall_simplified':
             return SerialRecallSimplifiedProblem(params)
-        if name == 'serial_recall_original':
+        if name == 'serial_recall_v1':
             return SerialRecallOriginalProblem(params)
         elif name == 'scratch_pad':
             return GeneratorScratchPad(params)

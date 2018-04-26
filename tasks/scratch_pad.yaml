@@ -12,7 +12,7 @@ problem:
 
 # Model parameters:
 model:
-    name: dwm   # dynamic_working_memory
+    name: ntm_v1   # dynamic_working_memory
     # Input bits = [command_bits, data_bits]
     # Output bits = [data_bits]
     command_bits: 2

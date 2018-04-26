@@ -16,38 +16,38 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
         self.data_bits = params["data_bits"]
         self.dtype = torch.FloatTensor
 
-    def generate_batch(self):
+    def generate_batch(self, seq_length):
         pos = [0, 0]
         ctrl_data = [0, 0]
         ctrl_dummy = [0, 1]
 
         markers = ctrl_data, ctrl_dummy, pos
         # Create a generator
-        while True:
-            # number sub sequences
-            num_sub_seq = np.random.randint(self.num_subseq_min, self.num_subseq_max)
 
-            # set the sequence length of each marker
-            seq_length = np.random.randint(low=self.min_sequence_length, high=self.max_sequence_length + 1, size=num_sub_seq)
+        # number sub sequences
+        num_sub_seq = np.random.randint(self.num_subseq_min, self.num_subseq_max)
 
-            #  generate subsequences for x and y
-            x = [np.random.binomial(1, 0.5, (self.batch_size, n, self.data_bits)) for n in seq_length]
+        # set the sequence length of each marker
+        seq_length = np.random.randint(low=self.min_sequence_length, high=self.max_sequence_length + 1, size=num_sub_seq)
 
-            # create the target
-            target = x[-1]
+        #  generate subsequences for x and y
+        x = [np.random.binomial(1, 0.5, (self.batch_size, n, self.data_bits)) for n in seq_length]
 
-            xx = [augment(seq, markers, ctrl_end=[1,0], add_marker=True) for seq in x]
+        # create the target
+        target = x[-1]
 
-            data_1 = [arr for a in xx for arr in a[:-1]]
-            data_2 = [xx[-1][-1]]
+        xx = [augment(seq, markers, ctrl_end=[1,0], add_marker=True) for seq in x]
 
-            inputs = np.concatenate(data_1+data_2, axis=1)
+        data_1 = [arr for a in xx for arr in a[:-1]]
+        data_2 = [xx[-1][-1]]
 
-            inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
-            target = Variable(torch.from_numpy(target).type(self.dtype))
-            mask = inputs[0, :, 1] == 1
+        inputs = np.concatenate(data_1+data_2, axis=1)
 
-            return inputs, target, mask
+        inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
+        target = Variable(torch.from_numpy(target).type(self.dtype))
+        mask = inputs[0, :, 1] == 1
+
+        return inputs, target, mask
 
 
 if __name__ == "__main__":

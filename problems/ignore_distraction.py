@@ -16,7 +16,7 @@ class GeneratorIgnoreDistraction(AlgorithmicSequentialProblem):
         self.data_bits = params["data_bits"]
         self.dtype = torch.FloatTensor
 
-    def generate_batch(self):
+    def generate_batch(self, seq_length):
         pos = [0, 0, 0]
         ctrl_data = [0, 0, 0]
         ctrl_dummy = [0, 0, 1]
@@ -24,38 +24,40 @@ class GeneratorIgnoreDistraction(AlgorithmicSequentialProblem):
 
         markers = ctrl_data, ctrl_dummy, pos
 
-        # Create a generator
-        while True:
-            # number of sub_sequences
-            nb_sub_seq_a = np.random.randint(self.num_subseq_min, self.num_subseq_max)
-            nb_sub_seq_b = nb_sub_seq_a              # might be different in future implementation
+        # number of sub_sequences
+        nb_sub_seq_a = np.random.randint(self.num_subseq_min, self.num_subseq_max)
+        nb_sub_seq_b = nb_sub_seq_a              # might be different in future implementation
 
-            # set the sequence length of each marker
-            seq_lengths_a = np.random.randint(low=self.min_sequence_length, high=self.max_sequence_length + 1, size=nb_sub_seq_a)
-            seq_lengths_b = np.random.randint(low=self.min_sequence_length, high=self.max_sequence_length + 1, size=nb_sub_seq_b)
+        # set the sequence length of each marker
+        seq_lengths_a = np.random.randint(low=self.min_sequence_length, high=self.max_sequence_length + 1, size=nb_sub_seq_a)
+        seq_lengths_b = np.random.randint(low=self.min_sequence_length, high=self.max_sequence_length + 1, size=nb_sub_seq_b)
 
-            #  generate subsequences for x and y
-            x = [np.random.binomial(1, 0.5, (self.batch_size, n, self.data_bits)) for n in seq_lengths_a]
-            y = [np.random.binomial(1, 0.5, (self.batch_size, n, self.data_bits)) for n in seq_lengths_b]
+        #  generate subsequences for x and y
+        x = [np.random.binomial(1, 0.5, (self.batch_size, n, self.data_bits)) for n in seq_lengths_a]
+        y = [np.random.binomial(1, 0.5, (self.batch_size, n, self.data_bits)) for n in seq_lengths_b]
 
-            # create the target
-            target = np.concatenate([y[-1]] + x, axis=1)
+        # create the target
+        target = np.concatenate([y[-1]] + x, axis=1)
 
-            xx = [augment(seq, markers, ctrl_end=[1,0,0], add_marker=True) for seq in x]
-            yy = [augment(seq, markers, ctrl_end=[0,1,0], add_marker=True) for seq in y]
+        xx = [augment(seq, markers, ctrl_end=[1,0,0], add_marker=True) for seq in x]
+        yy = [augment(seq, markers, ctrl_end=[0,1,0], add_marker=True) for seq in y]
 
-            inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
-            data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b[:-1]]
+        inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
+        data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b[:-1]]
 
-            # dummies of y and xs
-            data_2 = [yy[-1][-1]] + [inter_seq] + [a[-1] for a in xx]
-            inputs = np.concatenate(data_1 + data_2, axis=1)
+        # dummies of y and xs
+        data_2 = [yy[-1][-1]] + [inter_seq] + [a[-1] for a in xx]
+        inputs = np.concatenate(data_1 + data_2, axis=1)
 
-            inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
-            target = Variable(torch.from_numpy(target).type(self.dtype))
-            mask = inputs[0, :, 2] == 1
+        inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
+        target = Variable(torch.from_numpy(target).type(self.dtype))
+        mask = inputs[0, :, 2] == 1
 
-            return inputs, target, mask
+        mask = np.where(inputs[0, :, 2] == 1)
+        print(mask)
+        input()
+
+        return inputs, target, mask
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""

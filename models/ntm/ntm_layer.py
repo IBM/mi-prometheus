@@ -52,11 +52,6 @@ class NTM(nn.Module):
         for j in range(x.size()[-2]):
             tm_output, states = self.NTMCell(x[..., j, :], states)
 
-            # plot attention/memory 
-            if self.plot_active:
-                label = 'Write/Read sequences x,y'
-                plot_memory_attention(states[3], states[1], label)
-
             if tm_output is None:
                 continue
 
@@ -85,5 +80,10 @@ class NTM(nn.Module):
 
         states = [tm_state, wt, wt_dynamic, mem_t]
         return states
+
+    def plot_memory_attention(self, states):
+        # plot attention/memory
+        label = 'Write/Read sequences x,y'
+        plot_memory_attention(states[3], states[1], label)
 
 

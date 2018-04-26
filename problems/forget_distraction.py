@@ -16,8 +16,7 @@ class GenerateForgetDistraction(AlgorithmicSequentialProblem):
         self.data_bits = params["data_bits"]
         self.dtype = torch.FloatTensor
 
-
-    def generate_batch(self):
+    def generate_batch(self, seq_length):
         pos = [0, 0, 0]
         ctrl_data = [0, 0, 0]
         ctrl_dummy = [0, 0, 1]

@@ -13,7 +13,6 @@ import argparse
 import torch
 from torch import nn
 
-
 # Import problems and problem factory.
 from problems.problem_factory import ProblemFactory
 # Import models and model factory.
@@ -80,6 +79,8 @@ if __name__ == '__main__':
 
         # apply model
         output = model(inputs)
+        print(output)
+        input()
 
         # compute loss
         loss = criterion(output[:, mask, :], targets)
@@ -94,10 +95,13 @@ if __name__ == '__main__':
             # save model parameters
             if not os.path.exists(path):
                 os.makedirs(path)
-            torch.save(model.state_dict(), path+"model_parameters")
+            torch.save(model.state_dict(), path+"model_parameters"+ '_' +config_loaded['problem']['name'])
             break
 
         epoch += 1
 
     print("Learning finished!")
+
+
+
 
