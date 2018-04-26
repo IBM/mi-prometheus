@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from problems.serial_recall_simplified import SerialRecallSimplifiedProblem
-from problems.serial_recall_original import SerialRecallOriginalProblem
-from problems.scratch_pad import GeneratorScratchPad
-from problems.ignore_distraction import GeneratorIgnoreDistraction
-from problems.forget_distraction import GenerateForgetDistraction
 """problem_factory.py: Factory building problems"""
 __author__ = "Tomasz Kornuta"
+
+import sys, inspect
 
 class ProblemFactory(object):
     """   
@@ -25,17 +22,33 @@ class ProblemFactory(object):
             print("Problem parameter dictionary does not contain 'name'")
             raise ValueError
         # Try to load model
-        name = params['name']
-        if name == 'serial_recall_simplified':
-            return SerialRecallSimplifiedProblem(params)
-        if name == 'serial_recall_original':
-            return SerialRecallOriginalProblem(params)
-        elif name == 'scratch_pad':
-            return GeneratorScratchPad(params)
-        elif name == 'forget_distraction':
-            return GeneratorIgnoreDistraction(params)
-        elif name == 'ignore_distraction':
-            return GenerateForgetDistraction(params)
-        else:
-            raise ValueError
+        module_name = params['name']
+        # Import module
+        module = __import__(module_name)
+        # Get classes from that module.
+        is_class_member = lambda member: inspect.isclass(member) and member.__module__ == module_name
+        clsmembers = inspect.getmembers(sys.modules[module_name], is_class_member)
+        # Assert there is only one class.
+        assert len(clsmembers) == 1
+        class_name = clsmembers[0][0]
+        # Get problem class
+        problem_class = getattr(module, class_name)
+        print('Successfully loaded problem {} from {}'.format(class_name,  module_name))
+        # Create problem object.
+        return problem_class(params)
+    
+if __name__ == "__main__":
+    """ Tests problem factory"""
+    # Problem name
+    params = {'name': 'serial_recall_simplified', 'control_bits': 3, 'data_bits': 8, 'batch_size': 1, 
+    'min_sequence_length': 1, 'max_sequence_length': 10, 'num_subseq_min':1, 'num_subseq_max':5, 'bias': 0.5}
+    
+    problem = ProblemFactory.build_problem(params)
+    # Get generator
+    generator = problem.return_generator()
+    # Get batch.
+    (x, y, mask) = next(generator)
+    # Display single sample (0) from batch.
+    problem.show_sample(x, y, mask)
+
 
