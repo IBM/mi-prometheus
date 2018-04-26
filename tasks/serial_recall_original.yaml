@@ -8,7 +8,7 @@ problem:
     # Parameters denoting min and max lengths. 
     min_sequence_length: 1
     max_sequence_length: 10
-
+    bias: 0.5
 # Model parameters:
 model:
     name: dwm   # dynamic_working_memory
