@@ -79,7 +79,7 @@ class SerialRecallSimplifiedProblem(AlgorithmicSequentialProblem):
         targets[:, seq_length:,  :] = bit_seq
         
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH]
-        mask = np.zeros([self.batch_size, 2*seq_length ])
+        mask = torch.zeros([self.batch_size, 2*seq_length]).type(torch.ByteTensor)
         mask[:, seq_length:] = 1
 
         # PyTorch variables.
