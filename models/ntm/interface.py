@@ -20,7 +20,7 @@ class Interface:
 
         # Define a dictionary for attentional parameters
         self.is_cam = is_cam
-        self.param_dict = {'s': num_shift, 'γ': 1, 'erase': M, 'add': M}
+        self.param_dict = {'s': num_shift, 'jd': num_heads, 'j': 3*num_heads, 'γ': 1, 'erase': M, 'add': M}
         if self.is_cam:
             self.param_dict.update({'k': M, 'β': 1, 'g': 1})
 
@@ -59,7 +59,7 @@ class Interface:
         sz = read_data.size()[:-2]
         return read_data.view(*sz, self.read_size)
 
-    def update(self, update_data, wt, mem):
+    def update(self, update_data, wt, wt_dynamic, mem):
         """Erases from memory, writes to memory, updates the weights using various attention mechanisms
         :param update_data: the parameters from the controllers [update_size]
         :param wt: the read weight [BATCH_SIZE, MEMORY_SIZE]
@@ -78,17 +78,35 @@ class Interface:
 
         # Obtain update parameters
         if self.is_cam:
-            s, f, γ, erase, add, k, β, g = data_splits
+            s, jd, j, γ, erase, add, k, β, g = data_splits
             # Apply Activations
             k = F.tanh(k)                  # key vector used for content-based addressing
             β = F.softplus(β)              # key strength used for content-based addressing
             g = F.sigmoid(g)               # interpolation gate
         else:
-            s, γ, erase, add = data_splits
+            s, jd, j, γ, erase, add = data_splits
 
         s = F.softmax(F.softplus(s), dim=-1)    # shift weighting (determines how the weight is rotated)
         γ = 1 + F.softplus(γ)                   # used for weight sharpening
         erase = F.sigmoid(erase)                # erase memory content
+
+        ## set jumping mechanisms
+        #  fixed attention to address 0
+        wt_address_0 = torch.zeros_like(wt)
+        wt_address_0[:, 0:self.num_heads, 0] = 1
+
+        # interpolation between wt and wt_d
+        jd = F.sigmoid(jd)
+        wt_dynamic = (1 - jd) * wt + jd * wt_dynamic
+
+        # interpolation between wt_0 wt_d wt
+        j = F.softmax(j, dim=-1)
+        j = j.view(-1, self.num_heads, 3)
+        j = j[:, :, None, :]
+
+        wt = j[..., 0] * wt_dynamic \
+           + j[..., 1] * wt \
+           + j[..., 2] * wt_address_0
 
         # Write to memory
         memory = Memory(mem)
@@ -97,9 +115,9 @@ class Interface:
 
         # Update attention
         if self.is_cam:
-            wt_k = memory.content_similarity(k)       # content addressing ...
+            wt_k = memory.content_similarity(k)               # content addressing ...
             wt_β = F.softmax(β * wt_k, dim=-1)                # ... modulated by β
-            wt = g * wt_β + (1 - g) * wt              # scalar interpolation
+            wt = g * wt_β + (1 - g) * wt                      # scalar interpolation
 
         wt_s = circular_conv(wt, s)                   # convolution with shift
 
@@ -111,4 +129,4 @@ class Interface:
             print("error: gamma very high, normalization problem")
 
         mem = memory.content
-        return wt, mem
+        return wt, wt_dynamic, mem

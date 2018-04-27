@@ -20,7 +20,7 @@ from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
 
-def show_sample(inputs, targets, mask, sample_number=0):
+def show_sample(prediction, target, mask, sample_number=0):
     """ Shows the sample (both input and target sequences) using matplotlib."""
     fig, (ax1, ax2) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 1]}, sharex=True)
     # Set ticks.
@@ -37,8 +37,8 @@ def show_sample(inputs, targets, mask, sample_number=0):
     ax2.set_xlabel('Item number')
 
     # Set data.
-    ax1.imshow(np.transpose((inputs[sample_number, :, :]).detach().numpy(), [1, 0]))
-    ax2.imshow(np.transpose((inputs[sample_number, :, :]).detach().numpy(), [1, 0]))
+    ax1.imshow(np.transpose((prediction[sample_number, :, :]).detach().numpy(), [1, 0]))
+    ax2.imshow(np.transpose((target[sample_number, :, :]).detach().numpy(), [1, 0]))
 
     plt.show()
 
