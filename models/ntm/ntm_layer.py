@@ -52,6 +52,9 @@ class NTM(nn.Module):
         for j in range(x.size()[-2]):
             tm_output, states = self.NTMCell(x[..., j, :], states)
 
+            if self.plot_active:
+                self.plot_memory_attention(states)
+
             if tm_output is None:
                 continue
 

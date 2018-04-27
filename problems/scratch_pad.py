@@ -1,7 +1,7 @@
 import torch
 from torch.autograd import Variable
 import numpy as np
-from utils import augment
+from utils import augment, add_ctrl
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 
@@ -35,6 +35,7 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
         pos = [0, 0]
         ctrl_data = [0, 0]
         ctrl_dummy = [0, 1]
+        ctrl_inter = [0, 1]
 
         markers = ctrl_data, ctrl_dummy, pos
 
@@ -48,18 +49,30 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
         x = [np.random.binomial(1, 0.5, (self.batch_size, n, self.data_bits)) for n in seq_length]
 
         # create the target
-        target = x[-1]
+        seq_length_tdummies = sum(seq_length) + seq_length.shape[0] + 1
+        dummies_target = np.zeros([self.batch_size, seq_length_tdummies, self.data_bits], dtype=np.float32)
 
-        xx = [augment(seq, markers, ctrl_end=[1,0], add_marker=True) for seq in x]
+        target = np.concatenate((dummies_target, x[-1]), axis=1)
+
+        xx = [augment(seq, markers, ctrl_start=[1,0], add_marker_data=True, add_marker_dummy = False) for seq in x]
 
         data_1 = [arr for a in xx for arr in a[:-1]]
+        inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
         data_2 = [xx[-1][-1]]
 
-        inputs = np.concatenate(data_1+data_2, axis=1)
+        inputs = np.concatenate(data_1 + [inter_seq] + data_2, axis=1)
 
         inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
         target = Variable(torch.from_numpy(target).type(self.dtype))
-        mask = inputs[:, :, 1] == 1
+        # TODO: batch might have different sequence lengths
+        mask_all = inputs[..., 0:self.control_bits] == 1
+        mask = mask_all[..., 0]
+        for i in range(self.control_bits):
+            mask = mask_all[..., i] * mask
+
+        # TODO: fix the batch indexing
+        # rest channel values of data dummies
+        inputs[:, mask[0], 0:self.control_bits] = 0
 
         return inputs, target, mask
 

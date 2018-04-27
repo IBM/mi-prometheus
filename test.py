@@ -46,7 +46,7 @@ def show_sample(inputs, targets, mask, sample_number=0):
 
 if __name__ == '__main__':
     # set random seed
-    np.random.seed(999999999)
+    np.random.seed(9)
 
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
@@ -94,9 +94,8 @@ if __name__ == '__main__':
         acc = 1 - torch.abs(output-targets)
         accuracy = acc.mean()
         print("Accuracy: %.6f" % (accuracy * 100) + "%")
-
         # plot data
-        show_sample(output, targets, mask)
+        #show_sample(output, targets, mask)
 
         break   # one test sample
 

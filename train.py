@@ -80,17 +80,16 @@ if __name__ == '__main__':
         # apply model
         output = model(inputs)
 
-
         # compute loss
         # TODO: solution for now - mask[0]
-        loss = criterion(output[:, mask[0], :], targets[:, mask[0], :])
+        loss = criterion(output, targets)
 
         print(", epoch: %d, loss: %1.5f" % (epoch + 1, loss))
 
         loss.backward()
         optimizer.step()
 
-        if loss < 1e-5:
+        if epoch == 20000:
             path = "./checkpoints/"
             # save model parameters
             if not os.path.exists(path):

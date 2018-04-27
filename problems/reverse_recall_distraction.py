@@ -55,10 +55,13 @@ class GenerateForgetDistraction(AlgorithmicSequentialProblem):
         target = np.concatenate(y + x, axis=1)
         
         xx = [augment(seq, markers, ctrl_start=[1,0,0], add_marker_data=True) for seq in x]
-        yy = [augment(seq, markers, ctrl_start=[0,1,0], add_marker_data=True) for seq in y]
+        yy = [augment(seq, markers, ctrl_start=[0,1,0], add_marker_data=False) for seq in y]
 
         inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
-        data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b]
+        ctrl_xy = np.zeros_like(ctrl_data)
+        ctrl_xy[1] = 1
+        inter_xy = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_xy, pos)
+        data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + [inter_xy] +[np.fliplr(b[0])] + [b[1]]]
 
         data_2 = [a[-1][:, 1:, :] for a in xx]
         inputs = np.concatenate(data_1 + [inter_seq] + data_2, axis=1)
