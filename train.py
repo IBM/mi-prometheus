@@ -46,7 +46,7 @@ if __name__ == '__main__':
         print('Task configuration file {} does not exists'.format(FLAGS.task))
         exit(-2)
 
-        # Read YAML file
+    # Read YAML file
     with open(FLAGS.task, 'r') as stream:
         config_loaded = yaml.load(stream)
 
@@ -112,6 +112,7 @@ if __name__ == '__main__':
 
         loss.backward()
 
+        # clip grad between -10, 10
         nn.utils.clip_grad_value_(model.parameters(), 10)
 
         optimizer.step()
