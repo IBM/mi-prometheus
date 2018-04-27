@@ -1,7 +1,7 @@
 # These settings come from the LSTM serial recall baseline from the original NTM paper
 # Problem parameters:
 problem_train:
-    name: reverse_recall
+    name: serial_recall_original
     # Size of generated input: [batch_size x sequence_length x number of command and data bits].
     data_bits: &dbits 8
     control_bits: &cbits 2
