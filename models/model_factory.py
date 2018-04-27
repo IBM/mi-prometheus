@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """model_factory.py: Factory building models"""
-from models.ntm.ntm_layer import NTM
 __author__ = "Tomasz Kornuta"
 
 class ModelFactory(object):
@@ -23,8 +22,10 @@ class ModelFactory(object):
         # Try to load model
         name = params['name']
         if name == 'dwm':
+            from models.ntm.ntm_layer import NTM
             return NTM(params)
+        if name == 'lstm':
+            from models.lstm.layer import LSTM
+            return LSTM(params)
         else:
             raise ValueError
-
-

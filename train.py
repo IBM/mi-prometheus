@@ -87,6 +87,9 @@ if __name__ == '__main__':
         print(", epoch: %d, loss: %1.5f" % (epoch + 1, loss))
 
         loss.backward()
+
+        nn.utils.clip_grad_value_(model.parameters(), 10)
+
         optimizer.step()
 
         if epoch == 20000:
