@@ -3,6 +3,7 @@ import matplotlib.ticker as ticker
 from time import sleep
 import numpy as np
 
+
 def plot_memory_attention(prediction, memory, wt, label):
     plt.clf()
     fig = plt.figure(1)

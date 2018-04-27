@@ -55,8 +55,6 @@ class NTM(nn.Module):
             if tm_output is None:
                 continue
 
-            #print(tm_output)
-            #input()
             tm_output = tm_output[..., None, :]
             if output is None:
                 output = tm_output
