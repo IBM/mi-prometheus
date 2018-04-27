@@ -8,6 +8,19 @@ problem_train:
     # Parameters denoting min and max lengths.
     min_sequence_length: 1
     max_sequence_length: 10
+
+# Problem parameters:
+problem_test:
+    name: copy_task_v1
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: 1
+    # Parameters denoting min and max lengths.
+    min_sequence_length: 1
+    max_sequence_length: 10
+    bias: 0.5
+
 # Model parameters:
 model:
     name: ntm_v1
