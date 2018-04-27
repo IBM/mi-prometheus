@@ -1,14 +1,27 @@
 # These settings come from the LSTM serial recall baseline from the original NTM paper
 # Problem parameters:
 problem_train:
-    name: serial_recall_simplified
+    name: reverse_recall
     # Size of generated input: [batch_size x sequence_length x number of command and data bits].
     data_bits: &dbits 8
     control_bits: &cbits 2
     batch_size: &bs 100
     # Parameters denoting min and max lengths. 
-    min_sequence_length: 1
-    max_sequence_length: 20
+    min_sequence_length: &min_seq_len 1
+    max_sequence_length: &max_seq_len 20
+    bias: 0.5
+    cuda: True  # The presence of the 'cuda' key is optional
+
+# Problem parameters:
+problem_test:
+    name: reverse_recall
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: 1
+    # Parameters denoting min and max lengths.
+    min_sequence_length: *min_seq_len
+    max_sequence_length: *max_seq_len
     bias: 0.5
 
 # Model parameters:
@@ -31,6 +44,6 @@ optimizer:
 settings:
     # masked output and target
     use_mask: True
-    length_loss: 10
+    length_loss: 100
     loss_stop: 0.0001
-    max_epochs: 20000
+    max_epochs: 1000000
