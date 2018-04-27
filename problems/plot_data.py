@@ -17,12 +17,13 @@ def plot_memory_attention(memory, wt, label):
 
     ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
     ax1.set_ylabel("Attention", fontname='Times New Roman', fontsize=15)
-    # ax1.set_title('Distraction task: ', fontname='Times New Roman', fontsize=15)
+    # TODO: fix the name
+    ax1.set_title('task: xxx ', fontname='Times New Roman', fontsize=15)
 
     ax1.plot(np.arange(wt.size()[-1]), wt[0, 0, :].detach().numpy(), 'go')
 
-    plt.text(22, -25, label, fontsize=15, color = 'blue')
-    plt.text(4.5, -25, 'Distraction task:', fontsize=15)
+    #plt.text(22, -25, label, fontsize=15, color = 'blue')
+    #plt.text(4.5, -30, 'Distraction task:', fontsize=15)
 
     plt.pause(0.1)
 

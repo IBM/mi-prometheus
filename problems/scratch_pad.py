@@ -7,6 +7,10 @@ from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 @AlgorithmicSequentialProblem.register
 class GeneratorScratchPad(AlgorithmicSequentialProblem):
+    """
+    Class generating sequences of random bit-patterns and targets forcing the system to learn scratch pad problem (overwrite the memory).
+    """
+
     def __init__(self, params):
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
@@ -29,6 +33,8 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
         """Generates a batch  of size [BATCH_SIZE, ?, CONTROL_BITS+DATA_BITS].
        
         :returns: Tuple consisting of: input, output and mask
+                  pattern of inputs: x1, x2, ...xn d
+                  pattern of output: d, d,   ...d xn
 
         TODO: deal with batch_size > 1
         """

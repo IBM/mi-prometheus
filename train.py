@@ -12,6 +12,8 @@ import os.path
 import argparse
 import torch
 from torch import nn
+import collections
+import numpy as np
 
 # Import problems and problem factory.
 import sys
@@ -21,6 +23,10 @@ from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
 if __name__ == '__main__':
+    # set seed
+    torch.manual_seed(2)
+    np.random.seed(0)
+
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', type=str, default='', dest='task',
@@ -40,17 +46,18 @@ if __name__ == '__main__':
         print('Task configuration file {} does not exists'.format(FLAGS.task))
         exit(-2)
 
-        # Read YAML file
+    # Read YAML file
     with open(FLAGS.task, 'r') as stream:
         config_loaded = yaml.load(stream)
 
     # Print loaded configuration
     # print("Loaded configuration",  config_loaded)
-    print("Problem configuration:\n", config_loaded['problem'])
+    print("Problem configuration:\n", config_loaded['problem_train'])
     print("Model configuration:\n", config_loaded['model'])
+    print("settings configuration:\n", config_loaded['settings'])
 
     # Build problem
-    problem = ProblemFactory.build_problem(config_loaded['problem'])
+    problem = ProblemFactory.build_problem(config_loaded['problem_train'])
 
     # Build model
     model = ModelFactory.build_model(config_loaded['model'])
@@ -71,6 +78,7 @@ if __name__ == '__main__':
 
     # Start Training
     epoch = 0
+    last_losses = collections.deque()
 
     # Data generator : input & target
     for inputs, targets, mask in problem.return_generator():
@@ -82,22 +90,32 @@ if __name__ == '__main__':
 
         # compute loss
         # TODO: solution for now - mask[0]
-        loss = criterion(output, targets)
+        if config_loaded['settings']['use_mask']:
+            loss = criterion(output[:,mask[0], :], targets[:,mask[0], :])
+        else:
+            loss = criterion(output, targets)
 
         print(", epoch: %d, loss: %1.5f" % (epoch + 1, loss))
 
+        # append the new loss
+        last_losses.append(loss)
+        if len(last_losses) > config_loaded['settings']['length_loss']:
+            last_losses.popleft()
+
         loss.backward()
 
+        # TODO: grad clip is giving an error
         nn.utils.clip_grad_value_(model.parameters(), 10)
 
         optimizer.step()
 
-        if epoch == 20000:
+        if max(last_losses) < config_loaded['settings']['loss_stop'] \
+                or epoch == config_loaded['settings']['max_epochs']:
             path = "./checkpoints/"
             # save model parameters
             if not os.path.exists(path):
                 os.makedirs(path)
-            torch.save(model.state_dict(), path+"model_parameters"+ '_' +config_loaded['problem']['name'])
+            torch.save(model.state_dict(), path+"model_parameters"+ '_' +config_loaded['problem_train']['name'])
             break
 
         epoch += 1

@@ -37,8 +37,8 @@ def show_sample(inputs, targets, mask, sample_number=0):
     ax2.set_xlabel('Item number')
 
     # Set data.
-    ax1.imshow((inputs[sample_number, :, :]).detach().numpy())
-    ax2.imshow((targets[sample_number, :, :]).detach().numpy())
+    ax1.imshow(np.transpose((inputs[sample_number, :, :]).detach().numpy(), [1, 0]))
+    ax2.imshow(np.transpose((inputs[sample_number, :, :]).detach().numpy(), [1, 0]))
 
     plt.show()
 
@@ -77,17 +77,21 @@ if __name__ == '__main__':
         config_loaded = yaml.load(stream)
 
     # Build new problem
-    problem = ProblemFactory.build_problem(config_loaded['problem'])
+    problem = ProblemFactory.build_problem(config_loaded['problem_test'])
 
     # Build model
     model = ModelFactory.build_model(config_loaded['model'])
 
     # load the trained model
-    model.load_state_dict(torch.load(path+"model_parameters" + '_' +config_loaded['problem']['name']))
+    model.load_state_dict(torch.load(path+"model_parameters" + '_' +config_loaded['problem_test']['name']))
 
     for inputs, targets, mask in problem.return_generator():
         # apply the trained model
         output = model(inputs)
+
+        if config_loaded['settings']['use_mask']:
+            output = output[:, mask[0], :]
+            targets = targets[:, mask[0], :]
 
         # test accuracy
         output = torch.round(output)
@@ -95,7 +99,7 @@ if __name__ == '__main__':
         accuracy = acc.mean()
         print("Accuracy: %.6f" % (accuracy * 100) + "%")
         # plot data
-        #show_sample(output, targets, mask)
+        show_sample(output, targets, mask)
 
         break   # one test sample
 

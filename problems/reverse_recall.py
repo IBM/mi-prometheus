@@ -82,15 +82,17 @@ class ReverseRecallProblem(AlgorithmicSequentialProblem):
         targets[:, seq_length+2:,  :] = np.fliplr(bit_seq)
 
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
-        targets_mask = np.zeros([self.batch_size, 2*seq_length + 2])
-        targets_mask[:, seq_length+2:] = 1
+        mask = np.zeros([self.batch_size, 2*seq_length + 2])
+        mask[:, seq_length+2:] = 1
 
         # PyTorch variables.
         ptinputs = Variable(torch.from_numpy(inputs).type(self.dtype))
         pttargets = Variable(torch.from_numpy(targets).type(self.dtype))
+        ptmask = torch.from_numpy(mask).type(torch.uint8)
+
 
         # Return batch.
-        return ptinputs,  pttargets,  targets_mask
+        return ptinputs,  pttargets,  ptmask
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
