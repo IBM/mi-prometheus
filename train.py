@@ -104,7 +104,7 @@ if __name__ == '__main__':
 
         loss.backward()
 
-        # TODO: grad clip is giving an error
+        # clip grad between -10, 10
         nn.utils.clip_grad_value_(model.parameters(), 10)
 
         optimizer.step()
