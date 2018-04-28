@@ -95,6 +95,7 @@ if __name__ == '__main__':
         else:
             loss = criterion(output, targets)
 
+        # print statistics
         print("epoch: {:5d}, loss: {:1.6f}, length: {:02d}".format(epoch + 1, loss, inputs.size(-2)))
 
         # append the new loss
