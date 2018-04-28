@@ -22,17 +22,17 @@ from models.model_factory import ModelFactory
 
 def show_sample(prediction, target, mask, sample_number=0):
     """ Shows the sample (both input and target sequences) using matplotlib."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 1]}, sharex=True)
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
     # Set ticks.
     ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
     ax1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
     ax2.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
     # Set labels.
-    ax1.set_title('Output')
-    ax1.set_ylabel('Control/Data bits')
-    ax1.set_xlabel('Item number')
+    ax1.set_title('Prediction')
+    ax1.set_ylabel('Data bits')
     ax2.set_title('Target')
+    ax2.set_ylabel('Data bits')
     # ax2.set_ylabel('Data bits')
     ax2.set_xlabel('Item number')
 
