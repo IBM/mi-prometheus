@@ -45,7 +45,7 @@ model:
     use_content_addressing: False
     shift_size: 3
     # active the plotting of the memory and attention
-    plot_memory: False
+    plot_memory: True
 
 # optimizer parameters:
 optimizer:

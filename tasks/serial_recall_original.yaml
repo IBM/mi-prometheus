@@ -12,7 +12,7 @@ problem_train:
 
 # Problem parameters:
 problem_test:
-    name: serial_recall_simplified
+    name: serial_recall_original
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
@@ -21,7 +21,6 @@ problem_test:
     min_sequence_length: 1
     max_sequence_length: 10
     bias: 0.5
-
 
 # Model parameters:
 model:
@@ -42,7 +41,7 @@ model:
     use_content_addressing: False
     shift_size: 3
     # active the plotting of the memory and attention
-    plot_memory: False
+    plot_memory: True
     
 # optimizer parameters:
 optimizer:
@@ -54,7 +53,7 @@ optimizer:
 # settings parameters
 settings:
     # masked output and target
-    use_mask: True
+    use_mask: False
     length_loss: 10
     loss_stop: 0.0001
     max_epochs: 20000
