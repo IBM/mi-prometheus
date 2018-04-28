@@ -53,3 +53,4 @@ settings:
     length_loss: 10
     loss_stop: 0.0001
     max_epochs: 20000
+    seed: 0

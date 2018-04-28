@@ -45,8 +45,6 @@ def show_sample(prediction, target, mask, sample_number=0):
     # Plot!
 
 if __name__ == '__main__':
-    # set random seed
-    np.random.seed(9)
 
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
@@ -75,6 +73,11 @@ if __name__ == '__main__':
     # Read YAML file
     with open(FLAGS.task, 'r') as stream:
         config_loaded = yaml.load(stream)
+
+    # set seed
+    if config_loaded["settings"]["seed"] != -1:
+        torch.manual_seed(2)
+        np.random.seed(config_loaded["settings"]["seed"])
 
     # Build new problem
     problem = ProblemFactory.build_problem(config_loaded['problem_test'])
