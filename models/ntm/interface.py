@@ -90,11 +90,6 @@ class Interface:
         γ = 1 + F.softplus(γ)                   # used for weight sharpening
         erase = F.sigmoid(erase)                # erase memory content
 
-        # Write to memory
-        memory = Memory(mem)
-        memory.erase_weighted(erase, wt)
-        memory.add_weighted(add, wt)
-
         ## set jumping mechanisms
         #  fixed attention to address 0
         wt_address_0 = torch.zeros_like(wt)
@@ -112,6 +107,11 @@ class Interface:
         wt = j[..., 0] * wt_dynamic \
            + j[..., 1] * wt \
            + j[..., 2] * wt_address_0
+
+        # Write to memory
+        memory = Memory(mem)
+        memory.erase_weighted(erase, wt)
+        memory.add_weighted(add, wt)
 
         # Update attention
         if self.is_cam:
