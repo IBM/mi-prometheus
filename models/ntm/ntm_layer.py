@@ -52,9 +52,6 @@ class NTM(nn.Module):
         for j in range(x.size()[-2]):
             tm_output, states = self.NTMCell(x[..., j, :], states)
 
-            if self.plot_active:
-                self.plot_memory_attention(states)
-
             if tm_output is None:
                 continue
 
@@ -65,6 +62,9 @@ class NTM(nn.Module):
 
             # concatenate output
             output = torch.cat([output, tm_output], dim=-2)
+
+            if self.plot_active:
+                self.plot_memory_attention(output, states)
 
         return output
 
@@ -84,8 +84,8 @@ class NTM(nn.Module):
         states = [tm_state, wt, wt_dynamic, mem_t]
         return states
 
-    def plot_memory_attention(self, states):
+    def plot_memory_attention(self, output, states):
         # plot attention/memory
-        plot_memory_attention(states[3], states[1], self.label)
+        plot_memory_attention(output, states[3], states[1], self.label)
 
 
