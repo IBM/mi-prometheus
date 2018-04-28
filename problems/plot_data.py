@@ -3,7 +3,6 @@ import matplotlib.ticker as ticker
 from time import sleep
 import numpy as np
 
-
 def plot_memory_attention(prediction, memory, wt, label):
     plt.clf()
     fig = plt.figure(1)
@@ -12,25 +11,22 @@ def plot_memory_attention(prediction, memory, wt, label):
     ax3 = fig.add_subplot(222)
 
     ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-    ax1.set_ylabel("Attention", fontname='Times New Roman', fontsize=15)
+    ax1.set_title("Attention", fontname='Times New Roman', fontsize=15)
     ax1.plot(np.arange(wt.size()[-1]), wt[0, 0, :].detach().numpy(), 'go')
 
     ax2.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
     ax2.set_ylabel("Word size", fontname='Times New Roman', fontsize=15)
     ax2.set_xlabel("Memory addresses", fontname='Times New Roman', fontsize=15)
+    ax2.set_title("Task: xxx", fontname='Times New Roman', fontsize=15)
 
     ax2.imshow(memory[0,:,:].detach().numpy(), interpolation='nearest')
 
     ax3.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-    ax3.set_ylabel("Attention", fontname='Times New Roman', fontsize=15)
-    if len(prediction.size()) == 2:
-        prediction= prediction[None, ...]
-    print(len(prediction.size()))
-
-    plt.text(22, -25, label, fontsize=15, color = 'blue')
-    plt.text(4.5, -25, 'Distraction task:', fontsize=15)
+    ax3.set_title("Prediction", fontname='Times New Roman', fontsize=15)
+    ax3.imshow(np.transpose((prediction[0, ...]).detach().numpy(), [1, 0]))
 
     plt.pause(0.1)
+    input()
 
 
 def plot_memory(memory):
