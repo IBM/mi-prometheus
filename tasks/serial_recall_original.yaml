@@ -53,7 +53,7 @@ optimizer:
 # settings parameters
 settings:
     # masked output and target
-    use_mask: False
+    use_mask: True
     length_loss: 10
     loss_stop: 0.0001
     max_epochs: 20000
