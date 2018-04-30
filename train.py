@@ -18,9 +18,6 @@ from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
 if __name__ == '__main__':
-    # set seed
-    torch.manual_seed(2)
-    np.random.seed(0)
 
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
@@ -44,6 +41,13 @@ if __name__ == '__main__':
     # Read YAML file
     with open(FLAGS.task, 'r') as stream:
         config_loaded = yaml.load(stream)
+
+    # set seed
+    if config_loaded["settings"]["seed_torch"] != -1:
+        torch.manual_seed(config_loaded["settings"]["seed_torch"])
+
+    if config_loaded["settings"]["seed_numpy"] != -1:
+        np.random.seed(config_loaded["settings"]["seed_numpy"])
 
     # Print loaded configuration
     # print("Loaded configuration",  config_loaded)
