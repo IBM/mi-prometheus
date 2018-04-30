@@ -86,7 +86,10 @@ if __name__ == '__main__':
     model = ModelFactory.build_model(config_loaded['model'])
 
     # load the trained model
-    model.load_state_dict(torch.load(path+"model_parameters" + '_' +config_loaded['problem_test']['name']))
+    model.load_state_dict(
+        torch.load(path+"model_parameters" + '_' +config_loaded['problem_test']['name'],
+                   map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
+    )
 
     for inputs, targets, mask in problem.return_generator():
         # apply the trained model
