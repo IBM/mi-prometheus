@@ -75,9 +75,11 @@ if __name__ == '__main__':
         config_loaded = yaml.load(stream)
 
     # set seed
-    if config_loaded["settings"]["seed"] != -1:
-        torch.manual_seed(2)
-        np.random.seed(config_loaded["settings"]["seed"])
+    if config_loaded["settings"]["seed_torch"] != -1:
+        torch.manual_seed(config_loaded["settings"]["seed_torch"])
+
+    if config_loaded["settings"]["seed_numpy"] != -1:
+        np.random.seed(config_loaded["settings"]["seed_numpy"])
 
     # Build new problem
     problem = ProblemFactory.build_problem(config_loaded['problem_test'])
