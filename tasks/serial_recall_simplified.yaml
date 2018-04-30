@@ -59,5 +59,3 @@ settings:
     max_epochs: 20000
     seed_numpy: 0
     seed_torch: 2
-
-
