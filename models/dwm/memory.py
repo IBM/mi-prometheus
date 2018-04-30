@@ -1,4 +1,4 @@
-"""DNT Memory"""
+"""DWM Memory"""
 import torch
 from models.dwm.tensor_utils import sim, outer_prod
 
