@@ -2,8 +2,8 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
-from models.ntm.tensor_utils import circular_conv, normalize
-from models.ntm.memory import Memory
+from models.dwm.tensor_utils import circular_conv, normalize
+from models.dwm.memory import Memory
 
 
 class Interface:

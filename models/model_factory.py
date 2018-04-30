@@ -22,7 +22,7 @@ class ModelFactory(object):
         # Try to load model
         name = params['name']
         if name == 'dwm':
-            from models.ntm.ntm_layer import NTM
+            from models.dwm.dwm_layer import NTM
             return NTM(params)
         if name == 'lstm':
             from models.lstm.layer import LSTM
