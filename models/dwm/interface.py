@@ -20,7 +20,7 @@ class Interface:
 
         # Define a dictionary for attentional parameters
         self.is_cam = is_cam
-        self.param_dict = {'s': num_shift, 'jd': num_heads, 'j': 3*num_heads, 'γ': 1, 'erase': M, 'add': M}
+        self.param_dict = {'s': num_shift, 'jd': 1, 'j': 3, 'γ': 1, 'erase': M, 'add': M}
         if self.is_cam:
             self.param_dict.update({'k': M, 'β': 1, 'g': 1})
 
@@ -95,7 +95,7 @@ class Interface:
         memory.erase_weighted(erase, wt)
         memory.add_weighted(add, wt)
 
-        ## set jumping mechanisms
+        ## Set jumping mechanisms
         #  fixed attention to address 0
         wt_address_0 = torch.zeros_like(wt)
         wt_address_0[:, 0:self.num_heads, 0] = 1
@@ -106,7 +106,6 @@ class Interface:
 
         # interpolation between wt_0 wt_d wt
         j = F.softmax(j, dim=-1)
-        j = j.view(-1, self.num_heads, 3)
         j = j[:, :, None, :]
 
         wt = j[..., 0] * wt_dynamic \
