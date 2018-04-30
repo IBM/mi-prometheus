@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""configuration_test.py: Test of YAML configuration"""
-__author__ = "Tomasz Kornuta"
-
 # Force MKL (CPU BLAS) to use one core, faster
 import os
 os.environ["OMP_NUM_THREADS"] = '1'
