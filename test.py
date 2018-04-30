@@ -20,25 +20,25 @@ from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
 
-def show_sample(inputs, targets, mask, sample_number=0):
+def show_sample(prediction, target, mask, sample_number=0):
     """ Shows the sample (both input and target sequences) using matplotlib."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 1]}, sharex=True)
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
     # Set ticks.
     ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
     ax1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
     ax2.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
     # Set labels.
-    ax1.set_title('Output')
-    ax1.set_ylabel('Control/Data bits')
-    ax1.set_xlabel('Item number')
+    ax1.set_title('Prediction')
+    ax1.set_ylabel('Data bits')
     ax2.set_title('Target')
+    ax2.set_ylabel('Data bits')
     # ax2.set_ylabel('Data bits')
     ax2.set_xlabel('Item number')
 
     # Set data.
-    ax1.imshow((inputs[sample_number, :, :]).detach().numpy())
-    ax2.imshow((targets[sample_number, :, :]).detach().numpy())
+    ax1.imshow(np.transpose((prediction[sample_number, :, :]).detach().numpy(), [1, 0]))
+    ax2.imshow(np.transpose((target[sample_number, :, :]).detach().numpy(), [1, 0]))
 
     plt.show()
 
@@ -46,7 +46,7 @@ def show_sample(inputs, targets, mask, sample_number=0):
 
 if __name__ == '__main__':
     # set random seed
-    np.random.seed(999999999)
+    np.random.seed(9)
 
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
@@ -77,24 +77,30 @@ if __name__ == '__main__':
         config_loaded = yaml.load(stream)
 
     # Build new problem
-    problem = ProblemFactory.build_problem(config_loaded['problem'])
+    problem = ProblemFactory.build_problem(config_loaded['problem_test'])
 
     # Build model
     model = ModelFactory.build_model(config_loaded['model'])
 
     # load the trained model
-    model.load_state_dict(torch.load(path+"model_parameters" + '_' +config_loaded['problem']['name']))
+    model.load_state_dict(
+        torch.load(path+"model_parameters" + '_' +config_loaded['problem_test']['name'],
+                   map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
+    )
 
     for inputs, targets, mask in problem.return_generator():
         # apply the trained model
         output = model(inputs)
+
+        if config_loaded['settings']['use_mask']:
+            output = output[:, mask[0], :]
+            targets = targets[:, mask[0], :]
 
         # test accuracy
         output = torch.round(output)
         acc = 1 - torch.abs(output-targets)
         accuracy = acc.mean()
         print("Accuracy: %.6f" % (accuracy * 100) + "%")
-
         # plot data
         show_sample(output, targets, mask)
 

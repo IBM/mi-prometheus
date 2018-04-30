@@ -1,11 +1,25 @@
 # Problem parameters:
-problem:
+problem_train:
     name: forget_distraction
     # Size of generated input: [batch_size x sequence_length x number of control and data bits].
     control_bits: &cbits 3
     data_bits: &dbits 8    
     batch_size: &bs 1
     # Parameters denoting min and max lengths. 
+    min_sequence_length: 1
+    max_sequence_length: 10
+    num_subseq_min: 1
+    num_subseq_max: 4
+    bias: 0.5
+
+# Problem parameters:
+problem_test:
+    name: forget_distraction
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: 1
+    # Parameters denoting min and max lengths.
     min_sequence_length: 1
     max_sequence_length: 10
     num_subseq_min: 1
@@ -30,6 +44,8 @@ model:
     # Addressing parameters.
     use_content_addressing: False
     shift_size: 3
+    # active the plotting of the memory and attention
+    plot_memory: False
 
 # optimizer parameters:
 optimizer:
@@ -37,3 +53,11 @@ optimizer:
     name: Adam
     # Function arguments of the optimizer, by name
     lr: 0.01
+
+# settings parameters
+settings:
+    # masked output and target
+    use_mask: True
+    length_loss: 10
+    loss_stop: 0.0001
+    max_epochs: 20000

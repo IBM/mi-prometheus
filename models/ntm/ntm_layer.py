@@ -10,7 +10,7 @@ dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 
 class NTM(nn.Module):
 
-    def __init__(self, params, plot_active=False):
+    def __init__(self, params):
         """Initialize an NTM Layer.
 
         :param tm_in_dim: input size.
@@ -30,13 +30,13 @@ class NTM(nn.Module):
         self.M = params["memory_content_size"]
         self.batch_size = params["batch_size"]
         self.memory_addresses_size = params["memory_addresses_size"]
-        self.plot_active = plot_active
+        self.plot_active = params["plot_memory"]
+        self.label = params["name"]
         super(NTM, self).__init__()
 
         # Create the NTM components
         self.NTMCell = NTMCell(self.tm_in_dim, self.tm_output_units, self.tm_state_units,
                                self.num_heads, self.is_cam, self.num_shift, self.M)
-        self.plot_active = plot_active 
 
     def forward(self, x):       # x : batch_size, seq_len, input_size
         """
@@ -63,6 +63,9 @@ class NTM(nn.Module):
             # concatenate output
             output = torch.cat([output, tm_output], dim=-2)
 
+            if self.plot_active:
+                self.plot_memory_attention(output, states)
+
         return output
 
     def init_state(self, memory_addresses_size):
@@ -81,9 +84,8 @@ class NTM(nn.Module):
         states = [tm_state, wt, wt_dynamic, mem_t]
         return states
 
-    def plot_memory_attention(self, states):
+    def plot_memory_attention(self, output, states):
         # plot attention/memory
-        label = 'Write/Read sequences x,y'
-        plot_memory_attention(states[3], states[1], label)
+        plot_memory_attention(output, states[3], states[1], self.label)
 
 

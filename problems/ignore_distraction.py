@@ -51,24 +51,35 @@ class GeneratorIgnoreDistraction(AlgorithmicSequentialProblem):
         y = [np.random.binomial(1, 0.5, (self.batch_size, n, self.data_bits)) for n in seq_lengths_b]
 
         # create the target
-        target = np.concatenate([y[-1]] + x, axis=1)
+        target = np.concatenate(x, axis=1)
 
-        xx = [augment(seq, markers, ctrl_end=[1,0,0], add_marker=True) for seq in x]
-        yy = [augment(seq, markers, ctrl_end=[0,1,0], add_marker=True) for seq in y]
+        xx = [augment(seq, markers, ctrl_start=[1,0,0], add_marker_data=True, add_marker_dummy=False) for seq in x]
+        yy = [augment(seq, markers, ctrl_start=[0,1,0], add_marker_data=True) for seq in y]
 
         inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
         data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b[:-1]]
 
         # dummies of y and xs
-        data_2 = [yy[-1][-1]] + [inter_seq] + [a[-1] for a in xx]
+        data_2 = [inter_seq] + [a[-1] for a in xx]
         inputs = np.concatenate(data_1 + data_2, axis=1)
 
         inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
         target = Variable(torch.from_numpy(target).type(self.dtype))
-        # Mask: batch_size x total length (x 1)
-        mask = inputs[:, :, 2] == 1
 
-        return inputs, target, mask
+        # create the mask
+        mask_all = inputs[:, :, 0:self.control_bits] == 1
+        mask = mask_all[..., 0]
+        for i in range(self.control_bits):
+            mask = mask_all[..., i] * mask
+
+        # rest ctrl channel of dummies
+        inputs[:, mask[0], 0:self.control_bits] = 0
+
+        # Create the target with the dummies
+        target_with_dummies = torch.zeros_like(inputs[:, :, self.control_bits:])
+        target_with_dummies[:, mask[0], :] = target
+
+        return inputs, target_with_dummies, mask
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
