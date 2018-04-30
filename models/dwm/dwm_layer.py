@@ -3,7 +3,7 @@ from torch import nn
 from problems.plot_data import plot_memory_attention
 from torch.autograd import Variable
 
-from models.dwm.cell import DWMCell
+from models.dwm.dwm_cell import DWMCell
 
 CUDA = False
 dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
@@ -50,18 +50,18 @@ class DWM(nn.Module):
         memory_addresses_size = self.memory_addresses_size
         states = self.init_state(memory_addresses_size)
         for j in range(x.size()[-2]):
-            output, states = self.DWMCell(x[..., j, :], states)
+            output_cell, states = self.DWMCell(x[..., j, :], states)
 
-            if output is None:
+            if output_cell is None:
                 continue
 
-            output = output[..., None, :]
+            output_cell = output_cell[..., None, :]
             if output is None:
-                output = output
+                output = output_cell
                 continue
 
             # concatenate output
-            output = torch.cat([output, output], dim=-2)
+            output = torch.cat([output, output_cell], dim=-2)
 
             if self.plot_active:
                 self.plot_memory_attention(output, states)
