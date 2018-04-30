@@ -8,11 +8,8 @@ import torch
 from torch.autograd import Variable
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
-def rotate(l, n):
-    return np.concatenate((l[:, n:, :], l[:, :n, :]), axis=1)
-
 @AlgorithmicSequentialProblem.register
-class SerialRecallOriginalProblem(AlgorithmicSequentialProblem):
+class SwapProblem(AlgorithmicSequentialProblem):
     """   
     Class generating sequences of random bit-patterns and targets forcing the system to learn serial recall problem (a.k.a. copy task).
     The formulation follows the original copy task from NTM paper, where:
@@ -43,6 +40,7 @@ class SerialRecallOriginalProblem(AlgorithmicSequentialProblem):
         self.max_sequence_length = params['max_sequence_length']
         # Parameter  denoting 0-1 distribution (0.5 is equal).
         self.bias = params['bias']
+        self.num_rotation = params['num_rotation']
         self.dtype = torch.FloatTensor
 
     def generate_bit_sequence(self,  seq_length):
@@ -84,8 +82,16 @@ class SerialRecallOriginalProblem(AlgorithmicSequentialProblem):
         # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS] (only data bits!)
         targets = np.zeros([self.batch_size, 2*seq_length + 2,  self.data_bits], dtype=np.float32)
         # Set bit sequence.
+
         # rotate sequence
-        bit_seq = rotate(bit_seq, int(seq_length/2))
+        num_rotation = self.num_rotation
+        if -1 <= num_rotation <= 1:
+            num_rotation = num_rotation * seq_length
+
+        num_rotation = np.round(num_rotation)
+        num_rotation = int(num_rotation % seq_length)
+
+        bit_seq = np.concatenate((bit_seq[:, num_rotation:, :], bit_seq[:, :num_rotation, :]), axis=1)
         targets[:, seq_length+2:,  :] = bit_seq
 
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
@@ -105,7 +111,7 @@ if __name__ == "__main__":
     # "Loaded parameters".
     params = {'name': 'serial_recall_original', 'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
     # Create problem object.
-    problem = SerialRecallOriginalProblem(params)
+    problem = SwapProblem(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
