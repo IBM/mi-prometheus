@@ -36,12 +36,12 @@ model:
     memory_content_size: 10
     memory_addresses_size: 60
     # Number of heads.
-    num_heads: 1
+    num_heads: 2
     # Addressing parameters.
     use_content_addressing: False
     shift_size: 3
     # active the plotting of the memory and attention
-    plot_memory: False
+    plot_memory: True
     
 # optimizer parameters:
 optimizer:

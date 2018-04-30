@@ -5,8 +5,19 @@ from utils import augment, add_ctrl
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 
+def rotate(seq, rotation, seq_length):
+    if -1 <= rotation <= 1:
+        rotation = rotation * seq_length
+
+    rotation = np.round(rotation)
+    rotation = int(rotation % seq_length)
+
+    seq = np.concatenate((seq[:, rotation:, :], seq[:, :rotation, :]), axis=1)
+
+    return seq
+
 @AlgorithmicSequentialProblem.register
-class GenerateForgetDistraction(AlgorithmicSequentialProblem):
+class SwapRecallInterruption(AlgorithmicSequentialProblem):
     def __init__(self, params):
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
@@ -23,6 +34,7 @@ class GenerateForgetDistraction(AlgorithmicSequentialProblem):
         self.num_subseq_max = params["num_subseq_max"]
         # Parameter  denoting 0-1 distribution (0.5 is equal).
         self.bias = params['bias']
+        self.rotation = params['num_rotation']
         self.dtype = torch.FloatTensor
 
     def generate_batch(self):
@@ -61,7 +73,7 @@ class GenerateForgetDistraction(AlgorithmicSequentialProblem):
         ctrl_xy = np.zeros_like(ctrl_data)
         ctrl_xy[1] = 1
         inter_xy = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_xy, pos)
-        data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + [inter_xy] +[np.fliplr(b[0])] + [b[1]]]
+        data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + [inter_xy] +[rotate(b[0], self.rotation, b[0].shape[1])] + [b[1]]]
 
         data_2 = [a[-1][:, 1:, :] for a in xx]
         inputs = np.concatenate(data_1 + [inter_seq] + data_2, axis=1)
@@ -90,9 +102,9 @@ if __name__ == "__main__":
 
     # "Loaded parameters".
     params = {'name': 'serial_recall_original', 'control_bits': 3, 'data_bits': 8, 'batch_size': 1,
-              'min_sequence_length': 1, 'max_sequence_length': 10, 'bias': 0.5, 'num_subseq_min':1 ,'num_subseq_max': 4}
+              'min_sequence_length': 1, 'max_sequence_length': 10, 'bias': 0.5, 'num_subseq_min':1 ,'num_subseq_max': 4, 'num_rotation':0.5}
     # Create problem object.
-    problem = GenerateForgetDistraction(params)
+    problem = SwapRecallInterruption(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
