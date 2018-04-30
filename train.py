@@ -51,17 +51,21 @@ if __name__ == '__main__':
     print("Model configuration:\n", config_loaded['model'])
     print("settings configuration:\n", config_loaded['settings'])
 
+    # Determine if CUDA is to be used
+    use_CUDA = False
+    if torch.cuda.is_available():
+        try:  # If the 'cuda' key is not present, catch the exception and do nothing
+            if config_loaded['problem_train']['cuda']:
+                use_CUDA = True
+        except KeyError:
+            None
+
     # Build problem
     problem = ProblemFactory.build_problem(config_loaded['problem_train'])
 
     # Build model
     model = ModelFactory.build_model(config_loaded['model'])
-
-    # Run mode: training or inference.
-    # if FLAGS.mode:
-    #    run_training(FLAGS.iterations,  FLAGS.checkpoint)
-    # else:
-    #    run_inference(FLAGS.checkpoint)
+    model.cuda() if use_CUDA else None
 
     # Set loss and optimizer
     optimizer_conf = dict(config_loaded['optimizer'])
@@ -77,6 +81,10 @@ if __name__ == '__main__':
 
     # Data generator : input & target
     for inputs, targets, mask in problem.return_generator():
+        # Convert inputs and targets to CUDA
+        if use_CUDA:
+            inputs = inputs.cuda()
+            targets = targets.cuda()
 
         optimizer.zero_grad()
 
@@ -86,11 +94,12 @@ if __name__ == '__main__':
         # compute loss
         # TODO: solution for now - mask[0]
         if config_loaded['settings']['use_mask']:
-            loss = criterion(output[:,mask[0], :], targets[:,mask[0], :])
+            loss = criterion(output[:, mask[0], :], targets[:, mask[0], :])
         else:
             loss = criterion(output, targets)
 
-        print(", epoch: %d, loss: %1.5f" % (epoch + 1, loss))
+        # print statistics
+        print("epoch: {:5d}, loss: {:1.6f}, length: {:02d}".format(epoch + 1, loss, inputs.size(-2)))
 
         # append the new loss
         last_losses.append(loss)
