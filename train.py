@@ -20,12 +20,17 @@ from models.model_factory import ModelFactory
 if __name__ == '__main__':
 
     # Create parser with list of  runtime arguments.
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-t', type=str, default='', dest='task',
                         help='Name of the task configuration file to be loaded')
     parser.add_argument('-m', action='store_true', dest='mode',
                         help='Mode (TRUE: trains a new model, FALSE: tests existing model)')
     parser.add_argument('-i', type=int, default='100000', dest='iterations', help='Number of training epochs')
+    parser.add_argument('--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2], type=int,
+                        help="If present, log to tensorboard. Log levels:\n"
+                             "0: Just log the loss, accuracy, and seq_len\n"
+                             "1: Add histograms of biases and weights (Warning: slow)\n"
+                             "2: Add histograms of biases and weights gradients (Warning: even slower)")
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
 
@@ -41,6 +46,11 @@ if __name__ == '__main__':
     # Read YAML file
     with open(FLAGS.task, 'r') as stream:
         config_loaded = yaml.load(stream)
+
+    # Prepare output paths
+    path_root = "./checkpoints/"
+    path_out = path_root + config_loaded['problem_train']['name']
+    os.makedirs(path_out, exist_ok=True)
 
     # set seed
     if config_loaded["settings"]["seed_torch"] != -1:
@@ -79,6 +89,11 @@ if __name__ == '__main__':
     criterion = nn.BCELoss()
     optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), **optimizer_conf)
 
+    # Create tensorboard output, if tensorboard chosen
+    if FLAGS.tensorboard is not None:
+        from tensorboardX import SummaryWriter
+        tb_writer = SummaryWriter(path_out)
+
     # Start Training
     epoch = 0
     last_losses = collections.deque()
@@ -102,9 +117,6 @@ if __name__ == '__main__':
         else:
             loss = criterion(output, targets)
 
-        # print statistics
-        print("epoch: {:5d}, loss: {:1.6f}, length: {:02d}".format(epoch + 1, loss, inputs.size(-2)))
-
         # append the new loss
         last_losses.append(loss)
         if len(last_losses) > config_loaded['settings']['length_loss']:
@@ -117,13 +129,28 @@ if __name__ == '__main__':
 
         optimizer.step()
 
+        # print statistics
+        print("epoch: {:5d}, loss: {:1.6f}, length: {:02d}".format(epoch + 1, loss, inputs.size(-2)))
+
+        if FLAGS.tensorboard is not None:
+            # Save loss + accuracy to tensorboard
+            accuracy = (1 - torch.abs(torch.round(output) - targets)).mean()
+            tb_writer.add_scalar('Train/loss', loss, epoch)
+            tb_writer.add_scalar('Train/accuracy', accuracy, epoch)
+            tb_writer.add_scalar('Train/seq_len', inputs.size(-2), epoch)
+
+            for name, param in model.named_parameters():
+                if FLAGS.tensorboard >= 1:
+                    tb_writer.add_histogram(name, param.data.cpu().numpy(), epoch)
+                if FLAGS.tensorboard >= 2:
+                    tb_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), epoch)
+
         if max(last_losses) < config_loaded['settings']['loss_stop'] \
                 or epoch == config_loaded['settings']['max_epochs']:
-            path = "./checkpoints/"
             # save model parameters
-            if not os.path.exists(path):
-                os.makedirs(path)
-            torch.save(model.state_dict(), path+"model_parameters"+ '_' +config_loaded['problem_train']['name'])
+            torch.save(model.state_dict(), path_out + "/model_parameters")
+            tb_writer.export_scalars_to_json(path_out + "/all_scalars.json")
+            tb_writer.close()
             break
 
         epoch += 1
