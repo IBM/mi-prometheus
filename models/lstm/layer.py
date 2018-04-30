@@ -3,9 +3,6 @@ from torch import nn
 from torch.autograd import Variable
 import torch.nn.functional as F
 
-CUDA = False
-dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
-
 
 class LSTM(nn.Module):
     def __init__(self, params, plot_active=False):
@@ -26,6 +23,9 @@ class LSTM(nn.Module):
         self.linear = nn.Linear(self.hidden_state_dim, self.data_bits)
 
     def forward(self, x):
+        # Check if the class has been converted to cuda (through .cuda() method)
+        dtype = torch.cuda.FloatTensor if next(self.linear.parameters()).is_cuda else torch.FloatTensor
+
         # Create the hidden state tensors
         h = [Variable(torch.zeros(x.size(0), self.hidden_state_dim).type(dtype), requires_grad=False)
                   for _ in range(self.num_layers)]
