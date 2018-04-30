@@ -5,6 +5,7 @@ __pycache__
 msgs.log
 .Models/
 .eric6project
+*.e4p
 checkpoints/
 
 
