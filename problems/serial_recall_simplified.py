@@ -39,15 +39,6 @@ class SerialRecallSimplified(AlgorithmicSequentialProblem):
         self.bias = params['bias']
         self.dtype = torch.FloatTensor
 
-    def generate_bit_sequence(self,  seq_length):
-        """
-        Generates a random sequence of random bit patterns.
-
-        :param seq_length: the length of the sequence to be generated.
-        :returns: Sequence of bit patterns [BATCH_SIZE x SEQ_LENGTH X DATA_BITS]
-        """
-        return np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
-
     def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
@@ -59,11 +50,11 @@ class SerialRecallSimplified(AlgorithmicSequentialProblem):
 
         TODO: every item in batch has now the same seq_length.
         """
-        # Set sequence length
+        # Set sequence length.
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
 
-        # Generate batch of random bit sequences.
-        bit_seq = self.generate_bit_sequence(seq_length)
+        # Generate batch of random bit sequences [BATCH_SIZE x SEQ_LENGTH X DATA_BITS]
+        bit_seq = np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
         
         # Generate input:  [BATCH_SIZE, 2*SEQ_LENGTH, CONTROL_BITS+DATA_BITS]
         inputs = np.zeros([self.batch_size, 2*seq_length, self.control_bits +  self.data_bits], dtype=np.float32)
@@ -71,7 +62,6 @@ class SerialRecallSimplified(AlgorithmicSequentialProblem):
         inputs[:, seq_length:, 0] = 1
         # Set bit sequence.
         inputs[:, :seq_length,  self.control_bits:self.control_bits+self.data_bits] = bit_seq
-
         
         # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH, DATA_BITS] (only data bits!)
         targets = np.zeros([self.batch_size, 2*seq_length,  self.data_bits], dtype=np.float32)
@@ -93,7 +83,7 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'name': 'serial_recall_original', 'control_bits': 2, 'data_bits': 8, 'batch_size': 1,
+    params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1,
               'min_sequence_length': 1, 'max_sequence_length': 10, 'bias': 0.5}
     # Create problem object.
     problem = SerialRecallSimplified(params)

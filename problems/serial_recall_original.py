@@ -9,7 +9,7 @@ from torch.autograd import Variable
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 @AlgorithmicSequentialProblem.register
-class SerialRecallOriginal(AlgorithmicSequentialProblem):
+class SerialRecall(AlgorithmicSequentialProblem):
     """   
     Class generating sequences of random bit-patterns and targets forcing the system to learn serial recall problem (a.k.a. copy task).
     The formulation follows the original copy task from NTM paper, where:
@@ -42,15 +42,6 @@ class SerialRecallOriginal(AlgorithmicSequentialProblem):
         self.bias = params['bias']
         self.dtype = torch.FloatTensor
 
-    def generate_bit_sequence(self,  seq_length):
-        """
-        Generates a random sequence of random bit patterns.
-
-        :param seq_length: the length of the sequence to be generated.
-        :returns: Sequence of bit patterns [BATCH_SIZE x SEQ_LENGTH X DATA_BITS]
-        """
-        return np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
-
     def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
@@ -64,7 +55,7 @@ class SerialRecallOriginal(AlgorithmicSequentialProblem):
         # Set sequence length
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
 
-        # Generate batch of random bit sequences.
+        # Generate batch of random bit sequences [BATCH_SIZE x SEQ_LENGTH X DATA_BITS]
         bit_seq = np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
         
         # Generate input:  [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
@@ -96,9 +87,10 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'name': 'serial_recall_original', 'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
+    params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 
+        'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
     # Create problem object.
-    problem = SerialRecallOriginal(params)
+    problem = SerialRecall(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.

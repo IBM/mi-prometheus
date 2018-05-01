@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""serial_recall_original.py: Original serial recall problem (a.k.a. copy task)"""
+"""reverse_recall.py: Reversel recall problem"""
 __author__      = "Tomasz Kornuta"
 
 import numpy as np
@@ -9,16 +9,9 @@ from torch.autograd import Variable
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 @AlgorithmicSequentialProblem.register
-class SwapProblem(AlgorithmicSequentialProblem):
+class ManipulationSpatialNot(AlgorithmicSequentialProblem):
     """   
-    Class generating sequences of random bit-patterns and targets forcing the system to learn serial recall problem (a.k.a. copy task).
-    The formulation follows the original copy task from NTM paper, where:
-    1) There are two markers, indicating
-    - beginning of storing/memorization and
-    - beginning of recalling from memory.
-    2) For other elements of the sequence the command bits are set to zero
-    3) Minor modification I: the target contains only data bits (command bits are skipped)
-    4) Minor modification II: generator returns a mask, which can be used for filtering important elements of the output.
+    Class generating sequences of random bit-patterns with inverted targets, so the system is supposed to learn NOT logical operation. 
     
     TODO: sequences of different lengths in batch (filling with zeros?)
     """
@@ -40,17 +33,8 @@ class SwapProblem(AlgorithmicSequentialProblem):
         self.max_sequence_length = params['max_sequence_length']
         # Parameter  denoting 0-1 distribution (0.5 is equal).
         self.bias = params['bias']
-        self.num_rotation = params['num_rotation']
         self.dtype = torch.FloatTensor
 
-    def generate_bit_sequence(self,  seq_length):
-        """
-        Generates a random sequence of random bit patterns.
-
-        :param seq_length: the length of the sequence to be generated.
-        :returns: Sequence of bit patterns [BATCH_SIZE x SEQ_LENGTH X DATA_BITS]
-        """
-        return np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
 
     def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
@@ -64,12 +48,10 @@ class SwapProblem(AlgorithmicSequentialProblem):
         """
         # Set sequence length
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
-        if seq_length % 2:
-            seq_length = seq_length + 1
 
-        # Generate batch of random bit sequences.
+        # Generate batch of random bit sequences [BATCH_SIZE x SEQ_LENGTH X DATA_BITS]
         bit_seq = np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
-
+        
         # Generate input:  [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
         inputs = np.zeros([self.batch_size, 2*seq_length + 2, self.control_bits +  self.data_bits], dtype=np.float32)
         # Set start control marker.
@@ -81,21 +63,8 @@ class SwapProblem(AlgorithmicSequentialProblem):
         
         # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS] (only data bits!)
         targets = np.zeros([self.batch_size, 2*seq_length + 2,  self.data_bits], dtype=np.float32)
-        # Set bit sequence.
-
-        # rotate sequence
-        num_rotation = self.num_rotation
-        # check if relative rotation
-        if -1 <= num_rotation <= 1:
-            num_rotation = num_rotation * seq_length
-
-        # round rotation
-        num_rotation = np.round(num_rotation)
-        num_rotation = int(num_rotation % seq_length)
-
-        # apply rotation
-        bit_seq = np.concatenate((bit_seq[:, num_rotation:, :], bit_seq[:, :num_rotation, :]), axis=1)
-        targets[:, seq_length+2:,  :] = bit_seq
+        # Set target bit sequence - logical not.
+        targets[:, seq_length+2:,  :] = np.logical_not(bit_seq)
 
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
         targets_mask = torch.zeros([self.batch_size, 2*seq_length + 2]).type(torch.ByteTensor)
@@ -112,9 +81,10 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'name': 'serial_recall_original', 'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'num_rotation':0.5}
+    params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 
+        'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
     # Create problem object.
-    problem = SwapProblem(params)
+    problem = ManipulationSpatialNot(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
