@@ -93,7 +93,7 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'name': 'serial_recall_original', 'control_bits': 2, 'data_bits': 8, 'batch_size': 1,
+    params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1,
               'min_sequence_length': 1, 'max_sequence_length': 10, 'bias': 0.5}
     # Create problem object.
     problem = SerialRecallSimplified(params)
