@@ -55,9 +55,6 @@ if __name__ == '__main__':
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
 
-    # read training arguments
-    path = "./checkpoints/"
-
     # Test
     print("Testing")
 
@@ -74,6 +71,10 @@ if __name__ == '__main__':
     with open(FLAGS.task, 'r') as stream:
         config_loaded = yaml.load(stream)
 
+    # read training arguments
+    path_root = "./checkpoints/"
+    path_out = path_root + config_loaded['problem_test']['name']
+
     # set seed
     if config_loaded["settings"]["seed_torch"] != -1:
         torch.manual_seed(config_loaded["settings"]["seed_torch"])
@@ -89,7 +90,7 @@ if __name__ == '__main__':
 
     # load the trained model
     model.load_state_dict(
-        torch.load(path+"model_parameters" + '_' +config_loaded['problem_test']['name'],
+        torch.load(path_out + "/model_parameters",
                    map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
     )
 

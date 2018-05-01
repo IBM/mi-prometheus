@@ -52,7 +52,7 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
         seq_length = np.random.randint(low=self.min_sequence_length, high=self.max_sequence_length + 1, size=num_sub_seq)
 
         #  generate subsequences for x and y
-        x = [np.random.binomial(1, 0.5, (self.batch_size, n, self.data_bits)) for n in seq_length]
+        x = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_length]
 
         # create the target
         seq_length_tdummies = sum(seq_length) + seq_length.shape[0] + 1

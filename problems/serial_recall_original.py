@@ -42,15 +42,6 @@ class SerialRecall(AlgorithmicSequentialProblem):
         self.bias = params['bias']
         self.dtype = torch.FloatTensor
 
-    def generate_bit_sequence(self,  seq_length):
-        """
-        Generates a random sequence of random bit patterns.
-
-        :param seq_length: the length of the sequence to be generated.
-        :returns: Sequence of bit patterns [BATCH_SIZE x SEQ_LENGTH X DATA_BITS]
-        """
-        return np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
-
     def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
@@ -64,7 +55,7 @@ class SerialRecall(AlgorithmicSequentialProblem):
         # Set sequence length
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
 
-        # Generate batch of random bit sequences.
+        # Generate batch of random bit sequences [BATCH_SIZE x SEQ_LENGTH X DATA_BITS]
         bit_seq = np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
         
         # Generate input:  [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]

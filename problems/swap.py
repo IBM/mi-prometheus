@@ -43,15 +43,6 @@ class SwapProblem(AlgorithmicSequentialProblem):
         self.num_rotation = params['num_rotation']
         self.dtype = torch.FloatTensor
 
-    def generate_bit_sequence(self,  seq_length):
-        """
-        Generates a random sequence of random bit patterns.
-
-        :param seq_length: the length of the sequence to be generated.
-        :returns: Sequence of bit patterns [BATCH_SIZE x SEQ_LENGTH X DATA_BITS]
-        """
-        return np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
-
     def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
@@ -67,7 +58,7 @@ class SwapProblem(AlgorithmicSequentialProblem):
         if seq_length % 2:
             seq_length = seq_length + 1
 
-        # Generate batch of random bit sequences.
+        # Generate batch of random bit sequences [BATCH_SIZE x SEQ_LENGTH X DATA_BITS]
         bit_seq = np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
 
         # Generate input:  [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
@@ -85,12 +76,15 @@ class SwapProblem(AlgorithmicSequentialProblem):
 
         # rotate sequence
         num_rotation = self.num_rotation
+        # check if relative rotation
         if -1 <= num_rotation <= 1:
             num_rotation = num_rotation * seq_length
 
+        # round rotation
         num_rotation = np.round(num_rotation)
         num_rotation = int(num_rotation % seq_length)
 
+        # apply rotation
         bit_seq = np.concatenate((bit_seq[:, num_rotation:, :], bit_seq[:, :num_rotation, :]), axis=1)
         targets[:, seq_length+2:,  :] = bit_seq
 
@@ -109,8 +103,8 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 'num_rotation': 1, 
-    'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
+    params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 
+        'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'num_rotation':0.5}
     # Create problem object.
     problem = SwapProblem(params)
     # Get generator

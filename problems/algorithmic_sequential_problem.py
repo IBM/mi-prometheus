@@ -45,8 +45,13 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
         ax3.set_title('Target mask')
         ax3.set_ylabel('Mask bit')
         ax3.set_xlabel('Item number')
+
+        # print data
+        print("inputs", inputs[sample_number, :, :])
+        print("targets",targets[sample_number, :, :])
+        print("mask", mask[sample_number:sample_number+1, :])
         
-        # Set data.
+        # show data.
         ax1.imshow(np.transpose(inputs[sample_number, :, :],  [1, 0]))        
         ax2.imshow(np.transpose(targets[sample_number, :, :],  [1, 0]))
         ax3.imshow(mask[sample_number:sample_number+1, :])  
