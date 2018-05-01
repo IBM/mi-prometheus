@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 from torch.autograd import Variable
-import torch.nn.functional as F
 
 
 class LSTM(nn.Module):
@@ -44,6 +43,6 @@ class LSTM(nn.Module):
             out = self.linear(h[-1])
             outputs += [out]
 
-        outputs = F.sigmoid(torch.stack(outputs, 1))
+        outputs = torch.stack(outputs, 1)
         return outputs
 
