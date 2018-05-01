@@ -9,7 +9,7 @@ from torch.autograd import Variable
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 @AlgorithmicSequentialProblem.register
-class SerialRecallSimplifiedProblem(AlgorithmicSequentialProblem):
+class SerialRecallSimplified(AlgorithmicSequentialProblem):
     """   
     Class generating sequences of random bit-patterns and targets forcing the system to learn serial recall problem (a.k.a. copy task).
     Assumes several simplifications in comparison to copy task from NTM paper, i.e.:
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     params = {'name': 'serial_recall_original', 'control_bits': 2, 'data_bits': 8, 'batch_size': 1,
               'min_sequence_length': 1, 'max_sequence_length': 10, 'bias': 0.5}
     # Create problem object.
-    problem = SerialRecallSimplifiedProblem(params)
+    problem = SerialRecallSimplified(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
