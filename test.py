@@ -49,10 +49,9 @@ if __name__ == '__main__':
 
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
-    parser.add_argument('-t', type=str, default='', dest='task',
-                        help='Name of the task configuration file to be loaded')
-    parser.add_argument('-m', action='store_true', dest='mode',
-                        help='Mode (TRUE: trains a new model, FALSE: tests existing model)')
+    parser.add_argument('-i', type=str, default='', dest='input_dir',
+                        help='Input path, containing the saved parameters as well as the yaml file')
+
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
 
@@ -60,21 +59,17 @@ if __name__ == '__main__':
     print("Testing")
 
     # Check if config file was selected.
-    if (FLAGS.task == ''):
-        print('Please pass task configuration file as -t parameter')
+    if (FLAGS.input_dir == ''):
+        print('Please pass input path folder as -i parameter')
         exit(-1)
     # Check it file exists.
-    if not os.path.isfile(FLAGS.task):
-        print('Task configuration file {} does not exists'.format(FLAGS.task))
+    if not os.path.isdir(FLAGS.input_dir):
+        print('Input path {} does not exist'.format(FLAGS.task))
         exit(-2)
 
     # Read YAML file
-    with open(FLAGS.task, 'r') as stream:
+    with open(FLAGS.input_dir + "/train_settings.yaml", 'r') as stream:
         config_loaded = yaml.load(stream)
-
-    # read training arguments
-    path_root = "./checkpoints/"
-    path_out = path_root + config_loaded['problem_test']['name']
 
     # set seed
     if config_loaded["settings"]["seed_torch"] != -1:
@@ -91,7 +86,7 @@ if __name__ == '__main__':
 
     # load the trained model
     model.load_state_dict(
-        torch.load(path_out + "/model_parameters",
+        torch.load(FLAGS.input_dir + "/model_parameters",
                    map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
     )
 

@@ -1,15 +1,22 @@
 # Force MKL (CPU BLAS) to use one core, faster
+import logging
+import logging.config
 import os
 os.environ["OMP_NUM_THREADS"] = '1'
 
 import yaml
 import os.path
+from shutil import copyfile
+from datetime import datetime
 import argparse
 import torch
 from torch import nn
 import torch.nn.functional as F
 import collections
 import numpy as np
+
+import matplotlib
+logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
 # Import problems and problem factory.
 import sys
@@ -24,14 +31,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-t', type=str, default='', dest='task',
                         help='Name of the task configuration file to be loaded')
-    parser.add_argument('-m', action='store_true', dest='mode',
-                        help='Mode (TRUE: trains a new model, FALSE: tests existing model)')
-    parser.add_argument('-i', type=int, default='100000', dest='iterations', help='Number of training epochs')
     parser.add_argument('--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2], type=int,
                         help="If present, log to tensorboard. Log levels:\n"
                              "0: Just log the loss, accuracy, and seq_len\n"
                              "1: Add histograms of biases and weights (Warning: slow)\n"
                              "2: Add histograms of biases and weights gradients (Warning: even slower)")
+    parser.add_argument('--confirm', action='store_true', dest='confirm',
+                        help='Request user confirmation just after loading the settings, before starting training.')
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
 
@@ -48,10 +54,34 @@ if __name__ == '__main__':
     with open(FLAGS.task, 'r') as stream:
         config_loaded = yaml.load(stream)
 
-    # Prepare output paths
+    task_name = config_loaded['problem_train']['name']
+
+    # Prepare output paths for logging
     path_root = "./checkpoints/"
-    path_out = path_root + config_loaded['problem_train']['name']
-    os.makedirs(path_out, exist_ok=True)
+    time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
+    log_dir = path_root + task_name + '/' + time_str + '/'
+    os.makedirs(log_dir, exist_ok=False)
+    log_file = log_dir + 'msgs.log'
+    copyfile(FLAGS.task, log_dir + "/train_settings.yaml")  # Copy the task's yaml file into log_dir
+
+    def logfile():
+        return logging.FileHandler(log_file)
+
+    with open('logger_config.yaml', 'rt') as f:
+        config = yaml.load(f.read())
+        logging.config.dictConfig(config)
+
+    logger = logging.getLogger(task_name)
+
+    # print experiment configuration
+    str = "Experiment Configuration:\n"
+    str += yaml.safe_dump(config_loaded, default_flow_style=False,
+                          explicit_start=True, explicit_end=True)
+    logger.info(str)
+
+    if FLAGS.confirm:
+        # Ask for confirmation
+        input('Press any key to continue')
 
     # set seed
     if config_loaded["settings"]["seed_torch"] != -1:
@@ -59,12 +89,6 @@ if __name__ == '__main__':
 
     if config_loaded["settings"]["seed_numpy"] != -1:
         np.random.seed(config_loaded["settings"]["seed_numpy"])
-
-    # Print loaded configuration
-    # print("Loaded configuration",  config_loaded)
-    print("Problem configuration:\n", config_loaded['problem_train'])
-    print("Model configuration:\n", config_loaded['model'])
-    print("settings configuration:\n", config_loaded['settings'])
 
     # Determine if CUDA is to be used
     use_CUDA = False
@@ -93,11 +117,16 @@ if __name__ == '__main__':
     # Create tensorboard output, if tensorboard chosen
     if FLAGS.tensorboard is not None:
         from tensorboardX import SummaryWriter
-        tb_writer = SummaryWriter(path_out)
+        tb_writer = SummaryWriter(log_dir)
 
     # Start Training
     epoch = 0
     last_losses = collections.deque()
+
+    train_file = open(log_dir + 'training.log', 'w', 1)
+    validation_file = open(log_dir + 'validation.log', 'w', 1)
+    train_file.write('epoch,accuracy,loss,length\n')
+    validation_file.write('epoch,accuracy\n')
 
     # Data generator : input & target
     for inputs, targets, mask in problem.return_generator():
@@ -131,14 +160,20 @@ if __name__ == '__main__':
         optimizer.step()
 
         # print statistics
-        print("epoch: {:5d}, loss: {:1.6f}, length: {:02d}".format(epoch + 1, loss, inputs.size(-2)))
+        accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
+        train_length = inputs.size(-2)
+        format_str = 'epoch {:05d}: '
+        format_str = format_str + ' acc={:12.10f}; loss={:12.10f}; length={:02d}'
+        logger.info(format_str.format(epoch, accuracy, loss, train_length))
+        format_str = '{:05d}, {:12.10f}, {:12.10f}, {:02d}\n'
+        train_file.write(format_str.format(epoch, accuracy, loss, train_length))
 
         if FLAGS.tensorboard is not None:
             # Save loss + accuracy to tensorboard
             accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
             tb_writer.add_scalar('Train/loss', loss, epoch)
             tb_writer.add_scalar('Train/accuracy', accuracy, epoch)
-            tb_writer.add_scalar('Train/seq_len', inputs.size(-2), epoch)
+            tb_writer.add_scalar('Train/seq_len', train_length, epoch)
 
             for name, param in model.named_parameters():
                 if FLAGS.tensorboard >= 1:
@@ -149,12 +184,16 @@ if __name__ == '__main__':
         if max(last_losses) < config_loaded['settings']['loss_stop'] \
                 or epoch == config_loaded['settings']['max_epochs']:
             # save model parameters
-            torch.save(model.state_dict(), path_out + "/model_parameters")
-            tb_writer.export_scalars_to_json(path_out + "/all_scalars.json")
-            tb_writer.close()
+            torch.save(model.state_dict(), log_dir + "/model_parameters")
+            if FLAGS.tensorboard is not None:
+                tb_writer.export_scalars_to_json(log_dir + "all_scalars.json")
+                tb_writer.close()
             break
 
         epoch += 1
+
+    train_file.close()
+    validation_file.close()
 
     print("Learning finished!")
 
