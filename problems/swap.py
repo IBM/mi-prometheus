@@ -77,7 +77,7 @@ class SwapProblem(AlgorithmicSequentialProblem):
         # rotate sequence
         num_rotation = self.num_rotation
         # check if relative rotation
-        if -1 <= num_rotation <= 1:
+        if -1 < num_rotation < 1:
             num_rotation = num_rotation * seq_length
 
         # round rotation
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     
     # "Loaded parameters".
     params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 
-        'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'num_rotation':0.5}
+        'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'num_rotation':1}
     # Create problem object.
     problem = SwapProblem(params)
     # Get generator
