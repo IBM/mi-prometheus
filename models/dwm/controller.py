@@ -24,9 +24,9 @@ class Controller(nn.Module):
 
         # Output layer
         self.output_units = output_units
-        if self.output_units > 0:
-            # self.i2i = nn.Linear(ctrl_in_dim, ctrl_in_dim)
-            self.i2o = nn.Linear(ctrl_in_dim, output_units)
+
+        # self.i2i = nn.Linear(ctrl_in_dim, ctrl_in_dim)
+        self.i2o = nn.Linear(ctrl_in_dim, output_units)
 
         # State layer
         self.i2s = nn.Linear(ctrl_in_dim, state_units)
@@ -37,7 +37,7 @@ class Controller(nn.Module):
         #rest parameters
         #self.reset_parameters()
 
-    def forward(self, input, wt_head_prev, read_data):
+    def forward(self, input, state_prev, read_data):
         """
         Calculates the output, the hidden state and the controller parameters
         
@@ -46,7 +46,7 @@ class Controller(nn.Module):
         :return: Tuple [output, hidden_state, update_data] (update_data contains all of the controller parameters)
         """
         # Concatenate the 3 inputs to controller
-        combined = torch.cat((input, wt_head_prev, read_data), dim=-1)
+        combined = torch.cat((input, state_prev, read_data), dim=-1)
 
         # Get the state and update; no activation is applied
         state = self.i2s(combined)

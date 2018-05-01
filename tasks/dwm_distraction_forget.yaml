@@ -4,7 +4,7 @@ problem_train:
     # Size of generated input: [batch_size x sequence_length x number of control and data bits].
     control_bits: &cbits 3
     data_bits: &dbits 8    
-    batch_size: &bs 1
+    batch_size: &bs 10
     # Parameters denoting min and max lengths. 
     min_sequence_length: 1
     max_sequence_length: 10
@@ -35,7 +35,7 @@ model:
     data_bits: *dbits
     batch_size: *bs
     # Controller hidden state.
-    hidden_state_dim: 5
+    hidden_state_dim: 10
     # Memory (?).
     memory_content_size: 10
     memory_addresses_size: 60
