@@ -1,17 +1,20 @@
 # Problem parameters:
 problem_train:
-    name: copy_task_v1
+    name: distraction_ignore
     # Size of generated input: [batch_size x sequence_length x number of control and data bits].
-    control_bits: &cbits 2
+    control_bits: &cbits 3
     data_bits: &dbits 8
-    batch_size: 1
-    # Parameters denoting min and max lengths.
+    batch_size: &bs 1
+    # Parameters denoting min and max lengths. 
     min_sequence_length: 1
     max_sequence_length: 10
+    num_subseq_min: 1
+    num_subseq_max: 4
+    bias: 0.5
 
 # Problem parameters:
 problem_test:
-    name: copy_task_v1
+    name: distraction_ignore
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
@@ -19,19 +22,23 @@ problem_test:
     # Parameters denoting min and max lengths.
     min_sequence_length: 1
     max_sequence_length: 10
+    num_subseq_min: 1
+    num_subseq_max: 4
     bias: 0.5
 
 # Model parameters:
 model:
-    name: ntm_v1
-    # Input bits = [control, data_bits]
+    name: dwm   # dynamic_working_memory
+    # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
     control_bits: *cbits
     data_bits: *dbits
+    batch_size: *bs
     # Controller hidden state.
     hidden_state_dim: 5
     # Memory (?).
     memory_content_size: 10
+    memory_addresses_size: 60
     # Number of heads.
     num_heads: 1
     # Addressing parameters.
@@ -40,6 +47,7 @@ model:
     # active the plotting of the memory and attention
     plot_memory: False
 
+# optimizer parameters:
 optimizer:
     # Exact name of the pytorch optimizer function
     name: Adam

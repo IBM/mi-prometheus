@@ -1,9 +1,9 @@
 # Problem parameters:
 problem_train:
-    name: ignore_distraction
+    name: interruption_reverse_recall
     # Size of generated input: [batch_size x sequence_length x number of control and data bits].
     control_bits: &cbits 3
-    data_bits: &dbits 8
+    data_bits: &dbits 8    
     batch_size: &bs 1
     # Parameters denoting min and max lengths. 
     min_sequence_length: 1
@@ -14,7 +14,7 @@ problem_train:
 
 # Problem parameters:
 problem_test:
-    name: ignore_distraction
+    name: interruption_reverse_recall
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits

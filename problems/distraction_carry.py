@@ -6,7 +6,10 @@ from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 
 @AlgorithmicSequentialProblem.register
-class GeneratorIgnoreDistraction(AlgorithmicSequentialProblem):
+class DistractionCarry(AlgorithmicSequentialProblem):
+    """
+    TODO: @Byounes: add task description.
+    """
     def __init__(self, params):
         self.batch_size = params["batch_size"]
         # Number of bits in one element.
@@ -51,7 +54,7 @@ class GeneratorIgnoreDistraction(AlgorithmicSequentialProblem):
         y = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_lengths_b]
 
         # create the target
-        target = np.concatenate(x, axis=1)
+        target = np.concatenate([y[-1]] + x, axis=1)
 
         xx = [augment(seq, markers, ctrl_start=[1,0,0], add_marker_data=True, add_marker_dummy=False) for seq in x]
         yy = [augment(seq, markers, ctrl_start=[0,1,0], add_marker_data=True) for seq in y]
@@ -60,7 +63,7 @@ class GeneratorIgnoreDistraction(AlgorithmicSequentialProblem):
         data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b[:-1]]
 
         # dummies of y and xs
-        data_2 = [inter_seq] + [a[-1] for a in xx]
+        data_2 = [yy[-1][-1]] + [inter_seq] + [a[-1] for a in xx]
         inputs = np.concatenate(data_1 + data_2, axis=1)
 
         inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
@@ -88,7 +91,7 @@ if __name__ == "__main__":
     params = {'name': 'serial_recall_original', 'control_bits': 3, 'data_bits': 8, 'batch_size': 1,
               'min_sequence_length': 1, 'max_sequence_length': 10, 'bias': 0.5, 'num_subseq_min':1 ,'num_subseq_max': 4}
     # Create problem object.
-    problem = GeneratorIgnoreDistraction(params)
+    problem = DistractionCarry(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
