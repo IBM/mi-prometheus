@@ -1,6 +1,6 @@
 # Problem parameters:
 problem_train:
-    name: carry_distraction
+    name: distraction_carry
     # Size of generated input: [batch_size x sequence_length x number of control and data bits].
     control_bits: &cbits 3
     data_bits: &dbits 8    
@@ -14,7 +14,7 @@ problem_train:
 
 # Problem parameters:
 problem_test:
-    name: carry_distraction
+    name: distraction_carry
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
