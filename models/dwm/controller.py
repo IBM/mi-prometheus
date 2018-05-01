@@ -54,7 +54,6 @@ class Controller(nn.Module):
 
         # Get output with activation
         output = self.i2o(combined)
-        output = output
 
         # update attentional parameters and memory update parameters
         update_data = self.i2u(combined)
