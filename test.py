@@ -3,6 +3,7 @@ import os
 os.environ["OMP_NUM_THREADS"] = '1'
 
 import torch
+import torch.nn.functional as F
 import argparse
 import yaml
 import matplotlib.pyplot as plt
@@ -96,7 +97,7 @@ if __name__ == '__main__':
 
     for inputs, targets, mask in problem.return_generator():
         # apply the trained model
-        output = model(inputs)
+        output = F.sigmoid(model(inputs))
 
         if config_loaded['settings']['use_mask']:
             output = output[:, mask[0], :]

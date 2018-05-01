@@ -7,6 +7,7 @@ import os.path
 import argparse
 import torch
 from torch import nn
+import torch.nn.functional as F
 import collections
 import numpy as np
 
@@ -86,7 +87,7 @@ if __name__ == '__main__':
     optimizer_name = optimizer_conf['name']
     del optimizer_conf['name']
 
-    criterion = nn.BCELoss()
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), **optimizer_conf)
 
     # Create tensorboard output, if tensorboard chosen
@@ -134,7 +135,7 @@ if __name__ == '__main__':
 
         if FLAGS.tensorboard is not None:
             # Save loss + accuracy to tensorboard
-            accuracy = (1 - torch.abs(torch.round(output) - targets)).mean()
+            accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
             tb_writer.add_scalar('Train/loss', loss, epoch)
             tb_writer.add_scalar('Train/accuracy', accuracy, epoch)
             tb_writer.add_scalar('Train/seq_len', inputs.size(-2), epoch)
