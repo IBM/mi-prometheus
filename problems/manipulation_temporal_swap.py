@@ -9,7 +9,7 @@ from torch.autograd import Variable
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 @AlgorithmicSequentialProblem.register
-class SwapProblem(AlgorithmicSequentialProblem):
+class ManipulationTemporalSwap(AlgorithmicSequentialProblem):
     """   
     Creates input being a sequence of bit pattern and target being the same sequence "bitshifted" by num_items to right.
     For example:
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 
         'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'num_items':2}
     # Create problem object.
-    problem = SwapProblem(params)
+    problem = ManipulationTemporalSwap(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
