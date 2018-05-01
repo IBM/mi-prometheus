@@ -11,14 +11,13 @@ from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 @AlgorithmicSequentialProblem.register
 class SwapProblem(AlgorithmicSequentialProblem):
     """   
-    Class generating sequences of random bit-patterns and targets forcing the system to learn serial recall problem (a.k.a. copy task).
-    The formulation follows the original copy task from NTM paper, where:
-    1) There are two markers, indicating
-    - beginning of storing/memorization and
-    - beginning of recalling from memory.
-    2) For other elements of the sequence the command bits are set to zero
-    3) Minor modification I: the target contains only data bits (command bits are skipped)
-    4) Minor modification II: generator returns a mask, which can be used for filtering important elements of the output.
+    Creates input being a sequence of bit pattern and target being the same sequence "bitshifted" by num_items to right.
+    For example:
+    num_items = 2 -> seq_items >> 2 
+    num_items = -1 -> seq_items << 1
+    Offers two modes of operation, depending on the value of num_items parameter:
+    1)  -1 < num_item < 1: relative mode, where num_item represents the % of length of the sequence by which it should be shifted
+    2) otherwise: absolute number of items by which the sequence will be shifted.
     
     TODO: sequences of different lengths in batch (filling with zeros?)
     """
@@ -40,7 +39,7 @@ class SwapProblem(AlgorithmicSequentialProblem):
         self.max_sequence_length = params['max_sequence_length']
         # Parameter  denoting 0-1 distribution (0.5 is equal).
         self.bias = params['bias']
-        self.num_rotation = params['num_rotation']
+        self.num_items = params['num_items']
         self.dtype = torch.FloatTensor
 
     def generate_batch(self):
@@ -53,7 +52,7 @@ class SwapProblem(AlgorithmicSequentialProblem):
 
         TODO: every item in batch has now the same seq_length.
         """
-        # Set sequence length
+        # Set sequence length.
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
         if seq_length % 2:
             seq_length = seq_length + 1
@@ -74,18 +73,21 @@ class SwapProblem(AlgorithmicSequentialProblem):
         targets = np.zeros([self.batch_size, 2*seq_length + 2,  self.data_bits], dtype=np.float32)
         # Set bit sequence.
 
-        # rotate sequence
-        num_rotation = self.num_rotation
-        # check if relative rotation
-        if -1 < num_rotation < 1:
-            num_rotation = num_rotation * seq_length
+        # Rotate sequence by shifting the items to right: seq >> num_items
+        # i.e num_items = 2 -> seq_items >> 2 
+        # and num_items = -1 -> seq_items << 1
+        # For that reason we must change the sign of num_items
+        num_items = -self.num_items
+        # Check if we are using relative or absolute rotation.
+        if -1 < num_items < 1:
+            num_items = num_items * seq_length
+        # Round items shift  to int.
+        num_items = np.round(num_items)
+        # Modulo items shift with length of the sequence.
+        num_items = int(num_items % seq_length)
 
-        # round rotation
-        num_rotation = np.round(num_rotation)
-        num_rotation = int(num_rotation % seq_length)
-
-        # apply rotation
-        bit_seq = np.concatenate((bit_seq[:, num_rotation:, :], bit_seq[:, :num_rotation, :]), axis=1)
+        # Apply items shift 
+        bit_seq = np.concatenate((bit_seq[:, num_items:, :], bit_seq[:, :num_items, :]), axis=1)
         targets[:, seq_length+2:,  :] = bit_seq
 
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
@@ -104,7 +106,7 @@ if __name__ == "__main__":
     
     # "Loaded parameters".
     params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 
-        'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'num_rotation':1}
+        'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'num_items':2}
     # Create problem object.
     problem = SwapProblem(params)
     # Get generator
