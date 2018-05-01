@@ -85,12 +85,15 @@ class SwapProblem(AlgorithmicSequentialProblem):
 
         # rotate sequence
         num_rotation = self.num_rotation
+        # check if relative rotation
         if -1 <= num_rotation <= 1:
             num_rotation = num_rotation * seq_length
 
+        # round rotation
         num_rotation = np.round(num_rotation)
         num_rotation = int(num_rotation % seq_length)
 
+        # apply rotation
         bit_seq = np.concatenate((bit_seq[:, num_rotation:, :], bit_seq[:, :num_rotation, :]), axis=1)
         targets[:, seq_length+2:,  :] = bit_seq
 

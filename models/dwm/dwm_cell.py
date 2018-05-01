@@ -24,7 +24,7 @@ class DWMCell(nn.Module):
         self.controller = Controller(in_dim, output_units, state_units,
                                      self.interface.read_size, self.interface.update_size)
 
-    def forward(self, input, state):
+    def forward(self, input, cell_state_prev):
         """
         Builds the DWM cell
         
@@ -32,16 +32,16 @@ class DWMCell(nn.Module):
         :param state: Previous hidden state (from time t-1)  [BATCH_SIZE x STATE_UNITS]
         :return: Tuple [output, hidden_state]
         """
-        state, wt, wt_dynamic, mem = state
+        ctrl_state_prev, wt_head_prev, wt_att_snapshot_prev, mem_prev = cell_state_prev
 
         # step1: read from memory using attention
-        read_data = self.interface.read(wt, mem)
+        read_data = self.interface.read(wt_head_prev, mem_prev)
 
         # step2: controller
-        output, state, update_data = self.controller(input, state, read_data)
+        output, ctrl_state, update_data = self.controller(input, ctrl_state_prev, read_data)
 
         # step3: update memory and attention
-        wt, wt_dynamic, mem = self.interface.update(update_data, wt, wt_dynamic, mem)
+        wt_head, wt_att_snapshot, mem = self.interface.update(update_data, wt_head_prev, wt_att_snapshot_prev, mem_prev)
 
-        state = state, wt, wt_dynamic, mem
-        return output, state
+        cell_state = ctrl_state, wt_head, wt_att_snapshot, mem
+        return output, cell_state

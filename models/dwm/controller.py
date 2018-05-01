@@ -37,7 +37,7 @@ class Controller(nn.Module):
         #rest parameters
         #self.reset_parameters()
 
-    def forward(self, input, state, read_data):
+    def forward(self, input, wt_head_prev, read_data):
         """
         Calculates the output, the hidden state and the controller parameters
         
@@ -46,19 +46,17 @@ class Controller(nn.Module):
         :return: Tuple [output, hidden_state, update_data] (update_data contains all of the controller parameters)
         """
         # Concatenate the 3 inputs to controller
-        combined = torch.cat((input, state, read_data), dim=-1)
-
-        # Get output with activation
-        output = None
-        if self.output_units > 0:
-            hidden = combined
-            output = self.i2o(hidden)
-            output = F.sigmoid(output)
+        combined = torch.cat((input, wt_head_prev, read_data), dim=-1)
 
         # Get the state and update; no activation is applied
         state = self.i2s(combined)
         state = F.sigmoid(state)
 
+        # Get output with activation
+        output = self.i2o(combined)
+        output = F.sigmoid(output)
+
+        # update attentional parameters and memory update parameters
         update_data = self.i2u(combined)
 
         return output, state, update_data

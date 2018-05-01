@@ -38,7 +38,7 @@ class DWM(nn.Module):
         self.DWMCell = DWMCell(self.in_dim, self.output_units, self.state_units,
                                self.num_heads, self.is_cam, self.num_shift, self.M)
 
-    def forward(self, x):       # x : batch_size, seq_len, input_size
+    def forward(self, inputs):       # x : batch_size, seq_len, input_size
         """
         Runs the DWM cell and plots if necessary
         
@@ -48,9 +48,9 @@ class DWM(nn.Module):
         """
         output = None
         memory_addresses_size = self.memory_addresses_size
-        states = self.init_state(memory_addresses_size)
-        for j in range(x.size()[-2]):
-            output_cell, states = self.DWMCell(x[..., j, :], states)
+        cell_state = self.init_state(memory_addresses_size)
+        for j in range(inputs.size()[-2]):
+            output_cell, cell_state = self.DWMCell(inputs[..., j, :], cell_state)
 
             if output_cell is None:
                 continue
@@ -64,7 +64,7 @@ class DWM(nn.Module):
             output = torch.cat([output, output_cell], dim=-2)
 
             if self.plot_active:
-                self.plot_memory_attention(output, states)
+                self.plot_memory_attention(output, cell_state)
 
         return output
 

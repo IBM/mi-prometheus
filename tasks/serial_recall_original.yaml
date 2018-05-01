@@ -31,7 +31,7 @@ model:
     data_bits: *dbits
     batch_size: *bs
     # Controller hidden state.
-    hidden_state_dim: 5
+    hidden_state_dim: 20
     # Memory (?).
     memory_content_size: 10
     memory_addresses_size: 60

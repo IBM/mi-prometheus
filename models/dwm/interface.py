@@ -59,7 +59,7 @@ class Interface:
         sz = read_data.size()[:-2]
         return read_data.view(*sz, self.read_size)
 
-    def update(self, update_data, wt, wt_dynamic, mem):
+    def update(self, update_data, wt_head_prev, wt_att_snapshot_prev, mem):
         """Erases from memory, writes to memory, updates the weights using various attention mechanisms
         :param update_data: the parameters from the controllers [update_size]
         :param wt: the read weight [BATCH_SIZE, MEMORY_SIZE]
@@ -92,40 +92,40 @@ class Interface:
 
         # Write to memory
         memory = Memory(mem)
-        memory.erase_weighted(erase, wt)
-        memory.add_weighted(add, wt)
+        memory.erase_weighted(erase, wt_head_prev)
+        memory.add_weighted(add, wt_head_prev)
 
         ## Set jumping mechanisms
         #  fixed attention to address 0
-        wt_address_0 = torch.zeros_like(wt)
+        wt_address_0 = torch.zeros_like(wt_head_prev)
         wt_address_0[:, 0:self.num_heads, 0] = 1
 
         # interpolation between wt and wt_d
         jd = F.sigmoid(jd)
-        wt_dynamic = (1 - jd) * wt + jd * wt_dynamic
+        wt_att_snapshot = (1 - jd) * wt_head_prev + jd * wt_att_snapshot_prev
 
         # interpolation between wt_0 wt_d wt
         j = F.softmax(j, dim=-1)
         j = j[:, :, None, :]
 
-        wt = j[..., 0] * wt_dynamic \
-           + j[..., 1] * wt \
+        wt_head = j[..., 0] * wt_att_snapshot \
+           + j[..., 1] * wt_head_prev \
            + j[..., 2] * wt_address_0
 
         # Update attention
         if self.is_cam:
             wt_k = memory.content_similarity(k)               # content addressing ...
             wt_β = F.softmax(β * wt_k, dim=-1)                # ... modulated by β
-            wt = g * wt_β + (1 - g) * wt                      # scalar interpolation
+            wt_head = g * wt_β + (1 - g) * wt_head            # scalar interpolation
 
-        wt_s = circular_conv(wt, s)                   # convolution with shift
+        wt_s = circular_conv(wt_head, s)                   # convolution with shift
 
         eps = 1e-12
-        wt = (wt_s + eps) ** γ
-        wt = normalize(wt)                    # sharpening with normalization
+        wt_head = (wt_s + eps) ** γ
+        wt_head = normalize(wt_head)                    # sharpening with normalization
 
-        if torch.sum(torch.abs(torch.sum(wt[:,0,:], dim=-1) - 1.0)) > 1e-6:
+        if torch.sum(torch.abs(torch.sum(wt_head[:,0,:], dim=-1) - 1.0)) > 1e-6:
             print("error: gamma very high, normalization problem")
 
         mem = memory.content
-        return wt, wt_dynamic, mem
+        return wt_head, wt_att_snapshot_prev, mem
