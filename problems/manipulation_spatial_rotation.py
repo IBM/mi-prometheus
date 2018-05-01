@@ -9,7 +9,7 @@ from torch.autograd import Variable
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 @AlgorithmicSequentialProblem.register
-class ManipulationSpatialRotate(AlgorithmicSequentialProblem):
+class ManipulationSpatialRotation(AlgorithmicSequentialProblem):
     """   
     Creates input being a sequence of bit pattern and target being the same sequence, but with data_bits "bitshifted" by num_bits to right.
     Offers two modes of operation, depending on the value of num_bits parameter:
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     params = {'control_bits': 2, 'data_bits': 9, 'batch_size': 1, 
         'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'num_bits':0.5}
     # Create problem object.
-    problem = ManipulationSpatialRotate(params)
+    problem = ManipulationSpatialRotation(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
