@@ -95,7 +95,9 @@ class Interface:
         memory.erase_weighted(erase, wt_head_prev)
         memory.add_weighted(add, wt_head_prev)
 
-        ## Set jumping mechanisms
+        ## update attention
+        #  Set jumping mechanisms
+
         #  fixed attention to address 0
         wt_address_0 = torch.zeros_like(wt_head_prev)
         wt_address_0[:, 0:self.num_heads, 0] = 1
@@ -112,7 +114,7 @@ class Interface:
            + j[..., 1] * wt_head_prev \
            + j[..., 2] * wt_address_0
 
-        # Update attention
+        # Move head according to content based addressing and shifting
         if self.is_cam:
             wt_k = memory.content_similarity(k)               # content addressing ...
             wt_β = F.softmax(β * wt_k, dim=-1)                # ... modulated by β
