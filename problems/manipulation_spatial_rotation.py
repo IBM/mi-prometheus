@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""serial_recall_original.py: Original serial recall problem (a.k.a. copy task)"""
+"""manipulation_spatial_rotate.py: Spatial rotation (bitshift) for all items in the sequence"""
 __author__      = "Tomasz Kornuta"
 
 import numpy as np
@@ -9,15 +9,12 @@ from torch.autograd import Variable
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 @AlgorithmicSequentialProblem.register
-class ManipulationTemporalSwap(AlgorithmicSequentialProblem):
+class ManipulationSpatialRotation(AlgorithmicSequentialProblem):
     """   
-    Creates input being a sequence of bit pattern and target being the same sequence "bitshifted" by num_items to right.
-    For example:
-    num_items = 2 -> seq_items >> 2 
-    num_items = -1 -> seq_items << 1
-    Offers two modes of operation, depending on the value of num_items parameter:
-    1)  -1 < num_items < 1: relative mode, where num_items represents the % of length of the sequence by which it should be shifted
-    2) otherwise: absolute number of items by which the sequence will be shifted.
+    Creates input being a sequence of bit pattern and target being the same sequence, but with data_bits "bitshifted" by num_bits to right.
+    Offers two modes of operation, depending on the value of num_bits parameter:
+    1)  -1 < num_bits < 1: relative mode, where num_bits represents the % of data bits by which every should be shifted
+    2) otherwise: absolute number of bits by which the sequence will be shifted.
     
     TODO: sequences of different lengths in batch (filling with zeros?)
     """
@@ -39,7 +36,7 @@ class ManipulationTemporalSwap(AlgorithmicSequentialProblem):
         self.max_sequence_length = params['max_sequence_length']
         # Parameter  denoting 0-1 distribution (0.5 is equal).
         self.bias = params['bias']
-        self.num_items = params['num_items']
+        self.num_bits = params['num_bits']
         self.dtype = torch.FloatTensor
 
     def generate_batch(self):
@@ -69,23 +66,19 @@ class ManipulationTemporalSwap(AlgorithmicSequentialProblem):
         
         # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS] (only data bits!)
         targets = np.zeros([self.batch_size, 2*seq_length + 2,  self.data_bits], dtype=np.float32)
-        # Set bit sequence.
 
-        # Rotate sequence by shifting the items to right: seq >> num_items
-        # i.e num_items = 2 -> seq_items >> 2 
-        # and num_items = -1 -> seq_items << 1
-        # For that reason we must change the sign of num_items
-        num_items = -self.num_items
+        # Rotate sequence by shifting the bits to right: data_bits >> num_bits
+        num_bits =-self.num_bits
         # Check if we are using relative or absolute rotation.
-        if -1 < num_items < 1:
-            num_items = num_items * seq_length
-        # Round items shift  to int.
-        num_items = np.round(num_items)
-        # Modulo items shift with length of the sequence.
-        num_items = int(num_items % seq_length)
+        if -1 < num_bits < 1:
+            num_bits = num_bits * seq_length
+        # Round bitshift  to int.
+        num_bits = np.round(num_bits)
+        # Modulo bitshift with data_bits.
+        num_bits = int(num_bits % self.data_bits)
 
         # Apply items shift 
-        bit_seq = np.concatenate((bit_seq[:, num_items:, :], bit_seq[:, :num_items, :]), axis=1)
+        bit_seq = np.concatenate((bit_seq[:, :, num_bits:], bit_seq[:, :, :num_bits]), axis=2)
         targets[:, seq_length+2:,  :] = bit_seq
 
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
@@ -103,10 +96,10 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 
-        'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'num_items':1}
+    params = {'control_bits': 2, 'data_bits': 9, 'batch_size': 1, 
+        'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'num_bits':0.5}
     # Create problem object.
-    problem = ManipulationTemporalSwap(params)
+    problem = ManipulationSpatialRotation(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
