@@ -9,16 +9,9 @@ from torch.autograd import Variable
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 
 @AlgorithmicSequentialProblem.register
-class ReverseRecall(AlgorithmicSequentialProblem):
+class ManipulationSpatialNot(AlgorithmicSequentialProblem):
     """   
-    Class generating sequences of random bit-patterns and targets forcing the system to learn sevese recall problem (a.k.a. reverse copy task).
-    The formulation follows the original copy task from NTM paper, where:
-    1) There are two markers, indicating
-    - beginning of storing/memorization and
-    - beginning of recalling from memory.
-    2) For other elements of the sequence the command bits are set to zero
-    3) Minor modification I: the target contains only data bits (command bits are skipped)
-    4) Minor modification II: generator returns a mask, which can be used for filtering important elements of the output.
+    Class generating sequences of random bit-patterns with inverted targets, so the system is supposed to learn NOT logical operation. 
     
     TODO: sequences of different lengths in batch (filling with zeros?)
     """
@@ -78,8 +71,8 @@ class ReverseRecall(AlgorithmicSequentialProblem):
         
         # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS] (only data bits!)
         targets = np.zeros([self.batch_size, 2*seq_length + 2,  self.data_bits], dtype=np.float32)
-        # Set bit sequence - but reversed.
-        targets[:, seq_length+2:,  :] = np.fliplr(bit_seq)
+        # Set target bit sequence - logical not.
+        targets[:, seq_length+2:,  :] = np.logical_not(bit_seq)
 
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
         targets_mask = torch.zeros([self.batch_size, 2*seq_length + 2]).type(torch.ByteTensor)
@@ -96,12 +89,13 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'name': 'reverse_recall', 'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
+    params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
     # Create problem object.
-    problem = ReverseRecall(params)
+    problem = ManipulationSpatialNot(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
     (x, y, mask) = next(generator)
+    print (y)
     # Display single sample (0) from batch.
     problem.show_sample(x, y, mask)

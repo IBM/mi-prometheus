@@ -29,7 +29,7 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
 
     def show_sample(self,  inputs,  targets, mask,  sample_number = 0):
         """ Shows the sample (both input and target sequences) using matplotlib."""
-        fig, (ax1, ax2, ax3) = plt.subplots(3, 1,  sharex=True)
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3,  sharex=True)
         # Set ticks.
         ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))

@@ -88,7 +88,7 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'name': 'serial_recall_original', 'control_bits': 3, 'data_bits': 8, 'batch_size': 1,
+    params = {'name': 'distraction_ignore', 'control_bits': 3, 'data_bits': 8, 'batch_size': 1,
               'min_sequence_length': 1, 'max_sequence_length': 10, 'bias': 0.5, 'num_subseq_min':1 ,'num_subseq_max': 4}
     # Create problem object.
     problem = DistractionIgnore(params)
