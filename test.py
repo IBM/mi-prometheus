@@ -1,60 +1,116 @@
-import torch
-from data_gen.build_data_distraction import init_state, build_data_gen
-from ntm.ntm_layer import NTM
-import numpy as np
+# Force MKL (CPU BLAS) to use one core, faster
 import os
+os.environ["OMP_NUM_THREADS"] = '1'
 
-#np.random.seed(19092)
+import torch
+import argparse
+import yaml
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import numpy as np
 
-# read training arguments
-path = "./Models/"
-read_arguments = np.load(path+"ntm_arguments.npy").item()
+# Force MKL (CPU BLAS) to use one core, faster
+os.environ["OMP_NUM_THREADS"] = '1'
 
-# data_gen generator x,y
-batch_size = 1
-min_len = 10
-max_len = 20
-bias = 0.5
-nb_markers_max = 5
-element_size = read_arguments['element_size']
+# Import problems and problem factory.
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
+from problems.problem_factory import ProblemFactory
+from models.model_factory import ModelFactory
 
-# init state, memory, attention
-tm_in_dim = read_arguments['tm_in_dim']
-tm_output_units = read_arguments['tm_output_units']
-tm_state_units = read_arguments['tm_state_units']
-n_heads = read_arguments['n_heads']
-M = read_arguments['M']
-is_cam = read_arguments['is_cam']
-num_shift = read_arguments['num_shift']
 
-# Test
-print("Testing")
+def show_sample(prediction, target, mask, sample_number=0):
+    """ Shows the sample (both input and target sequences) using matplotlib."""
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    # Set ticks.
+    ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+    ax1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+    ax2.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
-# New sequence
-data_gen = build_data_gen(min_len, max_len, batch_size, bias, element_size, nb_markers_max)
+    # Set labels.
+    ax1.set_title('Prediction')
+    ax1.set_ylabel('Data bits')
+    ax2.set_title('Target')
+    ax2.set_ylabel('Data bits')
+    # ax2.set_ylabel('Data bits')
+    ax2.set_xlabel('Item number')
 
-# Instantiate
-ntm = NTM(tm_in_dim, tm_output_units,tm_state_units, n_heads, is_cam, num_shift, M)
+    # Set data.
+    ax1.imshow(np.transpose((prediction[sample_number, :, :]).detach().numpy(), [1, 0]))
+    ax2.imshow(np.transpose((target[sample_number, :, :]).detach().numpy(), [1, 0]))
 
-ntm.load_state_dict(torch.load(path+"model_parameters"))
+    plt.show()
 
-for inputs, targets, seq_length in data_gen:
+    # Plot!
 
-    # Init state, memory, attention
-    N = 80 #max(seq_length)
-    print(len(seq_length))
-    _, states = init_state(batch_size, tm_output_units, tm_state_units, n_heads, N, M)
-    print('sub_sequences_length', seq_length)
+if __name__ == '__main__':
 
-    output, states = ntm(inputs, states)
+    # Create parser with list of  runtime arguments.
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-t', type=str, default='', dest='task',
+                        help='Name of the task configuration file to be loaded')
+    parser.add_argument('-m', action='store_true', dest='mode',
+                        help='Mode (TRUE: trains a new model, FALSE: tests existing model)')
+    # Parse arguments.
+    FLAGS, unparsed = parser.parse_known_args()
 
-    # test accuracy
-    output = torch.round(output[:, -sum(seq_length):, :])
-    acc = 1 - torch.abs(output-targets)
-    accuracy = acc.mean()
-    print("Accuracy: %.6f" % (accuracy * 100) + "%")
+    # Test
+    print("Testing")
 
-    break   # one test sample
+    # Check if config file was selected.
+    if (FLAGS.task == ''):
+        print('Please pass task configuration file as -t parameter')
+        exit(-1)
+    # Check it file exists.
+    if not os.path.isfile(FLAGS.task):
+        print('Task configuration file {} does not exists'.format(FLAGS.task))
+        exit(-2)
+
+    # Read YAML file
+    with open(FLAGS.task, 'r') as stream:
+        config_loaded = yaml.load(stream)
+
+    # read training arguments
+    path_root = "./checkpoints/"
+    path_out = path_root + config_loaded['problem_test']['name']
+
+    # set seed
+    if config_loaded["settings"]["seed_torch"] != -1:
+        torch.manual_seed(config_loaded["settings"]["seed_torch"])
+
+    if config_loaded["settings"]["seed_numpy"] != -1:
+        np.random.seed(config_loaded["settings"]["seed_numpy"])
+
+    # Build new problem
+    problem = ProblemFactory.build_problem(config_loaded['problem_test'])
+
+    # Build model
+    model = ModelFactory.build_model(config_loaded['model'])
+
+    # load the trained model
+    model.load_state_dict(
+        torch.load(path_out + "/model_parameters",
+                   map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
+    )
+
+    for inputs, targets, mask in problem.return_generator():
+        # apply the trained model
+        output = model(inputs)
+
+        if config_loaded['settings']['use_mask']:
+            output = output[:, mask[0], :]
+            targets = targets[:, mask[0], :]
+
+        # test accuracy
+        output = torch.round(output)
+        acc = 1 - torch.abs(output-targets)
+        accuracy = acc.mean()
+        print("Accuracy: %.6f" % (accuracy * 100) + "%")
+        # plot data
+        show_sample(output, targets, mask)
+
+        break   # one test sample
 
 
 

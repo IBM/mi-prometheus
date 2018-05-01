@@ -1,0 +1,63 @@
+# Problem parameters:
+problem_train:
+    name: swap
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: &cbits 2
+    data_bits: &dbits 8
+    batch_size: &bs 1
+    # Parameters denoting min and max lengths. 
+    min_sequence_length: 1
+    max_sequence_length: 10
+    bias: 0.5
+    num_rotation: &nrot 0.5
+
+# Problem parameters:
+problem_test:
+    name: swap
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: 1
+    # Parameters denoting min and max lengths.
+    min_sequence_length: 10
+    max_sequence_length: 10
+    bias: 0.5
+    num_rotation: *nrot
+
+# Model parameters:
+model:
+    name: dwm   # dynamic_working_memory
+    # Input bits = [control_bits, data_bits]
+    # Output bits = [data_bits]
+    control_bits: *cbits 
+    data_bits: *dbits
+    batch_size: *bs
+    # Controller hidden state.
+    hidden_state_dim: 20
+    # Memory (?).
+    memory_content_size: 10
+    memory_addresses_size: 60
+    # Number of heads.
+    num_heads: 1
+    # Addressing parameters.
+    use_content_addressing: False
+    shift_size: 3
+    # active the plotting of the memory and attention
+    plot_memory: False
+    
+# optimizer parameters:
+optimizer:
+    # Exact name of the pytorch optimizer function
+    name: Adam
+    # Function arguments of the optimizer, by name
+    lr: 0.01
+
+# settings parameters
+settings:
+    # masked output and target
+    use_mask: True
+    length_loss: 10
+    loss_stop: 0.0001
+    max_epochs: 70000
+    seed_numpy: 0
+    seed_torch: 2
