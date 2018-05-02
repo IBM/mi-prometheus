@@ -143,9 +143,10 @@ if __name__ == '__main__':
         # compute loss
         # TODO: solution for now - mask[0]
         if config_loaded['settings']['use_mask']:
-            loss = criterion(output[:, mask[0], :], targets[:, mask[0], :])
-        else:
-            loss = criterion(output, targets)
+            output = output[:, mask[0], :]
+            targets = targets[:, mask[0], :]
+
+        loss = criterion(output, targets)
 
         # append the new loss
         last_losses.append(loss)
@@ -160,10 +161,6 @@ if __name__ == '__main__':
         optimizer.step()
 
         # print statistics
-        if config_loaded['settings']['use_mask']:
-            output = output[:, mask[0], :]
-            targets = targets[:, mask[0], :]
-
         accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
         train_length = inputs.size(-2)
         format_str = 'epoch {:05d}: '
