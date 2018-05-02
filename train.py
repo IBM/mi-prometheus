@@ -186,9 +186,6 @@ if __name__ == '__main__':
                 or epoch == config_loaded['settings']['max_epochs']:
             # save model parameters
             torch.save(model.state_dict(), log_dir + "/model_parameters")
-            if FLAGS.tensorboard is not None:
-                tb_writer.export_scalars_to_json(log_dir + "all_scalars.json")
-                tb_writer.close()
             break
 
         epoch += 1
