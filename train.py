@@ -160,6 +160,10 @@ if __name__ == '__main__':
         optimizer.step()
 
         # print statistics
+        if config_loaded['settings']['use_mask']:
+            output = output[:, mask[0], :]
+            targets = targets[:, mask[0], :]
+
         accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
         train_length = inputs.size(-2)
         format_str = 'epoch {:05d}: '
