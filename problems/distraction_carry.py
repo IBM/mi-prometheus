@@ -8,8 +8,11 @@ from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 @AlgorithmicSequentialProblem.register
 class DistractionCarry(AlgorithmicSequentialProblem):
     """
-    TODO: @Byounes: add task description.
+    Class generating successions of sub sequences X  and Y of random bit-patterns, the target was designed to force the system to learn
+    recalling the last sub sequence of Y and all sub sequences of X.
+
     """
+
     def __init__(self, params):
         self.batch_size = params["batch_size"]
         # Number of bits in one element.
@@ -28,21 +31,27 @@ class DistractionCarry(AlgorithmicSequentialProblem):
         self.dtype = torch.FloatTensor
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, ?, CONTROL_BITS+DATA_BITS].
+        """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
+        SEQ_LENGTH depends on number of sub-sequences and its lengths
        
         :returns: Tuple consisting of: input, output and mask
+                  pattern of inputs: # x1 % y1 # x2 % y2 ... # xn % yn & d $ d`
+                  pattern of target: dummies ...   ...       ...   ...   yn  all(xi)
+                  mask: used to mask the data part of the target.
+                  xi, yi, and d(d'): sub sequences x of random length, sub sequence y of random length and dummies.
         
         TODO: deal with batch_size > 1
         """
+        # define control channel markers
         pos = [0, 0, 0]
         ctrl_data = [0, 0, 0]
         ctrl_dummy = [0, 0, 1]
         ctrl_inter = [1, 1, 0]
-
+        # assign markers
         markers = ctrl_data, ctrl_dummy, pos
 
         # number of sub_sequences
-        nb_sub_seq_a = np.random.randint(self.num_subseq_min, self.num_subseq_max)
+        nb_sub_seq_a = np.random.randint(self.num_subseq_min, self.num_subseq_max + 1)
         nb_sub_seq_b = nb_sub_seq_a              # might be different in future implementation
 
         # set the sequence length of each marker
@@ -56,16 +65,24 @@ class DistractionCarry(AlgorithmicSequentialProblem):
         # create the target
         target = np.concatenate([y[-1]] + x, axis=1)
 
+        # add marker at the begging of x and dummies
         xx = [augment(seq, markers, ctrl_start=[1,0,0], add_marker_data=True, add_marker_dummy=False) for seq in x]
+        # add marker at the begging of y and dummies of same length, also a marker at the begging of dummies is added
         yy = [augment(seq, markers, ctrl_start=[0,1,0], add_marker_data=True) for seq in y]
 
+        # this is a marker to separate dummies of x and y at the end of the sequence
         inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
+
+        # data which contains all xs and all ys
         data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b[:-1]]
 
         # dummies of y and xs
         data_2 = [yy[-1][-1]] + [inter_seq] + [a[-1] for a in xx]
+
+        # concatenate all parts of the inputs
         inputs = np.concatenate(data_1 + data_2, axis=1)
 
+        # PyTorch variables
         inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
         target = Variable(torch.from_numpy(target).type(self.dtype))
 
