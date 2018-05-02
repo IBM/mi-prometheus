@@ -48,6 +48,9 @@ class DWM(nn.Module):
         """
         output = None
         memory_addresses_size = self.memory_addresses_size
+        if memory_addresses_size == -1:
+            memory_addresses_size = inputs.size()[1]
+
         cell_state = self.init_state(memory_addresses_size)
         for j in range(inputs.size()[-2]):
             output_cell, cell_state = self.DWMCell(inputs[..., j, :], cell_state)

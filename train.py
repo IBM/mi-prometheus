@@ -25,6 +25,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
 from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
+
 if __name__ == '__main__':
 
     # Create parser with list of  runtime arguments.
@@ -99,8 +100,16 @@ if __name__ == '__main__':
         except KeyError:
             None
 
-    # Build problem
+    # Build problem for the training
     problem = ProblemFactory.build_problem(config_loaded['problem_train'])
+
+    # Build problem for the validation
+    problem_validation = ProblemFactory.build_problem(config_loaded['problem_validation'])
+    generator_validation = problem_validation.return_generator()
+    # Get batch.
+    (in_valid, target_valid, mask_valid) = next(generator_validation)
+    if config_loaded['settings']['use_mask']:
+        target_valid = target_valid[:, mask_valid[0], :]
 
     # Build model
     model = ModelFactory.build_model(config_loaded['model'])
@@ -111,7 +120,7 @@ if __name__ == '__main__':
     optimizer_name = optimizer_conf['name']
     del optimizer_conf['name']
 
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.BCELoss()
     optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), **optimizer_conf)
 
     # Create tensorboard output, if tensorboard chosen
@@ -121,6 +130,7 @@ if __name__ == '__main__':
 
     # Start Training
     epoch = 0
+    epoch_valid_steps = 100
     last_losses = collections.deque()
 
     train_file = open(log_dir + 'training.log', 'w', 1)
@@ -139,6 +149,7 @@ if __name__ == '__main__':
 
         # apply model
         output = model(inputs)
+        output = F.sigmoid(output)
 
         # compute loss
         # TODO: solution for now - mask[0]
@@ -159,6 +170,14 @@ if __name__ == '__main__':
         nn.utils.clip_grad_value_(model.parameters(), 10)
 
         optimizer.step()
+
+        if not(epoch % epoch_valid_steps) and 0:
+            out_valid = model(in_valid)
+            if config_loaded['settings']['use_mask']:
+                out_valid = out_valid[:, mask_valid[0], :]
+
+            accuracy_valid = (1 - torch.abs(torch.round(F.sigmoid(out_valid)) - target_valid)).mean()
+            print(accuracy_valid)
 
         # print statistics
         accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
