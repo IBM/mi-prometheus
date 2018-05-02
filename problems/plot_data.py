@@ -26,6 +26,7 @@ def plot_memory_attention(prediction, memory, wt, label):
     ax3.imshow(np.transpose((prediction[0, ...]).detach().numpy(), [1, 0]))
 
     plt.pause(0.1)
+    input('press key to continue ...')
 
 def plot_memory(memory):
     plt.clf()
