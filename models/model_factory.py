@@ -27,5 +27,8 @@ class ModelFactory(object):
         if name == 'lstm':
             from models.lstm.layer import LSTM
             return LSTM(params)
+        if name == 'ntm':
+            from models.ntm.ntm_layer import NTM
+            return NTM(params)
         else:
             raise ValueError
