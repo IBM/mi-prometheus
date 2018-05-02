@@ -60,8 +60,8 @@ class InterruptionSwapRecall(AlgorithmicSequentialProblem):
         seq_lengths_b = np.random.randint(low=self.min_sequence_length, high=self.max_sequence_length + 1, size=nb_sub_seq_b)
 
         #  generate subsequences for x and y
-        x = [np.random.binomial(self.batch_size, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_lengths_a]
-        y = [np.random.binomial(self.batch_size, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_lengths_b]
+        x = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_lengths_a]
+        y = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_lengths_b]
 
         # create the target
         target = np.concatenate(y + x, axis=1)
