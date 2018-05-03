@@ -1,0 +1,64 @@
+# Problem parameters:
+problem_train:
+    name: swap
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: &cbits 2
+    data_bits: &dbits 8
+    batch_size: &bs 10
+    # Parameters denoting min and max lengths. 
+    min_sequence_length: &min_seq_len 1
+    max_sequence_length: &max_seq_len 10
+    bias: 0.5
+    num_rotation: &nrot 0.5
+    cuda: True
+
+# Problem parameters:
+problem_test:
+    name: swap
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: 1
+    # Parameters denoting min and max lengths.
+    min_sequence_length: *max_seq_len
+    max_sequence_length: *max_seq_len
+    bias: 0.5
+    num_rotation: *nrot
+
+# Problem parameters:
+problem_validation:
+    name: swap
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: 10
+    # Parameters denoting min and max lengths.
+    min_sequence_length: 60
+    max_sequence_length: 60
+    bias: 0.5
+
+# Model parameters:
+model:
+    name: lstm
+    # Input bits = [command_bits, data_bits]
+    # Output bits = [data_bits]
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: *bs
+    num_layers: 3
+    hidden_state_dim: 256
+
+optimizer:
+    name: RMSprop
+    lr: 0.00003
+    momentum: 0.9
+
+# settings parameters
+settings:
+    # masked output and target
+    use_mask: True
+    length_loss: 100
+    loss_stop: 0.0001
+    max_epochs: 1000000
+    seed_numpy: 0
+    seed_torch: 2
