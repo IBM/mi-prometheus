@@ -24,10 +24,10 @@ class ModelFactory(object):
         if name == 'dwm':
             from models.dwm.dwm_layer import DWM
             return DWM(params)
-        if name == 'lstm':
+        elif name == 'lstm':
             from models.lstm.layer import LSTM
             return LSTM(params)
-        if name == 'ntm':
+        elif name == 'ntm':
             from models.ntm.ntm_module import NTM
             return NTM(params)
         else:

@@ -48,7 +48,7 @@ class NTM(torch.nn.Module):
 if __name__ == "__main__":
     # "Loaded parameters".
     params = {'num_control_bits': 2, 'num_data_bits': 8, 'batch_size': 2, # input and output size
-        'ctrl_hidden_state_size': 5, 
+            'ctrl_type': 'ff', 'ctrl_hidden_state_size': 5, 
         'num_memory_adresses' :10, 'num_memory_bits': 8}
         
     input_size = params["num_control_bits"] + params["num_data_bits"]
