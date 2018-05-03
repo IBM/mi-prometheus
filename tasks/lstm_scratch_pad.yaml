@@ -38,6 +38,8 @@ problem_validation:
     # Parameters denoting min and max lengths.
     min_sequence_length: 60
     max_sequence_length: 60
+    num_subseq_min: 4
+    num_subseq_max: 4
     bias: 0.5
 
 # Model parameters:
