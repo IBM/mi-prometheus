@@ -17,7 +17,11 @@ class NTM(torch.nn.Module):
         '''
         # Call constructor of base class.
         super(NTM, self).__init__() 
-    
+
+        # Parse parameters.
+        # It is stored here, but will we used ONLY ONCE - for initialization of memory in forward.
+        self.num_memory_addresses = params['num_memory_addresses']
+        
         # Initialize recurrent NTM cell.
         self.cell = NTMCell(params)
         
@@ -26,8 +30,16 @@ class NTM(torch.nn.Module):
         Forward function accepts a Tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and 
         outputs a Tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] . 
         """
+        
+        # "Data-driven memory size" - temporal solution.
+        # Check memory size.
+        num_memory_addresses = self.num_memory_addresses
+        if num_memory_addresses == -1:
+            # Set equal to input sequence length.
+            num_memory_addresses = inputs_BxSxI.size(1)
+        
         # Initialize 'zero' state.
-        state = self.cell.init_state(inputs_BxSxI.size(0))
+        state = self.cell.init_state(inputs_BxSxI.size(0),  num_memory_addresses)
 
         # List of output logits [BATCH_SIZE x OUTPUT_SIZE] of length SEQ_LENGTH
         output_logits_BxO_S = []
@@ -50,7 +62,8 @@ if __name__ == "__main__":
     # "Loaded parameters".
     params = {'num_control_bits': 2, 'num_data_bits': 8, # input and output size
         'ctrl_type': 'ff', 'ctrl_hidden_state_size': 5,  # controller parameters
-        'num_memory_addresses' :10, 'num_memory_bits': 8 # memory parameters
+        'interface_num_read_heads': 1,  'interface_shift_size': 3,  # interface parameters
+        'num_memory_addresses' :-1, 'num_memory_bits': 8 # memory parameters
         }
         
     input_size = params["num_control_bits"] + params["num_data_bits"]

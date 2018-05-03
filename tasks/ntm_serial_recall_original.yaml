@@ -45,10 +45,14 @@ model:
     # Controller parameters.
     ctrl_type: lstm
     ctrl_hidden_state_size: 10
+    # Interface
+    interface_num_read_heads: 1
+    interface_shift_size: 3
     # Memory parameters.
     num_memory_bits: 8
-    num_memory_addresses: 10
+    num_memory_addresses: -1
 
+    
 optimizer:
     name: RMSprop
     lr: 0.00003
