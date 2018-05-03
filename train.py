@@ -161,7 +161,6 @@ if __name__ == '__main__':
             targets = targets.cuda()
 
         optimizer.zero_grad()
-        improved_loss = False
 
         # apply model
         output = model(inputs)
