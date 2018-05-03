@@ -1,72 +1,72 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""ntm_model.py: Factory building models"""
+"""ntm_module.py: pytorch module implementing Neural Turing Machine"""
 __author__ = "Tomasz Kornuta"
 
 import torch 
-
+from ntm_cell import NTMCell
 
 class NTM(torch.nn.Module):
     '''  Class representing the Neural Turing Machine module. '''
     def __init__(self, params):
         '''
-        Constructor. Initializes parameters on the basis of dictionary of parameters passed as argument .
+        Constructor. Initializes parameters on the basis of dictionary of parameters passed as argument.
         
         :param params: Dictionary of parameters.
         '''
         # Call constructor of base class.
         super(NTM, self).__init__() 
-
-        # Set input and  dimensions.
-        self.in_dim = params["control_bits"] + params["data_bits"]
-        self.out_dim = params["data_bits"]
-        self.ctrl_hidden_dim = params['ctrl_hidden_dim']
-
-        self.linear1 = torch.nn.Linear(self.in_dim, self.ctrl_hidden_dim)
-        self.linear2 = torch.nn.Linear(self.ctrl_hidden_dim, self.out_dim)
-
-    def forward(self, x):
+    
+        # Initialize recurrent NTM cell.
+        self.cell = NTMCell(params)
+        
+    def forward(self, inputs_BxSxI):
         """
-        In the forward function we accept a Tensor of input data and we must return
-        a Tensor of output data. We can use Modules defined in the constructor as
-        well as arbitrary (differentiable) operations on Tensors.
+        Forward function accepts a Tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and 
+        outputs a Tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] . 
         """
-        h_relu = self.linear1(x).clamp(min=0)
-        y_pred = self.linear2(h_relu)
-        return y_pred
+        # Initialize 'zero' state.
+        state = self.cell.init_state(inputs_BxSxI.size(0))
+
+        # List of output logits [BATCH_SIZE x OUTPUT_SIZE] of length SEQ_LENGTH
+        output_logits_BxO_S = []
+
+        # Divide sequence into chunks of size [BATCH_SIZE x INPUT_SIZE] and process them one by one.
+        for input_t in inputs_BxSxI.chunk(inputs_BxSxI.size(1), dim=1):
+            # Process one chunk.
+            output_BxO,  state = self.cell(input_t.squeeze(1), state)
+            # Append to list of logits.
+            output_logits_BxO_S += [output_BxO]
+
+        # Stack logits along time axis (1).
+        output_logits_BxSxO = torch.stack(output_logits_BxO_S, 1)
+
+        return output_logits_BxSxO
+
 
 
 if __name__ == "__main__":
     # "Loaded parameters".
-    params = {'control_bits': 5, 'data_bits': 995, 'batch_size': 64,  'ctrl_hidden_dim': 100}
+    params = {'num_control_bits': 2, 'num_data_bits': 8, 'batch_size': 2, # input and output size
+        'ctrl_hidden_state_size': 5, 
+        'num_memory_adresses' :10, 'num_memory_bits': 8}
         
-    in_dim = params["control_bits"] + params["data_bits"]
-    out_dim = params["data_bits"]
+    input_size = params["num_control_bits"] + params["num_data_bits"]
+    output_size = params["num_data_bits"]
         
     # Create random Tensors to hold inputs and outputs
-    x = torch.randn(params['batch_size'], in_dim)
-    y = torch.randn(params['batch_size'], out_dim)
+    seq_length = 5
+    x = torch.randn(params['batch_size'], seq_length,   input_size)
+    y = torch.randn(params['batch_size'], seq_length,  output_size)
 
     # Construct our model by instantiating the class defined above
     model = NTM(params)
 
-    # Construct our loss function and an Optimizer. The call to model.parameters()
-    # in the SGD constructor will contain the learnable parameters of the two
-    # nn.Linear modules which are members of the model.
-    criterion = torch.nn.MSELoss(size_average=False)
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
-    for t in range(500):
-        # Forward pass: Compute predicted y by passing x to the model
-        y_pred = model(x)
+    # Test forward pass.
+    y_pred = model(x)
 
-        # Compute and print loss
-        loss = criterion(y_pred, y)
-        print(t, loss.item())
-
-        # Zero gradients, perform a backward pass, and update the weights.
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+    print("\n input {}: {}".format(x.size(), x))
+    print("\n prediction {}: {}".format(y_pred.size(), y_pred))
     
 
 
