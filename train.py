@@ -144,8 +144,8 @@ if __name__ == '__main__':
 
     # Start Training
     epoch = 0
-    epoch_valid_steps = 100
-    best_loss = 1.0
+    epoch_valid_steps = 500
+    best_loss = 0.2
     last_losses = collections.deque()
 
     train_file = open(log_dir + 'training.log', 'w', 1)
@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
             # calculate the accuracy and loss of the validation data
             train_length_valid = data_valid[0].size(-2)
-            accuracy_valid, loss_valid = validation(model, data_valid, config_loaded['settings']['use_mask'])
+            loss_valid, accuracy_valid = validation(model, data_valid, config_loaded['settings']['use_mask'])
             format_str = 'epoch_valid {:05d}; acc_valid={:12.10f}; loss_valid={:12.10f}; length_valid={:02d}'
             logger.info(format_str.format(epoch, accuracy_valid, loss_valid, train_length_valid))
             format_str = '{:05d}, {:12.10f}, {:12.10f}, {:02d}\n'
