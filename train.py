@@ -26,6 +26,22 @@ from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
 
+def validation(model, data_valid, use_mask):
+    inputs, targets, mask = data_valid
+
+    # apply model
+    output = model(inputs)
+
+    # check if mask is used
+    if use_mask:
+        output = output[:, mask[0], :]
+        targets = targets[:, mask[0], :]
+
+    # compute loss and accuracy
+    loss = criterion(output, targets)
+    accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
+    return loss, accuracy
+
 if __name__ == '__main__':
 
     # Create parser with list of  runtime arguments.
@@ -107,9 +123,7 @@ if __name__ == '__main__':
     problem_validation = ProblemFactory.build_problem(config_loaded['problem_validation'])
     generator_validation = problem_validation.return_generator()
     # Get batch.
-    (in_valid, target_valid, mask_valid) = next(generator_validation)
-    if config_loaded['settings']['use_mask']:
-        target_valid = target_valid[:, mask_valid[0], :]
+    data_valid = next(generator_validation)
 
     # Build model
     model = ModelFactory.build_model(config_loaded['model'])
@@ -120,7 +134,7 @@ if __name__ == '__main__':
     optimizer_name = optimizer_conf['name']
     del optimizer_conf['name']
 
-    criterion = nn.BCELoss()
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), **optimizer_conf)
 
     # Create tensorboard output, if tensorboard chosen
@@ -131,6 +145,7 @@ if __name__ == '__main__':
     # Start Training
     epoch = 0
     epoch_valid_steps = 100
+    best_loss = 1.0
     last_losses = collections.deque()
 
     train_file = open(log_dir + 'training.log', 'w', 1)
@@ -146,10 +161,10 @@ if __name__ == '__main__':
             targets = targets.cuda()
 
         optimizer.zero_grad()
+        improved_loss = False
 
         # apply model
         output = model(inputs)
-        output = F.sigmoid(output)
 
         # compute loss
         # TODO: solution for now - mask[0]
@@ -171,19 +186,24 @@ if __name__ == '__main__':
 
         optimizer.step()
 
-        if not(epoch % epoch_valid_steps) and 0:
-            out_valid = model(in_valid)
-            if config_loaded['settings']['use_mask']:
-                out_valid = out_valid[:, mask_valid[0], :]
+        # check if new loss is smaller than the best loss, save the model in this case
+        if loss < best_loss or epoch % epoch_valid_steps == 0:
+            if loss < best_loss:
+               torch.save(model.state_dict(), log_dir + "/model_parameters")
+               best_loss = loss
 
-            accuracy_valid = (1 - torch.abs(torch.round(F.sigmoid(out_valid)) - target_valid)).mean()
-            print(accuracy_valid)
+            # calculate the accuracy and loss of the validation data
+            train_length_valid = data_valid[0].size(-2)
+            accuracy_valid, loss_valid = validation(model, data_valid, config_loaded['settings']['use_mask'])
+            format_str = 'epoch_valid {:05d}; acc_valid={:12.10f}; loss_valid={:12.10f}; length_valid={:02d}'
+            logger.info(format_str.format(epoch, accuracy_valid, loss_valid, train_length_valid))
+            format_str = '{:05d}, {:12.10f}, {:12.10f}, {:02d}\n'
+            validation_file.write(format_str.format(epoch, accuracy_valid, loss_valid, train_length_valid))
 
-        # print statistics
+        # calculate the accuracy of the training data
         accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
         train_length = inputs.size(-2)
-        format_str = 'epoch {:05d}: '
-        format_str = format_str + ' acc={:12.10f}; loss={:12.10f}; length={:02d}'
+        format_str = 'epoch {:05d}; acc={:12.10f}; loss={:12.10f}; length={:02d}'
         logger.info(format_str.format(epoch, accuracy, loss, train_length))
         format_str = '{:05d}, {:12.10f}, {:12.10f}, {:02d}\n'
         train_file.write(format_str.format(epoch, accuracy, loss, train_length))
@@ -201,10 +221,10 @@ if __name__ == '__main__':
                 if FLAGS.tensorboard >= 2:
                     tb_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), epoch)
 
+        # break if conditions applied: convergence or max epochs
         if max(last_losses) < config_loaded['settings']['loss_stop'] \
                 or epoch == config_loaded['settings']['max_epochs']:
-            # save model parameters
-            torch.save(model.state_dict(), log_dir + "/model_parameters")
+
             break
 
         epoch += 1

@@ -28,7 +28,6 @@ class DWM(nn.Module):
         self.is_cam = params["use_content_addressing"]
         self.num_shift = params["shift_size"]
         self.M = params["memory_content_size"]
-        self.batch_size = params["batch_size"]
         self.memory_addresses_size = params["memory_addresses_size"]
         self.plot_active = params["plot_memory"]
         self.label = params["name"]
@@ -51,7 +50,9 @@ class DWM(nn.Module):
         if memory_addresses_size == -1:
             memory_addresses_size = inputs.size()[1]
 
-        cell_state = self.init_state(memory_addresses_size)
+        # init state
+        batch_size = inputs.size(0)
+        cell_state = self.init_state(memory_addresses_size, batch_size)
         for j in range(inputs.size()[-2]):
             output_cell, cell_state = self.DWMCell(inputs[..., j, :], cell_state)
 
@@ -71,18 +72,18 @@ class DWM(nn.Module):
 
         return output
 
-    def init_state(self, memory_addresses_size):
+    def init_state(self, memory_addresses_size, batch_size):
 
-        state = Variable(torch.ones((self.batch_size, self.state_units)).type(dtype))
+        state = Variable(torch.ones((batch_size, self.state_units)).type(dtype))
 
         # initial attention  vector
-        wt = Variable(torch.zeros((self.batch_size, self.num_heads, memory_addresses_size)).type(dtype))
+        wt = Variable(torch.zeros((batch_size, self.num_heads, memory_addresses_size)).type(dtype))
         wt[:, 0:self.num_heads, 0] = 1.0
 
         # bookmark
         wt_dynamic = wt
 
-        mem_t = Variable((torch.ones((self.batch_size, self.M, memory_addresses_size)) * 0.01).type(dtype))
+        mem_t = Variable((torch.ones((batch_size, self.M, memory_addresses_size)) * 0.01).type(dtype))
 
         states = [state, wt, wt_dynamic, mem_t]
         return states
