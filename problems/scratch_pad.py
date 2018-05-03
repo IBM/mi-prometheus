@@ -30,23 +30,27 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
         self.dtype = torch.FloatTensor
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, ?, CONTROL_BITS+DATA_BITS].
+        """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
+        SEQ_LENGTH depends on number of sub-sequences and its lengths
        
         :returns: Tuple consisting of: input, output and mask
                   pattern of inputs: x1, x2, ...xn d
-                  pattern of output: d, d,   ...d xn
+                  pattern of target: d, d,   ...d xn
+                  mask: used to mask the data part of the target
+                  xi, d: sub sequences, dummies
 
         TODO: deal with batch_size > 1
         """
+        # define control channel markers
         pos = [0, 0]
         ctrl_data = [0, 0]
         ctrl_dummy = [0, 1]
         ctrl_inter = [0, 1]
-
+        # assign markers
         markers = ctrl_data, ctrl_dummy, pos
 
         # number sub sequences
-        num_sub_seq = np.random.randint(self.num_subseq_min, self.num_subseq_max)
+        num_sub_seq = np.random.randint(self.num_subseq_min, self.num_subseq_max+1)
 
         # set the sequence length of each marker
         seq_length = np.random.randint(low=self.min_sequence_length, high=self.max_sequence_length + 1, size=num_sub_seq)
@@ -57,17 +61,24 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
         # create the target
         seq_length_tdummies = sum(seq_length) + seq_length.shape[0] + 1
         dummies_target = np.zeros([self.batch_size, seq_length_tdummies, self.data_bits], dtype=np.float32)
-
         target = np.concatenate((dummies_target, x[-1]), axis=1)
 
+        # data of x and dummies
         xx = [augment(seq, markers, ctrl_start=[1,0], add_marker_data=True, add_marker_dummy = False) for seq in x]
 
+        # data of x
         data_1 = [arr for a in xx for arr in a[:-1]]
+
+        # this is a marker between sub sequence x and dummies
         inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
+
+        # dummies of x
         data_2 = [xx[-1][-1]]
 
+        # concatenate all parts of the inputs
         inputs = np.concatenate(data_1 + [inter_seq] + data_2, axis=1)
 
+        # PyTorch variables
         inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
         target = Variable(torch.from_numpy(target).type(self.dtype))
         # TODO: batch might have different sequence lengths
