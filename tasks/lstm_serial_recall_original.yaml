@@ -24,6 +24,30 @@ problem_test:
     max_sequence_length: *max_seq_len
     bias: 0.5
 
+# Problem parameters:
+problem_test:
+    name: serial_recall_original
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: 1
+    # Parameters denoting min and max lengths.
+    min_sequence_length: 1
+    max_sequence_length: 20
+    bias: 0.5
+
+# Problem parameters:
+problem_validation:
+    name: serial_recall_original
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: 10
+    # Parameters denoting min and max lengths.
+    min_sequence_length: 60
+    max_sequence_length: 60
+    bias: 0.5
+
 # Model parameters:
 model:
     name: lstm

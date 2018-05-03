@@ -64,7 +64,7 @@ if __name__ == '__main__':
         exit(-1)
     # Check it file exists.
     if not os.path.isdir(FLAGS.input_dir):
-        print('Input path {} does not exist'.format(FLAGS.task))
+        print('Input path {} does not exist'.format(FLAGS.input_dir))
         exit(-2)
 
     # Read YAML file

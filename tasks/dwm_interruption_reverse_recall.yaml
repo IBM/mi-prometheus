@@ -1,20 +1,20 @@
 # Problem parameters:
 problem_train:
-    name: interruption_reverse_recall
+    name: &name interruption_reverse_recall
     # Size of generated input: [batch_size x sequence_length x number of control and data bits].
     control_bits: &cbits 3
     data_bits: &dbits 8    
-    batch_size: &bs 1
+    batch_size: 1
     # Parameters denoting min and max lengths. 
     min_sequence_length: 1
     max_sequence_length: 10
     num_subseq_min: 1
-    num_subseq_max: 4
+    num_subseq_max: 3
     bias: 0.5
 
 # Problem parameters:
 problem_test:
-    name: interruption_reverse_recall
+    name: *name
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
@@ -26,6 +26,20 @@ problem_test:
     num_subseq_max: 4
     bias: 0.5
 
+# Problem parameters:
+problem_validation:
+    name: *name
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: 10
+    # Parameters denoting min and max lengths.
+    min_sequence_length: 60
+    max_sequence_length: 60
+    num_subseq_min: 4
+    num_subseq_max: 4
+    bias: 0.5
+
 # Model parameters:
 model:
     name: dwm   # dynamic_working_memory
@@ -33,7 +47,6 @@ model:
     # Output bits = [data_bits]
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: *bs
     # Controller hidden state.
     hidden_state_dim: 5
     # Memory (?).

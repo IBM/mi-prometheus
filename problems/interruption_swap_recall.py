@@ -113,8 +113,8 @@ class InterruptionSwapRecall(AlgorithmicSequentialProblem):
         inputs = np.concatenate(data_1 + [inter_seq] + data_2, axis=1)
 
         # PyTorch variables
-        inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
-        target = Variable(torch.from_numpy(target).type(self.dtype))
+        inputs = torch.from_numpy(inputs).type(self.dtype)
+        target = torch.from_numpy(target).type(self.dtype)
 
         # create the mask
         mask_all = inputs[:, :, 0:self.control_bits] == 1
