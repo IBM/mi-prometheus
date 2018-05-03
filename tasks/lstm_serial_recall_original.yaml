@@ -26,7 +26,7 @@ problem_test:
 
 # Problem parameters:
 problem_test:
-    name: serial_recall_simplified
+    name: serial_recall_original
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
