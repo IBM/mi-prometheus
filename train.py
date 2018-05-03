@@ -16,7 +16,7 @@ import collections
 import numpy as np
 
 import matplotlib
-logging.getLogger("matplotlib").setLevel(logging.WARNING)
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 # Import problems and problem factory.
 import sys
@@ -88,10 +88,10 @@ if __name__ == '__main__':
         config = yaml.load(f.read())
         logging.config.dictConfig(config)
 
-    logger = logging.getLogger(task_name)
+    logger = logging.getLogger('Train')
 
     # print experiment configuration
-    str = "Experiment Configuration:\n"
+    str = 'Configuration for {}:\n'.format(task_name)
     str += yaml.safe_dump(config_loaded, default_flow_style=False,
                           explicit_start=True, explicit_end=True)
     logger.info(str)
@@ -232,4 +232,3 @@ if __name__ == '__main__':
     validation_file.close()
 
     print("Learning finished!")
-

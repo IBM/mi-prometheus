@@ -5,6 +5,9 @@ import numpy as np
 from models.dwm.tensor_utils import circular_conv, normalize
 from models.dwm.memory import Memory
 
+import logging
+
+logger = logging.getLogger('DWM_interface')
 
 class Interface:
     def __init__(self, num_heads, is_cam, num_shift, M):
@@ -127,7 +130,7 @@ class Interface:
         wt_head = normalize(wt_head)                    # sharpening with normalization
 
         if torch.sum(torch.abs(torch.sum(wt_head[:,0,:], dim=-1) - 1.0)) > 1e-6:
-            print("Warning: gamma very high, normalization problem")
+            logger.warning("Warning: gamma very high, normalization problem")
 
         mem = memory.content
         return wt_head, wt_att_snapshot_prev, mem
