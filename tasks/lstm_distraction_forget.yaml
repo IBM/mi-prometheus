@@ -49,7 +49,7 @@ model:
     # Output bits = [data_bits]
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: *bs
+    # Controller parameters.
     num_layers: 3
     hidden_state_dim: 256
 
