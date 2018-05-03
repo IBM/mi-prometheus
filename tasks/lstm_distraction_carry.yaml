@@ -1,39 +1,45 @@
 # These settings come from the LSTM serial recall baseline from the original NTM paper
 # Problem parameters:
 problem_train:
-    name: serial_recall_original
-    # Size of generated input: [batch_size x sequence_length x number of command and data bits].
+    name: distraction_carry
+    # Size of generated input: [batch_size x sequence_length x number of control and data bits].
+    control_bits: &cbits 3
     data_bits: &dbits 8
-    control_bits: &cbits 2
-    batch_size: &bs 100
-    # Parameters denoting min and max lengths. 
-    min_sequence_length: &min_seq_len 1
-    max_sequence_length: &max_seq_len 20
-    bias: 0.5
-    cuda: True  # The presence of the 'cuda' key is optional
-
-# Problem parameters:
-problem_test:
-    name: reverse_recall
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: *cbits
-    data_bits: *dbits
-    batch_size: 1
-    # Parameters denoting min and max lengths.
-    min_sequence_length: *min_seq_len
-    max_sequence_length: *max_seq_len
-    bias: 0.5
-
-# Problem parameters:
-problem_test:
-    name: serial_recall_simplified
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: *cbits
-    data_bits: *dbits
-    batch_size: 1
+    batch_size: &bs 10
     # Parameters denoting min and max lengths.
     min_sequence_length: 1
-    max_sequence_length: 20
+    max_sequence_length: 10
+    num_subseq_min: 1
+    num_subseq_max: 4
+    bias: 0.5
+    cuda: True
+
+# Problem parameters:
+problem_test:
+    name: distraction_carry
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: 1
+    # Parameters denoting min and max lengths.
+    min_sequence_length: 10
+    max_sequence_length: 10
+    num_subseq_min: 4
+    num_subseq_max: 4
+    bias: 0.5
+
+# Problem parameters:
+problem_validation:
+    name: distraction_carry
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: 10
+    # Parameters denoting min and max lengths.
+    min_sequence_length: 60
+    max_sequence_length: 60
+    num_subseq_min: 4
+    num_subseq_max: 4
     bias: 0.5
 
 # Model parameters:

@@ -8,7 +8,8 @@ from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 @AlgorithmicSequentialProblem.register
 class InterruptionReverseRecall(AlgorithmicSequentialProblem):
     """
-    TODO: @Byounes: add task description.
+    Class generating successions of sub sequences X  and Y of random bit-patterns, the target was designed to force the system to learn
+    reverse recalling all sub sequences of Y and recall all sub sequences X.
     """
     def __init__(self, params):
         # Retrieve parameters from the dictionary.
@@ -29,21 +30,27 @@ class InterruptionReverseRecall(AlgorithmicSequentialProblem):
         self.dtype = torch.FloatTensor
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, ?, CONTROL_BITS+DATA_BITS].
-       
-        :returns: Tuple consisting of: input, output and mask
+        """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
+        SEQ_LENGTH depends on number of sub-sequences and its lengths
 
-        TODO: deal with batch_size > 1
+        :returns: Tuple consisting of: inputs, target and mask
+                  pattern of inputs: # x1 % y1 & d1 # x2 % y2 & d2 ... # xn % yn & dn $ d`
+                  pattern of target:    d   d   F(y1)  d  d    F(y2)  ... d   d   F(yn) all(xi)
+                  F: inversion function
+                  mask: used to mask the data part of the target.
+                  xi, yi, and dn(d'): sub sequences x of random length, sub sequence y of random length and dummies.
         """
+        # define control channel markers
         pos = [0, 0, 0]
         ctrl_data = [0, 0, 0]
         ctrl_dummy = [0, 0, 1]
         ctrl_inter = [1, 1, 0]
 
+        # assign markers
         markers = ctrl_data, ctrl_dummy, pos
 
         # number of sub_sequences
-        nb_sub_seq_a = np.random.randint(self.num_subseq_min, self.num_subseq_max)
+        nb_sub_seq_a = np.random.randint(self.num_subseq_min, self.num_subseq_max + 1)
         nb_sub_seq_b = nb_sub_seq_a              # might be different in future implementation
 
         # set the sequence length of each marker
@@ -56,21 +63,33 @@ class InterruptionReverseRecall(AlgorithmicSequentialProblem):
 
         # create the target
         target = np.concatenate(y + x, axis=1)
-        
+
+        # add marker at the begging of x and dummies of same length,  also a marker at the begging of dummies is added
         xx = [augment(seq, markers, ctrl_start=[1,0,0], add_marker_data=True) for seq in x]
+        # add dummies to y of same length, also a marker at the begging of dummies is added
+        # TODO: ctrl_start is not needed here, this is replaced by ctrl_xy
         yy = [augment(seq, markers, ctrl_start=[0,1,0], add_marker_data=False) for seq in y]
 
+        # this is a marker to separate dummies of x and y at the end of the sequence
         inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
         ctrl_xy = np.zeros_like(ctrl_data)
         ctrl_xy[1] = 1
+
+        # this is a marker between sub sequence x and y
         inter_xy = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_xy, pos)
+
+        # data which contains all xs and all ys plus dummies of ys
         data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + [inter_xy] +[np.fliplr(b[0])] + [b[1]]]
 
+        # dummies of xs
         data_2 = [a[-1][:, 1:, :] for a in xx]
+
+        # concatenate all parts of the inputs
         inputs = np.concatenate(data_1 + [inter_seq] + data_2, axis=1)
 
-        inputs = Variable(torch.from_numpy(inputs).type(self.dtype))
-        target = Variable(torch.from_numpy(target).type(self.dtype))
+        # PyTorch variables
+        inputs = torch.from_numpy(inputs).type(self.dtype)
+        target = torch.from_numpy(target).type(self.dtype)
 
         # create the mask
         mask_all = inputs[:, :, 0:self.control_bits] == 1

@@ -1,6 +1,6 @@
 # Problem parameters:
 problem_train:
-    name: serial_recall_original
+    name: &name serial_recall_original
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 2
     data_bits: &dbits 8
@@ -12,14 +12,26 @@ problem_train:
 
 # Problem parameters:
 problem_test:
-    name: serial_recall_original
+    name: *name
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 1
+    batch_size: *bs
     # Parameters denoting min and max lengths.
     min_sequence_length: 1
     max_sequence_length: 10
+    bias: 0.5
+
+# Problem parameters:
+problem_validation:
+    name: *name
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: 10
+    # Parameters denoting min and max lengths.
+    min_sequence_length: 60
+    max_sequence_length: 60
     bias: 0.5
 
 # Model parameters:
@@ -29,12 +41,11 @@ model:
     # Output bits = [data_bits]
     control_bits: *cbits 
     data_bits: *dbits
-    batch_size: *bs
     # Controller hidden state.
     hidden_state_dim: 5
     # Memory (?).
     memory_content_size: 10
-    memory_addresses_size: 60
+    memory_addresses_size: -1
     # Number of heads.
     num_heads: 1
     # Addressing parameters.

@@ -100,7 +100,7 @@ class Interface:
 
         #  fixed attention to address 0
         wt_address_0 = torch.zeros_like(wt_head_prev)
-        wt_address_0[:, 0:self.num_heads, 0] = 1
+        wt_address_0[:, :, 0] = 1
 
         # interpolation between wt and wt_d
         jd = F.sigmoid(jd)
@@ -127,7 +127,7 @@ class Interface:
         wt_head = normalize(wt_head)                    # sharpening with normalization
 
         if torch.sum(torch.abs(torch.sum(wt_head[:,0,:], dim=-1) - 1.0)) > 1e-6:
-            print("error: gamma very high, normalization problem")
+            print("Warning: gamma very high, normalization problem")
 
         mem = memory.content
         return wt_head, wt_att_snapshot_prev, mem

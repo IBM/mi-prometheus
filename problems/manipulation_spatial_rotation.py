@@ -86,8 +86,8 @@ class ManipulationSpatialRotation(AlgorithmicSequentialProblem):
         targets_mask[:, seq_length+2:] = 1
 
         # PyTorch variables.
-        ptinputs = Variable(torch.from_numpy(inputs).type(self.dtype))
-        pttargets = Variable(torch.from_numpy(targets).type(self.dtype))
+        ptinputs = torch.from_numpy(inputs).type(self.dtype)
+        pttargets = torch.from_numpy(targets).type(self.dtype)
 
         # Return batch.
         return ptinputs,  pttargets,  targets_mask
