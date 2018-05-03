@@ -100,7 +100,7 @@ class Interface:
 
         #  fixed attention to address 0
         wt_address_0 = torch.zeros_like(wt_head_prev)
-        wt_address_0[:, 0:self.num_heads, 0] = 1
+        wt_address_0[:, :, 0] = 1
 
         # interpolation between wt and wt_d
         jd = F.sigmoid(jd)
