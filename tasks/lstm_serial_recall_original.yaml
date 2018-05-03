@@ -20,18 +20,6 @@ problem_test:
     data_bits: *dbits
     batch_size: 1
     # Parameters denoting min and max lengths.
-    min_sequence_length: *max_seq_len
-    max_sequence_length: *max_seq_len
-    bias: 0.5
-
-# Problem parameters:
-problem_test:
-    name: serial_recall_original
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: *cbits
-    data_bits: *dbits
-    batch_size: 1
-    # Parameters denoting min and max lengths.
     min_sequence_length: 1
     max_sequence_length: 20
     bias: 0.5
@@ -55,7 +43,7 @@ model:
     # Output bits = [data_bits]
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: *bs
+    # Controller parameters.
     num_layers: 3
     hidden_state_dim: 256
 
