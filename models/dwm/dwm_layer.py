@@ -48,7 +48,7 @@ class DWM(nn.Module):
         output = None
         memory_addresses_size = self.memory_addresses_size
         if memory_addresses_size == -1:
-            memory_addresses_size = inputs.size()[1]
+            memory_addresses_size = inputs.size()[-2]
 
         # init state
         batch_size = inputs.size(0)
@@ -74,16 +74,16 @@ class DWM(nn.Module):
 
     def init_state(self, memory_addresses_size, batch_size):
 
-        state = Variable(torch.ones((batch_size, self.state_units)).type(dtype))
+        state = torch.ones((batch_size, self.state_units)).type(dtype)
 
         # initial attention  vector
-        wt = Variable(torch.zeros((batch_size, self.num_heads, memory_addresses_size)).type(dtype))
+        wt = torch.zeros((batch_size, self.num_heads, memory_addresses_size)).type(dtype)
         wt[:, 0:self.num_heads, 0] = 1.0
 
         # bookmark
         wt_dynamic = wt
 
-        mem_t = Variable((torch.ones((batch_size, self.M, memory_addresses_size)) * 0.01).type(dtype))
+        mem_t = (torch.ones((batch_size, self.M, memory_addresses_size)) * 0.01).type(dtype)
 
         states = [state, wt, wt_dynamic, mem_t]
         return states
