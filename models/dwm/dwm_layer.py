@@ -45,15 +45,17 @@ class DWM(nn.Module):
         :param state: Input hidden state  [BATCH_SIZE x state_size]
         :return: Tuple [output, hidden_state]
         """
+
         output = None
+        batch_size = inputs.size(0)
+        seq_length = inputs.size(1)
         memory_addresses_size = self.memory_addresses_size
         if memory_addresses_size == -1:
-            memory_addresses_size = inputs.size()[-2]
+            memory_addresses_size = seq_length  # a hack for now
 
         # init state
-        batch_size = inputs.size(0)
         cell_state = self.init_state(memory_addresses_size, batch_size)
-        for j in range(inputs.size()[-2]):
+        for j in range(seq_length):
             output_cell, cell_state = self.DWMCell(inputs[..., j, :], cell_state)
 
             if output_cell is None:
