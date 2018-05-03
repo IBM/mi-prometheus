@@ -4,6 +4,7 @@
 __author__ = "Tomasz Kornuta"
 
 import torch 
+
 from ntm_cell import NTMCell
 
 class NTM(torch.nn.Module):
@@ -47,17 +48,19 @@ class NTM(torch.nn.Module):
 
 if __name__ == "__main__":
     # "Loaded parameters".
-    params = {'num_control_bits': 2, 'num_data_bits': 8, 'batch_size': 2, # input and output size
-            'ctrl_type': 'ff', 'ctrl_hidden_state_size': 5, 
-        'num_memory_adresses' :10, 'num_memory_bits': 8}
+    params = {'num_control_bits': 2, 'num_data_bits': 8, # input and output size
+        'ctrl_type': 'ff', 'ctrl_hidden_state_size': 5,  # controller parameters
+        'num_memory_addresses' :10, 'num_memory_bits': 8 # memory parameters
+        }
         
     input_size = params["num_control_bits"] + params["num_data_bits"]
     output_size = params["num_data_bits"]
         
     # Create random Tensors to hold inputs and outputs
     seq_length = 5
-    x = torch.randn(params['batch_size'], seq_length,   input_size)
-    y = torch.randn(params['batch_size'], seq_length,  output_size)
+    batch_size = 2
+    x = torch.randn(batch_size, seq_length,   input_size)
+    y = torch.randn(batch_size, seq_length,  output_size)
 
     # Construct our model by instantiating the class defined above
     model = NTM(params)

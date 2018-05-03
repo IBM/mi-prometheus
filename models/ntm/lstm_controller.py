@@ -11,7 +11,7 @@ import collections
 _LSTMStateTuple = collections.namedtuple('NTMStateTuple', ('hidden_state', 'cell_state'))
 
 class LSTMStateTuple(_LSTMStateTuple):
-    """Tuple used by NTM Cells for storing current state information"""
+    """Tuple used by NTM Cells for storing current/past state information"""
     __slots__ = ()
 
 
@@ -48,23 +48,23 @@ class LSTMController(torch.nn.Module):
         
         return LSTMStateTuple(hidden_state,  cell_state)
 
-    def forward(self, inputs_BxI,  prev_state):
+    def forward(self, inputs_BxI,  prev_state_tuple):
         """
         Controller forward function. 
         
-        :param inputs_BxI: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE]
-        :param prev_state: unused - empty tuple () 
+        :param inputs_BxI: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE].
+        :param prev_state_tuple: object of LSTMStateTuple class containing previous controller state.
         :returns: outputs a Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and state tuple - object of LSTMStateTuple class.
         """
         # Unpack previous cell  state - just to make sure that everything is ok...
-        (hidden_state,  cell_state) = prev_state
+        (hidden_state,  cell_state) = prev_state_tuple
         
         # Execute LSTM single step.
         hidden_state,  cell_state = self.lstm(inputs_BxI, (hidden_state,  cell_state))
 
         # Pack current cell state.
-        state = LSTMStateTuple(hidden_state,  cell_state)
+        state_tuple = LSTMStateTuple(hidden_state,  cell_state)
         
         # Return hidden_state (as output) and state tuple.
-        return hidden_state,  state
+        return hidden_state,  state_tuple
  

@@ -33,12 +33,12 @@ class FeedforwardController(torch.nn.Module):
         """
         return ()
 
-    def forward(self, inputs_BxI,  prev_state):
+    def forward(self, inputs_BxI,  prev_state_tuple):
         """
         Controller forward function. 
         
         :param inputs_BxI: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE]
-        :param prev_state: unused - empty tuple () 
+        :param prev_state_tuple: unused - empty tuple () 
         :returns: outputs a Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and empty tuple.
         """
         # Execute feedforward pass.
