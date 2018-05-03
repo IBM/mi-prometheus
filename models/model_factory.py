@@ -5,7 +5,9 @@ __author__ = "Tomasz Kornuta"
 
 import sys
 import os.path
-            
+import logging
+logger = logging.getLogger('ModelFactory')
+
 class ModelFactory(object):
     """   
     Class returning concrete models depending on the name provided in the list of parameters.
@@ -31,6 +33,7 @@ class ModelFactory(object):
             from models.lstm.layer import LSTM
             return LSTM(params)
         elif name == 'ntm':
+            logger.warning("Warning: NTM not fully operational yet!")
             sys.path.append(os.path.join(os.path.dirname(__file__),  'ntm'))
             from models.ntm.ntm_module import NTM
             return NTM(params)
