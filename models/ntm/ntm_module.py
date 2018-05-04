@@ -5,7 +5,6 @@ __author__ = "Tomasz Kornuta"
 
 import torch 
 import logging
-
 from ntm_cell import NTMCell
 
 class NTM(torch.nn.Module):
@@ -66,17 +65,20 @@ if __name__ == "__main__":
     params = {'num_control_bits': 2, 'num_data_bits': 8, # input and output size
         'ctrl_type': 'ff', 'ctrl_hidden_state_size': 5,  # controller parameters
         'interface_num_read_heads': 1,  'interface_shift_size': 3,  # interface parameters
-        'num_memory_addresses' :-1, 'num_memory_bits': 8 # memory parameters
+        'num_memory_addresses' :4, 'num_memory_bits': 7 # memory parameters
         }
+        
+    logger = logging.getLogger('NTM-Module')
+    logger.debug("params: {}".format(params))    
         
     input_size = params["num_control_bits"] + params["num_data_bits"]
     output_size = params["num_data_bits"]
         
-    seq_length = 3
+    seq_length = 1
     batch_size = 1
     
     # Check for different seq_lengts and batch_sizes.
-    for i in range(2):
+    for i in range(1):
         # Create random Tensors to hold inputs and outputs
         x = torch.randn(batch_size, seq_length,   input_size)
         y = torch.randn(batch_size, seq_length,  output_size)
@@ -87,9 +89,10 @@ if __name__ == "__main__":
         # Test forward pass.
         y_pred = model(x)
 
-        print("\n input {}: {}".format(x.size(), x))
-        print("\n target.size(): {}".format(y.size()))
-        print("\n prediction {}: {}".format(y_pred.size(), y_pred))
+        logger.info("------- result -------")
+        logger.info("input {}: {}".format(x.size(), x))
+        logger.info("target.size(): {}".format(y.size()))
+        logger.info("prediction {}: {}".format(y_pred.size(), y_pred))
     
         # Change batch size and seq_length.
         seq_length = seq_length+1
