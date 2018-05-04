@@ -4,6 +4,7 @@
 __author__ = "Tomasz Kornuta"
 
 import torch 
+import logging
 
 from ntm_cell import NTMCell
 
@@ -19,7 +20,7 @@ class NTM(torch.nn.Module):
         super(NTM, self).__init__() 
 
         # Parse parameters.
-        # It is stored here, but will we used ONLY ONCE - for initialization of memory in forward.
+        # It is stored here, but will we used ONLY ONCE - for initialization of memory called from the forward() function.
         self.num_memory_addresses = params['num_memory_addresses']
         
         # Initialize recurrent NTM cell.
@@ -59,6 +60,8 @@ class NTM(torch.nn.Module):
 
 
 if __name__ == "__main__":
+    # Set logging level.
+    logging.basicConfig(level=logging.DEBUG)
     # "Loaded parameters".
     params = {'num_control_bits': 2, 'num_data_bits': 8, # input and output size
         'ctrl_type': 'ff', 'ctrl_hidden_state_size': 5,  # controller parameters
@@ -69,20 +72,28 @@ if __name__ == "__main__":
     input_size = params["num_control_bits"] + params["num_data_bits"]
     output_size = params["num_data_bits"]
         
-    # Create random Tensors to hold inputs and outputs
-    seq_length = 5
-    batch_size = 2
-    x = torch.randn(batch_size, seq_length,   input_size)
-    y = torch.randn(batch_size, seq_length,  output_size)
+    seq_length = 3
+    batch_size = 1
+    
+    # Check for different seq_lengts and batch_sizes.
+    for i in range(2):
+        # Create random Tensors to hold inputs and outputs
+        x = torch.randn(batch_size, seq_length,   input_size)
+        y = torch.randn(batch_size, seq_length,  output_size)
 
-    # Construct our model by instantiating the class defined above
-    model = NTM(params)
+        # Construct our model by instantiating the class defined above
+        model = NTM(params)
 
-    # Test forward pass.
-    y_pred = model(x)
+        # Test forward pass.
+        y_pred = model(x)
 
-    print("\n input {}: {}".format(x.size(), x))
-    print("\n prediction {}: {}".format(y_pred.size(), y_pred))
+        print("\n input {}: {}".format(x.size(), x))
+        print("\n target.size(): {}".format(y.size()))
+        print("\n prediction {}: {}".format(y_pred.size(), y_pred))
+    
+        # Change batch size and seq_length.
+        seq_length = seq_length+1
+        batch_size = batch_size+1
     
 
 
