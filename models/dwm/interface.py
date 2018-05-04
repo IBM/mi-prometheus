@@ -129,8 +129,10 @@ class Interface:
         wt_head = (wt_s + eps) ** γ
         wt_head = normalize(wt_head)                    # sharpening with normalization
 
-        if torch.sum(torch.abs(torch.sum(wt_head[:,0,:], dim=-1) - 1.0)) > 1e-6:
-            logger.warning("Warning: gamma very high, normalization problem")
+        # check attention is invalid for head 0
+        check_wt = torch.max(torch.abs(torch.sum(wt_head[:,0,:], dim=-1) - 1.0))
+        if check_wt > 1.0e-5:
+            logger.warning("Warning: gamma very high, normalization problem {} {}".format(check_wt, γ))
 
         mem = memory.content
         return wt_head, wt_att_snapshot_prev, mem

@@ -72,11 +72,12 @@ if __name__ == '__main__':
         config_loaded = yaml.load(stream)
 
     task_name = config_loaded['problem_train']['name']
+    model_name = config_loaded['model']['name']
 
     # Prepare output paths for logging
     path_root = "./checkpoints/"
     time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
-    log_dir = path_root + task_name + '/' + time_str + '/'
+    log_dir = path_root + task_name + '/' + model_name + '/' + time_str + '/'
     os.makedirs(log_dir, exist_ok=False)
     log_file = log_dir + 'msgs.log'
     copyfile(FLAGS.task, log_dir + "/train_settings.yaml")  # Copy the task's yaml file into log_dir
@@ -151,7 +152,7 @@ if __name__ == '__main__':
     train_file = open(log_dir + 'training.log', 'w', 1)
     validation_file = open(log_dir + 'validation.log', 'w', 1)
     train_file.write('epoch,accuracy,loss,length\n')
-    validation_file.write('epoch,accuracy\n')
+    validation_file.write('epoch,accuracy,length\n')
 
     # Data generator : input & target
     for inputs, targets, mask in problem.return_generator():
@@ -187,22 +188,31 @@ if __name__ == '__main__':
 
         # check if new loss is smaller than the best loss, save the model in this case
         if loss < best_loss or epoch % epoch_valid_steps == 0:
+            improved = False
             if loss < best_loss:
-               torch.save(model.state_dict(), log_dir + "/model_parameters")
-               best_loss = loss
+                torch.save(model.state_dict(), log_dir + "/model_parameters")
+                best_loss = loss
+                improved = True
 
             # calculate the accuracy and loss of the validation data
-            train_length_valid = data_valid[0].size(-2)
+            length_valid = data_valid[0].size(-2)
             loss_valid, accuracy_valid = validation(model, data_valid, config_loaded['settings']['use_mask'])
-            format_str = 'epoch_valid {:05d}; acc_valid={:12.10f}; loss_valid={:12.10f}; length_valid={:02d}'
-            logger.info(format_str.format(epoch, accuracy_valid, loss_valid, train_length_valid))
-            format_str = '{:05d}, {:12.10f}, {:12.10f}, {:02d}\n'
-            validation_file.write(format_str.format(epoch, accuracy_valid, loss_valid, train_length_valid))
+            format_str = 'epoch {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Validation]'
+            if not improved:
+                format_str = format_str + ' *'
+
+            logger.info(format_str.format(epoch, accuracy_valid, loss_valid, length_valid))
+            format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
+            if not improved:
+                format_str = format_str + ' *'
+
+            format_str = format_str + '\n'
+            validation_file.write(format_str.format(epoch, accuracy_valid, loss_valid, length_valid))
 
         # calculate the accuracy of the training data
         accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
         train_length = inputs.size(-2)
-        format_str = 'epoch {:05d}; acc={:12.10f}; loss={:12.10f}; length={:02d}'
+        format_str = 'epoch {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d}'
         logger.info(format_str.format(epoch, accuracy, loss, train_length))
         format_str = '{:05d}, {:12.10f}, {:12.10f}, {:02d}\n'
         train_file.write(format_str.format(epoch, accuracy, loss, train_length))
@@ -231,4 +241,4 @@ if __name__ == '__main__':
     train_file.close()
     validation_file.close()
 
-    print("Learning finished!")
+    logger.info('Learning finished!')
