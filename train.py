@@ -59,7 +59,7 @@ if __name__ == '__main__':
     FLAGS, unparsed = parser.parse_known_args()
 
     # Check if config file was selected.
-    if (FLAGS.task == ''):
+    if FLAGS.task == '':
         print('Please pass task configuration file as -t parameter')
         exit(-1)
     # Check it file exists.
@@ -115,7 +115,7 @@ if __name__ == '__main__':
             if config_loaded['problem_train']['cuda']:
                 use_CUDA = True
         except KeyError:
-            None
+            pass
 
     # Build problem for the training
     problem = ProblemFactory.build_problem(config_loaded['problem_train'])

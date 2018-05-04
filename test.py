@@ -20,6 +20,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
 from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
+from misc.app_state import AppState
+
 
 def show_sample(prediction, target, mask, sample_number=0):
     """ Shows the sample (both input and target sequences) using matplotlib."""
@@ -46,11 +48,14 @@ def show_sample(prediction, target, mask, sample_number=0):
     # Plot!
 
 if __name__ == '__main__':
+    app_state = AppState()
 
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', type=str, default='', dest='input_dir',
                         help='Input path, containing the saved parameters as well as the yaml file')
+    parser.add_argument('-v', action='store_true', dest='visualize',
+                        help='Activate visualization')
 
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
@@ -59,9 +64,13 @@ if __name__ == '__main__':
     print("Testing")
 
     # Check if config file was selected.
-    if (FLAGS.input_dir == ''):
+    if FLAGS.input_dir == '':
         print('Please pass input path folder as -i parameter')
         exit(-1)
+
+    if FLAGS.visualize:
+        app_state.visualize = True
+
     # Check it file exists.
     if not os.path.isdir(FLAGS.input_dir):
         print('Input path {} does not exist'.format(FLAGS.input_dir))
@@ -104,10 +113,11 @@ if __name__ == '__main__':
         accuracy = acc.mean()
         print("Accuracy: %.6f" % (accuracy * 100) + "%")
         # plot data
-        show_sample(output, targets, mask)
+        # show_sample(output, targets, mask)
 
-        break   # one test sample
-
-
-
-
+        if app_state.visualize:
+            is_closed = model.plot_sequence(inputs[0].detach(), output[0].detach(), targets[0].detach())
+            if is_closed:
+                break
+        else:
+            break

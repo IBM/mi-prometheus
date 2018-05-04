@@ -1,14 +1,21 @@
 import torch
 from torch import nn
-from problems.plot_data import plot_memory_attention
 from torch.autograd import Variable
 
+from matplotlib.figure import Figure
+from matplotlib import ticker
+import numpy as np
+
 from models.dwm.dwm_cell import DWMCell
+
+from misc.app_state import AppState
+from models.model_base import ModelBase
 
 CUDA = False
 dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 
-class DWM(nn.Module):
+
+class DWM(ModelBase, nn.Module):
 
     def __init__(self, params):
         """Initialize an DWM Layer.
@@ -31,6 +38,11 @@ class DWM(nn.Module):
         self.memory_addresses_size = params["memory_addresses_size"]
         self.plot_active = params["plot_memory"]
         self.label = params["name"]
+        self.app_state = AppState()
+
+        # This is for the time plot
+        self.cell_state_history = None
+
         super(DWM, self).__init__()
 
         # Create the DWM components
@@ -45,6 +57,8 @@ class DWM(nn.Module):
         :param state: Input hidden state  [BATCH_SIZE x state_size]
         :return: Tuple [output, hidden_state]
         """
+        if self.app_state.visualize:
+            self.cell_state_history = []
 
         output = None
         batch_size = inputs.size(0)
@@ -69,8 +83,10 @@ class DWM(nn.Module):
             # concatenate output
             output = torch.cat([output, output_cell], dim=-2)
 
-            if self.plot_active:
-                self.plot_memory_attention(output, cell_state)
+            # This is for the time plot
+            if self.app_state.visualize:
+                self.cell_state_history.append((cell_state[3].detach().numpy(),
+                                                cell_state[1].detach().numpy()))
 
         return output
 
@@ -90,8 +106,45 @@ class DWM(nn.Module):
         states = [state, wt, wt_dynamic, mem_t]
         return states
 
-    def plot_memory_attention(self, output, states):
-        # plot attention/memory
-        plot_memory_attention(output, states[3], states[1], self.label)
+    # Overrides the one in ModelBase
+    def plot_sequence(self, input_seq, output_seq, target_seq):
+        figs = []
 
+        input_seq = input_seq.numpy()
+        output_seq = output_seq.numpy()
+        target_seq = target_seq.numpy()
 
+        pred_matrix = np.zeros(output_seq.shape)
+
+        for i, (input_word, output_word, target_word, (memory, wt)) \
+                in enumerate(zip(input_seq,
+                                 output_seq,
+                                 target_seq,
+                                 self.cell_state_history)):
+
+            pred_matrix[i] = output_word
+
+            fig = Figure()
+            ax1 = fig.add_subplot(221)
+            ax2 = fig.add_subplot(212)
+            ax3 = fig.add_subplot(222)
+
+            ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            ax1.set_title("Attention", fontname='Times New Roman', fontsize=15)
+            ax1.plot(np.arange(wt.shape[-1]), wt[0, 0, :], 'go')
+
+            ax2.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            ax2.set_ylabel("Word size", fontname='Times New Roman', fontsize=15)
+            ax2.set_xlabel("Memory addresses", fontname='Times New Roman', fontsize=15)
+            ax2.set_title("Task: xxx", fontname='Times New Roman', fontsize=15)
+
+            ax2.imshow(memory[0, :, :], interpolation='nearest')
+
+            ax3.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            ax3.set_title("Prediction", fontname='Times New Roman', fontsize=15)
+            ax3.imshow(np.transpose(pred_matrix, [1, 0]))
+
+            figs.append(fig)
+
+        self.plot.update(figs)
+        return self.plot.is_closed
