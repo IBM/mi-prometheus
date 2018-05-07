@@ -42,6 +42,7 @@ def validation(model, data_valid, use_mask):
     accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
     return loss, accuracy
 
+
 if __name__ == '__main__':
 
     # Create parser with list of  runtime arguments.
@@ -55,6 +56,10 @@ if __name__ == '__main__':
                              "2: Add histograms of biases and weights gradients (Warning: even slower)")
     parser.add_argument('--confirm', action='store_true', dest='confirm',
                         help='Request user confirmation just after loading the settings, before starting training.')
+    parser.add_argument('--log', action='store', dest='log', type=str, default='INFO',
+                        choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
+                        help="Log level. Default is INFO.")
+
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
 
@@ -90,6 +95,7 @@ if __name__ == '__main__':
         logging.config.dictConfig(config)
 
     logger = logging.getLogger('Train')
+    logger.setLevel(getattr(logging, FLAGS.log.upper(), None))
 
     # print experiment configuration
     str = 'Configuration for {}:\n'.format(task_name)
@@ -144,15 +150,15 @@ if __name__ == '__main__':
         tb_writer = SummaryWriter(log_dir)
 
     # Start Training
-    epoch = 0
-    epoch_valid_steps = 500
+    episode = 0
+    episode_valid_steps = 500
     best_loss = 0.2
     last_losses = collections.deque()
 
     train_file = open(log_dir + 'training.log', 'w', 1)
     validation_file = open(log_dir + 'validation.log', 'w', 1)
-    train_file.write('epoch,accuracy,loss,length\n')
-    validation_file.write('epoch,accuracy,length\n')
+    train_file.write('episode,accuracy,loss,length\n')
+    validation_file.write('episode,accuracy,length\n')
 
     # Data generator : input & target
     for inputs, targets, mask in problem.return_generator():
@@ -195,7 +201,7 @@ if __name__ == '__main__':
         optimizer.step()
 
         # check if new loss is smaller than the best loss, save the model in this case
-        if loss < best_loss or epoch % epoch_valid_steps == 0:
+        if loss < best_loss or episode % episode_valid_steps == 0:
             improved = False
             if loss < best_loss:
                 torch.save(model.state_dict(), log_dir + "/model_parameters")
@@ -205,46 +211,46 @@ if __name__ == '__main__':
             # calculate the accuracy and loss of the validation data
             length_valid = data_valid[0].size(-2)
             loss_valid, accuracy_valid = validation(model, data_valid, config_loaded['settings']['use_mask'])
-            format_str = 'epoch {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Validation]'
+            format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Validation]'
             if not improved:
                 format_str = format_str + ' *'
 
-            logger.info(format_str.format(epoch, accuracy_valid, loss_valid, length_valid))
+            logger.info(format_str.format(episode, accuracy_valid, loss_valid, length_valid))
             format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
             if not improved:
                 format_str = format_str + ' *'
 
             format_str = format_str + '\n'
-            validation_file.write(format_str.format(epoch, accuracy_valid, loss_valid, length_valid))
+            validation_file.write(format_str.format(episode, accuracy_valid, loss_valid, length_valid))
 
         # calculate the accuracy of the training data
         accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
         train_length = inputs.size(-2)
-        format_str = 'epoch {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d}'
-        logger.info(format_str.format(epoch, accuracy, loss, train_length))
+        format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d}'
+        logger.info(format_str.format(episode, accuracy, loss, train_length))
         format_str = '{:05d}, {:12.10f}, {:12.10f}, {:02d}\n'
-        train_file.write(format_str.format(epoch, accuracy, loss, train_length))
+        train_file.write(format_str.format(episode, accuracy, loss, train_length))
 
         if FLAGS.tensorboard is not None:
             # Save loss + accuracy to tensorboard
             accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
-            tb_writer.add_scalar('Train/loss', loss, epoch)
-            tb_writer.add_scalar('Train/accuracy', accuracy, epoch)
-            tb_writer.add_scalar('Train/seq_len', train_length, epoch)
+            tb_writer.add_scalar('Train/loss', loss, episode)
+            tb_writer.add_scalar('Train/accuracy', accuracy, episode)
+            tb_writer.add_scalar('Train/seq_len', train_length, episode)
 
             for name, param in model.named_parameters():
                 if FLAGS.tensorboard >= 1:
-                    tb_writer.add_histogram(name, param.data.cpu().numpy(), epoch)
+                    tb_writer.add_histogram(name, param.data.cpu().numpy(), episode)
                 if FLAGS.tensorboard >= 2:
-                    tb_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), epoch)
+                    tb_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode)
 
-        # break if conditions applied: convergence or max epochs
+        # break if conditions applied: convergence or max episodes
         if max(last_losses) < config_loaded['settings']['loss_stop'] \
-                or epoch == config_loaded['settings']['max_epochs']:
+                or episode == config_loaded['settings']['max_episodes']:
 
             break
 
-        epoch += 1
+        episode += 1
 
     train_file.close()
     validation_file.close()
