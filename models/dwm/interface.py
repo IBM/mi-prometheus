@@ -63,6 +63,7 @@ class Interface:
         return read_data.view(*sz, self.read_size)
 
     def update(self, update_data, wt_head_prev, wt_att_snapshot_prev, mem):
+
         """Erases from memory, writes to memory, updates the weights using various attention mechanisms
         :param update_data: the parameters from the controllers [update_size]
         :param wt: the read weight [BATCH_SIZE, MEMORY_SIZE]
@@ -113,9 +114,9 @@ class Interface:
         j = F.softmax(j, dim=-1)
         j = j[:, :, None, :]
 
-        wt_head = j[..., 0] * wt_att_snapshot \
-           + j[..., 1] * wt_head_prev \
-           + j[..., 2] * wt_address_0
+        wt_head =  j[..., 0] * wt_head_prev \
+                 + j[..., 1] * wt_att_snapshot \
+                 + j[..., 2] * wt_address_0
 
         # Move head according to content based addressing and shifting
         if self.is_cam:
@@ -132,7 +133,7 @@ class Interface:
         # check attention is invalid for head 0
         check_wt = torch.max(torch.abs(torch.sum(wt_head[:,0,:], dim=-1) - 1.0))
         if check_wt > 1.0e-5:
-            logger.warning("Warning: gamma very high, normalization problem {} {}".format(check_wt, γ))
+            logger.warning("Warning: gamma very high, normalization problem")
 
         mem = memory.content
-        return wt_head, wt_att_snapshot_prev, mem
+        return wt_head, wt_att_snapshot, mem

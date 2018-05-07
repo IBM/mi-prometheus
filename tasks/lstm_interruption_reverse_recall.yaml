@@ -11,6 +11,10 @@ problem_train:
     max_sequence_length: 10
     num_subseq_min: 1
     num_subseq_max: 4
+    #Parameter of curriculum learning, increase the max_sequence_length
+    #every ```curriculum_learning_interval```
+    curriculum_learning: True
+    curriculum_learning_interval: 2000
     bias: 0.5
     cuda: True
 

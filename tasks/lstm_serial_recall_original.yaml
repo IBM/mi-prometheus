@@ -9,6 +9,10 @@ problem_train:
     # Parameters denoting min and max lengths. 
     min_sequence_length: &min_seq_len 1
     max_sequence_length: &max_seq_len 10
+    #Parameter of curriculum learning, increase the max_sequence_length
+    #every ```curriculum_learning_interval```
+    curriculum_learning: True
+    curriculum_learning_interval: 2000
     bias: 0.5
     cuda: True  # The presence of the 'cuda' key is optional
 
