@@ -93,6 +93,10 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
 
         return inputs, target, mask
 
+    # method for changing the maximum length, used mainly during curriculum learning
+    def set_max_length(self, max_length):
+        self.max_sequence_length = max_length
+
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""

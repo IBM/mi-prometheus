@@ -1,6 +1,6 @@
 # Problem parameters:
 problem_train:
-    name: &name reverse_recall
+    name: &name manipulation_spatial_rotation
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 2
     data_bits: &dbits 8
@@ -10,9 +10,10 @@ problem_train:
     max_sequence_length: 10
     #Parameter of curriculum learning, increase the max_sequence_length
     #every ```curriculum_learning_interval```
-    curriculum_learning: True
+    curriculum_learning: False
     curriculum_learning_interval: 2000
     bias: 0.5
+    num_bits: &nrot 0.5
 
 # Problem parameters:
 problem_test:
@@ -25,6 +26,7 @@ problem_test:
     min_sequence_length: 100
     max_sequence_length: 100
     bias: 0.5
+    num_bits: *nrot
 
 # Problem parameters:
 problem_validation:
@@ -36,9 +38,8 @@ problem_validation:
     # Parameters denoting min and max lengths.
     min_sequence_length: 60
     max_sequence_length: 60
-    num_subseq_min: 4
-    num_subseq_max: 4
     bias: 0.5
+    num_bits: *nrot
 
 # Model parameters:
 model:
@@ -48,7 +49,7 @@ model:
     control_bits: *cbits 
     data_bits: *dbits
     # Controller hidden state.
-    hidden_state_dim: 5
+    hidden_state_dim: 20
     # Memory (?).
     memory_content_size: 10
     memory_addresses_size: -1
@@ -73,6 +74,6 @@ settings:
     use_mask: True
     length_loss: 10
     loss_stop: 0.0001
-    max_epochs: 20000
+    max_epochs: 70000
     seed_numpy: 0
     seed_torch: 2

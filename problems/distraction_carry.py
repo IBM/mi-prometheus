@@ -18,7 +18,7 @@ class DistractionCarry(AlgorithmicSequentialProblem):
         # Number of bits in one element.
         self.control_bits = params['control_bits']
         self.data_bits = params['data_bits']
-        assert self.control_bits >=3, "Problem requires at least 3 control bits (currently %r)" % self.control_bits
+        assert self.control_bits >=4, "Problem requires at least 4 control bits (currently %r)" % self.control_bits
         assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
         # Min and max lengts of a single subsequence (number of elements).
         self.min_sequence_length = params['min_sequence_length']
@@ -43,10 +43,10 @@ class DistractionCarry(AlgorithmicSequentialProblem):
         TODO: deal with batch_size > 1
         """
         # define control channel markers
-        pos = [0, 0, 0]
-        ctrl_data = [0, 0, 0]
-        ctrl_dummy = [0, 0, 1]
-        ctrl_inter = [1, 1, 0]
+        pos = [0, 0, 0, 0]
+        ctrl_data = [0, 0, 0, 0]
+        ctrl_dummy = [0, 0, 1, 0]
+        ctrl_inter = [0, 0, 0, 1]
         # assign markers
         markers = ctrl_data, ctrl_dummy, pos
 
@@ -66,9 +66,9 @@ class DistractionCarry(AlgorithmicSequentialProblem):
         target = np.concatenate([y[-1]] + x, axis=1)
 
         # add marker at the begging of x and dummies
-        xx = [augment(seq, markers, ctrl_start=[1,0,0], add_marker_data=True, add_marker_dummy=False) for seq in x]
+        xx = [augment(seq, markers, ctrl_start=[1,0,0,0], add_marker_data=True, add_marker_dummy=False) for seq in x]
         # add marker at the begging of y and dummies of same length, also a marker at the begging of dummies is added
-        yy = [augment(seq, markers, ctrl_start=[0,1,0], add_marker_data=True) for seq in y]
+        yy = [augment(seq, markers, ctrl_start=[0,1,0,0], add_marker_data=True) for seq in y]
 
         # this is a marker to separate dummies of x and y at the end of the sequence
         inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
@@ -101,11 +101,16 @@ class DistractionCarry(AlgorithmicSequentialProblem):
 
         return inputs, target_with_dummies, mask
 
+    # method for changing the maximum length, used mainly during curriculum learning
+    def set_max_length(self, max_length):
+        self.max_sequence_length = max_length
+
+
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'control_bits': 3, 'data_bits': 8, 'batch_size': 1,
+    params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 1,
               'min_sequence_length': 1, 'max_sequence_length': 10, 
               'bias': 0.5, 'num_subseq_min':1 ,'num_subseq_max': 4}
     # Create problem object.

@@ -17,7 +17,7 @@ class DistractionForget(AlgorithmicSequentialProblem):
         # Number of bits in one element.
         self.control_bits = params['control_bits']
         self.data_bits = params['data_bits']
-        assert self.control_bits >=3, "Problem requires at least 3 control bits (currently %r)" % self.control_bits
+        assert self.control_bits >=4, "Problem requires at least 4 control bits (currently %r)" % self.control_bits
         assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
         # Min and max lengts of a single subsequence (number of elements).
         self.min_sequence_length = params['min_sequence_length']
@@ -42,10 +42,10 @@ class DistractionForget(AlgorithmicSequentialProblem):
         TODO: deal with batch_size > 1
         """
         # define control channel markers
-        pos = [0, 0, 0]
-        ctrl_data = [0, 0, 0]
-        ctrl_dummy = [0, 0, 1]
-        ctrl_inter = [1, 1, 0]
+        pos = [0, 0, 0, 0]
+        ctrl_data = [0, 0, 0, 0]
+        ctrl_dummy = [0, 0, 1, 0]
+        ctrl_inter = [0, 0, 0, 1]
         # assign markers
         markers = ctrl_data, ctrl_dummy, pos
 
@@ -65,9 +65,9 @@ class DistractionForget(AlgorithmicSequentialProblem):
         target = np.concatenate(y + x, axis=1)
 
         # add marker at the begging of x and dummies of same length,  also a marker at the begging of dummies is added
-        xx = [augment(seq, markers, ctrl_start=[1,0,0], add_marker_data=True) for seq in x]
+        xx = [augment(seq, markers, ctrl_start=[1,0,0,0], add_marker_data=True) for seq in x]
         # add marker at the begging of y and dummies of same length, also a marker at the begging of dummies is added
-        yy = [augment(seq, markers, ctrl_start=[0,1,0], add_marker_data=True) for seq in y]
+        yy = [augment(seq, markers, ctrl_start=[0,1,0,0], add_marker_data=True) for seq in y]
 
         # this is a marker to separate dummies of x and y at the end of the sequence
         inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
@@ -100,6 +100,9 @@ class DistractionForget(AlgorithmicSequentialProblem):
 
         return inputs, target_with_dummies, mask
 
+    # method for changing the maximum length, used mainly during curriculum learning
+    def set_max_length(self, max_length):
+        self.max_sequence_length = max_length
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
