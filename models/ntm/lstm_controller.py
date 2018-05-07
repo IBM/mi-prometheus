@@ -32,12 +32,12 @@ class LSTMController(torch.nn.Module):
         self.ctrl_hidden_state_size = params['ctrl_hidden_state_size']
 
         # Get memory parameters - required to calculate proper size of input. :]
-        self.num_memory_bits = params['num_memory_bits']
+        self.num_memory_content_bits = params['num_memory_content_bits']
         # Get interface parameters - required by initialization of read vectors. :]
         self.interface_num_read_heads = params['interface_num_read_heads']
         
         # controller_input_size = input_size + read_vector_size * num_read_heads
-        concatenated_inputs_size = self.input_size +  self.num_memory_bits*self.interface_num_read_heads
+        concatenated_inputs_size = self.input_size +  self.num_memory_content_bits*self.interface_num_read_heads
 
         # Cell that processes input and produces hidden state of controller.
         self.lstm = torch.nn.LSTMCell(concatenated_inputs_size, self.ctrl_hidden_state_size)
@@ -56,20 +56,20 @@ class LSTMController(torch.nn.Module):
         
         return LSTMStateTuple(hidden_state,  cell_state)
 
-    def forward(self, inputs_BxI,  prev_read_vectors_BxM_H, prev_state_tuple):
+    def forward(self, inputs_BxI,  prev_read_vectors_BxC_H, prev_state_tuple):
         """
         Controller forward function. 
         
         :param inputs_BxI: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE].
-        :param prev_read_vectors_BxM_H: List of length H (number of heads) previous read vectors of size [BATCH_SIZE x MEMORY_BITS]
+        :param prev_read_vectors_BxC_H: List of length H (number of heads) previous read vectors of size [BATCH_SIZE x MEMORY_CONTENT_BITS]
         :param prev_state_tuple: object of LSTMStateTuple class containing previous controller state.
         :returns: outputs a Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and state tuple - object of LSTMStateTuple class.
         """
         # Unpack previous cell  state - just to make sure that everything is ok...
         (hidden_state,  cell_state) = prev_state_tuple
 
-        # Concatenate inputs with read vectors [BATCH_SIZE x (INPUT + NUM_HEADS * MEMORY_BITS)]
-        read_vectors = torch.cat(prev_read_vectors_BxM_H, dim=0)
+        # Concatenate inputs with read vectors [BATCH_SIZE x (INPUT + NUM_HEADS * MEMORY_CONTENT_BITS)]
+        read_vectors = torch.cat(prev_read_vectors_BxC_H, dim=0)
         concat_input = torch.cat((inputs_BxI,  read_vectors), dim=1)
         
         # Execute LSTM single step.

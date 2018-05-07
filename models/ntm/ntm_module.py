@@ -65,7 +65,7 @@ if __name__ == "__main__":
     params = {'num_control_bits': 2, 'num_data_bits': 8, # input and output size
         'ctrl_type': 'ff', 'ctrl_hidden_state_size': 5,  # controller parameters
         'interface_num_read_heads': 1,  'interface_shift_size': 3,  # interface parameters
-        'num_memory_addresses' :4, 'num_memory_bits': 7 # memory parameters
+        'num_memory_addresses' :4, 'num_memory_content_bits': 7 # memory parameters
         }
         
     logger = logging.getLogger('NTM-Module')
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     output_size = params["num_data_bits"]
         
     seq_length = 1
-    batch_size = 1
+    batch_size = 2
     
     # Check for different seq_lengts and batch_sizes.
     for i in range(1):
@@ -90,9 +90,9 @@ if __name__ == "__main__":
         y_pred = model(x)
 
         logger.info("------- result -------")
-        logger.info("input {}: {}".format(x.size(), x))
-        logger.info("target.size(): {}".format(y.size()))
-        logger.info("prediction {}: {}".format(y_pred.size(), y_pred))
+        logger.info("input {}:\n {}".format(x.size(), x))
+        logger.info("target.size():\n {}".format(y.size()))
+        logger.info("prediction {}:\n {}".format(y_pred.size(), y_pred))
     
         # Change batch size and seq_length.
         seq_length = seq_length+1
