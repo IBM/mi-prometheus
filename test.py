@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 
+import logging
+import logging.config
+
 # Force MKL (CPU BLAS) to use one core, faster
 os.environ["OMP_NUM_THREADS"] = '1'
 
@@ -21,6 +24,8 @@ from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
 from misc.app_state import AppState
+
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 
 def show_sample(prediction, target, mask, sample_number=0):
@@ -47,6 +52,7 @@ def show_sample(prediction, target, mask, sample_number=0):
 
     # Plot!
 
+
 if __name__ == '__main__':
     app_state = AppState()
 
@@ -56,12 +62,24 @@ if __name__ == '__main__':
                         help='Input path, containing the saved parameters as well as the yaml file')
     parser.add_argument('-v', action='store_true', dest='visualize',
                         help='Activate visualization')
+    parser.add_argument('--log', action='store', dest='log', type=str, default='info',
+                        choices=['critical', 'error', 'warning', 'info', 'debug', 'notset'],
+                        help="Log level. Default is INFO.")
 
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
 
-    # Test
-    print("Testing")
+    # Logging
+    log_file = FLAGS.input_dir + '/msgs_test.log'
+    def logfile():
+        return logging.FileHandler(log_file)
+
+    with open('logger_config.yaml', 'rt') as f:
+        config = yaml.load(f.read())
+        logging.config.dictConfig(config)
+
+    logger = logging.getLogger('Test')
+    logger.setLevel(getattr(logging, FLAGS.log.upper(), None))
 
     # Check if config file was selected.
     if FLAGS.input_dir == '':
@@ -99,7 +117,7 @@ if __name__ == '__main__':
                    map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
     )
 
-    for inputs, targets, mask in problem.return_generator():
+    for episode, (inputs, targets, mask) in enumerate(problem.return_generator()):
         # apply the trained model
         output = F.sigmoid(model(inputs))
 
@@ -111,7 +129,8 @@ if __name__ == '__main__':
         output = torch.round(output)
         acc = 1 - torch.abs(output-targets)
         accuracy = acc.mean()
-        print("Accuracy: %.6f" % (accuracy * 100) + "%")
+        format_str = 'episode {:05d}; acc={:12.10f}; length={:d} [Test]'
+        logger.info(format_str.format(episode, accuracy, targets.size(1)))
         # plot data
         # show_sample(output, targets, mask)
 

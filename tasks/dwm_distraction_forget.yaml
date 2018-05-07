@@ -10,7 +10,7 @@ problem_train:
     max_sequence_length: 1
     #Parameter of curriculum learning, increase the max_sequence_length
     #every ```curriculum_learning_interval```
-    curriculum_learning: True  
+    curriculum_learning: True
     curriculum_learning_interval: 2000
     num_subseq_min: 1
     num_subseq_max: 3
@@ -77,6 +77,6 @@ settings:
     use_mask: True
     length_loss: 10
     loss_stop: 1.0e-5
-    max_epochs: 50000
+    max_episodes: 50000
     seed_numpy: 255
     seed_torch: 453

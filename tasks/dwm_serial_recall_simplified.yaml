@@ -71,6 +71,6 @@ settings:
     use_mask: True
     length_loss: 10
     loss_stop: 0.0001
-    max_epochs: 20000
+    max_episodes: 20000
     seed_numpy: 0
     seed_torch: 2
