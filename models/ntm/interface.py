@@ -105,7 +105,6 @@ class Interface(torch.nn.Module):
         # Read heads.
         read_attentions = []
         for i in range(self.interface_num_read_heads):
-            print("{}-read head".format(i))
             # Calculate parameters of given read head.
             params_BxP = self.hidden2read_list[i](ctrl_hidden_state_BxH)
 
