@@ -80,11 +80,13 @@ class Interface(torch.nn.Module):
         # Add read attention vectors - one for each read head.
         read_attentions = []
         for _ in range(self.interface_num_read_heads):
-            # Read attention weights [BATCH_SIZE x MEMORY_ADDRESSES]
-            read_attentions.append(torch.ones((batch_size, num_memory_addresses), dtype=torch.float)*1e-6)
+            # Read attention weights [BATCH_SIZE x MEMORY_ADDRESSES x 1]
+            # Normalize through division by number of addresses.
+            read_attentions.append(torch.ones((batch_size, num_memory_addresses,  1), dtype=torch.float)/num_memory_addresses)
         
-        # Single write head - write attention weights [BATCH_SIZE x MEMORY_ADDRESSES]
-        write_attention = torch.ones((batch_size, num_memory_addresses), dtype=torch.float)*1e-6
+        # Single write head - write attention weights [BATCH_SIZE x MEMORY_ADDRESSES x 1]
+        # Normalize through division by number of addresses.
+        write_attention = torch.ones((batch_size, num_memory_addresses,  1), dtype=torch.float)/num_memory_addresses
 
         return InterfaceStateTuple(read_attentions,  write_attention)
 
@@ -175,21 +177,27 @@ class Interface(torch.nn.Module):
         query_vector_Bx1xC = F.sigmoid(query_vector_BxC).unsqueeze(1) # I didn't have that non-linear transformation in TF!
         beta_Bx1x1 = F.softplus(beta_Bx1).unsqueeze(1)
         gate_Bx1x1 = F.sigmoid(gate_Bx1).unsqueeze(1)
+        shift_BxSx1 = F.sigmoid(shift_BxS).unsqueeze(1)
+        gamma_Bx1x1 = F.sigmoid(gamma_Bx1).unsqueeze(1)
         #gamma_Bx1x1 = tf.nn.softplus(params[:, self.slot_size+2:self.slot_size+3], name='gamma')
         #shift_BxSx1 = tf.nn.softmax(params[:, self.slot_size+3:], name='shift')
         
         # Content-based addressing.
-        attention_Bx1xA = self.focusing_by_content(query_vector_Bx1xC,  beta_Bx1x1,  prev_memory_BxAxC)
+        content_attention_BxAx1 = self.content_based_addressing(query_vector_Bx1xC,  beta_Bx1x1,  prev_memory_BxAxC)
     
-        # Gating mechanism - choose beetween new attention from CBA or attention from previous iteration.
+        # Gating mechanism - choose beetween new attention from CBA or attention from previous iteration. [BATCH_SIZE x ADDRESSES x 1].
+        logger.debug("prev_attention_BxAx1 {}:\n {}".format(prev_attention_BxAx1.size(),  prev_attention_BxAx1))    
+        
+        attention_after_gating_BxAx1 = gate_Bx1x1 * content_attention_BxAx1  +(torch.ones_like(gate_Bx1x1) - gate_Bx1x1) * prev_attention_BxAx1
+        logger.debug("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
 
         # Location-based addressing.
+        location_attention_BxAx1 = self.location_based_addressing(attention_after_gating_BxAx1,  shift_BxSx1,  gamma_Bx1x1)
+        logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))    
         
-        # TODO: rest;)
+        return location_attention_BxAx1
         
-        return attention_Bx1xA
-        
-    def focusing_by_content(self,  query_vector_Bx1xC, beta_Bx1x1, prev_memory_BxAxC):
+    def content_based_addressing(self,  query_vector_Bx1xC, beta_Bx1x1, prev_memory_BxAxC):
         """Computes content-based addressing. Uses query vectors for calculation of similarity.
         
         :param query_vector_Bx1xC: NTM "key"  [BATCH_SIZE x 1 x CONTENT_BITS] 
@@ -218,3 +226,14 @@ class Interface(torch.nn.Module):
         logger.debug("attention_BxAx1 {}:\n {}".format(attention_BxAx1.size(),  attention_BxAx1))    
         return attention_BxAx1
 
+    def location_based_addressing(self,  attention_BxAx1,  shift_BxSx1,  gamma_Bx1x):
+        """ Computes location-based addressing, i.e. shitfts the head if required.
+        :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+        
+        :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+        """
+        
+        
+        loc_attention_BxAx1 = attention_BxAx1
+        
+        return loc_attention_BxAx1
