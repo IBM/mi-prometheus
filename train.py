@@ -169,7 +169,7 @@ if __name__ == '__main__':
 
         # apply curriculum learning
         if config_loaded['problem_train']['curriculum_learning'] == True:
-            max_length = 1 + int(epoch / config_loaded['problem_train']['curriculum_learning_interval'])
+            max_length = 1 + int(episode / config_loaded['problem_train']['curriculum_learning_interval'])
             if max_length > 6:
                 max_length = 6
             problem.set_max_length(max_length)
