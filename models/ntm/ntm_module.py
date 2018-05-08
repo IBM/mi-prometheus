@@ -20,7 +20,7 @@ class NTM(torch.nn.Module):
 
         # Parse parameters.
         # It is stored here, but will we used ONLY ONCE - for initialization of memory called from the forward() function.
-        self.num_memory_addresses = params['num_memory_addresses']
+        self.num_memory_addresses = params['memory']['num_addresses']
         
         # Initialize recurrent NTM cell.
         self.cell = NTMCell(params)
@@ -63,9 +63,9 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     # "Loaded parameters".
     params = {'num_control_bits': 2, 'num_data_bits': 8, # input and output size
-        'controller_type': 'rnn', 'controller_hidden_state_size': 5,  # controller parameters
-        'interface_num_read_heads': 1,  'interface_shift_size': 3,  # interface parameters
-        'num_memory_addresses' :4, 'num_memory_content_bits': 7 # memory parameters
+        'controller': {'name': 'rnn', 'hidden_state_size': 5},  # controller parameters
+        'interface': {'num_read_heads': 1,  'shift_size': 3},  # interface parameters
+        'memory': {'num_addresses' :4, 'num_content_bits': 7} # memory parameters
         }
         
     logger = logging.getLogger('NTM-Module')

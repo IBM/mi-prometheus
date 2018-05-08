@@ -47,14 +47,17 @@ model:
     num_control_bits: *cbits
     num_data_bits: *dbits
     # Controller parameters.
-    controller_type: ffn
-    controller_hidden_state_size: 10
+    controller:
+        name: ffn
+        hidden_state_size: 10
     # Interface
-    interface_num_read_heads: 1
-    interface_shift_size: 3
+    interface:
+        num_read_heads: 1
+        shift_size: 3
     # Memory parameters.
-    num_memory_content_bits: 8
-    num_memory_addresses: -1
+    memory:
+        num_content_bits: 8
+        num_addresses: -1
     
 optimizer:
     name: RMSprop

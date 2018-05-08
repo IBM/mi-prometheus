@@ -32,14 +32,14 @@ class Interface(torch.nn.Module):
 
         # Parse parameters.
         # Get hidden state size.
-        self.ctrl_hidden_state_size = params['controller_hidden_state_size']
+        self.ctrl_hidden_state_size = params['controller']['hidden_state_size']
         # Get memory parameters.
-        self.num_memory_content_bits = params['num_memory_content_bits']
+        self.num_memory_content_bits = params['memory']['num_content_bits']
         # Get interface parameters.
-        self.interface_num_read_heads = params['interface_num_read_heads']
+        self.interface_shift_size = params['interface']['shift_size']
+        self.interface_num_read_heads = params['interface']['num_read_heads']
         assert self.interface_num_read_heads >= 1, "NTM requires at least 1 read head (currently %r)" % self.interface_num_read_heads     
 
-        self.interface_shift_size = params['interface_shift_size']
  
         # -------------- READ HEADS -----------------#
         # Number/size of parameters of a single read head: key [MEMORY_CONTENT_BITS] + beta [1] + gate [1] + gamma [1] + shift kernel size [SHIFT_SIZE]

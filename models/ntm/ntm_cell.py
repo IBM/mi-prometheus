@@ -36,26 +36,19 @@ class NTMCell(torch.nn.Module):
         self.input_size = params["num_control_bits"] + params["num_data_bits"]
         self.output_size = params["num_data_bits"]
         # Get controller hidden state size.
-        self.controller_hidden_state_size = params['controller_hidden_state_size']
+        self.controller_hidden_state_size = params['controller']['hidden_state_size']
         
         # Get memory parameters - required by initialization of read vectors. :]
-        self.num_memory_content_bits = params['num_memory_content_bits']
+        self.num_memory_content_bits = params['memory']['num_content_bits']
         # Get interface parameters - required by initialization of read vectors. :]
-        self.interface_num_read_heads = params['interface_num_read_heads']
-        
-
-       # Get memory parameters - required to calculate proper size of input. :]
-        self.num_memory_content_bits = params['num_memory_content_bits']
-        # Get interface parameters - required by initialization of read vectors. :]
-        self.interface_num_read_heads = params['interface_num_read_heads']
-        
+        self.interface_num_read_heads = params['interface']['num_read_heads']
 
         # Controller - entity that processes input and produces hidden state of the ntm cell.        
         # controller_input_size = input_size + read_vector_size * num_read_heads
         controller_inputs_size = self.input_size +  self.num_memory_content_bits*self.interface_num_read_heads
         # Create dictionary wirh controller parameters.
         controller_params = {
-           "type":  params['controller_type'],
+           "name":  params['controller']['name'],
            "input_size": controller_inputs_size,
            "output_size": self.controller_hidden_state_size,
            "num_layers": 1

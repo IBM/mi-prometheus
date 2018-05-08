@@ -11,17 +11,17 @@ class ControllerFactory(object):
     
     @staticmethod
     def build_model(params):
-        """ Static method returning particular model, depending on the name provided in the list of parameters.
+        """ Static method returning particular controller, depending on the name provided in the list of parameters.
         
-        :param params: Dictionary of parameters (in particular containing 'name' which is equivalend to model name)
+        :param params: Dictionary of parameters (in particular containing 'name' which is equivalend to controller name)
         :returns: Instance of a given model.
         """
         # Check name
-        if 'type' not in params:
-            print("Model parameter dictionary does not contain 'controller type'")
+        if 'name' not in params:
+            print("Model Controller parameter dictionary does not contain 'name'")
             raise ValueError
         # Try to load model
-        name = params['type']
+        name = params['name']
         if name == 'lstm':
             from lstm_controller import LSTMController
             return LSTMController(params)
