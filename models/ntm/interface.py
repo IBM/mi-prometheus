@@ -99,16 +99,17 @@ class Interface(torch.nn.Module):
         :param ctrl_hidden_state_BxH: a Tensor with controller hidden state of size [BATCH_SIZE  x HIDDEN_SIZE]
         :param prev_memory_BxAxC: Previous state of the memory [BATCH_SIZE x  MEMORY_ADDRESSES x CONTENT_BITS] 
         :param prev_state_tuple: Tuple containing previous read and write attention vectors.
-        :returns: Read vector, updated memory and state tuple (object of LSTMStateTuple class).
+        :returns: List of read vectors [BATCH_SIZE x CONTENT_SIZE], updated memory and state tuple (object of LSTMStateTuple class).
         """
         # Unpack previous cell  state - just to make sure that everything is ok...
-        (prev_read_attentions_BxAx1_H,  prev_write_attention) = prev_state_tuple
+        (prev_read_attentions_BxAx1_H,  prev_write_attention_BxAx1) = prev_state_tuple
         
         # !! Execute single step !!
         
         # Read attentions 
         read_attentions_BxAx1_H = []
-        read_vectors_Bx1xC_H = []
+        # List of read vectors - with two dimensions! [BATCH_SIZE x CONTENT_SIZE]
+        read_vectors_BxC_H = []
 
         # Read heads.
         for i in range(self.interface_num_read_heads):
@@ -118,30 +119,39 @@ class Interface(torch.nn.Module):
             # Split the parameters.
             query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1 = self.split_params(params_BxP,  self.read_param_locations)
 
-            # Update the attention of a given head.
-            attention_BxAx1 = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attentions_BxAx1_H[i])
-            logger.debug("attention_BxAx1 {}:\n {}".format(attention_BxAx1.size(),  attention_BxAx1))  
+            # Update the attention of a given read head.
+            read_attention_BxAx1 = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attentions_BxAx1_H[i])
+            logger.debug("read_attention_BxAx1 {}:\n {}".format(read_attention_BxAx1.size(),  read_attention_BxAx1))  
 
             # Read vector from memory [BATCH_SIZE x CONTENT_BITS x 1].
-            read_vector_Bx1xC = torch.matmul(torch.transpose(attention_BxAx1,  1, 2),  prev_memory_BxAxC)
+            read_vector_Bx1xC = torch.matmul(torch.transpose(read_attention_BxAx1,  1, 2),  prev_memory_BxAxC)
             logger.debug("read_vector_Bx1xC {}:\n {}".format(read_vector_Bx1xC.size(),  read_vector_Bx1xC))  
             
-            # Save read attentions and vectors.
-            read_attentions_BxAx1_H.append(attention_BxAx1)
-            read_vectors_Bx1xC_H.append(read_vector_Bx1xC)
+            # Save read attentions and vectors in a list.
+            read_attentions_BxAx1_H.append(read_attention_BxAx1)
+            read_vectors_BxC_H.append(read_vector_Bx1xC.squeeze(dim=1))
             
         # Write head operation.
-        # TODO
+        # Calculate parameters of a given read head.
+        params_BxP = self.hidden2write_params(ctrl_hidden_state_BxH)
+
+        # Split the parameters.
+        query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  erase_vector_BxC,  add_vector_BxC  = self.split_params(params_BxP,  self.write_param_locations)
+
+        # Update the attention of the write head.
+        write_attention_BxAx1 = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_write_attention_BxAx1)
+        logger.debug("write_attention_BxAx1 {}:\n {}".format(write_attention_BxAx1.size(),  write_attention_BxAx1))  
+
+        # Update the memory.
           
         # TODO:  REMOVE THOSE LINES.
-        write_attention = prev_write_attention
         memory_BxAxC = prev_memory_BxAxC
         
         # Pack current cell state.
-        state_tuple = InterfaceStateTuple(read_attentions_BxAx1_H,  write_attention)
+        state_tuple = InterfaceStateTuple(read_attentions_BxAx1_H,  write_attention_BxAx1)
         
         # Return read vector, new memory state and state tuple.
-        return 0, memory_BxAxC,  state_tuple
+        return read_vectors_BxC_H, memory_BxAxC,  state_tuple
  
     def calculate_param_locations(self,  param_sizes_dict,  head_name):
         """ Calculates locations of parameters, that will subsequently be used during parameter splitting.
@@ -210,11 +220,11 @@ class Interface(torch.nn.Module):
         :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: attention of size [BATCH_SIZE x ADDRESS_SIZE x 1]
         """
-        # Normalize query batch - along samples.
+        # Normalize query batch - along content.
         norm_query_vector_Bx1xC = F.normalize(query_vector_Bx1xC, p=2,  dim=2)
         logger.debug("norm_query_vector_Bx1xC {}:\n {}".format(norm_query_vector_Bx1xC.size(),  norm_query_vector_Bx1xC))  
 
-        # Normalize memory - along addresses. 
+        # Normalize memory - along content. 
         norm_memory_BxAxC = F.normalize(prev_memory_BxAxC, p=2,  dim=2)
         logger.debug("norm_memory_BxAxC {}:\n {}".format(norm_memory_BxAxC.size(),  norm_memory_BxAxC))  
         
@@ -246,8 +256,7 @@ class Interface(torch.nn.Module):
         
         # 2. Perform Sharpening.
         sharpened_attention_BxAx1 = self.sharpening(shifted_attention_BxAx1,  gamma_Bx1x1)
-        
-        exit(1)         
+               
         return sharpened_attention_BxAx1
 
     def circular_convolution(self,  attention_BxAx1,  shift_BxSx1,  prev_memory_BxAxC):
@@ -308,12 +317,17 @@ class Interface(torch.nn.Module):
         :param gamma_Bx1x1: sharpening factor [BATCH_SIZE x 1 x 1]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
         """
+        #gamma_Bx1x1[0][0][0]=40
+        #gamma_Bx1x1[0][0][0]=10
+        
         logger.debug("gamma_Bx1x1 {}:\n {}".format(gamma_Bx1x1.size(),  gamma_Bx1x1))
                     
         # Power.        
         pow_attention_BxAx1 = torch.pow(attention_BxAx1,  gamma_Bx1x1)
         logger.debug("pow_attention_BxAx1 {}:\n {}".format(pow_attention_BxAx1.size(),  pow_attention_BxAx1))
         
-        
-        exit(1)         
-        return shifted_attention_BxAx1
+        # Normalize along addresses. 
+        norm_attention_BxAx1 = F.normalize(pow_attention_BxAx1, p=1,  dim=1)
+        logger.debug("norm_attention_BxAx1 {}:\n {}".format(norm_attention_BxAx1.size(),  norm_attention_BxAx1))
+  
+        return norm_attention_BxAx1

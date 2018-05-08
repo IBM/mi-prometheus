@@ -104,7 +104,9 @@ class NTMCell(torch.nn.Module):
         (prev_ctrl_state_tuple, prev_interface_state_tuple,  prev_memory_BxAxC, prev_read_vectors_BxC_H) = prev_cell_state
 
         # Concatenate inputs with read vectors [BATCH_SIZE x (INPUT + NUM_HEADS * MEMORY_CONTENT_BITS)]
-        read_vectors = torch.cat(prev_read_vectors_BxC_H, dim=0)
+        #print("prev_read_vectors_BxC_H =", prev_read_vectors_BxC_H[0].size())
+        read_vectors = torch.cat(prev_read_vectors_BxC_H, dim=1)
+        #print("read_vectors =", read_vectors.size())
         controller_input = torch.cat((inputs_BxI,  read_vectors), dim=1)
         
         # Execute controller forward step.
@@ -117,7 +119,7 @@ class NTMCell(torch.nn.Module):
         logits_BxO = self.hidden2output(ctrl_output_BxH)
 
         # TODO:  REMOVE THOSE LINES!!
-        read_vectors_BxC_H = prev_read_vectors_BxC_H
+        #read_vectors_BxC_H = prev_read_vectors_BxC_H
         
         # Pack current cell state.
         cell_state_tuple = NTMCellStateTuple(ctrl_state_tuple, interface_state_tuple,  memory_BxAxC, read_vectors_BxC_H)

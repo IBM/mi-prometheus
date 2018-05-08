@@ -63,7 +63,7 @@ if __name__ == "__main__":
     # "Loaded parameters".
     params = {'num_control_bits': 2, 'num_data_bits': 8, # input and output size
         'controller': {'name': 'rnn', 'hidden_state_size': 5},  # controller parameters
-        'interface': {'num_read_heads': 1,  'shift_size': 3},  # interface parameters
+        'interface': {'num_read_heads': 2,  'shift_size': 3},  # interface parameters
         'memory': {'num_addresses' :4, 'num_content_bits': 7} # memory parameters
         }
         
@@ -76,16 +76,17 @@ if __name__ == "__main__":
     seq_length = 1
     batch_size = 2
     
+    # Construct our model by instantiating the class defined above
+    model = NTM(params)
+    
     # Check for different seq_lengts and batch_sizes.
-    for i in range(1):
+    for i in range(2):
         # Create random Tensors to hold inputs and outputs
         x = torch.randn(batch_size, seq_length,   input_size)
         y = torch.randn(batch_size, seq_length,  output_size)
 
-        # Construct our model by instantiating the class defined above
-        model = NTM(params)
-
         # Test forward pass.
+        logger.info("------- forward -------")
         y_pred = model(x)
 
         logger.info("------- result -------")
