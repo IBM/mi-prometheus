@@ -1,20 +1,19 @@
 # Problem parameters:
 problem_train:
-    name: &name distraction_carry
-    # Size of generated input: [batch_size x sequence_length x number of control and data bits].
-    control_bits: &cbits 4
+    name: &name serial_recall_original
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: &cbits 2
     data_bits: &dbits 8
-    batch_size: 1
-    # Parameters denoting min and max lengths.
+    batch_size: &bs 10
+    # Parameters denoting min and max lengths. 
     min_sequence_length: 1
-    max_sequence_length: 1
-    #Parameter of curriculum learning, increase the max_sequence_length
-    #every ```curriculum_learning_interval```
-    curriculum_learning: True
-    curriculum_learning_interval: 2000
-    num_subseq_min: 1
-    num_subseq_max: 3
+    max_sequence_length: 10
     bias: 0.5
+   #Parameter of curriculum learning, increase the max_sequence_length
+    #every ```curriculum_learning_interval```
+    curriculum_learning: False
+    curriculum_learning_interval: 400
+
 
 # Problem parameters:
 problem_test:
@@ -22,13 +21,12 @@ problem_test:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 64
+    batch_size: 1
     # Parameters denoting min and max lengths.
     min_sequence_length: 100
-    max_sequence_length: 100
-    num_subseq_min: 4
-    num_subseq_max: 4
+    max_sequence_length: 1000
     bias: 0.5
+
 
 # Problem parameters:
 problem_validation:
@@ -36,34 +34,35 @@ problem_validation:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 5
+    batch_size: 10
     # Parameters denoting min and max lengths.
-    min_sequence_length: 20
-    max_sequence_length: 20
-    num_subseq_min: 5
-    num_subseq_max: 5
+    min_sequence_length: 60
+    max_sequence_length: 60
     bias: 0.5
+
 
 # Model parameters:
 model:
-    name: dwm   # dynamic_working_memory
+    name: dnc   # differential neural computer
     # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
-    control_bits: *cbits
+    control_bits: *cbits 
     data_bits: *dbits
+    batch_size: *bs
     # Controller hidden state.
-    hidden_state_dim: 5
+    hidden_state_dim: 20
     # Memory (?).
     memory_content_size: 10
-    memory_addresses_size: -1
+    memory_addresses_size: 60
     # Number of heads.
     num_heads: 1
     # Addressing parameters.
-    use_content_addressing: False
+    use_content_addressing: True
     shift_size: 3
+    controller_type: rnn
     # active the plotting of the memory and attention
     plot_memory: False
-
+    
 # optimizer parameters:
 optimizer:
     # Exact name of the pytorch optimizer function
@@ -77,6 +76,6 @@ settings:
     use_mask: True
     length_loss: 10
     loss_stop: 1.0e-4
-    max_episodes: 50000
+    max_episodes: 20000
     seed_numpy: 0
     seed_torch: 2

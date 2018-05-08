@@ -1,13 +1,23 @@
-.DS_Store
-.ipynb_checkpoints/
-.idea/
-__pycache__
-msgs.log
-.Models/
-.eric6project
-*.e4p
-checkpoints/
-
-
-
-
+# Ignore everything
+*
+# But descend into directories
+!*/
+# Recursively allow files under subtree
+!train.py
+!test.py
+!Readme.md
+!__init__.py
+!/models/**
+!/problems/**
+!/confgiuration/**
+!/tasks/**
+# You can be specific with these rules
+!/docs/conf.py
+!/docs/index.rst
+!/docs/Makefile
+!/docs/make.bat
+!/docs/source/conf.py
+!/docs/source/index.rst
+__pycache__*
+*.swp
+!.gitignore

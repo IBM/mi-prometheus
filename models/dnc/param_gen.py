@@ -1,0 +1,165 @@
+import torch
+from torch import nn
+import torch.nn.functional as F
+import numpy as np
+import pdb
+
+
+
+class Param_Generator(nn.Module):
+    def __init__(self,
+               param_in_dim,
+         #      memory_size=128,
+               word_size=20,
+               num_reads=1,
+               num_writes=1,
+               shift_size=3):
+
+        """Initialize all the parameters of the interface
+
+        :param param_in_dim: input size. (typically the size of the hidden state)
+        :param word_size: size of the word in memory 
+        :param num_reads: number of read heads
+        :param num_writes: number of write heads
+        :param shift_size: size of the shift vector (3 means it can go forward, backward and remain in place)
+        """
+        super(Param_Generator, self).__init__()
+
+
+        #self._memory_size = memory_size
+        self._word_size = word_size
+        self._num_reads = num_reads
+        self._num_writes = num_writes
+        self._num_shifts = shift_size
+       
+        # v_t^i - The vectors to write to memory, for each write head `i`.
+        self.write_vect_ = nn.Linear(param_in_dim, self._num_writes*self._word_size)
+        
+        # e_t^i - Amount to erase the memory by before writing, for each write head.
+        self.erase_vect_ = nn.Linear(param_in_dim, self._num_writes*self._word_size)
+       
+        # f_t^j - Amount that the memory at the locations read from at the previous
+        # time step can be declared unused, for each read head `j`.
+        self.free_gate_ = nn.Linear(param_in_dim, self._num_reads)
+      
+        # g_t^{a, i} - Interpolation between writing to unallocated memory and
+        # content-based lookup, for each write head `i`. Note: `a` is simply used to
+        # identify this gate with allocation vs writing (as defined below).
+        self.allocate_gate_ = nn.Linear(param_in_dim, self._num_writes)
+      
+        # g_t^{w, i} - Overall gating of write amount for each write head.
+        self.write_gate_ = nn.Linear(param_in_dim, self._num_writes)
+       
+ 
+        # g_t^{r, i} - Overall gating of w amount for each write head.
+        #self.read_gate_ = nn.Linear(param_in_dim, self._num_reads)
+
+        # \pi_t^j - Mixing between "backwards" and "forwards" positions (for
+        # each write head), and content-based lookup, for each read head.
+        num_read_modes=1+2 * self._num_writes
+        self.read_mode_ = nn.Linear(param_in_dim, self._num_reads*num_read_modes)
+        
+        # Parameters for the (read / write) "weights by content matching" modules.
+        self.write_keys_ = nn.Linear(param_in_dim, self._num_writes*self._word_size)
+        self.write_strengths_ = nn.Linear(param_in_dim, self._num_writes)
+
+        self.read_keys_ = nn.Linear(param_in_dim, self._num_reads*self._word_size)
+        self.read_strengths_ = nn.Linear(param_in_dim, self._num_reads)
+      
+        # \gamma, sharpening parameter for the weights
+        #self._ = nn.Linear(input_dim, self._num_writes)
+ 
+        #s_j The shift vector that defines the circular convolution of the outputs
+        self.shifts_ = nn.Linear(param_in_dim, self._num_shifts*self._num_writes)
+        
+        # \gamma, sharpening parameter for the weights
+        self.sharpening_ = nn.Linear(param_in_dim, self._num_writes)
+        self.sharpening_r_ = nn.Linear(param_in_dim, self._num_reads) 
+        self.shifts_r_ = nn.Linear(param_in_dim, self._num_shifts*self._num_reads)
+
+
+        #rest parameters
+        #self.reset_parameters()
+
+    def forward(self, vals):
+        """
+        Calculates the controller parameters
+        
+        :param vals: data from the controller (from time t). Typically, the hidden state.  [BATCH_SIZE x INPUT_SIZE]
+        :return update_data: dictionary (update_data contains all of the controller parameters)
+        """
+        
+        update_data={}
+
+
+        # v_t^i - The vectors to write to memory, for each write head `i`.
+       # self.write_vect_ = nn.Linear(input_dim, self._num_writes*self._word_size)
+        
+        update_data['write_vectors'] = self.write_vect_(vals).view(-1,self._num_writes,self._word_size)
+        # e_t^i - Amount to erase the memory by before writing, for each write head.
+        #self.erase_vect_ = nn.Linear(input_dim, self._num_writes*self._word_size,F.sigmoid)
+      
+        erase_vec=F.sigmoid(self.erase_vect_(vals))  # [batch, num_writes*word_size]
+ 
+        update_data['erase_vectors'] = erase_vec.view(-1,self._num_writes,self._word_size)
+        # f_t^j - Amount that the memory at the locations read from at the previous
+        # time step can be declared unused, for each read head `j`.
+        
+        #self.free_gate_ = nn.Linear(input_dim, self._num_reads, activation=F.sigmoid)
+        
+        #update_data['read_gate'] = F.sigmoid(self.free_gate_(vals)) 
+        
+        update_data['free_gate'] = F.sigmoid(self.free_gate_(vals)).view(-1,self._num_reads,1)
+        # g_t^{a, i} - Interpolation between writing to unallocated memory and
+        # content-based lookup, for each write head `i`. Note: `a` is simply used to
+        # identify this gate with allocation vs writing (as defined below).
+        #self.allocate_gate_ = nn.Linear(input_dim, self._num_writes, activation=F.sigmoid)
+      
+        update_data['allocation_gate'] = F.sigmoid(self.allocate_gate_(vals)).view(-1,self._num_writes,1)
+        # g_t^{w, i} - Overall gating of write amount for each write head.
+        #self.write_gate_ = nn.Linear(input_dim, self._num_writes, activation=F.sigmoid)
+
+        update_data['write_gate'] = F.sigmoid(self.write_gate_(vals)).view(-1,self._num_writes,1)
+        # \pi_t^j - Mixing between "backwards" and "forwards" positions (for
+        # each write head), and content-based lookup, for each read head.
+        #Need to apply softmax batch-wise to the second index. This will not work
+        num_read_modes=1+2 * self._num_writes
+        
+        read_mode=F.softmax(self.read_mode_(vals),-1)
+
+        update_data['read_mode'] = read_mode.view(-1,self._num_reads,num_read_modes)
+
+        def strengths_act(x):
+            return F.softplus(x)
+
+        # Parameters for the (read / write) "weights by content matching" modules.
+        
+        update_data['write_content_keys'] = self.write_keys_(vals).view(-1,self._num_writes,self._word_size)
+
+
+        #according the DeepMind paper, this should be oneplus but according to the DeepMind code it is softplus
+        update_data['write_content_strengths'] = F.softplus(self.write_strengths_(vals)).view(-1,self._num_writes,1)
+
+        
+        update_data['read_content_keys'] = self.read_keys_(vals).view(-1,self._num_reads,self._word_size)
+       
+        update_data['read_content_strengths'] = F.softplus(self.read_strengths_(vals)).view(-1,self._num_reads,1) 
+       
+
+        #s_j The shift vector that defines the circular convolution of the outputs
+        
+        shifts = F.softmax(F.softplus(self.shifts_(vals)),dim=-1)
+        update_data['shifts'] = shifts.view(-1,self._num_writes,self._num_shifts)
+         
+        shifts_r = F.softmax(F.softplus(self.shifts_r_(vals)),dim=-1)
+        update_data['shifts_read'] = shifts_r.view(-1,self._num_reads,self._num_shifts)
+        
+        # \gamma, sharpening parameter for the weights
+        update_data['sharpening'] =1+F.softplus(self.sharpening_(vals)).view(-1,self._num_writes,1)
+        
+        update_data['sharpening_read'] =1+F.softplus(self.sharpening_r_(vals)).view(-1,self._num_reads,1)
+         
+
+        return update_data
+
+

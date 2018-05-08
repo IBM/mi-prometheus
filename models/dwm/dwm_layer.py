@@ -10,6 +10,7 @@ from models.dwm.dwm_cell import DWMCell
 
 from misc.app_state import AppState
 from models.model_base import ModelBase
+import matplotlib.pyplot as plt
 
 CUDA = False
 dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
@@ -78,15 +79,16 @@ class DWM(ModelBase, nn.Module):
             output_cell = output_cell[..., None, :]
             if output is None:
                 output = output_cell
-                continue
 
             # concatenate output
-            output = torch.cat([output, output_cell], dim=-2)
+            else:
+                output = torch.cat([output, output_cell], dim=-2)
 
             # This is for the time plot
             if self.app_state.visualize:
                 self.cell_state_history.append((cell_state[3].detach().numpy(),
-                                                cell_state[1].detach().numpy()))
+                                                cell_state[1].detach().numpy(),
+                                                cell_state[2].detach().numpy()))
 
         return output
 
@@ -115,34 +117,75 @@ class DWM(ModelBase, nn.Module):
         target_seq = target_seq.numpy()
 
         pred_matrix = np.zeros(output_seq.shape)
+        target_matrix = np.zeros(target_seq.shape)
+        input_matrix = np.zeros(input_seq.shape)
+        # wt : head attention
+        # wt_d: attention snapshot
 
-        for i, (input_word, output_word, target_word, (memory, wt)) \
+        for i, (input_word, output_word, target_word, (memory, wt, wt_d)) \
                 in enumerate(zip(input_seq,
                                  output_seq,
                                  target_seq,
                                  self.cell_state_history)):
 
             pred_matrix[i] = output_word
+            target_matrix[i] = target_word
+            input_matrix[i] = input_word
 
             fig = Figure()
-            ax1 = fig.add_subplot(221)
-            ax2 = fig.add_subplot(212)
-            ax3 = fig.add_subplot(222)
+            ax1 = fig.add_subplot(323)
+            ax2 = fig.add_subplot(325, sharex=ax1)
+            ax3 = fig.add_subplot(321, sharex=ax1)
+            ax4 = fig.add_subplot(322)
+            ax5 = fig.add_subplot(324, sharex=ax4)
+            ax6 = fig.add_subplot(326, sharex=ax4)
 
+            # head attention weights
             ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-            ax1.set_title("Attention", fontname='Times New Roman', fontsize=15)
-            ax1.plot(np.arange(wt.shape[-1]), wt[0, 0, :], 'go')
+            ax1.set_ylabel("Weights", fontname='Times New Roman', fontsize=13)
+            ax1.plot(np.arange(wt.shape[-1]), wt[0, 0, :], 'go', label='attention head')
+            plt.setp(ax1.get_xticklabels(), visible=False)
+            ax1.legend()
 
+            # snapshot attention weight
+            weight_address_0 = np.zeros_like(wt_d[0, 0, :])
+            weight_address_0[0] = 1
             ax2.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-            ax2.set_ylabel("Word size", fontname='Times New Roman', fontsize=15)
-            ax2.set_xlabel("Memory addresses", fontname='Times New Roman', fontsize=15)
-            ax2.set_title("Task: xxx", fontname='Times New Roman', fontsize=15)
+            ax2.plot(np.arange(wt.shape[-1]), wt_d[0, 0, :], 'bo', label='dynamic snapshot')
+            ax2.plot(np.arange(wt.shape[-1]), weight_address_0, 'go', label='fixed snapshot')
+            ax2.set_xlabel("Memory addresses", fontname='Times New Roman', fontsize=13)
+            ax2.set_ylabel("Weights", fontname='Times New Roman', fontsize=13)
+            ax2.legend()
 
-            ax2.imshow(memory[0, :, :], interpolation='nearest')
-
+            # memory content of the first batch
             ax3.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-            ax3.set_title("Prediction", fontname='Times New Roman', fontsize=15)
-            ax3.imshow(np.transpose(pred_matrix, [1, 0]))
+            ax3.set_ylabel("Word size", fontname='Times New Roman', fontsize=13)
+            ax3.set_title("Memory", fontname='Times New Roman', fontsize=13)
+            ax3.imshow(memory[0, :, :], interpolation='nearest')
+            plt.setp(ax3.get_xticklabels(), visible=False)
+
+            # input content
+            ax4.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            ax4.set_ylabel("Data bits/Control bits", fontname='Times New Roman', fontsize=13)
+            ax4.set_title("Input", fontname='Times New Roman', fontsize=13)
+            ax4.imshow(np.transpose(input_matrix, [1, 0]))
+            plt.setp(ax4.get_xticklabels(), visible=False)
+
+            # target content
+            ax5.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            ax5.set_ylabel("Data bits", fontname='Times New Roman', fontsize=13)
+            ax5.set_title("Target", fontname='Times New Roman', fontsize=13)
+            ax5.imshow(np.transpose(target_matrix, [1, 0]))
+            plt.setp(ax5.get_xticklabels(), visible=False)
+
+            # prediction content 
+            ax6.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            ax6.set_ylabel("Data bits", fontname='Times New Roman', fontsize=13)
+            ax6.set_title("Prediction", fontname='Times New Roman', fontsize=13)
+            ax6.set_xlabel("Item number", fontname='Times New Roman', fontsize=13)
+            ax6.imshow(np.transpose(pred_matrix, [1, 0]))
+
+
 
             figs.append(fig)
 
