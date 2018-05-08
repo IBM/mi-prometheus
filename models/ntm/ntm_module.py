@@ -57,7 +57,6 @@ class NTM(torch.nn.Module):
         return output_logits_BxSxO
 
 
-
 if __name__ == "__main__":
     # Set logging level.
     logging.basicConfig(level=logging.DEBUG)

@@ -37,6 +37,8 @@ class Interface(torch.nn.Module):
         self.num_memory_content_bits = params['memory']['num_content_bits']
         # Get interface parameters.
         self.interface_shift_size = params['interface']['shift_size']
+        assert self.interface_shift_size % 2 != 0,  'Shift size must be an odd number'
+        assert self.interface_shift_size >0,  'Shift size must be > 0'
         self.interface_num_read_heads = params['interface']['num_read_heads']
         assert self.interface_num_read_heads >= 1, "NTM requires at least 1 read head (currently %r)" % self.interface_num_read_heads     
 
@@ -177,8 +179,8 @@ class Interface(torch.nn.Module):
         query_vector_Bx1xC = F.sigmoid(query_vector_BxC).unsqueeze(1) # I didn't have that non-linear transformation in TF!
         beta_Bx1x1 = F.softplus(beta_Bx1).unsqueeze(1)
         gate_Bx1x1 = F.sigmoid(gate_Bx1).unsqueeze(1)
-        shift_BxSx1 = F.sigmoid(shift_BxS).unsqueeze(1)
-        gamma_Bx1x1 = F.sigmoid(gamma_Bx1).unsqueeze(1)
+        shift_BxSx1 = F.softmax(shift_BxS, dim=1).unsqueeze(2)
+        gamma_Bx1x1 = F.sigmoid(gamma_Bx1).unsqueeze(2)
         #gamma_Bx1x1 = tf.nn.softplus(params[:, self.slot_size+2:self.slot_size+3], name='gamma')
         #shift_BxSx1 = tf.nn.softmax(params[:, self.slot_size+3:], name='shift')
         
@@ -192,7 +194,7 @@ class Interface(torch.nn.Module):
         logger.debug("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
 
         # Location-based addressing.
-        location_attention_BxAx1 = self.location_based_addressing(attention_after_gating_BxAx1,  shift_BxSx1,  gamma_Bx1x1)
+        location_attention_BxAx1 = self.location_based_addressing(attention_after_gating_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC)
         logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))    
         
         return location_attention_BxAx1
@@ -226,14 +228,58 @@ class Interface(torch.nn.Module):
         logger.debug("attention_BxAx1 {}:\n {}".format(attention_BxAx1.size(),  attention_BxAx1))    
         return attention_BxAx1
 
-    def location_based_addressing(self,  attention_BxAx1,  shift_BxSx1,  gamma_Bx1x):
-        """ Computes location-based addressing, i.e. shitfts the head if required.
-        :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+    def location_based_addressing(self,  attention_BxAx1,  shift_BxSx1,  gamma_Bx1x,  prev_memory_BxAxC):
+        """ Computes location-based addressing, i.e. shitfts the head and sharpens.
         
+        :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
+        :param shift_BxSx1: soft shift maks (convolutional kernel) [BATCH_SIZE x SHIFT_SIZE x 1]
+        :param gamma_Bx1x1: sharpening factor [BATCH_SIZE x 1 x 1]
+        :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
         """
+        def circular_index(idx, num_addr):
+            """ Calculates the index, taking into consideration the number of addresses in memory.
+            :param idx: index (single element)
+            :param num_addr: number of addresses in memory
+            """
+            if idx < 0: return num_addr + idx
+            elif idx >= num_addr : return idx - num_addr
+            else: return idx
+
+        # Get number of memory addresses.
+        num_addr = prev_memory_BxAxC.size(1)
+        batch_size =prev_memory_BxAxC.size(0) 
+        shift_size = self.interface_shift_size
         
+        logger.debug("shift_BxSx1 {}: {}".format(shift_BxSx1,  shift_BxSx1.size()))    
+        # Create an extended list of indices indicating what elements of the sequence will be where.
+        ext_indices_tensor = torch.Tensor([circular_index(shift, num_addr) for shift in range(-shift_size//2+1,  num_addr+shift_size//2)]).long()
+        logger.debug("ext_indices {}:\n {}".format(ext_indices_tensor.size(),  ext_indices_tensor))
+    
+        # Use indices for creation of an extended attention vector.
+        ext_attention_BxEAx1 = torch.index_select(attention_BxAx1,  dim=1,  index=ext_indices_tensor)
+        logger.debug("ext_attention_BxEAx1 {}:\n {}".format(ext_attention_BxEAx1.size(),  ext_attention_BxEAx1))    
         
-        loc_attention_BxAx1 = attention_BxAx1
+        # Transpose inputs to convolution.
+        ext_att_trans_Bx1xEA = torch.transpose(ext_attention_BxEAx1,  1, 2)
+        shift_trans_Bx1xS = torch.transpose(shift_BxSx1,  1,  2)
+        # Perform  convolution for every batch-filter pair.
+        tmp_attention_list = []
+        for b in range(batch_size):
+            tmp_attention_list.append(F.conv1d(ext_att_trans_Bx1xEA.narrow(0, b, 1),  shift_trans_Bx1xS.narrow(0, b, 1)))
+        # Concatenate list into a single tensor.
+        shifted_attention_BxAx1 = torch.cat(tmp_attention_list,  dim=0)
+        logger.debug("shifted_attention_BxAx1 {}:\n {}".format(shifted_attention_BxAx1.size(),  shifted_attention_BxAx1))
         
-        return loc_attention_BxAx1
+        # Manual test of convolution
+        #sum = 0
+        #el =0
+        #b = 0
+        #for i in range(3):
+        #    sum += ext_attention_BxEAx1[b][el+i][0] * shift_BxSx1[b][i][0]
+        #print("SUM= ", sum)
+        exit(1)
+        
+        # Sharpening.
+         
+        return shifted_attention_BxAx1
