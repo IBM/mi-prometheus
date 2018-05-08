@@ -6,7 +6,7 @@ __author__ = "Ryan L. McAvoy"
 
 class ControllerFactory(object):
     """   
-    Class returning concrete controllers depending on the name provided in the list of parameters.
+    Class returning concrete controller depending on the name provided in the list of parameters.
     """
     
     @staticmethod
