@@ -26,8 +26,8 @@ class RNNController(nn.Module):
         self.input_size = params["input_size"]
         self.ctrl_hidden_state_size = params["output_size"]
         #self.hidden_state_dim = params["hidden_state_dim"]
-        self.num_layers = params["num_layers"]
         self.non_linearity = params["non_linearity"]
+        self.num_layers = params["num_layers"]
         assert self.num_layers > 0, "Number of layers should be > 0"
 
         super(RNNController, self).__init__()

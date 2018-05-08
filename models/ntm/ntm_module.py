@@ -20,7 +20,7 @@ class NTM(torch.nn.Module):
 
         # Parse parameters.
         # It is stored here, but will we used ONLY ONCE - for initialization of memory called from the forward() function.
-        self.num_memory_addresses = params['num_memory_addresses']
+        self.num_memory_addresses = params['memory']['num_addresses']
         
         # Initialize recurrent NTM cell.
         self.cell = NTMCell(params)
@@ -57,15 +57,14 @@ class NTM(torch.nn.Module):
         return output_logits_BxSxO
 
 
-
 if __name__ == "__main__":
     # Set logging level.
     logging.basicConfig(level=logging.DEBUG)
     # "Loaded parameters".
     params = {'num_control_bits': 2, 'num_data_bits': 8, # input and output size
-        'ctrl_type': 'ff', 'ctrl_hidden_state_size': 5,  # controller parameters
-        'interface_num_read_heads': 1,  'interface_shift_size': 3,  # interface parameters
-        'num_memory_addresses' :4, 'num_memory_bits': 7 # memory parameters
+        'controller': {'name': 'rnn', 'hidden_state_size': 5,  'num_layers': 1, 'non_linearity': 'none'},  # controller parameters
+        'interface': {'num_read_heads': 2,  'shift_size': 3},  # interface parameters
+        'memory': {'num_addresses' :4, 'num_content_bits': 7} # memory parameters
         }
         
     logger = logging.getLogger('NTM-Module')
@@ -75,24 +74,25 @@ if __name__ == "__main__":
     output_size = params["num_data_bits"]
         
     seq_length = 1
-    batch_size = 1
+    batch_size = 2
+    
+    # Construct our model by instantiating the class defined above
+    model = NTM(params)
     
     # Check for different seq_lengts and batch_sizes.
-    for i in range(1):
+    for i in range(2):
         # Create random Tensors to hold inputs and outputs
         x = torch.randn(batch_size, seq_length,   input_size)
         y = torch.randn(batch_size, seq_length,  output_size)
 
-        # Construct our model by instantiating the class defined above
-        model = NTM(params)
-
         # Test forward pass.
+        logger.info("------- forward -------")
         y_pred = model(x)
 
         logger.info("------- result -------")
-        logger.info("input {}: {}".format(x.size(), x))
-        logger.info("target.size(): {}".format(y.size()))
-        logger.info("prediction {}: {}".format(y_pred.size(), y_pred))
+        logger.info("input {}:\n {}".format(x.size(), x))
+        logger.info("target.size():\n {}".format(y.size()))
+        logger.info("prediction {}:\n {}".format(y_pred.size(), y_pred))
     
         # Change batch size and seq_length.
         seq_length = seq_length+1

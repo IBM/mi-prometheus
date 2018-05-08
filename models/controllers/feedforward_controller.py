@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""lstm_controller.py: pytorch module implementing wrapper for feedforward controller of NTM."""
-__author__ = "Ryan L. McAvoy"
+"""lstm_controller.py: pytorch module implementing wrapper for feedforward controller."""
+__author__ = "Tomasz Kornuta/Ryan L. McAvoy"
 
 import torch 
 

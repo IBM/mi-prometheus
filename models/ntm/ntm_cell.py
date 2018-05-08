@@ -6,6 +6,9 @@ __author__ = "Tomasz Kornuta"
 import torch 
 import collections
 from interface import Interface
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
+from controller_factory import ControllerFactory
 
 # Helper collection type.
 _NTMCellStateTuple = collections.namedtuple('NTMCellStateTuple', ('ctrl_state', 'interface_state',  'memory_state', 'read_vectors'))
@@ -33,28 +36,31 @@ class NTMCell(torch.nn.Module):
         self.input_size = params["num_control_bits"] + params["num_data_bits"]
         self.output_size = params["num_data_bits"]
         # Get controller hidden state size.
-        self.ctrl_hidden_state_size = params['ctrl_hidden_state_size']
+        self.controller_hidden_state_size = params['controller']['hidden_state_size']
         
         # Get memory parameters - required by initialization of read vectors. :]
-        self.num_memory_bits = params['num_memory_bits']
+        self.num_memory_content_bits = params['memory']['num_content_bits']
         # Get interface parameters - required by initialization of read vectors. :]
-        self.interface_num_read_heads = params['interface_num_read_heads']
-        
-        # Controller - entity that processes input and produces hidden state of the ntm cell.
-        if params["ctrl_type"] == 'ff':
-            from feedforward_controller import FeedforwardController            
-            self.controller = FeedforwardController(params)
-        elif params["ctrl_type"] == 'lstm':
-            from lstm_controller import LSTMController            
-            self.controller = LSTMController(params)
-        else:
-            raise ValueError
-        
+        self.interface_num_read_heads = params['interface']['num_read_heads']
+
+        # Controller - entity that processes input and produces hidden state of the ntm cell.        
+        # controller_input_size = input_size + read_vector_size * num_read_heads
+        controller_inputs_size = self.input_size +  self.num_memory_content_bits*self.interface_num_read_heads
+        # Create dictionary wirh controller parameters.
+        controller_params = {
+           "name":  params['controller']['name'],
+           "input_size": controller_inputs_size,
+           "output_size": self.controller_hidden_state_size,
+           "non_linearity": params['controller']['non_linearity'], 
+           "num_layers": params['controller']['num_layers']
+        }
+        # Build the controller.
+        self.controller = ControllerFactory.build_model(controller_params)        
         # Interface - entity responsible for accessing the memory.
         self.interface = Interface(params)
 
         # Layer that produces output on the basis of... hidden state?
-        self.hidden2output = torch.nn.Linear(self.ctrl_hidden_state_size, self.output_size)
+        self.hidden2output = torch.nn.Linear(self.controller_hidden_state_size, self.output_size)
         
         
     def init_state(self,  batch_size,  num_memory_addresses):
@@ -73,18 +79,18 @@ class NTMCell(torch.nn.Module):
         # Initialize interface state. 
         interface_init_state =  self.interface.init_state(batch_size,  num_memory_addresses)
 
-        # Memory [BATCH_SIZE x MEMORY_BITS x MEMORY_ADDRESSES] 
-        init_memory_BxMxA = torch.empty(batch_size,  self.num_memory_bits,  num_memory_addresses)
-        torch.nn.init.normal_(init_memory_BxMxA, mean=0.5, std=0.2)
+        # Memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS] 
+        init_memory_BxAxC = torch.empty(batch_size,  num_memory_addresses,  self.num_memory_content_bits)
+        torch.nn.init.normal_(init_memory_BxAxC, mean=0.5, std=0.2)
         
         # Initialize read vectors - one for every head.
-        read_vectors_BxM_H = []
+        read_vectors_BxC_H = []
         for _ in range(self.interface_num_read_heads):
-            # Read vector [BATCH_SIZE x MEMORY_BITS]
-            read_vectors_BxM_H.append(torch.zeros((batch_size, self.num_memory_bits)))
+            # Read vector [BATCH_SIZE x CONTENT_BITS]
+            read_vectors_BxC_H.append(torch.zeros((batch_size, self.num_memory_content_bits)))
         
         # Pack and return a tuple.
-        return NTMCellStateTuple(ctrl_init_state, interface_init_state,  init_memory_BxMxA, read_vectors_BxM_H)
+        return NTMCellStateTuple(ctrl_init_state, interface_init_state,  init_memory_BxAxC, read_vectors_BxC_H)
 
 
     def forward(self, inputs_BxI,  prev_cell_state):
@@ -96,22 +102,28 @@ class NTMCell(torch.nn.Module):
         :returns: an output Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and  NTMCellStateTuple tuple containing current cell state.
         """
         # Unpack previous cell  state.
-        (prev_ctrl_state_tuple, prev_interface_state_tuple,  prev_memory_BxMxA, prev_read_vectors_BxM_H) = prev_cell_state
+        (prev_ctrl_state_tuple, prev_interface_state_tuple,  prev_memory_BxAxC, prev_read_vectors_BxC_H) = prev_cell_state
+
+        # Concatenate inputs with read vectors [BATCH_SIZE x (INPUT + NUM_HEADS * MEMORY_CONTENT_BITS)]
+        #print("prev_read_vectors_BxC_H =", prev_read_vectors_BxC_H[0].size())
+        read_vectors = torch.cat(prev_read_vectors_BxC_H, dim=1)
+        #print("read_vectors =", read_vectors.size())
+        controller_input = torch.cat((inputs_BxI,  read_vectors), dim=1)
         
         # Execute controller forward step.
-        ctrl_output_BxH,  ctrl_state_tuple = self.controller(inputs_BxI, prev_read_vectors_BxM_H,  prev_ctrl_state_tuple)
+        ctrl_output_BxH,  ctrl_state_tuple = self.controller(controller_input,  prev_ctrl_state_tuple)
        
         # Execute interface forward step.
-        read_vectors_BxM_H,  memory_BxMxA, interface_state_tuple = self.interface(ctrl_output_BxH, prev_memory_BxMxA,  prev_interface_state_tuple)
+        read_vectors_BxC_H,  memory_BxAxC, interface_state_tuple = self.interface(ctrl_output_BxH, prev_memory_BxAxC,  prev_interface_state_tuple)
         
         # Output layer.
         logits_BxO = self.hidden2output(ctrl_output_BxH)
 
         # TODO:  REMOVE THOSE LINES!!
-        read_vectors_BxM_H = prev_read_vectors_BxM_H
+        #read_vectors_BxC_H = prev_read_vectors_BxC_H
         
         # Pack current cell state.
-        cell_state_tuple = NTMCellStateTuple(ctrl_state_tuple, interface_state_tuple,  memory_BxMxA, read_vectors_BxM_H)
+        cell_state_tuple = NTMCellStateTuple(ctrl_state_tuple, interface_state_tuple,  memory_BxAxC, read_vectors_BxC_H)
         
         # Return logits and current cell state.
         return logits_BxO, cell_state_tuple

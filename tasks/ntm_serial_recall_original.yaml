@@ -10,7 +10,11 @@ problem_train:
     max_sequence_length: &max_seq_len 10
     bias: 0.5
     cuda: True  # The presence of the 'cuda' key is optional
-
+    #Parameter of curriculum learning, increase the max_sequence_length
+    #every ```curriculum_learning_interval```
+    curriculum_learning: True
+    curriculum_learning_interval: 2000
+    
 # Problem parameters:
 problem_test:
     name: serial_recall_original
@@ -43,15 +47,19 @@ model:
     num_control_bits: *cbits
     num_data_bits: *dbits
     # Controller parameters.
-    ctrl_type: lstm
-    ctrl_hidden_state_size: 10
+    controller:
+        name: ffn
+        hidden_state_size: 10
+        num_layers: 1
+        non_linearity: none
     # Interface
-    interface_num_read_heads: 1
-    interface_shift_size: 3
+    interface:
+        num_read_heads: 1
+        shift_size: 3
     # Memory parameters.
-    num_memory_bits: 8
-    num_memory_addresses: -1
-
+    memory:
+        num_content_bits: 8
+        num_addresses: -1
     
 optimizer:
     name: RMSprop
