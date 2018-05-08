@@ -32,6 +32,11 @@ class ModelFactory(object):
         elif name == 'lstm':
             from models.lstm.layer import LSTM
             return LSTM(params)
+        elif name == 'dnc':
+            logger.warning("Warning: DNC not yet fully operational!")
+            sys.path.append(os.path.join(os.path.dirname(__file__),  'ntm'))
+            from models.dnc.dnc_layer import DNC
+            return DNC(params)
         elif name == 'ntm':
             logger.warning("Warning: NTM not fully operational yet!")
             sys.path.append(os.path.join(os.path.dirname(__file__),  'ntm'))
