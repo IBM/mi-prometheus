@@ -32,7 +32,7 @@ class Interface(torch.nn.Module):
 
         # Parse parameters.
         # Get hidden state size.
-        self.ctrl_hidden_state_size = params['ctrl_hidden_state_size']
+        self.ctrl_hidden_state_size = params['controller_hidden_state_size']
         # Get memory parameters.
         self.num_memory_content_bits = params['num_memory_content_bits']
         # Get interface parameters.

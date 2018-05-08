@@ -63,7 +63,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     # "Loaded parameters".
     params = {'num_control_bits': 2, 'num_data_bits': 8, # input and output size
-        'ctrl_type': 'ff', 'ctrl_hidden_state_size': 5,  # controller parameters
+        'controller_type': 'rnn', 'controller_hidden_state_size': 5,  # controller parameters
         'interface_num_read_heads': 1,  'interface_shift_size': 3,  # interface parameters
         'num_memory_addresses' :4, 'num_memory_content_bits': 7 # memory parameters
         }

@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """lstm_controller.py: pytorch module implementing wrapper for lstm controller of NTM."""
-__author__ = "Ryan L. McAvoy"
+__author__ = "Tomasz Kornuta/Ryan L. McAvoy"
 
-
->>>>>>> feature_DNC
 import torch
 from torch import nn
 import torch.nn.functional as F
-import numpy as np
 import collections
 
 
@@ -57,7 +54,6 @@ class LSTMController(nn.Module):
         :param prev_state_tuple: Tuple of the previous hidden and cell state 
         :returns: outputs a Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and an LSTM state tuple.
         """
-        
 
         hidden_state, cell_state = self.lstm(x,prev_state_tuple)
        
