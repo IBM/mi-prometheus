@@ -117,25 +117,29 @@ if __name__ == '__main__':
                    map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
     )
 
-    for episode, (inputs, targets, mask) in enumerate(problem.return_generator()):
+    for episode, (inputs, unmasked_target, mask) in enumerate(problem.return_generator()):
+
         # apply the trained model
-        output = F.sigmoid(model(inputs))
+        unmasked_output = F.sigmoid(model(inputs))
 
         if config_loaded['settings']['use_mask']:
-            output = output[:, mask[0], :]
-            targets = targets[:, mask[0], :]
+            output = unmasked_output[:, mask[0], :]
+            target = unmasked_target[:, mask[0], :]
+        else:
+            output = unmasked_output
+            target = unmasked_target
 
         # test accuracy
         output = torch.round(output)
-        acc = 1 - torch.abs(output-targets)
+        acc = 1 - torch.abs(output-target)
         accuracy = acc.mean()
         format_str = 'episode {:05d}; acc={:12.10f}; length={:d} [Test]'
-        logger.info(format_str.format(episode, accuracy, targets.size(1)))
+        logger.info(format_str.format(episode, accuracy, unmasked_target.size(1)))
         # plot data
         # show_sample(output, targets, mask)
 
         if app_state.visualize:
-            is_closed = model.plot_sequence(inputs[0].detach(), output[0].detach(), targets[0].detach())
+            is_closed = model.plot_sequence(inputs[0].detach(), unmasked_output[0].detach(), unmasked_target[0].detach())
             if is_closed:
                 break
         else:
