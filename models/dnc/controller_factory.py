@@ -20,7 +20,7 @@ class ControllerFactory(object):
             print("Model parameter dictionary does not contain 'name'")
             raise ValueError
         # Try to load model
-        name = params['type']
+        name = params['name']
         if name == 'lstm':
             from models.dnc.lstm_controller import LSTMController
             return LSTMController(params)
