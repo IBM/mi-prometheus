@@ -176,13 +176,16 @@ class Interface(torch.nn.Module):
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
         """
         # Add 3rd dimensions where required and apply non-linear transformations.
-        query_vector_Bx1xC = F.sigmoid(query_vector_BxC).unsqueeze(1) # I didn't have that non-linear transformation in TF!
-        beta_Bx1x1 = F.softplus(beta_Bx1).unsqueeze(1)
-        gate_Bx1x1 = F.sigmoid(gate_Bx1).unsqueeze(1)
+        # Produce content-addressing params.
+        # I didn't had that non-linear transformation in TF!
+        query_vector_Bx1xC = F.sigmoid(query_vector_BxC).unsqueeze(1) 
+        beta_Bx1x1 = F.softplus(beta_Bx1).unsqueeze(2)
+        # Produce gating param.
+        gate_Bx1x1 = F.sigmoid(gate_Bx1).unsqueeze(2)
+        # Produce location-addressing params.
         shift_BxSx1 = F.softmax(shift_BxS, dim=1).unsqueeze(2)
-        gamma_Bx1x1 = F.sigmoid(gamma_Bx1).unsqueeze(2)
-        #gamma_Bx1x1 = tf.nn.softplus(params[:, self.slot_size+2:self.slot_size+3], name='gamma')
-        #shift_BxSx1 = tf.nn.softmax(params[:, self.slot_size+3:], name='shift')
+        # Truncate gamma to  range 1-50
+        gamma_Bx1x1 = torch.clamp(gamma_Bx1, 1, 50).unsqueeze(2)
         
         # Content-based addressing.
         content_attention_BxAx1 = self.content_based_addressing(query_vector_Bx1xC,  beta_Bx1x1,  prev_memory_BxAxC)
@@ -228,12 +231,30 @@ class Interface(torch.nn.Module):
         logger.debug("attention_BxAx1 {}:\n {}".format(attention_BxAx1.size(),  attention_BxAx1))    
         return attention_BxAx1
 
-    def location_based_addressing(self,  attention_BxAx1,  shift_BxSx1,  gamma_Bx1x,  prev_memory_BxAxC):
+    def location_based_addressing(self,  attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC):
         """ Computes location-based addressing, i.e. shitfts the head and sharpens.
         
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param shift_BxSx1: soft shift maks (convolutional kernel) [BATCH_SIZE x SHIFT_SIZE x 1]
         :param gamma_Bx1x1: sharpening factor [BATCH_SIZE x 1 x 1]
+        :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
+        :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+        """
+
+        # 1. Perform circular convolution.
+        shifted_attention_BxAx1 = self.circular_convolution(attention_BxAx1,  shift_BxSx1,  prev_memory_BxAxC)
+        
+        # 2. Perform Sharpening.
+        sharpened_attention_BxAx1 = self.sharpening(shifted_attention_BxAx1,  gamma_Bx1x1)
+        
+        exit(1)         
+        return sharpened_attention_BxAx1
+
+    def circular_convolution(self,  attention_BxAx1,  shift_BxSx1,  prev_memory_BxAxC):
+        """ Performs circular convoution, i.e. shitfts the attention accodring to given shift vector (convolution mask).
+        
+        :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
+        :param shift_BxSx1: soft shift maks (convolutional kernel) [BATCH_SIZE x SHIFT_SIZE x 1]
         :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
         """
@@ -246,9 +267,9 @@ class Interface(torch.nn.Module):
             elif idx >= num_addr : return idx - num_addr
             else: return idx
 
-        # Get number of memory addresses.
-        num_addr = prev_memory_BxAxC.size(1)
+        # Get number of memory addresses and batch size.
         batch_size =prev_memory_BxAxC.size(0) 
+        num_addr = prev_memory_BxAxC.size(1)
         shift_size = self.interface_shift_size
         
         logger.debug("shift_BxSx1 {}: {}".format(shift_BxSx1,  shift_BxSx1.size()))    
@@ -268,7 +289,7 @@ class Interface(torch.nn.Module):
         for b in range(batch_size):
             tmp_attention_list.append(F.conv1d(ext_att_trans_Bx1xEA.narrow(0, b, 1),  shift_trans_Bx1xS.narrow(0, b, 1)))
         # Concatenate list into a single tensor.
-        shifted_attention_BxAx1 = torch.cat(tmp_attention_list,  dim=0)
+        shifted_attention_BxAx1 = torch.transpose(torch.cat(tmp_attention_list,  dim=0),  1,  2)
         logger.debug("shifted_attention_BxAx1 {}:\n {}".format(shifted_attention_BxAx1.size(),  shifted_attention_BxAx1))
         
         # Manual test of convolution
@@ -278,8 +299,21 @@ class Interface(torch.nn.Module):
         #for i in range(3):
         #    sum += ext_attention_BxEAx1[b][el+i][0] * shift_BxSx1[b][i][0]
         #print("SUM= ", sum)
-        exit(1)
+        return shifted_attention_BxAx1
+
+    def sharpening(self,  attention_BxAx1,  gamma_Bx1x1):
+        """ Performs attention sharpening.
         
-        # Sharpening.
-         
+        :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
+        :param gamma_Bx1x1: sharpening factor [BATCH_SIZE x 1 x 1]
+        :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+        """
+        logger.debug("gamma_Bx1x1 {}:\n {}".format(gamma_Bx1x1.size(),  gamma_Bx1x1))
+                    
+        # Power.        
+        pow_attention_BxAx1 = torch.pow(attention_BxAx1,  gamma_Bx1x1)
+        logger.debug("pow_attention_BxAx1 {}:\n {}".format(pow_attention_BxAx1.size(),  pow_attention_BxAx1))
+        
+        
+        exit(1)         
         return shifted_attention_BxAx1
