@@ -26,7 +26,7 @@ class ControllerFactory(object):
             from lstm_controller import LSTMController
             return LSTMController(params)
         elif name == 'rnn':
-            from rnn_sigmoid_controller import RNNController
+            from rnn_controller import RNNController
             return RNNController(params)
         elif name == 'ffn':
             from feedforward_controller import FeedforwardController
