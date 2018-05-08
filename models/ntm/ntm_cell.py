@@ -51,7 +51,8 @@ class NTMCell(torch.nn.Module):
            "name":  params['controller']['name'],
            "input_size": controller_inputs_size,
            "output_size": self.controller_hidden_state_size,
-           "num_layers": 1
+           "non_linearity": params['controller']['non_linearity'], 
+           "num_layers": params['controller']['num_layers']
         }
         # Build the controller.
         self.controller = ControllerFactory.build_model(controller_params)        

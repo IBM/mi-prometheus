@@ -50,6 +50,8 @@ model:
     controller:
         name: ffn
         hidden_state_size: 10
+        num_layers: 1
+        non_linearity: none
     # Interface
     interface:
         num_read_heads: 1
