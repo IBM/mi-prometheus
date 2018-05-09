@@ -250,9 +250,9 @@ if __name__ == '__main__':
 
             for name, param in model.named_parameters():
                 if FLAGS.tensorboard >= 1:
-                    tb_writer.add_histogram(name, param.data.cpu().numpy(), episode)
+                    tb_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
                 if FLAGS.tensorboard >= 2:
-                    tb_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode)
+                    tb_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
 
         # break if conditions applied: convergence or max episodes
         if max(last_losses) < config_loaded['settings']['loss_stop'] \
