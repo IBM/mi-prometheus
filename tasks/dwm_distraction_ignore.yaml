@@ -10,7 +10,7 @@ problem_train:
     max_sequence_length: 6
     #Parameter of curriculum learning, increase the max_sequence_length
     #every ```curriculum_learning_interval```
-    curriculum_learning: False
+    #Optional parameter. 0 disables it.
     curriculum_learning_interval: 2000
     num_subseq_min: 1
     num_subseq_max: 3

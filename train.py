@@ -122,6 +122,8 @@ if __name__ == '__main__':
                 use_CUDA = True
         except KeyError:
             pass
+    
+    
 
     # Build problem for the training
     problem = ProblemFactory.build_problem(config_loaded['problem_train'])
@@ -168,11 +170,19 @@ if __name__ == '__main__':
             targets = targets.cuda()
 
         # apply curriculum learning
-        if config_loaded['problem_train']['curriculum_learning'] == True:
-            max_length = 1 + int(episode / config_loaded['problem_train']['curriculum_learning_interval'])
-            if max_length > 6:
-                max_length = 6
-            problem.set_max_length(max_length)
+        try:  # If the 'cuda' key is not present, catch the exception and do nothing
+            if config_loaded['problem_train']['curriculum_learning_interval']  > 0:
+                min_length=config_loaded['problem_train']['min_sequence_length']
+                max_max_length=config_loaded['problem_train']['max_sequence_length']
+
+                # the curriculum learning goes from the min length to the maximum max length in steps of size 1
+                max_length = min_length + int(episode / config_loaded['problem_train']['curriculum_learning_interval'])
+                if max_length > max_max_length:
+                    max_length = max_max_length
+                problem.set_max_length(max_length)
+        except KeyError:
+            pass
+
 
         # reset gradients
         optimizer.zero_grad()
