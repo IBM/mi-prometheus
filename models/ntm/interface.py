@@ -143,9 +143,12 @@ class Interface(torch.nn.Module):
         logger.debug("write_attention_BxAx1 {}:\n {}".format(write_attention_BxAx1.size(),  write_attention_BxAx1))  
 
         # Update the memory.
-          
-        # TODO:  REMOVE THOSE LINES.
-        memory_BxAxC = prev_memory_BxAxC
+        # 1. Calculate the preserved content.
+        preserve_content_BxAxC = torch.ones_like(prev_memory_BxAxC) - torch.matmul(write_attention_BxAx1,  erase_vector_BxC.unsqueeze(1))
+        # 2. Calculate the added content.
+        add_content_BxAxC = torch.matmul(write_attention_BxAx1,  add_vector_BxC.unsqueeze(1)) 
+        # 3. Update.
+        memory_BxAxC =  prev_memory_BxAxC * preserve_content_BxAxC + add_content_BxAxC        
         
         # Pack current cell state.
         state_tuple = InterfaceStateTuple(read_attentions_BxAx1_H,  write_attention_BxAx1)
