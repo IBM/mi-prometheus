@@ -138,14 +138,22 @@ class Interface(torch.nn.Module):
         # Split the parameters.
         query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  erase_vector_BxC,  add_vector_BxC  = self.split_params(params_BxP,  self.write_param_locations)
 
+        # Add 3rd dimensions where required and apply non-linear transformations.
+        # I didn't had that non-linear transformation in TF!
+        erase_vector_Bx1xC = F.sigmoid(erase_vector_BxC).unsqueeze(1) 
+        add_vector_Bx1xC = F.sigmoid(add_vector_BxC).unsqueeze(1) 
+
         # Update the attention of the write head.
         write_attention_BxAx1 = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_write_attention_BxAx1)
         logger.debug("write_attention_BxAx1 {}:\n {}".format(write_attention_BxAx1.size(),  write_attention_BxAx1))  
 
         # Update the memory.
-          
-        # TODO:  REMOVE THOSE LINES.
-        memory_BxAxC = prev_memory_BxAxC
+        # 1. Calculate the preserved content.
+        preserve_content_BxAxC = torch.ones_like(prev_memory_BxAxC) - torch.matmul(write_attention_BxAx1,  erase_vector_Bx1xC)
+        # 2. Calculate the added content.
+        add_content_BxAxC = torch.matmul(write_attention_BxAx1,  add_vector_Bx1xC) 
+        # 3. Update.
+        memory_BxAxC =  prev_memory_BxAxC * preserve_content_BxAxC + add_content_BxAxC        
         
         # Pack current cell state.
         state_tuple = InterfaceStateTuple(read_attentions_BxAx1_H,  write_attention_BxAx1)
@@ -187,15 +195,17 @@ class Interface(torch.nn.Module):
         """
         # Add 3rd dimensions where required and apply non-linear transformations.
         # Produce content-addressing params.
-        # I didn't had that non-linear transformation in TF!
+        # Query/key: I didn't had that non-linear transformation in TF!
         query_vector_Bx1xC = F.sigmoid(query_vector_BxC).unsqueeze(1) 
-        beta_Bx1x1 = F.softplus(beta_Bx1).unsqueeze(2)
+        # Beta: oneplus
+        beta_Bx1x1 = F.softplus(beta_Bx1).unsqueeze(2) +1
         # Produce gating param.
         gate_Bx1x1 = F.sigmoid(gate_Bx1).unsqueeze(2)
         # Produce location-addressing params.
         shift_BxSx1 = F.softmax(shift_BxS, dim=1).unsqueeze(2)
         # Truncate gamma to  range 1-50
-        gamma_Bx1x1 = torch.clamp(gamma_Bx1, 1, 50).unsqueeze(2)
+        gamma_Bx1x1 =F.softplus(gamma_Bx1).unsqueeze(2) +1
+       # torch.clamp(gamma_Bx1, 1, 50).unsqueeze(2)
         
         # Content-based addressing.
         content_attention_BxAx1 = self.content_based_addressing(query_vector_Bx1xC,  beta_Bx1x1,  prev_memory_BxAxC)

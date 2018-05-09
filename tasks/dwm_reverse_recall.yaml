@@ -13,6 +13,8 @@ problem_train:
     #Optional parameter. 0 disables it.
     curriculum_learning_interval: 2000
     bias: 0.5
+    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
+    gradient_clipping: 10 
 
 # Problem parameters:
 problem_test:
@@ -57,8 +59,6 @@ model:
     # Addressing parameters.
     use_content_addressing: False
     shift_size: 3
-    # active the plotting of the memory and attention
-    plot_memory: False
     
 # optimizer parameters:
 optimizer:

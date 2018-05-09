@@ -13,7 +13,8 @@ problem_train:
     #every ```curriculum_learning_interval```
     #Optional parameter. 0 disables it.
     curriculum_learning_interval: 400
-
+    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
+    gradient_clipping: 10 
 
 # Problem parameters:
 problem_test:
@@ -27,7 +28,6 @@ problem_test:
     max_sequence_length: 1000
     bias: 0.5
 
-
 # Problem parameters:
 problem_validation:
     name: *name
@@ -39,7 +39,6 @@ problem_validation:
     min_sequence_length: 60
     max_sequence_length: 60
     bias: 0.5
-
 
 # Model parameters:
 model:
@@ -60,8 +59,6 @@ model:
     use_content_addressing: True
     shift_size: 3
     controller_type: rnn
-    # active the plotting of the memory and attention
-    plot_memory: False
     
 # optimizer parameters:
 optimizer:

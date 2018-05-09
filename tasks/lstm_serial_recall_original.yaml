@@ -12,9 +12,11 @@ problem_train:
     #Parameter of curriculum learning, increase the max_sequence_length
     #every ```curriculum_learning_interval```
     #Optional parameter. 0 disables it.
-    curriculum_learning_interval: 2000
+    #curriculum_learning_interval: 2000
     bias: 0.5
     cuda: True  # The presence of the 'cuda' key is optional
+    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
+    gradient_clipping: 10
 
 # Problem parameters:
 problem_test:
@@ -51,6 +53,7 @@ model:
     num_layers: 3
     hidden_state_dim: 256
 
+# Set optimizer.
 optimizer:
     name: RMSprop
     lr: 0.00003

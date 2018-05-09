@@ -47,15 +47,17 @@ if __name__ == '__main__':
 
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-t', type=str, default='', dest='task',
+    parser.add_argument('--confirm', action='store_true', dest='confirm',
+                        help='Request user confirmation just after loading the settings, before starting training.')
+    parser.add_argument('-t', dest='task',  type=str, default='',
                         help='Name of the task configuration file to be loaded')
     parser.add_argument('--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2], type=int,
-                        help="If present, log to tensorboard. Log levels:\n"
+                        help="If present, log to TensorBoard. Log levels:\n"
                              "0: Just log the loss, accuracy, and seq_len\n"
                              "1: Add histograms of biases and weights (Warning: slow)\n"
                              "2: Add histograms of biases and weights gradients (Warning: even slower)")
-    parser.add_argument('--confirm', action='store_true', dest='confirm',
-                        help='Request user confirmation just after loading the settings, before starting training.')
+    parser.add_argument('--lf', dest='logging_frequency', default=100,  type=int,
+                        help='TensorBoard logging frequency (Default is 100, i.e. logs every 100 episodes)')
     parser.add_argument('--log', action='store', dest='log', type=str, default='INFO',
                         choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
                         help="Log level. Default is INFO.")
@@ -67,15 +69,16 @@ if __name__ == '__main__':
     if FLAGS.task == '':
         print('Please pass task configuration file as -t parameter')
         exit(-1)
-    # Check it file exists.
+    # Check if file exists.
     if not os.path.isfile(FLAGS.task):
         print('Task configuration file {} does not exists'.format(FLAGS.task))
         exit(-2)
 
-    # Read YAML file
+    # Read the YAML file.
     with open(FLAGS.task, 'r') as stream:
         config_loaded = yaml.load(stream)
 
+    # Get problem and model names.
     task_name = config_loaded['problem_train']['name']
     model_name = config_loaded['model']['name']
 
@@ -122,8 +125,6 @@ if __name__ == '__main__':
                 use_CUDA = True
         except KeyError:
             pass
-    
-    
 
     # Build problem for the training
     problem = ProblemFactory.build_problem(config_loaded['problem_train'])
@@ -131,10 +132,11 @@ if __name__ == '__main__':
     # Build problem for the validation
     problem_validation = ProblemFactory.build_problem(config_loaded['problem_validation'])
     generator_validation = problem_validation.return_generator()
-    # Get batch.
+    
+    # Get a single batch that will be used during all validation steps.
     data_valid = next(generator_validation)
 
-    # Build model
+    # Build the model.
     model = ModelFactory.build_model(config_loaded['model'])
     model.cuda() if use_CUDA else None
 
@@ -153,9 +155,15 @@ if __name__ == '__main__':
 
     # Start Training
     episode = 0
-    episode_valid_steps = 500
     best_loss = 0.2
     last_losses = collections.deque()
+
+    # Try to read validation frequency from config, else set default (500)
+    try: 
+        validation_frequency = config_loaded['problem_validation']['frequency']
+    except KeyError:
+        validation_frequency = 500
+        pass
 
     train_file = open(log_dir + 'training.log', 'w', 1)
     validation_file = open(log_dir + 'validation.log', 'w', 1)
@@ -170,7 +178,7 @@ if __name__ == '__main__':
             targets = targets.cuda()
 
         # apply curriculum learning
-        try:  # If the 'cuda' key is not present, catch the exception and do nothing
+        try:  # If the 'curriculum_learning_interval' key is not present, catch the exception and do nothing
             if config_loaded['problem_train']['curriculum_learning_interval']  > 0:
                 min_length=config_loaded['problem_train']['min_sequence_length']
                 max_max_length=config_loaded['problem_train']['max_sequence_length']
@@ -182,7 +190,6 @@ if __name__ == '__main__':
                 problem.set_max_length(max_length)
         except KeyError:
             pass
-
 
         # reset gradients
         optimizer.zero_grad()
@@ -205,13 +212,19 @@ if __name__ == '__main__':
 
         loss.backward()
 
-        # clip grad between -10, 10
-        nn.utils.clip_grad_value_(model.parameters(), 10)
-
+        # Check the presence of parameter 'gradient_clipping'.
+        try:
+            # if present - clip gradients to a range (-gradient_clipping, gradient_clipping)
+            val = config_loaded['problem_train']['gradient_clipping']
+            nn.utils.clip_grad_value_(model.parameters(), val)
+        except KeyError:
+            # Else - do nothing.
+            pass
+        
         optimizer.step()
 
         # check if new loss is smaller than the best loss, save the model in this case
-        if loss < best_loss or episode % episode_valid_steps == 0:
+        if loss < best_loss or episode % validation_frequency == 0:
             improved = False
             if loss < best_loss:
                 torch.save(model.state_dict(), log_dir + "/model_parameters")
@@ -241,7 +254,7 @@ if __name__ == '__main__':
         format_str = '{:05d}, {:12.10f}, {:12.10f}, {:02d}\n'
         train_file.write(format_str.format(episode, accuracy, loss, train_length))
 
-        if FLAGS.tensorboard is not None:
+        if (FLAGS.tensorboard is not None) and (episode % FLAGS.logging_frequency== 0):
             # Save loss + accuracy to tensorboard
             accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
             tb_writer.add_scalar('Train/loss', loss, episode)
@@ -250,9 +263,9 @@ if __name__ == '__main__':
 
             for name, param in model.named_parameters():
                 if FLAGS.tensorboard >= 1:
-                    tb_writer.add_histogram(name, param.data.cpu().numpy(), episode)
+                    tb_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
                 if FLAGS.tensorboard >= 2:
-                    tb_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode)
+                    tb_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
 
         # break if conditions applied: convergence or max episodes
         if max(last_losses) < config_loaded['settings']['loss_stop'] \
