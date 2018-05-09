@@ -56,7 +56,7 @@ if __name__ == '__main__':
                              "0: Just log the loss, accuracy, and seq_len\n"
                              "1: Add histograms of biases and weights (Warning: slow)\n"
                              "2: Add histograms of biases and weights gradients (Warning: even slower)")
-    parser.add_argument('-lf', dest='logging_frequency', default=100,  type=int,
+    parser.add_argument('--lf', dest='logging_frequency', default=100,  type=int,
                         help='TensorBoard logging frequency (Default is 100, i.e. logs every 100 episodes)')
     parser.add_argument('--log', action='store', dest='log', type=str, default='INFO',
                         choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
