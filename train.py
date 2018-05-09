@@ -47,15 +47,17 @@ if __name__ == '__main__':
 
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-t', type=str, default='', dest='task',
+    parser.add_argument('--confirm', action='store_true', dest='confirm',
+                        help='Request user confirmation just after loading the settings, before starting training.')
+    parser.add_argument('-t', dest='task',  type=str, default='',
                         help='Name of the task configuration file to be loaded')
     parser.add_argument('--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2], type=int,
-                        help="If present, log to tensorboard. Log levels:\n"
+                        help="If present, log to TensorBoard. Log levels:\n"
                              "0: Just log the loss, accuracy, and seq_len\n"
                              "1: Add histograms of biases and weights (Warning: slow)\n"
                              "2: Add histograms of biases and weights gradients (Warning: even slower)")
-    parser.add_argument('--confirm', action='store_true', dest='confirm',
-                        help='Request user confirmation just after loading the settings, before starting training.')
+    parser.add_argument('-lf', dest='logging_frequency', default=100,  type=int,
+                        help='TensorBoard logging frequency (Default is 100, i.e. logs every 100 episodes)')
     parser.add_argument('--log', action='store', dest='log', type=str, default='INFO',
                         choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
                         help="Log level. Default is INFO.")
@@ -241,7 +243,7 @@ if __name__ == '__main__':
         format_str = '{:05d}, {:12.10f}, {:12.10f}, {:02d}\n'
         train_file.write(format_str.format(episode, accuracy, loss, train_length))
 
-        if FLAGS.tensorboard is not None:
+        if (FLAGS.tensorboard is not None) and (episode % FLAGS.logging_frequency== 0):
             # Save loss + accuracy to tensorboard
             accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
             tb_writer.add_scalar('Train/loss', loss, episode)
