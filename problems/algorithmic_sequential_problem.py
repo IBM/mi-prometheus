@@ -29,7 +29,8 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
 
     def show_sample(self,  inputs,  targets, mask,  sample_number = 0):
         """ Shows the sample (both input and target sequences) using matplotlib."""
-        fig, (ax1, ax2, ax3) = plt.subplots(3, 1,  sharex=True)
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1,  sharex=True,  sharey=False,
+                                gridspec_kw={'width_ratios': [inputs.shape[1]],  'height_ratios':[10, 10,  1]})
         # Set ticks.
         ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
@@ -52,8 +53,8 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
         print("\nmask:", mask[sample_number:sample_number+1, :])
         
         # show data.
-        ax1.imshow(np.transpose(inputs[sample_number, :, :],  [1, 0]))        
-        ax2.imshow(np.transpose(targets[sample_number, :, :],  [1, 0]))
-        ax3.imshow(mask[sample_number:sample_number+1, :])  
+        ax1.imshow(np.transpose(inputs[sample_number, :, :],  [1, 0]), interpolation='nearest', aspect='auto')        
+        ax2.imshow(np.transpose(targets[sample_number, :, :],  [1, 0]), interpolation='nearest', aspect='auto')
+        ax3.imshow(mask[sample_number:sample_number+1, :],  interpolation='nearest', aspect='auto')  
         # Plot!
         plt.show()
