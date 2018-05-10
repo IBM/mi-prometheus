@@ -37,7 +37,6 @@ class DWM(ModelBase, nn.Module):
         self.num_shift = params["shift_size"]
         self.M = params["memory_content_size"]
         self.memory_addresses_size = params["memory_addresses_size"]
-        self.plot_active = params["plot_memory"]
         self.label = params["name"]
         self.app_state = AppState()
 
