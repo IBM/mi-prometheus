@@ -3,7 +3,11 @@ import numpy as np
 
 
 class ModelBase(object):
+    """ Class representing base class of all models.
+    Provides basic plotting functionality.
+    """
     def __init__(self):
+        """ Initializes application state and sets plot if visualization flag is turned on."""
         super(ModelBase, self).__init__()
         self.app_state = AppState()
 
@@ -12,29 +16,33 @@ class ModelBase(object):
             self.plot = TimePlot()
 
     def plot_sequence(self, input_seq, output_seq, target_seq):
+        """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
+        The default visualizatoin contains input, output and target sequences.
+        For more model/problem dependent visualization please overwrite this method in the derived model class.
+        """
         from matplotlib.figure import Figure
         # Test code
 
         figs = []
 
-        input_seq = input_seq.numpy()
-        output_seq = output_seq.numpy()
-        target_seq = target_seq.numpy()
+        # Change to np arrays and transpose, so x will be time axis.
+        print("input_seq  size =", input_seq.size())
+        input_seq = (input_seq.numpy())
+        output_seq = (output_seq.numpy())
+        target_seq = (target_seq.numpy())
 
-        x = np.zeros(input_seq.shape)
-        y = np.zeros(output_seq.shape)
-        z = np.zeros(target_seq.shape)
+        x = np.transpose(np.zeros(input_seq.shape))
+        y = np.transpose(np.zeros(output_seq.shape))
+        z = np.transpose(np.zeros(target_seq.shape))
 
         for i, (input_word, output_word, target_word) in enumerate(zip(input_seq, output_seq, target_seq)):
             fig = Figure()
-            axes = fig.subplots(1, 3, sharey=True, sharex=False,
-                                gridspec_kw={'width_ratios': [input_seq.shape[1],
-                                                              output_seq.shape[1],
-                                                              target_seq.shape[1]]})
+            axes = fig.subplots(3, 1, sharex=True, sharey=False,
+                                gridspec_kw={'width_ratios': [input_seq.shape[0]]})
 
-            x[i] = input_word
-            y[i] = output_word
-            z[i] = target_word
+            x[:, i] = input_word
+            y[:, i] = output_word
+            z[:, i] = target_word
             axes[0].imshow(x, aspect="equal")
             axes[0].set_title("inputs")
             axes[1].imshow(y, aspect="equal")
