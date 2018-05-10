@@ -30,7 +30,6 @@ class DNC(nn.Module):
         self.M = params["memory_content_size"]
         #self.batch_size = params["batch_size"]
         self.memory_addresses_size = params["memory_addresses_size"]
-        self.plot_active = params["plot_memory"]
         self.label = params["name"]
         super(DNC, self).__init__()
 
