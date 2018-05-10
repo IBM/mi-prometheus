@@ -53,7 +53,7 @@ class Interface(torch.nn.Module):
         assert num_read_params == self.read_param_locations[-1], "Last location must be equal to number of read params."
         
        # Forward linear layers that generate parameters of read heads.
-        self.hidden2read_list = []
+        self.hidden2read_list = torch.nn.ModuleList()
         for _ in range(self.interface_num_read_heads):
             self.hidden2read_list.append(torch.nn.Linear(self.ctrl_hidden_state_size,  num_read_params))
  
@@ -121,11 +121,11 @@ class Interface(torch.nn.Module):
 
             # Update the attention of a given read head.
             read_attention_BxAx1 = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attentions_BxAx1_H[i])
-            logger.debug("read_attention_BxAx1 {}:\n {}".format(read_attention_BxAx1.size(),  read_attention_BxAx1))  
+            #logger.debug("read_attention_BxAx1 {}:\n {}".format(read_attention_BxAx1.size(),  read_attention_BxAx1))  
 
             # Read vector from memory [BATCH_SIZE x CONTENT_BITS x 1].
             read_vector_Bx1xC = torch.matmul(torch.transpose(read_attention_BxAx1,  1, 2),  prev_memory_BxAxC)
-            logger.debug("read_vector_Bx1xC {}:\n {}".format(read_vector_Bx1xC.size(),  read_vector_Bx1xC))  
+            #logger.debug("read_vector_Bx1xC {}:\n {}".format(read_vector_Bx1xC.size(),  read_vector_Bx1xC))  
             
             # Save read attentions and vectors in a list.
             read_attentions_BxAx1_H.append(read_attention_BxAx1)
@@ -145,7 +145,7 @@ class Interface(torch.nn.Module):
 
         # Update the attention of the write head.
         write_attention_BxAx1 = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_write_attention_BxAx1)
-        logger.debug("write_attention_BxAx1 {}:\n {}".format(write_attention_BxAx1.size(),  write_attention_BxAx1))  
+        #logger.debug("write_attention_BxAx1 {}:\n {}".format(write_attention_BxAx1.size(),  write_attention_BxAx1))  
 
         # Update the memory.
         # 1. Calculate the preserved content.
@@ -167,18 +167,18 @@ class Interface(torch.nn.Module):
         :param head_name: Name of head.
         :returns: "Locations" of parameters.
         """
-        logger.debug("{} param sizes dict:\n {}".format(head_name, param_sizes_dict))        
+        #logger.debug("{} param sizes dict:\n {}".format(head_name, param_sizes_dict))        
         # Create the parameter lengths and store their cumulative sum
         lengths = np.fromiter(param_sizes_dict.values(), dtype=int)
         # Store "parameter locations" for further usage.
         param_locations = np.cumsum(np.insert(lengths, 0, 0), dtype=int).tolist()
-        logger.debug("{} param locations:\n {}".format(head_name, param_locations))          
+        #logger.debug("{} param locations:\n {}".format(head_name, param_locations))          
         return param_locations
         
     def split_params(self,  params,  locations):
         """ Split parameters into list on the basis of locations."""
         param_splits = [params[..., locations[i]:locations[i+1]]  for i in range(len(locations)-1)]
-        logger.debug("Splitted params:\n {}".format(param_splits)) 
+        #logger.debug("Splitted params:\n {}".format(param_splits)) 
         return param_splits
 
     def update_attention(self,  query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_attention_BxAx1):
@@ -211,14 +211,14 @@ class Interface(torch.nn.Module):
         content_attention_BxAx1 = self.content_based_addressing(query_vector_Bx1xC,  beta_Bx1x1,  prev_memory_BxAxC)
     
         # Gating mechanism - choose beetween new attention from CBA or attention from previous iteration. [BATCH_SIZE x ADDRESSES x 1].
-        logger.debug("prev_attention_BxAx1 {}:\n {}".format(prev_attention_BxAx1.size(),  prev_attention_BxAx1))    
+        #logger.debug("prev_attention_BxAx1 {}:\n {}".format(prev_attention_BxAx1.size(),  prev_attention_BxAx1))    
         
         attention_after_gating_BxAx1 = gate_Bx1x1 * content_attention_BxAx1  +(torch.ones_like(gate_Bx1x1) - gate_Bx1x1) * prev_attention_BxAx1
-        logger.debug("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
+        #logger.debug("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
 
         # Location-based addressing.
         location_attention_BxAx1 = self.location_based_addressing(attention_after_gating_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC)
-        logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))    
+        #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))    
         
         return location_attention_BxAx1
         
@@ -232,23 +232,23 @@ class Interface(torch.nn.Module):
         """
         # Normalize query batch - along content.
         norm_query_vector_Bx1xC = F.normalize(query_vector_Bx1xC, p=2,  dim=2)
-        logger.debug("norm_query_vector_Bx1xC {}:\n {}".format(norm_query_vector_Bx1xC.size(),  norm_query_vector_Bx1xC))  
+        #logger.debug("norm_query_vector_Bx1xC {}:\n {}".format(norm_query_vector_Bx1xC.size(),  norm_query_vector_Bx1xC))  
 
         # Normalize memory - along content. 
         norm_memory_BxAxC = F.normalize(prev_memory_BxAxC, p=2,  dim=2)
-        logger.debug("norm_memory_BxAxC {}:\n {}".format(norm_memory_BxAxC.size(),  norm_memory_BxAxC))  
+        #logger.debug("norm_memory_BxAxC {}:\n {}".format(norm_memory_BxAxC.size(),  norm_memory_BxAxC))  
         
         # Calculate cosine similarity [BATCH_SIZE x MEMORY_ADDRESSES x 1].
         similarity_BxAx1 = torch.matmul(norm_memory_BxAxC,  torch.transpose(norm_query_vector_Bx1xC,  1, 2))
-        logger.debug("similarity_BxAx1 {}:\n {}".format(similarity_BxAx1.size(),  similarity_BxAx1))    
+        #logger.debug("similarity_BxAx1 {}:\n {}".format(similarity_BxAx1.size(),  similarity_BxAx1))    
         
         # Element-wise multiplication [BATCH_SIZE x MEMORY_ADDRESSES x 1]
         strengthtened_similarity_BxAx1 = torch.matmul(similarity_BxAx1,  beta_Bx1x1)
-        logger.debug("strengthtened_similarity_BxAx1 {}:\n {}".format(strengthtened_similarity_BxAx1.size(),  strengthtened_similarity_BxAx1))    
+        #logger.debug("strengthtened_similarity_BxAx1 {}:\n {}".format(strengthtened_similarity_BxAx1.size(),  strengthtened_similarity_BxAx1))    
 
         # Calculate attention based on similarity along the "slot dimension" [BATCH_SIZE x MEMORY_ADDRESSES x 1].
         attention_BxAx1 = F.softmax(strengthtened_similarity_BxAx1, dim=1)
-        logger.debug("attention_BxAx1 {}:\n {}".format(attention_BxAx1.size(),  attention_BxAx1))    
+        #logger.debug("attention_BxAx1 {}:\n {}".format(attention_BxAx1.size(),  attention_BxAx1))    
         return attention_BxAx1
 
     def location_based_addressing(self,  attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC):
@@ -291,14 +291,14 @@ class Interface(torch.nn.Module):
         num_addr = prev_memory_BxAxC.size(1)
         shift_size = self.interface_shift_size
         
-        logger.debug("shift_BxSx1 {}: {}".format(shift_BxSx1,  shift_BxSx1.size()))    
+        #logger.debug("shift_BxSx1 {}: {}".format(shift_BxSx1,  shift_BxSx1.size()))    
         # Create an extended list of indices indicating what elements of the sequence will be where.
         ext_indices_tensor = torch.Tensor([circular_index(shift, num_addr) for shift in range(-shift_size//2+1,  num_addr+shift_size//2)]).long()
-        logger.debug("ext_indices {}:\n {}".format(ext_indices_tensor.size(),  ext_indices_tensor))
+        #logger.debug("ext_indices {}:\n {}".format(ext_indices_tensor.size(),  ext_indices_tensor))
     
         # Use indices for creation of an extended attention vector.
         ext_attention_BxEAx1 = torch.index_select(attention_BxAx1,  dim=1,  index=ext_indices_tensor)
-        logger.debug("ext_attention_BxEAx1 {}:\n {}".format(ext_attention_BxEAx1.size(),  ext_attention_BxEAx1))    
+        #logger.debug("ext_attention_BxEAx1 {}:\n {}".format(ext_attention_BxEAx1.size(),  ext_attention_BxEAx1))    
         
         # Transpose inputs to convolution.
         ext_att_trans_Bx1xEA = torch.transpose(ext_attention_BxEAx1,  1, 2)
@@ -309,7 +309,7 @@ class Interface(torch.nn.Module):
             tmp_attention_list.append(F.conv1d(ext_att_trans_Bx1xEA.narrow(0, b, 1),  shift_trans_Bx1xS.narrow(0, b, 1)))
         # Concatenate list into a single tensor.
         shifted_attention_BxAx1 = torch.transpose(torch.cat(tmp_attention_list,  dim=0),  1,  2)
-        logger.debug("shifted_attention_BxAx1 {}:\n {}".format(shifted_attention_BxAx1.size(),  shifted_attention_BxAx1))
+        #logger.debug("shifted_attention_BxAx1 {}:\n {}".format(shifted_attention_BxAx1.size(),  shifted_attention_BxAx1))
         
         # Manual test of convolution
         #sum = 0
@@ -330,14 +330,14 @@ class Interface(torch.nn.Module):
         #gamma_Bx1x1[0][0][0]=40
         #gamma_Bx1x1[0][0][0]=10
         
-        logger.debug("gamma_Bx1x1 {}:\n {}".format(gamma_Bx1x1.size(),  gamma_Bx1x1))
+        #logger.debug("gamma_Bx1x1 {}:\n {}".format(gamma_Bx1x1.size(),  gamma_Bx1x1))
                     
         # Power.        
         pow_attention_BxAx1 = torch.pow(attention_BxAx1,  gamma_Bx1x1)
-        logger.debug("pow_attention_BxAx1 {}:\n {}".format(pow_attention_BxAx1.size(),  pow_attention_BxAx1))
+        #logger.debug("pow_attention_BxAx1 {}:\n {}".format(pow_attention_BxAx1.size(),  pow_attention_BxAx1))
         
         # Normalize along addresses. 
         norm_attention_BxAx1 = F.normalize(pow_attention_BxAx1, p=1,  dim=1)
-        logger.debug("norm_attention_BxAx1 {}:\n {}".format(norm_attention_BxAx1.size(),  norm_attention_BxAx1))
+        #logger.debug("norm_attention_BxAx1 {}:\n {}".format(norm_attention_BxAx1.size(),  norm_attention_BxAx1))
   
         return norm_attention_BxAx1
