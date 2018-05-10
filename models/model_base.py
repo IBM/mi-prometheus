@@ -73,7 +73,7 @@ class ModelBase(object):
             axes[1].imshow(y, interpolation='nearest', aspect='auto')
             axes[2].imshow(z, interpolation='nearest', aspect='auto')
             # Append figure to a list.
-            fig.tight_layout()
+            fig.set_tight_layout(True)
             figs.append(fig)
 
         # Set figure list to plot.
