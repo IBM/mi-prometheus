@@ -1,14 +1,18 @@
-from misc.time_plot import TimePlot
-from matplotlib.figure import Figure
+from misc.app_state import AppState
 import numpy as np
 
 
 class ModelBase(object):
     def __init__(self):
         super(ModelBase, self).__init__()
-        self.plot = TimePlot()
+        self.app_state = AppState()
+
+        if self.app_state.visualize:
+            from misc.time_plot import TimePlot
+            self.plot = TimePlot()
 
     def plot_sequence(self, input_seq, output_seq, target_seq):
+        from matplotlib.figure import Figure
         # Test code
 
         figs = []

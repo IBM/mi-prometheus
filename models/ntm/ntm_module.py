@@ -6,8 +6,10 @@ __author__ = "Tomasz Kornuta"
 import torch 
 import logging
 from ntm_cell import NTMCell
+from models.model_base import ModelBase
 
-class NTM(torch.nn.Module):
+
+class NTM(ModelBase, torch.nn.Module):
     '''  Class representing the Neural Turing Machine module. '''
     def __init__(self, params):
         '''
