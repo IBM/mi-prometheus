@@ -5,9 +5,14 @@ __author__ = "Tomasz Kornuta"
 
 import torch 
 import logging
-from ntm_cell import NTMCell
-from models.model_base import ModelBase
 
+
+# Fix so we can call 
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) # add path to main project directory.
+from misc.app_state import AppState
+from models.model_base import ModelBase
+from models.ntm.ntm_cell import NTMCell
 
 class NTM(ModelBase, torch.nn.Module):
     '''  Class representing the Neural Turing Machine module. '''
@@ -25,7 +30,7 @@ class NTM(ModelBase, torch.nn.Module):
         self.num_memory_addresses = params['memory']['num_addresses']
         
         # Initialize recurrent NTM cell.
-        self.cell = NTMCell(params)
+        self.ntm_cell = NTMCell(params)
         
     def forward(self, inputs_BxSxI):
         """
@@ -41,20 +46,28 @@ class NTM(ModelBase, torch.nn.Module):
             num_memory_addresses = inputs_BxSxI.size(1)
         
         # Initialize 'zero' state.
-        state = self.cell.init_state(inputs_BxSxI.size(0),  num_memory_addresses)
+        cell_state = self.ntm_cell.init_state(inputs_BxSxI.size(0),  num_memory_addresses)
 
         # List of output logits [BATCH_SIZE x OUTPUT_SIZE] of length SEQ_LENGTH
         output_logits_BxO_S = []
 
+        # Check if we want to collect cell history for the visualization purposes.
+        if AppState().visualize:
+            self.cell_state_history = []
+            
         # Divide sequence into chunks of size [BATCH_SIZE x INPUT_SIZE] and process them one by one.
-        for input_t in inputs_BxSxI.chunk(inputs_BxSxI.size(1), dim=1):
+        for input_t_Bx1xI in inputs_BxSxI.chunk(inputs_BxSxI.size(1), dim=1):
             # Process one chunk.
-            output_BxO,  state = self.cell(input_t.squeeze(1), state)
+            output_BxO,  cell_state = self.ntm_cell(input_t_Bx1xI.squeeze(1), cell_state)
             # Append to list of logits.
             output_logits_BxO_S += [output_BxO]
 
         # Stack logits along time axis (1).
         output_logits_BxSxO = torch.stack(output_logits_BxO_S, 1)
+
+        # Collect history for the visualization purposes.
+        if AppState().visualize:
+            self.cell_state_history.append(cell_state)
 
         return output_logits_BxSxO
 
