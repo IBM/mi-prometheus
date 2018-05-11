@@ -9,6 +9,7 @@ else:
         FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.figure import Figure
 
+Qt = QtCore.Qt
 
 class TimePlot(QtWidgets.QMainWindow):
     def __init__(self):
@@ -18,12 +19,13 @@ class TimePlot(QtWidgets.QMainWindow):
         self.setCentralWidget(self._main)
         self.layout = QtWidgets.QGridLayout(self._main)
 
+        # Stacked plots: creates one widget per timestep. Shows only one at a time
         self.stacked_plots = QtWidgets.QStackedWidget()
         self.static_canvas = None
         self.figs = None
         self.layout.addWidget(self.stacked_plots, 0, 0)
-        # self.addToolBar(NavigationToolbar(self.static_canvas, self))
 
+        # Slider stuff
         hbox_timeline = QtWidgets.QHBoxLayout()
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider.setMinimum(0)
@@ -31,6 +33,7 @@ class TimePlot(QtWidgets.QMainWindow):
         hbox_timeline.addWidget(self.slider)
         self.layout.addLayout(hbox_timeline, 1, 0)
 
+        # Bottom buttons
         hbox_buttons = QtWidgets.QHBoxLayout()
         hbox_buttons.addStretch(1)
         next_btn = QtWidgets.QPushButton("&Next episode")  # Shortcut is Alt+N
@@ -59,7 +62,12 @@ class TimePlot(QtWidgets.QMainWindow):
         self.layout.removeWidget(self.stacked_plots)
         self.stacked_plots = QtWidgets.QStackedWidget()
         for f in self.figs:
-            self.stacked_plots.addWidget(f)
+            layout = QtWidgets.QVBoxLayout(self)
+            layout.addWidget(NavigationToolbar(f, self))
+            layout.addWidget(f)
+            w = QtWidgets.QWidget()
+            w.setLayout(layout)
+            self.stacked_plots.addWidget(w)
         self.stacked_plots.setCurrentIndex(len(figs) - 1)
         self.layout.addWidget(self.stacked_plots, 0, 0)
         self.show()
