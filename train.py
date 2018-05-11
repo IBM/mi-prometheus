@@ -178,8 +178,8 @@ if __name__ == '__main__':
         validation_frequency = 100
         pass
 
-    train_file = open(log_dir + 'training.log', 'w', 1)
-    validation_file = open(log_dir + 'validation.log', 'w', 1)
+    train_file = open(log_dir + 'training.csv', 'w', 1)
+    validation_file = open(log_dir + 'validation.csv', 'w', 1)
     train_file.write('episode,accuracy,loss,length\n')
     validation_file.write('episode,accuracy,length\n')
 
