@@ -15,40 +15,48 @@ import torch.nn.functional as F
 import collections
 import numpy as np
 
-import matplotlib
-logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
-# Import problems and problem factory.
+# Import model factory.
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
-from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
+# Import problems factory and data tuple.
+sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
+from problems.problem_factory import ProblemFactory
+from problems.algorithmic_sequential_problem import DataTuple
 
-def validation(model, data_valid, use_mask):
-    inputs, targets, mask = data_valid
+def forward_step(model, data_tuple,  use_mask,  criterion):
+    """ Function performs a single forward step.
 
-    # apply model
-    output = model(inputs)
+    :returns: logits, loss and accuracy (former using provided criterion)
+    """
+    # Unpack the data tuple.
+    (inputs, targets, mask) = data_tuple
 
-    # check if mask is used
+    # 1. Perform forward calculation.
+    logits = model(inputs)
+
+    # 2. Calculate loss.
+    # Check if mask should be is used - if so, apply.
     if use_mask:
-        output = output[:, mask[0], :]
+        logits = logits[:, mask[0], :]
         targets = targets[:, mask[0], :]
 
-    # compute loss and accuracy
-    loss = criterion(output, targets)
-    accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
-    return loss, accuracy
+    # Compute loss using the provided criterion.
+    loss = criterion(logits, targets)
+    # Calculate accuracy.
+    accuracy = (1 - torch.abs(torch.round(F.sigmoid(logits)) - targets)).mean()
+    # Return tuple: logits, loss, accuracy.
+    return logits,  loss, accuracy
 
 
 if __name__ == '__main__':
 
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('--confirm', action='store_true', dest='confirm',
-                        help='Request user confirmation just after loading the settings, before starting training.')
+    parser.add_argument('--confirm', dest='confirm', action='store_true',
+                        help='Request user confirmation just after loading the settings, before starting training  (Default: False)')
     parser.add_argument('-t', dest='task',  type=str, default='',
                         help='Name of the task configuration file to be loaded')
     parser.add_argument('--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2], type=int,
@@ -57,10 +65,12 @@ if __name__ == '__main__':
                              "1: Add histograms of biases and weights (Warning: slow)\n"
                              "2: Add histograms of biases and weights gradients (Warning: even slower)")
     parser.add_argument('--lf', dest='logging_frequency', default=100,  type=int,
-                        help='TensorBoard logging frequency (Default is 100, i.e. logs every 100 episodes)')
+                        help='TensorBoard logging frequency (Default: 100, i.e. logs every 100 episodes)')
     parser.add_argument('--log', action='store', dest='log', type=str, default='INFO',
                         choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
-                        help="Log level. Default is INFO.")
+                        help="Log level. (Default: INFO)")
+    parser.add_argument('--sma', dest='save_model_always', action='store_true', 
+                        help='Stores model in every validation step, disregarding whether there was improvement or not (Default: False)')
 
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
@@ -140,33 +150,36 @@ if __name__ == '__main__':
     model = ModelFactory.build_model(config_loaded['model'])
     model.cuda() if use_CUDA else None
 
-    # Set loss and optimizer
+    # Set optimizer.
     optimizer_conf = dict(config_loaded['optimizer'])
     optimizer_name = optimizer_conf['name']
     del optimizer_conf['name']
-
-    criterion = nn.BCEWithLogitsLoss()
     optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), **optimizer_conf)
+
+    # Set loss criterion.
+    # TK: TODO: move criterion to PROBLEM!
+    criterion = nn.BCEWithLogitsLoss()
 
     # Create tensorboard output, if tensorboard chosen
     if FLAGS.tensorboard is not None:
         from tensorboardX import SummaryWriter
-        tb_writer = SummaryWriter(log_dir)
+        training_writer = SummaryWriter(log_dir+'/training')
+        validation_writer = SummaryWriter(log_dir+'/validation')
 
     # Start Training
     episode = 0
-    best_loss = 0.2
+    best_loss = 0.2 # TK: WHY?
     last_losses = collections.deque()
 
-    # Try to read validation frequency from config, else set default (500)
+    # Try to read validation frequency from config, else set default (100)
     try: 
         validation_frequency = config_loaded['problem_validation']['frequency']
     except KeyError:
-        validation_frequency = 500
+        validation_frequency = 100
         pass
 
-    train_file = open(log_dir + 'training.log', 'w', 1)
-    validation_file = open(log_dir + 'validation.log', 'w', 1)
+    train_file = open(log_dir + 'training.csv', 'w', 1)
+    validation_file = open(log_dir + 'validation.csv', 'w', 1)
     train_file.write('episode,accuracy,loss,length\n')
     validation_file.write('episode,accuracy,length\n')
 
@@ -177,6 +190,8 @@ if __name__ == '__main__':
             inputs = inputs.cuda()
             targets = targets.cuda()
 
+        # Curriculum learning stop condition.
+        curric_done=True
         # apply curriculum learning
         try:  # If the 'curriculum_learning_interval' key is not present, catch the exception and do nothing
             if config_loaded['problem_train']['curriculum_learning_interval']  > 0:
@@ -187,31 +202,27 @@ if __name__ == '__main__':
                 max_length = min_length + int(episode / config_loaded['problem_train']['curriculum_learning_interval'])
                 if max_length > max_max_length:
                     max_length = max_max_length
+                else:
+                    curric_done=False
                 problem.set_max_length(max_length)
+        
         except KeyError:
             pass
 
         # reset gradients
         optimizer.zero_grad()
 
-        # apply model
-        output = model(inputs)
-
-        # compute loss
-        # TODO: solution for now - mask[0]
-        if config_loaded['settings']['use_mask']:
-            output = output[:, mask[0], :]
-            targets = targets[:, mask[0], :]
-
-        loss = criterion(output, targets)
-
-        # append the new loss
+        # 1. Perform forward step, calculate logits, loss  and accuracy.
+        logits,  loss,  accuracy = forward_step(model, DataTuple(inputs, targets, mask),  config_loaded['settings']['use_mask'],  criterion)
+            
+        # Store the calculated loss on a list.
         last_losses.append(loss)
+        # Truncate list length.
         if len(last_losses) > config_loaded['settings']['length_loss']:
             last_losses.popleft()
 
+        # 2. Backward gradient flow.
         loss.backward()
-
         # Check the presence of parameter 'gradient_clipping'.
         try:
             # if present - clip gradients to a range (-gradient_clipping, gradient_clipping)
@@ -221,19 +232,49 @@ if __name__ == '__main__':
             # Else - do nothing.
             pass
         
+        # 3. Perform optimization.
         optimizer.step()
 
-        # check if new loss is smaller than the best loss, save the model in this case
-        if loss < best_loss or episode % validation_frequency == 0:
+        # 4. Log data - loss, accuracy and other variables (seq_length).
+        train_length = inputs.size(-2)
+        format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d}'
+        logger.info(format_str.format(episode, accuracy, loss, train_length))
+        format_str = '{:05d}, {:12.10f}, {:12.10f}, {:02d}\n'
+        train_file.write(format_str.format(episode, accuracy, loss, train_length))
+
+        # Export data to tensorboard.
+        if (FLAGS.tensorboard is not None) and (episode % FLAGS.logging_frequency== 0):
+            training_writer.add_scalar('Loss', loss, episode)
+            training_writer.add_scalar('Accuracy', accuracy, episode)
+            training_writer.add_scalar('Seq_len', train_length, episode)
+
+            # Export histograms.
+            if FLAGS.tensorboard >= 1:
+                for name, param in model.named_parameters():
+                        training_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
+                        
+            # Export gradients.
+            if FLAGS.tensorboard >= 2:
+                for name, param in model.named_parameters():
+                    training_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
+
+
+       # 5. Validation. check if new loss is smaller than the best loss, save the model in this case
+        if loss < best_loss or ((episode+1) % validation_frequency) == 0:
+
             improved = False
             if loss < best_loss:
-                torch.save(model.state_dict(), log_dir + "/model_parameters")
                 best_loss = loss
                 improved = True
 
-            # calculate the accuracy and loss of the validation data
+            # Export model if better OR user simply wants to export the mode..
+            if FLAGS.save_model_always or improved:
+                torch.save(model.state_dict(), log_dir + "/model_parameters")
+                logger.info("Model exported")
+
+            # Calculate the accuracy and loss of the validation data
             length_valid = data_valid[0].size(-2)
-            loss_valid, accuracy_valid = validation(model, data_valid, config_loaded['settings']['use_mask'])
+            _,  loss_valid, accuracy_valid = forward_step(model, data_valid, config_loaded['settings']['use_mask'],  criterion)
             format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Validation]'
             if not improved:
                 format_str = format_str + ' *'
@@ -246,32 +287,19 @@ if __name__ == '__main__':
             format_str = format_str + '\n'
             validation_file.write(format_str.format(episode, accuracy_valid, loss_valid, length_valid))
 
-        # calculate the accuracy of the training data
-        accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
-        train_length = inputs.size(-2)
-        format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d}'
-        logger.info(format_str.format(episode, accuracy, loss, train_length))
-        format_str = '{:05d}, {:12.10f}, {:12.10f}, {:02d}\n'
-        train_file.write(format_str.format(episode, accuracy, loss, train_length))
+            if (FLAGS.tensorboard is not None):
+                # Save loss + accuracy to tensorboard
+                validation_writer.add_scalar('Loss', loss_valid, episode)
+                validation_writer.add_scalar('Accuracy', accuracy_valid, episode)
+                validation_writer.add_scalar('Seq_len', length_valid, episode)
+            # End of validation.
+ 
 
-        if (FLAGS.tensorboard is not None) and (episode % FLAGS.logging_frequency== 0):
-            # Save loss + accuracy to tensorboard
-            accuracy = (1 - torch.abs(torch.round(F.sigmoid(output)) - targets)).mean()
-            tb_writer.add_scalar('Train/loss', loss, episode)
-            tb_writer.add_scalar('Train/accuracy', accuracy, episode)
-            tb_writer.add_scalar('Train/seq_len', train_length, episode)
-
-            for name, param in model.named_parameters():
-                if FLAGS.tensorboard >= 1:
-                    tb_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
-                if FLAGS.tensorboard >= 2:
-                    tb_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
-
-        # break if conditions applied: convergence or max episodes
-        if max(last_losses) < config_loaded['settings']['loss_stop'] \
-                or episode == config_loaded['settings']['max_episodes']:
-
-            break
+        if curric_done:
+            # break if conditions applied: convergence or max episodes
+            if max(last_losses) < config_loaded['settings']['loss_stop'] \
+                or episode == config_loaded['settings']['max_episodes'] :
+                break
 
         episode += 1
 

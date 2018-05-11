@@ -1,8 +1,8 @@
 import numpy as np
 import torch
-from torch.autograd import Variable
 from utils import augment, add_ctrl
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
+from algorithmic_sequential_problem import DataTuple
 
 
 def rotate(seq, rotation, seq_length):
@@ -129,7 +129,8 @@ class InterruptionSwapRecall(AlgorithmicSequentialProblem):
         target_with_dummies = torch.zeros_like(inputs[:, :, self.control_bits:])
         target_with_dummies[:, mask[0], :] = target
 
-        return inputs, target_with_dummies, mask
+        # Return data tuple.
+        return DataTuple(inputs, target_with_dummies, mask)
 
     # method for changing the maximum length, used mainly during curriculum learning
     def set_max_length(self, max_length):
@@ -140,8 +141,9 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'name': 'serial_recall_original', 'control_bits': 3, 'data_bits': 8, 'batch_size': 1,
-              'min_sequence_length': 1, 'max_sequence_length': 10, 'bias': 0.5, 'num_subseq_min':1 ,'num_subseq_max': 4, 'num_rotation':0.5}
+    params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 1,
+              'min_sequence_length': 1, 'max_sequence_length': 10, 'bias': 0.5, 
+              'num_subseq_min':1 ,'num_subseq_max': 4, 'num_rotation':0.5}
     # Create problem object.
     problem = InterruptionSwapRecall(params)
     # Get generator

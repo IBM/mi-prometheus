@@ -6,8 +6,8 @@ problem_train:
     control_bits: &cbits 2
     batch_size: &bs 10
     # Parameters denoting min and max lengths. 
-    min_sequence_length: &min_seq_len 1
-    max_sequence_length: &max_seq_len 10
+    min_sequence_length: &min_seq_len 2
+    max_sequence_length: &max_seq_len 2
     bias: 0.5
     cuda: True  # The presence of the 'cuda' key is optional
     #Parameter of curriculum learning, increase the max_sequence_length
@@ -75,5 +75,5 @@ settings:
     length_loss: 100
     loss_stop: 0.0001
     max_episodes: 1000000
-    seed_numpy: -1
-    seed_torch: -1
+    seed_numpy: 0
+    seed_torch: 2

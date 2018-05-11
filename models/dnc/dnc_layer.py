@@ -3,12 +3,13 @@ from torch import nn
 from models.dnc.plot_data import plot_memory_attention
 from torch.autograd import Variable
 
+from models.model_base import ModelBase
 from models.dnc.dnc_cell import DNCCell
 
 CUDA = False
 dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 
-class DNC(nn.Module):
+class DNC(ModelBase, nn.Module):
 
     def __init__(self, params):
         """Initialize an DNC Layer.

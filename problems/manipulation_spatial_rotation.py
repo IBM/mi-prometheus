@@ -5,8 +5,8 @@ __author__      = "Tomasz Kornuta"
 
 import numpy as np
 import torch
-from torch.autograd import Variable
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
+from algorithmic_sequential_problem import DataTuple
 
 @AlgorithmicSequentialProblem.register
 class ManipulationSpatialRotation(AlgorithmicSequentialProblem):
@@ -82,15 +82,15 @@ class ManipulationSpatialRotation(AlgorithmicSequentialProblem):
         targets[:, seq_length+2:,  :] = bit_seq
 
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
-        targets_mask = torch.zeros([self.batch_size, 2*seq_length + 2]).type(torch.ByteTensor)
-        targets_mask[:, seq_length+2:] = 1
+        mask = torch.zeros([self.batch_size, 2*seq_length + 2]).type(torch.ByteTensor)
+        mask[:, seq_length+2:] = 1
 
         # PyTorch variables.
         ptinputs = torch.from_numpy(inputs).type(self.dtype)
         pttargets = torch.from_numpy(targets).type(self.dtype)
 
-        # Return batch.
-        return ptinputs,  pttargets,  targets_mask
+        # Return data tuple.
+        return DataTuple(ptinputs, pttargets, mask)
 
     # method for changing the maximum length, used mainly during curriculum learning
     def set_max_length(self, max_length):
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'control_bits': 2, 'data_bits': 9, 'batch_size': 1, 
+    params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 
         'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'num_bits':0.5}
     # Create problem object.
     problem = ManipulationSpatialRotation(params)
