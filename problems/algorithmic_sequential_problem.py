@@ -4,11 +4,19 @@
 __author__      = "Tomasz Kornuta"
 
 import abc
+import collections
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib import rc
 
+
+_DataTuple = collections.namedtuple('DataTuple', ('inputs', 'targets',  'mask'))
+
+class DataTuple(_DataTuple):
+    """Tuple used by storing batches of data by data generators"""
+    __slots__ = ()
+    
 class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
     ''' Abstract base class for algorithmic, sequential problems. Provides some basic functionality usefull in all problems of such type'''
 
