@@ -123,13 +123,12 @@ class Interface(torch.nn.Module):
             read_attention_BxAx1 = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attentions_BxAx1_H[i])
             #logger.debug("read_attention_BxAx1 {}:\n {}".format(read_attention_BxAx1.size(),  read_attention_BxAx1))  
 
-            # Read vector from memory [BATCH_SIZE x CONTENT_BITS x 1].
-            read_vector_Bx1xC = torch.matmul(torch.transpose(read_attention_BxAx1,  1, 2),  prev_memory_BxAxC)
-            #logger.debug("read_vector_Bx1xC {}:\n {}".format(read_vector_Bx1xC.size(),  read_vector_Bx1xC))  
+            # Read vector from memory [BATCH_SIZE x CONTENT_BITS].
+            read_vector_BxC = self.read_from_memory(read_attention_BxAx1,  prev_memory_BxAxC)
             
             # Save read attentions and vectors in a list.
             read_attentions_BxAx1_H.append(read_attention_BxAx1)
-            read_vectors_BxC_H.append(read_vector_Bx1xC.squeeze(dim=1))
+            read_vectors_BxC_H.append(read_vector_BxC)
             
         # Write head operation.
         # Calculate parameters of a given read head.
@@ -148,12 +147,7 @@ class Interface(torch.nn.Module):
         #logger.debug("write_attention_BxAx1 {}:\n {}".format(write_attention_BxAx1.size(),  write_attention_BxAx1))  
 
         # Update the memory.
-        # 1. Calculate the preserved content.
-        preserve_content_BxAxC = torch.ones_like(prev_memory_BxAxC) - torch.matmul(write_attention_BxAx1,  erase_vector_Bx1xC)
-        # 2. Calculate the added content.
-        add_content_BxAxC = torch.matmul(write_attention_BxAx1,  add_vector_Bx1xC) 
-        # 3. Update.
-        memory_BxAxC =  prev_memory_BxAxC * preserve_content_BxAxC + add_content_BxAxC        
+        memory_BxAxC = self.update_memory(write_attention_BxAx1,  erase_vector_Bx1xC,  add_vector_Bx1xC,  prev_memory_BxAxC)
         
         # Pack current cell state.
         state_tuple = InterfaceStateTuple(read_attentions_BxAx1_H,  write_attention_BxAx1)
@@ -341,3 +335,35 @@ class Interface(torch.nn.Module):
         #logger.debug("norm_attention_BxAx1 {}:\n {}".format(norm_attention_BxAx1.size(),  norm_attention_BxAx1))
   
         return norm_attention_BxAx1
+
+
+    def read_from_memory(self,  attention_BxAx1,  memory_BxAxC):
+        """ Returns 2D tensor of size [BATCH_SIZE x CONTENT_BITS] storing vector read from memory given the attention.
+        
+        :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
+        :param memory_BxAxC: tensor containing memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
+        :returns: vector read from the memory [BATCH_SIZE x CONTENT_BITS]
+        """
+        read_vector_Bx1xC = torch.matmul(torch.transpose(attention_BxAx1,  1, 2),  memory_BxAxC)
+        #logger.debug("read_vector_Bx1xC {}:\n {}".format(read_vector_Bx1xC.size(),  read_vector_Bx1xC))  
+
+        # Return 2D tensor.
+        return read_vector_Bx1xC.squeeze(dim=1)
+        
+    def update_memory(self,  write_attention_BxAx1,  erase_vector_Bx1xC,  add_vector_Bx1xC,  prev_memory_BxAxC):
+        """ Returns 3D tensor of size [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS] storing new content of the memory.
+        
+        :param write_attention_BxAx1: Current write attention [BATCH_SIZE x ADDRESS_SIZE x 1]
+        :param erase_vector_Bx1xC: Erase vector [BATCH_SIZE x  1 x CONTENT_BITS]
+        :param add_vector_Bx1xC: Add vector [BATCH_SIZE x 1 x CONTENT_BITS]
+        :param prev_memory_BxAxC: tensor containing previous state of the memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
+        :returns: vector read from the memory [BATCH_SIZE x CONTENT_BITS]
+        """
+        # 1. Calculate the preserved content.
+        preserve_content_BxAxC = 1 - torch.matmul(write_attention_BxAx1,  erase_vector_Bx1xC)
+        # 2. Calculate the added content.
+        add_content_BxAxC = torch.matmul(write_attention_BxAx1,  add_vector_Bx1xC) 
+        # 3. Update memory.
+        memory_BxAxC =  prev_memory_BxAxC * preserve_content_BxAxC + add_content_BxAxC  
+        
+        return memory_BxAxC
