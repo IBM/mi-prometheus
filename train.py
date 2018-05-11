@@ -136,6 +136,9 @@ if __name__ == '__main__':
         except KeyError:
             pass
 
+    if config_loaded['problem_train']['curriculum_learning_interval'] != 0:
+        config_loaded['problem_train']['max_sequence_length'] = config_loaded['problem_train']['min_sequence_length']
+
     # Build problem for the training
     problem = ProblemFactory.build_problem(config_loaded['problem_train'])
 
