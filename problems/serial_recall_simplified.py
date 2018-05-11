@@ -5,8 +5,8 @@ __author__      = "Tomasz Kornuta"
 
 import numpy as np
 import torch
-from torch.autograd import Variable
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
+from algorithmic_sequential_problem import DataTuple
 
 @AlgorithmicSequentialProblem.register
 class SerialRecallSimplified(AlgorithmicSequentialProblem):
@@ -77,7 +77,7 @@ class SerialRecallSimplified(AlgorithmicSequentialProblem):
         pttargets = torch.from_numpy(targets).type(self.dtype)
 
         # Return batch.
-        return ptinputs,  pttargets,  mask
+        return DataTuple(ptinputs,  pttargets,  mask)
 
     # method for changing the maximum length, used mainly during curriculum learning
     def set_max_length(self, max_length):
