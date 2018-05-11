@@ -7,7 +7,7 @@ problem_train:
     batch_size: &bs 10
     # Parameters denoting min and max lengths. 
     min_sequence_length: &min_seq_len 2
-    max_sequence_length: &max_seq_len 2
+    max_sequence_length: &max_seq_len 10
     bias: 0.5
     cuda: True  # The presence of the 'cuda' key is optional
     #Parameter of curriculum learning, increase the max_sequence_length
@@ -18,6 +18,19 @@ problem_train:
     gradient_clipping: 10 
 
 # Problem parameters:
+problem_validation:
+    name: serial_recall_original
+    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+    control_bits: *cbits
+    data_bits: *dbits
+    batch_size: 1
+    # Parameters denoting min and max lengths.
+    min_sequence_length: 20
+    max_sequence_length: 20
+    bias: 0.5
+    frequency: 500
+    
+# Problem parameters:
 problem_test:
     name: serial_recall_original
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
@@ -25,20 +38,8 @@ problem_test:
     data_bits: *dbits
     batch_size: 1
     # Parameters denoting min and max lengths.
-    min_sequence_length: 100
-    max_sequence_length: 100
-    bias: 0.5
-
-# Problem parameters:
-problem_validation:
-    name: serial_recall_original
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: *cbits
-    data_bits: *dbits
-    batch_size: 10
-    # Parameters denoting min and max lengths.
-    min_sequence_length: 60
-    max_sequence_length: 60
+    min_sequence_length: 30
+    max_sequence_length: 30
     bias: 0.5
 
 # Model parameters:
@@ -61,7 +62,7 @@ model:
     # Memory parameters.
     memory:
         num_content_bits: 10
-        num_addresses: 60
+        num_addresses: 30
 
 # Set optimizer.
 optimizer:

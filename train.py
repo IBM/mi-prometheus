@@ -15,6 +15,7 @@ import torch.nn.functional as F
 import collections
 import numpy as np
 
+from misc.app_state import AppState
 
 # Import model factory.
 import sys
@@ -40,19 +41,64 @@ def forward_step(model, data_tuple,  use_mask,  criterion):
     # 2. Calculate loss.
     # Check if mask should be is used - if so, apply.
     if use_mask:
-        logits = logits[:, mask[0], :]
-        targets = targets[:, mask[0], :]
+        masked_logits = logits[:, mask[0], :]
+        masked_targets = targets[:, mask[0], :]
+    else:
+        masked_logits = logits
+        masked_targets = targets
 
     # Compute loss using the provided criterion.
-    loss = criterion(logits, targets)
+    loss = criterion(masked_logits, masked_targets)
     # Calculate accuracy.
-    accuracy = (1 - torch.abs(torch.round(F.sigmoid(logits)) - targets)).mean()
+    accuracy = (1 - torch.abs(torch.round(F.sigmoid(masked_logits)) - masked_targets)).mean()
     # Return tuple: logits, loss, accuracy.
     return logits,  loss, accuracy
 
 
-if __name__ == '__main__':
 
+def validation(model, data_valid,  use_mask,  criterion,  improved,  FLAGS, logger,  model_parameters_path,  validation_file,  validation_writer):
+    """
+    Function performs validation
+    
+    """
+    # Export model if better OR user simply wants to export the mode..
+    if FLAGS.save_model_always or improved:
+        torch.save(model.state_dict(),  model_parameters_path)
+        logger.info("Model exported")
+
+    # Calculate the accuracy and loss of the validation data.
+    logits_valid,  loss_valid, accuracy_valid = forward_step(model, data_valid, use_mask,  criterion)
+
+    # Print statistics.
+    length_valid = data_valid[0].size(-2)
+    format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Validation]'
+    if not improved:
+        format_str = format_str + ' *'
+
+    logger.info(format_str.format(episode, accuracy_valid, loss_valid, length_valid))
+    format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
+    if not improved:
+        format_str = format_str + ' *'
+
+    format_str = format_str + '\n'
+    validation_file.write(format_str.format(episode, accuracy_valid, loss_valid, length_valid))
+
+    if (FLAGS.tensorboard is not None):
+        # Save loss + accuracy to tensorboard
+        validation_writer.add_scalar('Loss', loss_valid, episode)
+        validation_writer.add_scalar('Accuracy', accuracy_valid, episode)
+        validation_writer.add_scalar('Seq_len', length_valid, episode)
+
+    # Visualization of validation.
+    if AppState().visualize:
+        (inputs_valid, targets_valid, _) = data_valid
+        # True means that we should terminate
+        return model.plot_sequence(inputs_valid[0].detach(), logits_valid[0].detach(), targets_valid[0].detach())
+    # Else simply return false, i.e. continue training.
+    return False
+
+
+if __name__ == '__main__':
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--confirm', dest='confirm', action='store_true',
@@ -71,7 +117,13 @@ if __name__ == '__main__':
                         help="Log level. (Default: INFO)")
     parser.add_argument('--sma', dest='save_model_always', action='store_true', 
                         help='Stores model in every validation step, disregarding whether there was improvement or not (Default: False)')
-
+    parser.add_argument('-v', dest='visualize', choices=[0, 1, 2, 3], type=int,
+                        help="Activate dynamic visualization:\n"
+                             "0: Only during training\n"
+                             "1: During both training and validation\n"
+                             "2: Only during validation\n"
+                             "3: Only during last validation, after training is completed\n")
+ 
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
 
@@ -83,7 +135,7 @@ if __name__ == '__main__':
     if not os.path.isfile(FLAGS.task):
         print('Task configuration file {} does not exists'.format(FLAGS.task))
         exit(-2)
-
+        
     # Read the YAML file.
     with open(FLAGS.task, 'r') as stream:
         config_loaded = yaml.load(stream)
@@ -99,35 +151,50 @@ if __name__ == '__main__':
     os.makedirs(log_dir, exist_ok=False)
     log_file = log_dir + 'msgs.log'
     copyfile(FLAGS.task, log_dir + "/train_settings.yaml")  # Copy the task's yaml file into log_dir
+    model_parameters_path = log_dir + "/model_parameters"
+
+    # Create csv files.
+    train_file = open(log_dir + 'training.csv', 'w', 1)
+    validation_file = open(log_dir + 'validation.csv', 'w', 1)
+    train_file.write('episode,accuracy,loss,length\n')
+    validation_file.write('episode,accuracy,length\n')
+
+    # Create tensorboard output - if tensorboard is supposed to be used.
+    if FLAGS.tensorboard is not None:
+        from tensorboardX import SummaryWriter
+        training_writer = SummaryWriter(log_dir+'/training')
+        validation_writer = SummaryWriter(log_dir+'/validation')
 
     def logfile():
         return logging.FileHandler(log_file)
-
+        
+    # Log configuration to file.
     with open('logger_config.yaml', 'rt') as f:
         config = yaml.load(f.read())
         logging.config.dictConfig(config)
 
+    # Set logger label and level.
     logger = logging.getLogger('Train')
     logger.setLevel(getattr(logging, FLAGS.log.upper(), None))
 
-    # print experiment configuration
+    # Print experiment configuration
     str = 'Configuration for {}:\n'.format(task_name)
     str += yaml.safe_dump(config_loaded, default_flow_style=False,
                           explicit_start=True, explicit_end=True)
     logger.info(str)
 
+    # Ask for confirmation - optional.
     if FLAGS.confirm:
-        # Ask for confirmation
         input('Press any key to continue')
 
-    # set seed
+    # Set random seeds.
     if config_loaded["settings"]["seed_torch"] != -1:
         torch.manual_seed(config_loaded["settings"]["seed_torch"])
 
     if config_loaded["settings"]["seed_numpy"] != -1:
         np.random.seed(config_loaded["settings"]["seed_numpy"])
 
-    # Determine if CUDA is to be used
+    # Determine if CUDA is to be used.
     use_CUDA = False
     if torch.cuda.is_available():
         try:  # If the 'cuda' key is not present, catch the exception and do nothing
@@ -136,6 +203,12 @@ if __name__ == '__main__':
         except KeyError:
             pass
 
+    # Initialize the application state singleton.
+    app_state = AppState()
+    # If we are going to use SOME visualization - set flag to True now, before creation of problem and model objects.
+    if FLAGS.visualize is not None:
+        app_state.visualize = True
+
     # Build problem for the training
     problem = ProblemFactory.build_problem(config_loaded['problem_train'])
 
@@ -143,7 +216,7 @@ if __name__ == '__main__':
     problem_validation = ProblemFactory.build_problem(config_loaded['problem_validation'])
     generator_validation = problem_validation.return_generator()
     
-    # Get a single batch that will be used during all validation steps.
+    # Get a single batch that will be used for validation (!)
     data_valid = next(generator_validation)
 
     # Build the model.
@@ -160,12 +233,6 @@ if __name__ == '__main__':
     # TK: TODO: move criterion to PROBLEM!
     criterion = nn.BCEWithLogitsLoss()
 
-    # Create tensorboard output, if tensorboard chosen
-    if FLAGS.tensorboard is not None:
-        from tensorboardX import SummaryWriter
-        training_writer = SummaryWriter(log_dir+'/training')
-        validation_writer = SummaryWriter(log_dir+'/validation')
-
     # Start Training
     episode = 0
     best_loss = 0.2 # TK: WHY?
@@ -177,13 +244,11 @@ if __name__ == '__main__':
     except KeyError:
         validation_frequency = 100
         pass
-
-    train_file = open(log_dir + 'training.csv', 'w', 1)
-    validation_file = open(log_dir + 'validation.csv', 'w', 1)
-    train_file.write('episode,accuracy,loss,length\n')
-    validation_file.write('episode,accuracy,length\n')
-
-    # Data generator : input & target
+    
+    # Flag denoting whether we converged (or reached last episode).
+    terminal_condition = False
+    
+    # Main training and verification loop.
     for inputs, targets, mask in problem.return_generator():
         # Convert inputs and targets to CUDA
         if use_CUDA:
@@ -211,6 +276,12 @@ if __name__ == '__main__':
 
         # reset gradients
         optimizer.zero_grad()
+
+        # Check visualization flag - turn on when we wanted to visualize (at least) validation.
+        if FLAGS.visualize is not None and FLAGS.visualize <=1:
+            AppState().visualize = True
+        else:
+            app_state.visualize = False
 
         # 1. Perform forward step, calculate logits, loss  and accuracy.
         logits,  loss,  accuracy = forward_step(model, DataTuple(inputs, targets, mask),  config_loaded['settings']['use_mask'],  criterion)
@@ -258,52 +329,61 @@ if __name__ == '__main__':
                 for name, param in model.named_parameters():
                     training_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
 
+        # Check visualization of training data.
+        if app_state.visualize:
+            # Show plot, if user presses Quit - break.
+            if model.plot_sequence(inputs[0].detach(), logits[0].detach(), targets[0].detach()):
+                break
 
        # 5. Validation. check if new loss is smaller than the best loss, save the model in this case
-        if loss < best_loss or ((episode+1) % validation_frequency) == 0:
+        if loss < best_loss or (episode % validation_frequency) == 0:
 
             improved = False
             if loss < best_loss:
                 best_loss = loss
                 improved = True
 
-            # Export model if better OR user simply wants to export the mode..
-            if FLAGS.save_model_always or improved:
-                torch.save(model.state_dict(), log_dir + "/model_parameters")
-                logger.info("Model exported")
-
-            # Calculate the accuracy and loss of the validation data
-            length_valid = data_valid[0].size(-2)
-            _,  loss_valid, accuracy_valid = forward_step(model, data_valid, config_loaded['settings']['use_mask'],  criterion)
-            format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Validation]'
-            if not improved:
-                format_str = format_str + ' *'
-
-            logger.info(format_str.format(episode, accuracy_valid, loss_valid, length_valid))
-            format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
-            if not improved:
-                format_str = format_str + ' *'
-
-            format_str = format_str + '\n'
-            validation_file.write(format_str.format(episode, accuracy_valid, loss_valid, length_valid))
-
-            if (FLAGS.tensorboard is not None):
-                # Save loss + accuracy to tensorboard
-                validation_writer.add_scalar('Loss', loss_valid, episode)
-                validation_writer.add_scalar('Accuracy', accuracy_valid, episode)
-                validation_writer.add_scalar('Seq_len', length_valid, episode)
+            # Check visualization flag - turn on when we wanted to visualize (at least) validation.
+            if FLAGS.visualize is not None and (FLAGS.visualize ==1 or FLAGS.visualize ==2):
+                app_state.visualize = True
+            else:
+                app_state.visualize = False
+            
+            # Perform validation.
+            if validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion, improved,  FLAGS, 
+                    logger,  model_parameters_path,  validation_file,  validation_writer):
+                break
             # End of validation.
- 
 
         if curric_done:
             # break if conditions applied: convergence or max episodes
             if max(last_losses) < config_loaded['settings']['loss_stop'] \
                 or episode == config_loaded['settings']['max_episodes'] :
-                break
+                    terminal_condition = True
+                    break
 
+        # "Finish" episode.
         episode += 1
+    
+    # Check whether we have finished training!
+    if terminal_condition:
+        logger.info('Learning finished!')
+        # Check visualization flag - turn on when we wanted to visualize (at least) validation.
+        if FLAGS.visualize is not None and (FLAGS.visualize >=2):
+            app_state.visualize = True
+        else:
+            app_state.visualize = False
+        
+        # Perform validation.
+        validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion,  False,  FLAGS, logger,  model_parameters_path,  validation_file,  validation_writer)
+    else:
+        logger.info('Learning interrupted!')
 
+    # Close files.
     train_file.close()
     validation_file.close()
+    if (FLAGS.tensorboard is not None):
+        # Close TB writers.
+        training_writer.close()
+        validation_writer.close()
 
-    logger.info('Learning finished!')
