@@ -178,6 +178,9 @@ if __name__ == '__main__':
             targets = targets.cuda()
 
         # apply curriculum learning
+        # Curriculum learning stop condition.
+        curric_done=True
+        # apply curriculum learning
         try:  # If the 'curriculum_learning_interval' key is not present, catch the exception and do nothing
             if config_loaded['problem_train']['curriculum_learning_interval']  > 0:
                 min_length=config_loaded['problem_train']['min_sequence_length']
@@ -187,7 +190,10 @@ if __name__ == '__main__':
                 max_length = min_length + int(episode / config_loaded['problem_train']['curriculum_learning_interval'])
                 if max_length > max_max_length:
                     max_length = max_max_length
+                else:
+                    curric_done=False
                 problem.set_max_length(max_length)
+        
         except KeyError:
             pass
 
@@ -224,7 +230,7 @@ if __name__ == '__main__':
         optimizer.step()
 
         # check if new loss is smaller than the best loss, save the model in this case
-        if loss < best_loss or episode % validation_frequency == 0:
+        if loss < best_loss or ((episode+1) % validation_frequency) == 0:
             improved = False
             if loss < best_loss:
                 torch.save(model.state_dict(), log_dir + "/model_parameters")
@@ -267,11 +273,11 @@ if __name__ == '__main__':
                 if FLAGS.tensorboard >= 2:
                     tb_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
 
-        # break if conditions applied: convergence or max episodes
-        if max(last_losses) < config_loaded['settings']['loss_stop'] \
-                or episode == config_loaded['settings']['max_episodes']:
-
-            break
+        if curric_done:
+            # break if conditions applied: convergence or max episodes
+            if max(last_losses) < config_loaded['settings']['loss_stop'] \
+                or episode == config_loaded['settings']['max_episodes'] :
+                break
 
         episode += 1
 
