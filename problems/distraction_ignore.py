@@ -1,9 +1,8 @@
 import numpy as np
 import torch
-from torch.autograd import Variable
 from utils import augment, add_ctrl
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
-
+from algorithmic_sequential_problem import DataTuple
 
 @AlgorithmicSequentialProblem.register
 class DistractionIgnore(AlgorithmicSequentialProblem):
@@ -99,7 +98,8 @@ class DistractionIgnore(AlgorithmicSequentialProblem):
         target_with_dummies = torch.zeros_like(inputs[:, :, self.control_bits:])
         target_with_dummies[:, mask[0], :] = target
 
-        return inputs, target_with_dummies, mask
+        # Return data tuple.
+        return DataTuple(inputs, target_with_dummies, mask)
 
     # method for changing the maximum length, used mainly during curriculum learning
     def set_max_length(self, max_length):

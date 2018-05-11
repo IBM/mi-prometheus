@@ -1,8 +1,8 @@
 import torch
-from torch.autograd import Variable
 import numpy as np
 from utils import augment, add_ctrl
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
+from algorithmic_sequential_problem import DataTuple
 
 
 @AlgorithmicSequentialProblem.register
@@ -91,8 +91,9 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
         # rest channel values of data dummies
         inputs[:, mask[0], 0:self.control_bits] = 0
 
-        return inputs, target, mask
-
+        # Return data tuple.
+        return DataTuple(inputs, target, mask)
+        
     # method for changing the maximum length, used mainly during curriculum learning
     def set_max_length(self, max_length):
         self.max_sequence_length = max_length
@@ -104,7 +105,7 @@ if __name__ == "__main__":
     # "Loaded parameters".
     params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1,
               'min_sequence_length': 1, 'max_sequence_length': 10, 
-              'bias': 0.5, 'num_subseq_min':1 ,'num_subseq_max': 4}
+              'bias': 0.5, 'num_subseq_min':2 ,'num_subseq_max': 4}
     # Create problem object.
     problem = GeneratorScratchPad(params)
     # Get generator
