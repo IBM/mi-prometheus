@@ -57,7 +57,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--confirm', dest='confirm', action='store_true',
                         help='Request user confirmation just after loading the settings, before starting training  (Default: False)')
-    parser.set_defaults(confirm=False)
     parser.add_argument('-t', dest='task',  type=str, default='',
                         help='Name of the task configuration file to be loaded')
     parser.add_argument('--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2], type=int,
@@ -72,12 +71,9 @@ if __name__ == '__main__':
                         help="Log level. (Default: INFO)")
     parser.add_argument('--sma', dest='save_model_always', action='store_true', 
                         help='Stores model in every validation step, disregarding whether there was improvement or not (Default: False)')
-    parser.set_defaults(save_model_always=False)
 
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
-
-    print(FLAGS.save_model_always)
 
     # Check if config file was selected.
     if FLAGS.task == '':
