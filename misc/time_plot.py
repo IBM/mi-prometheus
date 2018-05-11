@@ -62,10 +62,10 @@ class TimePlot(QtWidgets.QMainWindow):
         self.layout.removeWidget(self.stacked_plots)
         self.stacked_plots = QtWidgets.QStackedWidget()
         for f in self.figs:
-            layout = QtWidgets.QVBoxLayout(self)
+            w = QtWidgets.QWidget()
+            layout = QtWidgets.QVBoxLayout(w)
             layout.addWidget(NavigationToolbar(f, self))
             layout.addWidget(f)
-            w = QtWidgets.QWidget()
             w.setLayout(layout)
             self.stacked_plots.addWidget(w)
         self.stacked_plots.setCurrentIndex(len(figs) - 1)
