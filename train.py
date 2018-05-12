@@ -9,6 +9,7 @@ import yaml
 import os.path
 from shutil import copyfile
 from datetime import datetime
+from time import sleep
 import argparse
 import torch
 from torch import nn
@@ -188,9 +189,15 @@ if __name__ == '__main__':
 
     # Prepare output paths for logging
     path_root = "./checkpoints/"
-    time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
-    log_dir = path_root + task_name + '/' + model_name + '/' + time_str + '/'
-    os.makedirs(log_dir, exist_ok=False)
+    while True:  # Dirty fix: if log_dir already exists, wait for 1 second and try again
+        try:
+            time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
+            log_dir = path_root + task_name + '/' + model_name + '/' + time_str + '/'
+            os.makedirs(log_dir, exist_ok=False)
+        except FileExistsError:
+            sleep(1)
+        else:
+            break
     log_file = log_dir + 'msgs.log'
     copyfile(FLAGS.task, log_dir + "/train_settings.yaml")  # Copy the task's yaml file into log_dir
     model_parameters_path = log_dir + "/model_parameters"
