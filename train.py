@@ -58,8 +58,10 @@ def forward_step(model, data_tuple,  use_mask,  criterion):
 
 def validation(model, data_valid,  use_mask,  criterion,  improved,  FLAGS, logger,  model_parameters_path,  validation_file,  validation_writer):
     """
-    Function performs validation
+    Function performs validation of the model, using the provided data and criterion.
+    Additionally it logs (to files, tensorboard) and visualizes.
     
+    :returns: True if training loop is supposed to end.
     """
     # Export model if better OR user simply wants to export the mode..
     if FLAGS.save_model_always or improved:
@@ -96,6 +98,36 @@ def validation(model, data_valid,  use_mask,  criterion,  improved,  FLAGS, logg
         return model.plot_sequence(inputs_valid[0].detach(), logits_valid[0].detach(), targets_valid[0].detach())
     # Else simply return false, i.e. continue training.
     return False
+
+def curriculum_learning_update_problem_params(problem,  episode,  config_loaded):
+    """
+    Updates problem parameters according to curriculum learning.
+    
+    :returns: Boolean informing whether curriculum learning is finished (or wasn't active at all).
+    """
+    # Curriculum learning stop condition.
+    curric_done=True
+    try:  
+        # If the 'curriculum_learning' section is not present, this line will throw an exception.
+        curr_config = config_loaded['problem_train']['curriculum_learning']
+        
+        # Read min and max length.
+        min_length=config_loaded['problem_train']['min_sequence_length']
+        max_max_length=config_loaded['problem_train']['max_sequence_length']
+
+        # Curriculum learning goes from the initial max length to the max length in steps of size 1
+        max_length = curr_config['initial_max_sequence_length'] + int(episode // curr_config['interval'])
+        if max_length >= max_max_length:
+            max_length = max_max_length
+        else:
+            curric_done=False    
+        # Change max length.
+        problem.set_max_length(max_length)
+        #print('Curriculum from {} to {}'.format(min_length,  max_length))
+    except KeyError:
+        pass
+    # Return information whether we finished CL (i.e. reached max sequence length).
+    return curric_done
 
 
 if __name__ == '__main__':
@@ -164,6 +196,8 @@ if __name__ == '__main__':
         from tensorboardX import SummaryWriter
         training_writer = SummaryWriter(log_dir+'/training')
         validation_writer = SummaryWriter(log_dir+'/validation')
+    else:
+        validation_writer = None
 
     def logfile():
         return logging.FileHandler(log_file)
@@ -185,6 +219,7 @@ if __name__ == '__main__':
 
     # Ask for confirmation - optional.
     if FLAGS.confirm:
+        # Ask for confirmation
         input('Press any key to continue')
 
     # Set random seeds.
@@ -208,9 +243,11 @@ if __name__ == '__main__':
     # If we are going to use SOME visualization - set flag to True now, before creation of problem and model objects.
     if FLAGS.visualize is not None:
         app_state.visualize = True
-
+    
     # Build problem for the training
     problem = ProblemFactory.build_problem(config_loaded['problem_train'])
+	# Initialize curriculum learning.
+    curric_done = curriculum_learning_update_problem_params(problem,  0,  config_loaded)
 
     # Build problem for the validation
     problem_validation = ProblemFactory.build_problem(config_loaded['problem_validation'])
@@ -232,7 +269,7 @@ if __name__ == '__main__':
     # Set loss criterion.
     # TK: TODO: move criterion to PROBLEM!
     criterion = nn.BCEWithLogitsLoss()
-
+ 
     # Start Training
     episode = 0
     best_loss = 0.2 # TK: WHY?
@@ -255,24 +292,8 @@ if __name__ == '__main__':
             inputs = inputs.cuda()
             targets = targets.cuda()
 
-        # Curriculum learning stop condition.
-        curric_done=True
-        # apply curriculum learning
-        try:  # If the 'curriculum_learning_interval' key is not present, catch the exception and do nothing
-            if config_loaded['problem_train']['curriculum_learning_interval']  > 0:
-                min_length=config_loaded['problem_train']['min_sequence_length']
-                max_max_length=config_loaded['problem_train']['max_sequence_length']
-
-                # the curriculum learning goes from the min length to the maximum max length in steps of size 1
-                max_length = min_length + int(episode / config_loaded['problem_train']['curriculum_learning_interval'])
-                if max_length > max_max_length:
-                    max_length = max_max_length
-                else:
-                    curric_done=False
-                problem.set_max_length(max_length)
-        
-        except KeyError:
-            pass
+        # apply curriculum learning - change problem max seq_length
+        curric_done = curriculum_learning_update_problem_params(problem,  episode,  config_loaded)
 
         # reset gradients
         optimizer.zero_grad()
@@ -354,7 +375,7 @@ if __name__ == '__main__':
                     logger,  model_parameters_path,  validation_file,  validation_writer):
                 break
             # End of validation.
-
+ 
         if curric_done:
             # break if conditions applied: convergence or max episodes
             if max(last_losses) < config_loaded['settings']['loss_stop'] \
