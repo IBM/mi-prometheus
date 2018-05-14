@@ -101,6 +101,7 @@ if __name__ == '__main__':
     # set seed
     if config_loaded["settings"]["seed_torch"] != -1:
         torch.manual_seed(config_loaded["settings"]["seed_torch"])
+        torch.cuda.manual_seed_all(config_loaded["settings"]["seed_torch"])
 
     if config_loaded["settings"]["seed_numpy"] != -1:
         np.random.seed(config_loaded["settings"]["seed_numpy"])
