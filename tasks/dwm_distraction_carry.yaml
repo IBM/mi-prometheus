@@ -10,13 +10,13 @@ problem_train:
     max_sequence_length: 6
     num_subseq_min: 1
     num_subseq_max: 3
-    #Parameter of curriculum learning, increase the max_sequence_length
-    #every ```curriculum_learning_interval```
-    #Optional parameter. 0 disables it.
-    curriculum_learning_interval: 2000
-    bias: 0.5
+    #Curriculum learning - optional.
+    curriculum_learning:
+        interval: 20
+        initial_max_sequence_length: 5
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
-    gradient_clipping: 10 
+    gradient_clipping: 10
+    bias: 0.5
 
 # Problem parameters:
 problem_test:
@@ -78,7 +78,7 @@ settings:
     # masked output and target
     use_mask: True
     length_loss: 10
-    loss_stop: 1.0e-4
+    loss_stop: 1.0e-5
     max_episodes: 50000
-    seed_numpy: 0
-    seed_torch: 2
+    seed_numpy: 4354
+    seed_torch: 2452

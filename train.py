@@ -2,6 +2,7 @@
 import logging
 import logging.config
 import os
+
 os.environ["OMP_NUM_THREADS"] = '1'
 
 import yaml
@@ -19,6 +20,7 @@ from misc.app_state import AppState
 
 # Import model factory.
 import sys
+
 sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
 from models.model_factory import ModelFactory
 
@@ -28,7 +30,6 @@ from problems.problem_factory import ProblemFactory
 from problems.algorithmic_sequential_problem import DataTuple
 
 use_CUDA = False
-
 
 def forward_step(model, data_tuple,  use_mask,  criterion):
     """ Function performs a single forward step.
@@ -60,11 +61,11 @@ def forward_step(model, data_tuple,  use_mask,  criterion):
     # Calculate accuracy.
     accuracy = (1 - torch.abs(torch.round(F.sigmoid(masked_logits)) - masked_targets)).mean()
     # Return tuple: logits, loss, accuracy.
-    return logits,  loss, accuracy
+    return logits, loss, accuracy
 
 
-
-def validation(model, data_valid,  use_mask,  criterion,  improved,  FLAGS, logger,  model_parameters_path,  validation_file,  validation_writer):
+def validation(model, data_valid, use_mask, criterion, improved, FLAGS, logger, model_parameters_path, validation_file,
+               validation_writer):
     """
     Function performs validation of the model, using the provided data and criterion.
     Additionally it logs (to files, tensorboard) and visualizes.
@@ -73,11 +74,11 @@ def validation(model, data_valid,  use_mask,  criterion,  improved,  FLAGS, logg
     """
     # Export model if better OR user simply wants to export the mode..
     if FLAGS.save_model_always or improved:
-        torch.save(model.state_dict(),  model_parameters_path)
+        torch.save(model.state_dict(), model_parameters_path)
         logger.info("Model exported")
 
     # Calculate the accuracy and loss of the validation data.
-    logits_valid,  loss_valid, accuracy_valid = forward_step(model, data_valid, use_mask,  criterion)
+    logits_valid, loss_valid, accuracy_valid = forward_step(model, data_valid, use_mask, criterion)
 
     # Print statistics.
     length_valid = data_valid[0].size(-2)
@@ -107,31 +108,32 @@ def validation(model, data_valid,  use_mask,  criterion,  improved,  FLAGS, logg
     # Else simply return false, i.e. continue training.
     return loss_valid, False
 
-def curriculum_learning_update_problem_params(problem,  episode,  config_loaded):
+
+def curriculum_learning_update_problem_params(problem, episode, config_loaded):
     """
     Updates problem parameters according to curriculum learning.
     
     :returns: Boolean informing whether curriculum learning is finished (or wasn't active at all).
     """
     # Curriculum learning stop condition.
-    curric_done=True
-    try:  
+    curric_done = True
+    try:
         # If the 'curriculum_learning' section is not present, this line will throw an exception.
         curr_config = config_loaded['problem_train']['curriculum_learning']
-        
+
         # Read min and max length.
-        min_length=config_loaded['problem_train']['min_sequence_length']
-        max_max_length=config_loaded['problem_train']['max_sequence_length']
+        min_length = config_loaded['problem_train']['min_sequence_length']
+        max_max_length = config_loaded['problem_train']['max_sequence_length']
 
         # Curriculum learning goes from the initial max length to the max length in steps of size 1
         max_length = curr_config['initial_max_sequence_length'] + int(episode // curr_config['interval'])
         if max_length >= max_max_length:
             max_length = max_max_length
         else:
-            curric_done=False    
-        # Change max length.
+            curric_done = False
+            # Change max length.
         problem.set_max_length(max_length)
-        #print('Curriculum from {} to {}'.format(min_length,  max_length))
+        # print('Curriculum from {} to {}'.format(min_length,  max_length))
     except KeyError:
         pass
     # Return information whether we finished CL (i.e. reached max sequence length).
@@ -143,19 +145,19 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--confirm', dest='confirm', action='store_true',
                         help='Request user confirmation just after loading the settings, before starting training  (Default: False)')
-    parser.add_argument('-t', dest='task',  type=str, default='',
+    parser.add_argument('-t', dest='task', type=str, default='',
                         help='Name of the task configuration file to be loaded')
     parser.add_argument('--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2], type=int,
                         help="If present, log to TensorBoard. Log levels:\n"
                              "0: Just log the loss, accuracy, and seq_len\n"
                              "1: Add histograms of biases and weights (Warning: slow)\n"
                              "2: Add histograms of biases and weights gradients (Warning: even slower)")
-    parser.add_argument('--lf', dest='logging_frequency', default=100,  type=int,
+    parser.add_argument('--lf', dest='logging_frequency', default=100, type=int,
                         help='TensorBoard logging frequency (Default: 100, i.e. logs every 100 episodes)')
     parser.add_argument('--log', action='store', dest='log', type=str, default='INFO',
                         choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
                         help="Log level. (Default: INFO)")
-    parser.add_argument('--sma', dest='save_model_always', action='store_true', 
+    parser.add_argument('--sma', dest='save_model_always', action='store_true',
                         help='Stores model in every validation step, disregarding whether there was improvement or not (Default: False)')
     parser.add_argument('-v', dest='visualize', choices=[0, 1, 2, 3], type=int,
                         help="Activate dynamic visualization:\n"
@@ -163,7 +165,7 @@ if __name__ == '__main__':
                              "1: During both training and validation\n"
                              "2: Only during validation\n"
                              "3: Only during last validation, after training is completed\n")
- 
+
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
 
@@ -175,7 +177,7 @@ if __name__ == '__main__':
     if not os.path.isfile(FLAGS.task):
         print('Task configuration file {} does not exists'.format(FLAGS.task))
         exit(-2)
-        
+
     # Read the YAML file.
     with open(FLAGS.task, 'r') as stream:
         config_loaded = yaml.load(stream)
@@ -202,14 +204,17 @@ if __name__ == '__main__':
     # Create tensorboard output - if tensorboard is supposed to be used.
     if FLAGS.tensorboard is not None:
         from tensorboardX import SummaryWriter
-        training_writer = SummaryWriter(log_dir+'/training')
-        validation_writer = SummaryWriter(log_dir+'/validation')
+
+        training_writer = SummaryWriter(log_dir + '/training')
+        validation_writer = SummaryWriter(log_dir + '/validation')
     else:
         validation_writer = None
 
+
     def logfile():
         return logging.FileHandler(log_file)
-        
+
+
     # Log configuration to file.
     with open('logger_config.yaml', 'rt') as f:
         config = yaml.load(f.read())
@@ -251,16 +256,17 @@ if __name__ == '__main__':
     # If we are going to use SOME visualization - set flag to True now, before creation of problem and model objects.
     if FLAGS.visualize is not None:
         app_state.visualize = True
-    
+
     # Build problem for the training
     problem = ProblemFactory.build_problem(config_loaded['problem_train'])
-	# Initialize curriculum learning.
-    curric_done = curriculum_learning_update_problem_params(problem,  0,  config_loaded)
+
+    # Initialize curriculum learning.
+    curric_done = curriculum_learning_update_problem_params(problem, 0, config_loaded)
 
     # Build problem for the validation
     problem_validation = ProblemFactory.build_problem(config_loaded['problem_validation'])
     generator_validation = problem_validation.return_generator()
-    
+
     # Get a single batch that will be used for validation (!)
     data_valid = next(generator_validation)
 
@@ -277,19 +283,19 @@ if __name__ == '__main__':
     # Set loss criterion.
     # TK: TODO: move criterion to PROBLEM!
     criterion = nn.BCEWithLogitsLoss()
- 
+
     # Start Training
     episode = 0
-    best_loss = 0.2 # TK: WHY?
+    best_loss = 0.2  # TK: WHY?
     last_losses = collections.deque()
     validation_loss=.7 #default value so the loop won't terminate if the validation is not done on the first step
 
     # Try to read validation frequency from config, else set default (100)
-    try: 
+    try:
         validation_frequency = config_loaded['problem_validation']['frequency']
     except KeyError:
         validation_frequency = 100
-   
+
     # Figure out if validation is defined else assume that it should be true
     try: 
         validation_stopping = config_loaded['settings']['validation_stopping']
@@ -298,7 +304,7 @@ if __name__ == '__main__':
 
     # Flag denoting whether we converged (or reached last episode).
     terminal_condition = False
-    
+
     # Main training and verification loop.
     for inputs, targets, mask in problem.return_generator():
         # Convert inputs and targets to CUDA
@@ -307,20 +313,21 @@ if __name__ == '__main__':
             targets = targets.cuda()
 
         # apply curriculum learning - change problem max seq_length
-        curric_done = curriculum_learning_update_problem_params(problem,  episode,  config_loaded)
+        curric_done = curriculum_learning_update_problem_params(problem, episode, config_loaded)
 
         # reset gradients
         optimizer.zero_grad()
 
         # Check visualization flag - turn on when we wanted to visualize (at least) validation.
-        if FLAGS.visualize is not None and FLAGS.visualize <=1:
+        if FLAGS.visualize is not None and FLAGS.visualize <= 1:
             AppState().visualize = True
         else:
             app_state.visualize = False
 
         # 1. Perform forward step, calculate logits, loss  and accuracy.
-        logits,  loss,  accuracy = forward_step(model, DataTuple(inputs, targets, mask),  config_loaded['settings']['use_mask'],  criterion)
-            
+        logits, loss, accuracy = forward_step(model, DataTuple(inputs, targets, mask),
+                                              config_loaded['settings']['use_mask'], criterion)
+
         # Store the calculated loss on a list.
         last_losses.append(loss)
         # Truncate list length.
@@ -337,7 +344,7 @@ if __name__ == '__main__':
         except KeyError:
             # Else - do nothing.
             pass
-        
+
         # 3. Perform optimization.
         optimizer.step()
 
@@ -349,7 +356,7 @@ if __name__ == '__main__':
         train_file.write(format_str.format(episode, accuracy, loss, train_length))
 
         # Export data to tensorboard.
-        if (FLAGS.tensorboard is not None) and (episode % FLAGS.logging_frequency== 0):
+        if (FLAGS.tensorboard is not None) and (episode % FLAGS.logging_frequency == 0):
             training_writer.add_scalar('Loss', loss, episode)
             training_writer.add_scalar('Accuracy', accuracy, episode)
             training_writer.add_scalar('Seq_len', train_length, episode)
@@ -357,8 +364,8 @@ if __name__ == '__main__':
             # Export histograms.
             if FLAGS.tensorboard >= 1:
                 for name, param in model.named_parameters():
-                        training_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
-                        
+                    training_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
+
             # Export gradients.
             if FLAGS.tensorboard >= 2:
                 for name, param in model.named_parameters():
@@ -370,7 +377,7 @@ if __name__ == '__main__':
             if model.plot_sequence(inputs[0].detach(), logits[0].detach(), targets[0].detach()):
                 break
 
-       # 5. Validation. check if new loss is smaller than the best loss, save the model in this case
+        # 5. Validation. check if new loss is smaller than the best loss, save the model in this case
         if loss < best_loss or (episode % validation_frequency) == 0:
 
             improved = False
@@ -379,18 +386,18 @@ if __name__ == '__main__':
                 improved = True
 
             # Check visualization flag - turn on when we wanted to visualize (at least) validation.
-            if FLAGS.visualize is not None and (FLAGS.visualize ==1 or FLAGS.visualize ==2):
+            if FLAGS.visualize is not None and (FLAGS.visualize == 1 or FLAGS.visualize == 2):
                 app_state.visualize = True
             else:
                 app_state.visualize = False
-           
+
             validation_loss, stop_now = validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion, improved,  FLAGS, 
                     logger,  model_parameters_path,  validation_file,  validation_writer) 
             # Perform validation.
             if stop_now:
                 break
             # End of validation.
- 
+
         if curric_done:
             # break if conditions applied: convergence or max episodes
             loss_stop=True
@@ -405,18 +412,19 @@ if __name__ == '__main__':
                 # "Finish" episode.
 
         episode += 1
-    
+
     # Check whether we have finished training!
     if terminal_condition:
         logger.info('Learning finished!')
         # Check visualization flag - turn on when we wanted to visualize (at least) validation.
-        if FLAGS.visualize is not None and (FLAGS.visualize >=2):
+        if FLAGS.visualize is not None and (FLAGS.visualize >= 2):
             app_state.visualize = True
         else:
             app_state.visualize = False
-        
+
         # Perform validation.
         _ , _ = validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion,  False,  FLAGS, logger,  model_parameters_path,  validation_file,  validation_writer)
+
     else:
         logger.info('Learning interrupted!')
 
@@ -427,4 +435,3 @@ if __name__ == '__main__':
         # Close TB writers.
         training_writer.close()
         validation_writer.close()
-

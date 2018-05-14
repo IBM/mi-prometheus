@@ -10,11 +10,11 @@ problem_train:
     max_sequence_length: 10
     #Curriculum learning - optional.
     curriculum_learning:
-        interval: 100
-        initial_max_sequence_length: 2
-    bias: 0.5
+        interval: 20
+        initial_max_sequence_length: 5
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
-    gradient_clipping: 10 
+    gradient_clipping: 10
+    bias: 0.5
 
 # Problem parameters:
 problem_test:
@@ -34,7 +34,7 @@ problem_validation:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 10
+    batch_size: 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 60
     max_sequence_length: 60
@@ -57,6 +57,8 @@ model:
     # Addressing parameters.
     use_content_addressing: False
     shift_size: 3
+    # active the plotting of the memory and attention
+    plot_memory: False
     
 # optimizer parameters:
 optimizer:
@@ -70,7 +72,7 @@ settings:
     # masked output and target
     use_mask: True
     length_loss: 10
-    loss_stop: 1.0e-4
+    loss_stop: 1.0e-5
     max_episodes: 20000
     validation_stopping: True
     seed_numpy: 0

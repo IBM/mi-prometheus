@@ -1,13 +1,13 @@
 # Problem parameters:
 problem_train:
-    name: &name distraction_ignore
+    name: &name reading_span
     # Size of generated input: [batch_size x sequence_length x number of control and data bits].
-    control_bits: &cbits 4
+    control_bits: &cbits 2
     data_bits: &dbits 8
     batch_size: 1
     # Parameters denoting min and max lengths.
     min_sequence_length: 1
-    max_sequence_length: 5
+    max_sequence_length: 6
     num_subseq_min: 1
     num_subseq_max: 3
     #Curriculum learning - optional.
@@ -28,8 +28,8 @@ problem_test:
     # Parameters denoting min and max lengths.
     min_sequence_length: 50
     max_sequence_length: 50
-    num_subseq_min: 10
-    num_subseq_max: 10
+    num_subseq_min: 20
+    num_subseq_max: 20
     bias: 0.5
 
 # Problem parameters:
@@ -42,8 +42,8 @@ problem_validation:
     # Parameters denoting min and max lengths.
     min_sequence_length: 20
     max_sequence_length: 20
-    num_subseq_min: 4
-    num_subseq_max: 4
+    num_subseq_min: 5
+    num_subseq_max: 5
     bias: 0.5
 
 # Model parameters:
@@ -80,5 +80,5 @@ settings:
     length_loss: 10
     loss_stop: 1.0e-6
     max_episodes: 70000
-    seed_numpy: 4354
-    seed_torch: 2452
+    seed_numpy: 45
+    seed_torch: 65

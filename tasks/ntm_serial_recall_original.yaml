@@ -5,7 +5,7 @@ problem_train:
     data_bits: &dbits 8
     control_bits: &cbits 2
     batch_size: &bs 10
-    # Parameters denoting min and max lengths. 
+    # Parameters denoting min and max lengths.
     min_sequence_length: &min_seq_len 2
     max_sequence_length: &max_seq_len 10
     bias: 0.5
@@ -15,7 +15,7 @@ problem_train:
         interval: 20
         initial_max_sequence_length: 5
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
-    gradient_clipping: 10 
+    gradient_clipping: 10
 
 # Problem parameters:
 problem_validation:
@@ -29,7 +29,7 @@ problem_validation:
     max_sequence_length: 20
     bias: 0.5
     frequency: 500
-    
+
 # Problem parameters:
 problem_test:
     name: serial_recall_original
@@ -68,7 +68,7 @@ model:
 optimizer:
     name: Adam
     lr: 0.01
-    
+
 # settings parameters
 settings:
     # masked output and target
