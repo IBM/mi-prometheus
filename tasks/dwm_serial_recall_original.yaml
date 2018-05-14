@@ -72,5 +72,6 @@ settings:
     length_loss: 10
     loss_stop: 1.0e-4
     max_episodes: 20000
+    validation_stopping: True
     seed_numpy: 0
     seed_torch: 2

@@ -105,7 +105,7 @@ def validation(model, data_valid,  use_mask,  criterion,  improved,  FLAGS, logg
         # True means that we should terminate
         return model.plot_sequence(inputs_valid[0].detach(), logits_valid[0].detach(), targets_valid[0].detach())
     # Else simply return false, i.e. continue training.
-    return False
+    return loss_valid, False
 
 def curriculum_learning_update_problem_params(problem,  episode,  config_loaded):
     """
@@ -282,14 +282,20 @@ if __name__ == '__main__':
     episode = 0
     best_loss = 0.2 # TK: WHY?
     last_losses = collections.deque()
+    validation_loss=.7 #default value so the loop won't terminate if the validation is not done on the first step
 
     # Try to read validation frequency from config, else set default (100)
     try: 
         validation_frequency = config_loaded['problem_validation']['frequency']
     except KeyError:
         validation_frequency = 100
-        pass
-    
+   
+    # Figure out if validation is defined else assume that it should be true
+    try: 
+        validation_stopping = config_loaded['settings']['validation_stopping']
+    except KeyError:
+        validation_stopping = True
+
     # Flag denoting whether we converged (or reached last episode).
     terminal_condition = False
     
@@ -377,21 +383,27 @@ if __name__ == '__main__':
                 app_state.visualize = True
             else:
                 app_state.visualize = False
-            
+           
+            validation_loss, stop_now = validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion, improved,  FLAGS, 
+                    logger,  model_parameters_path,  validation_file,  validation_writer) 
             # Perform validation.
-            if validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion, improved,  FLAGS, 
-                    logger,  model_parameters_path,  validation_file,  validation_writer):
+            if stop_now:
                 break
             # End of validation.
  
         if curric_done:
             # break if conditions applied: convergence or max episodes
-            if max(last_losses) < config_loaded['settings']['loss_stop'] \
-                or episode == config_loaded['settings']['max_episodes'] :
-                    terminal_condition = True
-                    break
+            loss_stop=True
+            if validation_stopping:
+                loss_stop = validation_loss < config_loaded['settings']['loss_stop']
+            else:
+                loss_stop = max(last_losses) < config_loaded['settings']['loss_stop']
 
-        # "Finish" episode.
+            if loss_stop or episode == config_loaded['settings']['max_episodes'] :
+                terminal_condition = True
+                break
+                # "Finish" episode.
+
         episode += 1
     
     # Check whether we have finished training!
@@ -404,7 +416,7 @@ if __name__ == '__main__':
             app_state.visualize = False
         
         # Perform validation.
-        validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion,  False,  FLAGS, logger,  model_parameters_path,  validation_file,  validation_writer)
+        _ , _ = validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion,  False,  FLAGS, logger,  model_parameters_path,  validation_file,  validation_writer)
     else:
         logger.info('Learning interrupted!')
 
