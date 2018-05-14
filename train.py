@@ -27,6 +27,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
 from problems.problem_factory import ProblemFactory
 from problems.algorithmic_sequential_problem import DataTuple
 
+use_CUDA = False
+
+
 def forward_step(model, data_tuple,  use_mask,  criterion):
     """ Function performs a single forward step.
 
@@ -34,6 +37,11 @@ def forward_step(model, data_tuple,  use_mask,  criterion):
     """
     # Unpack the data tuple.
     (inputs, targets, mask) = data_tuple
+
+    if use_CUDA:
+        inputs = inputs.cuda()
+        targets = targets.cuda()
+        mask = mask.cuda()
 
     # 1. Perform forward calculation.
     logits = model(inputs)
@@ -231,7 +239,6 @@ if __name__ == '__main__':
         np.random.seed(config_loaded["settings"]["seed_numpy"])
 
     # Determine if CUDA is to be used.
-    use_CUDA = False
     if torch.cuda.is_available():
         try:  # If the 'cuda' key is not present, catch the exception and do nothing
             if config_loaded['problem_train']['cuda']:
