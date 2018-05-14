@@ -9,6 +9,8 @@ class ModelBase(object):
     def __init__(self):
         """ Initializes application state and sets plot if visualization flag is turned on."""
         super(ModelBase, self).__init__()
+        # WARNING: at that momen AppState must be initialized and flag must be set. Otherwise the object plot won't be created.
+        # SOLUTION: if application is supposed to show dynamic plot, set flag to True before constructing model! (and set to False right after if required)
         self.app_state = AppState()
 
         if self.app_state.visualize:
@@ -56,7 +58,7 @@ class ModelBase(object):
             axes[2].yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
             # Set labels.
-            axes[0].set_title('Inputs', fontname='Times New Roman', fontsize=13) 
+            axes[0].set_title('Inputs') 
             axes[0].set_ylabel('Control/Data bits')     
             axes[1].set_title('Targets')
             axes[1].set_ylabel('Data bits')

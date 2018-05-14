@@ -54,14 +54,12 @@ def show_sample(prediction, target, mask, sample_number=0):
 
 
 if __name__ == '__main__':
-    app_state = AppState()
-
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', type=str, default='', dest='input_dir',
                         help='Input path, containing the saved parameters as well as the yaml file')
     parser.add_argument('-v', action='store_true', dest='visualize',
-                        help='Activate visualization')
+                        help='Activate dynamic visualization')
     parser.add_argument('--log', action='store', dest='log', type=str, default='info',
                         choices=['critical', 'error', 'warning', 'info', 'debug', 'notset'],
                         help="Log level. Default is INFO.")
@@ -69,6 +67,16 @@ if __name__ == '__main__':
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
 
+    # Check if input directory was selected.
+    if FLAGS.input_dir == '':
+        print('Please pass input path folder as -i parameter')
+        exit(-1)
+
+    # Check if file exists.
+    if not os.path.isdir(FLAGS.input_dir):
+        print('Input path {} does not exist'.format(FLAGS.input_dir))
+        exit(-2)
+        
     # Logging
     log_file = FLAGS.input_dir + '/msgs_test.log'
     def logfile():
@@ -81,18 +89,10 @@ if __name__ == '__main__':
     logger = logging.getLogger('Test')
     logger.setLevel(getattr(logging, FLAGS.log.upper(), None))
 
-    # Check if config file was selected.
-    if FLAGS.input_dir == '':
-        print('Please pass input path folder as -i parameter')
-        exit(-1)
-
+    # Initialize the application state singleton.
+    app_state = AppState()
     if FLAGS.visualize:
         app_state.visualize = True
-
-    # Check it file exists.
-    if not os.path.isdir(FLAGS.input_dir):
-        print('Input path {} does not exist'.format(FLAGS.input_dir))
-        exit(-2)
 
     # Read YAML file
     with open(FLAGS.input_dir + "/train_settings.yaml", 'r') as stream:
@@ -101,6 +101,7 @@ if __name__ == '__main__':
     # set seed
     if config_loaded["settings"]["seed_torch"] != -1:
         torch.manual_seed(config_loaded["settings"]["seed_torch"])
+        torch.cuda.manual_seed_all(config_loaded["settings"]["seed_torch"])
 
     if config_loaded["settings"]["seed_numpy"] != -1:
         np.random.seed(config_loaded["settings"]["seed_numpy"])

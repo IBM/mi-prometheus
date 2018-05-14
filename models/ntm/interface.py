@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger('NTM-Interface')
 
 # Helper collection type.
-_InterfaceStateTuple = collections.namedtuple('InterfaceStateTuple', ('read_weights', 'write_weights'))
+_InterfaceStateTuple = collections.namedtuple('InterfaceStateTuple', ('read_attentions',  'write_attention'))
 
 class InterfaceStateTuple(_InterfaceStateTuple):
     """Tuple used by interface for storing current/past state information"""
