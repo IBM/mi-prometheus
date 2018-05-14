@@ -5,6 +5,7 @@
 # Recursively allow files under subtree
 !train.py
 !test.py
+!batch_train.py
 !Readme.md
 !__init__.py
 !/models/**
