@@ -9,6 +9,7 @@ import yaml
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
+from glob import glob
 
 import logging
 import logging.config
@@ -116,12 +117,12 @@ if __name__ == '__main__':
 
     if FLAGS.episode != None:
         # load the trained model
-        model_file_name = '/models/model_parameters_epoch_{:05d}'.format(FLAGS.episode)
+        model_file_name = FLAGS.input_dir + '/models/model_parameters_epoch_{:05d}'.format(FLAGS.episode)
     else:
-        model_file_name = '/model_parameters'
+        model_file_name = glob(FLAGS.input_dir + '/models/model_parameters_epoch_*')[-1]
 
     model.load_state_dict(
-        torch.load(FLAGS.input_dir + model_file_name,
+        torch.load(model_file_name,
                    map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
     )
 
