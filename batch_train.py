@@ -6,6 +6,7 @@ It will run as many concurrent jobs as possible.
 """
 
 import os
+import sys
 import yaml
 from random import randrange
 from itertools import repeat
@@ -18,9 +19,12 @@ EXPERIMENT_REPETITIONS = 10
 
 
 def main():
+    batch_file = sys.argv[1]
+    assert os.path.isfile(batch_file)
+
     # Load the list of yaml files to run
     yaml_files = []
-    with open("CHANGE THIS THING", 'r') as f:
+    with open(batch_file, 'r') as f:
         for line in f.readline():
             assert os.path.isfile(line), line + " is not a file"
             yaml_files.append(line)
