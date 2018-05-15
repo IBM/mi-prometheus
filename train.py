@@ -73,9 +73,12 @@ def validation(model, data_valid, use_mask, criterion, improved, FLAGS, logger, 
     
     :returns: True if training loop is supposed to end.
     """
+    model_dir = log_dir + 'models/'
+
     # Export model if better OR user simply wants to export the mode..
     if FLAGS.save_model_always or improved:
-        torch.save(model.state_dict(), model_parameters_path)
+        model_filename = 'model_parameters_epoch_{:05d}'.format(episode)
+        torch.save(model.state_dict(), model_dir + model_filename)
         logger.info("Model exported")
 
     # Calculate the accuracy and loss of the validation data.
@@ -198,6 +201,9 @@ if __name__ == '__main__':
             sleep(1)
         else:
             break
+
+    model_dir = log_dir + 'models/'
+    os.makedirs(model_dir, exist_ok=False)
     log_file = log_dir + 'msgs.log'
     copyfile(FLAGS.task, log_dir + "/train_settings.yaml")  # Copy the task's yaml file into log_dir
     model_parameters_path = log_dir + "/model_parameters"
@@ -308,6 +314,7 @@ if __name__ == '__main__':
         validation_stopping = config_loaded['settings']['validation_stopping']
     except KeyError:
         validation_stopping = True
+
 
     # Flag denoting whether we converged (or reached last episode).
     terminal_condition = False
@@ -429,9 +436,8 @@ if __name__ == '__main__':
         else:
             app_state.visualize = False
 
-        # Perform validation.
+    # Perform validation.
         _ , _ = validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion,  False,  FLAGS, logger,  model_parameters_path,  validation_file,  validation_writer)
-
     else:
         logger.info('Learning interrupted!')
 
