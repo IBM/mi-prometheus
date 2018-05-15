@@ -43,8 +43,8 @@ def run_experiment(yaml_file_path: str):
         params = yaml.load(yaml_file)
 
     # Change some params to random ones with specified ranges
-    params['settings']['numpy_seed'] = randrange(0, 2**32)
-    params['settings']['torch_seed'] = randrange(0, 2**32)
+    params['settings']['seed_numpy'] = randrange(0, 2**32)
+    params['settings']['seed_torch'] = randrange(0, 2**32)
 
     # Create temporary file, in which we dump the modified params dict as yaml
     with NamedTemporaryFile(mode='w') as temp_yaml:
