@@ -19,7 +19,7 @@ problem_train:
     num_rotation: &nrot 0.5
     cuda: True
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
-    gradient_clipping: 10 
+    gradient_clipping: 10
 
 # Problem parameters:
 problem_test:

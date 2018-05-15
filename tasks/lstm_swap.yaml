@@ -5,7 +5,7 @@ problem_train:
     control_bits: &cbits 2
     data_bits: &dbits 8
     batch_size: &bs 10
-    # Parameters denoting min and max lengths. 
+    # Parameters denoting min and max lengths.
     min_sequence_length: &min_seq_len 1
     max_sequence_length: &max_seq_len 10
     #Parameter of curriculum learning, increase the max_sequence_length
@@ -16,7 +16,7 @@ problem_train:
     num_items: &nrot 0.5
     cuda: True
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
-    gradient_clipping: 10 
+    gradient_clipping: 10
 
 # Problem parameters:
 problem_test:

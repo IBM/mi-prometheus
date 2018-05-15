@@ -71,7 +71,7 @@ class ManipulationSpatialRotation(AlgorithmicSequentialProblem):
         num_bits =-self.num_bits
         # Check if we are using relative or absolute rotation.
         if -1 < num_bits < 1:
-            num_bits = num_bits * seq_length
+            num_bits = num_bits * self.data_bits
         # Round bitshift  to int.
         num_bits = np.round(num_bits)
         # Modulo bitshift with data_bits.

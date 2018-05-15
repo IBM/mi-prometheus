@@ -9,6 +9,7 @@ import yaml
 import os.path
 from shutil import copyfile
 from datetime import datetime
+from time import sleep
 import argparse
 import torch
 from torch import nn
@@ -29,14 +30,20 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
 from problems.problem_factory import ProblemFactory
 from problems.algorithmic_sequential_problem import DataTuple
 
+use_CUDA = False
 
-def forward_step(model, data_tuple, use_mask, criterion):
+def forward_step(model, data_tuple,  use_mask,  criterion):
     """ Function performs a single forward step.
 
     :returns: logits, loss and accuracy (former using provided criterion)
     """
     # Unpack the data tuple.
     (inputs, targets, mask) = data_tuple
+
+    if use_CUDA:
+        inputs = inputs.cuda()
+        targets = targets.cuda()
+        mask = mask.cuda()
 
     # 1. Perform forward calculation.
     logits = model(inputs)
@@ -66,9 +73,12 @@ def validation(model, data_valid, use_mask, criterion, improved, FLAGS, logger, 
     
     :returns: True if training loop is supposed to end.
     """
+    model_dir = log_dir + 'models/'
+
     # Export model if better OR user simply wants to export the mode..
     if FLAGS.save_model_always or improved:
-        torch.save(model.state_dict(), model_parameters_path)
+        model_filename = 'model_parameters_epoch_{:05d}'.format(episode)
+        torch.save(model.state_dict(), model_dir + model_filename)
         logger.info("Model exported")
 
     # Calculate the accuracy and loss of the validation data.
@@ -100,7 +110,7 @@ def validation(model, data_valid, use_mask, criterion, improved, FLAGS, logger, 
         # True means that we should terminate
         return model.plot_sequence(inputs_valid[0].detach(), logits_valid[0].detach(), targets_valid[0].detach())
     # Else simply return false, i.e. continue training.
-    return False
+    return loss_valid, False
 
 
 def curriculum_learning_update_problem_params(problem, episode, config_loaded):
@@ -182,9 +192,18 @@ if __name__ == '__main__':
 
     # Prepare output paths for logging
     path_root = "./checkpoints/"
-    time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
-    log_dir = path_root + task_name + '/' + model_name + '/' + time_str + '/'
-    os.makedirs(log_dir, exist_ok=False)
+    while True:  # Dirty fix: if log_dir already exists, wait for 1 second and try again
+        try:
+            time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
+            log_dir = path_root + task_name + '/' + model_name + '/' + time_str + '/'
+            os.makedirs(log_dir, exist_ok=False)
+        except FileExistsError:
+            sleep(1)
+        else:
+            break
+
+    model_dir = log_dir + 'models/'
+    os.makedirs(model_dir, exist_ok=False)
     log_file = log_dir + 'msgs.log'
     copyfile(FLAGS.task, log_dir + "/train_settings.yaml")  # Copy the task's yaml file into log_dir
     model_parameters_path = log_dir + "/model_parameters"
@@ -238,7 +257,6 @@ if __name__ == '__main__':
         np.random.seed(config_loaded["settings"]["seed_numpy"])
 
     # Determine if CUDA is to be used.
-    use_CUDA = False
     if torch.cuda.is_available():
         try:  # If the 'cuda' key is not present, catch the exception and do nothing
             if config_loaded['problem_train']['cuda']:
@@ -283,13 +301,20 @@ if __name__ == '__main__':
     episode = 0
     best_loss = 0.2  # TK: WHY?
     last_losses = collections.deque()
+    validation_loss=.7 #default value so the loop won't terminate if the validation is not done on the first step
 
     # Try to read validation frequency from config, else set default (100)
     try:
         validation_frequency = config_loaded['problem_validation']['frequency']
     except KeyError:
         validation_frequency = 100
-        pass
+
+    # Figure out if validation is defined else assume that it should be true
+    try: 
+        validation_stopping = config_loaded['settings']['validation_stopping']
+    except KeyError:
+        validation_stopping = True
+
 
     # Flag denoting whether we converged (or reached last episode).
     terminal_condition = False
@@ -380,20 +405,26 @@ if __name__ == '__main__':
             else:
                 app_state.visualize = False
 
+            validation_loss, stop_now = validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion, improved,  FLAGS, 
+                    logger,  model_parameters_path,  validation_file,  validation_writer) 
             # Perform validation.
-            if validation(model, data_valid, config_loaded['settings']['use_mask'], criterion, improved, FLAGS,
-                          logger, model_parameters_path, validation_file, validation_writer):
+            if stop_now:
                 break
             # End of validation.
 
         if curric_done:
             # break if conditions applied: convergence or max episodes
-            if max(last_losses) < config_loaded['settings']['loss_stop'] \
-                    or episode == config_loaded['settings']['max_episodes']:
+            loss_stop=True
+            if validation_stopping:
+                loss_stop = validation_loss < config_loaded['settings']['loss_stop']
+            else:
+                loss_stop = max(last_losses) < config_loaded['settings']['loss_stop']
+
+            if loss_stop or episode == config_loaded['settings']['max_episodes'] :
                 terminal_condition = True
                 break
+                # "Finish" episode.
 
-        # "Finish" episode.
         episode += 1
 
     # Check whether we have finished training!
@@ -405,9 +436,8 @@ if __name__ == '__main__':
         else:
             app_state.visualize = False
 
-        # Perform validation.
-        validation(model, data_valid, config_loaded['settings']['use_mask'], criterion, False, FLAGS, logger,
-                   model_parameters_path, validation_file, validation_writer)
+    # Perform validation.
+        _ , _ = validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion,  False,  FLAGS, logger,  model_parameters_path,  validation_file,  validation_writer)
     else:
         logger.info('Learning interrupted!')
 

@@ -5,7 +5,7 @@ problem_train:
     control_bits: &cbits 2
     data_bits: &dbits 8
     batch_size: &bs 10
-    # Parameters denoting min and max lengths. 
+    # Parameters denoting min and max lengths.
     min_sequence_length: 1
     max_sequence_length: 10
     bias: 0.5
@@ -14,7 +14,7 @@ problem_train:
     #Optional parameter. 0 disables it.
     curriculum_learning_interval: 400
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
-    gradient_clipping: 10 
+    gradient_clipping: 10
 
 # Problem parameters:
 problem_test:
@@ -45,7 +45,7 @@ model:
     name: dnc   # differential neural computer
     # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
-    control_bits: *cbits 
+    control_bits: *cbits
     data_bits: *dbits
     batch_size: *bs
     # Controller hidden state.
@@ -59,7 +59,7 @@ model:
     use_content_addressing: True
     shift_size: 3
     controller_type: rnn
-    
+
 # optimizer parameters:
 optimizer:
     # Exact name of the pytorch optimizer function
