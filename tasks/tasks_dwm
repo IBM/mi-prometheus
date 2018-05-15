@@ -1,0 +1,9 @@
+tasks/dwm_serial_recall_original.yaml
+tasks/dwm_reverse_recall.yaml
+tasks/dwm_manipulation_spatial_rotation.yaml
+tasks/dwm_scratch_pad.yaml
+tasks/dwm_distraction_ignore.yaml
+tasks/dwm_distraction_forget.yaml
+tasks/dwm_operation_span.yaml
+tasks/dwm_reading_span.yaml
+

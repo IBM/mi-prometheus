@@ -1,0 +1,9 @@
+tasks/dnc_serial_recall_original.yaml
+tasks/dnc_reverse_recall.yaml
+tasks/dnc_manipulation_spatial_rotation.yaml
+tasks/dnc_scratch_pad.yaml
+tasks/dnc_distraction_ignore.yaml
+tasks/dnc_distraction_forget.yaml
+tasks/dnc_operation_span.yaml
+tasks/dnc_reading_span.yaml
+
