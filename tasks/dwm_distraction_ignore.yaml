@@ -38,12 +38,12 @@ problem_validation:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 10
+    batch_size: 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 20
     max_sequence_length: 20
-    num_subseq_min: 4
-    num_subseq_max: 4
+    num_subseq_min: 5
+    num_subseq_max: 5
     bias: 0.5
 
 # Model parameters:
