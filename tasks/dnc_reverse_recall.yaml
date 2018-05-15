@@ -8,7 +8,7 @@
 
 # Problem parameters:
 problem_train:
-    name: &name serial_recall_original
+    name: &name reverse_recall
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 2
     data_bits: &dbits 8
@@ -70,11 +70,11 @@ model:
     # Addressing parameters.
     use_content_addressing: True
     shift_size: 3
-    controller_type: lstm
     use_ntm_write: False
     use_ntm_read: False
     use_ntm_order: False
     use_extra_write_gate: False
+    controller_type: lstm
     non_linearity: sigmoid
     # active the plotting of the memory and attention
     plot_memory: False

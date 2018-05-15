@@ -128,7 +128,7 @@ def curriculum_learning_update_problem_params(problem, episode, config_loaded):
         # Read min and max length.
         min_length = config_loaded['problem_train']['min_sequence_length']
         max_max_length = config_loaded['problem_train']['max_sequence_length']
-        
+
         if curr_config['interval'] > 0:     
             # Curriculum learning goes from the initial max length to the max length in steps of size 1
             max_length = curr_config['initial_max_sequence_length'] + (episode // curr_config['interval'])

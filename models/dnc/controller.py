@@ -5,11 +5,15 @@ import numpy as np
 import pdb
 import collections
 from models.dnc.param_gen import Param_Generator
-from models.controllers.controller_factory import ControllerFactory
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
+from controller_factory import ControllerFactory
+
+#from models.controllers.controller_factory import ControllerFactory
 
 class Controller(nn.Module):
     def __init__(self, tm_in_dim, tm_output_units, tm_state_units,
-                 read_size, num_heads, params):
+                 read_size, params):
 
         """Initialize an Controller.
 
@@ -41,16 +45,19 @@ class Controller(nn.Module):
         #self.num_memory_addresses = params['memory_addresses_size']
         self.controller_type = params['controller_type']
         self.shift_size = params['shift_size']
-        self.num_heads = params['num_heads']
+        self.num_reads = params['num_reads']
+        self.num_writes = params['num_writes']
+        self.non_linearity = params['non_linearity']
 
 
         # State layer
         #self.tm_i2s = nn.LSTMCell(tm_ctrl_in_dim,tm_state_units)
         controller_params = {
-           "controller_type": self.controller_type,
+           "name": self.controller_type,
            "input_size": tm_ctrl_in_dim,
            "output_size": self.ctrl_hidden_state_size,
-           "num_layers": 1
+           "num_layers": 1,
+           "non_linearity" : self.non_linearity
         }
    
         #self.tm_i2s = nn.Linear(tm_ctrl_in_dim, tm_state_units)
@@ -60,7 +67,7 @@ class Controller(nn.Module):
         self.tm_i2o = nn.Linear(tm_state_units, tm_output_units)
 
         # Update layer
-        self.tm_i2u = Param_Generator(tm_state_units, word_size=self.read_size,num_reads=self.num_heads,num_writes=self.num_heads,shift_size=self.shift_size)
+        self.tm_i2u = Param_Generator(tm_state_units, word_size=self.num_memory_bits,num_reads=self.num_reads,num_writes=self.num_writes,shift_size=self.shift_size)
         #self.tm_i2u = Param_Generator(tm_ctrl_in_dim, word_size=self.read_size)
         #self.tm_i2u = Param_Generator(tm_state_units, word_size=self.read_size)
         #self.tm_i2u = nn.Linear(tm_ctrl_in_dim, self.update_size)

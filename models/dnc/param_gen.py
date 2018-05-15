@@ -138,12 +138,12 @@ class Param_Generator(nn.Module):
 
 
         #according the DeepMind paper, this should be oneplus but according to the DeepMind code it is softplus
-        update_data['write_content_strengths'] = F.softplus(self.write_strengths_(vals)).view(-1,self._num_writes,1)
+        update_data['write_content_strengths'] = 1 + F.softplus(self.write_strengths_(vals)).view(-1,self._num_writes,1)
 
         
         update_data['read_content_keys'] = self.read_keys_(vals).view(-1,self._num_reads,self._word_size)
        
-        update_data['read_content_strengths'] = F.softplus(self.read_strengths_(vals)).view(-1,self._num_reads,1) 
+        update_data['read_content_strengths'] = 1 + F.softplus(self.read_strengths_(vals)).view(-1,self._num_reads,1) 
        
 
         #s_j The shift vector that defines the circular convolution of the outputs
@@ -158,7 +158,8 @@ class Param_Generator(nn.Module):
         update_data['sharpening'] =1+F.softplus(self.sharpening_(vals)).view(-1,self._num_writes,1)
         
         update_data['sharpening_read'] =1+F.softplus(self.sharpening_r_(vals)).view(-1,self._num_reads,1)
-         
+          
+        update_data['read_mode_shift'] = F.sigmoid(self.free_gate_(vals)).view(-1,self._num_reads,1)
 
         return update_data
 

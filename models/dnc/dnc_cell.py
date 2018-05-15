@@ -16,8 +16,7 @@ class NTMCellStateTuple(_NTMCellStateTuple):
 
 
 class DNCCell(nn.Module):
-    def __init__(self, in_dim, output_units, state_units,
-                 num_heads, is_cam, num_shift, M, params):
+    def __init__(self, in_dim, output_units, state_units, is_cam, num_shift, M, params):
         """Initialize an DNC cell.
 
         :param in_dim: input size.
@@ -30,7 +29,8 @@ class DNCCell(nn.Module):
         """
         super(DNCCell, self).__init__()
        # self.num_heads = num_heads
-        self.num_heads = params["num_heads"]
+        self.num_reads = params["num_reads"]
+        self.num_writes = params["num_writes"]
         #self.M = M
 
         # Define a dictionary for attentional parameters
@@ -52,12 +52,12 @@ class DNCCell(nn.Module):
         # build the interface and controller
         self.interface = Interface(params)
         self.controller = Controller(in_dim, output_units, state_units,
-                                     self.interface.read_size, self.num_heads, params)
+                                     self.interface.read_size, params)
         #self.controller = Controller(in_dim, output_units, state_units,
         #                             self.interface.read_size, self.num_heads)
         self.output_network = nn.Linear(self.interface.read_size, output_units)
 
-    def init_state(self,  batch_size):
+    def init_state(self, memory_address_size, batch_size):
         """
         Returns 'zero' (initial) state:
         * memory  is reset to random values.
@@ -66,14 +66,15 @@ class DNCCell(nn.Module):
         :param batch_size: Size of the batch in given iteraction/epoch.
         :param num_memory_adresses: Number of memory addresses.
         """
+
         # Initialize controller state.
         ctrl_init_state =  self.controller.init_state(batch_size)
 
         # Initialize interface state. 
-        interface_init_state =  self.interface.init_state(batch_size)
+        interface_init_state =  self.interface.init_state(memory_address_size,batch_size)
 
         # Memory [BATCH_SIZE x MEMORY_BITS x MEMORY_SIZE] 
-        init_memory_BxMxA = torch.empty(batch_size,  self.num_memory_bits,  self.num_memory_addresses)
+        init_memory_BxMxA = torch.empty(batch_size,  self.num_memory_bits,  memory_address_size)
         torch.nn.init.normal_(init_memory_BxMxA, mean=0.5, std=0.2)
         # Read vector [BATCH_SIZE x MEMORY_SIZE]
         #read_vector_BxM = torch.ones((batch_size, self.num_memory_bits)).type(dtype)*1e-6
@@ -95,16 +96,8 @@ class DNCCell(nn.Module):
 
         # Step 1: controller
         output_from_hidden, ctrl_state_tuple, update_data = self.controller(input_BxI, ctrl_state_prev_tuple, prev_read_vector_BxM)
-
-        # Step 2: update memory and attention
-        interface_tuple = self.interface.update(update_data, prev_interface_tuple, prev_memory_BxMxA)
-       
-        # Step 3: Read the data from memory
-        # Edit and then read is the order used by DeepMind's public DNC implementation but I had problems getting that to converge
-        read_vector_BxM = self.interface.read(interface_tuple, prev_memory_BxMxA)
-
-        # Step 4: Write and Erase Data
-        memory_BxMxA = self.interface.edit_memory(interface_tuple, update_data, prev_memory_BxMxA)
+        
+        read_vector_BxM, memory_BxMxA,  interface_tuple = self.interface.update_and_edit(update_data, prev_interface_tuple, prev_memory_BxMxA)
         
         #generate final output data from controller output and the read data
         final_output = output_from_hidden + self.output_network(read_vector_BxM)
