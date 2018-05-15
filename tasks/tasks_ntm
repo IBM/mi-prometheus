@@ -1,0 +1,9 @@
+tasks/ntm_serial_recall_original.yaml
+tasks/ntm_reverse_recall.yaml
+tasks/ntm_manipulation_spatial_rotation.yaml
+tasks/ntm_scratch_pad.yaml
+tasks/ntm_distraction_ignore.yaml
+tasks/ntm_distraction_forget.yaml
+tasks/ntm_operation_span.yaml
+tasks/ntm_reading_span.yaml
+

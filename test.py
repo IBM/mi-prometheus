@@ -63,6 +63,8 @@ if __name__ == '__main__':
     parser.add_argument('--log', action='store', dest='log', type=str, default='info',
                         choices=['critical', 'error', 'warning', 'info', 'debug', 'notset'],
                         help="Log level. Default is INFO.")
+    parser.add_argument('-e', action='store', dest='episode', type=int,
+                        help="Episode of model. Default is 0.")
 
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
@@ -112,9 +114,14 @@ if __name__ == '__main__':
     # Build model
     model = ModelFactory.build_model(config_loaded['model'])
 
-    # load the trained model
+    if FLAGS.episode != None:
+        # load the trained model
+        model_file_name = '/models/model_parameters_epoch_{:05d}'.format(FLAGS.episode)
+    else:
+        model_file_name = '/model_parameters'
+
     model.load_state_dict(
-        torch.load(FLAGS.input_dir + "/model_parameters",
+        torch.load(FLAGS.input_dir + model_file_name,
                    map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
     )
 
@@ -140,7 +147,10 @@ if __name__ == '__main__':
         # show_sample(output, targets, mask)
 
         if app_state.visualize:
-            is_closed = model.plot_sequence(inputs[0].detach(), unmasked_output[0].detach(), unmasked_target[0].detach())
+            mask_not = (mask == 0)
+            unmasked_output[0][mask_not[0], :] = 0
+
+            is_closed = model.plot_sequence(inputs[0].detach().numpy(), unmasked_output[0].detach().numpy(), unmasked_target[0].detach().numpy())
             if is_closed:
                 break
         else:
