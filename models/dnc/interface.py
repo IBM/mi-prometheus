@@ -4,9 +4,11 @@ import numpy as np
 import collections
 from models.dnc.tensor_utils import circular_conv, normalize
 from models.dnc.memory import Memory
+from models.dnc.memory_usage import MemoryUsage
+from models.dnc.temporal_linkage import TemporalLinkage
 
 # Helper collection type.
-_InterfaceStateTuple = collections.namedtuple('InterfaceStateTuple', ('read_weights', 'write_weights'))
+_InterfaceStateTuple = collections.namedtuple('InterfaceStateTuple', ('read_weights', 'write_weights', 'usage', 'links'))
 
 class InterfaceStateTuple(_InterfaceStateTuple):
     """Tuple used by interface for storing current/past state information"""
@@ -25,8 +27,8 @@ class Interface:
         :param num_shift: number of shifts of heads.
         :param M: Number of slots per address in the memory bank.
         """
-        self.num_heads = params["num_heads"]
-        #self.M = M
+        self._num_writes = params["num_writes"]
+        self._num_reads = params["num_reads"]
 
         # Define a dictionary for attentional parameters
         self.is_cam = params["use_content_addressing"]
@@ -39,7 +41,14 @@ class Interface:
         self.num_memory_bits = params['memory_content_size']
         # TODO - move memory size somewhere?
         self.num_memory_addresses = params['memory_addresses_size']
+        self.use_ntm_write = params['use_ntm_write']
+        self.use_ntm_order = params['use_ntm_order']
+        self.use_ntm_read = params['use_ntm_read']
+        self.use_extra_write_gate = params['use_extra_write_gate']
 
+        self.mem_usage=MemoryUsage(self.num_memory_addresses)
+
+        self.temporal_linkage=TemporalLinkage(self.num_memory_addresses,self._num_writes)
 
     @property
     def read_size(self):
@@ -48,7 +57,7 @@ class Interface:
         
         :return: (num_head*content_size)
         """
-        return self.num_heads * self.num_memory_bits
+        return self._num_reads * self.num_memory_bits
 
     def read(self, prev_interface_tuple, mem):
         """returns the data read from memory
@@ -57,15 +66,13 @@ class Interface:
         :param mem: the memory [batch_size, content_size, memory_size] 
         :return: the read data [batch_size, content_size]
         """
-        (wt, _) = prev_interface_tuple
-        #print(wt.shape)
+        (wt, _,_,_) = prev_interface_tuple
+        
         memory = Memory(mem)
-        #print(mem.shape)
         read_data = memory.attention_read(wt)
+        #return 
         # flatten the data_gen in the last 2 dimensions
         sz = read_data.size()[:-2]
-        #print(read_data.shape)
-        #print(self.read_size)
         return read_data.view(*sz, self.read_size)
 
     def edit_memory(self, interface_tuple,update_data , mem):
@@ -76,15 +83,16 @@ class Interface:
         :return: the read data [batch_size, content_size]
         """
                 
-        (_,  write_attention) = interface_tuple
+        (_,  write_attention,_,_) = interface_tuple
 
         # Write to memory
         write_gate=update_data['write_gate']
         add=update_data['write_vectors']
         erase=update_data['erase_vectors']
 
-         
-        add=write_gate*add
+        if self.use_extra_write_gate:         
+            add=add*write_gate
+            erase=erase*write_gate
  
         memory = Memory(mem)
 
@@ -97,7 +105,7 @@ class Interface:
 
 
 
-    def init_state(self,  batch_size):
+    def init_state(self, memory_address_size,  batch_size):
         """
         Returns 'zero' (initial) state tuple.
         
@@ -105,11 +113,18 @@ class Interface:
         :returns: Initial state tuple - object of InterfaceStateTuple class.
         """
         # Read attention weights [BATCH_SIZE x MEMORY_SIZE]
-        read_attention = torch.ones((batch_size, self.num_heads, self.num_memory_addresses)).type(dtype)*1e-6
+        read_attention = torch.ones((batch_size, self._num_reads, memory_address_size)).type(dtype)*1e-6
+        
         # Write attention weights [BATCH_SIZE x MEMORY_SIZE]
-        write_attention = torch.ones((batch_size, self.num_heads,  self.num_memory_addresses)).type(dtype)*1e-6
+        write_attention = torch.ones((batch_size, self._num_writes,  memory_address_size)).type(dtype)*1e-6
 
-        return InterfaceStateTuple(read_attention,  write_attention)
+        # Usage of memory cells [BATCH_SIZE x MEMORY_SIZE]
+        usage = self.mem_usage.init_state(memory_address_size,  batch_size)
+        
+        # temporal links tuple
+        link_tuple = self.temporal_linkage.init_state(memory_address_size,  batch_size)
+
+        return InterfaceStateTuple(read_attention,  write_attention,usage,link_tuple)
 
 
     def update_weight(self,wt,memory,beta,g,k,s,gamma):
@@ -118,7 +133,6 @@ class Interface:
             wt_beta = F.softmax(beta * wt_k, dim=-1)                # ... modulated by β
             wt = g * wt_beta + (1 - g) * wt              # scalar interpolation
         wt_s = circular_conv(wt, s)                   # convolution with shift
-        #wt_s = wt                   # convolution with shift
 
         eps = 1e-12
         wt = (wt_s + eps) ** gamma
@@ -126,7 +140,44 @@ class Interface:
 
         return wt
 
+    def update_write_weight(self, usage, memory, allocation_gate, write_gate, k, beta):
+        # a_t^i - The allocation weights for each write head.
+        write_allocation_weights = self.mem_usage.write_allocation_weights(
+          usage=usage,
+          write_gates=(allocation_gate * write_gate),
+          num_writes=1) #remove hardcode once I prove this works
 
+        if self.is_cam:
+            wt_k = memory.content_similarity(k)       # content addressing ...
+            wt_beta = F.softmax(beta * wt_k, dim=-1)                # ... modulated by β
+   
+        wt=write_gate * (allocation_gate * write_allocation_weights +
+                           (1 - allocation_gate) * wt_beta)
+
+        return wt 
+    
+    def update_read_weight(self, link, memory, prev_read_weights, read_mode, k, beta):
+        if self.is_cam:
+            wt_k = memory.content_similarity(k)       # content addressing ...
+            content_weights = F.softmax(beta * wt_k, dim=-1)                # ... modulated by β
+   
+        forward_weights = self.temporal_linkage.directional_read_weights(
+           link.link, prev_read_weights, forward=True)
+        backward_weights = self.temporal_linkage.directional_read_weights(
+          link.link, prev_read_weights, forward=False)
+
+        
+        #the unsqueezes may be unavoidable
+        backward_mode = torch.unsqueeze(read_mode[:, :, :self._num_writes],3)
+        forward_mode = torch.unsqueeze(read_mode[:, :, self._num_writes:2 * self._num_writes],3)
+        content_mode =  torch.unsqueeze(read_mode[:, :, 2 * self._num_writes],2)
+
+        read_weights = (content_mode * content_weights 
+             + torch.sum(forward_mode * forward_weights,2) 
+             + torch.sum(backward_mode * backward_weights, 2))
+
+
+        return read_weights
 
     def update(self, update_data, prev_interface_tuple, mem):
         """Erases from memory, writes to memory, updates the weights using various attention mechanisms
@@ -135,50 +186,277 @@ class Interface:
         :param mem: the memory [BATCH_SIZE, CONTENT_SIZE, MEMORY_SIZE] 
         :return: TUPLE [wt, mem]
         """
-        #assert update_data.size()[-1] == self.update_size, "Mismatch in update sizes"
+          
 
-        # reshape update data_gen by heads and total parameter size
-        #sz = update_data.size()[:-1]
-        #update_data = update_data.view(*sz, self.num_heads, self.cum_lengths[-1])
+        (prev_read_attention,  prev_write_attention, prev_usage, prev_links) = prev_interface_tuple
 
-        # split the data_gen according to the different parameters
-        #data_splits = [update_data[..., self.cum_lengths[i]:self.cum_lengths[i+1]]
-        #               for i in range(len(self.cum_lengths)-1)]
 
-        (prev_read_attention,  prev_write_attention) = prev_interface_tuple
 
         # Obtain update parameters
         s=update_data['shifts']
         γ=update_data['sharpening']
         sr=update_data['shifts_read']
         γr=update_data['sharpening_read']
-                 
+                
+        #rename variables 
         #s, γ, erase, add = data_splits
         if self.is_cam:
             k=update_data['write_content_keys']
-            β=update_data['write_content_strengths']
+            beta=update_data['write_content_strengths']
             kr=update_data['read_content_keys']
-            βr=update_data['read_content_strengths']
+            betar=update_data['read_content_strengths']
 
             g=update_data['allocation_gate']
             #temporary(this will actually be used in the usage operation in the final version)
             #The exact equivalent is the read_mode
-            gr=update_data['free_gate']
+            #gr=update_data['free_gate']
+            gr=update_data['read_mode_shift']
 
 
         #retrieve memory Class
         memory = Memory(mem)
 
+        free_gate=update_data['free_gate']
+        usage=self.mem_usage.calculate_usage(prev_write_attention, free_gate, prev_read_attention, prev_usage)
+       # usage=prev_usage      
+
+
         #update attention       
-        read_attention=self.update_weight(prev_read_attention, memory,β,g,k,s,γ)
-        write_attention=self.update_weight(prev_write_attention, memory,βr,gr,kr,sr,γr)
+        write_gate=update_data['write_gate']
+        write_attention=self.update_weight(prev_write_attention, memory,beta,g,k,s,γ)
+        allocation_gate=g
+        #write_attention=self.update_write_weight(usage, memory, allocation_gate, write_gate, k, beta)
+
+        #DNC actually writes before it calculates the reads
+
+        #linkage_state = self._linkage(write_weights, prev_state.linkage)
+ 
+
+        read_mode=update_data['read_mode']
+
+        links=self.temporal_linkage.calc_temporal_links(write_attention, prev_links)
+      
+        read_attention=self.update_read_weight(links, memory, prev_read_attention, read_mode, kr, betar) 
+        #read_attention=self.update_weight(prev_read_attention, memory,betar,gr,kr,sr,γr)
+        #read_attention=self.temporal_linkage.direction(prev_read_attention, memory,betar,gr,kr,sr,γr)
+    
+        interface_state_tuple = InterfaceStateTuple(read_attention,  write_attention, usage,links)
+        return interface_state_tuple
+
+    def update_read(self, update_data, prev_interface_tuple, mem):
+        """Erases from memory, writes to memory, updates the weights using various attention mechanisms
+        :param update_data: the parameters from the controllers [update_size]
+        :param wt: the read weight [BATCH_SIZE, MEMORY_SIZE]
+        :param mem: the memory [BATCH_SIZE, CONTENT_SIZE, MEMORY_SIZE] 
+        :return: TUPLE [wt, mem]
+        """
+          
+
+        (prev_read_attention,  prev_write_attention, prev_usage, prev_links) = prev_interface_tuple
 
 
-               #if torch.sum(torch.abs(torch.sum(wt[:,0,:], dim=-1) - 1.0)) > 1e-6:
-        #    print("error: gamma very high, normalization problem")
-        interface_state_tuple = InterfaceStateTuple(read_attention,  write_attention)
+
+        # Obtain update parameters
+        s=update_data['shifts']
+        γ=update_data['sharpening']
+        sr=update_data['shifts_read']
+        γr=update_data['sharpening_read']
+                
+        #rename variables 
+        #s, γ, erase, add = data_splits
+        if self.is_cam:
+            k=update_data['write_content_keys']
+            beta=update_data['write_content_strengths']
+            kr=update_data['read_content_keys']
+            betar=update_data['read_content_strengths']
+
+            g=update_data['allocation_gate']
+            #temporary(this will actually be used in the usage operation in the final version)
+            #The exact equivalent is the read_mode
+            #gr=update_data['free_gate']
+            gr=update_data['read_mode_shift']
+
+
+        #retrieve memory Class
+        memory = Memory(mem)
+
+        free_gate=update_data['free_gate']
+        
+        read_mode=update_data['read_mode']
+
+        if self.use_ntm_read:
+            read_attention=self.update_weight(prev_read_attention, memory,betar,gr,kr,sr,γ)
+            links=prev_links
+        else:
+            links=self.temporal_linkage.calc_temporal_links(prev_write_attention, prev_links)
+            read_attention=self.update_read_weight(links, memory, prev_read_attention, read_mode, kr, betar)
+        #
+        #read_attention=self.temporal_linkage.direction(prev_read_attention, memory,betar,gr,kr,sr,γr)
+    
+        interface_state_tuple = InterfaceStateTuple(read_attention,  prev_write_attention, prev_usage,links)
         return interface_state_tuple
 
 
+    def update_write(self, update_data, prev_interface_tuple, mem):
+        """Erases from memory, writes to memory, updates the weights using various attention mechanisms
+        :param update_data: the parameters from the controllers [update_size]
+        :param wt: the read weight [BATCH_SIZE, MEMORY_SIZE]
+        :param mem: the memory [BATCH_SIZE, CONTENT_SIZE, MEMORY_SIZE] 
+        :return: TUPLE [wt, mem]
+        """
+          
+
+        (prev_read_attention,  prev_write_attention, prev_usage, prev_links) = prev_interface_tuple
 
 
+
+        # Obtain update parameters
+        s=update_data['shifts']
+        γ=update_data['sharpening']
+        sr=update_data['shifts_read']
+        γr=update_data['sharpening_read']
+                
+        #rename variables 
+        #s, γ, erase, add = data_splits
+        if self.is_cam:
+            k=update_data['write_content_keys']
+            beta=update_data['write_content_strengths']
+            kr=update_data['read_content_keys']
+            betar=update_data['read_content_strengths']
+
+            g=update_data['allocation_gate']
+            #temporary(this will actually be used in the usage operation in the final version)
+            #The exact equivalent is the read_mode
+            #gr=update_data['free_gate']
+            gr=update_data['read_mode_shift']
+
+
+        #retrieve memory Class
+        memory = Memory(mem)
+
+        free_gate=update_data['free_gate']
+        usage=self.mem_usage.calculate_usage(prev_write_attention, free_gate, prev_read_attention, prev_usage)
+       # usage=prev_usage      
+
+
+        #update attention       
+        write_gate=update_data['write_gate']
+        if self.use_ntm_write:
+            write_attention=self.update_weight(prev_write_attention, memory,beta,g,k,s,γ)
+        else:
+            allocation_gate=g
+            write_attention=self.update_write_weight(usage, memory, allocation_gate, write_gate, k, beta)
+
+        #DNC actually writes before it calculates the reads
+
+        #linkage_state = self._linkage(write_weights, prev_state.linkage)
+ 
+
+        interface_state_tuple = InterfaceStateTuple(prev_read_attention,  write_attention, usage,prev_links)
+        return interface_state_tuple
+    
+    def update_and_edit(self, update_data, prev_interface_tuple, prev_memory_BxMxA):
+        """Erases from memory, writes to memory, updates the weights using various attention mechanisms
+        :param update_data: the parameters from the controllers [update_size]
+        :param wt: the read weight [BATCH_SIZE, MEMORY_SIZE]
+        :param mem: the memory [BATCH_SIZE, CONTENT_SIZE, MEMORY_SIZE] 
+        :return: TUPLE [wt, mem]
+        """
+          
+
+        (prev_read_attention,  prev_write_attention, prev_usage, prev_links) = prev_interface_tuple
+
+
+        # Write to memory
+        write_gate=update_data['write_gate']
+        add=update_data['write_vectors']
+        erase=update_data['erase_vectors']
+
+
+        # Obtain update parameters
+        s=update_data['shifts']
+        γ=update_data['sharpening']
+        sr=update_data['shifts_read']
+        γr=update_data['sharpening_read']
+                
+        #rename variables 
+        #s, γ, erase, add = data_splits
+        if self.is_cam:
+            k=update_data['write_content_keys']
+            beta=update_data['write_content_strengths']
+            kr=update_data['read_content_keys']
+            betar=update_data['read_content_strengths']
+
+            g=update_data['allocation_gate']
+            #temporary(this will actually be used in the usage operation in the final version)
+            #The exact equivalent is the read_mode
+            #gr=update_data['free_gate']
+            gr=update_data['read_mode_shift']
+
+
+        #retrieve memory Class
+        #memory = Memory(mem)
+
+        free_gate=update_data['free_gate']
+        #usage=self.mem_usage.calculate_usage(prev_write_attention, free_gate, prev_read_attention, prev_usage)
+       # usage=prev_usage      
+
+
+        #update attention       
+        write_gate=update_data['write_gate']
+        #write_attention=self.update_weight(prev_write_attention, memory,beta,g,k,s,γ)
+        #allocation_gate=g
+        #write_attention=self.update_write_weight(usage, memory, allocation_gate, write_gate, k, beta)
+
+        #DNC actually writes before it calculates the reads
+
+        #linkage_state = self._linkage(write_weights, prev_state.linkage)
+
+        #add=add*write_gate
+        #erase=erase*write_gate
+ 
+        #memory.erase_weighted(erase, write_attention)
+        #memory.add_weighted(add, write_attention)
+
+         
+        # num_bits
+
+        read_mode=update_data['read_mode']
+
+        #links=self.temporal_linkage.calc_temporal_links(write_attention, prev_links)
+      
+        #read_attention=self.update_read_weight(links, memory, prev_read_attention, read_mode, kr, betar) 
+       # read_attention=self.update_weight(prev_read_attention, memory,betar,gr,kr,sr,γr)
+        #read_attention=self.temporal_linkage.direction(prev_read_attention, memory,betar,gr,kr,sr,γr)
+   
+
+        interface_tuple = self.update_write(update_data, prev_interface_tuple, prev_memory_BxMxA)
+        
+       # interface_tuple = self.update_read(update_data, interface_tuple, prev_memory_BxMxA)
+        #interface_tuple = self.update(update_data, prev_interface_tuple, prev_memory_BxMxA)     
+
+        #interface_state_tuple = InterfaceStateTuple(read_attention,  write_attention, usage,links)
+ 
+
+                # Step 3: Write and Erase Data
+        memory_BxMxA = self.edit_memory(interface_tuple, update_data, prev_memory_BxMxA)
+
+
+        if self.use_ntm_order:
+           read_memory_BxMxA=prev_memory_BxMxA
+        else: 
+           read_memory_BxMxA=memory_BxMxA
+
+        interface_tuple = self.update_read(update_data, interface_tuple, read_memory_BxMxA)
+
+        # Step 2: update memory and attention
+        #interface_tuple = self.interface.update_read(update_data, interface_tuple, memory_BxMxA)
+        #interface_tuple = self.interface.update_write(update_data, interface_tuple, prev_memory_BxMxA)
+
+        # Step 4: Read the data from memory
+        read_vector_BxM = self.read(interface_tuple, memory_BxMxA)
+ 
+
+ 
+        return read_vector_BxM, memory_BxMxA,  interface_tuple
+ 

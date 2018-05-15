@@ -1,0 +1,8 @@
+tasks/lstm_serial_recall_original.yaml
+tasks/lstm_reverse_recall.yaml
+tasks/lstm_manipulation_spatial_rotation.yaml
+tasks/lstm_scratch_pad.yaml
+tasks/lstm_distraction_ignore.yaml
+tasks/lstm_distraction_forget.yaml
+tasks/lstm_operation_span.yaml
+tasks/lstm_reading_span.yaml

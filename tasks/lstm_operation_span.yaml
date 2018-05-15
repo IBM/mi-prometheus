@@ -1,52 +1,54 @@
-# These settings come from the LSTM serial recall baseline from the original NTM paper
 # Problem parameters:
 problem_train:
-    name: distraction_carry
+    name: &name operation_span
     # Size of generated input: [batch_size x sequence_length x number of control and data bits].
-    control_bits: &cbits 3
+    control_bits: &cbits 4
     data_bits: &dbits 8
-    batch_size: &bs 10
+    batch_size: 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 1
-    max_sequence_length: 10
+    max_sequence_length: 3
     num_subseq_min: 1
-    num_subseq_max: 4
-    #Parameter of curriculum learning, increase the max_sequence_length
-    #every ```curriculum_learning_interval```
-    #Optional parameter. 0 disables it.
-    curriculum_learning_interval: 2000
-    bias: 0.5
-    cuda: True
+    num_subseq_max: 2
+    #Curriculum learning - optional.
+    curriculum_learning:
+        interval: 20
+        initial_max_sequence_length: 5
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
+    num_rotation: &nrot 0.5
+    bias: 0.5
+    cuda: True  # The presence of the 'cuda' key is optional
 
 # Problem parameters:
 problem_test:
-    name: distraction_carry
+    name: *name
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 1
+    batch_size: 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 10
-    max_sequence_length: 10
-    num_subseq_min: 4
-    num_subseq_max: 4
+    min_sequence_length: 50
+    max_sequence_length: 50
+    num_subseq_min: 10
+    num_subseq_max: 10
     bias: 0.5
+    num_rotation: *nrot
 
 # Problem parameters:
 problem_validation:
-    name: distraction_carry
+    name: *name
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
     batch_size: 10
     # Parameters denoting min and max lengths.
-    min_sequence_length: 60
-    max_sequence_length: 60
-    num_subseq_min: 4
-    num_subseq_max: 4
+    min_sequence_length: 20
+    max_sequence_length: 20
+    num_subseq_min: 2
+    num_subseq_max: 2
     bias: 0.5
+    num_rotation: *nrot
 
 # Model parameters:
 model:
@@ -57,12 +59,12 @@ model:
     data_bits: *dbits
     # Controller parameters.
     num_layers: 3
-    hidden_state_dim: 256
+    hidden_state_dim: 512
 
+# Set optimizer.
 optimizer:
-    name: RMSprop
-    lr: 0.00003
-    momentum: 0.9
+    name: Adam
+    lr: 0.005
 
 # settings parameters
 settings:
@@ -70,6 +72,6 @@ settings:
     use_mask: True
     length_loss: 100
     loss_stop: 0.0001
-    max_episodes: 1000000
+    max_episodes: 100000
     seed_numpy: 0
     seed_torch: 2

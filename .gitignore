@@ -6,6 +6,7 @@
 !train.py
 !test.py
 !batch_train.py
+!batch_train_cuda.py
 !Readme.md
 !__init__.py
 !/models/**
