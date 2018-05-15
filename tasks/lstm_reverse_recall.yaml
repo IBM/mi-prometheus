@@ -1,38 +1,37 @@
-# These settings come from the LSTM serial recall baseline from the original NTM paper
 # Problem parameters:
 problem_train:
-    name: reverse_recall
+    name: &name reverse_recall
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 2
     data_bits: &dbits 8
-    batch_size: &bs 10
-    # Parameters denoting min and max lengths.
+    batch_size: 64
+    # Parameters denoting min and max lengths. 
     min_sequence_length: 1
     max_sequence_length: 10
-    #Parameter of curriculum learning, increase the max_sequence_length
-    #every ```curriculum_learning_interval```
-    #Optional parameter. 0 disables it.
-    curriculum_learning_interval: 2000
     bias: 0.5
-    cuda: True
+    #Curriculum learning - optional.
+    curriculum_learning:
+        interval: 20
+        initial_max_sequence_length: 5
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
+    cuda: True  # The presence of the 'cuda' key is optional
 
 # Problem parameters:
 problem_test:
-    name: serial_recall_original
+    name: *name
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 1
+    batch_size: 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 10
-    max_sequence_length: 10
+    min_sequence_length: 1000
+    max_sequence_length: 1000
     bias: 0.5
 
 # Problem parameters:
 problem_validation:
-    name: reverse_recall
+    name: *name
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
@@ -40,6 +39,7 @@ problem_validation:
     # Parameters denoting min and max lengths.
     min_sequence_length: 60
     max_sequence_length: 60
+
     bias: 0.5
 
 # Model parameters:
@@ -51,12 +51,12 @@ model:
     data_bits: *dbits
     # Controller parameters.
     num_layers: 3
-    hidden_state_dim: 256
+    hidden_state_dim: 512
 
+# Set optimizer.
 optimizer:
-    name: RMSprop
-    lr: 0.00003
-    momentum: 0.9
+    name: Adam
+    lr: 0.005
 
 # settings parameters
 settings:
@@ -64,6 +64,6 @@ settings:
     use_mask: True
     length_loss: 100
     loss_stop: 0.0001
-    max_episodes: 1000000
+    max_episodes: 100000
     seed_numpy: 0
     seed_torch: 2
