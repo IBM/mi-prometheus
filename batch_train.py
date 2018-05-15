@@ -23,11 +23,10 @@ def main():
     assert os.path.isfile(batch_file)
 
     # Load the list of yaml files to run
-    yaml_files = []
     with open(batch_file, 'r') as f:
-        for line in f.readline():
-            assert os.path.isfile(line), line + " is not a file"
-            yaml_files.append(line)
+        yaml_files = [l.strip() for l in f.readlines()]
+        for filename in yaml_files:
+            assert os.path.isfile(filename), filename + " is not a file"
 
     experiments_list = []
     for elem in yaml_files:
