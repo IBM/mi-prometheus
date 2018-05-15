@@ -4,13 +4,13 @@ problem_train:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 2
     data_bits: &dbits 8
-    batch_size: &bs 1
+    batch_size: &bs 16
     # Parameters denoting min and max lengths.
     min_sequence_length: 1
     max_sequence_length: 10
     #Curriculum learning - optional.
     curriculum_learning:
-        interval: 20
+        interval: 0
         initial_max_sequence_length: 5
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
