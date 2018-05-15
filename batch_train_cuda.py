@@ -8,12 +8,14 @@ It will run as many concurrent jobs as possible.
 import os
 import sys
 import yaml
-from random import randrange
+from random import randrange, uniform
 from tempfile import NamedTemporaryFile
 from multiprocessing.pool import ThreadPool
 import subprocess
+from time import sleep
 
 
+MAX_THREADS = 7  # Number of GPUs
 EXPERIMENT_REPETITIONS = 10
 
 
@@ -31,9 +33,17 @@ def main():
     for _ in range(EXPERIMENT_REPETITIONS):
         experiments_list.extend(yaml_files)
 
+
+    thread_results = []
     # Run in as many threads as there are CPUs available to the script
-    with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
-        pool.map(run_experiment, experiments_list)
+    with ThreadPool(processes=MAX_THREADS) as pool:
+        while True:
+            sleep(5)
+            thread_results = [r for r in thread_results if not r.ready()]
+            while len(thread_results) < MAX_THREADS:
+                sleep(3)
+                thread_results.append(pool.apply_async(run_experiment, (experiments_list.pop(0),)))
+                print("Started new experiment")
 
 
 def run_experiment(yaml_file_path: str):
@@ -49,15 +59,15 @@ def run_experiment(yaml_file_path: str):
 
     # Create temporary file, in which we dump the modified params dict as yaml
     with NamedTemporaryFile(mode='w') as temp_yaml:
-        yaml.dump(params, temp_yaml, default_flow_style=False)
+        yaml.safe_dump(params, temp_yaml, default_flow_style=False)
 
-        command_str = "cuda-gpupick -n0 python3 train.py -t {0} --tensorboard 0".format(temp_yaml.name).split()
+        command_str = "cuda-gpupick -n1 python3 train.py -t {0} --tensorboard 0".format(temp_yaml.name).split()
 
         with open(os.devnull, 'w') as devnull:
             result = subprocess.run(command_str, stdout=devnull)
 
         if result.returncode != 0:
-            print("Training exited with code:", result.returncode)
+            print("Training existed with code:", result.returncode)
 
 
 if __name__ == '__main__':
