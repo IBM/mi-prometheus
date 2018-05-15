@@ -43,6 +43,8 @@ def run_experiment(yaml_file_path: str):
         params = yaml.load(yaml_file)
 
     # Change some params to random ones with specified ranges
+    params['settings']['loss_stop'] = 1.E-4
+    params['settings']['max_episodes'] = 100000
     params['settings']['seed_numpy'] = randrange(0, 2**32)
     params['settings']['seed_torch'] = randrange(0, 2**32)
 

@@ -1,16 +1,13 @@
 import torch
-from torch import nn
-from torch.autograd import Variable
-
-from matplotlib.figure import Figure
-from matplotlib import ticker
+import logging
 import numpy as np
+import io
+import pickle
 
+from torch import nn
 from models.dwm.dwm_cell import DWMCell
-
 from misc.app_state import AppState
 from models.model_base import ModelBase
-import matplotlib.pyplot as plt
 
 CUDA = False
 dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
@@ -107,86 +104,128 @@ class DWM(ModelBase, nn.Module):
         states = [state, wt, wt_dynamic, mem_t]
         return states
 
-    # Overrides the one in ModelBase
+    def pickle_figure_template(self):
+        from matplotlib.figure import Figure
+        import matplotlib.ticker as ticker
+        from matplotlib import rc
+        import matplotlib.gridspec as gridspec
+
+        # Change fonts globally - for all figures/subsplots at once.
+        rc('font', **{'family': 'Times New Roman'})
+
+        # Prepare "generic figure template".
+        # Create figure object.
+        fig = Figure()
+        # axes = fig.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={'width_ratios': [input_seq.shape[0]]})
+
+        # Create a specific grid for NTM .
+        gs = gridspec.GridSpec(3, 7)
+
+        # Memory
+        ax_memory = fig.add_subplot(gs[:, 0])  # all rows, col 0
+        ax_attention = fig.add_subplot(gs[:, 1:3])  # all rows, col 2-3
+        ax_snapshot = fig.add_subplot(gs[:, 3:5])  # all rows, col 4-5
+
+        ax_inputs = fig.add_subplot(gs[0, 5:])  # row 0, span 2 columns
+        ax_targets = fig.add_subplot(gs[1, 5:])  # row 0, span 2 columns
+        ax_predictions = fig.add_subplot(gs[2, 5:])  # row 0, span 2 columns
+
+        # Set ticks - for bit axes only (for now).
+        ax_inputs.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_inputs.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_targets.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_targets.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_predictions.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_predictions.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_memory.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_memory.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_snapshot.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_snapshot.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_attention.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_attention.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
+        # Set labels.
+        ax_inputs.set_title('Inputs')
+        ax_inputs.set_ylabel('Control/Data bits')
+        ax_targets.set_title('Targets')
+        ax_targets.set_ylabel('Data bits')
+        ax_predictions.set_title('Predictions')
+        ax_predictions.set_ylabel('Data bits')
+        ax_predictions.set_xlabel('Item number/Iteration')
+
+        ax_memory.set_title('Memory')
+        ax_memory.set_ylabel('Memory Addresses')
+        ax_memory.set_xlabel('Content bits')
+        ax_attention.set_title('Head attention')
+        ax_attention.set_xlabel('Iteration')
+        ax_snapshot.set_title('Snapshot/Bookmark Attention')
+        ax_snapshot.set_xlabel('Iteration')
+
+        # Create buffer and pickle the figure.
+        buf = io.BytesIO()
+        pickle.dump(fig, buf)
+
+        return buf
+
     def plot_sequence(self, input_seq, output_seq, target_seq):
+        """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
+        The default visualizatoin contains input, output and target sequences.
+        For more model/problem dependent visualization please overwrite this method in the derived model class.
+        """
+        # import time
+        # start_time = time.time()
+        # Create figure template.
+        buf = self.pickle_figure_template()
+
+        # Set intial values of displayed  inputs, targets and predictions - simply zeros.
+        inputs_displayed = np.transpose(np.zeros(input_seq.shape))
+        targets_displayed = np.transpose(np.zeros(target_seq.shape))
+        predictions_displayed = np.transpose(np.zeros(output_seq.shape))
+        head_attention_displayed = np.zeros((self.cell_state_history[0][1].shape[-1], target_seq.shape[0]))
+        snapshot_attention_displayed = np.zeros((self.cell_state_history[0][2].shape[-1], target_seq.shape[0]))
+
+        # Set initial values of memory and attentions.
+        # Unpack initial state.
+
+        # Log sequence length - so the user can understand what is going on.
+        logger = logging.getLogger('ModelBase')
+        logger.info("Generating dynamic visualization of {} figures, please wait...".format(input_seq.shape[0]))
+        # List of figures.
         figs = []
+        for i, (input_element, output_elementd, target_element, (memory, wt, wt_d)) in enumerate(
+                zip(input_seq, output_seq, target_seq, self.cell_state_history)):
+            # Display information every 10% of figures.
+            if (input_seq.shape[0] > 10) and (i % (input_seq.shape[0] // 10) == 0):
+                logger.info("Generating figure {}/{}".format(i, input_seq.shape[0]))
 
-        input_seq = input_seq.numpy()
-        output_seq = output_seq.numpy()
-        target_seq = target_seq.numpy()
+            # Create figure object on the basis of template.
+            buf.seek(0)
+            fig = pickle.load(buf)
+            (ax_memory, ax_attention, ax_snapshot, ax_inputs, ax_targets, ax_predictions) = fig.axes
 
-        pred_matrix = np.zeros(output_seq.shape)
-        target_matrix = np.zeros(target_seq.shape)
-        input_matrix = np.zeros(input_seq.shape)
-        # wt : head attention
-        # wt_d: attention snapshot
+            # Update displayed values on adequate positions.
+            inputs_displayed[:, i] = input_element
+            targets_displayed[:, i] = target_element
+            predictions_displayed[:, i] = output_elementd
 
-        for i, (input_word, output_word, target_word, (memory, wt, wt_d)) \
-                in enumerate(zip(input_seq,
-                                 output_seq,
-                                 target_seq,
-                                 self.cell_state_history)):
+            memory_displayed = memory[0]
+            # Get attention of head 0.
+            head_attention_displayed[:, i] = wt[0, 0, :]
+            snapshot_attention_displayed[:, i] = wt_d[0, 0, :]
 
-            pred_matrix[i] = output_word
-            target_matrix[i] = target_word
-            input_matrix[i] = input_word
+            # "Show" data on "axes".
+            ax_memory.imshow(np.transpose(memory_displayed), interpolation='nearest', aspect='auto')
+            ax_attention.imshow(head_attention_displayed, interpolation='nearest', aspect='auto')
+            ax_snapshot.imshow(snapshot_attention_displayed, interpolation='nearest', aspect='auto')
+            ax_inputs.imshow(inputs_displayed, interpolation='nearest', aspect='auto')
+            ax_targets.imshow(targets_displayed, interpolation='nearest', aspect='auto')
+            ax_predictions.imshow(predictions_displayed, interpolation='nearest', aspect='auto')
 
-            fig = Figure()
-            ax1 = fig.add_subplot(323)
-            ax2 = fig.add_subplot(325, sharex=ax1)
-            ax3 = fig.add_subplot(321, sharex=ax1)
-            ax4 = fig.add_subplot(322)
-            ax5 = fig.add_subplot(324, sharex=ax4)
-            ax6 = fig.add_subplot(326, sharex=ax4)
-
-            # head attention weights
-            ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-            ax1.set_ylabel("Weights", fontname='Times New Roman', fontsize=13)
-            ax1.plot(np.arange(wt.shape[-1]), wt[0, 0, :], 'go', label='attention head')
-            plt.setp(ax1.get_xticklabels(), visible=False)
-            ax1.legend()
-
-            # snapshot attention weight
-            weight_address_0 = np.zeros_like(wt_d[0, 0, :])
-            weight_address_0[0] = 1
-            ax2.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-            ax2.plot(np.arange(wt.shape[-1]), wt_d[0, 0, :], 'bo', label='dynamic snapshot')
-            ax2.plot(np.arange(wt.shape[-1]), weight_address_0, 'go', label='fixed snapshot')
-            ax2.set_xlabel("Memory addresses", fontname='Times New Roman', fontsize=13)
-            ax2.set_ylabel("Weights", fontname='Times New Roman', fontsize=13)
-            ax2.legend()
-
-            # memory content of the first batch
-            ax3.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-            ax3.set_ylabel("Word size", fontname='Times New Roman', fontsize=13)
-            ax3.set_title("Memory", fontname='Times New Roman', fontsize=13)
-            ax3.imshow(memory[0, :, :], interpolation='nearest')
-            plt.setp(ax3.get_xticklabels(), visible=False)
-
-            # input content
-            ax4.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-            ax4.set_ylabel("Data bits/Control bits", fontname='Times New Roman', fontsize=13)
-            ax4.set_title("Input", fontname='Times New Roman', fontsize=13)
-            ax4.imshow(np.transpose(input_matrix, [1, 0]))
-            plt.setp(ax4.get_xticklabels(), visible=False)
-
-            # target content
-            ax5.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-            ax5.set_ylabel("Data bits", fontname='Times New Roman', fontsize=13)
-            ax5.set_title("Target", fontname='Times New Roman', fontsize=13)
-            ax5.imshow(np.transpose(target_matrix, [1, 0]))
-            plt.setp(ax5.get_xticklabels(), visible=False)
-
-            # prediction content 
-            ax6.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-            ax6.set_ylabel("Data bits", fontname='Times New Roman', fontsize=13)
-            ax6.set_title("Prediction", fontname='Times New Roman', fontsize=13)
-            ax6.set_xlabel("Item number", fontname='Times New Roman', fontsize=13)
-            ax6.imshow(np.transpose(pred_matrix, [1, 0]))
-
-
-
+            # Append figure to a list.
+            fig.set_tight_layout(True)
             figs.append(fig)
 
+        # print("--- %s seconds ---" % (time.time() - start_time))
+        # Update time plot fir generated list of figures.
         self.plot.update(figs)
         return self.plot.is_closed

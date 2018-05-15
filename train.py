@@ -315,7 +315,6 @@ if __name__ == '__main__':
     except KeyError:
         validation_stopping = True
 
-
     # Flag denoting whether we converged (or reached last episode).
     terminal_condition = False
 
@@ -438,6 +437,7 @@ if __name__ == '__main__':
 
     # Perform validation.
         _ , _ = validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion,  False,  FLAGS, logger,  model_parameters_path,  validation_file,  validation_writer)
+
     else:
         logger.info('Learning interrupted!')
 
