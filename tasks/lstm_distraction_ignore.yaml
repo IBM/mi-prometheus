@@ -7,17 +7,17 @@ problem_train:
     batch_size: 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 1
-    max_sequence_length: 5
+    max_sequence_length: 6
     num_subseq_min: 1
     num_subseq_max: 3
     #Curriculum learning - optional.
     curriculum_learning:
-        interval: 20
+        interval: 0
         initial_max_sequence_length: 5
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     bias: 0.5
-    cuda: True  # The presence of the 'cuda' key is optional
+    cuda: True
 
 # Problem parameters:
 problem_test:
@@ -39,12 +39,12 @@ problem_validation:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 10
+    batch_size: 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 20
     max_sequence_length: 20
-    num_subseq_min: 4
-    num_subseq_max: 4
+    num_subseq_min: 5
+    num_subseq_max: 5
     bias: 0.5
 
 # Model parameters:

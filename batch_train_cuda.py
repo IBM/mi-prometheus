@@ -37,10 +37,10 @@ def main():
     thread_results = []
     # Run in as many threads as there are CPUs available to the script
     with ThreadPool(processes=MAX_THREADS) as pool:
-        while True:
+        while len(experiments_list) > 0:
             sleep(5)
             thread_results = [r for r in thread_results if not r.ready()]
-            while len(thread_results) < MAX_THREADS:
+            while len(thread_results) < MAX_THREADS and len(experiments_list) > 0:
                 sleep(3)
                 thread_results.append(pool.apply_async(run_experiment, (experiments_list.pop(0),)))
                 print("Started new experiment")
