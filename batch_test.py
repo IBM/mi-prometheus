@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 def main():
     batch_file = sys.argv[1]
-    assert os.path.isfile(batch_file)
+    assert os.path.isdir(batch_file)
 
     # Load the list of yaml files to run
     with open(batch_file, 'r') as f:
