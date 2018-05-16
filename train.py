@@ -77,7 +77,7 @@ def validation(model, data_valid, use_mask, criterion, improved, FLAGS, logger, 
 
     # Export model if better OR user simply wants to export the mode..
     if FLAGS.save_model_always or improved:
-        model_filename = 'model_parameters_epoch_{:05d}'.format(episode)
+        model_filename = 'model_parameters_episode_{:05d}'.format(episode)
         torch.save(model.state_dict(), model_dir + model_filename)
         logger.info("Model exported")
 
@@ -206,7 +206,7 @@ if __name__ == '__main__':
     os.makedirs(model_dir, exist_ok=False)
     log_file = log_dir + 'msgs.log'
     copyfile(FLAGS.task, log_dir + "/train_settings.yaml")  # Copy the task's yaml file into log_dir
-    model_parameters_path = log_dir + "/model_parameters_epoch_01"
+    model_parameters_path = log_dir + "/model_parameters"
 
     # Create csv files.
     train_file = open(log_dir + 'training.csv', 'w', 1)
@@ -421,6 +421,9 @@ if __name__ == '__main__':
 
             if loss_stop or episode == config_loaded['settings']['max_episodes'] :
                 terminal_condition = True
+                model_filename = 'model_parameters_episode_{:05d}'.format(episode)
+                torch.save(model.state_dict(), model_dir + model_filename)
+
                 break
                 # "Finish" episode.
 
@@ -430,13 +433,16 @@ if __name__ == '__main__':
     if terminal_condition:
         logger.info('Learning finished!')
         # Check visualization flag - turn on when we wanted to visualize (at least) validation.
-        if FLAGS.visualize is not None and (FLAGS.visualize >= 2):
+        if FLAGS.visualize is not None and (FLAGS.visualize == 3):
             app_state.visualize = True
+
+            # Perform validation.
+            _, _ = validation(model, data_valid, config_loaded['settings']['use_mask'], criterion, False, FLAGS, logger,
+                              model_parameters_path, validation_file, validation_writer)
+
         else:
             app_state.visualize = False
 
-    # Perform validation.
-        _ , _ = validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion,  False,  FLAGS, logger,  model_parameters_path,  validation_file,  validation_writer)
 
     else:
         logger.info('Learning interrupted!')
