@@ -7,6 +7,7 @@ It will run as many concurrent jobs as possible.
 
 import os
 import sys
+import yaml
 from multiprocessing.pool import ThreadPool
 import subprocess
 import numpy as np
@@ -44,8 +45,21 @@ def main():
 
 
 def run_experiment(path: str):
-    val_episode, val_accuracy, val_loss, val_length = np.loadtxt(path + '/validation.csv', delimiter=', ', skiprows=1)
-    train_episode, train_accuracy, train_loss, train_length = np.loadtxt(path + '/training.csv', delimiter=', ', skiprows=1)
+    r = {}  # results dictionary
+
+    r['timestamp'] = os.path.basename(os.path.normpath(path))
+
+    # Load yaml file. To get model name and problem name.
+    with open(path + 'train_settings.yaml', 'r') as yaml_file:
+        params = yaml.load(yaml_file)
+    r['model'] = params['model']['name']
+    r['problem'] = params['problem_train']['name']
+
+    # Load csv files
+    val_episode, val_accuracy, val_loss, val_length = \
+        np.loadtxt(path + '/validation.csv', delimiter=', ', skiprows=1)
+    train_episode, train_accuracy, train_loss, train_length = \
+        np.loadtxt(path + '/training.csv', delimiter=', ', skiprows=1)
 
     # Save plot of losses to png file
     plt.semilogy(val_episode, val_loss, label='validation loss')
@@ -53,18 +67,44 @@ def run_experiment(path: str):
     plt.savefig(path + '/loss.png')
     plt.close()
 
-    best_valid_arg = np.argmin(val_loss)
-    stop_episode = best_valid_arg if val_loss[best_valid_arg] < .1 else train_episode[-1]
-    best_valid_loss = val_loss[stop_episode]
-    best_train_loss = train_loss[stop_episode]
+    ### ANALYSIS OF TRAINING AND VALIDATION DATA ###
 
+    r['best_valid_arg'] = np.argmin(val_loss)  # best validation loss argument
+
+    # If the best loss < .1, keep that as the early stopping point
+    # Otherwise, we take the very last data as the stopping point
+    if val_loss[r['best_valid_arg']] < .1:
+        r['stop_episode'] = r['best_valid_arg']
+    else:
+        r['stop_episode'] = train_episode[-1]
+
+    # Gather data at chosen stopping point
+    r['valid_loss'] = val_loss[r['stop_episode']]
+    r['valid_accuracy'] = val_accuracy[r['stop_episode']]
+    r['valid_length'] = val_length[r['stop_episode']]
+    r['train_loss'] = train_loss[r['stop_episode']]
+    r['train_accuracy'] = train_accuracy[r['stop_episode']]
+    r['train_length'] = train_length[r['stop_episode']]
+
+    ### ANALYSIS OF TESTING DATA ###
+
+    # Run the test
     command_str = "cuda-gpupick -n0 python3 test.py -i {0} ".format(path).split()
-
     with open(os.devnull, 'w') as devnull:
         result = subprocess.run(command_str, stdout=devnull)
-
     if result.returncode != 0:
         print("Testing exited with code:", result.returncode)
+
+    # Load the test results from csv
+    test_episode, test_accuracy, test_loss, test_length = \
+        np.loadtxt(path + '/test.csv', delimiter=', ', skiprows=1)
+
+    # Save test results into dict. We expect that the csv has a single row of data.
+    r['test_loss'] = test_loss[0]
+    r['test_accuracy'] = test_accuracy[0]
+    r['test_length'] = test_length[0]
+
+    return r
 
 
 if __name__ == '__main__':
