@@ -36,8 +36,8 @@ problem_validation:
     data_bits: *dbits
     batch_size: 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 60
-    max_sequence_length: 60
+    min_sequence_length: 100
+    max_sequence_length: 100
 
     bias: 0.5
 

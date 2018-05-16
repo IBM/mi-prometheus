@@ -29,8 +29,8 @@ problem_test:
     # Parameters denoting min and max lengths.
     min_sequence_length: 50
     max_sequence_length: 50
-    num_subseq_min: 10
-    num_subseq_max: 10
+    num_subseq_min: 20
+    num_subseq_max: 20
     bias: 0.5
     num_rotation: *nrot
 
