@@ -27,6 +27,7 @@ problem_train:
 
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
+    num_bits: .5
 
 # Problem parameters:
 problem_test:
@@ -38,7 +39,9 @@ problem_test:
     # Parameters denoting min and max lengths.
     min_sequence_length: 1000
     max_sequence_length: 1000
-    bias: 0.5
+    bias: 0.5 
+    num_bits: .5
+
 # Problem parameters:
 problem_validation:
     name: *name
@@ -50,6 +53,7 @@ problem_validation:
     min_sequence_length: 100
     max_sequence_length: 100
     bias: 0.5
+    num_bits: .5
 
 # Model parameters:
 model:
