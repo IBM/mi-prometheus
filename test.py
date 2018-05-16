@@ -3,6 +3,7 @@ import os
 os.environ["OMP_NUM_THREADS"] = '1'
 
 import torch
+from torch import nn
 import torch.nn.functional as F
 import argparse
 import yaml
@@ -109,11 +110,17 @@ if __name__ == '__main__':
     if config_loaded["settings"]["seed_numpy"] != -1:
         np.random.seed(config_loaded["settings"]["seed_numpy"])
 
+    # Create output file
+    test_file = open(FLAGS.input_dir + '/test.csv', 'w', 1)
+    test_file.write('episode, accuracy, loss, length\n')
+
     # Build new problem
     problem = ProblemFactory.build_problem(config_loaded['problem_test'])
 
     # Build model
     model = ModelFactory.build_model(config_loaded['model'])
+
+    criterion = nn.BCEWithLogitsLoss()
 
     if FLAGS.episode != None:
         # load the trained model
@@ -129,7 +136,7 @@ if __name__ == '__main__':
     for episode, (inputs, unmasked_target, mask) in enumerate(problem.return_generator()):
 
         # apply the trained model
-        unmasked_output = F.sigmoid(model(inputs))
+        unmasked_output = model(inputs)
 
         if config_loaded['settings']['use_mask']:
             output = unmasked_output[:, mask[0], :]
@@ -138,14 +145,22 @@ if __name__ == '__main__':
             output = unmasked_output
             target = unmasked_target
 
+        loss = criterion(output, target)
+
+        output = F.sigmoid(output)
+
         # test accuracy
         output = torch.round(output)
         acc = 1 - torch.abs(output-target)
         accuracy = acc.mean()
-        format_str = 'episode {:05d}; acc={:12.10f}; length={:d} [Test]'
-        logger.info(format_str.format(episode, accuracy, unmasked_target.size(1)))
+        format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Test]'
+        logger.info(format_str.format(episode, accuracy, loss, unmasked_target.size(1)))
         # plot data
         # show_sample(output, targets, mask)
+
+        format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
+        format_str = format_str + '\n'
+        test_file.write(format_str.format(episode, accuracy, loss, unmasked_target.size(1)))
 
         if app_state.visualize:
             mask_not = (mask == 0)
