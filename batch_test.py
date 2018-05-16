@@ -13,10 +13,11 @@ from itertools import repeat
 from tempfile import NamedTemporaryFile
 from multiprocessing.pool import ThreadPool
 import subprocess
+import numpy as np
 
 def main():
     batch_file = sys.argv[1]
-    assert os.path.isdir(batch_file)
+    assert os.path.isfile(batch_file)
 
     # Load the list of yaml files to run
     with open(batch_file, 'r') as f:
@@ -31,6 +32,10 @@ def main():
         for sub in subdir:
             checkpoints = os.path.join(elem, sub)
             experiments_list.append(checkpoints)
+
+    for elem in experiments_list:
+        if os.path.isfile(elem + '/validation.csv'):
+            validation_losses = np.loadtxt(elem + '/validation.csv', delimiter=', ', skiprows=1)
 
     # Run in as many threads as there are CPUs available to the script
     with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:

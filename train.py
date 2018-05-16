@@ -206,7 +206,7 @@ if __name__ == '__main__':
     os.makedirs(model_dir, exist_ok=False)
     log_file = log_dir + 'msgs.log'
     copyfile(FLAGS.task, log_dir + "/train_settings.yaml")  # Copy the task's yaml file into log_dir
-    model_parameters_path = log_dir + "/model_parameters"
+    model_parameters_path = log_dir + "/model_parameters_epoch_01"
 
     # Create csv files.
     train_file = open(log_dir + 'training.csv', 'w', 1)
