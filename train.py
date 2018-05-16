@@ -392,9 +392,9 @@ if __name__ == '__main__':
                 break
 
         # 5. Validation. check if new loss is smaller than the best loss, save the model in this case
-        if loss < best_loss or (episode % validation_frequency) == 0:
+        if (episode % validation_frequency) == 0:
 
-            improved = False
+            improved = True
             if loss < best_loss:
                 best_loss = loss
                 improved = True
