@@ -71,6 +71,9 @@ def run_experiment(path: str):
     r['model'] = params['model']['name']
     r['problem'] = params['problem_train']['name']
 
+    # print path
+    print(path)
+
     # Load csv files
     val_episode, val_accuracy, val_loss, val_length = \
         np.loadtxt(path + '/validation.csv', delimiter=', ', skiprows=1, unpack=True, dtype='int, float, float, int') 
@@ -91,8 +94,6 @@ def run_experiment(path: str):
 
     index_val_loss = np.argmin(val_loss) 
     r['best_valid_arg'] = int(val_episode[index_val_loss])  # best validation loss argument
-    print(index_val_loss)
-    print(path)
     
     # If the best loss < .1, keep that as the early stopping point
     # Otherwise, we take the very last data as the stopping point
@@ -105,7 +106,7 @@ def run_experiment(path: str):
         stop_train_index = -1 
         index_val_loss = -1
         r['converge'] = False  
-    print(stop_train_index)   
+     
     # Gather data at chosen stopping point
     r['valid_loss'] = val_loss[index_val_loss]
     r['valid_accuracy'] = val_accuracy[index_val_loss]
