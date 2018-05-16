@@ -70,7 +70,7 @@ if __name__ == '__main__':
 
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
-
+    print(FLAGS.episode)
     # Check if input directory was selected.
     if FLAGS.input_dir == '':
         print('Please pass input path folder as -i parameter')
@@ -121,12 +121,16 @@ if __name__ == '__main__':
     model = ModelFactory.build_model(config_loaded['model'])
 
     criterion = nn.BCEWithLogitsLoss()
-
     if FLAGS.episode != None:
         # load the trained model
-        model_file_name = FLAGS.input_dir + '/models/model_parameters_episode_{:05d}'.format(FLAGS.episode)
+        model_file_name = FLAGS.input_dir + '/models/model_parameters_epoch_{:05d}'.format(FLAGS.episode)
     else:
-        model_file_name = glob(FLAGS.input_dir + '/models/model_parameters_episode_*')[-1]
+        model_file_name = glob(FLAGS.input_dir + '/models/model_parameters_epoch_*')[-1]
+   
+    if not os.path.isfile(model_file_name) :
+        print('Model path {} does not exist'.format(model_file_name))
+        exit(-3)
+
 
     model.load_state_dict(
         torch.load(model_file_name,

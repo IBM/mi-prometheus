@@ -1,2 +1,8 @@
-checkpoints/scratch_pad/dwm/
 checkpoints/serial_recall_original/dwm/
+checkpoints/scratch_pad/dwm/
+checkpoints/reverse_recall/dwm/
+checkpoints/manipulation_spatial_rotation/dwm/
+checkpoints/reading_span/dwm/
+checkpoints/operation_span/dwm/
+checkpoints/distraction_forget/dwm/
+checkpoints/distraction_ignore/dwm/

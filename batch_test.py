@@ -11,11 +11,17 @@ import yaml
 from multiprocessing.pool import ThreadPool
 import subprocess
 import numpy as np
+from glob import glob
+import csv
 
 import matplotlib
 matplotlib.use('Agg')  # Headless backend for matplotlib
 import matplotlib.pyplot as plt
 
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx]
 
 def main():
     batch_file = sys.argv[1]
@@ -41,68 +47,98 @@ def main():
 
     # Run in as many threads as there are CPUs available to the script
     with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
-        pool.map(run_experiment, experiments_list)
-
+        list_dict_exp = pool.map(run_experiment, experiments_list)
+        exp_values = dict(zip(list_dict_exp[0], zip(*[d.values() for d in list_dict_exp])))
+         
+        with open("test.csv", "w") as outfile:
+            writer = csv.writer(outfile, delimiter = " ")
+            writer.writerow(exp_values.keys())
+            writer.writerows(zip(*exp_values.values()))
+          
 
 def run_experiment(path: str):
     r = {}  # results dictionary
 
+    models_list = glob(path + '/models/*')
+    models_list = [os.path.basename(os.path.normpath(e)) for e in models_list]
+    models_list = [int(e.split('_')[-1]) for e in models_list]
+    
     r['timestamp'] = os.path.basename(os.path.normpath(path))
 
     # Load yaml file. To get model name and problem name.
-    with open(path + 'train_settings.yaml', 'r') as yaml_file:
+    with open(path + '/train_settings.yaml', 'r') as yaml_file:
         params = yaml.load(yaml_file)
     r['model'] = params['model']['name']
     r['problem'] = params['problem_train']['name']
 
     # Load csv files
     val_episode, val_accuracy, val_loss, val_length = \
-        np.loadtxt(path + '/validation.csv', delimiter=', ', skiprows=1)
+        np.loadtxt(path + '/validation.csv', delimiter=', ', skiprows=1, unpack=True, dtype='int, float, float, int') 
     train_episode, train_accuracy, train_loss, train_length = \
-        np.loadtxt(path + '/training.csv', delimiter=', ', skiprows=1)
+        np.loadtxt(path + '/training.csv', delimiter=', ', skiprows=1, unpack=True, dtype='int, float, float, int')
 
     # Save plot of losses to png file
-    plt.semilogy(val_episode, val_loss, label='validation loss')
-    plt.semilogy(train_episode, train_loss, label='training loss')
-    plt.savefig(path + '/loss.png')
-    plt.close()
-
+    # Save plot of losses to png file
+    try:
+        ax = plt.gca()
+        ax.semilogy(val_episode, val_loss, label='validation loss')
+        ax.semilogy(train_episode, train_loss, label='training loss')
+        plt.savefig(path + '/loss.png')
+        plt.close()
+    except:
+       pass 
     ### ANALYSIS OF TRAINING AND VALIDATION DATA ###
 
-    r['best_valid_arg'] = np.argmin(val_loss)  # best validation loss argument
-
+    index_val_loss = np.argmin(val_loss) 
+    r['best_valid_arg'] = int(val_episode[index_val_loss])  # best validation loss argument
+    print(index_val_loss)
+    print(path)
+    
     # If the best loss < .1, keep that as the early stopping point
     # Otherwise, we take the very last data as the stopping point
-    if val_loss[r['best_valid_arg']] < .1:
+    if val_loss[index_val_loss] < .1:
         r['stop_episode'] = r['best_valid_arg']
+        r['converge'] = True
+        stop_train_index = np.where(r['stop_episode'] == train_episode)[0][0]
     else:
         r['stop_episode'] = train_episode[-1]
-
+        stop_train_index = -1 
+        index_val_loss = -1
+        r['converge'] = False  
+    print(stop_train_index)   
     # Gather data at chosen stopping point
-    r['valid_loss'] = val_loss[r['stop_episode']]
-    r['valid_accuracy'] = val_accuracy[r['stop_episode']]
-    r['valid_length'] = val_length[r['stop_episode']]
-    r['train_loss'] = train_loss[r['stop_episode']]
-    r['train_accuracy'] = train_accuracy[r['stop_episode']]
-    r['train_length'] = train_length[r['stop_episode']]
+    r['valid_loss'] = val_loss[index_val_loss]
+    r['valid_accuracy'] = val_accuracy[index_val_loss]
+    r['valid_length'] = val_length[index_val_loss]
+    r['train_loss'] = train_loss[stop_train_index]
+    r['train_accuracy'] = train_accuracy[stop_train_index]
+    r['train_length'] = train_length[stop_train_index]
 
-    ### ANALYSIS OF TESTING DATA ###
+    ### Find the best model ###
+    models_list = glob(path + '/models/*')
+    models_list = [os.path.basename(os.path.normpath(e)) for e in models_list]
+    models_list = [int(e.split('_')[-1]) for e in models_list]    
 
+    best_num_model = find_nearest(models_list, r['stop_episode'])
+    r['best_model'] = best_num_model    
     # Run the test
-    command_str = "cuda-gpupick -n0 python3 test.py -i {0} ".format(path).split()
+    command_str = "cuda-gpupick -n0 python3 test.py -i {0} -e {1}".format(path, best_num_model).split()
     with open(os.devnull, 'w') as devnull:
         result = subprocess.run(command_str, stdout=devnull)
     if result.returncode != 0:
         print("Testing exited with code:", result.returncode)
 
-    # Load the test results from csv
-    test_episode, test_accuracy, test_loss, test_length = \
-        np.loadtxt(path + '/test.csv', delimiter=', ', skiprows=1)
-
-    # Save test results into dict. We expect that the csv has a single row of data.
-    r['test_loss'] = test_loss[0]
-    r['test_accuracy'] = test_accuracy[0]
-    r['test_length'] = test_length[0]
+    if os.stat(path + '/test.csv').st_size: 
+        # Load the test results from csv
+        test_episode, test_accuracy, test_loss, test_length = \
+            np.loadtxt(path + '/test.csv', delimiter=', ', skiprows=1, unpack=True)
+    
+        # Save test results into dict. We expect that the csv has a single row of data.
+        r['test_loss'] = test_loss
+        r['test_accuracy'] = test_accuracy
+        r['test_length'] = test_length 
+    else:
+        print('There is no model in checkpoint {} '.format(path))     
 
     return r
 
