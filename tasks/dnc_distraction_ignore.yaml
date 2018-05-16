@@ -15,7 +15,7 @@ problem_train:
     batch_size: &bs 16
     # Parameters denoting min and max lengths. 
     min_sequence_length: 1
-    max_sequence_length: 5
+    max_sequence_length: 6
     num_subseq_min: 1
     num_subseq_max: 3
     bias: 0.5
@@ -51,8 +51,8 @@ problem_validation:
     # Parameters denoting min and max lengths.
     min_sequence_length: 20
     max_sequence_length: 20
-    num_subseq_min: 4
-    num_subseq_max: 4
+    num_subseq_min: 5
+    num_subseq_max: 5
     bias: 0.5
 
 # Model parameters:

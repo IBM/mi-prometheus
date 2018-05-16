@@ -74,8 +74,9 @@ class DNCCell(nn.Module):
         interface_init_state =  self.interface.init_state(memory_address_size,batch_size)
 
         # Memory [BATCH_SIZE x MEMORY_BITS x MEMORY_SIZE] 
-        init_memory_BxMxA = torch.empty(batch_size,  self.num_memory_bits,  memory_address_size)
-        torch.nn.init.normal_(init_memory_BxMxA, mean=0.5, std=0.2)
+        #init_memory_BxMxA = torch.empty(batch_size,  self.num_memory_bits,  memory_address_size)
+        init_memory_BxMxA = torch.zeros(batch_size,  self.num_memory_bits,  memory_address_size)
+        #torch.nn.init.normal_(init_memory_BxMxA, mean=0.5, std=0.2)
         # Read vector [BATCH_SIZE x MEMORY_SIZE]
         #read_vector_BxM = torch.ones((batch_size, self.num_memory_bits)).type(dtype)*1e-6
         read_vector_BxM = self.interface.read(interface_init_state, init_memory_BxMxA)        

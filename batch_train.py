@@ -31,9 +31,6 @@ def main():
     for _ in range(EXPERIMENT_REPETITIONS):
         experiments_list.extend(yaml_files)
 
-    print(experiments_list)
-    exit()
-
     # Run in as many threads as there are CPUs available to the script
     with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
         pool.map(run_experiment, experiments_list)
