@@ -82,7 +82,8 @@ def validation(model, data_valid, use_mask, criterion, improved, FLAGS, logger, 
         logger.info("Model exported")
 
     # Calculate the accuracy and loss of the validation data.
-    logits_valid, loss_valid, accuracy_valid = forward_step(model, data_valid, use_mask, criterion)
+    with torch.no_grad():
+        logits_valid, loss_valid, accuracy_valid = forward_step(model, data_valid, use_mask, criterion)
 
     # Print statistics.
     length_valid = data_valid[0].size(-2)

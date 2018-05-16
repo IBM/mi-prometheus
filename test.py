@@ -132,42 +132,42 @@ if __name__ == '__main__':
         torch.load(model_file_name,
                    map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
     )
+    with torch.no_grad():
+        for episode, (inputs, unmasked_target, mask) in enumerate(problem.return_generator()):
 
-    for episode, (inputs, unmasked_target, mask) in enumerate(problem.return_generator()):
+            # apply the trained model
+            unmasked_output = model(inputs)
 
-        # apply the trained model
-        unmasked_output = model(inputs)
+            if config_loaded['settings']['use_mask']:
+                output = unmasked_output[:, mask[0], :]
+                target = unmasked_target[:, mask[0], :]
+            else:
+                output = unmasked_output
+                target = unmasked_target
 
-        if config_loaded['settings']['use_mask']:
-            output = unmasked_output[:, mask[0], :]
-            target = unmasked_target[:, mask[0], :]
-        else:
-            output = unmasked_output
-            target = unmasked_target
+            loss = criterion(output, target)
 
-        loss = criterion(output, target)
+            output = F.sigmoid(output)
 
-        output = F.sigmoid(output)
+            # test accuracy
+            output = torch.round(output)
+            acc = 1 - torch.abs(output-target)
+            accuracy = acc.mean()
+            format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Test]'
+            logger.info(format_str.format(episode, accuracy, loss, unmasked_target.size(1)))
+            # plot data
+            # show_sample(output, targets, mask)
 
-        # test accuracy
-        output = torch.round(output)
-        acc = 1 - torch.abs(output-target)
-        accuracy = acc.mean()
-        format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Test]'
-        logger.info(format_str.format(episode, accuracy, loss, unmasked_target.size(1)))
-        # plot data
-        # show_sample(output, targets, mask)
+            format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
+            format_str = format_str + '\n'
+            test_file.write(format_str.format(episode, accuracy, loss, unmasked_target.size(1)))
 
-        format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
-        format_str = format_str + '\n'
-        test_file.write(format_str.format(episode, accuracy, loss, unmasked_target.size(1)))
+            if app_state.visualize:
+                mask_not = (mask == 0)
+                unmasked_output[0][mask_not[0], :] = 0
 
-        if app_state.visualize:
-            mask_not = (mask == 0)
-            unmasked_output[0][mask_not[0], :] = 0
-
-            is_closed = model.plot_sequence(inputs[0].detach().numpy(), unmasked_output[0].detach().numpy(), unmasked_target[0].detach().numpy())
-            if is_closed:
+                is_closed = model.plot_sequence(inputs[0].detach().numpy(), unmasked_output[0].detach().numpy(), unmasked_target[0].detach().numpy())
+                if is_closed:
+                    break
+            else:
                 break
-        else:
-            break
