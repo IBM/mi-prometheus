@@ -53,13 +53,18 @@ def run_experiment(path: str):
     plt.savefig(path + '/loss.png')
     plt.close()
 
+    best_valid_arg = np.argmin(val_loss)
+    stop_episode = best_valid_arg if val_loss[best_valid_arg] < .1 else train_episode[-1]
+    best_valid_loss = val_loss[stop_episode]
+    best_train_loss = train_loss[stop_episode]
+
     command_str = "cuda-gpupick -n0 python3 test.py -i {0} ".format(path).split()
 
     with open(os.devnull, 'w') as devnull:
         result = subprocess.run(command_str, stdout=devnull)
 
     if result.returncode != 0:
-        print("Training exited with code:", result.returncode)
+        print("Testing exited with code:", result.returncode)
 
 
 if __name__ == '__main__':
