@@ -47,18 +47,6 @@ problem_validation:
     num_subseq_max: 5
     bias: 0.5
 
-# Problem parameters:
-problem_validation:
-    name: *name
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: *cbits
-    data_bits: *dbits
-    batch_size: 64
-    # Parameters denoting min and max lengths.
-    min_sequence_length: 60
-    max_sequence_length: 60
-    bias: 0.5
-
 # Model parameters:
 model:
     name: lstm
