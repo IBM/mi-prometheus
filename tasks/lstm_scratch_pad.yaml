@@ -4,7 +4,7 @@ problem_train:
     # Size of generated input: [batch_size x sequence_length x number of control and data bits].
     control_bits: &cbits 2
     data_bits: &dbits 8
-    batch_size: 16
+    batch_size: 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 1
     max_sequence_length: 10
