@@ -108,18 +108,19 @@ def run_experiment(path: str):
     stop_train_index = -1 
     index_val_loss = -1
      
-    # Gather data at chosen stopping point
-    r['valid_loss'] = val_loss[index_val_loss]
-    r['valid_accuracy'] = val_accuracy[index_val_loss]
-    r['valid_length'] = val_length[index_val_loss]
-
     ### Find the best model ###
     models_list = glob(path + '/models/*')
     models_list = [os.path.basename(os.path.normpath(e)) for e in models_list]
     models_list = [int(e.split('_')[-1]) for e in models_list]    
 
     best_num_model = find_nearest(models_list, r['stop_episode'])
-    r['best_model'] = best_num_model    
+    r['last_model'] = best_num_model    
+
+    # Gather data at chosen stopping point
+    r['valid_loss'] = val_loss[index_val_loss]
+    r['valid_accuracy'] = val_accuracy[index_val_loss]
+    r['valid_length'] = val_length[index_val_loss]
+
     # Run the test
     command_str = "cuda-gpupick -n0 python3 test.py -i {0} -e {1}".format(path, best_num_model).split()
     with open(os.devnull, 'w') as devnull:
@@ -137,13 +138,13 @@ def run_experiment(path: str):
         test_train_episode, test_train_accuracy, test_train_loss, test_train_length = \
             np.loadtxt(path + '/test_train.csv', delimiter=', ', skiprows=1, unpack=True)
     
-        # Save test results into dict. We expect that the csv has a single row of data.
-        r['test_loss'] = test_loss
-        r['test_accuracy'] = test_accuracy
-        r['test_length'] = test_length
+        # Save test results into dict. We expect that the csv has a single row of data
         r['train_loss'] = test_train_loss
         r['train_accuracy'] = test_train_accuracy
         r['train_length'] = test_train_length
+        r['test_loss'] = test_loss
+        r['test_accuracy'] = test_accuracy
+        r['test_length'] = test_length
     else:
         print('There is no model in checkpoint {} '.format(path))     
 
