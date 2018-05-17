@@ -99,7 +99,7 @@ def run_experiment(path: str):
  
     # If the best loss < .1, keep that as the early stopping point
     # Otherwise, we take the very last data as the stopping point
-    if val_loss[index_val_loss] < .4:
+    if val_loss[index_val_loss] < 1.E-4:
         r['converge'] = True
     else:
         r['converge'] = False     
