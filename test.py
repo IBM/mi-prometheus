@@ -113,6 +113,8 @@ if __name__ == '__main__':
     # Create output file
     test_file = open(FLAGS.input_dir + '/test.csv', 'w', 1)
     test_file.write('episode, accuracy, loss, length\n')
+    test_train_file = open(FLAGS.input_dir + '/test_train.csv', 'w', 1)
+    test_train_file.write('episode, accuracy, loss, length\n')
 
     # Build new problem
     problem = ProblemFactory.build_problem(config_loaded['problem_test'])
@@ -127,7 +129,7 @@ if __name__ == '__main__':
     else:
         model_file_name = glob(FLAGS.input_dir + '/models/model_parameters_epoch_*')[-1]
    
-    if not os.path.isfile(model_file_name) :
+    if not os.path.isfile(model_file_name):
         print('Model path {} does not exist'.format(model_file_name))
         exit(-3)
 
@@ -136,6 +138,8 @@ if __name__ == '__main__':
         torch.load(model_file_name,
                    map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
     )
+
+    # Run test
     with torch.no_grad():
         for episode, (inputs, unmasked_target, mask) in enumerate(problem.return_generator()):
 
@@ -175,3 +179,42 @@ if __name__ == '__main__':
                     break
             else:
                 break
+
+    # Run test on worst training conditions
+    config_loaded['problem_test']['min_sequence_length'] = config_loaded['problem_train'].get('max_sequence_length')
+    config_loaded['problem_test']['max_sequence_length'] = config_loaded['problem_train'].get('max_sequence_length')
+    config_loaded['problem_test']['num_subseq_min'] = config_loaded['problem_train'].get('num_subseq_max')
+    config_loaded['problem_test']['num_subseq_max'] = config_loaded['problem_train'].get('num_subseq_max')
+
+    problem = ProblemFactory.build_problem(config_loaded['problem_test'])
+    with torch.no_grad():
+        for episode, (inputs, unmasked_target, mask) in enumerate(problem.return_generator()):
+
+            # apply the trained model
+            unmasked_output = model(inputs)
+
+            if config_loaded['settings']['use_mask']:
+                output = unmasked_output[:, mask[0], :]
+                target = unmasked_target[:, mask[0], :]
+            else:
+                output = unmasked_output
+                target = unmasked_target
+
+            loss = criterion(output, target)
+
+            output = F.sigmoid(output)
+
+            # test accuracy
+            output = torch.round(output)
+            acc = 1 - torch.abs(output-target)
+            accuracy = acc.mean()
+            format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Test on worst train sequence]'
+            logger.info(format_str.format(episode, accuracy, loss, unmasked_target.size(1)))
+            # plot data
+            # show_sample(output, targets, mask)
+
+            format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
+            format_str = format_str + '\n'
+            test_train_file.write(format_str.format(episode, accuracy, loss, unmasked_target.size(1)))
+
+            break  # Do only one episode

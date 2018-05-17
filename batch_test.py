@@ -111,9 +111,6 @@ def run_experiment(path: str):
     r['valid_loss'] = val_loss[index_val_loss]
     r['valid_accuracy'] = val_accuracy[index_val_loss]
     r['valid_length'] = val_length[index_val_loss]
-    r['train_loss'] = train_loss[stop_train_index]
-    r['train_accuracy'] = train_accuracy[stop_train_index]
-    r['train_length'] = train_length[stop_train_index]
 
     ### Find the best model ###
     models_list = glob(path + '/models/*')
@@ -133,11 +130,19 @@ def run_experiment(path: str):
         # Load the test results from csv
         test_episode, test_accuracy, test_loss, test_length = \
             np.loadtxt(path + '/test.csv', delimiter=', ', skiprows=1, unpack=True)
+
+    if os.stat(path + '/test_train.csv').st_size:
+        # Load the test results from csv
+        test_train_episode, test_train_accuracy, test_train_loss, test_train_length = \
+            np.loadtxt(path + '/test_train.csv', delimiter=', ', skiprows=1, unpack=True)
     
         # Save test results into dict. We expect that the csv has a single row of data.
         r['test_loss'] = test_loss
         r['test_accuracy'] = test_accuracy
-        r['test_length'] = test_length 
+        r['test_length'] = test_length
+        r['train_loss'] = test_train_loss
+        r['train_accuracy'] = test_train_accuracy
+        r['train_length'] = test_train_length
     else:
         print('There is no model in checkpoint {} '.format(path))     
 
