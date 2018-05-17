@@ -113,13 +113,13 @@ def run_experiment(path: str):
     models_list = [os.path.basename(os.path.normpath(e)) for e in models_list]
     models_list = [int(e.split('_')[-1]) for e in models_list]    
 
-    best_num_model = find_nearest(models_list, r['stop_episode'])
-    r['last_model'] = best_num_model    
+    best_num_model = find_nearest(models_list, r['best_valid_arg'])
+    r['best_model'] = best_num_model    
 
     # Gather data at chosen stopping point
-    r['valid_loss'] = val_loss[index_val_loss]
-    r['valid_accuracy'] = val_accuracy[index_val_loss]
-    r['valid_length'] = val_length[index_val_loss]
+    #r['valid_loss'] = val_loss[index_val_loss]
+    #r['valid_accuracy'] = val_accuracy[index_val_loss]
+    #r['valid_length'] = val_length[index_val_loss]
 
     # Run the test
     command_str = "cuda-gpupick -n0 python3 test.py -i {0} -e {1}".format(path, best_num_model).split()
