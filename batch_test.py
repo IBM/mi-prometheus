@@ -94,18 +94,19 @@ def run_experiment(path: str):
 
     index_val_loss = np.argmin(val_loss) 
     r['best_valid_arg'] = int(val_episode[index_val_loss])  # best validation loss argument
-    
+    r['best_valid_loss'] = val_loss[index_val_loss]
+    r['best_valid_accuracy'] = val_accuracy[index_val_loss]   
+ 
     # If the best loss < .1, keep that as the early stopping point
     # Otherwise, we take the very last data as the stopping point
-    if val_loss[index_val_loss] < .1:
-        r['stop_episode'] = r['best_valid_arg']
+    if val_loss[index_val_loss] < .4:
         r['converge'] = True
-        stop_train_index = np.where(r['stop_episode'] == train_episode)[0][0]
     else:
-        r['stop_episode'] = train_episode[-1]
-        stop_train_index = -1 
-        index_val_loss = -1
-        r['converge'] = False  
+        r['converge'] = False     
+ 
+    r['stop_episode'] = train_episode[-1]
+    stop_train_index = -1 
+    index_val_loss = -1
      
     # Gather data at chosen stopping point
     r['valid_loss'] = val_loss[index_val_loss]
