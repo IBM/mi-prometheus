@@ -190,9 +190,9 @@ if __name__ == '__main__':
 
     if FLAGS.episode_train != None:
         # load the trained model
-        model_file_name = FLAGS.input_dir + '/models/model_parameters_epoch_{:05d}'.format(FLAGS.episode_train)
+        model_file_name = FLAGS.input_dir + '/models/model_parameters_episode_{:05d}'.format(FLAGS.episode_train)
     else:
-        model_file_name = glob(FLAGS.input_dir + '/models/model_parameters_epoch_*')[-1]
+        model_file_name = glob(FLAGS.input_dir + '/models/model_parameters_episode_*')[-1]
 
     if not os.path.isfile(model_file_name):
         print('Model path {} does not exist'.format(model_file_name))

@@ -1,0 +1,8 @@
+checkpoints_lstm_2/serial_recall_original/lstm/
+checkpoints_lstm_2/scratch_pad/lstm/
+checkpoints_lstm_2/reverse_recall/lstm/
+checkpoints_lstm_2/manipulation_spatial_rotation/lstm/
+checkpoints_lstm_2/reading_span/lstm/
+checkpoints_lstm_2/operation_span/lstm/
+checkpoints_lstm_2/distraction_forget/lstm/
+checkpoints_lstm_2/distraction_ignore/lstm/
