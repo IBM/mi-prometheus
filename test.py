@@ -67,6 +67,8 @@ if __name__ == '__main__':
                         help="Log level. Default is INFO.")
     parser.add_argument('-e', action='store', dest='episode', type=int,
                         help="Episode of model. Default is 0.")
+    parser.add_argument('-f', action='store', dest='episode_train', type=int,
+                        help="Episode of model for test_train. Default is 0.")
 
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
@@ -185,6 +187,21 @@ if __name__ == '__main__':
     config_loaded['problem_test']['max_sequence_length'] = config_loaded['problem_train'].get('max_sequence_length')
     config_loaded['problem_test']['num_subseq_min'] = config_loaded['problem_train'].get('num_subseq_max')
     config_loaded['problem_test']['num_subseq_max'] = config_loaded['problem_train'].get('num_subseq_max')
+
+    if FLAGS.episode_train != None:
+        # load the trained model
+        model_file_name = FLAGS.input_dir + '/models/model_parameters_epoch_{:05d}'.format(FLAGS.episode_train)
+    else:
+        model_file_name = glob(FLAGS.input_dir + '/models/model_parameters_epoch_*')[-1]
+
+    if not os.path.isfile(model_file_name):
+        print('Model path {} does not exist'.format(model_file_name))
+        exit(-3)
+
+    model.load_state_dict(
+        torch.load(model_file_name,
+                   map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
+    )
 
     problem = ProblemFactory.build_problem(config_loaded['problem_test'])
     with torch.no_grad():
