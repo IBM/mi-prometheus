@@ -60,9 +60,12 @@ class DWM(ModelBase, nn.Module):
         output = None
         batch_size = inputs.size(0)
         seq_length = inputs.size(1)
-        memory_addresses_size = self.memory_addresses_size
-        if memory_addresses_size == -1:
+        print(seq_length)
+
+        if self.memory_addresses_size == -1:
             memory_addresses_size = seq_length  # a hack for now
+        else:
+            memory_addresses_size = self.memory_addresses_size
 
         # init state
         cell_state = self.init_state(memory_addresses_size, batch_size)
@@ -103,6 +106,9 @@ class DWM(ModelBase, nn.Module):
 
         states = [state, wt, wt_dynamic, mem_t]
         return states
+
+    def set_memory_size(self, mem_size):
+        self.memory_addresses_size = mem_size
 
     def pickle_figure_template(self):
         from matplotlib.figure import Figure
