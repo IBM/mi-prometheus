@@ -58,6 +58,7 @@ def main():
 
 def run_experiment(path: str):
     r = {}  # results dictionary
+    run_test = True  
       
     r['timestamp'] = os.path.basename(os.path.normpath(path))
 
@@ -88,11 +89,25 @@ def run_experiment(path: str):
        pass 
     ### ANALYSIS OF TRAINING AND VALIDATION DATA ###
 
+    # best valid train 
     index_val_loss = np.argmin(val_loss) 
     r['best_valid_arg'] = int(val_episode[index_val_loss])  # best validation loss argument
     r['best_valid_loss'] = val_loss[index_val_loss]
     r['best_valid_accuracy'] = val_accuracy[index_val_loss]   
  
+    # best train loss
+    index_loss = np.where(train_loss<1.E-4)[0]
+        
+    if index_loss.size: 
+        r['best_train_arg'] = int(train_episode[index_loss[0]])  # best validation loss argument
+        r['best_train_loss'] = train_loss[index_loss[0]]
+        r['best_train_accuracy'] = train_accuracy[index_loss[0]]
+    else: 
+        index_loss = np.argmin(train_loss)
+        r['best_train_arg'] = int(train_episode[index_loss])  # best validation loss argument
+        r['best_train_loss'] = train_loss[index_loss]
+        r['best_train_accuracy'] = train_accuracy[index_loss]
+
     # If the best loss < .1, keep that as the early stopping point
     # Otherwise, we take the very last data as the stopping point
     if val_loss[index_val_loss] < 1.E-4:
@@ -115,7 +130,7 @@ def run_experiment(path: str):
     #r['valid_length'] = val_length[index_val_loss]
 
     # check if models list is empty
-    if models_list:
+    if models_list and run_test:
         # select the best model 
         best_num_model = find_nearest(models_list, r['best_valid_arg'])
         
@@ -126,7 +141,7 @@ def run_experiment(path: str):
             best_num_model = 1000 # hack for now 
         
         r['best_model'] = best_num_model  
-        print(best_num_model)        
+             
         # Run the test
         command_str = "cuda-gpupick -n0 python3 test.py -i {0} -e {1} -f {2}".format(path, best_num_model,last_model).split()
         with open(os.devnull, 'w') as devnull:
