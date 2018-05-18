@@ -32,7 +32,7 @@ def main():
         directory_checkpoints = [l.strip() for l in f.readlines()]
         for foldername in directory_checkpoints:
             assert os.path.isdir(foldername), foldername + " is not a file"
-
+    
     experiments_list = []
     for elem in directory_checkpoints:
         list_path = os.walk(elem)
@@ -50,7 +50,7 @@ def main():
         list_dict_exp = pool.map(run_experiment, experiments_list)
         exp_values = dict(zip(list_dict_exp[0], zip(*[d.values() for d in list_dict_exp])))
          
-        with open("test.csv", "w") as outfile:
+        with open(directory_checkpoints[0].split("/")[0] + "_test.csv", "w") as outfile:
             writer = csv.writer(outfile, delimiter = " ")
             writer.writerow(exp_values.keys())
             writer.writerows(zip(*exp_values.values()))
@@ -58,11 +58,7 @@ def main():
 
 def run_experiment(path: str):
     r = {}  # results dictionary
-
-    models_list = glob(path + '/models/*')
-    models_list = [os.path.basename(os.path.normpath(e)) for e in models_list]
-    models_list = [int(e.split('_')[-1]) for e in models_list]
-    
+      
     r['timestamp'] = os.path.basename(os.path.normpath(path))
 
     # Load yaml file. To get model name and problem name.
@@ -112,28 +108,36 @@ def run_experiment(path: str):
     models_list = glob(path + '/models/*')
     models_list = [os.path.basename(os.path.normpath(e)) for e in models_list]
     models_list = [int(e.split('_')[-1]) for e in models_list]    
-
-    best_num_model = find_nearest(models_list, r['best_valid_arg'])
-    r['best_model'] = best_num_model    
-
+   
     # Gather data at chosen stopping point
     #r['valid_loss'] = val_loss[index_val_loss]
     #r['valid_accuracy'] = val_accuracy[index_val_loss]
     #r['valid_length'] = val_length[index_val_loss]
 
-    # Run the test
-    command_str = "cuda-gpupick -n0 python3 test.py -i {0} -e {1}".format(path, best_num_model).split()
-    with open(os.devnull, 'w') as devnull:
-        result = subprocess.run(command_str, stdout=devnull)
-    if result.returncode != 0:
-        print("Testing exited with code:", result.returncode)
-
-    if os.stat(path + '/test.csv').st_size: 
+    # check if models list is empty
+    if models_list:
+        # select the best model 
+        best_num_model = find_nearest(models_list, r['best_valid_arg'])
+        
+        last_model = find_nearest(models_list, train_episode[-1])
+      
+        # to avoid selecting model zeros, if training is not converging 
+        if best_num_model == 0:
+            best_num_model = 1000 # hack for now 
+        
+        r['best_model'] = best_num_model  
+        print(best_num_model)        
+        # Run the test
+        command_str = "cuda-gpupick -n0 python3 test.py -i {0} -e {1} -f {2}".format(path, best_num_model,last_model).split()
+        with open(os.devnull, 'w') as devnull:
+            result = subprocess.run(command_str, stdout=devnull)
+        if result.returncode != 0:
+            print("Testing exited with code:", result.returncode)
+   
         # Load the test results from csv
         test_episode, test_accuracy, test_loss, test_length = \
             np.loadtxt(path + '/test.csv', delimiter=', ', skiprows=1, unpack=True)
 
-    if os.stat(path + '/test_train.csv').st_size:
         # Load the test results from csv
         test_train_episode, test_train_accuracy, test_train_loss, test_train_length = \
             np.loadtxt(path + '/test_train.csv', delimiter=', ', skiprows=1, unpack=True)

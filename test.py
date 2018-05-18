@@ -125,9 +125,9 @@ if __name__ == '__main__':
     criterion = nn.BCEWithLogitsLoss()
     if FLAGS.episode != None:
         # load the trained model
-        model_file_name = FLAGS.input_dir + '/models/model_parameters_epoch_{:05d}'.format(FLAGS.episode)
+        model_file_name = FLAGS.input_dir + '/models/model_parameters_episode_{:05d}'.format(FLAGS.episode)
     else:
-        model_file_name = glob(FLAGS.input_dir + '/models/model_parameters_epoch_*')[-1]
+        model_file_name = glob(FLAGS.input_dir + '/models/model_parameters_episode_*')[-1]
    
     if not os.path.isfile(model_file_name):
         print('Model path {} does not exist'.format(model_file_name))
