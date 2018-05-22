@@ -64,8 +64,17 @@ def forward_step(model, data_tuple,  use_mask,  criterion):
     # Return tuple: logits, loss, accuracy.
     return logits, loss, accuracy
 
+def save_model(model, episode,   model_dir): 
+    """
+    Function saves the model..
+    
+    :returns: False if saving was successful (need to implement true condition if there was an error)
+    """
+    model_filename = 'model_parameters_episode_{:05d}'.format(episode)
+    torch.save(model.state_dict(), model_dir + model_filename)
+    logger.info("Model exported")
 
-def validation(model, data_valid, use_mask, criterion, improved, FLAGS, logger, model_parameters_path, validation_file,
+def validation(model, data_valid, use_mask, criterion, FLAGS, logger, validation_file,
                validation_writer):
     """
     Function performs validation of the model, using the provided data and criterion.
@@ -73,14 +82,7 @@ def validation(model, data_valid, use_mask, criterion, improved, FLAGS, logger, 
     
     :returns: True if training loop is supposed to end.
     """
-    model_dir = log_dir + 'models/'
-
-    # Export model if better OR user simply wants to export the mode..
-    if FLAGS.save_model_always or improved:
-        model_filename = 'model_parameters_episode_{:05d}'.format(episode)
-        torch.save(model.state_dict(), model_dir + model_filename)
-        logger.info("Model exported")
-
+ 
     # Calculate the accuracy and loss of the validation data.
     with torch.no_grad():
         logits_valid, loss_valid, accuracy_valid = forward_step(model, data_valid, use_mask, criterion)
@@ -88,13 +90,9 @@ def validation(model, data_valid, use_mask, criterion, improved, FLAGS, logger, 
     # Print statistics.
     length_valid = data_valid[0].size(-2)
     format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Validation]'
-    if not improved:
-        format_str = format_str + ' *'
 
     logger.info(format_str.format(episode, accuracy_valid, loss_valid, length_valid))
     format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
-    if not improved:
-        format_str = format_str + ' *'
 
     format_str = format_str + '\n'
     validation_file.write(format_str.format(episode, accuracy_valid, loss_valid, length_valid))
@@ -162,8 +160,6 @@ if __name__ == '__main__':
     parser.add_argument('--log', action='store', dest='log', type=str, default='INFO',
                         choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
                         help="Log level. (Default: INFO)")
-    parser.add_argument('--sma', dest='save_model_always', action='store_true',
-                        help='Stores model in every validation step, disregarding whether there was improvement or not (Default: False)')
     parser.add_argument('-v', dest='visualize', choices=[0, 1, 2, 3], type=int,
                         help="Activate dynamic visualization:\n"
                              "0: Only during training\n"
@@ -207,7 +203,6 @@ if __name__ == '__main__':
     os.makedirs(model_dir, exist_ok=False)
     log_file = log_dir + 'msgs.log'
     copyfile(FLAGS.task, log_dir + "/train_settings.yaml")  # Copy the task's yaml file into log_dir
-    model_parameters_path = log_dir + "/model_parameters"
 
     # Create csv files.
     train_file = open(log_dir + 'training.csv', 'w', 1)
@@ -300,7 +295,6 @@ if __name__ == '__main__':
 
     # Start Training
     episode = 0
-    best_loss = 0.2  # TK: WHY?
     last_losses = collections.deque()
     validation_loss=.7 #default value so the loop won't terminate if the validation is not done on the first step
 
@@ -310,11 +304,20 @@ if __name__ == '__main__':
     except KeyError:
         validation_frequency = 100
 
-    # Figure out if validation is defined else assume that it should be true
+    #whether to do validation (default True)
     try: 
-        validation_stopping = config_loaded['settings']['validation_stopping']
+        do_validation = config_loaded['settings']['do_validation']
     except KeyError:
-        validation_stopping = True
+        do_validation = True
+ 
+    if do_validation:
+    # Figure out if validation is defined else assume that it should be true
+        try: 
+            validation_stopping = config_loaded['settings']['validation_stopping']
+        except KeyError:
+            validation_stopping = True
+    else:
+        validation_stopping = False
 
     # Flag denoting whether we converged (or reached last episode).
     terminal_condition = False
@@ -391,13 +394,12 @@ if __name__ == '__main__':
             if model.plot_sequence(inputs[0].detach(), logits[0].detach(), targets[0].detach()):
                 break
 
-        # 5. Validation. check if new loss is smaller than the best loss, save the model in this case
-        if (episode % validation_frequency) == 0:
+        #  5. Save the model then validate 
+        if (episode % validation_frequency) == 0: 
+            save_model(model, episode,  model_dir)
 
-            improved = True
-            if loss < best_loss:
-                best_loss = loss
-                improved = True
+
+        if (episode % validation_frequency) == 0 and do_validation:
 
             # Check visualization flag - turn on when we wanted to visualize (at least) validation.
             if FLAGS.visualize is not None and (FLAGS.visualize == 1 or FLAGS.visualize == 2):
@@ -405,12 +407,13 @@ if __name__ == '__main__':
             else:
                 app_state.visualize = False
 
-            validation_loss, stop_now = validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion, improved,  FLAGS, 
-                    logger,  model_parameters_path,  validation_file,  validation_writer) 
+            validation_loss, stop_now = validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion,  FLAGS, 
+                    logger,   validation_file,  validation_writer) 
             # Perform validation.
             if stop_now:
                 break
             # End of validation.
+        
 
         if curric_done:
             # break if conditions applied: convergence or max episodes
@@ -422,9 +425,8 @@ if __name__ == '__main__':
 
             if loss_stop or episode == config_loaded['settings']['max_episodes'] :
                 terminal_condition = True
-                model_filename = 'model_parameters_episode_{:05d}'.format(episode)
-                torch.save(model.state_dict(), model_dir + model_filename)
-
+                save_model(model, episode,  model_dir)
+                    
                 break
                 # "Finish" episode.
 
@@ -438,8 +440,8 @@ if __name__ == '__main__':
             app_state.visualize = True
 
             # Perform validation.
-            _, _ = validation(model, data_valid, config_loaded['settings']['use_mask'], criterion, False, FLAGS, logger,
-                              model_parameters_path, validation_file, validation_writer)
+            _, _ = validation(model, data_valid, config_loaded['settings']['use_mask'], criterion, FLAGS, logger,
+                               validation_file, validation_writer)
 
         else:
             app_state.visualize = False

@@ -96,6 +96,7 @@ settings:
     use_mask: True
     length_loss: 10
     loss_stop: 1.0e-4
+    do_validation: True
     max_episodes: 100000
     seed_numpy: 0
     seed_torch: 2
