@@ -35,7 +35,7 @@ class TemporalLinkage():
         self._memory_size = memory_size
         self._num_writes = num_writes
         
-    def init_state(self, memory_address_size,  batch_size):
+    def init_state(self, memory_address_size,  batch_size,dtype):
         """
         Returns 'zero' (initial) state tuple.
         

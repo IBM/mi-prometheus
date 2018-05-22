@@ -26,7 +26,7 @@ class MemoryUsage(object):
         super(MemoryUsage, self).__init__()
         self._memory_size = memory_size
   
-    def init_state(self, memory_address_size,  batch_size):
+    def init_state(self, memory_address_size,  batch_size,dtype):
         """
         Returns 'zero' (initial) state tuple.
         
@@ -166,8 +166,9 @@ class MemoryUsage(object):
         return unsorted_all
     def exclusive_cumprod_temp(self, sorted_usage, dim=1):
         #TODO: expand this so it works for any dim
-        a=torch.ones((sorted_usage.shape[0],1))
-        b=torch.cat((a,sorted_usage),dim=dim)
+        dtype = torch.cuda.FloatTensor if sorted_usage.is_cuda else torch.FloatTensor
+        a=torch.ones((sorted_usage.shape[0],1)).type(dtype)
+        b=torch.cat((a,sorted_usage),dim=dim).type(dtype)
         prod_sorted_usage = torch.cumprod(b, dim=dim)[:,:-1]
         return prod_sorted_usage
 

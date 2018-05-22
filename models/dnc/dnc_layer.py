@@ -52,6 +52,9 @@ class DNC(ModelBase, nn.Module):
         :param state: Input hidden state  [BATCH_SIZE x state_size]
         :return: Tuple [output, hidden_state]
         """
+
+        dtype = torch.cuda.FloatTensor if inputs.is_cuda else torch.FloatTensor
+
         output = None
 
         if self.app_state.visualize:
@@ -66,7 +69,7 @@ class DNC(ModelBase, nn.Module):
             memory_addresses_size = seq_length  # a hack for now
 
         # init state
-        cell_state = self.DNCCell.init_state(memory_addresses_size,batch_size)
+        cell_state = self.DNCCell.init_state(memory_addresses_size,batch_size,dtype)
 
 
         #cell_state = self.init_state(memory_addresses_size)

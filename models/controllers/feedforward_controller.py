@@ -24,7 +24,7 @@ class FeedforwardController(torch.nn.Module):
         # Processes input and produces hidden state of the controller.
         self.ff = torch.nn.Linear(self.input_size, self.ctrl_hidden_state_size)
 
-    def init_state(self,  batch_size):
+    def init_state(self,  batch_size, dtype):
         """
         Returns 'zero' (initial) state tuple - in this case empy tuple.
         

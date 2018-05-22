@@ -105,7 +105,7 @@ class Interface:
 
 
 
-    def init_state(self, memory_address_size,  batch_size):
+    def init_state(self, memory_address_size,  batch_size, dtype):
         """
         Returns 'zero' (initial) state tuple.
         
@@ -119,10 +119,10 @@ class Interface:
         write_attention = torch.ones((batch_size, self._num_writes,  memory_address_size)).type(dtype)*1e-6
 
         # Usage of memory cells [BATCH_SIZE x MEMORY_SIZE]
-        usage = self.mem_usage.init_state(memory_address_size,  batch_size)
+        usage = self.mem_usage.init_state(memory_address_size,  batch_size,dtype)
         
         # temporal links tuple
-        link_tuple = self.temporal_linkage.init_state(memory_address_size,  batch_size)
+        link_tuple = self.temporal_linkage.init_state(memory_address_size,  batch_size,dtype)
 
         return InterfaceStateTuple(read_attention,  write_attention,usage,link_tuple)
 

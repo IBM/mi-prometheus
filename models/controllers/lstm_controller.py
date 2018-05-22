@@ -31,7 +31,7 @@ class LSTMController(nn.Module):
       
         self.lstm=nn.LSTMCell(self.input_size, self.ctrl_hidden_state_size)
         
-    def init_state(self,  batch_size):
+    def init_state(self,  batch_size,dtype):
         """
         Returns 'zero' (initial) state tuple.
         
@@ -39,9 +39,9 @@ class LSTMController(nn.Module):
         :returns: Initial state tuple - object of LSTMStateTuple class.
         """
         # Initialize LSTM hidden state [BATCH_SIZE x CTRL_HIDDEN_SIZE].
-        hidden_state = torch.zeros(batch_size, self.ctrl_hidden_state_size, requires_grad=False)
+        hidden_state = torch.zeros((batch_size, self.ctrl_hidden_state_size), requires_grad = False).type(dtype)
         # Initialize LSTM memory cell [BATCH_SIZE x CTRL_HIDDEN_SIZE].
-        cell_state = torch.zeros(batch_size, self.ctrl_hidden_state_size, requires_grad=False)
+        cell_state = torch.zeros((batch_size, self.ctrl_hidden_state_size), requires_grad = False).type(dtype)
         
         return LSTMStateTuple(hidden_state,  cell_state)
 
