@@ -85,8 +85,11 @@ class NTMCell(torch.nn.Module):
         torch.nn.init.normal_(init_memory_BxAxC, mean=0.5, std=0.2)
         
         # Initialize read vectors - one for every head.
-        # Unpack the attention.
-        (init_read_attentions_BxAx1_H,  init_write_attention_BxAx1) = interface_init_state
+        # Unpack cell state.
+        (init_read_state_tuples,  init_write_state_tuple) = interface_init_state
+        (init_write_attention_BxAx1, _, _, _) = init_write_state_tuple
+        (init_read_attentions_BxAx1_H, _, _, _) = zip(*init_read_state_tuples)
+        
         read_vectors_BxC_H = []
         for h in range(self.interface_num_read_heads):
             # Read vector [BATCH_SIZE x CONTENT_BITS]

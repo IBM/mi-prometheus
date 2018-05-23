@@ -107,7 +107,7 @@ def validation(model, data_valid, use_mask, criterion, FLAGS, logger, validation
     if AppState().visualize:
         (inputs_valid, targets_valid, _) = data_valid
         # True means that we should terminate
-        return model.plot_sequence(inputs_valid[0].detach(), logits_valid[0].detach(), targets_valid[0].detach())
+        return loss_valid,  model.plot_sequence(inputs_valid[0].detach(), logits_valid[0].detach(), targets_valid[0].detach())
     # Else simply return false, i.e. continue training.
     return loss_valid, False
 

@@ -9,9 +9,9 @@ import numpy as np
 import io
 import pickle
 
-# Fix so we can call 
+# Add path to main project directory.
 import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) # add path to main project directory.
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
 from misc.app_state import AppState
 from models.model_base import ModelBase
 from models.ntm.ntm_cell import NTMCell
@@ -33,21 +33,37 @@ class NTM(ModelBase, torch.nn.Module):
         
         # Initialize recurrent NTM cell.
         self.ntm_cell = NTMCell(params)
-        
+
+        # Set different visualizations depending on the flags.
+        try:
+            if params['visualization_mode'] == 1:
+                self.plot_sequence = self.plot_memory_attention_sequence
+            elif  params['visualization_mode'] == 2:
+                self.plot_sequence = self.plot_memory_all_model_params_sequence
+            # else: default visualization.
+        except KeyError:
+             # If the 'visualization_mode' key is not present, catch the exception and do nothing
+             # I.e. show default vizualization.
+            pass
+
+
     def forward(self, inputs_BxSxI):
         """
         Forward function accepts a Tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and 
         outputs a Tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] . 
         """
         
-        # "Data-driven memory size" - temporal solution.
-        # Check memory size.
+        # "Data-driven memory size".
+        # Save as TEMPORAL VARIABLE! 
+        # (do not overwrite self.num_memory_addresses, which will cause problem with next batch!)
         if self.num_memory_addresses == -1:
             # Set equal to input sequence length.
-            self.num_memory_addresses = inputs_BxSxI.size(1)
-        
+            num_memory_addresses = inputs_BxSxI.size(1)
+        else:
+            num_memory_addresses = self.num_memory_addresses
+            
         # Initialize 'zero' state.
-        cell_state = self.ntm_cell.init_state(inputs_BxSxI.size(0),  self.num_memory_addresses)
+        cell_state = self.ntm_cell.init_state(inputs_BxSxI.size(0),  num_memory_addresses)
 
         # List of output logits [BATCH_SIZE x OUTPUT_SIZE] of length SEQ_LENGTH
         output_logits_BxO_S = []
@@ -73,7 +89,14 @@ class NTM(ModelBase, torch.nn.Module):
 
         return output_logits_BxSxO
 
-    def pickle_figure_template(self):
+
+    def pickle_memory_attention_figure_template(self):
+        """
+        Creates a figure template for showing basic NTM attributes (write & write attentions), 
+        memory and sequence (inputs, predictions and targets).
+        
+        :returns: IO byte buffer containing pickled template.
+        """
         from matplotlib.figure import Figure
         import matplotlib.ticker as ticker
         from matplotlib import rc
@@ -99,19 +122,159 @@ class NTM(ModelBase, torch.nn.Module):
         ax_targets = fig.add_subplot(gs[1, 5:]) # row 0, span 2 columns
         ax_predictions = fig.add_subplot(gs[2, 5:]) # row 0, span 2 columns
         
-        # Set ticks - for bit axes only (for now).
-        ax_inputs.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_inputs.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_targets.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_targets.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_predictions.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_predictions.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_memory.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_memory.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_write_attention.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_write_attention.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_read_attention.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_read_attention.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        # Set ticks - currently for all axes.
+        for ax in fig.axes:
+            ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        
+
+        # Set labels.
+        ax_inputs.set_title('Inputs') 
+        ax_inputs.set_ylabel('Control/Data bits')     
+        ax_targets.set_title('Targets')
+        ax_targets.set_ylabel('Data bits')
+        ax_predictions.set_title('Predictions')
+        ax_predictions.set_ylabel('Data bits')
+        ax_predictions.set_xlabel('Item number/Iteration')
+
+        ax_memory.set_title('Memory') 
+        ax_memory.set_ylabel('Memory Addresses')
+        ax_memory.set_xlabel('Content bits') 
+
+        ax_write_attention.set_title('Write Attention') 
+        ax_write_attention.set_xlabel('Iteration')      
+        ax_read_attention.set_title('Read Attention') 
+        ax_read_attention.set_xlabel('Iteration')
+        
+        # Create buffer and pickle the figure.
+        buf = io.BytesIO()
+        pickle.dump(fig, buf)
+    
+        return buf
+
+    def plot_memory_attention_sequence(self, input_seq, output_seq, target_seq):
+        """ Creates list of figures used in interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
+        The visualization presents input, output and target sequences passed as input parameters.
+        Additionally, it utilizes state tuples collected during the experiment for displaying the memory state, read and write attentions.
+        
+        :param input_seq: Inputs.
+        :param output_seq: Predictions.
+        :param target_seq: Targets.
+        """
+        #import time
+        #start_time = time.time()
+        # Create figure template.
+        buf = self.pickle_memory_attention_figure_template()
+        
+        # Set intial values of displayed  inputs, targets and predictions - simply zeros.
+        inputs_displayed = np.transpose(np.zeros(input_seq.shape))
+        targets_displayed = np.transpose(np.zeros(target_seq.shape))
+        predictions_displayed = np.transpose(np.zeros(output_seq.shape))
+        
+        # Set initial values of memory and attentions.
+        # Unpack initial state.
+        (ctrl_state,  interface_state,  memory_state,  read_vectors) = self.cell_state_initial 
+       
+       # Initialize "empty" matrices.
+        memory_displayed = memory_state[0]
+        read0_attention_displayed = np.zeros((memory_state.shape[1],  target_seq.shape[0]))
+        write_attention_displayed = np.zeros((memory_state.shape[1],  target_seq.shape[0]))
+ 
+        # Log sequence length - so the user can understand what is going on.
+        logger = logging.getLogger('ModelBase')
+        logger.info("Generating dynamic visualization of {} figures, please wait...".format(input_seq.shape[0]))
+        # List of figures.
+        figs = []
+        for i, (input_element, output_elementd, target_element,  cell_state) in enumerate(zip(input_seq, output_seq, target_seq,  self.cell_state_history)):
+            # Display information every 10% of figures.
+            if (input_seq.shape[0] > 10) and (i % (input_seq.shape[0]//10) == 0):
+                logger.info("Generating figure {}/{}".format(i, input_seq.shape[0]))
+                 
+           # Create figure object on the basis of template.
+            buf.seek(0)
+            fig = pickle.load(buf) 
+            (ax_memory,  ax_write_attention,  ax_read_attention,  ax_inputs,  ax_targets,  ax_predictions) = fig.axes
+ 
+            # Update displayed values on adequate positions.
+            inputs_displayed[:, i] = input_element
+            targets_displayed[:, i] = target_element
+            predictions_displayed[:, i] = output_elementd
+
+            # Unpack cell state.
+            (ctrl_state,  interface_state,  memory_state,  read_vectors) = cell_state
+            (read_state_tuples,  write_state_tuple) = interface_state
+            (write_attention, write_similarity, write_gate, write_shift) = write_state_tuple
+            (read_attentions, read_similarities, read_gates, read_shifts) = zip(*read_state_tuples)
+            
+            # Set variables.
+            memory_displayed = memory_state[0].detach().numpy()
+            # Get attention of head 0.
+            read0_attention_displayed[:, i] = read_attentions[0][0][:, 0].detach().numpy()
+            write_attention_displayed[:, i] = write_attention[0][:, 0].detach().numpy()
+           
+           # "Show" data on "axes".
+            ax_memory.imshow(memory_displayed, interpolation='nearest', aspect='auto')
+            ax_read_attention.imshow(read0_attention_displayed, interpolation='nearest', aspect='auto')
+            ax_write_attention.imshow(write_attention_displayed, interpolation='nearest', aspect='auto')
+            ax_inputs.imshow(inputs_displayed, interpolation='nearest', aspect='auto')
+            ax_targets.imshow(targets_displayed, interpolation='nearest', aspect='auto')
+            ax_predictions.imshow(predictions_displayed, interpolation='nearest', aspect='auto')
+            
+            # Append figure to a list.
+            fig.set_tight_layout(True)
+            figs.append(fig)
+
+        #print("--- %s seconds ---" % (time.time() - start_time))
+        # Update time plot fir generated list of figures.
+        self.plot.update(figs)
+        return self.plot.is_closed
+
+
+    def pickle_memory_all_model_params_figure_template(self):
+        """
+        Creates a figure template for showing all NTM attributes (write & write attentions, gates, convolution masks), 
+        along with memory and sequence (inputs, predictions and targets).
+        
+        :returns: IO byte buffer containing pickled template.
+        """
+        from matplotlib.figure import Figure
+        import matplotlib.ticker as ticker
+        from matplotlib import rc
+        import matplotlib.gridspec as gridspec
+        
+        # Change fonts globally - for all figures/subsplots at once.
+        rc('font',**{'family':'Times New Roman'})
+        
+        # Prepare "generic figure template".
+        # Create figure object.
+        fig = Figure()
+        #axes = fig.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={'width_ratios': [input_seq.shape[0]]})
+        
+        # Create a specific grid for NTM .
+        gs = gridspec.GridSpec(4, 7)
+
+        # Memory
+        ax_memory = fig.add_subplot(gs[1:, 0]) # all rows, col 0
+        ax_write_gate =  fig.add_subplot(gs[0, 1:2])
+        ax_write_shift =  fig.add_subplot(gs[0, 2:3])
+        ax_write_attention = fig.add_subplot(gs[1:, 1:2]) # all rows, col 2-3
+        ax_write_similarity = fig.add_subplot(gs[1:, 2:3])
+        ax_read_gate =  fig.add_subplot(gs[0, 3:4])
+        ax_read_shift =  fig.add_subplot(gs[0, 4:5])
+        ax_read_attention = fig.add_subplot(gs[1:, 3:4]) # all rows, col 4-5
+        ax_read_similarity = fig.add_subplot(gs[1:, 4:5])
+ 
+        ax_inputs = fig.add_subplot(gs[1, 5:]) # row 0, span 2 columns
+        ax_targets = fig.add_subplot(gs[2, 5:]) # row 0, span 2 columns
+        ax_predictions = fig.add_subplot(gs[3, 5:]) # row 0, span 2 columns
+        
+        # Set ticks - currently for all axes.
+        for ax in fig.axes:
+            ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        # ... except gates - single bit.
+        ax_write_gate.yaxis.set_major_locator(ticker.NullLocator())
+        ax_read_gate.yaxis.set_major_locator(ticker.NullLocator())
         
         # Set labels.
         ax_inputs.set_title('Inputs') 
@@ -125,10 +288,21 @@ class NTM(ModelBase, torch.nn.Module):
         ax_memory.set_title('Memory') 
         ax_memory.set_ylabel('Memory Addresses')
         ax_memory.set_xlabel('Content bits')
+
+        for ax in [ax_write_gate,  ax_write_shift,  ax_write_attention,  ax_write_similarity,  ax_read_gate,  ax_read_shift,  ax_read_attention,  ax_read_similarity]:
+                ax.set_xlabel('Iteration') 
+                
+        # Write head.
+        ax_write_gate.set_title('Write Gate') 
+        ax_write_shift.set_title('Write Shift') 
         ax_write_attention.set_title('Write Attention') 
-        ax_write_attention.set_xlabel('Iteration')      
+        ax_write_similarity.set_title('Write Similarity') 
+        
+        # Read head.
+        ax_read_gate.set_title('Read Gate') 
+        ax_read_shift.set_title('Read Shift') 
         ax_read_attention.set_title('Read Attention') 
-        ax_read_attention.set_xlabel('Iteration')
+        ax_read_similarity.set_title('Read Similarity') 
         
         # Create buffer and pickle the figure.
         buf = io.BytesIO()
@@ -136,15 +310,19 @@ class NTM(ModelBase, torch.nn.Module):
     
         return buf
 
-    def plot_sequence(self, input_seq, output_seq, target_seq):
-        """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
-        The default visualizatoin contains input, output and target sequences.
-        For more model/problem dependent visualization please overwrite this method in the derived model class.
+    def plot_memory_all_model_params_sequence(self, input_seq, output_seq, target_seq):
+        """ Creates list of figures used in interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
+        The visualization presents input, output and target sequences passed as input parameters.
+        Additionally, it utilizes state tuples collected during the experiment for displaying the memory state, read and write attentions.
+        
+        :param input_seq: Inputs.
+        :param output_seq: Predictions.
+        :param target_seq: Targets.
         """
         #import time
         #start_time = time.time()
         # Create figure template.
-        buf = self.pickle_figure_template()
+        buf = self.pickle_memory_all_model_params_figure_template()
         
         # Set intial values of displayed  inputs, targets and predictions - simply zeros.
         inputs_displayed = np.transpose(np.zeros(input_seq.shape))
@@ -154,11 +332,21 @@ class NTM(ModelBase, torch.nn.Module):
         # Set initial values of memory and attentions.
         # Unpack initial state.
         (ctrl_state,  interface_state,  memory_state,  read_vectors) = self.cell_state_initial 
-        (read_attentions,  write_attention) = interface_state
-        
+        (read_state_tuples,  write_state_tuple) = interface_state
+        (write_attention, write_similarity, write_gate, write_shift) = write_state_tuple
+     
+       # Initialize "empty" matrices.
         memory_displayed = memory_state[0]
-        read0_attention_displayed = np.zeros((read_attentions[0].shape[1],  target_seq.shape[0]))
-        write_attention_displayed = np.zeros((write_attention.shape[1],  target_seq.shape[0]))
+        read0_attention_displayed = np.zeros((memory_state.shape[1],  target_seq.shape[0]))
+        read0_similarity_displayed = np.zeros((memory_state.shape[1],  target_seq.shape[0]))
+        read0_gate_displayed = np.zeros((write_gate.shape[1],  target_seq.shape[0]))
+        read0_shift_displayed = np.zeros((write_shift.shape[1],  target_seq.shape[0]))
+        
+        write_attention_displayed = np.zeros((memory_state.shape[1],  target_seq.shape[0]))
+        write_similarity_displayed = np.zeros((memory_state.shape[1],  target_seq.shape[0]))
+        # Generally we can use write shapes as are the same.
+        write_gate_displayed = np.zeros((write_gate.shape[1],  target_seq.shape[0]))
+        write_shift_displayed = np.zeros((write_shift.shape[1],  target_seq.shape[0]))
        
         # Log sequence length - so the user can understand what is going on.
         logger = logging.getLogger('ModelBase')
@@ -173,7 +361,10 @@ class NTM(ModelBase, torch.nn.Module):
            # Create figure object on the basis of template.
             buf.seek(0)
             fig = pickle.load(buf) 
-            (ax_memory,  ax_read_attention,  ax_write_attention,  ax_inputs,  ax_targets,  ax_predictions) = fig.axes
+            (ax_memory,  
+                ax_write_gate,  ax_write_shift,  ax_write_attention,  ax_write_similarity,  
+                ax_read_gate,  ax_read_shift,  ax_read_attention,  ax_read_similarity,  
+                ax_inputs,  ax_targets,  ax_predictions) = fig.axes
  
             # Update displayed values on adequate positions.
             inputs_displayed[:, i] = input_element
@@ -182,17 +373,40 @@ class NTM(ModelBase, torch.nn.Module):
 
             # Unpack cell state.
             (ctrl_state,  interface_state,  memory_state,  read_vectors) = cell_state
-            (read_attentions,  write_attention) = interface_state
-            
+            (read_state_tuples,  write_state_tuple) = interface_state
+            (write_attention, write_similarity, write_gate, write_shift) = write_state_tuple
+            (read_attentions, read_similarities, read_gates, read_shifts) = zip(*read_state_tuples)
+               
+            # Set variables.
             memory_displayed = memory_state[0].detach().numpy()
-            # Get attention of head 0.
+            # Get params of read head 0.
             read0_attention_displayed[:, i] = read_attentions[0][0][:, 0].detach().numpy()
+            read0_similarity_displayed[:, i] = read_similarities[0][0][:, 0].detach().numpy()
+            read0_gate_displayed[:, i] = read_gates[0][0][:, 0].detach().numpy()
+            read0_shift_displayed[:, i] = read_shifts[0][0][:, 0].detach().numpy()
+            
+            # Get params of write head
             write_attention_displayed[:, i] = write_attention[0][:, 0].detach().numpy()
+            write_similarity_displayed[:, i] = write_similarity[0][:, 0].detach().numpy()
+            write_gate_displayed[:, i] = write_gate[0][:, 0].detach().numpy()
+            write_shift_displayed[:, i] = write_shift[0][:, 0].detach().numpy()
 
             # "Show" data on "axes".
             ax_memory.imshow(memory_displayed, interpolation='nearest', aspect='auto')
+            
+            # Read head.
             ax_read_attention.imshow(read0_attention_displayed, interpolation='nearest', aspect='auto')
+            ax_read_similarity.imshow(read0_similarity_displayed, interpolation='nearest', aspect='auto')
+            ax_read_gate.imshow(read0_gate_displayed, interpolation='nearest', aspect='auto')
+            ax_read_shift.imshow(read0_shift_displayed, interpolation='nearest', aspect='auto')
+            
+            # Write head.
             ax_write_attention.imshow(write_attention_displayed, interpolation='nearest', aspect='auto')
+            ax_write_similarity.imshow(write_similarity_displayed, interpolation='nearest', aspect='auto')
+            ax_write_gate.imshow(write_gate_displayed, interpolation='nearest', aspect='auto')
+            ax_write_shift.imshow(write_shift_displayed, interpolation='nearest', aspect='auto')
+            
+            # "Default data".
             ax_inputs.imshow(inputs_displayed, interpolation='nearest', aspect='auto')
             ax_targets.imshow(targets_displayed, interpolation='nearest', aspect='auto')
             ax_predictions.imshow(predictions_displayed, interpolation='nearest', aspect='auto')
