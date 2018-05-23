@@ -12,10 +12,10 @@ problem_train:
     cuda: True  # The presence of the 'cuda' key is optional
     #Curriculum learning - optional.
     curriculum_learning:
-        interval: 20
-        initial_max_sequence_length: 5
+        interval: 500
+        initial_max_sequence_length: 2
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
-    gradient_clipping: 10
+    gradient_clipping: 0.01
 
 # Problem parameters:
 problem_validation:
@@ -45,6 +45,8 @@ problem_test:
 # Model parameters:
 model:
     name: ntm
+    # Optional parameter: visualization.
+    visualization_mode: 2
     # Input bits = [command_bits, data_bits]
     # Output bits = [data_bits]
     num_control_bits: *cbits
@@ -62,7 +64,7 @@ model:
     # Memory parameters.
     memory:
         num_content_bits: 10
-        num_addresses: 30
+        num_addresses: -1
 
 # Set optimizer.
 optimizer:
@@ -75,6 +77,6 @@ settings:
     use_mask: True
     length_loss: 100
     loss_stop: 0.0001
-    max_episodes: 1000000
-    seed_numpy: 0
-    seed_torch: 2
+    max_episodes: 10000
+    seed_numpy: -1
+    seed_torch: -1

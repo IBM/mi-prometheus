@@ -11,8 +11,22 @@ import numpy as np
 import logging
 logger = logging.getLogger('NTM-Interface')
 
+# Add path to main project directory.
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
+from misc.app_state import AppState
+
+
 # Helper collection type.
-_InterfaceStateTuple = collections.namedtuple('InterfaceStateTuple', ('read_attentions',  'write_attention'))
+_HeadStateTuple = collections.namedtuple('HeadStateTuple', ('attention',  'similarity', 'gate', 'shift'))
+
+class HeadStateTuple(_HeadStateTuple):
+    """Tuple used by interface for storing current/past state information"""
+    __slots__ = ()
+
+
+# Helper collection type.
+_InterfaceStateTuple = collections.namedtuple('InterfaceStateTuple', ('read_heads',  'write_head',))
 
 class InterfaceStateTuple(_InterfaceStateTuple):
     """Tuple used by interface for storing current/past state information"""
@@ -79,37 +93,53 @@ class Interface(torch.nn.Module):
         :param num_memory_addresses: Number of memory addresses.
         :returns: Initial state tuple - object of InterfaceStateTuple class.
         """
-        # Add read attention vectors - one for each read head.
-        read_attentions = []
-        for _ in range(self.interface_num_read_heads):
-            # Read attention weights [BATCH_SIZE x MEMORY_ADDRESSES x 1]
-            # Normalize through division by number of addresses.
-            read_attentions.append(torch.ones((batch_size, num_memory_addresses,  1), dtype=torch.float)/num_memory_addresses)
-        
-        # Single write head - write attention weights [BATCH_SIZE x MEMORY_ADDRESSES x 1]
+        # Add read head states - one for each read head.
+        read_state_tuples = []
+
+        # Initial  attention weights [BATCH_SIZE x MEMORY_ADDRESSES x 1]
         # Normalize through division by number of addresses.
-        write_attention = torch.ones((batch_size, num_memory_addresses,  1), dtype=torch.float)/num_memory_addresses
+        #init_attentions.append(torch.ones((batch_size, num_memory_addresses,  1), dtype=torch.float)/num_memory_addresses)
 
-        return InterfaceStateTuple(read_attentions,  write_attention)
+        # Zero-hard attention.
+        zh_attention = torch.zeros((batch_size, num_memory_addresses,  1), dtype=torch.float)
+        zh_attention[:, 0, 0] = 1
+        init_gating = torch.zeros((batch_size, 1,  1), dtype=torch.float)
+        init_shift = torch.zeros((batch_size, self.interface_shift_size,  1), dtype=torch.float)
+        init_shift[:, 1, 0] = 1
 
-    def forward(self, ctrl_hidden_state_BxH,  prev_memory_BxAxC,  prev_state_tuple):
+        for _ in range(self.interface_num_read_heads):
+            read_state_tuples.append(HeadStateTuple(zh_attention,  zh_attention, init_gating, init_shift))
+        
+        # Single write head tuple.
+        write_state_tuple = HeadStateTuple(zh_attention,  zh_attention, init_gating, init_shift)
+        
+        # Return tuple.
+        return InterfaceStateTuple(read_state_tuples,  write_state_tuple)
+
+    def forward(self, ctrl_hidden_state_BxH,  prev_memory_BxAxC,  prev_interface_state_tuple):
         """
         Controller forward function. 
         
         :param ctrl_hidden_state_BxH: a Tensor with controller hidden state of size [BATCH_SIZE  x HIDDEN_SIZE]
         :param prev_memory_BxAxC: Previous state of the memory [BATCH_SIZE x  MEMORY_ADDRESSES x CONTENT_BITS] 
-        :param prev_state_tuple: Tuple containing previous read and write attention vectors.
+        :param prev_interface_state_tuple: Tuple containing previous read and write attention vectors.
         :returns: List of read vectors [BATCH_SIZE x CONTENT_SIZE], updated memory and state tuple (object of LSTMStateTuple class).
         """
         # Unpack previous cell  state - just to make sure that everything is ok...
-        (prev_read_attentions_BxAx1_H,  prev_write_attention_BxAx1) = prev_state_tuple
-        
+        #(prev_read_attentions_BxAx1_H,  prev_write_attention_BxAx1) = prev_interface_state_tuple
+       # Unpack cell state.
+        (prev_read_state_tuples,  prev_write_state_tuple) = prev_interface_state_tuple
+        (prev_write_attention_BxAx1, _, _, _) = prev_write_state_tuple
+        (prev_read_attentions_BxAx1_H, _, _, _) = zip(*prev_read_state_tuples)
+         
         # !! Execute single step !!
         
         # Read attentions 
         read_attentions_BxAx1_H = []
         # List of read vectors - with two dimensions! [BATCH_SIZE x CONTENT_SIZE]
         read_vectors_BxC_H = []
+        # List of read tuples - for visualization.
+        read_state_tuples = []
 
         # Read heads.
         for i in range(self.interface_num_read_heads):
@@ -120,7 +150,7 @@ class Interface(torch.nn.Module):
             query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1 = self.split_params(params_BxP,  self.read_param_locations)
 
             # Update the attention of a given read head.
-            read_attention_BxAx1 = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attentions_BxAx1_H[i])
+            read_attention_BxAx1,  read_state_tuple = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attentions_BxAx1_H[i])
             #logger.debug("read_attention_BxAx1 {}:\n {}".format(read_attention_BxAx1.size(),  read_attention_BxAx1))  
 
             # Read vector from memory [BATCH_SIZE x CONTENT_BITS].
@@ -129,6 +159,8 @@ class Interface(torch.nn.Module):
             # Save read attentions and vectors in a list.
             read_attentions_BxAx1_H.append(read_attention_BxAx1)
             read_vectors_BxC_H.append(read_vector_BxC)
+            # We always collect tuples, as we are using e.g. attentions from them.
+            read_state_tuples.append(read_state_tuple)
             
         # Write head operation.
         # Calculate parameters of a given read head.
@@ -143,17 +175,17 @@ class Interface(torch.nn.Module):
         add_vector_Bx1xC = F.sigmoid(add_vector_BxC).unsqueeze(1) 
 
         # Update the attention of the write head.
-        write_attention_BxAx1 = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_write_attention_BxAx1)
+        write_attention_BxAx1,  write_state_tuple = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_write_attention_BxAx1)
         #logger.debug("write_attention_BxAx1 {}:\n {}".format(write_attention_BxAx1.size(),  write_attention_BxAx1))  
 
         # Update the memory.
         memory_BxAxC = self.update_memory(write_attention_BxAx1,  erase_vector_Bx1xC,  add_vector_Bx1xC,  prev_memory_BxAxC)
-        
-        # Pack current cell state.
-        state_tuple = InterfaceStateTuple(read_attentions_BxAx1_H,  write_attention_BxAx1)
+
+        # Pack current cell state.        
+        interface_state_tuple = InterfaceStateTuple(read_state_tuples,  write_state_tuple)
         
         # Return read vector, new memory state and state tuple.
-        return read_vectors_BxC_H, memory_BxAxC,  state_tuple
+        return read_vectors_BxC_H, memory_BxAxC,  interface_state_tuple
  
     def calculate_param_locations(self,  param_sizes_dict,  head_name):
         """ Calculates locations of parameters, that will subsequently be used during parameter splitting.
@@ -196,13 +228,21 @@ class Interface(torch.nn.Module):
         # Produce gating param.
         gate_Bx1x1 = F.sigmoid(gate_Bx1).unsqueeze(2)
         # Produce location-addressing params.
-        shift_BxSx1 = F.softmax(shift_BxS, dim=1).unsqueeze(2)
+        shift_BxSx1_tmp = F.softmax(shift_BxS, dim=1).unsqueeze(2)
         # Truncate gamma to  range 1-50
         gamma_Bx1x1 =F.softplus(gamma_Bx1).unsqueeze(2) +1
-       # torch.clamp(gamma_Bx1, 1, 50).unsqueeze(2)
-        
+        #gamma_Bx1x1 = torch.clamp(F.softplus(gamma_Bx1 + 1), 1, 50).unsqueeze(2)
+
+        # HARD SHIFT! TODO: Remove!
+        shift_BxSx1 = torch.zeros_like(shift_BxSx1_tmp,  requires_grad= False)
+        shift_BxSx1[:, -1, 0] = 1
+
         # Content-based addressing.
         content_attention_BxAx1 = self.content_based_addressing(query_vector_Bx1xC,  beta_Bx1x1,  prev_memory_BxAxC)
+    
+        # HARD CBA ! TODO: Remove!
+        #content_attention_BxAx1 = torch.zeros_like(prev_attention_BxAx1,  requires_grad= False)
+        #content_attention_BxAx1[:, 0, 0] = 1
     
         # Gating mechanism - choose beetween new attention from CBA or attention from previous iteration. [BATCH_SIZE x ADDRESSES x 1].
         #logger.debug("prev_attention_BxAx1 {}:\n {}".format(prev_attention_BxAx1.size(),  prev_attention_BxAx1))    
@@ -214,7 +254,7 @@ class Interface(torch.nn.Module):
         location_attention_BxAx1 = self.location_based_addressing(attention_after_gating_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC)
         #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))    
         
-        return location_attention_BxAx1
+        return location_attention_BxAx1,  HeadStateTuple(location_attention_BxAx1, content_attention_BxAx1,  gate_Bx1x1,  shift_BxSx1)
         
     def content_based_addressing(self,  query_vector_Bx1xC, beta_Bx1x1, prev_memory_BxAxC):
         """Computes content-based addressing. Uses query vectors for calculation of similarity.
