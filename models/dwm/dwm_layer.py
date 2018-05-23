@@ -60,7 +60,6 @@ class DWM(ModelBase, nn.Module):
         output = None
         batch_size = inputs.size(0)
         seq_length = inputs.size(1)
-        print(seq_length)
 
         if self.memory_addresses_size == -1:
             memory_addresses_size = seq_length  # a hack for now
