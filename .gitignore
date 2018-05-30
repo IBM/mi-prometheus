@@ -14,6 +14,7 @@
 !/problems/**
 !/confgiuration/**
 !/tasks/**
+!/misc/**
 # You can be specific with these rules
 !/docs/conf.py
 !/docs/index.rst

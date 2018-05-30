@@ -7,7 +7,6 @@ os.environ["OMP_NUM_THREADS"] = '1'
 
 import yaml
 import os.path
-from shutil import copyfile
 from datetime import datetime
 from time import sleep
 import argparse
@@ -24,6 +23,7 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
 from models.model_factory import ModelFactory
+from misc.param_interface import ParamInterface
 
 # Import problems factory and data tuple.
 sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
@@ -64,10 +64,10 @@ def forward_step(model, data_tuple,  use_mask,  criterion):
     # Return tuple: logits, loss, accuracy.
     return logits, loss, accuracy
 
-def save_model(model, episode,   model_dir): 
+def save_model(model, episode,   model_dir):
     """
     Function saves the model..
-    
+
     :returns: False if saving was successful (need to implement true condition if there was an error)
     """
     model_filename = 'model_parameters_episode_{:05d}'.format(episode)
@@ -79,10 +79,10 @@ def validation(model, data_valid, use_mask, criterion, FLAGS, logger, validation
     """
     Function performs validation of the model, using the provided data and criterion.
     Additionally it logs (to files, tensorboard) and visualizes.
-    
+
     :returns: True if training loop is supposed to end.
     """
- 
+
     # Calculate the accuracy and loss of the validation data.
     with torch.no_grad():
         logits_valid, loss_valid, accuracy_valid = forward_step(model, data_valid, use_mask, criterion)
@@ -112,23 +112,23 @@ def validation(model, data_valid, use_mask, criterion, FLAGS, logger, validation
     return loss_valid, False
 
 
-def curriculum_learning_update_problem_params(problem, episode, config_loaded):
+def curriculum_learning_update_problem_params(problem, episode, param_interface):
     """
     Updates problem parameters according to curriculum learning.
-    
+
     :returns: Boolean informing whether curriculum learning is finished (or wasn't active at all).
     """
     # Curriculum learning stop condition.
     curric_done = True
     try:
         # If the 'curriculum_learning' section is not present, this line will throw an exception.
-        curr_config = config_loaded['problem_train']['curriculum_learning']
+        curr_config = param_interface['problem_train']['curriculum_learning']
 
         # Read min and max length.
-        min_length = config_loaded['problem_train']['min_sequence_length']
-        max_max_length = config_loaded['problem_train']['max_sequence_length']
+        min_length = param_interface['problem_train']['min_sequence_length']
+        max_max_length = param_interface['problem_train']['max_sequence_length']
 
-        if curr_config['interval'] > 0:     
+        if curr_config['interval'] > 0:
             # Curriculum learning goes from the initial max length to the max length in steps of size 1
             max_length = curr_config['initial_max_sequence_length'] + (episode // curr_config['interval'])
             if max_length >= max_max_length:
@@ -180,12 +180,13 @@ if __name__ == '__main__':
         exit(-2)
 
     # Read the YAML file.
+    param_interface = ParamInterface()
     with open(FLAGS.task, 'r') as stream:
-        config_loaded = yaml.load(stream)
+        param_interface.add_custom_params(yaml.load(stream))
 
     # Get problem and model names.
-    task_name = config_loaded['problem_train']['name']
-    model_name = config_loaded['model']['name']
+    task_name = param_interface['problem_train']['name']
+    model_name = param_interface['model']['name']
 
     # Prepare output paths for logging
     path_root = "./checkpoints/"
@@ -202,7 +203,10 @@ if __name__ == '__main__':
     model_dir = log_dir + 'models/'
     os.makedirs(model_dir, exist_ok=False)
     log_file = log_dir + 'msgs.log'
-    copyfile(FLAGS.task, log_dir + "/train_settings.yaml")  # Copy the task's yaml file into log_dir
+
+    # Copy the training config into a yaml settings file, under log_dir
+    with open(log_dir + "/train_settings.yaml", 'w') as yaml_backup_file:
+        yaml.dump(param_interface.to_dict(), yaml_backup_file, default_flow_style=False)
 
     # Create csv files.
     train_file = open(log_dir + 'training.csv', 'w', 1)
@@ -235,7 +239,7 @@ if __name__ == '__main__':
 
     # Print experiment configuration
     str = 'Configuration for {}:\n'.format(task_name)
-    str += yaml.safe_dump(config_loaded, default_flow_style=False,
+    str += yaml.safe_dump(param_interface.to_dict(), default_flow_style=False,
                           explicit_start=True, explicit_end=True)
     logger.info(str)
 
@@ -245,17 +249,17 @@ if __name__ == '__main__':
         input('Press any key to continue')
 
     # Set random seeds.
-    if config_loaded["settings"]["seed_torch"] != -1:
-        torch.manual_seed(config_loaded["settings"]["seed_torch"])
-        torch.cuda.manual_seed_all(config_loaded["settings"]["seed_torch"])
+    if param_interface["settings"]["seed_torch"] != -1:
+        torch.manual_seed(param_interface["settings"]["seed_torch"])
+        torch.cuda.manual_seed_all(param_interface["settings"]["seed_torch"])
 
-    if config_loaded["settings"]["seed_numpy"] != -1:
-        np.random.seed(config_loaded["settings"]["seed_numpy"])
+    if param_interface["settings"]["seed_numpy"] != -1:
+        np.random.seed(param_interface["settings"]["seed_numpy"])
 
     # Determine if CUDA is to be used.
     if torch.cuda.is_available():
         try:  # If the 'cuda' key is not present, catch the exception and do nothing
-            if config_loaded['problem_train']['cuda']:
+            if param_interface['problem_train']['cuda']:
                 use_CUDA = True
         except KeyError:
             pass
@@ -267,24 +271,24 @@ if __name__ == '__main__':
         app_state.visualize = True
 
     # Build problem for the training
-    problem = ProblemFactory.build_problem(config_loaded['problem_train'])
+    problem = ProblemFactory.build_problem(param_interface['problem_train'])
 
     # Initialize curriculum learning.
-    curric_done = curriculum_learning_update_problem_params(problem, 0, config_loaded)
+    curric_done = curriculum_learning_update_problem_params(problem, 0, param_interface)
 
     # Build problem for the validation
-    problem_validation = ProblemFactory.build_problem(config_loaded['problem_validation'])
+    problem_validation = ProblemFactory.build_problem(param_interface['problem_validation'])
     generator_validation = problem_validation.return_generator()
 
     # Get a single batch that will be used for validation (!)
     data_valid = next(generator_validation)
 
     # Build the model.
-    model = ModelFactory.build_model(config_loaded['model'])
+    model = ModelFactory.build_model(param_interface['model'])
     model.cuda() if use_CUDA else None
 
     # Set optimizer.
-    optimizer_conf = dict(config_loaded['optimizer'])
+    optimizer_conf = dict(param_interface['optimizer'])
     optimizer_name = optimizer_conf['name']
     del optimizer_conf['name']
     optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), **optimizer_conf)
@@ -300,20 +304,20 @@ if __name__ == '__main__':
 
     # Try to read validation frequency from config, else set default (100)
     try:
-        validation_frequency = config_loaded['problem_validation']['frequency']
+        validation_frequency = param_interface['problem_validation']['frequency']
     except KeyError:
         validation_frequency = 100
 
     #whether to do validation (default True)
-    try: 
-        do_validation = config_loaded['settings']['do_validation']
+    try:
+        do_validation = param_interface['settings']['do_validation']
     except KeyError:
         do_validation = True
- 
+
     if do_validation:
     # Figure out if validation is defined else assume that it should be true
-        try: 
-            validation_stopping = config_loaded['settings']['validation_stopping']
+        try:
+            validation_stopping = param_interface['settings']['validation_stopping']
         except KeyError:
             validation_stopping = True
     else:
@@ -330,7 +334,7 @@ if __name__ == '__main__':
             targets = targets.cuda()
 
         # apply curriculum learning - change problem max seq_length
-        curric_done = curriculum_learning_update_problem_params(problem, episode, config_loaded)
+        curric_done = curriculum_learning_update_problem_params(problem, episode, param_interface)
 
         # reset gradients
         optimizer.zero_grad()
@@ -343,12 +347,12 @@ if __name__ == '__main__':
 
         # 1. Perform forward step, calculate logits, loss  and accuracy.
         logits, loss, accuracy = forward_step(model, DataTuple(inputs, targets, mask),
-                                              config_loaded['settings']['use_mask'], criterion)
+                                              param_interface['settings']['use_mask'], criterion)
 
         # Store the calculated loss on a list.
         last_losses.append(loss)
         # Truncate list length.
-        if len(last_losses) > config_loaded['settings']['length_loss']:
+        if len(last_losses) > param_interface['settings']['length_loss']:
             last_losses.popleft()
 
         # 2. Backward gradient flow.
@@ -356,7 +360,7 @@ if __name__ == '__main__':
         # Check the presence of parameter 'gradient_clipping'.
         try:
             # if present - clip gradients to a range (-gradient_clipping, gradient_clipping)
-            val = config_loaded['problem_train']['gradient_clipping']
+            val = param_interface['problem_train']['gradient_clipping']
             nn.utils.clip_grad_value_(model.parameters(), val)
         except KeyError:
             # Else - do nothing.
@@ -394,8 +398,8 @@ if __name__ == '__main__':
             if model.plot_sequence(inputs[0].detach(), logits[0].detach(), targets[0].detach()):
                 break
 
-        #  5. Save the model then validate 
-        if (episode % validation_frequency) == 0: 
+        #  5. Save the model then validate
+        if (episode % validation_frequency) == 0:
             save_model(model, episode,  model_dir)
 
 
@@ -407,26 +411,26 @@ if __name__ == '__main__':
             else:
                 app_state.visualize = False
 
-            validation_loss, stop_now = validation(model, data_valid,  config_loaded['settings']['use_mask'],  criterion,  FLAGS, 
-                    logger,   validation_file,  validation_writer) 
+            validation_loss, stop_now = validation(model, data_valid,  param_interface['settings']['use_mask'],  criterion,  FLAGS,
+                    logger,   validation_file,  validation_writer)
             # Perform validation.
             if stop_now:
                 break
             # End of validation.
-        
+
 
         if curric_done:
             # break if conditions applied: convergence or max episodes
             loss_stop=True
             if validation_stopping:
-                loss_stop = validation_loss < config_loaded['settings']['loss_stop']
+                loss_stop = validation_loss < param_interface['settings']['loss_stop']
             else:
-                loss_stop = max(last_losses) < config_loaded['settings']['loss_stop']
+                loss_stop = max(last_losses) < param_interface['settings']['loss_stop']
 
-            if loss_stop or episode == config_loaded['settings']['max_episodes'] :
+            if loss_stop or episode == param_interface['settings']['max_episodes'] :
                 terminal_condition = True
                 save_model(model, episode,  model_dir)
-                    
+
                 break
                 # "Finish" episode.
 
@@ -440,7 +444,7 @@ if __name__ == '__main__':
             app_state.visualize = True
 
             # Perform validation.
-            _, _ = validation(model, data_valid, config_loaded['settings']['use_mask'], criterion, FLAGS, logger,
+            _, _ = validation(model, data_valid, param_interface['settings']['use_mask'], criterion, FLAGS, logger,
                                validation_file, validation_writer)
 
         else:

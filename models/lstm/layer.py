@@ -7,14 +7,14 @@ from models.model_base import ModelBase
 
 class LSTM(ModelBase, nn.Module):
     def __init__(self, params):
+        super(LSTM, self).__init__()
+
         self.tm_in_dim = params["control_bits"] + params["data_bits"]
         self.data_bits = params["data_bits"]
         self.hidden_state_dim = params["hidden_state_dim"]
         self.num_layers = params["num_layers"]
         assert self.num_layers > 0, "Number of LSTM layers should be > 0"
         self.app_state = AppState()
-
-        super(LSTM, self).__init__()
 
         # Create the LSTM layers
         self.lstm_layers = nn.ModuleList()
