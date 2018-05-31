@@ -27,8 +27,8 @@ from models.model_factory import ModelFactory
 
 # Import problems factory and data tuple.
 sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
-from problems.problem_factory import ProblemFactory
-from problems.algorithmic_sequential_problem import DataTuple
+from problems.algorithmic.problem_factory import ProblemFactory
+from problems.algorithmic.algorithmic_sequential_problem import DataTuple
 
 use_CUDA = False
 

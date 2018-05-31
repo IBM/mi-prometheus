@@ -22,7 +22,7 @@ os.environ["OMP_NUM_THREADS"] = '1'
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
-from problems.problem_factory import ProblemFactory
+from problems.algorithmic.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
 from misc.app_state import AppState

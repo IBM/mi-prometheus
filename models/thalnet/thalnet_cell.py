@@ -19,7 +19,7 @@ class FfGruModule(nn.Module):
         self.center_size = center_size
         self.context_input_size = context_input_size
         self.center_output_size = center_output_size
-        self.num_gru_units = self.output_size + self.center_output_size
+        self.gru_hidden_size = self.output_size + self.center_output_size
 
         self.input_size = input_size
         self.output_size = output_size
@@ -29,7 +29,7 @@ class FfGruModule(nn.Module):
 
         # FeedForward & GRU
         self.fc = nn.Linear(input_size, center_output_size)
-        self.gru = nn.GRU(input_size, hidden_size, num_layers)
+        self.grucell = nn.GRUCell(input_size, self.gru_hidden_size)
 
     def forward(self, inputs, center_state, module_state):
         """
@@ -42,7 +42,7 @@ class FfGruModule(nn.Module):
 
         # apply FeedForward & GRU
         inputs = self.fc(inputs)
-        gru_output, new_module_state = self.gru(inputs, module_state)
+        gru_output, new_module_state = self.grucell(inputs, module_state)
 
         output, center_feature_output = torch.split(gru_output,
                                         [self.output_size, self.center_output_size], dim=1) if self.output_size else (None, gru_output)
@@ -79,7 +79,7 @@ class ThalNetCell(nn.Module):
         center_state_per_module = state[:self.num_modules]
         module_states = state[self.num_modules:]
 
-        center_state = torch.cat(center_state_per_module, axis=1)
+        center_state = torch.cat(center_state_per_module, dim=1)
 
         outputs, new_center_features, new_module_states = unzip(
             [module(inputs if module.input_size else None, center_state=center_state, module_state=module_state)
