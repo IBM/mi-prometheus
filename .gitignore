@@ -13,7 +13,7 @@
 !/models/**
 !/problems/**
 !/confgiuration/**
-!/tasks/**
+!/configs/**
 !/misc/**
 # You can be specific with these rules
 !/docs/conf.py
