@@ -1,16 +1,16 @@
 # Problem parameters:
 problem_train:
-    name: &name serial_recall_original
+    name: &name serial_recall_simplified
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: &cbits 2
+    control_bits: &cbits 1
     data_bits: &dbits 8
-    batch_size: &bs 32
-    # Parameters denoting min and max lengths.
+    batch_size: 1
+    # Parameters denoting min and max lengths. 
     min_sequence_length: 1
     max_sequence_length: 10
     #Curriculum learning - optional.
     curriculum_learning:
-        interval: 0
+        interval: 20
         initial_max_sequence_length: 5
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
@@ -22,10 +22,10 @@ problem_test:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 64
+    batch_size: 1
     # Parameters denoting min and max lengths.
-    min_sequence_length: 1000
-    max_sequence_length: 1000
+    min_sequence_length: 1
+    max_sequence_length: 10
     bias: 0.5
 
 # Problem parameters:
@@ -34,10 +34,10 @@ problem_validation:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 64
+    batch_size: 10
     # Parameters denoting min and max lengths.
-    min_sequence_length: 100
-    max_sequence_length: 100
+    min_sequence_length: 60
+    max_sequence_length: 60
     bias: 0.5
 
 # Model parameters:
@@ -45,7 +45,7 @@ model:
     name: dwm   # dynamic_working_memory
     # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
-    control_bits: *cbits 
+    control_bits: *cbits
     data_bits: *dbits
     # Controller hidden state.
     hidden_state_dim: 5
@@ -59,7 +59,7 @@ model:
     shift_size: 3
     # active the plotting of the memory and attention
     plot_memory: False
-    
+
 # optimizer parameters:
 optimizer:
     # Exact name of the pytorch optimizer function
@@ -72,8 +72,7 @@ settings:
     # masked output and target
     use_mask: True
     length_loss: 10
-    loss_stop: 1.0e-5
+    loss_stop: 0.0001
     max_episodes: 20000
-    validation_stopping: True
     seed_numpy: 0
     seed_torch: 2

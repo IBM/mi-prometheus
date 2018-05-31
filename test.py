@@ -26,6 +26,7 @@ from problems.algorithmic.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
 from misc.app_state import AppState
+from misc.param_interface import ParamInterface
 
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
@@ -82,7 +83,7 @@ if __name__ == '__main__':
     if not os.path.isdir(FLAGS.input_dir):
         print('Input path {} does not exist'.format(FLAGS.input_dir))
         exit(-2)
-        
+
     # Logging
     log_file = FLAGS.input_dir + '/msgs_test.log'
     def logfile():
@@ -101,16 +102,17 @@ if __name__ == '__main__':
         app_state.visualize = True
 
     # Read YAML file
+    param_interface = ParamInterface()
     with open(FLAGS.input_dir + "/train_settings.yaml", 'r') as stream:
-        config_loaded = yaml.load(stream)
+        param_interface.add_custom_params(yaml.load(stream))
 
     # set seed
-    if config_loaded["settings"]["seed_torch"] != -1:
-        torch.manual_seed(config_loaded["settings"]["seed_torch"])
-        torch.cuda.manual_seed_all(config_loaded["settings"]["seed_torch"])
+    if param_interface["settings"]["seed_torch"] != -1:
+        torch.manual_seed(param_interface["settings"]["seed_torch"])
+        torch.cuda.manual_seed_all(param_interface["settings"]["seed_torch"])
 
-    if config_loaded["settings"]["seed_numpy"] != -1:
-        np.random.seed(config_loaded["settings"]["seed_numpy"])
+    if param_interface["settings"]["seed_numpy"] != -1:
+        np.random.seed(param_interface["settings"]["seed_numpy"])
 
     # Create output file
     test_file = open(FLAGS.input_dir + '/test.csv', 'w', 1)
@@ -119,10 +121,10 @@ if __name__ == '__main__':
     test_train_file.write('episode, accuracy, loss, length\n')
 
     # Build new problem
-    problem = ProblemFactory.build_problem(config_loaded['problem_test'])
+    problem = ProblemFactory.build_problem(param_interface['problem_test'])
 
     # Build model
-    model = ModelFactory.build_model(config_loaded['model'])
+    model = ModelFactory.build_model(param_interface['model'])
 
     criterion = nn.BCEWithLogitsLoss()
     if FLAGS.episode != None:
@@ -130,7 +132,7 @@ if __name__ == '__main__':
         model_file_name = FLAGS.input_dir + '/models/model_parameters_episode_{:05d}'.format(FLAGS.episode)
     else:
         model_file_name = glob(FLAGS.input_dir + '/models/model_parameters_episode_*')[-1]
-   
+
     if not os.path.isfile(model_file_name):
         print('Model path {} does not exist'.format(model_file_name))
         exit(-3)
@@ -148,7 +150,7 @@ if __name__ == '__main__':
             # apply the trained model
             unmasked_output = model(inputs)
 
-            if config_loaded['settings']['use_mask']:
+            if param_interface['settings']['use_mask']:
                 output = unmasked_output[:, mask[0], :]
                 target = unmasked_target[:, mask[0], :]
             else:
@@ -183,10 +185,14 @@ if __name__ == '__main__':
                 break
 
     # Run test on worst training conditions
-    config_loaded['problem_test']['min_sequence_length'] = config_loaded['problem_train'].get('max_sequence_length')
-    config_loaded['problem_test']['max_sequence_length'] = config_loaded['problem_train'].get('max_sequence_length')
-    config_loaded['problem_test']['num_subseq_min'] = config_loaded['problem_train'].get('num_subseq_max')
-    config_loaded['problem_test']['num_subseq_max'] = config_loaded['problem_train'].get('num_subseq_max')
+    param_interface.add_custom_params(
+        {'problem_test': {'min_sequence_length': param_interface['problem_train'].get('max_sequence_length')}})
+    param_interface.add_custom_params(
+        {'problem_test': {'max_sequence_length': param_interface['problem_train'].get('max_sequence_length')}})
+    param_interface.add_custom_params(
+        {'problem_test': {'num_subseq_min': param_interface['problem_train'].get('num_subseq_max')}})
+    param_interface.add_custom_params(
+        {'problem_test': {'num_subseq_max': param_interface['problem_train'].get('num_subseq_max')}})
 
     if FLAGS.episode_train != None:
         # load the trained model
@@ -203,14 +209,14 @@ if __name__ == '__main__':
                    map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
     )
 
-    problem = ProblemFactory.build_problem(config_loaded['problem_test'])
+    problem = ProblemFactory.build_problem(param_interface['problem_test'])
     with torch.no_grad():
         for episode, (inputs, unmasked_target, mask) in enumerate(problem.return_generator()):
 
             # apply the trained model
             unmasked_output = model(inputs)
 
-            if config_loaded['settings']['use_mask']:
+            if param_interface['settings']['use_mask']:
                 output = unmasked_output[:, mask[0], :]
                 target = unmasked_target[:, mask[0], :]
             else:

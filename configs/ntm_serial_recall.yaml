@@ -1,6 +1,6 @@
 # Problem parameters:
 problem_train:
-    name: serial_recall_original
+    name: serial_recall
     # Size of generated input: [batch_size x sequence_length x number of command and data bits].
     data_bits: &dbits 8
     control_bits: &cbits 2
@@ -19,7 +19,7 @@ problem_train:
 
 # Problem parameters:
 problem_validation:
-    name: serial_recall_original
+    name: serial_recall
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
@@ -32,7 +32,7 @@ problem_validation:
 
 # Problem parameters:
 problem_test:
-    name: serial_recall_original
+    name: serial_recall
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits

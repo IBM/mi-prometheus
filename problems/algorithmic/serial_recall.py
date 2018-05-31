@@ -87,6 +87,7 @@ class SerialRecall(AlgorithmicSequentialProblem):
     def set_max_length(self, max_length):
         self.max_sequence_length = max_length
 
+
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     

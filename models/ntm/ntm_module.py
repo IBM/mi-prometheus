@@ -47,7 +47,7 @@ class NTM(ModelBase, torch.nn.Module):
             pass
 
 
-    def forward(self, inputs_BxSxI):
+    def forward(self, inputs_BxSxI, targets):
         """
         Forward function accepts a Tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and 
         outputs a Tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] . 

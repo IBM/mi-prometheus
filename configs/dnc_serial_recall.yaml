@@ -8,7 +8,7 @@
 
 # Problem parameters:
 problem_train:
-    name: &name serial_recall_original
+    name: &name serial_recall
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 2
     data_bits: &dbits 8

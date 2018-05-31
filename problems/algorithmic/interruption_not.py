@@ -130,9 +130,8 @@ class InterruptionNot(AlgorithmicSequentialProblem):
         return DataTuple(inputs, target_with_dummies, mask)
 
     # method for changing the maximum length, used mainly during curriculum learning
-    def set_max_length(self, max_length, num_subseq_max):
+    def set_max_length(self, max_length):
         self.max_sequence_length = max_length
-        self.num_subseq_max = num_subseq_max
 
 
 if __name__ == "__main__":
