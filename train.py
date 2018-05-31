@@ -32,7 +32,7 @@ from problems.algorithmic_sequential_problem import DataTuple
 
 use_CUDA = False
 
-def forward_step(model, data_tuple,  use_mask,  criterion):
+def forward_step(model, data_tuple,  use_mask,  problem):
     """ Function performs a single forward step.
 
     :returns: logits, loss and accuracy (former using provided criterion)
@@ -44,23 +44,13 @@ def forward_step(model, data_tuple,  use_mask,  criterion):
         inputs = inputs.cuda()
         targets = targets.cuda()
         mask = mask.cuda()
+        data_tuple = (inputs, targets, mask)
+
 
     # 1. Perform forward calculation.
-    logits = model(inputs)
+    logits = model(inputs, targets)
 
-    # 2. Calculate loss.
-    # Check if mask should be is used - if so, apply.
-    if use_mask:
-        masked_logits = logits[:, mask[0], :]
-        masked_targets = targets[:, mask[0], :]
-    else:
-        masked_logits = logits
-        masked_targets = targets
-
-    # Compute loss using the provided criterion.
-    loss = criterion(masked_logits, masked_targets)
-    # Calculate accuracy.
-    accuracy = (1 - torch.abs(torch.round(F.sigmoid(masked_logits)) - masked_targets)).mean()
+    loss, accuracy = problem.evaluate_loss_accuracy(logits, data_tuple, use_mask)
     # Return tuple: logits, loss, accuracy.
     return logits, loss, accuracy
 
@@ -74,7 +64,7 @@ def save_model(model, episode,   model_dir):
     torch.save(model.state_dict(), model_dir + model_filename)
     logger.info("Model exported")
 
-def validation(model, data_valid, use_mask, criterion, FLAGS, logger, validation_file,
+def validation(model, data_valid, use_mask, problem, FLAGS, logger, validation_file,
                validation_writer):
     """
     Function performs validation of the model, using the provided data and criterion.
@@ -85,7 +75,7 @@ def validation(model, data_valid, use_mask, criterion, FLAGS, logger, validation
 
     # Calculate the accuracy and loss of the validation data.
     with torch.no_grad():
-        logits_valid, loss_valid, accuracy_valid = forward_step(model, data_valid, use_mask, criterion)
+        logits_valid, loss_valid, accuracy_valid = forward_step(model, data_valid, use_mask, problem)
 
     # Print statistics.
     length_valid = data_valid[0].size(-2)
@@ -146,9 +136,9 @@ def curriculum_learning_update_problem_params(problem, episode, param_interface)
 if __name__ == '__main__':
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('--confirm', dest='confirm', action='store_true',
+    parser.add_argument('--agree', dest='confirm', action='store_true',
                         help='Request user confirmation just after loading the settings, before starting training  (Default: False)')
-    parser.add_argument('-t', dest='task', type=str, default='',
+    parser.add_argument('--config', dest='config', type=str, default='',
                         help='Name of the task configuration file to be loaded')
     parser.add_argument('--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2], type=int,
                         help="If present, log to TensorBoard. Log levels:\n"
@@ -171,17 +161,17 @@ if __name__ == '__main__':
     FLAGS, unparsed = parser.parse_known_args()
 
     # Check if config file was selected.
-    if FLAGS.task == '':
-        print('Please pass task configuration file as -t parameter')
+    if FLAGS.config == '':
+        print('Please pass task configuration file as --c parameter')
         exit(-1)
     # Check if file exists.
-    if not os.path.isfile(FLAGS.task):
-        print('Task configuration file {} does not exists'.format(FLAGS.task))
+    if not os.path.isfile(FLAGS.config):
+        print('Task configuration file {} does not exists'.format(FLAGS.config))
         exit(-2)
 
     # Read the YAML file.
     param_interface = ParamInterface()
-    with open(FLAGS.task, 'r') as stream:
+    with open(FLAGS.config, 'r') as stream:
         param_interface.add_custom_params(yaml.load(stream))
 
     # Get problem and model names.
@@ -293,10 +283,6 @@ if __name__ == '__main__':
     del optimizer_conf['name']
     optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), **optimizer_conf)
 
-    # Set loss criterion.
-    # TK: TODO: move criterion to PROBLEM!
-    criterion = nn.BCEWithLogitsLoss()
-
     # Start Training
     episode = 0
     last_losses = collections.deque()
@@ -347,7 +333,7 @@ if __name__ == '__main__':
 
         # 1. Perform forward step, calculate logits, loss  and accuracy.
         logits, loss, accuracy = forward_step(model, DataTuple(inputs, targets, mask),
-                                              param_interface['settings']['use_mask'], criterion)
+                                               param_interface['settings']['use_mask'], problem)
 
         # Store the calculated loss on a list.
         last_losses.append(loss)
@@ -411,8 +397,9 @@ if __name__ == '__main__':
             else:
                 app_state.visualize = False
 
-            validation_loss, stop_now = validation(model, data_valid,  param_interface['settings']['use_mask'],  criterion,  FLAGS,
+            validation_loss, stop_now = validation(model, data_valid,  param_interface['settings']['use_mask'],  problem,  FLAGS,
                     logger,   validation_file,  validation_writer)
+            
             # Perform validation.
             if stop_now:
                 break
@@ -444,7 +431,7 @@ if __name__ == '__main__':
             app_state.visualize = True
 
             # Perform validation.
-            _, _ = validation(model, data_valid, param_interface['settings']['use_mask'], criterion, FLAGS, logger,
+            _, _ = validation(model, data_valid, param_interface['settings']['use_mask'], problem, FLAGS, logger,
                                validation_file, validation_writer)
 
         else:

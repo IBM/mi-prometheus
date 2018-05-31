@@ -24,7 +24,7 @@ class LSTM(ModelBase, nn.Module):
 
         self.linear = nn.Linear(self.hidden_state_dim, self.data_bits)
 
-    def forward(self, x):
+    def forward(self, x, targets):
         # Check if the class has been converted to cuda (through .cuda() method)
         dtype = torch.cuda.FloatTensor if next(self.linear.parameters()).is_cuda else torch.FloatTensor
 

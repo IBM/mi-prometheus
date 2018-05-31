@@ -51,7 +51,7 @@ def run_experiment(yaml_file_path: str):
     with NamedTemporaryFile(mode='w') as temp_yaml:
         yaml.dump(params, temp_yaml, default_flow_style=False)
 
-        command_str = "cuda-gpupick -n0 python3 train.py -t {0} --tensorboard 0".format(temp_yaml.name).split()
+        command_str = "cuda-gpupick -n0 python3 train.py --c {0} --tensorboard 0".format(temp_yaml.name).split()
 
         with open(os.devnull, 'w') as devnull:
             result = subprocess.run(command_str, stdout=devnull)

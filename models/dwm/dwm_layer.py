@@ -46,7 +46,7 @@ class DWM(ModelBase, nn.Module):
         self.DWMCell = DWMCell(self.in_dim, self.output_units, self.state_units,
                                self.num_heads, self.is_cam, self.num_shift, self.M)
 
-    def forward(self, inputs):       # x : batch_size, seq_len, input_size
+    def forward(self, inputs, targets):       # x : batch_size, seq_len, input_size
         """
         Runs the DWM cell and plots if necessary
         

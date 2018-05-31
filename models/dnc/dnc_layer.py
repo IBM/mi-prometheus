@@ -44,7 +44,7 @@ class DNC(ModelBase, nn.Module):
         self.DNCCell = DNCCell(self.in_dim, self.output_units, self.state_units,
                                self.is_cam, self.num_shift, self.M,params)
 
-    def forward(self, inputs):       # x : batch_size, seq_len, input_size
+    def forward(self, inputs, targets):       # x : batch_size, seq_len, input_size
         """
         Runs the DNC cell and plots if necessary
         

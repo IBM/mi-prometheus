@@ -8,6 +8,9 @@ import collections
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from matplotlib import rc
 
 
@@ -35,6 +38,30 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
             # Yield batch.
             yield self.generate_batch()
 
+    def evaluate_loss_accuracy(self, logits, data_tuple, use_mask):
+        self.criterion = nn.BCEWithLogitsLoss()
+        # Unpack the data tuple.
+        (inputs, targets, mask) = data_tuple
+
+        # 2. Calculate loss.
+        # Check if mask should be is used - if so, apply.
+        if use_mask:
+            masked_logits = logits[:, mask[0], :]
+            masked_targets = targets[:, mask[0], :]
+        else:
+            masked_logits = logits
+            masked_targets = targets
+
+        # Compute loss using the provided criterion.
+        loss = self.criterion(masked_logits, masked_targets)
+
+        # Calculate accuracy.
+        accuracy = (1 - torch.abs(torch.round(F.sigmoid(masked_logits)) - masked_targets)).mean()
+
+        return loss, accuracy
+
+    def set_max_length(self, max_length):
+        self.max_sequence_length = max_length
 
     def show_sample(self,  inputs,  targets, mask,  sample_number = 0):
         """ Shows the sample (both input and target sequences) using matplotlib."""
