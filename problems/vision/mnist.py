@@ -28,6 +28,9 @@ class SequentialMnist(VisionProblem):
                            ])),
             batch_size=self.batch_size, shuffle=True, **kwargs)
 
+        train_loader = iter(train_loader)
+
+        # train_loader a generator: (data, label)
         return train_loader
 
 if __name__ == "__main__":
@@ -39,7 +42,9 @@ if __name__ == "__main__":
     problem = SequentialMnist(params)
     # Get generator
     generator = problem.return_generator()
+
     # Get batch.
-    for x, y in generator:
-        # Display single sample (0) from batch.
-        problem.show_sample(x, y)
+    x, y = next(generator)
+
+    # Display single sample (0) from batch.
+    problem.show_sample(x, y)

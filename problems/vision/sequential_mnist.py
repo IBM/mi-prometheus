@@ -31,8 +31,6 @@ class SequentialMnist(VisionProblem):
 
         return train_loader
 
-
-
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
@@ -48,4 +46,7 @@ if __name__ == "__main__":
     #TODO: fix batch problem with view
     for x, y in generator:
         # Print single sample (0) from batch.
-        problem.show_sample(x.view(num_rows, num_columns), y)
+        print('data:', x)
+        print('label:', y)
+
+        #problem.show_sample(x.view(num_rows, num_columns), y)

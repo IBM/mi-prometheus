@@ -31,9 +31,7 @@ class VisionProblem(metaclass=abc.ABCMeta):
         : returns: A tuple: input with shape [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS], output 
         """
         # Create "generator".
-        while True:        
-            # Yield batch.
-            return self.generate_batch()
+        return self.generate_batch()
 
 
     def show_sample(self, inputs, targets, sample_number = 0):
@@ -43,6 +41,6 @@ class VisionProblem(metaclass=abc.ABCMeta):
         plt.ylabel('num_rows')
         plt.title('number to be predicted:' + str(int(targets)))
 
-        plt.imshow(inputs, interpolation='nearest', aspect='auto')
+        plt.imshow(inputs[sample_number, sample_number, :, :], interpolation='nearest', aspect='auto')
         # Plot!
         plt.show()
