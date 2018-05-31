@@ -5,10 +5,10 @@ __author__      = "Tomasz Kornuta"
 
 import abc
 import collections
-import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-from matplotlib import rc
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 
 _DataTuple = collections.namedtuple('DataTuple', ('inputs', 'targets'))
@@ -33,6 +33,19 @@ class VisionProblem(metaclass=abc.ABCMeta):
         # Create "generator".
         return self.generate_batch()
 
+    def evaluate_loss_accuracy(self, logits, data_tuple, use_mask):
+        self.criterion = nn.CrossEntropyLoss()
+        # Unpack the data tuple.
+        (_, targets) = data_tuple
+
+        # 2. Calculate loss.
+        # Compute loss using the provided criterion.
+        loss = self.criterion(logits, targets)
+
+        # Calculate accuracy.
+        accuracy = (1 - torch.abs(torch.round(F.sigmoid(logits)) - targets)).mean()
+
+        return loss, accuracy
 
     def show_sample(self, inputs, targets, sample_number = 0):
 

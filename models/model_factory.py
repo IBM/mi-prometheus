@@ -6,6 +6,7 @@ __author__ = "Tomasz Kornuta"
 import sys
 import os.path
 import logging
+import torchvision.models as models
 logger = logging.getLogger('ModelFactory')
 
 class ModelFactory(object):
@@ -41,5 +42,7 @@ class ModelFactory(object):
             sys.path.append(os.path.join(os.path.dirname(__file__),  'ntm'))
             from models.ntm.ntm_module import NTM
             return NTM(params)
+        elif name == 'alexnet':
+            return models.alexnet()
         else:
             raise ValueError

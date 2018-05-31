@@ -40,15 +40,14 @@ class ProblemFactory(object):
 if __name__ == "__main__":
     """ Tests problem factory"""
     # Problem name
-    params = {'name': 'serial_recall', 'control_bits': 3, 'data_bits': 8, 'batch_size': 1,
-    'min_sequence_length': 1, 'max_sequence_length': 10, 'num_subseq_min':1, 'num_subseq_max':5, 'bias': 0.5}
+    params = {'name': 'mnist', 'batch_size': 1}
     
     problem = ProblemFactory.build_problem(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
-    (x, y, mask) = next(generator)
+    (x, y) = next(generator)
     # Display single sample (0) from batch.
-    problem.show_sample(x, y, mask)
+    problem.show_sample(x, y)
 
 
