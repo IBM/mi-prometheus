@@ -27,9 +27,8 @@ from misc.param_interface import ParamInterface
 
 # Import problems factory and data tuple.
 #sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
-sys.path.append(os.path.join(os.path.dirname(__file__), 'problems/algorithmic'))
-sys.path.append(os.path.join(os.path.dirname(__file__), 'problems/vision'))
-from problems.vision.problem_factory import ProblemFactory
+#sys.path.append(os.path.join(os.path.dirname(__file__), 'problems/algorithmic'))
+from problems.problem_factory import ProblemFactory
 from problems.vision.vision_problem import DataTuple
 
 use_CUDA = False

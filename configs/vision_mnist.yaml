@@ -3,18 +3,24 @@ problem_train:
     name: &name mnist
     # Size of generated input: [batch_size x sequence_length x number of control and data bits].
     batch_size: 1
+    start_index: 0
+    stop_index: 54999
 
 # Problem parameters:
 problem_test:
     name: *name
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     batch_size: 64
+    start_index: 0
+    stop_index: 100
 
 # Problem parameters:
 problem_validation:
     name: *name
     # batch size
     batch_size: 5
+    start_index: 55000
+    stop_index: 59999
 
 # Model parameters:
 model:

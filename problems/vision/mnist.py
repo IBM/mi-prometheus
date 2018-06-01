@@ -1,8 +1,7 @@
 import torch
 from vision_problem import VisionProblem
-from vision_problem import DataTuple
 from torchvision import datasets, transforms
-
+from torch.utils.data.sampler import SubsetRandomSampler
 
 @VisionProblem.register
 class SequentialMnist(VisionProblem):
@@ -13,6 +12,9 @@ class SequentialMnist(VisionProblem):
     def __init__(self, params):
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
+        self.start_index = params['start_index']
+        self.stop_index = params['stop_index']
+
         self.gpu = False
         self.datasets_folder = './data_mnist'
 
@@ -20,14 +22,24 @@ class SequentialMnist(VisionProblem):
 
         kwargs = {'num_workers': 1, 'pin_memory': True} if self.gpu else {}
 
-        # load train datasets
-        train_loader = torch.utils.data.DataLoader(
-            datasets.MNIST(self.datasets_folder, train=True, download=True,
-                           transform=transforms.Compose([
-                               transforms.ToTensor(),
-                           ])),
-            batch_size=self.batch_size, shuffle=True, **kwargs)
+        # define transforms
+        train_transform = transforms.Compose([
+            transforms.ToTensor()])
 
+        # load the datasets
+        train_datasets = datasets.MNIST(self.datasets_folder, train=True, download=True,
+                                     transform=train_transform)
+        # set split
+        num_train = len(train_datasets)
+        indices = list(range(num_train))
+
+        idx = indices[self.start_index: self.stop_index]
+        sampler = SubsetRandomSampler(idx)
+
+        # loader
+        train_loader = torch.utils.data.DataLoader(train_datasets, batch_size=self.batch_size,
+                                                   sampler=sampler, **kwargs)
+        # create an iterator
         train_loader = iter(train_loader)
 
         # train_loader a generator: (data, label)
@@ -37,14 +49,12 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'batch_size':1}
+    params = {'batch_size':1, 'start_index': 0, 'stop_index': 54999}
     # Create problem object.
     problem = SequentialMnist(params)
     # Get generator
     generator = problem.return_generator()
-
     # Get batch.
     x, y = next(generator)
-
     # Display single sample (0) from batch.
     problem.show_sample(x, y)
