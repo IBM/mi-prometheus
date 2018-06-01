@@ -57,4 +57,5 @@ if __name__ == "__main__":
     # Get batch.
     x, y = next(generator)
     # Display single sample (0) from batch.
-    problem.show_sample(x, y)
+    sample_numer = 0
+    problem.show_sample(x[sample_numer, 0], y)

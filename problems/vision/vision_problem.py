@@ -10,8 +10,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 _DataTuple = collections.namedtuple('DataTuple', ('inputs', 'targets'))
+
 
 class DataTuple(_DataTuple):
     """Tuple used by storing batches of data by data generators"""
@@ -33,8 +33,10 @@ class VisionProblem(metaclass=abc.ABCMeta):
         # Create "generator".
         return self.generate_batch()
 
-    def evaluate_loss_accuracy(self, logits, data_tuple, use_mask):
+    def evaluate_loss_accuracy(self, logits, data_tuple):
+
         self.criterion = nn.CrossEntropyLoss()
+
         # Unpack the data tuple.
         (_, targets) = data_tuple
 
@@ -47,13 +49,13 @@ class VisionProblem(metaclass=abc.ABCMeta):
 
         return loss, accuracy
 
-    def show_sample(self, inputs, targets, sample_number = 0):
+    def show_sample(self, inputs, targets):
 
         # show data.
         plt.xlabel('num_columns')
         plt.ylabel('num_rows')
         plt.title('number to be predicted:' + str(int(targets)))
 
-        plt.imshow(inputs[sample_number, sample_number, :, :], interpolation='nearest', aspect='auto')
+        plt.imshow(inputs, interpolation='nearest', aspect='auto')
         # Plot!
         plt.show()

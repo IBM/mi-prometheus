@@ -1,6 +1,6 @@
 # Problem parameters:
 problem_train:
-    name: &name mnist
+    name: &name vision/mnist
     # Size of generated input: [batch_size x sequence_length x number of control and data bits].
     batch_size: 1
     start_index: 0

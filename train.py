@@ -26,12 +26,11 @@ from models.model_factory import ModelFactory
 from misc.param_interface import ParamInterface
 
 # Import problems factory and data tuple.
-#sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
-#sys.path.append(os.path.join(os.path.dirname(__file__), 'problems/algorithmic'))
 from problems.problem_factory import ProblemFactory
 from problems.vision.vision_problem import DataTuple
 
 use_CUDA = False
+
 
 def forward_step(model, data_tuple,  use_mask,  problem):
     """ Function performs a single forward step.
@@ -46,7 +45,6 @@ def forward_step(model, data_tuple,  use_mask,  problem):
         targets = targets.cuda()
         mask = mask.cuda()
         data_tuple = (inputs, targets, mask)
-
 
     # 1. Perform forward calculation.
     logits = model(inputs, targets)

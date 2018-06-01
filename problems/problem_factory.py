@@ -4,12 +4,13 @@
 __author__ = "Tomasz Kornuta"
 
 import sys, inspect
+import os.path
 
 class ProblemFactory(object):
     """   
     Class returning concrete problem/generator depending on the name provided in the list of parameters.
     """
-    
+
     @staticmethod
     def build_problem(params):
         """ Static method returning particular problem, depending on the name provided in the list of parameters.
@@ -22,21 +23,30 @@ class ProblemFactory(object):
             print("Problem parameter dictionary does not contain 'name'")
             raise ValueError
         # Try to load model
-        module_name = params['name']
+        path_name = params['name']
+        path_name_list = path_name.split('/')
+
+        # get name of the problem and subdirectory
+        name_problem = path_name_list[-1]
+        name_subdirectory = path_name_list[0]
+
+        # append system path
+        sys.path.append(os.path.join(os.path.dirname(__file__), name_subdirectory))
+
         # Import module
-        module = __import__(module_name)
+        module = __import__(name_problem)
         # Get classes from that module.
-        is_class_member = lambda member: inspect.isclass(member) and member.__module__ == module_name
-        clsmembers = inspect.getmembers(sys.modules[module_name], is_class_member)
+        is_class_member = lambda member: inspect.isclass(member) and member.__module__ == name_problem
+        clsmembers = inspect.getmembers(sys.modules[name_problem], is_class_member)
         # Assert there is only one class.
         assert len(clsmembers) == 1
         class_name = clsmembers[0][0]
         # Get problem class
         problem_class = getattr(module, class_name)
-        print('Successfully loaded problem {} from {}'.format(class_name,  module_name))
+        print('Successfully loaded problem {} from {}'.format(class_name,  name_problem))
         # Create problem object.
         return problem_class(params)
-    
+
 if __name__ == "__main__":
     """ Tests problem factory"""
     # Problem name
