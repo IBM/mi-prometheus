@@ -6,7 +6,7 @@ __author__      = "Tomasz Kornuta"
 import numpy as np
 import torch
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
-from algorithmic_sequential_problem import DataTuple
+from algorithmic_sequential_problem import DataTuple, AuxTuple
 
 @AlgorithmicSequentialProblem.register
 class SerialRecallSimplified(AlgorithmicSequentialProblem):
@@ -77,7 +77,11 @@ class SerialRecallSimplified(AlgorithmicSequentialProblem):
         pttargets = torch.from_numpy(targets).type(self.dtype)
 
         # Return batch.
-        return DataTuple(ptinputs,  pttargets,  mask)
+        data_tuple = DataTuple(ptinputs, pttargets)
+        aux_tuple = AuxTuple(mask)
+
+        return data_tuple, aux_tuple
+
 
     # method for changing the maximum length, used mainly during curriculum learning
     def set_max_length(self, max_length):
@@ -87,14 +91,14 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1,
+    params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 2,
               'min_sequence_length': 1, 'max_sequence_length': 10, 'bias': 0.5}
     # Create problem object.
     problem = SerialRecallSimplified(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
-    (x, y, mask) = next(generator)
+    data_tuple,  aux_tuple = next(generator)
     # Display single sample (0) from batch.
-    problem.show_sample(x, y, mask)
+    problem.show_sample(data_tuple, aux_tuple)
 

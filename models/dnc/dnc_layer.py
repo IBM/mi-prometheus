@@ -11,9 +11,6 @@ from matplotlib import ticker
 import numpy as np
 import matplotlib.pyplot as plt
 
-CUDA = False
-dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
-
 class DNC(ModelBase, nn.Module):
 
     def __init__(self, params):
@@ -44,7 +41,7 @@ class DNC(ModelBase, nn.Module):
         self.DNCCell = DNCCell(self.in_dim, self.output_units, self.state_units,
                                self.is_cam, self.num_shift, self.M,params)
 
-    def forward(self, inputs, targets):       # x : batch_size, seq_len, input_size
+    def forward(self, data_tuple):       # x : batch_size, seq_len, input_size
         """
         Runs the DNC cell and plots if necessary
         
@@ -52,6 +49,8 @@ class DNC(ModelBase, nn.Module):
         :param state: Input hidden state  [BATCH_SIZE x state_size]
         :return: Tuple [output, hidden_state]
         """
+
+        (inputs, targets) = data_tuple
 
         dtype = torch.cuda.FloatTensor if inputs.is_cuda else torch.FloatTensor
 
