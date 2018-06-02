@@ -33,6 +33,9 @@ class ModelFactory(object):
         elif name == 'vision':
             from models.vision.cnn_layer import Net
             return Net()
+        elif name == 'thalnet':
+            from models.thalnet.thalnet_layer import THALNET
+            return THALNET(params)
         elif name == 'lstm':
             from models.lstm.layer import LSTM
             return LSTM(params)

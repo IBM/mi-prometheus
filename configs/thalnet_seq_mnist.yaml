@@ -1,0 +1,45 @@
+# Problem parameters:
+problem_train:
+    name: &name sequential_mnist
+    batch_size: &bs 64
+    start_index: 0
+    stop_index: 54999
+
+# Problem parameters:
+problem_test:
+    name: *name
+    batch_size: 64
+    start_index: 0
+    stop_index: 100
+
+# Problem parameters:
+problem_validation:
+    name: *name
+    batch_size: 64
+    start_index: 55000
+    stop_index: 59999
+
+# Model parameters:
+model:
+    name: thalnet
+    # Controller parameters.
+    context_input_size: 32
+    input_size: 28  # row_size
+    output_size: 10 # number of classes
+    center_size_per_module: 32
+    num_modules: 4
+
+# Set optimizer.
+optimizer:
+    name: Adam
+    lr: 0.005
+
+# settings parameters
+settings:
+    # masked output and target
+    use_mask: True
+    length_loss: 100
+    loss_stop: 0.0001
+    max_episodes: 100000
+    seed_numpy: 0
+    seed_torch: 2

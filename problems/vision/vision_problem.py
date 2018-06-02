@@ -52,10 +52,11 @@ class VisionProblem(metaclass=abc.ABCMeta):
 
         # 2. Calculate loss.
         # Compute loss using the provided criterion.
-        loss = self.criterion(logits, targets)
+        inputs = logits[:, -1, :]
+        loss = self.criterion(inputs, targets)
 
         # Calculate accuracy.
-        pred = logits.max(1, keepdim=True)[1]  # get the index of the max log-probability
+        pred = inputs.max(1, keepdim=True)[1]  # get the index of the max log-probability
         correct = pred.eq(targets.view_as(pred)).sum().item()
 
         batch_size = 64 # temporary

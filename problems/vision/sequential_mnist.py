@@ -52,7 +52,7 @@ class SequentialMnist(VisionProblem):
         #self.mask = mask
 
         # train_loader a generator: (data, label)
-        return train_loader
+        return next(train_loader), ()
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
