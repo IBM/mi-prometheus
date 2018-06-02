@@ -46,7 +46,7 @@ class DWM(ModelBase, nn.Module):
         self.DWMCell = DWMCell(self.in_dim, self.output_units, self.state_units,
                                self.num_heads, self.is_cam, self.num_shift, self.M)
 
-    def forward(self, inputs, targets):       # x : batch_size, seq_len, input_size
+    def forward(self, data_tuple):       # x : batch_size, seq_len, input_size
         """
         Runs the DWM cell and plots if necessary
         
@@ -54,6 +54,8 @@ class DWM(ModelBase, nn.Module):
         :param state: Input hidden state  [BATCH_SIZE x state_size]
         :return: Tuple [output, hidden_state]
         """
+        (inputs, targets) = data_tuple
+
         if self.app_state.visualize:
             self.cell_state_history = []
 

@@ -47,12 +47,14 @@ class NTM(ModelBase, torch.nn.Module):
             pass
 
 
-    def forward(self, inputs_BxSxI, targets):
+    def forward(self, data_tuple):
         """
         Forward function accepts a Tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and 
         outputs a Tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] . 
         """
-        
+        (inputs_BxSxI, targets) = data_tuple
+
+ 
         # "Data-driven memory size".
         # Save as TEMPORAL VARIABLE! 
         # (do not overwrite self.num_memory_addresses, which will cause problem with next batch!)

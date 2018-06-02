@@ -28,43 +28,21 @@ from misc.param_interface import ParamInterface
 # Import problems factory and data tuple.
 sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
 from problems.problem_factory import ProblemFactory
-from problems.algorithmic_sequential_problem import DataTuple
+from utils_training import forward_step
 
 use_CUDA = False
-
-def forward_step(model, data_tuple,  use_mask,  problem):
-    """ Function performs a single forward step.
-
-    :returns: logits, loss and accuracy (former using provided criterion)
-    """
-    # Unpack the data tuple.
-    (inputs, targets, mask) = data_tuple
-
-    if use_CUDA:
-        inputs = inputs.cuda()
-        targets = targets.cuda()
-        mask = mask.cuda()
-        data_tuple = (inputs, targets, mask)
-
-
-    # 1. Perform forward calculation.
-    logits = model(inputs, targets)
-
-    loss, accuracy = problem.evaluate_loss_accuracy(logits, data_tuple, use_mask)
-    # Return tuple: logits, loss, accuracy.
-    return logits, loss, accuracy
 
 def save_model(model, episode,   model_dir):
     """
     Function saves the model..
 
-    :returns: False if saving was successful (need to implement true condition if there was an error)
+    :returns: False if saving lso need to consider removing all of the plotting from the train and test and replacing it with outputting the data to file which we plot with a separate executable. I have been working through the design choices necessary to fully separate the data from train.py and test.py and the plotting just seems to get in the waywas successful (need to implement true condition if there was an error)
     """
     model_filename = 'model_parameters_episode_{:05d}'.format(episode)
     torch.save(model.state_dict(), model_dir + model_filename)
     logger.info("Model exported")
 
-def validation(model, data_valid, use_mask, problem, FLAGS, logger, validation_file,
+def validation(model, problem, data_valid, aux_valid,  FLAGS, logger, validation_file,
                validation_writer):
     """
     Function performs validation of the model, using the provided data and criterion.
@@ -75,10 +53,12 @@ def validation(model, data_valid, use_mask, problem, FLAGS, logger, validation_f
 
     # Calculate the accuracy and loss of the validation data.
     with torch.no_grad():
-        logits_valid, loss_valid, accuracy_valid = forward_step(model, data_valid, use_mask, problem)
+        logits_valid, loss_valid, accuracy_valid = forward_step(model, problem, data_valid, aux_valid,use_CUDA)
 
-    # Print statistics.
-    length_valid = data_valid[0].size(-2)
+    # Print statistics.i
+    # TODO Eliminate
+    #length_valid = data_valid[0].size(-2)
+    length_valid = 1
     format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Validation]'
 
     logger.info(format_str.format(episode, accuracy_valid, loss_valid, length_valid))
@@ -94,10 +74,9 @@ def validation(model, data_valid, use_mask, problem, FLAGS, logger, validation_f
         validation_writer.add_scalar('Seq_len', length_valid, episode)
 
     # Visualization of validation.
-    if AppState().visualize:
-        (inputs_valid, targets_valid, _) = data_valid
-        # True means that we should terminate
-        return loss_valid,  model.plot_sequence(inputs_valid[0].detach(), logits_valid[0].detach(), targets_valid[0].detach())
+    #if AppState().visualize:
+    #    # True means that we should terminate
+    #    return loss_valid,  model.plot_sequence(data_valid, logits_valid)
     # Else simply return false, i.e. continue training.
     return loss_valid, False
 
@@ -150,7 +129,7 @@ if __name__ == '__main__':
     parser.add_argument('--log', action='store', dest='log', type=str, default='INFO',
                         choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
                         help="Log level. (Default: INFO)")
-    parser.add_argument('-v', dest='visualize', choices=[0, 1, 2, 3], type=int,
+    parser.add_argument('--visualize', dest='visualize', choices=[0, 1, 2, 3], type=int,
                         help="Activate dynamic visualization:\n"
                              "0: Only during training\n"
                              "1: During both training and validation\n"
@@ -271,7 +250,7 @@ if __name__ == '__main__':
     generator_validation = problem_validation.return_generator()
 
     # Get a single batch that will be used for validation (!)
-    data_valid = next(generator_validation)
+    data_valid, aux_valid = next(generator_validation)
 
     # Build the model.
     model = ModelFactory.build_model(param_interface['model'])
@@ -313,11 +292,7 @@ if __name__ == '__main__':
     terminal_condition = False
 
     # Main training and verification loop.
-    for inputs, targets, mask in problem.return_generator():
-        # Convert inputs and targets to CUDA
-        if use_CUDA:
-            inputs = inputs.cuda()
-            targets = targets.cuda()
+    for data_tuple, aux_tuple in problem.return_generator():
 
         # apply curriculum learning - change problem max seq_length
         curric_done = curriculum_learning_update_problem_params(problem, episode, param_interface)
@@ -332,8 +307,7 @@ if __name__ == '__main__':
             app_state.visualize = False
 
         # 1. Perform forward step, calculate logits, loss  and accuracy.
-        logits, loss, accuracy = forward_step(model, DataTuple(inputs, targets, mask),
-                                               param_interface['settings']['use_mask'], problem)
+        logits, loss, accuracy = forward_step(model, problem, data_tuple, aux_tuple,use_CUDA)
 
         # Store the calculated loss on a list.
         last_losses.append(loss)
@@ -356,7 +330,9 @@ if __name__ == '__main__':
         optimizer.step()
 
         # 4. Log data - loss, accuracy and other variables (seq_length).
-        train_length = inputs.size(-2)
+        # TODO FIX
+        #train_length = inputs.size(-2)
+        train_length = 1
         format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d}'
         logger.info(format_str.format(episode, accuracy, loss, train_length))
         format_str = '{:05d}, {:12.10f}, {:12.10f}, {:02d}\n'
@@ -381,7 +357,7 @@ if __name__ == '__main__':
         # Check visualization of training data.
         if app_state.visualize:
             # Show plot, if user presses Quit - break.
-            if model.plot_sequence(inputs[0].detach(), logits[0].detach(), targets[0].detach()):
+            if model.plot_sequence(logits, data_tuple):
                 break
 
         #  5. Save the model then validate
@@ -397,7 +373,7 @@ if __name__ == '__main__':
             else:
                 app_state.visualize = False
 
-            validation_loss, stop_now = validation(model, data_valid,  param_interface['settings']['use_mask'],  problem,  FLAGS,
+            validation_loss, stop_now = validation(model, problem, data_valid, aux_valid,  FLAGS,
                     logger,   validation_file,  validation_writer)
             
             # Perform validation.
@@ -431,7 +407,7 @@ if __name__ == '__main__':
             app_state.visualize = True
 
             # Perform validation.
-            _, _ = validation(model, data_valid, param_interface['settings']['use_mask'], problem, FLAGS, logger,
+            _, _ = validation(model, problem, data_valid, aux_valid, FLAGS, logger,
                                validation_file, validation_writer)
 
         else:

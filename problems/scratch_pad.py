@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from utils import augment, add_ctrl
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
-from algorithmic_sequential_problem import DataTuple
+from algorithmic_sequential_problem import DataTuple, AuxTuple
 
 
 @AlgorithmicSequentialProblem.register
@@ -61,7 +61,7 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
         # create the target
         seq_length_tdummies = sum(seq_length) + seq_length.shape[0] + 1
         dummies_target = np.zeros([self.batch_size, seq_length_tdummies, self.data_bits], dtype=np.float32)
-        target = np.concatenate((dummies_target, x[-1]), axis=1)
+        targets = np.concatenate((dummies_target, x[-1]), axis=1)
 
         # data of x and dummies
         xx = [augment(seq, markers, ctrl_start=[1,0], add_marker_data=True, add_marker_dummy = False) for seq in x]
@@ -80,7 +80,7 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
 
         # PyTorch variables
         inputs = torch.from_numpy(inputs).type(self.dtype)
-        target = torch.from_numpy(target).type(self.dtype)
+        targets = torch.from_numpy(targets).type(self.dtype)
         # TODO: batch might have different sequence lengths
         mask_all = inputs[..., 0:self.control_bits] == 1
         mask = mask_all[..., 0]
@@ -92,8 +92,12 @@ class GeneratorScratchPad(AlgorithmicSequentialProblem):
         inputs[:, mask[0], 0:self.control_bits] = 0
 
         # Return data tuple.
-        return DataTuple(inputs, target, mask)
-        
+        data_tuple = DataTuple(inputs, targets)
+        aux_tuple = AuxTuple(mask)
+
+        return data_tuple, aux_tuple
+
+
     # method for changing the maximum length, used mainly during curriculum learning
     def set_max_length(self, max_length):
         self.max_sequence_length = max_length
@@ -111,6 +115,7 @@ if __name__ == "__main__":
     # Get generator
     generator = problem.return_generator()
     # Get batch.
-    (x, y, mask) = next(generator)
+    data_tuple,  aux_tuple = next(generator)
     # Display single sample (0) from batch.
-    problem.show_sample(x, y, mask)
+    problem.show_sample(data_tuple, aux_tuple)
+

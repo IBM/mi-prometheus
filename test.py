@@ -27,9 +27,11 @@ from models.model_factory import ModelFactory
 
 from misc.app_state import AppState
 from misc.param_interface import ParamInterface
+from utils_training import forward_step
 
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
+use_CUDA=False
 
 def show_sample(prediction, target, mask, sample_number=0):
     """ Shows the sample (both input and target sequences) using matplotlib."""
@@ -59,14 +61,14 @@ def show_sample(prediction, target, mask, sample_number=0):
 if __name__ == '__main__':
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', type=str, default='', dest='input_dir',
+    parser.add_argument('--input', type=str, default='', dest='input_dir',
                         help='Input path, containing the saved parameters as well as the yaml file')
-    parser.add_argument('-v', action='store_true', dest='visualize',
+    parser.add_argument('--visualize', action='store_true', dest='visualize',
                         help='Activate dynamic visualization')
     parser.add_argument('--log', action='store', dest='log', type=str, default='info',
                         choices=['critical', 'error', 'warning', 'info', 'debug', 'notset'],
                         help="Log level. Default is INFO.")
-    parser.add_argument('-e', action='store', dest='episode', type=int,
+    parser.add_argument('--episode', action='store', dest='episode', type=int,
                         help="Episode of model. Default is 0.")
     parser.add_argument('-f', action='store', dest='episode_train', type=int,
                         help="Episode of model for test_train. Default is 0.")
@@ -98,6 +100,7 @@ if __name__ == '__main__':
 
     # Initialize the application state singleton.
     app_state = AppState()
+
     if FLAGS.visualize:
         app_state.visualize = True
 
@@ -126,7 +129,6 @@ if __name__ == '__main__':
     # Build model
     model = ModelFactory.build_model(param_interface['model'])
 
-    criterion = nn.BCEWithLogitsLoss()
     if FLAGS.episode != None:
         # load the trained model
         model_file_name = FLAGS.input_dir + '/models/model_parameters_episode_{:05d}'.format(FLAGS.episode)
@@ -145,99 +147,23 @@ if __name__ == '__main__':
 
     # Run test
     with torch.no_grad():
-        for episode, (inputs, unmasked_target, mask) in enumerate(problem.return_generator()):
+        for episode, (data_tuple, aux_tuple)  in enumerate(problem.return_generator()):
 
-            # apply the trained model
-            unmasked_output = model(inputs)
+            logits, loss, accuracy = forward_step(model, problem, data_tuple, aux_tuple, use_CUDA)
 
-            if param_interface['settings']['use_mask']:
-                output = unmasked_output[:, mask[0], :]
-                target = unmasked_target[:, mask[0], :]
-            else:
-                output = unmasked_output
-                target = unmasked_target
-
-            loss = criterion(output, target)
-
-            output = F.sigmoid(output)
-
-            # test accuracy
-            output = torch.round(output)
-            acc = 1 - torch.abs(output-target)
-            accuracy = acc.mean()
             format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Test]'
-            logger.info(format_str.format(episode, accuracy, loss, unmasked_target.size(1)))
+            logger.info(format_str.format(episode, accuracy, loss, logits.size(1)))
             # plot data
             # show_sample(output, targets, mask)
 
             format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
             format_str = format_str + '\n'
-            test_file.write(format_str.format(episode, accuracy, loss, unmasked_target.size(1)))
+            test_file.write(format_str.format(episode, accuracy, loss, logits.size(1)))
 
             if app_state.visualize:
-                mask_not = (mask == 0)
-                unmasked_output[0][mask_not[0], :] = 0
-
-                is_closed = model.plot_sequence(inputs[0].detach().numpy(), unmasked_output[0].detach().numpy(), unmasked_target[0].detach().numpy())
-                if is_closed:
-                    break
+                pass
+                #is_closed = model.plot_sequence(logits, data_tuple)
+                #if is_closed:
+                #    break
             else:
                 break
-
-    # Run test on worst training conditions
-    param_interface.add_custom_params(
-        {'problem_test': {'min_sequence_length': param_interface['problem_train'].get('max_sequence_length')}})
-    param_interface.add_custom_params(
-        {'problem_test': {'max_sequence_length': param_interface['problem_train'].get('max_sequence_length')}})
-    param_interface.add_custom_params(
-        {'problem_test': {'num_subseq_min': param_interface['problem_train'].get('num_subseq_max')}})
-    param_interface.add_custom_params(
-        {'problem_test': {'num_subseq_max': param_interface['problem_train'].get('num_subseq_max')}})
-
-    if FLAGS.episode_train != None:
-        # load the trained model
-        model_file_name = FLAGS.input_dir + '/models/model_parameters_episode_{:05d}'.format(FLAGS.episode_train)
-    else:
-        model_file_name = glob(FLAGS.input_dir + '/models/model_parameters_episode_*')[-1]
-
-    if not os.path.isfile(model_file_name):
-        print('Model path {} does not exist'.format(model_file_name))
-        exit(-3)
-
-    model.load_state_dict(
-        torch.load(model_file_name,
-                   map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
-    )
-
-    problem = ProblemFactory.build_problem(param_interface['problem_test'])
-    with torch.no_grad():
-        for episode, (inputs, unmasked_target, mask) in enumerate(problem.return_generator()):
-
-            # apply the trained model
-            unmasked_output = model(inputs)
-
-            if param_interface['settings']['use_mask']:
-                output = unmasked_output[:, mask[0], :]
-                target = unmasked_target[:, mask[0], :]
-            else:
-                output = unmasked_output
-                target = unmasked_target
-
-            loss = criterion(output, target)
-
-            output = F.sigmoid(output)
-
-            # test accuracy
-            output = torch.round(output)
-            acc = 1 - torch.abs(output-target)
-            accuracy = acc.mean()
-            format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Test on worst train sequence]'
-            logger.info(format_str.format(episode, accuracy, loss, unmasked_target.size(1)))
-            # plot data
-            # show_sample(output, targets, mask)
-
-            format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
-            format_str = format_str + '\n'
-            test_train_file.write(format_str.format(episode, accuracy, loss, unmasked_target.size(1)))
-
-            break  # Do only one episode

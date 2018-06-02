@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from utils import augment, add_ctrl
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
-from algorithmic_sequential_problem import DataTuple
+from algorithmic_sequential_problem import DataTuple, AuxTuple
 
 @AlgorithmicSequentialProblem.register
 class DistractionForget(AlgorithmicSequentialProblem):
@@ -98,7 +98,10 @@ class DistractionForget(AlgorithmicSequentialProblem):
         target_with_dummies[:, mask[0], :] = target
 
         # Return data tuple.
-        return DataTuple(inputs, target_with_dummies, mask)
+        data_tuple = DataTuple(inputs, target_with_dummies)
+        aux_tuple = AuxTuple(mask)
+
+        return data_tuple, aux_tuple
 
     # method for changing the maximum length, used mainly during curriculum learning
     def set_max_length(self, max_length):
@@ -116,13 +119,8 @@ if __name__ == "__main__":
     # Get generator
     generator = problem.return_generator()
     # Get batch.
-    (x, y, mask) = next(generator)
+    data_tuple,  aux_tuple = next(generator)
     # Display single sample (0) from batch.
-    problem.show_sample(x, y, mask)
-
-
-
-
-
-
+    problem.show_sample(data_tuple, aux_tuple)
+ 
 
