@@ -24,7 +24,7 @@ class FfGruModule(nn.Module):
         self.input_size = input_size
 
         # reading mechanism
-        self.fc_context = nn.Linear(self.center_size, self.context_input_size)
+        self.fc_context = nn.utils.weight_norm(nn.Linear(self.center_size, self.context_input_size), name='weight')
 
         # FeedForward & GRU
         self.input_context_size = self.input_size + self.context_input_size
