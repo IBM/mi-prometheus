@@ -16,6 +16,14 @@ _DataTuple = collections.namedtuple('DataTuple', ('inputs', 'targets'))
 class DataTuple(_DataTuple):
     """Tuple used by storing batches of data by data generators"""
     __slots__ = ()
+
+
+_AuxTuple = collections.namedtuple('AuxTuple', ('mask'))
+
+
+class AuxTuple(_AuxTuple):
+    """Tuple used by storing batches of data by data generators"""
+    __slots__ = ()
     
 class VisionProblem(metaclass=abc.ABCMeta):
     ''' Abstract base class for algorithmic, sequential problems. Provides some basic functionality usefull in all problems of such type'''
@@ -31,7 +39,7 @@ class VisionProblem(metaclass=abc.ABCMeta):
         : returns: A tuple: input with shape [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS], output 
         """
         # Create "generator".
-        return self.generate_batch()
+        yield self.generate_batch()
 
     def evaluate_loss_accuracy(self, logits, data_tuple):
 

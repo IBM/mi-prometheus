@@ -30,6 +30,9 @@ class ModelFactory(object):
         if name == 'dwm':
             from models.dwm.dwm_layer import DWM
             return DWM(params)
+        elif name == 'vision':
+            from models.vision.cnn_layer import Net
+            return Net()
         elif name == 'lstm':
             from models.lstm.layer import LSTM
             return LSTM(params)

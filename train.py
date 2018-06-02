@@ -30,7 +30,8 @@ from problems.problem_factory import ProblemFactory
 from utils_training import forward_step
 use_CUDA = False
 
-def save_model(model, episode,   model_dir):
+
+def save_model(model, episode, model_dir):
     """
     Function saves the model..
 
@@ -39,6 +40,7 @@ def save_model(model, episode,   model_dir):
     model_filename = 'model_parameters_episode_{:05d}'.format(episode)
     torch.save(model.state_dict(), model_dir + model_filename)
     logger.info("Model exported")
+
 
 def validation(model, problem, data_valid, aux_valid,  FLAGS, logger, validation_file,
                validation_writer):

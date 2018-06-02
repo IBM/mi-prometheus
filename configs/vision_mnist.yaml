@@ -1,6 +1,6 @@
 # Problem parameters:
 problem_train:
-    name: &name vision/mnist
+    name: &name mnist
     # Size of generated input: [batch_size x sequence_length x number of control and data bits].
     batch_size: 1
     start_index: 0
@@ -24,7 +24,7 @@ problem_validation:
 
 # Model parameters:
 model:
-    name: alexnet   # dynamic_working_memory
+    name: vision   # dynamic_working_memory
     # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
 
