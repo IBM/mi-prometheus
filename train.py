@@ -27,34 +27,8 @@ from misc.param_interface import ParamInterface
 
 # Import problems factory and data tuple.
 from problems.problem_factory import ProblemFactory
-from problems.vision.vision_problem import DataTuple
-
-use_CUDA = False
-
-
-def forward_step(model, data_tuple,  use_mask,  problem):
-    """ Function performs a single forward step.
-
-    :returns: logits, loss and accuracy (former using provided criterion)
-    """
-    # Unpack the data tuple.
-    (inputs, targets, mask) = data_tuple
-
-    if use_CUDA:
-        inputs = inputs.cuda()
-        targets = targets.cuda()
-        mask = mask.cuda()
-        data_tuple = (inputs, targets, mask)
-
-    # 1. Perform forward calculation.
-    logits = model(inputs, targets)
-
-    loss, accuracy = problem.evaluate_loss_accuracy(logits, data_tuple, use_mask)
-    # Return tuple: logits, loss, accuracy.
-    return logits, loss, accuracy
-
 from utils_training import forward_step
-
+use_CUDA = False
 
 def save_model(model, episode,   model_dir):
     """
