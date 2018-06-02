@@ -64,7 +64,10 @@ class DWM(ModelBase, nn.Module):
         seq_length = inputs.size(1)
 
         if self.memory_addresses_size == -1:
-            memory_addresses_size = seq_length  # a hack for now
+            if seq_length < self.num_shift:
+                memory_addresses_size = self.num_shift  # memory size can't be smaller than num_shift (see circular_convolution implementation)
+            else:
+                memory_addresses_size = seq_length  # a hack for now
         else:
             memory_addresses_size = self.memory_addresses_size
 

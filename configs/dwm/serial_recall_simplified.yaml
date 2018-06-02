@@ -4,7 +4,7 @@ problem_train:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 1
     data_bits: &dbits 8
-    batch_size: 1
+    batch_size: 32
     # Parameters denoting min and max lengths. 
     min_sequence_length: 1
     max_sequence_length: 10
@@ -22,10 +22,10 @@ problem_test:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 1
+    batch_size: 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 1
-    max_sequence_length: 10
+    min_sequence_length: 1000
+    max_sequence_length: 1000
     bias: 0.5
 
 # Problem parameters:
@@ -34,10 +34,10 @@ problem_validation:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 10
+    batch_size: 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 60
-    max_sequence_length: 60
+    min_sequence_length: 100
+    max_sequence_length: 100
     bias: 0.5
 
 # Model parameters:
