@@ -24,7 +24,8 @@ _AuxTuple = collections.namedtuple('AuxTuple', ('mask'))
 class AuxTuple(_AuxTuple):
     """Tuple used by storing batches of data by data generators"""
     __slots__ = ()
-    
+
+
 class VisionProblem(metaclass=abc.ABCMeta):
     ''' Abstract base class for algorithmic, sequential problems. Provides some basic functionality usefull in all problems of such type'''
 
@@ -39,9 +40,10 @@ class VisionProblem(metaclass=abc.ABCMeta):
         : returns: A tuple: input with shape [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS], output 
         """
         # Create "generator".
-        yield self.generate_batch()
+        while True:
+            yield self.generate_batch()
 
-    def evaluate_loss_accuracy(self, logits, data_tuple):
+    def evaluate_loss_accuracy(self, logits, data_tuple, aux_tuple):
 
         self.criterion = nn.CrossEntropyLoss()
 
@@ -53,7 +55,11 @@ class VisionProblem(metaclass=abc.ABCMeta):
         loss = self.criterion(logits, targets)
 
         # Calculate accuracy.
-        accuracy = (1 - torch.abs(torch.round(F.sigmoid(logits)) - targets)).mean()
+        pred = logits.max(1, keepdim=True)[1]  # get the index of the max log-probability
+        correct = pred.eq(targets.view_as(pred)).sum().item()
+
+        batch_size = 64 # temporary
+        accuracy = 100. * correct / batch_size
 
         return loss, accuracy
 
