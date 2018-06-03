@@ -3,6 +3,8 @@
 """algorithmic_sequential_problem.py: abstract base class for algorithmic, sequential problems"""
 __author__      = "Tomasz Kornuta"
 
+import matplotlib
+matplotlib.use('agg')
 import abc
 import collections
 import numpy as np
@@ -12,7 +14,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from matplotlib import rc
-
+#matplotlib.use('Agg')
 
 _DataTuple = collections.namedtuple('DataTuple', ('inputs', 'targets',  'mask'))
 
