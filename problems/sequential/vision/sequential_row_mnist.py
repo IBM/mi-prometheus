@@ -1,12 +1,12 @@
 import torch
-from vision_problem import VisionProblem
-from vision_problem import DataTuple
+from sequential_vision_problem import SequentialVisionProblem
+from sequential_vision_problem import _AuxTuple
 from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 
 
-@VisionProblem.register
-class SequentialMnist(VisionProblem):
+@SequentialVisionProblem.register
+class SequentialRowMnist(SequentialVisionProblem):
     """
     Class generating sequences sequential mnist
     """
@@ -47,12 +47,11 @@ class SequentialMnist(VisionProblem):
         train_loader = iter(train_loader)
 
         # create mask
-        #mask = torch.zeros(self.num_rows)
-        #mask[-1] = 1
-        #self.mask = mask
+        mask = torch.zeros(self.num_rows)
+        mask[-1] = 1
 
         # train_loader a generator: (data, label)
-        return train_loader
+        return next(train_loader), _AuxTuple(mask)
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
@@ -60,13 +59,15 @@ if __name__ == "__main__":
     # "Loaded parameters".
     params = {'batch_size': 1, 'start_index': 0, 'stop_index': 54999}
     # Create problem object.
-    problem = SequentialMnist(params)
+    problem = SequentialRowMnist(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
     num_rows = 28
     num_columns = 28
     sample = 0
-    x, y = next(generator)
+    data_tuple, _ = next(generator)
+    x, y = data_tuple
+
     # Display single sample (0) from batch.
     problem.show_sample(x[sample, 0], y)
