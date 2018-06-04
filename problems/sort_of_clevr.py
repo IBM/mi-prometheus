@@ -10,6 +10,7 @@ import os
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+import cv2
 
 from subprocess import call
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
@@ -60,7 +61,7 @@ class Sort_of_clevr(AlgorithmicSequentialProblem):
     I didn't have time to rewrite it. """
     def load_data(self):
         print('loading data...')
-        dirs = './sort_of_clevr'
+        dirs = './sort_of_clevr/data/'
         filename = os.path.join(dirs, 'sort-of-clevr.pickle')
         with open(filename, 'rb') as f:
             train_datasets, test_datasets = pickle.load(f)

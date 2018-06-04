@@ -6,8 +6,6 @@ __author__ = "Tomasz Kornuta"
 import torch 
 import logging
 import numpy as np
-import io
-import pickle
 
 # Add path to main project directory.
 import os,  sys
@@ -49,12 +47,19 @@ class NTM(ModelBase, torch.nn.Module):
 
     def forward(self, data_tuple):
         """
-        Forward function accepts a Tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and 
-        outputs a Tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] . 
-        """
-        (inputs_BxSxI, targets) = data_tuple
+        Forward function accepts a tuple consisting of :
+         - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and 
+         - a tensor of targets
 
- 
+		:raturns: Predictions being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] . 
+        """
+
+		# Unpack data tuple.
+        (inputs_BxSxI, targets) = data_tuple
+        
+        # Check whether inputs are already on GPU or not.
+        dtype = torch.cuda.FloatTensor if inputs_BxSxI.is_cuda else torch.FloatTensor
+
         # "Data-driven memory size".
         # Save as TEMPORAL VARIABLE! 
         # (do not overwrite self.num_memory_addresses, which will cause problem with next batch!)
@@ -65,7 +70,7 @@ class NTM(ModelBase, torch.nn.Module):
             num_memory_addresses = self.num_memory_addresses
             
         # Initialize 'zero' state.
-        cell_state = self.ntm_cell.init_state(inputs_BxSxI.size(0),  num_memory_addresses)
+        cell_state = self.ntm_cell.init_state(inputs_BxSxI.size(0),  num_memory_addresses,  dtype)
 
         # List of output logits [BATCH_SIZE x OUTPUT_SIZE] of length SEQ_LENGTH
         output_logits_BxO_S = []
@@ -91,13 +96,12 @@ class NTM(ModelBase, torch.nn.Module):
 
         return output_logits_BxSxO
 
-
-    def pickle_memory_attention_figure_template(self):
+    def generate_memory_attention_figure_layout(self):
         """
         Creates a figure template for showing basic NTM attributes (write & write attentions), 
         memory and sequence (inputs, predictions and targets).
         
-        :returns: IO byte buffer containing pickled template.
+        :returns: Matplot figure object.
         """
         from matplotlib.figure import Figure
         import matplotlib.ticker as ticker
@@ -110,7 +114,6 @@ class NTM(ModelBase, torch.nn.Module):
         # Prepare "generic figure template".
         # Create figure object.
         fig = Figure()
-        #axes = fig.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={'width_ratios': [input_seq.shape[0]]})
         
         # Create a specific grid for NTM .
         gs = gridspec.GridSpec(3, 7)
@@ -128,7 +131,7 @@ class NTM(ModelBase, torch.nn.Module):
         for ax in fig.axes:
             ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
             ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        
+            ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
         # Set labels.
         ax_inputs.set_title('Inputs') 
@@ -148,33 +151,33 @@ class NTM(ModelBase, torch.nn.Module):
         ax_read_attention.set_title('Read Attention') 
         ax_read_attention.set_xlabel('Iteration')
         
-        # Create buffer and pickle the figure.
-        buf = io.BytesIO()
-        pickle.dump(fig, buf)
-    
-        return buf
+        fig.set_tight_layout(True)
+        return fig
 
-    def plot_memory_attention_sequence(self, output_seq, data_tuple):
+    def plot_memory_attention_sequence(self, data_tuple, predictions_seq):
         """ Creates list of figures used in interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
         The visualization presents input, output and target sequences passed as input parameters.
         Additionally, it utilizes state tuples collected during the experiment for displaying the memory state, read and write attentions.
         
-        :param input_seq: Inputs.
-        :param output_seq: Predictions.
-        :param target_seq: Targets.
+        :param data_tuple: Tuple containing input and target sequences.
+        :param predictions_seq: Prediction sequence.
         """
-        #import time
-        #start_time = time.time()
-        input_seq = data_tuple.inputs[0].cpu().detach().numpy()
-        target_seq = data_tuple.targets[0].cpu().detach().numpy()
-        output_seq = output_seq[0].cpu().detach().numpy()
+        # import time
+        # start_time = time.time()
         # Create figure template.
-        buf = self.pickle_memory_attention_figure_template()
+        fig = self.generate_memory_attention_figure_layout()
+        # Get axes that artists will draw on.
+        (ax_memory,  ax_write_attention,  ax_read_attention,  ax_inputs,  ax_targets,  ax_predictions) = fig.axes
         
+		# Unpack data tuple.
+        inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
+        targets_seq = data_tuple.targets[0].cpu().detach().numpy()
+        predictions_seq = predictions_seq[0].cpu().detach().numpy()
+
         # Set intial values of displayed  inputs, targets and predictions - simply zeros.
-        inputs_displayed = np.transpose(np.zeros(input_seq.shape))
-        targets_displayed = np.transpose(np.zeros(target_seq.shape))
-        predictions_displayed = np.transpose(np.zeros(output_seq.shape))
+        inputs_displayed = np.transpose(np.zeros(inputs_seq.shape))
+        targets_displayed = np.transpose(np.zeros(targets_seq.shape))
+        predictions_displayed = np.transpose(np.zeros(predictions_seq.shape))
         
         # Set initial values of memory and attentions.
         # Unpack initial state.
@@ -182,28 +185,25 @@ class NTM(ModelBase, torch.nn.Module):
        
        # Initialize "empty" matrices.
         memory_displayed = memory_state[0]
-        read0_attention_displayed = np.zeros((memory_state.shape[1],  target_seq.shape[0]))
-        write_attention_displayed = np.zeros((memory_state.shape[1],  target_seq.shape[0]))
+        read0_attention_displayed = np.zeros((memory_state.shape[1],  targets_seq.shape[0]))
+        write_attention_displayed = np.zeros((memory_state.shape[1],  targets_seq.shape[0]))
  
         # Log sequence length - so the user can understand what is going on.
         logger = logging.getLogger('ModelBase')
-        logger.info("Generating dynamic visualization of {} figures, please wait...".format(input_seq.shape[0]))
-        # List of figures.
-        figs = []
-        for i, (input_element, output_elementd, target_element,  cell_state) in enumerate(zip(input_seq, output_seq, target_seq,  self.cell_state_history)):
+        logger.info("Generating dynamic visualization of {} figures, please wait...".format(inputs_seq.shape[0]))
+
+        # Create frames - a list of lists, where each row is a list of artists used to draw a given frame.
+        frames = []
+
+        for i, (input_element, target_element,  prediction_element,  cell_state) in enumerate(zip(inputs_seq, targets_seq,  predictions_seq,  self.cell_state_history)):
             # Display information every 10% of figures.
-            if (input_seq.shape[0] > 10) and (i % (input_seq.shape[0]//10) == 0):
-                logger.info("Generating figure {}/{}".format(i, input_seq.shape[0]))
-                 
-           # Create figure object on the basis of template.
-            buf.seek(0)
-            fig = pickle.load(buf) 
-            (ax_memory,  ax_write_attention,  ax_read_attention,  ax_inputs,  ax_targets,  ax_predictions) = fig.axes
- 
+            if (inputs_seq.shape[0] > 10) and (i % (inputs_seq.shape[0]//10) == 0):
+                logger.info("Generating figure {}/{}".format(i, inputs_seq.shape[0]))
+                  
             # Update displayed values on adequate positions.
             inputs_displayed[:, i] = input_element
             targets_displayed[:, i] = target_element
-            predictions_displayed[:, i] = output_elementd
+            predictions_displayed[:, i] = prediction_element
 
             # Unpack cell state.
             (ctrl_state,  interface_state,  memory_state,  read_vectors) = cell_state
@@ -217,30 +217,33 @@ class NTM(ModelBase, torch.nn.Module):
             read0_attention_displayed[:, i] = read_attentions[0][0][:, 0].detach().numpy()
             write_attention_displayed[:, i] = write_attention[0][:, 0].detach().numpy()
            
-           # "Show" data on "axes".
-            ax_memory.imshow(memory_displayed, interpolation='nearest', aspect='auto')
-            ax_read_attention.imshow(read0_attention_displayed, interpolation='nearest', aspect='auto')
-            ax_write_attention.imshow(write_attention_displayed, interpolation='nearest', aspect='auto')
-            ax_inputs.imshow(inputs_displayed, interpolation='nearest', aspect='auto')
-            ax_targets.imshow(targets_displayed, interpolation='nearest', aspect='auto')
-            ax_predictions.imshow(predictions_displayed, interpolation='nearest', aspect='auto')
+            # Create "Artists" drawing data on "ImageAxes".
+            artists = [None] * len( fig.axes)
             
-            # Append figure to a list.
-            fig.set_tight_layout(True)
-            figs.append(fig)
+           # "Show" data on "axes".
+            artists[0] = ax_memory.imshow(memory_displayed, interpolation='nearest', aspect='auto')
+            artists[1] = ax_read_attention.imshow(read0_attention_displayed, interpolation='nearest', aspect='auto')
+            artists[2] = ax_write_attention.imshow(write_attention_displayed, interpolation='nearest', aspect='auto')
+            artists[3] = ax_inputs.imshow(inputs_displayed, interpolation='nearest', aspect='auto')
+            artists[4] = ax_targets.imshow(targets_displayed, interpolation='nearest', aspect='auto')
+            artists[5] = ax_predictions.imshow(predictions_displayed, interpolation='nearest', aspect='auto')
+            
+            # Add "frame".
+            frames.append(artists)
 
-        #print("--- %s seconds ---" % (time.time() - start_time))
-        # Update time plot fir generated list of figures.
-        self.plot.update(figs)
+        # print("--- %s seconds ---" % (time.time() - start_time))
+        # Plot figure and list of frames.
+        
+        self.plot.update(fig,  frames)
         return self.plot.is_closed
 
 
-    def pickle_memory_all_model_params_figure_template(self):
+    def generate_memory_all_model_params_figure_layout(self):
         """
         Creates a figure template for showing all NTM attributes (write & write attentions, gates, convolution masks), 
         along with memory and sequence (inputs, predictions and targets).
         
-        :returns: IO byte buffer containing pickled template.
+        :returns: Matplot figure object.
         """
         from matplotlib.figure import Figure
         import matplotlib.ticker as ticker
@@ -309,30 +312,36 @@ class NTM(ModelBase, torch.nn.Module):
         ax_read_attention.set_title('Read Attention') 
         ax_read_similarity.set_title('Read Similarity') 
         
-        # Create buffer and pickle the figure.
-        buf = io.BytesIO()
-        pickle.dump(fig, buf)
-    
-        return buf
+        fig.set_tight_layout(True)
+        return fig
 
-    def plot_memory_all_model_params_sequence(self, input_seq, output_seq, target_seq):
+    def plot_memory_all_model_params_sequence(self, data_tuple, predictions_seq):
         """ Creates list of figures used in interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
         The visualization presents input, output and target sequences passed as input parameters.
         Additionally, it utilizes state tuples collected during the experiment for displaying the memory state, read and write attentions.
         
-        :param input_seq: Inputs.
-        :param output_seq: Predictions.
-        :param target_seq: Targets.
+        :param data_tuple: Tuple containing input and target sequences.
+        :param predictions_seq: Prediction sequence.
         """
-        #import time
-        #start_time = time.time()
+        # import time
+        # start_time = time.time()
         # Create figure template.
-        buf = self.pickle_memory_all_model_params_figure_template()
+        fig = self.generate_memory_all_model_params_figure_layout()
+        # Get axes that artists will draw on.
+        (ax_memory,  
+            ax_write_gate,  ax_write_shift,  ax_write_attention,  ax_write_similarity,  
+            ax_read_gate,  ax_read_shift,  ax_read_attention,  ax_read_similarity,  
+            ax_inputs,  ax_targets,  ax_predictions) = fig.axes
+ 
+		# Unpack data tuple.
+        inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
+        targets_seq = data_tuple.targets[0].cpu().detach().numpy()
+        predictions_seq = predictions_seq[0].cpu().detach().numpy()
         
         # Set intial values of displayed  inputs, targets and predictions - simply zeros.
-        inputs_displayed = np.transpose(np.zeros(input_seq.shape))
-        targets_displayed = np.transpose(np.zeros(target_seq.shape))
-        predictions_displayed = np.transpose(np.zeros(output_seq.shape))
+        inputs_displayed = np.transpose(np.zeros(inputs_seq.shape))
+        targets_displayed = np.transpose(np.zeros(targets_seq.shape))
+        predictions_displayed = np.transpose(np.zeros(predictions_seq.shape))
         
         # Set initial values of memory and attentions.
         # Unpack initial state.
@@ -342,39 +351,33 @@ class NTM(ModelBase, torch.nn.Module):
      
        # Initialize "empty" matrices.
         memory_displayed = memory_state[0]
-        read0_attention_displayed = np.zeros((memory_state.shape[1],  target_seq.shape[0]))
-        read0_similarity_displayed = np.zeros((memory_state.shape[1],  target_seq.shape[0]))
-        read0_gate_displayed = np.zeros((write_gate.shape[1],  target_seq.shape[0]))
-        read0_shift_displayed = np.zeros((write_shift.shape[1],  target_seq.shape[0]))
+        read0_attention_displayed = np.zeros((memory_state.shape[1],  targets_seq.shape[0]))
+        read0_similarity_displayed = np.zeros((memory_state.shape[1],  targets_seq.shape[0]))
+        read0_gate_displayed = np.zeros((write_gate.shape[1],  targets_seq.shape[0]))
+        read0_shift_displayed = np.zeros((write_shift.shape[1],  targets_seq.shape[0]))
         
-        write_attention_displayed = np.zeros((memory_state.shape[1],  target_seq.shape[0]))
-        write_similarity_displayed = np.zeros((memory_state.shape[1],  target_seq.shape[0]))
+        write_attention_displayed = np.zeros((memory_state.shape[1],  targets_seq.shape[0]))
+        write_similarity_displayed = np.zeros((memory_state.shape[1],  targets_seq.shape[0]))
         # Generally we can use write shapes as are the same.
-        write_gate_displayed = np.zeros((write_gate.shape[1],  target_seq.shape[0]))
-        write_shift_displayed = np.zeros((write_shift.shape[1],  target_seq.shape[0]))
+        write_gate_displayed = np.zeros((write_gate.shape[1],  targets_seq.shape[0]))
+        write_shift_displayed = np.zeros((write_shift.shape[1],  targets_seq.shape[0]))
        
         # Log sequence length - so the user can understand what is going on.
         logger = logging.getLogger('ModelBase')
-        logger.info("Generating dynamic visualization of {} figures, please wait...".format(input_seq.shape[0]))
-        # List of figures.
-        figs = []
-        for i, (input_element, output_elementd, target_element,  cell_state) in enumerate(zip(input_seq, output_seq, target_seq,  self.cell_state_history)):
+        logger.info("Generating dynamic visualization of {} figures, please wait...".format(inputs_seq.shape[0]))
+
+        # Create frames - a list of lists, where each row is a list of artists used to draw a given frame.
+        frames = []
+   
+        for i, (input_element, target_element,  prediction_element,  cell_state) in enumerate(zip(inputs_seq, targets_seq,  predictions_seq,  self.cell_state_history)):
             # Display information every 10% of figures.
-            if (input_seq.shape[0] > 10) and (i % (input_seq.shape[0]//10) == 0):
-                logger.info("Generating figure {}/{}".format(i, input_seq.shape[0]))
-                 
-           # Create figure object on the basis of template.
-            buf.seek(0)
-            fig = pickle.load(buf) 
-            (ax_memory,  
-                ax_write_gate,  ax_write_shift,  ax_write_attention,  ax_write_similarity,  
-                ax_read_gate,  ax_read_shift,  ax_read_attention,  ax_read_similarity,  
-                ax_inputs,  ax_targets,  ax_predictions) = fig.axes
+            if (inputs_seq.shape[0] > 10) and (i % (inputs_seq.shape[0]//10) == 0):
+                logger.info("Generating figure {}/{}".format(i, inputs_seq.shape[0]))
  
             # Update displayed values on adequate positions.
             inputs_displayed[:, i] = input_element
             targets_displayed[:, i] = target_element
-            predictions_displayed[:, i] = output_elementd
+            predictions_displayed[:, i] = prediction_element
 
             # Unpack cell state.
             (ctrl_state,  interface_state,  memory_state,  read_vectors) = cell_state
@@ -396,36 +399,37 @@ class NTM(ModelBase, torch.nn.Module):
             write_gate_displayed[:, i] = write_gate[0][:, 0].detach().numpy()
             write_shift_displayed[:, i] = write_shift[0][:, 0].detach().numpy()
 
+            # Create "Artists" drawing data on "ImageAxes".
+            artists = [None] * len( fig.axes)
+            
             # "Show" data on "axes".
-            ax_memory.imshow(memory_displayed, interpolation='nearest', aspect='auto')
+            artists[0] = ax_memory.imshow(memory_displayed, interpolation='nearest', aspect='auto')
             
             # Read head.
-            ax_read_attention.imshow(read0_attention_displayed, interpolation='nearest', aspect='auto')
-            ax_read_similarity.imshow(read0_similarity_displayed, interpolation='nearest', aspect='auto')
-            ax_read_gate.imshow(read0_gate_displayed, interpolation='nearest', aspect='auto')
-            ax_read_shift.imshow(read0_shift_displayed, interpolation='nearest', aspect='auto')
+            artists[1] = ax_read_attention.imshow(read0_attention_displayed, interpolation='nearest', aspect='auto')
+            artists[2] = ax_read_similarity.imshow(read0_similarity_displayed, interpolation='nearest', aspect='auto')
+            artists[3] = ax_read_gate.imshow(read0_gate_displayed, interpolation='nearest', aspect='auto')
+            artists[4] = ax_read_shift.imshow(read0_shift_displayed, interpolation='nearest', aspect='auto')
             
             # Write head.
-            ax_write_attention.imshow(write_attention_displayed, interpolation='nearest', aspect='auto')
-            ax_write_similarity.imshow(write_similarity_displayed, interpolation='nearest', aspect='auto')
-            ax_write_gate.imshow(write_gate_displayed, interpolation='nearest', aspect='auto')
-            ax_write_shift.imshow(write_shift_displayed, interpolation='nearest', aspect='auto')
+            artists[5] = ax_write_attention.imshow(write_attention_displayed, interpolation='nearest', aspect='auto')
+            artists[6] = ax_write_similarity.imshow(write_similarity_displayed, interpolation='nearest', aspect='auto')
+            artists[7] = ax_write_gate.imshow(write_gate_displayed, interpolation='nearest', aspect='auto')
+            artists[8] = ax_write_shift.imshow(write_shift_displayed, interpolation='nearest', aspect='auto')
             
             # "Default data".
-            ax_inputs.imshow(inputs_displayed, interpolation='nearest', aspect='auto')
-            ax_targets.imshow(targets_displayed, interpolation='nearest', aspect='auto')
-            ax_predictions.imshow(predictions_displayed, interpolation='nearest', aspect='auto')
+            artists[9] = ax_inputs.imshow(inputs_displayed, interpolation='nearest', aspect='auto')
+            artists[10] = ax_targets.imshow(targets_displayed, interpolation='nearest', aspect='auto')
+            artists[11] = ax_predictions.imshow(predictions_displayed, interpolation='nearest', aspect='auto')
             
-            # Append figure to a list.
-            fig.set_tight_layout(True)
-            figs.append(fig)
+            # Add "frame".
+            frames.append(artists)
 
-        #print("--- %s seconds ---" % (time.time() - start_time))
-        # Update time plot fir generated list of figures.
-        self.plot.update(figs)
+        # print("--- %s seconds ---" % (time.time() - start_time))
+        # Plot figure and list of frames.
+        
+        self.plot.update(fig,  frames)
         return self.plot.is_closed
-
-
 
 
 if __name__ == "__main__":

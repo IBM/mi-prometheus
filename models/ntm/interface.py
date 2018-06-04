@@ -14,7 +14,7 @@ logger = logging.getLogger('NTM-Interface')
 # Add path to main project directory.
 import os,  sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
-from misc.app_state import AppState
+#from misc.app_state import AppState
 
 
 # Helper collection type.
@@ -85,26 +85,27 @@ class Interface(torch.nn.Module):
        # Forward linear layer that generates parameters of write heads.
         self.hidden2write_params = torch.nn.Linear(self.ctrl_hidden_state_size,  num_write_params)
 
-    def init_state(self,  batch_size,  num_memory_addresses):
+    def init_state(self,  batch_size,  num_memory_addresses,  dtype):
         """
         Returns 'zero' (initial) state tuple.
         
         :param batch_size: Size of the batch in given iteraction/epoch.
         :param num_memory_addresses: Number of memory addresses.
-        :returns: Initial state tuple - object of InterfaceStateTuple class.
+         :param dtype: dtype of the matrix denoting the device placement (CPU/GPU).
+       :returns: Initial state tuple - object of InterfaceStateTuple class.
         """
         # Add read head states - one for each read head.
         read_state_tuples = []
 
         # Initial  attention weights [BATCH_SIZE x MEMORY_ADDRESSES x 1]
         # Normalize through division by number of addresses.
-        #init_attentions.append(torch.ones((batch_size, num_memory_addresses,  1), dtype=torch.float)/num_memory_addresses)
+        #init_attentions.append(torch.ones(batch_size, num_memory_addresses,  1).type(dtype)/num_memory_addresses)
 
         # Zero-hard attention.
-        zh_attention = torch.zeros((batch_size, num_memory_addresses,  1), dtype=torch.float)
+        zh_attention = torch.zeros(batch_size, num_memory_addresses,  1).type(dtype)
         zh_attention[:, 0, 0] = 1
-        init_gating = torch.zeros((batch_size, 1,  1), dtype=torch.float)
-        init_shift = torch.zeros((batch_size, self.interface_shift_size,  1), dtype=torch.float)
+        init_gating = torch.zeros(batch_size, 1,  1).type(dtype)
+        init_shift = torch.zeros(batch_size, self.interface_shift_size,  1).type(dtype)
         init_shift[:, 1, 0] = 1
 
         for _ in range(self.interface_num_read_heads):
@@ -229,12 +230,14 @@ class Interface(torch.nn.Module):
         gate_Bx1x1 = F.sigmoid(gate_Bx1).unsqueeze(2)
         # Produce location-addressing params.
         shift_BxSx1_tmp = F.softmax(shift_BxS, dim=1).unsqueeze(2)
-        # Truncate gamma to  range 1-50
+        # Gamma - oneplus.
         gamma_Bx1x1 =F.softplus(gamma_Bx1).unsqueeze(2) +1
+        # Truncate gamma to  range 1-50
         #gamma_Bx1x1 = torch.clamp(F.softplus(gamma_Bx1 + 1), 1, 50).unsqueeze(2)
 
         # HARD SHIFT! TODO: Remove!
-        shift_BxSx1 = torch.zeros_like(shift_BxSx1_tmp,  requires_grad= False)
+        dtype = torch.cuda.FloatTensor if shift_BxSx1_tmp.is_cuda else torch.FloatTensor
+        shift_BxSx1 = torch.zeros_like(shift_BxSx1_tmp,  requires_grad= False).type(dtype)
         shift_BxSx1[:, -1, 0] = 1
 
         # Content-based addressing.
@@ -320,6 +323,9 @@ class Interface(torch.nn.Module):
             elif idx >= num_addr : return idx - num_addr
             else: return idx
 
+        # Check whether inputs are already on GPU or not.
+        dtype = torch.cuda.LongTensor if attention_BxAx1.is_cuda else torch.LongTensor
+        
         # Get number of memory addresses and batch size.
         batch_size =prev_memory_BxAxC.size(0) 
         num_addr = prev_memory_BxAxC.size(1)
@@ -327,7 +333,7 @@ class Interface(torch.nn.Module):
         
         #logger.debug("shift_BxSx1 {}: {}".format(shift_BxSx1,  shift_BxSx1.size()))    
         # Create an extended list of indices indicating what elements of the sequence will be where.
-        ext_indices_tensor = torch.Tensor([circular_index(shift, num_addr) for shift in range(-shift_size//2+1,  num_addr+shift_size//2)]).long()
+        ext_indices_tensor = torch.Tensor([circular_index(shift, num_addr) for shift in range(-shift_size//2+1,  num_addr+shift_size//2)]).type(dtype)
         #logger.debug("ext_indices {}:\n {}".format(ext_indices_tensor.size(),  ext_indices_tensor))
     
         # Use indices for creation of an extended attention vector.

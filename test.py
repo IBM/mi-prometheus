@@ -3,12 +3,8 @@ import os
 os.environ["OMP_NUM_THREADS"] = '1'
 
 import torch
-from torch import nn
-import torch.nn.functional as F
 import argparse
 import yaml
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import numpy as np
 from glob import glob
 
@@ -35,6 +31,10 @@ use_CUDA=False
 
 def show_sample(prediction, target, mask, sample_number=0):
     """ Shows the sample (both input and target sequences) using matplotlib."""
+    
+    import matplotlib.pyplot as plt
+    import matplotlib.ticker as ticker
+    
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
     # Set ticks.
     ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
@@ -54,9 +54,7 @@ def show_sample(prediction, target, mask, sample_number=0):
     ax2.imshow(np.transpose((target[sample_number, :, :]).detach().numpy(), [1, 0]))
 
     plt.show()
-
     # Plot!
-
 
 if __name__ == '__main__':
     # Create parser with list of  runtime arguments.
@@ -78,7 +76,7 @@ if __name__ == '__main__':
     print(FLAGS.episode)
     # Check if input directory was selected.
     if FLAGS.input_dir == '':
-        print('Please pass input path folder as -i parameter')
+        print('Please pass input path folder as --i parameter')
         exit(-1)
 
     # Check if file exists.
@@ -170,7 +168,7 @@ if __name__ == '__main__':
             test_file.write(format_str.format(episode, accuracy, loss, logits.size(1)))
 
             if app_state.visualize:
-                is_closed = model.plot_sequence(logits, data_tuple)
+                is_closed = model.plot_sequence(data_tuple,  logits)
                 if is_closed:
                     break
             else:

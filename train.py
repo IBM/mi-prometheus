@@ -76,7 +76,7 @@ def validation(model, problem, data_valid, aux_valid,  FLAGS, logger, validation
     # Visualization of validation.
     if AppState().visualize:
         # True means that we should terminate
-        return loss_valid,  model.plot_sequence(logits_valid, data_valid)
+        return loss_valid,  model.plot_sequence(data_valid,  logits_valid)
     # Else simply return false, i.e. continue training.
     return loss_valid, False
 
@@ -118,7 +118,7 @@ if __name__ == '__main__':
     parser.add_argument('--agree', dest='confirm', action='store_true',
                         help='Request user confirmation just after loading the settings, before starting training  (Default: False)')
     parser.add_argument('--config', dest='config', type=str, default='',
-                        help='Name of the task configuration file to be loaded')
+                        help='Name of the configuration file to be loaded')
     parser.add_argument('--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2], type=int,
                         help="If present, log to TensorBoard. Log levels:\n"
                              "0: Just log the loss, accuracy, and seq_len\n"
@@ -141,11 +141,11 @@ if __name__ == '__main__':
 
     # Check if config file was selected.
     if FLAGS.config == '':
-        print('Please pass task configuration file as --c parameter')
+        print('Please pass configuration file as --c parameter')
         exit(-1)
     # Check if file exists.
     if not os.path.isfile(FLAGS.config):
-        print('Task configuration file {} does not exists'.format(FLAGS.config))
+        print('Configuration file {} does not exists'.format(FLAGS.config))
         exit(-2)
 
     # Read the YAML file.
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     model_name = param_interface['model']['name']
 
     # Prepare output paths for logging
-    path_root = "./checkpoints/"
+    path_root = "./experiments/"
     while True:  # Dirty fix: if log_dir already exists, wait for 1 second and try again
         try:
             time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
@@ -357,7 +357,7 @@ if __name__ == '__main__':
         # Check visualization of training data.
         if app_state.visualize:
             # Show plot, if user presses Quit - break.
-            if model.plot_sequence(logits, data_tuple):
+            if model.plot_sequence(data_tuple,  logits):
                 break
 
         #  5. Save the model then validate
