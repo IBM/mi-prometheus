@@ -1,6 +1,6 @@
 import torch
 from sequential_vision_problem import SequentialVisionProblem
-from sequential_vision_problem import _AuxTuple
+from sequential_vision_problem import AuxTuple
 from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 
@@ -51,7 +51,7 @@ class SequentialRowMnist(SequentialVisionProblem):
         mask[-1] = 1
 
         # train_loader a generator: (data, label)
-        return next(train_loader), _AuxTuple(mask)
+        return next(train_loader), AuxTuple(mask.type(torch.uint8))
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""

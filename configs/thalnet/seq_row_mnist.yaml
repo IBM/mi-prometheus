@@ -1,6 +1,6 @@
 # Problem parameters:
 problem_train:
-    name: &name sequential_mnist
+    name: &name sequential_row_mnist
     batch_size: &bs 64
     start_index: 0
     stop_index: 54999

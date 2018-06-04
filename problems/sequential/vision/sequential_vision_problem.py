@@ -39,7 +39,7 @@ class SequentialVisionProblem(metaclass=abc.ABCMeta):
         self.criterion = nn.CrossEntropyLoss()
 
         # create masked logits
-        masked_logits = logits[:, aux_tuple.mask[0], :]
+        masked_logits = logits[:, aux_tuple.mask, :][:, 0, :]
 
         # Unpack the data tuple.
         (_, targets) = data_tuple
@@ -49,7 +49,7 @@ class SequentialVisionProblem(metaclass=abc.ABCMeta):
         loss = self.criterion(masked_logits, targets)
 
         # Calculate accuracy.
-        pred = logits.max(1, keepdim=True)[1]  # get the index of the max log-probability
+        pred = masked_logits.max(1, keepdim=True)[1]  # get the index of the max log-probability
         correct = pred.eq(targets.view_as(pred)).sum().item()
 
         batch_size = 64 # temporary

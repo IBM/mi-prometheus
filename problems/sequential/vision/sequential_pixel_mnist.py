@@ -1,6 +1,6 @@
 import torch
 from sequential_vision_problem import SequentialVisionProblem
-from sequential_vision_problem import _AuxTuple
+from sequential_vision_problem import AuxTuple
 from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 
@@ -28,7 +28,7 @@ class SequentialPixelMnist(SequentialVisionProblem):
 
         # define transforms
         train_transform = transforms.Compose([
-            transforms.ToTensor(), transforms.Lambda(lambda x: x.view(-1, 1))])
+            transforms.ToTensor(), transforms.Lambda(lambda x: x.view(1, -1, 1))])
 
         # load the datasets
         train_datasets = datasets.MNIST(self.datasets_folder, train=True, download=True,
@@ -51,13 +51,13 @@ class SequentialPixelMnist(SequentialVisionProblem):
         mask[-1] = 1
 
         # train_loader a generator: (data, label)
-        return next(train_loader), _AuxTuple(mask)
+        return next(train_loader), AuxTuple(mask.type(torch.uint8))
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 1, 'start_index': 0, 'stop_index': 54999}
+    params = {'batch_size': 3, 'start_index': 0, 'stop_index': 54999}
     # Create problem object.
     problem = SequentialPixelMnist(params)
     # Get generator
@@ -69,5 +69,7 @@ if __name__ == "__main__":
     data_tuple, _ = next(generator)
     x, y = data_tuple
 
+    print(x.size())
+
     # Display single sample (0) from batch.
-    problem.show_sample(x[sample_num].reshape(num_rows, num_columns), y)
+    problem.show_sample(x[sample_num, 0].reshape(num_rows, num_columns), y)
