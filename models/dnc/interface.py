@@ -14,10 +14,6 @@ class InterfaceStateTuple(_InterfaceStateTuple):
     """Tuple used by interface for storing current/past state information"""
     __slots__ = ()
 
-CUDA = False
-dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
-
-
 class Interface:
     def __init__(self, params):
         """Initialize Interface.
@@ -119,10 +115,10 @@ class Interface:
         write_attention = torch.ones((batch_size, self._num_writes,  memory_address_size)).type(dtype)*1e-6
 
         # Usage of memory cells [BATCH_SIZE x MEMORY_SIZE]
-        usage = self.mem_usage.init_state(memory_address_size,  batch_size,dtype)
+        usage = self.mem_usage.init_state(memory_address_size,  batch_size, dtype)
         
         # temporal links tuple
-        link_tuple = self.temporal_linkage.init_state(memory_address_size,  batch_size,dtype)
+        link_tuple = self.temporal_linkage.init_state(memory_address_size,  batch_size, dtype)
 
         return InterfaceStateTuple(read_attention,  write_attention,usage,link_tuple)
 

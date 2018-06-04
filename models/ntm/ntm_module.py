@@ -47,12 +47,14 @@ class NTM(ModelBase, torch.nn.Module):
             pass
 
 
-    def forward(self, inputs_BxSxI, targets):
+    def forward(self, data_tuple):
         """
         Forward function accepts a Tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and 
         outputs a Tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] . 
         """
-        
+        (inputs_BxSxI, targets) = data_tuple
+
+ 
         # "Data-driven memory size".
         # Save as TEMPORAL VARIABLE! 
         # (do not overwrite self.num_memory_addresses, which will cause problem with next batch!)
@@ -152,7 +154,7 @@ class NTM(ModelBase, torch.nn.Module):
     
         return buf
 
-    def plot_memory_attention_sequence(self, input_seq, output_seq, target_seq):
+    def plot_memory_attention_sequence(self, output_seq, data_tuple):
         """ Creates list of figures used in interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
         The visualization presents input, output and target sequences passed as input parameters.
         Additionally, it utilizes state tuples collected during the experiment for displaying the memory state, read and write attentions.
@@ -163,6 +165,9 @@ class NTM(ModelBase, torch.nn.Module):
         """
         #import time
         #start_time = time.time()
+        input_seq = data_tuple.inputs[0].cpu().detach().numpy()
+        target_seq = data_tuple.targets[0].cpu().detach().numpy()
+        output_seq = output_seq[0].cpu().detach().numpy()
         # Create figure template.
         buf = self.pickle_memory_attention_figure_template()
         

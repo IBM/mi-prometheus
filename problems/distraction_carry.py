@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from utils import augment, add_ctrl
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem
-from algorithmic_sequential_problem import DataTuple
+from algorithmic_sequential_problem import DataTuple, AuxTuple
 
 
 @AlgorithmicSequentialProblem.register
@@ -63,7 +63,7 @@ class DistractionCarry(AlgorithmicSequentialProblem):
         y = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_lengths_b]
 
         # create the target
-        target = np.concatenate([y[-1]] + x, axis=1)
+        target_wo_dummies = np.concatenate([y[-1]] + x, axis=1)
 
         # add marker at the begging of x and dummies
         xx = [augment(seq, markers, ctrl_start=[1,0,0,0], add_marker_data=True, add_marker_dummy=False) for seq in x]
@@ -84,7 +84,7 @@ class DistractionCarry(AlgorithmicSequentialProblem):
 
         # PyTorch variables
         inputs = torch.from_numpy(inputs).type(self.dtype)
-        target = torch.from_numpy(target).type(self.dtype)
+        target_wo_dummies = torch.from_numpy(target_wo_dummies).type(self.dtype)
 
         # create the mask
         mask_all = inputs[:, :, 0:self.control_bits] == 1
@@ -96,11 +96,14 @@ class DistractionCarry(AlgorithmicSequentialProblem):
         inputs[:, mask[0], 0:self.control_bits] = 0
 
         # Create the target with the dummies
-        target_with_dummies = torch.zeros_like(inputs[:, :, self.control_bits:])
-        target_with_dummies[:, mask[0], :] = target
+        targets = torch.zeros_like(inputs[:, :, self.control_bits:])
+        targets[:, mask[0], :] = target_wo_dummies
 
         # Return data tuple.
-        return DataTuple(inputs, target_with_dummies, mask)
+        data_tuple = DataTuple(inputs, targets)
+        aux_tuple = AuxTuple(mask)
+
+        return data_tuple, aux_tuple
 
     # method for changing the maximum length, used mainly during curriculum learning
     def set_max_length(self, max_length):
@@ -119,9 +122,9 @@ if __name__ == "__main__":
     # Get generator
     generator = problem.return_generator()
     # Get batch.
-    (x, y, mask) = next(generator)
+    data_tuple,  aux_tuple = next(generator)
     # Display single sample (0) from batch.
-    problem.show_sample(x, y, mask)
+    problem.show_sample(data_tuple, aux_tuple)
 
 
 

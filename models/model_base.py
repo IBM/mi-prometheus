@@ -17,7 +17,7 @@ class ModelBase(object):
             from misc.time_plot import TimePlot
             self.plot = TimePlot()
 
-    def plot_sequence(self, input_seq, output_seq, target_seq):
+    def plot_sequence(self, output_seq, data_tuple):
         """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
         The default visualizatoin contains input, output and target sequences.
         For more model/problem dependent visualization please overwrite this method in the derived model class.
@@ -30,9 +30,9 @@ class ModelBase(object):
         rc('font',**{'family':'Times New Roman'})
         
         # Change to np arrays and transpose, so x will be time axis.
-        input_seq = input_seq.numpy()
-        output_seq = output_seq.numpy()
-        target_seq = target_seq.numpy()
+        input_seq = data_tuple.inputs[0].cpu().detach().numpy()
+        target_seq = data_tuple.targets[0].cpu().detach().numpy()
+        output_seq = output_seq[0].cpu().detach().numpy()
 
         x = np.transpose(np.zeros(input_seq.shape))
         y = np.transpose(np.zeros(output_seq.shape))

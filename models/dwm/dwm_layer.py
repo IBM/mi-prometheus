@@ -46,7 +46,7 @@ class DWM(ModelBase, nn.Module):
         self.DWMCell = DWMCell(self.in_dim, self.output_units, self.state_units,
                                self.num_heads, self.is_cam, self.num_shift, self.M)
 
-    def forward(self, inputs, targets):       # x : batch_size, seq_len, input_size
+    def forward(self, data_tuple):       # x : batch_size, seq_len, input_size
         """
         Runs the DWM cell and plots if necessary
         
@@ -54,6 +54,8 @@ class DWM(ModelBase, nn.Module):
         :param state: Input hidden state  [BATCH_SIZE x state_size]
         :return: Tuple [output, hidden_state]
         """
+        (inputs, targets) = data_tuple
+
         if self.app_state.visualize:
             self.cell_state_history = []
 
@@ -175,13 +177,17 @@ class DWM(ModelBase, nn.Module):
 
         return buf
 
-    def plot_sequence(self, input_seq, output_seq, target_seq):
+    def plot_sequence(self, output_seq, data_tuple):
         """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
         The default visualizatoin contains input, output and target sequences.
         For more model/problem dependent visualization please overwrite this method in the derived model class.
         """
         # import time
         # start_time = time.time()
+        input_seq = data_tuple.inputs[0].cpu().detach().numpy()
+        target_seq = data_tuple.targets[0].cpu().detach().numpy()
+        output_seq = output_seq[0].cpu().detach().numpy()
+
         # Create figure template.
         buf = self.pickle_figure_template()
 
