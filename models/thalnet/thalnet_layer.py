@@ -14,6 +14,7 @@ class THALNET(nn.Module):
         self.center_size = params['num_modules'] * params['center_size_per_module']
         self.center_size_per_module = params['center_size_per_module']
         self.num_modules = params['num_modules']
+        self.output_center_size =  self.output_size + self.center_size_per_module
 
         # This is for the time plot
         self.cell_state_history = None
@@ -41,6 +42,7 @@ class THALNET(nn.Module):
         # init state
         cell_state = self.init_state(batch_size)
         for j in range(seq_length):
+            print(inputs[..., j, :].size())
             output_cell, cell_state = self.ThalnetCell(inputs[..., j, :], cell_state)
 
             if output_cell is None:
@@ -58,19 +60,13 @@ class THALNET(nn.Module):
 
     def init_state(self, batch_size):
 
-        center_state_per_module1 = torch.randn((batch_size, self.center_size_per_module))
-        center_state_per_module2 = torch.randn((batch_size, self.center_size_per_module))
-        center_state_per_module3 = torch.randn((batch_size, self.center_size_per_module))
-        center_state_per_module4 = torch.randn((batch_size, self.center_size_per_module))
+        # center state initialisation
+        center_state_per_module = [torch.randn((batch_size, self.center_size_per_module))
+                                        for _ in range(self.num_modules)]
 
-        center_state_per_module = [center_state_per_module1, center_state_per_module2, center_state_per_module3, center_state_per_module4]
-
-        module_states1 = torch.randn((batch_size, self.center_size_per_module))
-        module_states2 = torch.randn((batch_size, self.center_size_per_module))
-        module_states3 = torch.randn((batch_size, self.center_size_per_module))
-        module_states4 = torch.randn((batch_size, self.output_size + self.center_size_per_module))
-
-        module_states = [module_states1, module_states2, module_states3, module_states4]
+        # module state initialisation
+        module_states = [torch.randn((batch_size, self.center_size_per_module if i != self.num_modules - 1 else self.output_center_size))
+                         for i in range(self.num_modules)]
 
         states = center_state_per_module + module_states
 

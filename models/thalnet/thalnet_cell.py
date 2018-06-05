@@ -40,6 +40,7 @@ class FfGruModule(nn.Module):
         :return: output, new_center_features, new_module_state
         """
         if inputs is not None:
+            print(inputs.size())
             inputs = inputs[:, 0, :]
 
         # get the context_input and the inputs of the module
