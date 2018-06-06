@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 _DataTuple = collections.namedtuple('DataTuple', ('inputs', 'targets'))
 
 class DataTuple(_DataTuple):
@@ -70,6 +71,7 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
 
         data_tuple = DataTuple(inputs, targets)
         aux_tuple = AuxTuple(mask)
+
         return data_tuple, aux_tuple
 
     def set_max_length(self, max_length):

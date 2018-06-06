@@ -6,6 +6,7 @@ __author__ = "Tomasz Kornuta"
 import sys
 import os.path
 import logging
+from models.alexnet_wrapper import AlexnetWrapper
 logger = logging.getLogger('ModelFactory')
 
 class ModelFactory(object):
@@ -29,6 +30,12 @@ class ModelFactory(object):
         if name == 'dwm':
             from models.dwm.dwm_layer import DWM
             return DWM(params)
+        elif name == 'vision':
+            from models.vision.simple_cnn import SimpleConvNet
+            return SimpleConvNet(params)
+        elif name == 'thalnet':
+            from models.thalnet.thalnet_layer import THALNET
+            return THALNET(params)
         elif name == 'lstm':
             from models.lstm.layer import LSTM
             return LSTM(params)
@@ -41,5 +48,7 @@ class ModelFactory(object):
             sys.path.append(os.path.join(os.path.dirname(__file__),  'ntm'))
             from models.ntm.ntm_module import NTM
             return NTM(params)
+        elif name == 'alexnet':
+            return AlexnetWrapper(params)
         else:
             raise ValueError
