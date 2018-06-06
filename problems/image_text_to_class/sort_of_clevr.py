@@ -3,13 +3,10 @@
 """Sort-of-Clevr is a simplified version of Clevr """
 __author__ = "Mikyas Desta"
 
-import matplotlib
-matplotlib.use('agg')
 import pickle
 import os
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 import cv2
 
 from subprocess import call
@@ -88,6 +85,10 @@ class Sort_of_clevr(AlgorithmicSequentialProblem):
         return (rel_train, rel_test, norel_train, norel_test)
 
     def show_sample(self, image, question,answer ):
+        import matplotlib
+        import matplotlib.pyplot as plt
+        matplotlib.use('agg')
+
         plt.imshow(image)
         plt.show()
         matplotlib.pyplot.show()

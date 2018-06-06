@@ -6,8 +6,6 @@ __author__      = "Tomasz Kornuta"
 import abc
 import collections
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -80,9 +78,9 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
     #TODO: FINISH FIXING THIS
     def show_sample(self,  data_tuple, aux_tuple,  sample_number = 0):
         """ Shows the sample (both input and target sequences) using matplotlib."""
-                # Change fonts globally - for all axes at once.
-        rc('font',**{'family':'Times New Roman'})
-        
+        import matplotlib.pyplot as plt
+        import matplotlib.ticker as ticker
+
         # Generate "canvas".
         fig, (ax1, ax2, ax3) = plt.subplots(3, 1,  sharex=True,  sharey=False,
                                 gridspec_kw={'width_ratios': [data_tuple.inputs.shape[1]],  'height_ratios':[10, 10,  1]})

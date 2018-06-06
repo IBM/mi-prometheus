@@ -1,15 +1,11 @@
 import torch
 from torch import nn
-from models.dnc.plot_data import plot_memory_attention
 from torch.autograd import Variable
 
 from models.model_base import ModelBase
 from models.dnc.dnc_cell import DNCCell
 from misc.app_state import AppState
-from matplotlib.figure import Figure
-from matplotlib import ticker
 import numpy as np
-import matplotlib.pyplot as plt
 
 class DNC(ModelBase, nn.Module):
 
@@ -95,6 +91,8 @@ class DNC(ModelBase, nn.Module):
 
     def plot_memory_attention(self, output, states):
         # plot attention/memory
+
+        from models.dnc.plot_data import plot_memory_attention
         plot_memory_attention(output, states[2], states[1][0], states[1][1], states[1][2], self.label)
 
 
