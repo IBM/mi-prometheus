@@ -25,7 +25,11 @@ class DNC(ModelBase, nn.Module):
         :param M: Number of slots per address in the memory bank.
         """
         self.in_dim = params["control_bits"] + params["data_bits"]
-        self.output_units = params["data_bits"]
+        try:
+            self.output_units  = params['output_bits']
+        except KeyError:
+            self.output_units = params['data_bits']
+
         self.state_units =params["hidden_state_dim"]
         self.is_cam = params["use_content_addressing"]
         self.num_shift = params["shift_size"]
