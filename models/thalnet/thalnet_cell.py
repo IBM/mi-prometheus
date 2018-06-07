@@ -1,7 +1,5 @@
 import torch
 from torch import nn
-from torch.nn.utils import clip_grad_norm
-import torch.nn.functional as F
 from models.thalnet.utils import single, unzip
 
 
@@ -40,8 +38,15 @@ class FfGruModule(nn.Module):
         :return: output, new_center_features, new_module_state
         """
         if inputs is not None:
-            print(inputs.size())
-            inputs = inputs[:, 0, :]
+            if len(inputs.size()) <= 1 or len(inputs.size()) >= 4:
+                print('check inputs size of thalnet cell')
+                exit(-1)
+
+            if len(inputs.size()) == 3:
+                # inputs_size : [batch_size, num_channel, input_size]
+                # select channel
+                inputs = inputs[:, 0, :]
+
 
         # get the context_input and the inputs of the module
         context_input = self.fc_context(center_state)
@@ -80,27 +85,27 @@ class ThalNetCell(nn.Module):
         self.modules_gru.append(FfGruModule(center_size=self.center_size,
                             context_input_size=self.context_input_size,
                             center_output_size=self.center_size_per_module,
-                            input_size = 0,
+                            input_size = self.input_size,
                             output_size= 0,
                             name=f'module{0}'))
 
         self.modules_gru.extend([FfGruModule(center_size=self.center_size,
                             context_input_size=self.context_input_size,
                             center_output_size=self.center_size_per_module,
-                            input_size=self.input_size,
+                            input_size=0,
                             output_size=self.output_size if i == self.num_modules - 1 else 0,
                             name=f'module{i}') for i in range(1, self.num_modules)])
 
-    def forward(self, inputs, state, scope=None):
-        center_state_per_module = state[:self.num_modules]
-        module_states = state[self.num_modules:]
+    def forward(self, inputs, state_prev, scope=None):
+        center_state_per_module_prev = state_prev[:self.num_modules]
+        module_states_prev = state_prev[self.num_modules:]
 
-        center_state = torch.cat(center_state_per_module, dim=1)
+        center_state = torch.cat(center_state_per_module_prev, dim=1)
 
-        outputs, new_center_features, new_module_states = unzip(
+        outputs, center_features, module_states = unzip(
             [module(inputs if module.input_size else None, center_state=center_state, module_state=module_state)
-             for module, module_state in zip(self.modules_gru, module_states)])
+             for module, module_state in zip(self.modules_gru, module_states_prev)])
 
         output = single([o for o in outputs if o is not None])
 
-        return output, list((new_center_features + new_module_states))
+        return output, list((center_features + module_states))

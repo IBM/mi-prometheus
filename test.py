@@ -162,8 +162,8 @@ if __name__ == '__main__':
 
             if app_state.visualize:
                 pass
-                #is_closed = model.plot_sequence(logits, data_tuple)
-                #if is_closed:
-                #    break
+                is_closed = model.plot_sequence_modules(data_tuple[0])
+                if is_closed:
+                    break
             else:
                 break
