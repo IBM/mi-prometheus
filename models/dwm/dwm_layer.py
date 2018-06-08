@@ -14,18 +14,21 @@ dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 class DWM(ModelBase, nn.Module):
 
     def __init__(self, params):
-        """Initialize an DWM Layer.
+        """
 
-        :param in_dim: input size.
+        Constructor. Initializes parameters on the basis of dictionary of parameters passed as argument.
+
+        :param control_bits: used as marker within the data
+        :param data_bits
         :param output_units: output size.
-        :param state_units: state size.
+        :param hidden_state_dim: state size.
         :param num_heads: number of heads.
-        :param is_cam: is it content_addressable.
+        :param use_content_addressing: is it content_addressable.
         :param num_shift: number of shifts of heads.
-        :param M: Number of slots per address in the memory bank.
+        :param memory_content_size: Number of slots per address in the memory bank.
         """
         self.in_dim = params["control_bits"] + params["data_bits"]
-        #self.output_units = params["data_bits"]
+
         try:
             self.output_units  = params['output_bits']
         except KeyError:
@@ -49,12 +52,12 @@ class DWM(ModelBase, nn.Module):
         self.DWMCell = DWMCell(self.in_dim, self.output_units, self.state_units,
                                self.num_heads, self.is_cam, self.num_shift, self.M)
 
-    def forward(self, data_tuple):       # x : batch_size, seq_len, input_size
+    def forward(self, data_tuple):
         """
         Runs the DWM cell and plots if necessary
         
-        :param x: input sequence  [BATCH_SIZE x seq_len x input_size ]
-        :param state: Input hidden state  [BATCH_SIZE x state_size]
+        :param x: input sequence  [batch_size x seq_len x input_size ]
+        :param state: Input hidden state  [batch_size x state_size]
         :return: Tuple [output, hidden_state]
         """
         (inputs, targets) = data_tuple

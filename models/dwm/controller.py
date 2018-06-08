@@ -1,6 +1,9 @@
 import torch
 from torch import nn
-import torch.nn.functional as F
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
+from controller_factory import ControllerFactory
 
 
 class Controller(nn.Module):
@@ -19,23 +22,32 @@ class Controller(nn.Module):
 
         self.read_size = read_size
         self.update_size = update_size
+        self.state_units = state_units
 
-        ctrl_in_dim = in_dim + state_units + self.read_size
+        self.ctrl_in_dim = in_dim + state_units + self.read_size
 
         # Output layer
         self.output_units = output_units
 
         # self.i2i = nn.Linear(ctrl_in_dim, ctrl_in_dim)
-        self.i2o = nn.Linear(ctrl_in_dim, output_units)
+        self.i2o = nn.Linear(self.ctrl_in_dim, self.output_units)
+        self.controller_type = 'ffn'
+        self.non_linearity = 'sigmoid'
+
+        # State layer dictionary
+        controller_params = {
+            "name": self.controller_type,
+            "input_size": self.ctrl_in_dim,
+            "output_size": self.state_units,
+            "num_layers": 1,
+            "non_linearity": self.non_linearity
+        }
 
         # State layer
-        self.i2s = nn.Linear(ctrl_in_dim, state_units)
+        self.i2s = ControllerFactory.build_model(controller_params)
 
         # Update layer
-        self.i2u = nn.Linear(ctrl_in_dim, self.update_size)
-
-        #rest parameters
-        #self.reset_parameters()
+        self.i2u = nn.Linear(self.ctrl_in_dim, self.update_size)
 
     def forward(self, input, state_prev, read_data):
         """
@@ -49,8 +61,7 @@ class Controller(nn.Module):
         combined = torch.cat((input, state_prev, read_data), dim=-1)
 
         # Get the state and update; no activation is applied
-        state = self.i2s(combined)
-        state = F.sigmoid(state)
+        state, _ = self.i2s(combined, [])
 
         # Get output with activation
         output = self.i2o(combined)
