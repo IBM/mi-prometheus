@@ -19,7 +19,7 @@ class ModelBase(object):
         # SOLUTION: if application is supposed to show dynamic plot, set flag to True before constructing the model! (and set to False right after if required)
         self.app_state = AppState()
 
-        if self.app_state.visualize or 1:
+        if self.app_state.visualize:
             from misc.time_plot import TimePlot
             self.plot = TimePlot()
 

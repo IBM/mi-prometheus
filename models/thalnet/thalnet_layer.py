@@ -248,25 +248,27 @@ if __name__ == "__main__":
     params = {'context_input_size': 32, 'input_size' : input_size, 'output_size': 10,
               'center_size': 1, 'center_size_per_module':32 , 'num_modules':4}
 
+    # Initialize the application state singleton.
+    app_state = AppState()
+    app_state.visualize = True
+
     model = THALNET(params)
 
     seq_length = 10
     batch_size = 2
 
     # Check for different seq_lengts and batch_sizes.
-    for i in range(1):
+    for i in range(2):
         # Create random Tensors to hold inputs and outputs
         x = torch.randn(batch_size, 1, input_size, input_size)
         y = x
         data_tuple = (x, y)
 
-        # Initialize the application state singleton.
-        app_state = AppState()
-        app_state.visualize = True
 
         # Test forward pass.
         y_pred = model(data_tuple)
 
+        app_state.visualize = True
         if app_state.visualize:
             model.plot_sequence_modules(x)
 
