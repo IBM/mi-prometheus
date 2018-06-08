@@ -78,6 +78,7 @@ class AlgorithmicSequentialProblem(metaclass=abc.ABCMeta):
     #TODO: FINISH FIXING THIS
     def show_sample(self,  data_tuple, aux_tuple,  sample_number = 0):
         """ Shows the sample (both input and target sequences) using matplotlib."""
+        
         import matplotlib.pyplot as plt
         import matplotlib.ticker as ticker
 
