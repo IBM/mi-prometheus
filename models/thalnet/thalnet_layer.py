@@ -114,8 +114,8 @@ class THALNET(ModelBase, nn.Module):
         gs = gridspec.GridSpec(4, 3)
 
         # module 1
-        ax_center = [fig.add_subplot(gs[i, 0]) for i in range(4)]
-        ax_module = [fig.add_subplot(gs[i, 1]) for i in range(4)]  #
+        ax_center = [fig.add_subplot(gs[i, 0]) for i in range(2)]
+        ax_module = [fig.add_subplot(gs[i, 1]) for i in range(2)]  #
 
         ax_inputs = fig.add_subplot(gs[0, 2])  #
 
