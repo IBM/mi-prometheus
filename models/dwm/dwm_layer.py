@@ -78,7 +78,7 @@ class DWM(ModelBase, nn.Module):
             memory_addresses_size = self.memory_addresses_size
 
         # init state
-        cell_state = self.init_state(memory_addresses_size, batch_size)
+        cell_state = self.DWMCell.init_state(memory_addresses_size, batch_size, dtype)
         for j in range(seq_length):
             output_cell, cell_state = self.DWMCell(inputs[..., j, :], cell_state)
 
@@ -100,22 +100,6 @@ class DWM(ModelBase, nn.Module):
                                                 cell_state[2].detach().numpy()))
 
         return output
-
-    def init_state(self, memory_addresses_size, batch_size):
-
-        state = torch.ones((batch_size, self.state_units)).type(dtype)
-
-        # initial attention  vector
-        wt = torch.zeros((batch_size, self.num_heads, memory_addresses_size)).type(dtype)
-        wt[:, 0:self.num_heads, 0] = 1.0
-
-        # bookmark
-        wt_dynamic = wt
-
-        mem_t = (torch.ones((batch_size, self.M, memory_addresses_size)) * 0.01).type(dtype)
-
-        states = [state, wt, wt_dynamic, mem_t]
-        return states
 
     def set_memory_size(self, mem_size):
         self.memory_addresses_size = mem_size

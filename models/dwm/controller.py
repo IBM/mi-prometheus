@@ -24,17 +24,16 @@ class Controller(nn.Module):
         self.update_size = update_size
         self.state_units = state_units
 
-        self.ctrl_in_dim = in_dim + state_units + self.read_size
+        self.ctrl_in_dim = in_dim + self.read_size
+        self.ctrl_in_state_dim = in_dim + state_units + self.read_size
 
         # Output layer
         self.output_units = output_units
 
-        # self.i2i = nn.Linear(ctrl_in_dim, ctrl_in_dim)
-        self.i2o = nn.Linear(self.ctrl_in_dim, self.output_units)
-        self.controller_type = 'ffn'
+        # State layer dictionary
+        self.controller_type = 'rnn'
         self.non_linearity = 'sigmoid'
 
-        # State layer dictionary
         controller_params = {
             "name": self.controller_type,
             "input_size": self.ctrl_in_dim,
@@ -47,9 +46,22 @@ class Controller(nn.Module):
         self.i2s = ControllerFactory.build_model(controller_params)
 
         # Update layer
-        self.i2u = nn.Linear(self.ctrl_in_dim, self.update_size)
+        self.i2u = nn.Linear(self.ctrl_in_state_dim, self.update_size)
 
-    def forward(self, input, state_prev, read_data):
+        # Output layer
+        self.i2o = nn.Linear(self.ctrl_in_state_dim, self.output_units)
+
+    def init_state(self, batch_size, dtype):
+        """
+        Returns 'zero' (initial) state tuple.
+
+        :param batch_size: Size of the batch in given iteraction/epoch.
+        :returns: Initial state tuple - object of LSTMStateTuple class.
+        """
+
+        return self.i2s.init_state(batch_size, dtype)
+
+    def forward(self, input, tuple_state_prev, read_data):
         """
         Calculates the output, the hidden state and the controller parameters
         
@@ -58,17 +70,18 @@ class Controller(nn.Module):
         :return: Tuple [output, hidden_state, update_data] (update_data contains all of the controller parameters)
         """
         # Concatenate the 3 inputs to controller
-        combined = torch.cat((input, state_prev, read_data), dim=-1)
+        combined = torch.cat((input, read_data), dim=-1)
+        combined_with_state = torch.cat((combined, tuple_state_prev[0]), dim=-1)
 
         # Get the state and update; no activation is applied
-        state, _ = self.i2s(combined, [])
+        state, tuple_state = self.i2s(combined, tuple_state_prev)
 
         # Get output with activation
-        output = self.i2o(combined)
+        output = self.i2o(combined_with_state)
 
         # update attentional parameters and memory update parameters
-        update_data = self.i2u(combined)
+        update_data = self.i2u(combined_with_state)
 
-        return output, state, update_data
+        return output, tuple_state, update_data
 
 
