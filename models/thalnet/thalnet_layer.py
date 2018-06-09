@@ -46,7 +46,7 @@ class THALNET(ModelBase, nn.Module):
 
         output = None
         batch_size = inputs.size(0)
-        seq_length = inputs.size(2)
+        seq_length = inputs.size(-2)
 
         # init state
         cell_state = self.init_state(batch_size)
@@ -65,19 +65,15 @@ class THALNET(ModelBase, nn.Module):
                 output = torch.cat([output, output_cell], dim=-2)
 
             # This is for the time plot
-            if self.app_state.visualize and 0:
+            if self.app_state.visualize:
                 self.cell_state_history.append((cell_state[0].detach().numpy(),
                                                 cell_state[1].detach().numpy(),
                                                 cell_state[2].detach().numpy(),
                                                 cell_state[3].detach().numpy(),
                                                 cell_state[4].detach().numpy(),
-                                                cell_state[5].detach().numpy()
-                                                ))
-
-            # This is for the time plot
-            if self.app_state.visualize:
-                self.cell_state_history.append((cell_state[0].detach().numpy(),
-                                                cell_state[4].detach().numpy()
+                                                cell_state[5].detach().numpy(),
+                                                cell_state[6].detach().numpy(),
+                                                cell_state[7].detach().numpy()
                                                 ))
 
         return output
@@ -114,10 +110,12 @@ class THALNET(ModelBase, nn.Module):
         gs = gridspec.GridSpec(4, 3)
 
         # module 1
-        ax_center = [fig.add_subplot(gs[i, 0]) for i in range(2)]
-        ax_module = [fig.add_subplot(gs[i, 1]) for i in range(2)]  #
+        ax_center = [fig.add_subplot(gs[i, 0]) for i in range(self.num_modules)]
+        ax_module = [fig.add_subplot(gs[i, 1]) for i in range(self.num_modules)]  #
 
-        ax_inputs = fig.add_subplot(gs[0, 2])  #
+        ax_inputs = fig.add_subplot(gs[0, 2])
+
+        ax_pred = fig.add_subplot(gs[1, 2])
 
 
         # Set ticks - for bit axes only (for now).
@@ -186,7 +184,12 @@ class THALNET(ModelBase, nn.Module):
 
         return buf
 
-    def plot_sequence_modules(self, input_seq, num_batch=0):
+    def plot_sequence(self, logits, data_tuple):
+
+        num_batch = 0
+        (inputs, _) = data_tuple
+        input_seq = inputs[num_batch, 0] if len(inputs.shape) == 4 else inputs[num_batch]
+
         """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
         The default visualizatoin contains input, output and target sequences.
         For more model/problem dependent visualization please overwrite this method in the derived model class.
@@ -197,10 +200,12 @@ class THALNET(ModelBase, nn.Module):
         buf = self.pickle_figure_template()
 
         # Set intial values of displayed  inputs, targets and predictions - simply zeros.
-        inputs_displayed = np.transpose(np.zeros(input_seq[num_batch, 0].shape))
+        inputs_displayed = np.transpose(np.zeros(input_seq.shape))
 
         module_state_displayed = np.zeros((self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
         center_state_displayed = np.zeros((self.cell_state_history[0][1].shape[-1], input_seq.shape[-2]))
+
+        module_state_displayed_t = np.zeros((self.cell_state_history[0][7].shape[-1], input_seq.shape[-2]))
 
         # Set initial values of memory and attentions.
         # Unpack initial state.
@@ -210,8 +215,8 @@ class THALNET(ModelBase, nn.Module):
         logger.info("Generating dynamic visualization of {} figures, please wait...".format(input_seq.shape[0]))
         # List of figures.
         figs = []
-        for i, (input_element, (module_state, center_state)) in enumerate(
-                zip(input_seq[num_batch, 0], self.cell_state_history)):
+        for i, (input_element, state_tuple) in enumerate(
+                zip(input_seq, self.cell_state_history)):
             # Display information every 10% of figures.
             if (input_seq.shape[0] > 10) and (i % (input_seq.shape[0] // 10) == 0):
                 logger.info("Generating figure {}/{}".format(i, input_seq.shape[0]))
@@ -219,19 +224,35 @@ class THALNET(ModelBase, nn.Module):
             # Create figure object on the basis of template.
             buf.seek(0)
             fig = pickle.load(buf)
-            (ax_center_1, ax_center_2, ax_module_1, ax_module_2, ax_inputs) = fig.axes
 
             # Update displayed values on adequate positions.
             inputs_displayed[:, i] = input_element
 
-            # Get attention of head 0.
-            module_state_displayed[:, i] = module_state[num_batch, :]
-            center_state_displayed[:, i] = center_state[num_batch, :]
+            h = 0
+            for j, state in enumerate(state_tuple):
+                # Get attention of head 0.
 
-            # "Show" data on "axes".
-            ax_module_1.imshow(module_state_displayed, interpolation='nearest', aspect='auto')
-            ax_center_1.imshow(center_state_displayed, interpolation='nearest', aspect='auto')
-            ax_inputs.imshow(inputs_displayed, interpolation='nearest', aspect='auto')
+                # "Show" data on "axes".
+                entity = fig.axes[j]
+                if self.num_modules <= h < 2 * self.num_modules :
+                    if h != 2 * self.num_modules - 1:
+                        module_state_displayed[:, i] = state[num_batch, :]
+                        entity.imshow(module_state_displayed, interpolation='nearest', aspect='auto')
+                    else:
+                        module_state_displayed_t[:, i] = state[num_batch, :]
+                        entity.imshow(module_state_displayed_t, interpolation='nearest', aspect='auto')
+
+                else:
+                    center_state_displayed[:, i] = state[num_batch, :]
+                    entity.imshow(center_state_displayed, interpolation='nearest', aspect='auto')
+
+                h += 1
+
+            entity = fig.axes[2 * self.num_modules]
+            entity.imshow(inputs_displayed, interpolation='nearest', aspect='auto')
+
+            entity = fig.axes[2 * self.num_modules + 1]
+            entity.imshow(logits[0, -1, None], interpolation='nearest', aspect='auto')
 
             # Append figure to a list.
             fig.set_tight_layout(True)
@@ -261,6 +282,7 @@ if __name__ == "__main__":
     for i in range(2):
         # Create random Tensors to hold inputs and outputs
         x = torch.randn(batch_size, 1, input_size, input_size)
+        logits = torch.randn(batch_size, 1, params['output_size'])
         y = x
         data_tuple = (x, y)
 
@@ -270,7 +292,7 @@ if __name__ == "__main__":
 
         app_state.visualize = True
         if app_state.visualize:
-            model.plot_sequence_modules(x)
+            model.plot_sequence(logits, data_tuple)
 
         # Change batch size and seq_length.
         seq_length = seq_length + 1
