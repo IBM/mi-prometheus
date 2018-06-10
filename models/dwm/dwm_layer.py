@@ -15,18 +15,7 @@ class DWM(ModelBase, nn.Module):
 
     def __init__(self, params):
 
-        r"""Applies a DWM layer to an input sequence.
-
-        .. math::
-
-            \begin{array}{ll}
-            r = \sigma(W_{ir} x + b_{ir} + W_{hr} h + b_{hr}) \\
-            z = \sigma(W_{iz} x + b_{iz} + W_{hz} h + b_{hz}) \\
-            n = \tanh(W_{in} x + b_{in} + r * (W_{hn} h + b_{hn})) \\
-            h' = (1 - z) * n + z * h
-            \end{array}
-
-        where :math:`\sigma` is the sigmoid function.
+        r"""Applies a DWM layer to an input sequences.
 
         Args: Constructor. Initializes parameters on the basis of dictionary of parameters passed as argument.
              :param control_bits: used as marker to distinguish the data from
@@ -38,7 +27,7 @@ class DWM(ModelBase, nn.Module):
              :param num_shift: number of shifts of heads.
              :param memory_content_size: Number of slots per address in the memory bank.
 
-        Inputs: input, hidden
+        Inputs:
             - **data_tuple** = (inputs, targets)
             inputs of shape `(batch, sequence_length, input_size)`: tensor containing the data sequences of the batch.
             targets of shape `(batch, sequence_length, output_size)`: tensor containing the target sequences of the batch.

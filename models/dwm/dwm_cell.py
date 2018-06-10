@@ -10,6 +10,7 @@ dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 # Helper collection type.
 _DWMCellStateTuple = collections.namedtuple('DWMStateTuple', ('ctrl_state', 'interface_state',  'memory_state'))
 
+
 class DWMCellStateTuple(_DWMCellStateTuple):
     """Tuple used by NTM Cells for storing current/past state information"""
     __slots__ = ()
@@ -54,16 +55,19 @@ class DWMCell(nn.Module):
             M: Number of slots per address in the memory bank.
 
         Inputs: input, hidden
-            - **input** of shape (batch_size x inputs_size): Current input (from time t)
-            - tuple_cell_state_prev (hidden_state)
-            hidden_state of shape (batch_size, state_units): Previous hidden state (from time t-1)
+            - **input** of shape (batch_size, inputs_size): Current input (from time t)
+            - **tuple_cell_state_prev** (tuple_ctrl_state_prev, tuple_interface_prev, mem_prev), object of class DWMCellStateTuple
+                  tuple_ctrl_state_prev: object of class ControllerStateTuple of previous time step, contains (hidden_state of shape (batch_size, state_units))
+                  tuple_interface_prev: object of class RNNStateTuple of previous time step, contains (head_weights of shape (batch_size, num_heads, memory_addresses), snapshot_weights of shape (batch_size, num_heads, memory_addresses))
+                  mem_prev: memory of previous time step, of shape (batch_size, memory_size_content, memory_addresses_size)
+
 
         Outputs:
             - **output** of shape `(batch_size, output_size)`:
-            - **tuple_cell_state** = (ctrl_state, tuple_interface, mem)
-                tuple_ctrl_state_prev: (hidden_state of shape (batch_size, state_units))
-                tuple_interface: (head_weights of shape (batch_size, num_heads, memory_addresses), snapshot_weights of shape (batch_size, num_heads, memory_addresses))
-                mem of shape (batch_size, memory_size_conetent)
+            - **tuple_cell_state** = (tuple_ctrl_state, tuple_interface, mem)
+                tuple_ctrl_state: new tuple ctrl_state
+                tuple_interface:  new tuple interface
+                mem: new memory.
 
 
         Examples::

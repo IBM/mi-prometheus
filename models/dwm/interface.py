@@ -46,7 +46,8 @@ class Interface:
         :param batch_size: Size of the batch in given iteraction/epoch.
         :param memory_addresses_size
         :param dtype
-        :returns: Initial state tuple - object of InterfaceStateTuple class.
+        :returns: Initial state tuple - object of InterfaceStateTuple class: (head_weight_init, snapshot_weight_init)
+
         """
         # initial attention  vector
         head_weight_init = torch.zeros((batch_size, self.num_heads, memory_addresses_size)).type(dtype)
@@ -80,7 +81,7 @@ class Interface:
         """Returns the data read from memory
 
         :param wt of shape (batch_size, num_heads, memory_addresses_size)  : head's weights
-        :param mem (batch_size, memory_addresses_size, memory_content_size)  : the memory content
+        :param mem (batch_size, memory_content_size, memory_addresses_size)  : the memory content
 
         :return: the read data of shape (batch_size, num_heads, memory_content_size)
         """
@@ -95,7 +96,7 @@ class Interface:
 
         """Erases from memory, writes to memory, updates the weights using various attention mechanisms
 
-        :param update_data: the parameters from the controllers [update_size]
+        :param update_data: the parameters from the controllers
         :param tuple_interface_prev = (head_weight, snapshot_weight)
         head_weight of shape (batch_size, num_heads, memory_size): head attention
         snapshot_weight of shape (batch_size, num_heads, memory_size): snapshot(bookmark) attention

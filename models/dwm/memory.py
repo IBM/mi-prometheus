@@ -7,7 +7,7 @@ class Memory:
     def __init__(self, mem_t):
         """Initializes the memory
 
-        :param mem_t of shape (batch_size, memory_addresses_size, memory_content_size): the memory at time t
+        :param mem_t of shape (batch_size, memory_content_size, memory_addresses_size): the memory at time t
         """
 
         self._memory = mem_t

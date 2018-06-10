@@ -16,7 +16,7 @@ class Controller(nn.Module):
         :param output_units: output size.
         :param state_units: state size.
         :param read_size: size of data_gen read from memory
-        :param update_size: size of data_gen for updating attention and memory
+        :param update_size: total number of parameters for updating attention and memory
         """
         super(Controller, self).__init__()
 
@@ -56,6 +56,7 @@ class Controller(nn.Module):
         Returns 'zero' (initial) state tuple.
 
         :param batch_size: Size of the batch in given iteraction/epoch.
+        :param dtype
         :returns: Initial state tuple - object of LSTMStateTuple class.
         """
 
@@ -66,7 +67,7 @@ class Controller(nn.Module):
         Calculates the output, the hidden state and the controller parameters
         
         :param input of shape (batch_size, in_dim): Current input (from time t)
-        :param tuple_state_prev: (hidden_state)
+        :param tuple_state_prev: (hidden_state) object of class RNNStateTuple.
         hidden_state of shape (batch_size, state_units): Previous hidden state (from time t-1)
         :param read_data of shape (batch_size, read_size): read data from memory (from time t)
 
@@ -86,8 +87,7 @@ class Controller(nn.Module):
 
         # update attentional parameters and memory update parameters
         update_data = self.i2u(combined_with_state)
-        print(update_data.size())
-        exit()
+
         return output, tuple_state, update_data
 
 
