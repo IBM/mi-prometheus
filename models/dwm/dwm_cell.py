@@ -23,13 +23,26 @@ class DWMCell(nn.Module):
         .. math::
 
             \begin{array}{ll}
-            r = \sigma(W_{ir} x + b_{ir} + W_{hr} h + b_{hr}) \\
-            z = \sigma(W_{iz} x + b_{iz} + W_{hz} h + b_{hz}) \\
-            n = \tanh(W_{in} x + b_{in} + r * (W_{hn} h + b_{hn})) \\
-            h' = (1 - z) * n + z * h
+            # read memory
+            r_t= M_t w_t \\
+            # memory update
+            M_t = M_{t-1}\circ (E-w_t \otimes e_t)+w_t\otimes a_t \\
+            # controller
+            h_t=\sigma(W_h[x_t,h_{t-1},r_{t-1}]) \\
+            y_t=W_{y}[x_t,h_{t-1},r_{t-1}] \\
+            P_t=W_{P}[x_t,h_{t-1},r_{t-1}]  \\
             \end{array}
 
-        where :math:`\sigma` is the sigmoid function.
+            The full list of parameters is as follows:
+            \begin{itemize}
+            \item The write vector $a_t \in \mathbb{R}^{N_M} $
+            \item The erase vector $e_t=\sigma(\hat{e}_t) \in [0,1]^{N_M}$
+
+            \item The shift vector $s_t=\softmax(\softplus(\hat{s})) \in [0,1]^3$
+            \item The bookmark update gates $g^i_t = \sigma(\hat{g}^i_t) \in [0,1]^{N_B-1}$
+            \item The attention update gate $\delta^i_t = \softmax(\hat{\delta}^i_t)  \in [0,1]^{N_B+1}$
+            \item The sharpening parameter $\gamma = 1+\softplus(\hat{\gamma}) \in [1,\infty]$
+            \end{itemize}
 
         Args:
             in_dim: input size.
@@ -55,9 +68,9 @@ class DWMCell(nn.Module):
 
         Examples::
 
-        >>> dwm = DWM(params)
-        >>> inputs = torch.randn(5, 3, 10)
-        >>> targets = torch.randn(5, 3, 20)
+        >>> dwm = DWMCell(3, 5, 2, 1, False, 3, 8)
+        >>> inputs = torch.randn(5, 10)
+        >>> targets = torch.randn(5, 20)
         >>> data_tuple = (inputs, targets)
         >>> output = dwm(data_tuple)
 

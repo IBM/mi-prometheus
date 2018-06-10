@@ -7,7 +7,7 @@ class Memory:
     def __init__(self, mem_t):
         """Initializes the memory
 
-        :param mem_t: the memory [BATCH_SIZE x CONTENT_SIZE X MEMORY_SIZE]
+        :param mem_t of shape (batch_size, memory_addresses_size, memory_content_size): the memory at time t
         """
 
         self._memory = mem_t
@@ -15,8 +15,8 @@ class Memory:
     def attention_read(self, wt):
         """Returns the data read from memory       
  
-        :param wt: the read weight [BATCH_SIZE x MEMORY_SIZE ] 
-        :return: the read data [BATCH_SIZE X CONTENT_SIZE]
+        :param wt of shape (batch_size, num_heads, memory_addresses_size)  : head's weights
+        :return: the read data of shape (batch_size, num_heads, memory_content_size)
         """
 
         return sim(wt, self._memory)
@@ -24,8 +24,10 @@ class Memory:
     def add_weighted(self, add, wt):
         """Writes data to memory
 
-        :param wt: the write weight [ BATCH_SIZE x MEMORY_SIZE]
-        :param add: the data to be added to memory [BATCH_SIZE x CONTENT_SIZE] 
+        :param wt of shape (batch_size, num_heads, memory_addresses_size)  : head's weights
+        :param add of shape (batch_size, num_heads, memory_content_size) : the data to be added to memory
+
+        :return the updated memory of shape (batch_size, memory_addresses_size, memory_content_size)
         """
 
         # memory = memory + sum_{head h} weighted add(h)
@@ -34,8 +36,10 @@ class Memory:
     def erase_weighted(self, erase, wt):
         """Erases elements from memory
 
-        :param wt: the write weight [ BATCH_SIZE x MEMORY_SIZE]
-        :param wt: data to be erased from memory [ BATCH_SIZE x CONTENT_SIZE]
+        :param wt of shape (batch_size, num_heads, memory_addresses_size)  : head's weights
+        :param erase of shape (batch_size, num_heads, memory_content_size) : data to be erased from memory
+
+        :return the updated memory of shape (batch_size, memory_addresses_size, memory_content_size)
         """
 
         # memory = memory * product_{head h} (1 - weighted erase(h))
@@ -44,8 +48,8 @@ class Memory:
     def content_similarity(self, k):
         """Calculates the dot product for Content aware addressing
 
-        :param k: the keys emitted by the controller [BATCH_SIZE x CONTENT_SIZE] 
-        :return: the dot product between the keys and query [BATCH_SIZE x MEMORY_SIZE]
+        :param k of shape (batch_size, num_heads, memory_content_size): the keys emitted by the controller
+        :return: the dot product between the keys and query of shape (batch_size, num_heads, memory_addresses_size)
         """
 
         return sim(k, self._memory, l2_normalize=True, aligned=False)

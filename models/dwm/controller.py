@@ -10,7 +10,7 @@ class Controller(nn.Module):
     def __init__(self, in_dim, output_units, state_units,
                  read_size, update_size):
 
-        """Initialize an Controller.
+        """Initialize the Controller.
 
         :param in_dim: input size.
         :param output_units: output size.
@@ -65,9 +65,14 @@ class Controller(nn.Module):
         """
         Calculates the output, the hidden state and the controller parameters
         
-        :param input: Current input (from time t)  [BATCH_SIZE x INPUT_SIZE]
-        :param state: Previous hidden state (from time t-1)  [BATCH_SIZE x STATE_UNITS]
-        :return: Tuple [output, hidden_state, update_data] (update_data contains all of the controller parameters)
+        :param input of shape (batch_size, in_dim): Current input (from time t)
+        :param tuple_state_prev: (hidden_state)
+        hidden_state of shape (batch_size, state_units): Previous hidden state (from time t-1)
+        :param read_data of shape (batch_size, read_size): read data from memory (from time t)
+
+        :return: output of shape (batch_size, output_units)
+                 tuple_state: (new_hidden_state)
+                 update_data of shape (batch_size, update_size): contains all of the controller parameters
         """
         # Concatenate the 3 inputs to controller
         combined = torch.cat((input, read_data), dim=-1)
@@ -81,7 +86,8 @@ class Controller(nn.Module):
 
         # update attentional parameters and memory update parameters
         update_data = self.i2u(combined_with_state)
-
+        print(update_data.size())
+        exit()
         return output, tuple_state, update_data
 
 
