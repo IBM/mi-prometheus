@@ -6,7 +6,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 
 
 @SequentialVisionProblem.register
-class SequentialRowMnist(SequentialVisionProblem):
+class PermutedSequentialRowMnist(SequentialVisionProblem):
     """
     Class generating sequences sequential mnist
     """
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     # "Loaded parameters".
     params = {'batch_size': 1, 'start_index': 0, 'stop_index': 54999}
     # Create problem object.
-    problem = SequentialRowMnist(params)
+    problem = PermutedSequentialRowMnist(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
