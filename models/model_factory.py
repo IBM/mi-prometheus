@@ -35,8 +35,8 @@ class ModelFactory(object):
             from models.simple_cnn.simple_cnn import SimpleConvNet
             return SimpleConvNet(params)
         elif name == 'thalnet':
-            from models.thalnet.thalnet_layer import THALNET
-            return THALNET(params)
+            from models.thalnet.thalnet_layer import ThalNet
+            return ThalNet(params)
         elif name == 'lstm':
             from models.lstm.layer import LSTM
             return LSTM(params)
