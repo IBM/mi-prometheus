@@ -33,11 +33,8 @@ class THALNET(ModelBase, nn.Module):
 
     def forward(self, data_tuple):  # x : batch_size, seq_len, input_size
         """
-        Runs the DWM cell and plots if necessary
+        Runs the ThalNet cell and plots if necessary
 
-        :param x: input sequence  [BATCH_SIZE x seq_len x input_size ]
-        :param state: Input hidden state  [BATCH_SIZE x state_size]
-        :return: Tuple [output, hidden_state]
         """
         (inputs, _) = data_tuple
 
@@ -116,19 +113,12 @@ class THALNET(ModelBase, nn.Module):
         ax_inputs = fig.add_subplot(gs[0, 2])
         ax_pred = fig.add_subplot(gs[2, 2])
 
-
         # Set ticks - for bit axes only (for now).
         ax_inputs.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax_inputs.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
         ax_pred.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax_pred.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-
-        # module 1
-        # ax_center_1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # ax_center_1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # ax_module_1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # ax_module_1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
         # Set labels.
         ax_inputs.set_title('Inputs')

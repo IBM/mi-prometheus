@@ -85,8 +85,8 @@ class ThalNetCell(nn.Module):
         self.modules_gru.append(FfGruModule(center_size=self.center_size,
                             context_input_size=self.context_input_size,
                             center_output_size=self.center_size_per_module,
-                            input_size = self.input_size,
-                            output_size= 0,
+                            input_size=self.input_size,
+                            output_size=0,
                             name=f'module{0}'))
 
         self.modules_gru.extend([FfGruModule(center_size=self.center_size,
@@ -96,21 +96,18 @@ class ThalNetCell(nn.Module):
                             output_size=self.output_size if i == self.num_modules - 1 else 0,
                             name=f'module{i}') for i in range(1, self.num_modules)])
 
-    def forward(self, inputs, state_prev, scope=None):
+    def forward(self, inputs, state_prev):
         center_state_per_module_prev = state_prev[:self.num_modules]
         module_states_prev = state_prev[self.num_modules:]
 
         center_state = torch.cat(center_state_per_module_prev, dim=1)
 
-        outputs, center_features, module_states = unzip(
-            [module(inputs if module.input_size else None, center_state=center_state, module_state=module_state)
-             for module, module_state in zip(self.modules_gru, module_states_prev)])
-
         module_states_next = []
         center_features_next = []
-        for module, module_state in zip(self.modules_gru, module_states_prev):
-            output, center_features, module_state = module(inputs, center_state, module_state)
+        # run the different modules, they share all the same center
+        for module, module_state_prev in zip(self.modules_gru, module_states_prev):
+            output, center_features, module_state = module(inputs, center_state, module_state_prev)
             center_features_next.append(center_features)
             module_states_next.append(module_state)
 
-        return output, list((center_features + module_states))
+        return output, list((center_features_next + module_states_next))
