@@ -9,10 +9,13 @@ import logging
 import numpy as np
 from misc.app_state import AppState
 
-class THALNET(ModelBase, nn.Module):
 
+class ThalNet(ModelBase, nn.Module):
     def __init__(self, params):
-        """Initialize an THALNET Layer. """
+        """
+
+        :param params:
+        """
         self.context_input_size = params['context_input_size']
         self.input_size = params['input_size']
         self.output_size = params['output_size']
@@ -25,7 +28,7 @@ class THALNET(ModelBase, nn.Module):
         # This is for the time plot
         self.cell_state_history = None
 
-        super(THALNET, self).__init__()
+        super(ThalNet, self).__init__()
 
         # Create the DWM components
         self.ThalnetCell = ThalNetCell(self.input_size, self.output_size, self.context_input_size,
@@ -33,7 +36,7 @@ class THALNET(ModelBase, nn.Module):
 
     def forward(self, data_tuple):  # x : batch_size, seq_len, input_size
         """
-        Runs the ThalNet cell and plots if necessary
+        Runs the ThalNet cell
 
         """
         (inputs, _) = data_tuple
@@ -278,7 +281,7 @@ if __name__ == "__main__":
     app_state = AppState()
     app_state.visualize = True
 
-    model = THALNET(params)
+    model = ThalNet(params)
 
     seq_length = 10
     batch_size = 2

@@ -9,9 +9,7 @@ class FfGruModule(nn.Module):
                  context_input_size,
                  center_output_size,
                  input_size,
-                 output_size,
-                 name):
-        self.name = name
+                 output_size):
         super(FfGruModule, self).__init__()
 
         self.center_size = center_size
@@ -21,7 +19,7 @@ class FfGruModule(nn.Module):
         self.output_size = output_size
         self.input_size = input_size
 
-        # reading mechanism
+        # Reading mechanism
         self.fc_context = nn.utils.weight_norm(nn.Linear(self.center_size, self.context_input_size), name='weight')
 
         # FeedForward & GRU
@@ -46,7 +44,6 @@ class FfGruModule(nn.Module):
                 # inputs_size : [batch_size, num_channel, input_size]
                 # select channel
                 inputs = inputs[:, 0, :]
-
 
         # get the context_input and the inputs of the module
         context_input = self.fc_context(center_state)
@@ -86,15 +83,14 @@ class ThalNetCell(nn.Module):
                             context_input_size=self.context_input_size,
                             center_output_size=self.center_size_per_module,
                             input_size=self.input_size,
-                            output_size=0,
-                            name=f'module{0}'))
+                            output_size=0))
 
         self.modules_gru.extend([FfGruModule(center_size=self.center_size,
                             context_input_size=self.context_input_size,
                             center_output_size=self.center_size_per_module,
                             input_size=0,
-                            output_size=self.output_size if i == self.num_modules - 1 else 0,
-                            name=f'module{i}') for i in range(1, self.num_modules)])
+                            output_size=self.output_size if i == self.num_modules - 1 else 0)
+                                 for i in range(1, self.num_modules)])
 
     def forward(self, inputs, state_prev):
         center_state_per_module_prev = state_prev[:self.num_modules]
