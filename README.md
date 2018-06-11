@@ -35,6 +35,7 @@ A project of the Machine Intelligence team, focusing on enabling the application
 On Linux (Ubuntu 14.04 on MacBook Pro, without CUDA): 
 
     conda install pytorch-cpu torchvision-cpu -c pytorch
+    conda install -c conda-forge tensorboardx 
 
 
 ## Main workers
