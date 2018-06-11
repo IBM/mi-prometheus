@@ -106,6 +106,11 @@ class ThalNetCell(nn.Module):
             [module(inputs if module.input_size else None, center_state=center_state, module_state=module_state)
              for module, module_state in zip(self.modules_gru, module_states_prev)])
 
-        output = single([o for o in outputs if o is not None])
+        module_states_next = []
+        center_features_next = []
+        for module, module_state in zip(self.modules_gru, module_states_prev):
+            output, center_features, module_state = module(inputs, center_state, module_state)
+            center_features_next.append(center_features)
+            module_states_next.append(module_state)
 
         return output, list((center_features + module_states))
