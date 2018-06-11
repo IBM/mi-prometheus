@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
-    return array[idx]
+    return array[idx], idx
 
 def main():
     batch_file = sys.argv[1]
@@ -41,9 +41,14 @@ def main():
             checkpoints = os.path.join(elem, sub)
             experiments_list.append(checkpoints)
 
+    
     # Keep only the folders that contain validation.csv and training.csv
     experiments_list = [elem for elem in experiments_list
                         if os.path.isfile(elem + '/validation.csv') and os.path.isfile(elem + '/training.csv')]
+    # check if the files are empty except for the first line
+    experiments_list = [elem for elem in experiments_list
+                        if os.stat(elem + '/validation.csv').st_size > 24  and os.stat(elem + '/training.csv').st_size > 24 ]
+
 
     # Run in as many threads as there are CPUs available to the script
     with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
@@ -120,9 +125,9 @@ def run_experiment(path: str):
     index_val_loss = -1
      
     ### Find the best model ###
-    models_list = glob(path + '/models/*')
-    models_list = [os.path.basename(os.path.normpath(e)) for e in models_list]
-    models_list = [int(e.split('_')[-1]) for e in models_list]    
+    models_list3 = glob(path + '/models/*')
+    models_list2 = [os.path.basename(os.path.normpath(e)) for e in models_list3]
+    models_list = [int(e.split('_')[-1]) for e in models_list2]    
    
     # Gather data at chosen stopping point
     #r['valid_loss'] = val_loss[index_val_loss]
@@ -132,9 +137,9 @@ def run_experiment(path: str):
     # check if models list is empty
     if models_list and run_test:
         # select the best model 
-        best_num_model = find_nearest(models_list, r['best_valid_arg'])
+        best_num_model, idx_best = find_nearest(models_list, r['best_valid_arg'])
         
-        last_model = find_nearest(models_list, train_episode[-1])
+        last_model, idx_last = find_nearest(models_list, train_episode[-1])
       
         # to avoid selecting model zeros, if training is not converging 
         if best_num_model == 0:
@@ -143,7 +148,7 @@ def run_experiment(path: str):
         r['best_model'] = best_num_model  
              
         # Run the test
-        command_str = "cuda-gpupick -n0 python3 test.py -i {0} -e {1} -f {2}".format(path, best_num_model,last_model).split()
+        command_str = "cuda-gpupick -n0 python3 test.py --model {0}".format(models_list3[idx_best]).split()
         with open(os.devnull, 'w') as devnull:
             result = subprocess.run(command_str, stdout=devnull)
         if result.returncode != 0:

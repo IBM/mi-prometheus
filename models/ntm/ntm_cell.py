@@ -64,7 +64,7 @@ class NTMCell(torch.nn.Module):
         self.hidden2output = torch.nn.Linear(ext_hidden_size, self.output_size)
         
         
-    def init_state(self,  batch_size,  num_memory_addresses):
+    def init_state(self,  batch_size,  num_memory_addresses,  dtype):
         """
         Returns 'zero' (initial) state:
         * memory  is reset to random values.
@@ -73,16 +73,19 @@ class NTMCell(torch.nn.Module):
         
         :param batch_size: Size of the batch in given iteraction/epoch.
         :param num_memory_addresses: Number of memory addresses.
+        :param dtype: dtype of the matrix denoting the device placement (CPU/GPU).
+       :returns: Initial state tuple - object of NTMCellStateTuple class.
         """
         # Initialize controller state.
-        ctrl_init_state =  self.controller.init_state(batch_size)
+        ctrl_init_state =  self.controller.init_state(batch_size,  dtype)
 
         # Initialize interface state. 
-        interface_init_state =  self.interface.init_state(batch_size,  num_memory_addresses)
+        interface_init_state =  self.interface.init_state(batch_size,  num_memory_addresses,  dtype)
 
         # Memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS] 
-        init_memory_BxAxC = torch.empty(batch_size,  num_memory_addresses,  self.num_memory_content_bits)
-        torch.nn.init.normal_(init_memory_BxAxC, mean=0.5, std=0.2)
+        init_memory_BxAxC = torch.zeros(batch_size,  num_memory_addresses,  self.num_memory_content_bits).type(dtype)
+        #init_memory_BxAxC = torch.empty(batch_size,  num_memory_addresses,  self.num_memory_content_bits).type(dtype)
+        #torch.nn.init.normal_(init_memory_BxAxC, mean=0.5, std=0.2)
         
         # Initialize read vectors - one for every head.
         # Unpack cell state.
@@ -93,7 +96,7 @@ class NTMCell(torch.nn.Module):
         read_vectors_BxC_H = []
         for h in range(self.interface_num_read_heads):
             # Read vector [BATCH_SIZE x CONTENT_BITS]
-            #read_vectors_BxC_H.append(torch.zeros((batch_size, self.num_memory_content_bits)))
+            #read_vectors_BxC_H.append(torch.zeros((batch_size, self.num_memory_content_bits)).type(dtype))
             # Read vectors from memory using the initial attention.
             read_vectors_BxC_H.append(self.interface.read_from_memory(init_read_attentions_BxAx1_H[h],  init_memory_BxAxC))
         

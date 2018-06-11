@@ -1,15 +1,12 @@
 import torch
 from torch import nn
-from models.dnc.plot_data import plot_memory_attention
 from torch.autograd import Variable
 
 from models.model_base import ModelBase
 from models.dnc.dnc_cell import DNCCell
 from misc.app_state import AppState
-from matplotlib.figure import Figure
-from matplotlib import ticker
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 class DNC(ModelBase, nn.Module):
 
@@ -25,7 +22,11 @@ class DNC(ModelBase, nn.Module):
         :param M: Number of slots per address in the memory bank.
         """
         self.in_dim = params["control_bits"] + params["data_bits"]
-        self.output_units = params["data_bits"]
+        try:
+            self.output_units  = params['output_bits']
+        except KeyError:
+            self.output_units = params['data_bits']
+
         self.state_units =params["hidden_state_dim"]
         self.is_cam = params["use_content_addressing"]
         self.num_shift = params["shift_size"]
@@ -91,6 +92,8 @@ class DNC(ModelBase, nn.Module):
 
     def plot_memory_attention(self, output, states):
         # plot attention/memory
+
+        from models.dnc.plot_data import plot_memory_attention
         plot_memory_attention(output, states[2], states[1][0], states[1][1], states[1][2], self.label)
 
 

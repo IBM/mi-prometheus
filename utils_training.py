@@ -11,7 +11,7 @@ def forward_step(model, problem, data_tuple,  aux_tuple,  use_CUDA):
     """
     # convert to CUDA
     if use_CUDA:
-        data_tuple = problem.turn_on_cuda(data_tuple, aux_tuple)
+        data_tuple, aux_tuple = problem.turn_on_cuda(data_tuple, aux_tuple)
 
     # Perform forward calculation.
     logits = model(data_tuple)

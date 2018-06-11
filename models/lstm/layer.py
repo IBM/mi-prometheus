@@ -11,6 +11,11 @@ class LSTM(ModelBase, nn.Module):
 
         self.tm_in_dim = params["control_bits"] + params["data_bits"]
         self.data_bits = params["data_bits"]
+        try:
+            self.output_units  = params['output_bits']
+        except KeyError:
+            self.output_units = params['data_bits']
+
         self.hidden_state_dim = params["hidden_state_dim"]
         self.num_layers = params["num_layers"]
         assert self.num_layers > 0, "Number of LSTM layers should be > 0"
@@ -22,7 +27,7 @@ class LSTM(ModelBase, nn.Module):
         self.lstm_layers.extend([nn.LSTMCell(self.hidden_state_dim, self.hidden_state_dim)
                                  for _ in range(1, self.num_layers)])
 
-        self.linear = nn.Linear(self.hidden_state_dim, self.data_bits)
+        self.linear = nn.Linear(self.hidden_state_dim, self.output_units)
 
     def forward(self, data_tuple):
         (x, targets) = data_tuple

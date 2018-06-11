@@ -26,4 +26,3 @@
 __pycache__*
 *.swp
 !.gitignore
-problems/vision/data_mnist

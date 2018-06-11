@@ -10,8 +10,8 @@ def normalize(x):
     :param x: All inputs  [BATCH_SIZE x A x B ..]
     :return:  normalized x [BATCH_SIZE x A x B ..]
     """
-
-    return x / torch.max(torch.sum(x, dim=-1, keepdim=True), torch.Tensor([1e-12]))
+    dtype = torch.cuda.FloatTensor if x.is_cuda else torch.FloatTensor
+    return x / torch.max(torch.sum(x, dim=-1, keepdim=True), torch.Tensor([1e-12]).type(dtype))
 
 def sim(query, data, l2_normalize=False, aligned=True):
     """

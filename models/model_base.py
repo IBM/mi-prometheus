@@ -6,7 +6,7 @@ import torch
 import os,  sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..')) 
 from misc.app_state import AppState
-from problems.sequential.algorithmic.algorithmic_sequential_problem import DataTuple
+from problems.sequence.seq_to_seq.algorithmic.algorithmic_sequential_problem import DataTuple
 
 class ModelBase(object):
     """ Class representing base class of all models.
