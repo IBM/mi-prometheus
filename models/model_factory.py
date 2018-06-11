@@ -49,7 +49,6 @@ class ModelFactory(object):
             from models.ntm.ntm_module import NTM
             return NTM(params)
         elif name == 'es_lstm':
-            logger.warning("Warning: NTM not fully operational yet!")
             sys.path.append(os.path.join(os.path.dirname(__file__),  'encoder_solver'))
             from models.encoder_solver.es_lstm_module import ESLSTM
             return ESLSTM(params)
