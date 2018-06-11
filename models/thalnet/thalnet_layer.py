@@ -92,7 +92,7 @@ class THALNET(ModelBase, nn.Module):
 
         return states
 
-    def pickle_figure_template(self):
+    def generate_figure_layout(self):
         from matplotlib.figure import Figure
         import matplotlib.ticker as ticker
         from matplotlib import rc
@@ -114,75 +114,49 @@ class THALNET(ModelBase, nn.Module):
         ax_module = [fig.add_subplot(gs[i, 1]) for i in range(self.num_modules)]  #
 
         ax_inputs = fig.add_subplot(gs[0, 2])
-
-        ax_pred = fig.add_subplot(gs[1, 2])
+        ax_pred = fig.add_subplot(gs[2, 2])
 
 
         # Set ticks - for bit axes only (for now).
         ax_inputs.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax_inputs.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
+        ax_pred.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_pred.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
         # module 1
         # ax_center_1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         # ax_center_1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         # ax_module_1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         # ax_module_1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        #
-        # # module 2
-        # ax_center_2.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # ax_center_2.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # ax_module_2.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # ax_module_2.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        #
-        # # module 3
-        # ax_center_3.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # ax_center_3.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # ax_module_3.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # ax_module_3.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        #
-        # # module 4
-        # ax_center_4.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # ax_center_4.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # ax_module_4.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        # ax_module_4.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
         # Set labels.
         ax_inputs.set_title('Inputs')
         ax_inputs.set_ylabel('num_row')
+        ax_inputs.set_xlabel('num_columns')
 
-        # module 1
-        # ax_center_1.set_title('center state module 1')
-        # ax_center_1.set_ylabel('center size')
-        # ax_center_1.set_xlabel('iteration')
-        # ax_module_1.set_title('state module 1')
-        # ax_module_1.set_xlabel('Iteration')
-        #
-        # # module 2
-        # ax_center_2.set_title('center state module 1')
-        # ax_center_2.set_ylabel('center size')
-        # ax_center_2.set_xlabel('iteration')
-        # ax_module_2.set_title('state module 1')
-        # ax_module_2.set_xlabel('Iteration')
-        #
-        # # module 3
-        # ax_center_3.set_title('center state module 1')
-        # ax_center_3.set_ylabel('center size')
-        # ax_center_3.set_xlabel('iteration')
-        # ax_module_3.set_title('state module 1')
-        # ax_module_3.set_xlabel('Iteration')
-        #
-        # # module 4
-        # ax_center_4.set_title('center state module 1')
-        # ax_center_4.set_ylabel('center size')
-        # ax_center_4.set_xlabel('iteration')
-        # ax_module_4.set_title('state module 1')
-        # ax_module_4.set_xlabel('Iteration')
+        ax_pred.set_title('Prediction')
+        ax_pred.set_xlabel('num_classes')
+
+        # centers
+        ax_center[0].set_title('center states')
+        ax_center[3].set_xlabel('iteration')
+        ax_center[0].set_ylabel('center size')
+        ax_center[1].set_ylabel('center size')
+        ax_center[2].set_ylabel('center size')
+        ax_center[3].set_ylabel('center size')
+
+        # modules
+        ax_module[0].set_title('module states')
+        ax_module[3].set_xlabel('iteration')
+        ax_module[0].set_ylabel('module state size')
+        ax_module[1].set_ylabel('module state size')
+        ax_module[2].set_ylabel('module state size')
+        ax_module[3].set_ylabel('module state size')
 
         # Create buffer and pickle the figure.
-        buf = io.BytesIO()
-        pickle.dump(fig, buf)
 
-        return buf
+        return fig
 
     def plot_sequence(self, logits, data_tuple):
 
@@ -194,18 +168,28 @@ class THALNET(ModelBase, nn.Module):
         The default visualizatoin contains input, output and target sequences.
         For more model/problem dependent visualization please overwrite this method in the derived model class.
         """
-        # import time
-        # start_time = time.time()
+
         # Create figure template.
-        buf = self.pickle_figure_template()
+        fig = self.generate_figure_layout()
+        # Get axes that artists will draw on.
 
         # Set intial values of displayed  inputs, targets and predictions - simply zeros.
         inputs_displayed = np.transpose(np.zeros(input_seq.shape))
 
-        module_state_displayed = np.zeros((self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
-        center_state_displayed = np.zeros((self.cell_state_history[0][1].shape[-1], input_seq.shape[-2]))
+        # Define Modules
+        module_state_displayed_1 = np.zeros((self.cell_state_history[0][4].shape[-1], input_seq.shape[-2]))
+        module_state_displayed_2 = np.zeros((self.cell_state_history[0][4].shape[-1], input_seq.shape[-2]))
+        module_state_displayed_3 = np.zeros((self.cell_state_history[0][4].shape[-1], input_seq.shape[-2]))
+        module_state_displayed_4 = np.zeros((self.cell_state_history[0][-1].shape[-1], input_seq.shape[-2]))
 
-        module_state_displayed_t = np.zeros((self.cell_state_history[0][7].shape[-1], input_seq.shape[-2]))
+        # Define centers
+        center_state_displayed_1 = np.zeros((self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
+        center_state_displayed_2 = np.zeros((self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
+        center_state_displayed_3 = np.zeros((self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
+        center_state_displayed_4 = np.zeros((self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
+
+        #modules_plot = [module_state_displayed for _ in range(self.num_modules)]
+        #center_plot = [center_state_displayed for _ in range(self.num_modules)]
 
         # Set initial values of memory and attentions.
         # Unpack initial state.
@@ -213,54 +197,85 @@ class THALNET(ModelBase, nn.Module):
         # Log sequence length - so the user can understand what is going on.
         logger = logging.getLogger('ModelBase')
         logger.info("Generating dynamic visualization of {} figures, please wait...".format(input_seq.shape[0]))
-        # List of figures.
-        figs = []
+
+        # Create frames - a list of lists, where each row is a list of artists used to draw a given frame.
+        frames = []
+
         for i, (input_element, state_tuple) in enumerate(
                 zip(input_seq, self.cell_state_history)):
             # Display information every 10% of figures.
             if (input_seq.shape[0] > 10) and (i % (input_seq.shape[0] // 10) == 0):
                 logger.info("Generating figure {}/{}".format(i, input_seq.shape[0]))
 
-            # Create figure object on the basis of template.
-            buf.seek(0)
-            fig = pickle.load(buf)
-
             # Update displayed values on adequate positions.
             inputs_displayed[:, i] = input_element
 
-            h = 0
-            for j, state in enumerate(state_tuple):
-                # Get attention of head 0.
+            # Create "Artists" drawing data on "ImageAxes".
+            artists = [None] * len(fig.axes)
 
-                # "Show" data on "axes".
-                entity = fig.axes[j]
-                if self.num_modules <= h < 2 * self.num_modules :
-                    if h != 2 * self.num_modules - 1:
-                        module_state_displayed[:, i] = state[num_batch, :]
-                        entity.imshow(module_state_displayed, interpolation='nearest', aspect='auto')
-                    else:
-                        module_state_displayed_t[:, i] = state[num_batch, :]
-                        entity.imshow(module_state_displayed_t, interpolation='nearest', aspect='auto')
+            # centers state
+            center_state_displayed_1[:, i] = state_tuple[0][num_batch, :]
+            entity = fig.axes[0]
+            artists[0] = entity.imshow(center_state_displayed_1, interpolation='nearest', aspect='auto')
 
-                else:
-                    center_state_displayed[:, i] = state[num_batch, :]
-                    entity.imshow(center_state_displayed, interpolation='nearest', aspect='auto')
+            center_state_displayed_2[:, i] = state_tuple[1][num_batch, :]
+            entity = fig.axes[1]
+            artists[1] = entity.imshow(center_state_displayed_2, interpolation='nearest', aspect='auto')
 
-                h += 1
+            center_state_displayed_3[:, i] = state_tuple[2][num_batch, :]
+            entity = fig.axes[2]
+            artists[2] = entity.imshow(center_state_displayed_3, interpolation='nearest', aspect='auto')
+
+            center_state_displayed_4[:, i] = state_tuple[3][num_batch, :]
+            entity = fig.axes[3]
+            artists[3] = entity.imshow(center_state_displayed_4, interpolation='nearest', aspect='auto')
+
+
+            # module state
+            module_state_displayed_1[:, i] = state_tuple[4][num_batch, :]
+            entity = fig.axes[4]
+            artists[4] = entity.imshow(module_state_displayed_1, interpolation='nearest', aspect='auto')
+
+            module_state_displayed_2[:, i] = state_tuple[5][num_batch, :]
+            entity = fig.axes[5]
+            artists[5] = entity.imshow(module_state_displayed_2, interpolation='nearest', aspect='auto')
+
+            module_state_displayed_3[:, i] = state_tuple[6][num_batch, :]
+            entity = fig.axes[6]
+            artists[6] = entity.imshow(module_state_displayed_3, interpolation='nearest', aspect='auto')
+
+            module_state_displayed_4[:, i] = state_tuple[7][num_batch, :]
+            entity = fig.axes[7]
+            artists[7] = entity.imshow(module_state_displayed_4, interpolation='nearest', aspect='auto')
+
+            # h = 0
+            # for j, state in enumerate(state_tuple):
+            #     # Get attention of head 0.
+            #
+            #     # "Show" data on "axes".
+            #     entity = fig.axes[j]
+            #     if self.num_modules <= h < 2 * self.num_modules :
+            #         modules_plot[j - self.num_modules][:, i] = state[num_batch, :]
+            #         artists[j] = entity.imshow(modules_plot[j - self.num_modules], interpolation='nearest', aspect='auto')
+            #
+            #     else:
+            #         center_plot[j][:, i] = state[num_batch, :]
+            #         artists[j] = entity.imshow(center_plot[j], interpolation='nearest', aspect='auto')
+            #
+            #     h += 1
 
             entity = fig.axes[2 * self.num_modules]
-            entity.imshow(inputs_displayed, interpolation='nearest', aspect='auto')
+            artists[2 * self.num_modules] = entity.imshow(inputs_displayed, interpolation='nearest', aspect='auto')
 
             entity = fig.axes[2 * self.num_modules + 1]
-            entity.imshow(logits[0, -1, None], interpolation='nearest', aspect='auto')
+            artists[2 * self.num_modules + 1] = entity.imshow(logits[0, -1, None], interpolation='nearest', aspect='auto')
 
-            # Append figure to a list.
-            fig.set_tight_layout(True)
-            figs.append(fig)
+            # Add "frame".
+            frames.append(artists)
 
         # print("--- %s seconds ---" % (time.time() - start_time))
         # Update time plot fir generated list of figures.
-        self.plot.update(figs)
+        self.plot.update(fig,  frames)
         return self.plot.is_closed
 
 
@@ -279,16 +294,17 @@ if __name__ == "__main__":
     batch_size = 2
 
     # Check for different seq_lengts and batch_sizes.
-    for i in range(2):
+    for i in range(1):
         # Create random Tensors to hold inputs and outputs
         x = torch.randn(batch_size, 1, input_size, input_size)
         logits = torch.randn(batch_size, 1, params['output_size'])
         y = x
         data_tuple = (x, y)
 
-
         # Test forward pass.
         y_pred = model(data_tuple)
+
+        print(y_pred.size())
 
         app_state.visualize = True
         if app_state.visualize:
