@@ -18,7 +18,7 @@ class SequentialPixelMnist(SequentialVisionProblem):
         self.stop_index = params['stop_index']
         self.num_rows = 28
         self.num_columns = 28
-
+        self.use_train_data = params['use_train_data']
         self.gpu = False
         self.datasets_folder = '~/data/mnist'
 
@@ -29,7 +29,7 @@ class SequentialPixelMnist(SequentialVisionProblem):
             transforms.ToTensor(), transforms.Lambda(lambda x: x.view(1, -1, 1))])
 
         # load the datasets
-        self.train_datasets = datasets.MNIST(self.datasets_folder, train=True, download=True,
+        self.train_datasets = datasets.MNIST(self.datasets_folder, train=self.use_train_data, download=True,
                                      transform=train_transform)
         # set split
         num_train = len(self.train_datasets)

@@ -31,8 +31,8 @@ class ModelFactory(object):
         if name == 'dwm':
             from models.dwm.dwm_layer import DWM
             return DWM(params)
-        elif name == 'vision':
-            from models.vision.simple_cnn import SimpleConvNet
+        elif name == 'simple_cnn':
+            from models.simple_cnn.simple_cnn import SimpleConvNet
             return SimpleConvNet(params)
         elif name == 'thalnet':
             from models.thalnet.thalnet_layer import THALNET
