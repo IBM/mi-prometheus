@@ -15,6 +15,7 @@ class Mnist(VisionProblem):
         self.batch_size = params['batch_size']
         self.start_index = params['start_index']
         self.stop_index = params['stop_index']
+        self.use_train_data = params['use_train_data']
         self.gpu = False
         self.datasets_folder = '~/data/mnist'
 
@@ -25,7 +26,7 @@ class Mnist(VisionProblem):
             transforms.ToTensor()])
 
         # load the datasets
-        self.train_datasets = datasets.MNIST(self.datasets_folder, train=True, download=True,
+        self.train_datasets = datasets.MNIST(self.datasets_folder, train=self.use_train_data, download=True,
                                      transform=train_transform)
 
         # set split data (for training and validation data)
@@ -44,6 +45,7 @@ class Mnist(VisionProblem):
 
         # train_loader a generator: (data, label)
         return next(train_loader), ()
+
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""

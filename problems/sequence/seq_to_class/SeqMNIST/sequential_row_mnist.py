@@ -16,6 +16,7 @@ class SequentialRowMnist(SequentialVisionProblem):
         self.batch_size = params['batch_size']
         self.start_index = params['start_index']
         self.stop_index = params['stop_index']
+        self.use_train_data = params['use_train_data']
         self.num_rows = 28
         self.num_columns = 28
         self.gpu = False
@@ -28,7 +29,7 @@ class SequentialRowMnist(SequentialVisionProblem):
             transforms.ToTensor()])
 
         # load the datasets
-        self.train_datasets = datasets.MNIST(self.datasets_folder, train=True, download=True,
+        self.train_datasets = datasets.MNIST(self.datasets_folder, train=self.use_train_data, download=True,
                                      transform=train_transform)
         # set split
         num_train = len(self.train_datasets)
