@@ -15,12 +15,7 @@ else:
     from matplotlib.backends.backend_qt4agg import (
         FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 
-<<<<<<< HEAD
-
-# Qt = QtCore.Qt
-=======
 #Qt = QtCore.Qt
->>>>>>> master
 
 class TimePlot(QtWidgets.QMainWindow):
     def __init__(self):
@@ -33,11 +28,7 @@ class TimePlot(QtWidgets.QMainWindow):
         # Empty objects that will be used during visualization.
         self.fig = None
         self.frames = None
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> master
         # Slider stuff
         hbox_timeline = QtWidgets.QHBoxLayout()
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
@@ -72,11 +63,7 @@ class TimePlot(QtWidgets.QMainWindow):
         logger.info("Saving movie - please wait...")
         # Generate filename.
         time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
-<<<<<<< HEAD
-        name_str = 'experiment_run_' + time_str + '.mp4'
-=======
         name_str = 'experiment_run_'+time_str+'.mp4'
->>>>>>> master
 
         # Save the animation.
         ani = animation.ArtistAnimation(self.fig, self.frames, blit=False, interval=1.0)
@@ -84,34 +71,20 @@ class TimePlot(QtWidgets.QMainWindow):
         writer = Writer(fps=1, extra_args=['-r', '25', '-probesize', '10M'])
         ani.save(name_str, writer=writer, dpi=200)
         logger.info("Saved movie to file '{}'".format(name_str))
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> master
     def _next_clicked(self):
         self.qapp.quit()
 
     def closeEvent(self, _):
         # Set flag to True, so we could break the external loop.
         self.is_closed = True
-<<<<<<< HEAD
         self.qapp.quit()
-
-    def update(self, fig, frames):
-        # "Save" figure and frame objects.
-        self.fig = fig
-        self.frames = frames
-
-=======
-        self.qapp.quit()  
         
     def update(self, fig,  frames):
         # "Save" figure and frame objects.
         self.fig = fig
         self.frames = frames
         
->>>>>>> master
         # Create the widget.
         w = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(w)
@@ -132,11 +105,6 @@ class TimePlot(QtWidgets.QMainWindow):
         self.slider.setValue(len(frames) - 1)
         # But call it anyway - for the case when user pressed "next" button.
         self.show_frame(len(frames) - 1)
-<<<<<<< HEAD
-
-=======
-    
->>>>>>> master
         # Show.
         self.show()
         self.qapp.exec_()  # Resume event loop
@@ -146,22 +114,7 @@ class TimePlot(QtWidgets.QMainWindow):
         val = self.slider.value()
         self.show_frame(val)
 
-<<<<<<< HEAD
-    def show_frame(self, frame_number):
-        """ Shows given frame."""
-        # Make all the artists from the current frame visible
-        for frame in self.frames:
-            for artist in frame:  # self.frames[self.current_frame_number]:
-                artist.set_visible(False)
 
-                # Make all the artists from the current frame visible
-        for artist in self.frames[frame_number]:
-            artist.set_visible(True)
-
-        # Redraw the figure canvas.
-        self.fig.canvas.draw_idle()
-
-=======
     def show_frame(self,  frame_number):
         """ Shows given frame."""
         # Make all the artists from the current frame visible
@@ -176,7 +129,6 @@ class TimePlot(QtWidgets.QMainWindow):
         # Redraw the figure canvas.
         self.fig.canvas.draw_idle()
         
->>>>>>> master
         # Remember current frame.
         self.current_frame_number = frame_number
 
@@ -195,17 +147,9 @@ if __name__ == '__main__':
     axes[1].set_title("output")
     axes[2].set_title("target")
 
-<<<<<<< HEAD
-
     def f(x, y):
         return np.sin(x) + np.cos(y)
 
-
-=======
-    def f(x, y):
-        return np.sin(x) + np.cos(y)
-
->>>>>>> master
     while not plot.is_closed:
         x = np.linspace(0, 2 * np.pi, 120)
         y = np.linspace(0, 2 * np.pi, 100).reshape(-1, 1)
@@ -215,11 +159,8 @@ if __name__ == '__main__':
             x += np.pi / 15.
             y += np.pi / 20.
             # Get axes
-<<<<<<< HEAD
-            artists = [None] * len(fig.axes)
-=======
+
             artists = [None] * len( fig.axes)
->>>>>>> master
             artists[0] = axes[0].imshow(f(x, y))
             artists[1] = axes[1].imshow(f(x, y))
             artists[2] = axes[2].imshow(f(x, y))
@@ -229,8 +170,4 @@ if __name__ == '__main__':
             # Add "frame".
             frames.append(artists)
         # Plot.
-<<<<<<< HEAD
-        plot.update(fig, frames)
-=======
         plot.update(fig,  frames)
->>>>>>> master

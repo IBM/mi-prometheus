@@ -1,7 +1,12 @@
 import torch
 from torch import nn
-from models.thalnet.utils import single, unzip
+import collections
 
+# Helper collection type.
+_ThalNetModuleState = collections.namedtuple('ThalNetModuleState', ('module'))
+
+class ThalNetModuleState(_ThalNetModuleState):
+    """Tuple used by interface for storing current/past state information"""
 
 class FfGruModule(nn.Module):
     def __init__(self,
@@ -29,9 +34,7 @@ class FfGruModule(nn.Module):
         self.fc = nn.Linear(self.input_context_size, self.center_output_size)
         self.grucell = nn.GRUCell(self.center_output_size, self.gru_hidden_size)
 
-        self.fo = nn.Linear(self.gru_hidden_size, self.center_output_size)
-
-    def forward(self, inputs, center_state, module_state):
+    def forward(self, inputs, center_state, tuple_module_state):
         """
         :return: output, new_center_features, new_module_state
         """
@@ -51,13 +54,13 @@ class FfGruModule(nn.Module):
 
         # apply FeedForward & GRU
         inputs = self.fc(inputs)
-        gru_output = self.grucell(inputs, module_state)
+        gru_output = self.grucell(inputs, tuple_module_state)
         new_module_state = gru_output
 
         output, center_feature_output = torch.split(gru_output,
                                         [self.output_size, self.center_output_size], dim=1) if self.output_size else (None, gru_output)
 
-        return output, center_feature_output, new_module_state
+        return output, center_feature_output, ThalNetModuleState(new_module_state)
 
 
 class ThalNetCell(nn.Module):
@@ -106,4 +109,4 @@ class ThalNetCell(nn.Module):
             center_features_next.append(center_features)
             module_states_next.append(module_state)
 
-        return output, list((center_features_next + module_states_next))
+        return output, center_features_next + module_states_next

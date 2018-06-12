@@ -66,15 +66,7 @@ class ThalNet(ModelBase, nn.Module):
 
             # This is for the time plot
             if self.app_state.visualize:
-                self.cell_state_history.append((cell_state[0].detach().numpy(),
-                                                cell_state[1].detach().numpy(),
-                                                cell_state[2].detach().numpy(),
-                                                cell_state[3].detach().numpy(),
-                                                cell_state[4].detach().numpy(),
-                                                cell_state[5].detach().numpy(),
-                                                cell_state[6].detach().numpy(),
-                                                cell_state[7].detach().numpy()
-                                                ))
+                self.cell_state_history.append([cell_state[i].detach().numpy() for i in range(2*self.num_modules)])
 
         return output
 
@@ -104,15 +96,15 @@ class ThalNet(ModelBase, nn.Module):
         # Prepare "generic figure template".
         # Create figure object.
         fig = Figure()
-        # axes = fig.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={'width_ratios': [input_seq.shape[0]]})
 
         # Create a specific grid for NTM .
         gs = gridspec.GridSpec(4, 3)
 
-        # module 1
+        # modules & centers subplots
         ax_center = [fig.add_subplot(gs[i, 0]) for i in range(self.num_modules)]
         ax_module = [fig.add_subplot(gs[i, 1]) for i in range(self.num_modules)]  #
 
+        # inputs & prediction subplot
         ax_inputs = fig.add_subplot(gs[0, 2])
         ax_pred = fig.add_subplot(gs[2, 2])
 
@@ -151,10 +143,13 @@ class ThalNet(ModelBase, nn.Module):
 
         return fig
 
-    def plot_sequence(self, logits, data_tuple):
+    def plot_sequence(self, data_tuple, logits):
 
         num_batch = 0
         (inputs, _) = data_tuple
+        inputs = inputs.cpu().detach().numpy()
+        predictions_seq = logits.cpu().detach().numpy()
+
         input_seq = inputs[num_batch, 0] if len(inputs.shape) == 4 else inputs[num_batch]
 
         """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
@@ -167,7 +162,7 @@ class ThalNet(ModelBase, nn.Module):
         # Get axes that artists will draw on.
 
         # Set intial values of displayed  inputs, targets and predictions - simply zeros.
-        inputs_displayed = np.transpose(np.zeros(input_seq.shape))
+        inputs_displayed = np.zeros(input_seq.shape)
 
         # Define Modules
         module_state_displayed_1 = np.zeros((self.cell_state_history[0][4].shape[-1], input_seq.shape[-2]))
@@ -201,7 +196,7 @@ class ThalNet(ModelBase, nn.Module):
                 logger.info("Generating figure {}/{}".format(i, input_seq.shape[0]))
 
             # Update displayed values on adequate positions.
-            inputs_displayed[:, i] = input_element
+            inputs_displayed[i, :] = input_element
 
             # Create "Artists" drawing data on "ImageAxes".
             artists = [None] * len(fig.axes)
@@ -222,7 +217,6 @@ class ThalNet(ModelBase, nn.Module):
             center_state_displayed_4[:, i] = state_tuple[3][num_batch, :]
             entity = fig.axes[3]
             artists[3] = entity.imshow(center_state_displayed_4, interpolation='nearest', aspect='auto')
-
 
             # module state
             module_state_displayed_1[:, i] = state_tuple[4][num_batch, :]
@@ -261,7 +255,7 @@ class ThalNet(ModelBase, nn.Module):
             artists[2 * self.num_modules] = entity.imshow(inputs_displayed, interpolation='nearest', aspect='auto')
 
             entity = fig.axes[2 * self.num_modules + 1]
-            artists[2 * self.num_modules + 1] = entity.imshow(logits[0, -1, None], interpolation='nearest', aspect='auto')
+            artists[2 * self.num_modules + 1] = entity.imshow(predictions_seq[0, -1, None], interpolation='nearest', aspect='auto')
 
             # Add "frame".
             frames.append(artists)
@@ -297,11 +291,9 @@ if __name__ == "__main__":
         # Test forward pass.
         y_pred = model(data_tuple)
 
-        print(y_pred.size())
-
         app_state.visualize = True
         if app_state.visualize:
-            model.plot_sequence(logits, data_tuple)
+            model.plot_sequence(data_tuple, logits)
 
         # Change batch size and seq_length.
         seq_length = seq_length + 1
