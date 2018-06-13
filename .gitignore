@@ -1,5 +1,5 @@
 # Ignore everything
-
+*
 # But descend into directories
 !*/
 # Recursively allow files under subtree
@@ -16,7 +16,6 @@
 !/confgiuration/**
 !/configs/**
 !/misc/**
-
 # You can be specific with these rules
 !/docs/conf.py
 !/docs/index.rst
