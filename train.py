@@ -36,7 +36,7 @@ def save_model(model, episode,   model_dir):
     """
     Function saves the model..
 
-    :returns: False if saving lso need to consider removing all of the plotting from the train and test and replacing it with outputting the data to file which we plot with a separate executable. I have been working through the design choices necessary to fully separate the data from train.py and test.py and the plotting just seems to get in the waywas successful (need to implement true condition if there was an error)
+    :returns: False if saving was successful (need to implement true condition if there was an error)
     """
     model_filename = 'model_parameters_episode_{:05d}'.format(episode)
     torch.save(model.state_dict(), model_dir + model_filename)
@@ -77,7 +77,7 @@ def validation(model, problem, data_valid, aux_valid,  FLAGS, logger, validation
     # Visualization of validation.
     if AppState().visualize:
         # True means that we should terminate
-        return loss_valid,  model.plot_sequence(data_valid, logits_valid)
+        return loss_valid,  model.plot_sequence(data_valid,  logits_valid)
     # Else simply return false, i.e. continue training.
     return loss_valid, False
 
@@ -120,8 +120,6 @@ if __name__ == '__main__':
                         help='Request user confirmation just after loading the settings, before starting training  (Default: False)')
     parser.add_argument('--config', dest='config', type=str, default='',
                         help='Name of the configuration file to be loaded')
-    parser.add_argument('--savetag', dest='savetag', type=str, default='',
-                        help='Tag for the save directory')
     parser.add_argument('--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2], type=int,
                         help="If present, log to TensorBoard. Log levels:\n"
                              "0: Just log the loss, accuracy, and seq_len\n"
@@ -160,14 +158,11 @@ if __name__ == '__main__':
     task_name = param_interface['problem_train']['name']
     model_name = param_interface['model']['name']
 
-
     # Prepare output paths for logging
     path_root = "./experiments/"
     while True:  # Dirty fix: if log_dir already exists, wait for 1 second and try again
         try:
             time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
-            if FLAGS.savetag != '':
-                time_str = time_str + "_" + FLAGS.savetag
             log_dir = path_root + task_name + '/' + model_name + '/' + time_str + '/'
             os.makedirs(log_dir, exist_ok=False)
         except FileExistsError:
@@ -363,7 +358,7 @@ if __name__ == '__main__':
         # Check visualization of training data.
         if app_state.visualize:
             # Show plot, if user presses Quit - break.
-            if model.plot_sequence(data_tuple, logits):
+            if model.plot_sequence(data_tuple,  logits):
                 break
 
         #  5. Save the model then validate
@@ -408,7 +403,6 @@ if __name__ == '__main__':
     # Check whether we have finished training!
     if terminal_condition:
         logger.info('Learning finished!')
-        logger.info('Model saved in '+ log_dir)
         # Check visualization flag - turn on when we wanted to visualize (at least) validation.
         if FLAGS.visualize is not None and (FLAGS.visualize == 3):
             app_state.visualize = True
