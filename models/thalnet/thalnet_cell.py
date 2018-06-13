@@ -20,7 +20,7 @@ class ThalNetCell(nn.Module):
         self.num_modules = num_modules
         super(ThalNetCell, self).__init__()
 
-        # init GRU-center cell
+        # init module-center cell
         self.modules_thalnet = nn.ModuleList()
 
         self.modules_thalnet.append(Module(center_size=self.center_size,
@@ -45,15 +45,15 @@ class ThalNetCell(nn.Module):
 
     def forward(self, inputs, prev_state):
         prev_center_states = [prev_state[i][0] for i in range(self.num_modules)]
-        prev_module_states = [prev_state[i][1] for i in range(self.num_modules)]
+        prev_controller_states = [prev_state[i][1] for i in range(self.num_modules)]
 
         # Concatenate all the centers
         prev_center_states = torch.cat(prev_center_states, dim=1)
 
         states = []
         # run the different modules, they share all the same center
-        for module, prev_module_state in zip(self.modules_thalnet, prev_module_states):
-            output, center_feature, module_state = module(inputs, prev_center_states, prev_module_state)
+        for module, prev_controller_state in zip(self.modules_thalnet, prev_controller_states):
+            output, center_feature, module_state = module(inputs, prev_center_states, prev_controller_state)
             states.append((center_feature, module_state))
 
         return output, states
