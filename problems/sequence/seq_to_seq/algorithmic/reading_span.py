@@ -1,17 +1,28 @@
+# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+
 import torch
 import numpy as np
 from utils import augment, add_ctrl
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem
-from algorithmic_sequential_problem import DataTuple, AuxTuple
+from problems.problem import DataTuple
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
 
 
-@AlgorithmicSequentialProblem.register
 class ReadingSpan(AlgorithmicSequentialProblem):
     """
     # TODO : Documentation will be added soon
     """
 
     def __init__(self, params):
+        """ 
+        Constructor - stores parameters. Calls parent class initialization.
+        
+        :param params: Dictionary of parameters.
+        """
+        # Call parent constructor - sets e.g. the loss function ;)
+        super(ReadingSpan, self).__init__(params)
+        
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
         # Number of bits in one element.
@@ -85,9 +96,10 @@ class ReadingSpan(AlgorithmicSequentialProblem):
         # rest channel values of data dummies
         inputs[:, mask[0], 0:self.control_bits] = 0
 
-        #return DataTuple(inputs, target, mask)
+        # Return tuples.
         data_tuple = DataTuple(inputs, targets)
-        aux_tuple = AuxTuple(mask)
+        # Returning maximum sequence length - for now.
+        aux_tuple = AlgSeqAuxTuple(mask, max(seq_length), num_sub_seq)
 
         return data_tuple, aux_tuple
 

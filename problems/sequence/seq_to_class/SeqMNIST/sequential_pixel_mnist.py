@@ -1,17 +1,26 @@
+# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+
 import torch
-from sequential_vision_problem import SequentialVisionProblem
-from sequential_vision_problem import AuxTuple
 from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 
+from problems.problem import DataTuple
+from problems.sequence.sequential_problem import MaskAuxTuple
+from sequential_vision_problem import SequentialVisionProblem
 
-@SequentialVisionProblem.register
+
 class SequentialPixelMnist(SequentialVisionProblem):
     """
     Class generating sequences sequential mnist
     """
 
     def __init__(self, params):
+        """ Initialize. """         
+        # Call base class constructors.
+        super(SequentialPixelMnist, self).__init__(params)
+
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
         self.start_index = params['start_index']
@@ -19,9 +28,10 @@ class SequentialPixelMnist(SequentialVisionProblem):
         self.num_rows = 28
         self.num_columns = 28
         self.use_train_data = params['use_train_data']
+        self.datasets_folder = params['mnist_folder']
+        # TODO: WHY?? Fix this!
         self.gpu = False
-        self.datasets_folder = '~/data/mnist'
-
+        
         self.kwargs = {'num_workers': 1, 'pin_memory': True} if self.gpu else {}
 
         # define transforms
@@ -51,13 +61,17 @@ class SequentialPixelMnist(SequentialVisionProblem):
         mask[-1] = 1
 
         # train_loader a generator: (data, label)
-        return next(train_loader), AuxTuple(mask.type(torch.uint8))
+        (data, label) = next(train_loader)
+
+        # Return DataTuple(!) and an empty (aux) tuple.
+        return DataTuple(data,label), MaskAuxTuple(mask.type(torch.uint8))
+
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 3, 'start_index': 0, 'stop_index': 54999}
+    params = {'batch_size': 3, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist'}
     # Create problem object.
     problem = SequentialPixelMnist(params)
     # Get generator

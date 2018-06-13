@@ -1,28 +1,14 @@
+# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+
 import numpy as np
 import torch
 from utils import augment, add_ctrl
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem
-from algorithmic_sequential_problem import DataTuple, AuxTuple
+from problems.problem import DataTuple
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
 
 
-def rotate(seq, rotation, length):
-    # Rotate sequence by shifting the items to right: seq >> num_items
-    # i.e num_items = 2 -> seq_items >> 2
-    # and num_items = -1 -> seq_items << 1
-    # For that reason we must change the sign of num_items
-    # Check if we are using relative or absolute rotation.
-    if -1 <= rotation <= 1:
-        rotation = rotation * length
-    # Round bitshift  to int.
-    rotation = np.round(rotation)
-    # Modulo items shift with length of the sequence.
-    rotation = int(rotation % length)
-
-    # apply the shift
-    seq = np.concatenate((seq[:, :, rotation:], seq[:, :, :rotation]), axis=-1)
-    return seq
-
-@AlgorithmicSequentialProblem.register
 class OperationSpan(AlgorithmicSequentialProblem):
     """
     Class generating successions of sub sequences X  and Y of random bit-patterns, the target was designed to force the system to learn
@@ -38,6 +24,14 @@ class OperationSpan(AlgorithmicSequentialProblem):
     2) otherwise: absolute number of items by which the sequence will be shifted.
     """
     def __init__(self, params):
+        """ 
+        Constructor - stores parameters. Calls parent class initialization.
+        
+        :param params: Dictionary of parameters.
+        """
+        # Call parent constructor - sets e.g. the loss function ;)
+        super(OperationSpan, self).__init__(params)
+        
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
         # Number of bits in one element.
@@ -55,6 +49,25 @@ class OperationSpan(AlgorithmicSequentialProblem):
         self.bias = params['bias']
         self.rotation = params['num_rotation']
         self.dtype = torch.FloatTensor
+
+    def rotate(self, seq, rotation, length):
+        """ 
+        # Rotate sequence by shifting the items to right: seq >> num_items
+        # i.e num_items = 2 -> seq_items >> 2
+        # and num_items = -1 -> seq_items << 1
+        """
+        # For that reason we must change the sign of num_items
+        # Check if we are using relative or absolute rotation.
+        if -1 <= rotation <= 1:
+            rotation = rotation * length
+        # Round bitshift  to int.
+        rotation = np.round(rotation)
+        # Modulo items shift with length of the sequence.
+        rotation = int(rotation % length)
+
+        # apply the shift
+        seq = np.concatenate((seq[:, :, rotation:], seq[:, :, :rotation]), axis=-1)
+        return seq
 
     def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
@@ -88,7 +101,7 @@ class OperationSpan(AlgorithmicSequentialProblem):
         x = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_lengths_a]
         y = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_lengths_b]
         # rotate y
-        yr = [rotate(yr, self.rotation, self.data_bits) for yr in y]
+        yr = [self.rotate(yr, self.rotation, self.data_bits) for yr in y]
 
         # create the target
         target = np.concatenate(yr + x, axis=1)
@@ -127,8 +140,11 @@ class OperationSpan(AlgorithmicSequentialProblem):
         target_with_dummies = torch.zeros_like(inputs[:, :, self.control_bits:])
         target_with_dummies[:, mask[0], :] = target
 
+        # Return tuples.
         data_tuple = DataTuple(inputs, target_with_dummies)
-        aux_tuple = AuxTuple(mask)
+        # Returning maximum length of subsequence a - for now.
+        aux_tuple = AlgSeqAuxTuple(mask, max(seq_lengths_a), nb_sub_seq_a+nb_sub_seq_b)
+
 
         return data_tuple, aux_tuple
 
@@ -141,8 +157,8 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 4,
-            'max_sequence_length': 4, 'bias': 0.5, 'num_subseq_min':3 ,'num_subseq_max': 3, 'num_rotation':0.5}
+    params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 2,
+            'max_sequence_length': 4, 'bias': 0.5, 'num_subseq_min':2 ,'num_subseq_max': 4, 'num_rotation':0.5}
     # Create problem object.
     problem = OperationSpan(params)
     # Get generator

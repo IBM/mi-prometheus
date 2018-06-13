@@ -1,17 +1,28 @@
+# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+
 import numpy as np
 import torch
 from utils import augment, add_ctrl
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem
-from algorithmic_sequential_problem import DataTuple, AuxTuple
+from problems.problem import DataTuple
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
 
 
-@AlgorithmicSequentialProblem.register
 class InterruptionReverseRecall(AlgorithmicSequentialProblem):
     """
     Class generating successions of sub sequences X  and Y of random bit-patterns, the target was designed to force the system to learn
     reverse recalling all sub sequences of Y and recall all sub sequences X.
     """
     def __init__(self, params):
+        """ 
+        Constructor - stores parameters. Calls parent class initialization.
+        
+        :param params: Dictionary of parameters.
+        """
+        # Call parent constructor - sets e.g. the loss function ;)
+        super(InterruptionReverseRecall, self).__init__(params)
+        
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
         # Number of bits in one element.
@@ -104,9 +115,10 @@ class InterruptionReverseRecall(AlgorithmicSequentialProblem):
         target_with_dummies = torch.zeros_like(inputs[:, :, self.control_bits:])
         target_with_dummies[:, mask[0], :] = target
 
-        # Return data tuple.
+        # Return tuples.
         data_tuple = DataTuple(inputs, target_with_dummies)
-        aux_tuple = AuxTuple(mask)
+        # Returning maximum length of subsequence a - for now.
+        aux_tuple = AlgSeqAuxTuple(mask, max(seq_lengths_a), nb_sub_seq_a+nb_sub_seq_b)
 
         return data_tuple, aux_tuple
 

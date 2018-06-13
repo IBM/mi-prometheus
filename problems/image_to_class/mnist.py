@@ -1,23 +1,36 @@
+# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..')) 
+
 import torch
 from vision_problem import VisionProblem
 from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler
-from vision_problem import DataTuple, AuxTuple
+from problems.problem import DataTuple
 
-@VisionProblem.register
-class Mnist(VisionProblem):
+class MNIST(VisionProblem):
     """
-    Class generating sequences sequential mnist
+    Classic MNIST classification problem.
     """
 
     def __init__(self, params):
+        """
+        Initializes MNIST problem, calls base class initialization, sets properties using the provided parameters.
+
+        :param params: Dictionary of parameters (read from configuration file).
+        """
+
+        # Call base class constructors.
+        super(MNIST, self).__init__(params)
+
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
         self.start_index = params['start_index']
         self.stop_index = params['stop_index']
         self.use_train_data = params['use_train_data']
+        self.datasets_folder = params['mnist_folder']
+        # TODO: WHY?? Fix this!
         self.gpu = False
-        self.datasets_folder = '~/data/mnist'
 
         self.kwargs = {'num_workers': 1, 'pin_memory': True} if self.gpu else {}
 
@@ -44,16 +57,19 @@ class Mnist(VisionProblem):
         train_loader = iter(train_loader)
 
         # train_loader a generator: (data, label)
-        return next(train_loader), ()
+        (data, label) = next(train_loader)
+
+        # Return DataTuple(!) and an empty (aux) tuple.
+        return DataTuple(data,label), ()
 
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'batch_size':1, 'start_index': 0, 'stop_index': 54999}
+    params = {'batch_size':1, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist'}
     # Create problem object.
-    problem = Mnist(params)
+    problem = MNIST(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
