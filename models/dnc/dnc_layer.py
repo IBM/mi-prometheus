@@ -7,7 +7,6 @@ from models.dnc.dnc_cell import DNCCell
 from misc.app_state import AppState
 import numpy as np
 
-
 class DNC(ModelBase, nn.Module):
 
     def __init__(self, params):
