@@ -34,20 +34,20 @@ class ESLSTM(ModelBase, nn.Module):
             self.output_size  = params['output_bits']
         except KeyError:
             self.output_size = params['data_bits']
-        self.hidden_state_size = params["hidden_state_size"]
+        self.hidden_state_dim = params["hidden_state_dim"]
 
         # Indices of control bits triggering encoding/decoding. 
         self.encoding_bit =  params['encoding_bit'] # Def: 0
         self.solving_bit =  params['solving_bit'] # Def: 1
 
         # Create the Encoder.
-        self.encoder = nn.LSTMCell(self.input_size, self.hidden_state_size) 
+        self.encoder = nn.LSTMCell(self.input_size, self.hidden_state_dim) 
 
         # Create the Decoder/Solver.
-        self.solver = nn.LSTMCell(self.input_size, self.hidden_state_size)
+        self.solver = nn.LSTMCell(self.input_size, self.hidden_state_dim)
 
         # Output linear layer.
-        self.output = nn.Linear(self.hidden_state_size, self.output_size)
+        self.output = nn.Linear(self.hidden_state_dim, self.output_size)
 
         self.modes = Enum('Modes', ['Encode', 'Solve'])
 
@@ -61,10 +61,10 @@ class ESLSTM(ModelBase, nn.Module):
         """
 
         # Initialize the hidden state.
-        h_init = Variable(torch.zeros(batch_size, self.hidden_state_size).type(dtype), requires_grad=False)
+        h_init = Variable(torch.zeros(batch_size, self.hidden_state_dim).type(dtype), requires_grad=False)
 
         # Initialize the memory cell state.
-        c_init = Variable(torch.zeros(batch_size, self.hidden_state_size).type(dtype), requires_grad=False)
+        c_init = Variable(torch.zeros(batch_size, self.hidden_state_dim).type(dtype), requires_grad=False)
         
         # Pack and return a tuple.
         return (h_init, c_init)
