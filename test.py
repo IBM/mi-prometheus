@@ -29,7 +29,6 @@ logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 use_CUDA=False
 
-
 if __name__ == '__main__':
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
@@ -40,8 +39,6 @@ if __name__ == '__main__':
     parser.add_argument('--log', action='store', dest='log', type=str, default='info',
                         choices=['critical', 'error', 'warning', 'info', 'debug', 'notset'],
                         help="Log level. Default is INFO.")
-
-
 
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()

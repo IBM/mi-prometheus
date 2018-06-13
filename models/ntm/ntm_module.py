@@ -51,8 +51,9 @@ class NTM(ModelBase, torch.nn.Module):
          - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and 
          - a tensor of targets
 
-		:raturns: Predictions being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] . 
+		:return: Predictions being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] .
         """
+
 		# Unpack data tuple.
         (inputs_BxSxI, targets) = data_tuple
         
