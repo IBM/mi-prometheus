@@ -1,17 +1,30 @@
+# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+
 import torch
 import numpy as np
 from utils import augment, add_ctrl
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem
-from algorithmic_sequential_problem import DataTuple, AuxTuple
+from problems.problem import DataTuple
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
 
 
-@AlgorithmicSequentialProblem.register
-class GeneratorComparison(AlgorithmicSequentialProblem):
+class SequenceComparison(AlgorithmicSequentialProblem):
     """
     Class generating sequences of random bit-patterns and targets forcing the system to learn scratch pad problem (overwrite the memory).
+
+    @Ryan: ARE YOU SURE? FIX THE CLASS DESCRIPTION!
     """
 
     def __init__(self, params):
+        """ 
+        Constructor - stores parameters. Calls parent class initialization.
+        
+        :param params: Dictionary of parameters.
+        """
+        # Call parent constructor - sets e.g. the loss function ;)
+        super(SequenceComparison, self).__init__(params)
+        
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
         # Number of bits in one element.
@@ -129,7 +142,8 @@ class GeneratorComparison(AlgorithmicSequentialProblem):
 
         # Return data tuple.
         data_tuple = DataTuple(inputs, target)
-        aux_tuple = AuxTuple(mask)
+        # Returning maximum length of sequence a - for now.
+        aux_tuple = AlgSeqAuxTuple(mask, seq_length, 1)
         
         return data_tuple, aux_tuple
         
@@ -146,7 +160,7 @@ if __name__ == "__main__":
               'min_sequence_length': 2, 'max_sequence_length': 3, 
               'bias': 0.5 }
     # Create problem object.
-    problem = GeneratorComparison(params)
+    problem = SequenceComparison(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.

@@ -17,6 +17,7 @@ import collections
 import numpy as np
 
 from misc.app_state import AppState
+from misc.statistics_collector import StatisticsCollector
 
 # Import model factory.
 import sys
@@ -43,36 +44,28 @@ def save_model(model, episode,   model_dir):
     logger.info("Model exported")
 
 
-def validation(model, problem, data_valid, aux_valid,  FLAGS, logger, validation_file,
+def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS, logger, validation_file,
                validation_writer):
     """
     Function performs validation of the model, using the provided data and criterion.
     Additionally it logs (to files, tensorboard) and visualizes.
 
-    :returns: True if training loop is supposed to end.
+    :param stat_col: Statistic collector object.
+    :return: True if training loop is supposed to end.
     """
 
-    # Calculate the accuracy and loss of the validation data.
+    # Calculate loss of the validation data.
     with torch.no_grad():
-        logits_valid, loss_valid, accuracy_valid = forward_step(model, problem, data_valid, aux_valid,use_CUDA)
+        logits_valid, loss_valid = forward_step(model, problem, episode, stat_col, data_valid, aux_valid, use_CUDA)
 
-    # Print statistics.i
-    # TODO Eliminate
-    #length_valid = data_valid[0].size(-2)
-    length_valid = 1
-    format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Validation]'
-
-    logger.info(format_str.format(episode, accuracy_valid, loss_valid, length_valid))
-    format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
-
-    format_str = format_str + '\n'
-    validation_file.write(format_str.format(episode, accuracy_valid, loss_valid, length_valid))
+    # Log to logger.
+    logger.info(stat_col.export_statistics_to_string('[Validation]'))
+    # Export to csv.
+    stat_col.export_statistics_to_csv(validation_file)
 
     if (FLAGS.tensorboard is not None):
-        # Save loss + accuracy to tensorboard
-        validation_writer.add_scalar('Loss', loss_valid, episode)
-        validation_writer.add_scalar('Accuracy', accuracy_valid, episode)
-        validation_writer.add_scalar('Seq_len', length_valid, episode)
+        # Save loss + accuracy to tensorboard.
+        stat_col.export_statistics_to_tensorboard(validation_writer)
 
     # Visualization of validation.
     if AppState().visualize:
@@ -183,12 +176,6 @@ if __name__ == '__main__':
     with open(log_dir + "/train_settings.yaml", 'w') as yaml_backup_file:
         yaml.dump(param_interface.to_dict(), yaml_backup_file, default_flow_style=False)
 
-    # Create csv files.
-    train_file = open(log_dir + 'training.csv', 'w', 1)
-    validation_file = open(log_dir + 'validation.csv', 'w', 1)
-    train_file.write('episode,accuracy,loss,length\n')
-    validation_file.write('episode,accuracy,length\n')
-
     # Create tensorboard output - if tensorboard is supposed to be used.
     if FLAGS.tensorboard is not None:
         from tensorboardX import SummaryWriter
@@ -273,6 +260,16 @@ if __name__ == '__main__':
     last_losses = collections.deque()
     validation_loss=.7 #default value so the loop won't terminate if the validation is not done on the first step
 
+    # Create statistics collector.
+    stat_col = StatisticsCollector()
+    # Add model/problem dependent statistics.
+    problem.add_statistics(stat_col)
+    #model.add_statistics(stat_col)
+
+    # Create csv files.
+    train_file = stat_col.initialize_csv_file(log_dir, '/training.csv')
+    validation_file = stat_col.initialize_csv_file(log_dir, '/validation.csv')
+
     # Try to read validation frequency from config, else set default (100)
     try:
         validation_frequency = param_interface['problem_validation']['frequency']
@@ -312,8 +309,8 @@ if __name__ == '__main__':
         else:
             app_state.visualize = False
 
-        # 1. Perform forward step, calculate logits, loss  and accuracy.
-        logits, loss, accuracy = forward_step(model, problem, data_tuple, aux_tuple,use_CUDA)
+        # 1. Perform forward step, calculate logits and loss.
+        logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple, use_CUDA)
 
         # Store the calculated loss on a list.
         last_losses.append(loss)
@@ -335,20 +332,15 @@ if __name__ == '__main__':
         # 3. Perform optimization.
         optimizer.step()
 
-        # 4. Log data - loss, accuracy and other variables (seq_length).
-        # TODO FIX
-        #train_length = inputs.size(-2)
-        train_length = 1
-        format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d}'
-        logger.info(format_str.format(episode, accuracy, loss, train_length))
-        format_str = '{:05d}, {:12.10f}, {:12.10f}, {:02d}\n'
-        train_file.write(format_str.format(episode, accuracy, loss, train_length))
+        # 4. Log statistics.
+        # Log to logger.
+        logger.info(stat_col.export_statistics_to_string())
+        # Export to csv.
+        stat_col.export_statistics_to_csv(train_file)
 
         # Export data to tensorboard.
         if (FLAGS.tensorboard is not None) and (episode % FLAGS.logging_frequency == 0):
-            training_writer.add_scalar('Loss', loss, episode)
-            training_writer.add_scalar('Accuracy', accuracy, episode)
-            training_writer.add_scalar('Seq_len', train_length, episode)
+            stat_col.export_statistics_to_tensorboard(training_writer)
 
             # Export histograms.
             if FLAGS.tensorboard >= 1:
@@ -379,7 +371,7 @@ if __name__ == '__main__':
             else:
                 app_state.visualize = False
 
-            validation_loss, stop_now = validation(model, problem, data_valid, aux_valid,  FLAGS,
+            validation_loss, stop_now = validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
                     logger,   validation_file,  validation_writer)
             
             # Perform validation.
@@ -414,8 +406,8 @@ if __name__ == '__main__':
             app_state.visualize = True
 
             # Perform validation.
-            _, _ = validation(model, problem, data_valid, aux_valid, FLAGS, logger,
-                               validation_file, validation_writer)
+            _, _ = validation(model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger,
+                               validation_file, validation_writer, stat_col)
 
         else:
             app_state.visualize = False

@@ -3,12 +3,16 @@
 """manipulation_spatial_rotate.py: Spatial rotation (bitshift) for all items in the sequence"""
 __author__      = "Tomasz Kornuta"
 
+# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+
 import numpy as np
 import torch
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem
-from algorithmic_sequential_problem import DataTuple, AuxTuple
+from problems.problem import DataTuple
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
 
-@AlgorithmicSequentialProblem.register
+
 class ManipulationSpatialRotation(AlgorithmicSequentialProblem):
     """   
     Creates input being a sequence of bit pattern and target being the same sequence, but with data_bits "bitshifted" by num_bits to right.
@@ -16,14 +20,16 @@ class ManipulationSpatialRotation(AlgorithmicSequentialProblem):
     1)  -1 < num_bits < 1: relative mode, where num_bits represents the % of data bits by which every should be shifted
     2) otherwise: absolute number of bits by which the sequence will be shifted.
     
-    TODO: sequences of different lengths in batch (filling with zeros?)
     """
     def __init__(self,  params):
         """ 
-        Constructor - stores parameters.
+        Constructor - stores parameters. Calls parent class initialization.
         
         :param params: Dictionary of parameters.
         """
+        # Call parent constructor - sets e.g. the loss function ;)
+        super(ManipulationSpatialRotation, self).__init__(params)
+        
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
         # Number of bits in one element.
@@ -43,7 +49,7 @@ class ManipulationSpatialRotation(AlgorithmicSequentialProblem):
         """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
        
-        : returns: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS], 
+        :returns: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS], 
         output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],
         mask [BATCH_SIZE, 2*SEQ_LENGTH+2]
 
@@ -89,9 +95,9 @@ class ManipulationSpatialRotation(AlgorithmicSequentialProblem):
         ptinputs = torch.from_numpy(inputs).type(self.dtype)
         pttargets = torch.from_numpy(targets).type(self.dtype)
 
-        # Return data tuple.
+        # Return tuples.
         data_tuple = DataTuple(ptinputs, pttargets)
-        aux_tuple = AuxTuple(mask)
+        aux_tuple = AlgSeqAuxTuple(mask, seq_length, 1)
 
         return data_tuple, aux_tuple
 

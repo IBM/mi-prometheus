@@ -1,28 +1,14 @@
+# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+
 import numpy as np
 import torch
 from utils import augment, add_ctrl
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem
-from algorithmic_sequential_problem import DataTuple, AuxTuple
+from problems.problem import DataTuple
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
 
 
-def rotate(seq, rotation, length):
-    # Rotate sequence by shifting the items to right: seq >> num_items
-    # i.e num_items = 2 -> seq_items >> 2
-    # and num_items = -1 -> seq_items << 1
-    # For that reason we must change the sign of num_items
-    # Check if we are using relative or absolute rotation.
-    if -1 <= rotation <= 1:
-        rotation = rotation * length
-    # Round bitshift  to int.
-    rotation = np.round(rotation)
-    # Modulo items shift with length of the sequence.
-    rotation = int(rotation % length)
-
-    # apply the shift
-    seq = np.concatenate((seq[:, :, rotation:], seq[:, :, :rotation]), axis=-1)
-    return seq
-
-@AlgorithmicSequentialProblem.register
 class InterruptionNot(AlgorithmicSequentialProblem):
     """
     Class generating successions of sub sequences X  and Y of random bit-patterns, the target was designed to force the system to learn
@@ -36,8 +22,18 @@ class InterruptionNot(AlgorithmicSequentialProblem):
     Offers two modes of operation, depending on the value of num_items parameter:
     1)  -1 < num_items < 1: relative mode, where num_items represents the % of length of the sequence by which it should be shifted
     2) otherwise: absolute number of items by which the sequence will be shifted.
+
+    @Younes: THIS DESCRIPTION IS INVALID!!!!
     """
     def __init__(self, params):
+        """ 
+        Constructor - stores parameters. Calls parent class initialization.
+        
+        :param params: Dictionary of parameters.
+        """
+        # Call parent constructor - sets e.g. the loss function ;)
+        super(InterruptionNot, self).__init__(params)
+        
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
         # Number of bits in one element.
@@ -87,7 +83,7 @@ class InterruptionNot(AlgorithmicSequentialProblem):
         #  generate subsequences for x and y
         x = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_lengths_a]
         y = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_lengths_b]
-        # rotate y
+        # NOT y
         yr = [np.logical_not(yr) for yr in y]
 
         # create the target
@@ -129,7 +125,8 @@ class InterruptionNot(AlgorithmicSequentialProblem):
 
         # Return data tuple.
         data_tuple = DataTuple(inputs, target_with_dummies)
-        aux_tuple = AuxTuple(mask)
+        # Returning maximum length of sequence a - for now.
+        aux_tuple = AlgSeqAuxTuple(mask, max(seq_lengths_a), nb_sub_seq_a+nb_sub_seq_b)
 
         return data_tuple, aux_tuple
 

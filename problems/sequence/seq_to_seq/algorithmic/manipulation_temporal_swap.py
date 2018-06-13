@@ -3,12 +3,16 @@
 """serial_recall_original.py: Original serial recall problem (a.k.a. copy task)"""
 __author__      = "Tomasz Kornuta"
 
+# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+
 import numpy as np
 import torch
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem
-from algorithmic_sequential_problem import DataTuple, AuxTuple
+from problems.problem import DataTuple
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
 
-@AlgorithmicSequentialProblem.register
+
 class ManipulationTemporalSwap(AlgorithmicSequentialProblem):
     """   
     Creates input being a sequence of bit pattern and target being the same sequence "bitshifted" by num_items to right.
@@ -23,10 +27,13 @@ class ManipulationTemporalSwap(AlgorithmicSequentialProblem):
     """
     def __init__(self,  params):
         """ 
-        Constructor - stores parameters.
+        Constructor - stores parameters. Calls parent class initialization.
         
         :param params: Dictionary of parameters.
         """
+        # Call parent constructor - sets e.g. the loss function ;)
+        super(ManipulationTemporalSwap, self).__init__(params)
+        
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
         # Number of bits in one element.
@@ -96,9 +103,9 @@ class ManipulationTemporalSwap(AlgorithmicSequentialProblem):
         ptinputs = torch.from_numpy(inputs).type(self.dtype)
         pttargets = torch.from_numpy(targets).type(self.dtype)
 
-        # Return data tuple.
+        # Return tuples.
         data_tuple = DataTuple(ptinputs, pttargets)
-        aux_tuple = AuxTuple(mask)
+        aux_tuple = AlgSeqAuxTuple(mask, seq_length, 1)
 
         return data_tuple, aux_tuple
  

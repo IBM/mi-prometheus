@@ -6,7 +6,6 @@ __author__ = "Tomasz Kornuta"
 import sys
 import os.path
 import logging
-from models.alexnet_wrapper import AlexnetWrapper
 logger = logging.getLogger('ModelFactory')
 
 
@@ -54,6 +53,7 @@ class ModelFactory(object):
             from models.encoder_solver.es_lstm_module import ESLSTM
             return ESLSTM(params)
         elif name == 'alexnet':
+            from models.vision.alexnet_wrapper import AlexnetWrapper
             return AlexnetWrapper(params)
         else:
             raise ValueError

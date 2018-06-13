@@ -22,6 +22,7 @@ from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
 from misc.app_state import AppState
+from misc.statistics_collector import StatisticsCollector
 from misc.param_interface import ParamInterface
 from utils_training import forward_step
 
@@ -95,12 +96,6 @@ if __name__ == '__main__':
     if param_interface["settings"]["seed_numpy"] != -1:
         np.random.seed(param_interface["settings"]["seed_numpy"])
 
-    # Create output file
-    test_file = open(abs_path + '/test.csv', 'w', 1)
-    test_file.write('episode, accuracy, loss, length\n')
-    test_train_file = open(abs_path + '/test_train.csv', 'w', 1)
-    test_train_file.write('episode, accuracy, loss, length\n')
-
     # Determine if CUDA is to be used.
     if torch.cuda.is_available():
         try:  # If the 'cuda' key is not present, catch the exception and do nothing
@@ -120,18 +115,25 @@ if __name__ == '__main__':
         torch.load(FLAGS.model, map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
     )
 
+    # Create statistics collector.
+    stat_col = StatisticsCollector()
+    # Add model/problem dependent statistics.
+    problem.add_statistics(stat_col)
+    #model.add_statistics(stat_col)
+
+    # Create test output csv file.
+    test_file = stat_col.initialize_csv_file(abs_path, '/test.csv')
+
     # Run test
     with torch.no_grad():
         for episode, (data_tuple, aux_tuple)  in enumerate(problem.return_generator()):
 
-            logits, loss, accuracy = forward_step(model, problem, data_tuple, aux_tuple, use_CUDA)
+            logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple, use_CUDA)
 
-            format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Test]'
-            logger.info(format_str.format(episode, accuracy, loss, logits.size(1)))
-
-            format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
-            format_str = format_str + '\n'
-            test_file.write(format_str.format(episode, accuracy, loss, logits.size(1)))
+            # Log to logger.
+            logger.info(stat_col.export_statistics_to_string('[Test]'))
+            # Export to csv.
+            stat_col.export_statistics_to_csv(test_file)
 
             if app_state.visualize:
                 is_closed = model.plot_sequence(data_tuple,  logits)

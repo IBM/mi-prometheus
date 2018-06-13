@@ -1,27 +1,14 @@
+# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+
 import numpy as np
 import torch
 from utils import augment, add_ctrl
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem
-from algorithmic_sequential_problem import DataTuple, AuxTuple
+from problems.problem import DataTuple
+from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
 
 
-def rotate(seq, rotation, seq_length):
-    # Rotate sequence by shifting the items to right: seq >> num_items
-    # i.e num_items = 2 -> seq_items >> 2
-    # and num_items = -1 -> seq_items << 1
-    # For that reason we must change the sign of num_items
-    # Check if we are using relative or absolute rotation.
-    if -1 <= rotation <= 1:
-        rotation = rotation * seq_length
-    # Round bitshift  to int.
-    rotation = np.round(rotation)
-    # Modulo items shift with length of the sequence.
-    rotation = int(rotation % seq_length)
-    # apply the shift
-    seq = np.concatenate((seq[:, rotation:, :], seq[:, :rotation, :]), axis=1)
-    return seq
-
-@AlgorithmicSequentialProblem.register
 class InterruptionSwapRecall(AlgorithmicSequentialProblem):
     """
     Class generating successions of sub sequences X  and Y of random bit-patterns, the target was designed to force the system to learn
@@ -35,8 +22,18 @@ class InterruptionSwapRecall(AlgorithmicSequentialProblem):
     Offers two modes of operation, depending on the value of num_items parameter:
     1)  -1 < num_items < 1: relative mode, where num_items represents the % of length of the sequence by which it should be shifted
     2) otherwise: absolute number of items by which the sequence will be shifted.
+
+    @Younes: IS THIS DESCRIPTION VALID?????
     """
     def __init__(self, params):
+        """ 
+        Constructor - stores parameters. Calls parent class initialization.
+        
+        :param params: Dictionary of parameters.
+        """
+        # Call parent constructor - sets e.g. the loss function ;)
+        super(InterruptionSwapRecall, self).__init__(params)
+        
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
         # Number of bits in one element.
@@ -54,6 +51,24 @@ class InterruptionSwapRecall(AlgorithmicSequentialProblem):
         self.bias = params['bias']
         self.rotation = params['num_rotation']
         self.dtype = torch.FloatTensor
+
+    def rotate(self, seq, rotation, seq_length):
+        """
+        # Rotate sequence by shifting the items to right: seq >> num_items
+        # i.e num_items = 2 -> seq_items >> 2
+        # and num_items = -1 -> seq_items << 1
+        """
+        # For that reason we must change the sign of num_items
+        # Check if we are using relative or absolute rotation.
+        if -1 <= rotation <= 1:
+            rotation = rotation * seq_length
+        # Round bitshift  to int.
+        rotation = np.round(rotation)
+        # Modulo items shift with length of the sequence.
+        rotation = int(rotation % seq_length)
+        # apply the shift
+        seq = np.concatenate((seq[:, rotation:, :], seq[:, :rotation, :]), axis=1)
+        return seq
 
     def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
@@ -104,7 +119,7 @@ class InterruptionSwapRecall(AlgorithmicSequentialProblem):
         inter_xy = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_xy, pos)
 
         # data which contains all xs and all rotated ys plus dummies of ys
-        data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + [inter_xy] +[rotate(b[0], self.rotation, b[0].shape[1])] + [b[1]]]
+        data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + [inter_xy] +[self.rotate(b[0], self.rotation, b[0].shape[1])] + [b[1]]]
 
         # dummies of xs
         data_2 = [a[-1][:, 1:, :] for a in xx]
@@ -131,7 +146,8 @@ class InterruptionSwapRecall(AlgorithmicSequentialProblem):
 
         # Return data tuple.
         data_tuple = DataTuple(inputs, target_with_dummies)
-        aux_tuple = AuxTuple(mask)
+        # Returning maximum length of subsequence a - for now.
+        aux_tuple = AlgSeqAuxTuple(mask, max(seq_lengths_a), nb_sub_seq_a+nb_sub_seq_b)
 
         return data_tuple, aux_tuple
 
