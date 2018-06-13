@@ -67,6 +67,7 @@ if __name__ == "__main__":
 
     # "Loaded parameters".
     params = {'batch_size': 1, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist'}
+
     # Create problem object.
     problem = SequentialRowMnist(params)
     # Get generator
