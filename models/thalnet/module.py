@@ -77,10 +77,9 @@ class Module(nn.Module):
         inputs = torch.cat((inputs, context_input), dim=1) if self.input_size else context_input
 
         # apply FeedForward & GRU
-        tuple_gru_output = self.module_cell(inputs, prev_tuple_module_state)
-        tuple_module_state = tuple_gru_output
+        module_state, tuple_ctrl_state = self.module_cell(inputs, prev_tuple_module_state)
 
-        output, center_feature_output = torch.split(tuple_gru_output[0],
-                                        [self.output_size, self.center_size_per_module], dim=1) if self.output_size else (None, tuple_gru_output[0])
+        output, center_feature_output = torch.split(module_state,
+                                        [self.output_size, self.center_size_per_module], dim=1) if self.output_size else (None, module_state)
 
-        return output, center_feature_output, tuple_module_state
+        return output, center_feature_output, tuple_ctrl_state

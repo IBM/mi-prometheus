@@ -20,7 +20,7 @@ class ThalNet(ModelBase, nn.Module):
         self.center_size = params['num_modules'] * params['center_size_per_module']
         self.center_size_per_module = params['center_size_per_module']
         self.num_modules = params['num_modules']
-        self.output_center_size =  self.output_size + self.center_size_per_module
+        self.output_center_size = self.output_size + self.center_size_per_module
         self.app_state = AppState()
 
         # This is for the time plot
@@ -39,7 +39,7 @@ class ThalNet(ModelBase, nn.Module):
         """
         (inputs, _) = data_tuple
 
-        # set type
+        # Set type
         dtype = torch.cuda.FloatTensor if inputs.is_cuda else torch.FloatTensor
 
         if self.app_state.visualize:
@@ -67,7 +67,7 @@ class ThalNet(ModelBase, nn.Module):
 
             # This is for the time plot
             if self.app_state.visualize:
-                self.cell_state_history.append(cell_state)
+                self.cell_state_history.append([cell_state[i][0].detach().numpy() for i in range(self.num_modules)] + [cell_state[i][1].hidden_state.detach().numpy() for i in range(self.num_modules)])
 
         return output
 
@@ -260,7 +260,7 @@ if __name__ == "__main__":
 
     # Initialize the application state singleton.
     app_state = AppState()
-    app_state.visualize = False
+    app_state.visualize = True
 
     model = ThalNet(params)
 
@@ -268,7 +268,7 @@ if __name__ == "__main__":
     batch_size = 2
 
     # Check for different seq_lengts and batch_sizes.
-    for i in range(5):
+    for i in range(1):
         # Create random Tensors to hold inputs and outputs
         x = torch.randn(batch_size, 1, input_size, input_size)
         logits = torch.randn(batch_size, 1, params['output_size'])
@@ -278,7 +278,7 @@ if __name__ == "__main__":
         # Test forward pass.
         y_pred = model(data_tuple)
 
-        app_state.visualize = False
+        app_state.visualize = True
         if app_state.visualize:
             model.plot_sequence(data_tuple, logits)
 
