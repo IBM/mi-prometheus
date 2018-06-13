@@ -83,3 +83,4 @@ class Module(nn.Module):
                                         [self.output_size, self.center_size_per_module], dim=1) if self.output_size else (None, module_state)
 
         return output, center_feature_output, tuple_ctrl_state
+
