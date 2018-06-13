@@ -1,11 +1,14 @@
 # Problem parameters:
 problem_train:
-    name: &name algorithmic/comparison
+    name: &name maes_baselines/skip_recall_cl
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: &cbits 4
+    control_bits: &cbits 3
     data_bits: &dbits 8
-    output_bits: &obits 1
     batch_size: &bs 64
+    # Skip params.
+    seq_start: &start 0
+    skip_step: &skip 2
+    bias: 0.5
     # Parameters denoting min and max lengths.
     min_sequence_length: 1
     max_sequence_length: 20
@@ -15,43 +18,45 @@ problem_train:
         initial_max_sequence_length: 4
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
-    bias: 0.5
     cuda: True
-
+   
 # Problem parameters:
 problem_validation:
     name: *name
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
-    data_bits: *dbits 
-    output_bits: *obits
+    data_bits: *dbits
     batch_size: 64
+    seq_start: *start
+    skip_step: *skip
+
     # Parameters denoting min and max lengths.
     min_sequence_length: 21
     max_sequence_length: 21
     bias: 0.5
+
 
 # Problem parameters:
 problem_test:
     name: *name
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
-    data_bits: *dbits 
-    output_bits: *obits
+    data_bits: *dbits
+    seq_start: *start
+    skip_step: *skip
     batch_size: 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 1000
-    max_sequence_length: 1000
+    min_sequence_length: 100
+    max_sequence_length: 100
     bias: 0.5
-
+ 
 # Model parameters:
 model:
     name: es_lstm
     # Input bits = [control_bits, data_bits]
-    # Output bits = [1]
+    # Output bits = [data_bits]
     control_bits: *cbits 
     data_bits: *dbits
-    output_bits: *obits
     # Controller hidden state.
     hidden_state_dim: 256
     # Indices of control bits triggering encoding/decoding.

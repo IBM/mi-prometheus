@@ -1,8 +1,8 @@
 # Problem parameters:
 problem_train:
-    name: &name algorithmic/reverse_recall
+    name: &name maes_baselines/serial_recall_cl
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: &cbits 2
+    control_bits: &cbits 3
     data_bits: &dbits 8
     batch_size: &bs 64
     # Parameters denoting min and max lengths.
@@ -37,20 +37,22 @@ problem_test:
     data_bits: *dbits
     batch_size: 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 1000
-    max_sequence_length: 1000
+    min_sequence_length: 100
+    max_sequence_length: 100
     bias: 0.5
 
 # Model parameters:
 model:
-    name: lstm
+    name: es_lstm
     # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
     control_bits: *cbits 
     data_bits: *dbits
     # Controller hidden state.
     hidden_state_dim: 256
-    num_layers: 1
+    # Indices of control bits triggering encoding/decoding.
+    encoding_bit: 0
+    solving_bit: 1
     
 # optimizer parameters:
 optimizer:

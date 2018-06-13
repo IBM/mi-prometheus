@@ -1,10 +1,9 @@
 # Problem parameters:
 problem_train:
-    name: &name equality
+    name: &name maes_baselines/reverse_recall_cl
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 3
     data_bits: &dbits 8
-    output_bits: &obits 1
     batch_size: &bs 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 1
@@ -23,8 +22,7 @@ problem_validation:
     name: *name
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
-    data_bits: *dbits 
-    output_bits: *obits
+    data_bits: *dbits
     batch_size: 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 21
@@ -36,22 +34,20 @@ problem_test:
     name: *name
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
-    data_bits: *dbits 
-    output_bits: *obits
+    data_bits: *dbits
     batch_size: 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 1000
-    max_sequence_length: 1000
+    min_sequence_length: 100
+    max_sequence_length: 100
     bias: 0.5
 
 # Model parameters:
 model:
     name: es_lstm
     # Input bits = [control_bits, data_bits]
-    # Output bits = [1]
-    control_bits: *cbits
-    data_bits: *dbits 
-    output_bits: *obits
+    # Output bits = [data_bits]
+    control_bits: *cbits 
+    data_bits: *dbits
     # Controller hidden state.
     hidden_state_dim: 256
     # Indices of control bits triggering encoding/decoding.
@@ -73,5 +69,5 @@ settings:
     loss_stop: 1.0e-5
     max_episodes: 100000
     validation_stopping: True
-    seed_numpy: 0
-    seed_torch: 2
+    seed_numpy: -1 #0
+    seed_torch: -1 #2

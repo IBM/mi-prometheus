@@ -4,7 +4,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..'))
 
 import numpy as np
 import torch
-from utils import augment, add_ctrl
+
 from problems.problem import DataTuple
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
 
@@ -74,14 +74,14 @@ class DistractionIgnore(AlgorithmicSequentialProblem):
         target = np.concatenate(x, axis=1)
 
         # add marker at the begging of x and dummies of same length
-        xx = [augment(seq, markers, ctrl_start=[1,0,0,0], add_marker_data=True, add_marker_dummy=False) for seq in x]
+        xx = [self.augment(seq, markers, ctrl_start=[1,0,0,0], add_marker_data=True, add_marker_dummy=False) for seq in x]
 
         # add marker at the begging of y and dummies of same length,  also a marker at the begging of dummies is added
         # TODO: as we don't need the dummies here (no y needs recalling), we should add an arguements specifying if dummies are needed or not
-        yy = [augment(seq, markers, ctrl_start=[0,1,0,0], add_marker_data=True) for seq in y]
+        yy = [self.augment(seq, markers, ctrl_start=[0,1,0,0], add_marker_data=True) for seq in y]
 
         # this is a marker to separate dummies of x and y at the end of the sequence
-        inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
+        inter_seq = self.add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
 
         # data which contains all xs and all ys
         data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b[:-1]]

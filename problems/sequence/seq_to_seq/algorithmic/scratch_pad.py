@@ -4,7 +4,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..'))
 
 import torch
 import numpy as np
-from utils import augment, add_ctrl
+
 from problems.problem import DataTuple
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
 
@@ -75,13 +75,13 @@ class ScratchPad(AlgorithmicSequentialProblem):
         targets = np.concatenate((dummies_target, x[-1]), axis=1)
 
         # data of x and dummies
-        xx = [augment(seq, markers, ctrl_start=[1,0], add_marker_data=True, add_marker_dummy = False) for seq in x]
+        xx = [self.augment(seq, markers, ctrl_start=[1,0], add_marker_data=True, add_marker_dummy = False) for seq in x]
 
         # data of x
         data_1 = [arr for a in xx for arr in a[:-1]]
 
         # this is a marker between sub sequence x and dummies
-        inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
+        inter_seq = self.add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
 
         # dummies of x
         data_2 = [xx[-1][-1]]

@@ -4,7 +4,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..'))
 
 import numpy as np
 import torch
-from utils import augment, add_ctrl
+
 from problems.problem import DataTuple
 from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
 
@@ -106,17 +106,17 @@ class InterruptionSwapRecall(AlgorithmicSequentialProblem):
         target = np.concatenate(y + x, axis=1)
 
         # add marker at the begging of x and dummies of same length,  also a marker at the begging of dummies is added
-        xx = [augment(seq, markers, ctrl_start=[1,0,0,0], add_marker_data=True) for seq in x]
+        xx = [self.augment(seq, markers, ctrl_start=[1,0,0,0], add_marker_data=True) for seq in x]
         # add dummies to y of same length,  also a marker at the begging of dummies is added
         # TODO: ctrl_start is not needed here, this is replaced by ctrl_xy
-        yy = [augment(seq, markers, ctrl_start=[0,1,0,0], add_marker_data=False) for seq in y]
+        yy = [self.augment(seq, markers, ctrl_start=[0,1,0,0], add_marker_data=False) for seq in y]
 
         # this is a marker to separate dummies of x and y at the end of the sequence
-        inter_seq = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
+        inter_seq = self.add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
         ctrl_xy = np.zeros_like(ctrl_data)
         ctrl_xy[1] = 1
         # this is a marker between sub sequence x and y
-        inter_xy = add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_xy, pos)
+        inter_xy = self.add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_xy, pos)
 
         # data which contains all xs and all rotated ys plus dummies of ys
         data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + [inter_xy] +[self.rotate(b[0], self.rotation, b[0].shape[1])] + [b[1]]]

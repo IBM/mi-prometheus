@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""serial_recall_original.py: Original serial recall problem (a.k.a. copy task)"""
+"""reverse_recall_cl.py: Contains definition of serial recall problem with control markers and command lines"""
 __author__      = "Ryan L. McAvoy"
 
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..','..')) 
 
 import torch
 import numpy as np
-from utils import augment, add_ctrl
 from problems.problem import DataTuple
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
+from problems.sequence.seq_to_seq.algorithmic.algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
 
 
-class SerialRecallMaed(AlgorithmicSequentialProblem):
+class SerialRecallCommandLines(AlgorithmicSequentialProblem):
     """   
     Class generating sequences of random bit-patterns and targets forcing the system to learn serial recall problem (a.k.a. copy task).
     The formulation follows the original copy task from NTM paper, where:
@@ -34,7 +33,7 @@ class SerialRecallMaed(AlgorithmicSequentialProblem):
         :param params: Dictionary of parameters.
         """
         # Call parent constructor - sets e.g. the loss function ;)
-        super(SerialRecallMaed, self).__init__(params)
+        super(SerialRecallCommandLines, self).__init__(params)
         
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
@@ -85,7 +84,7 @@ class SerialRecallMaed(AlgorithmicSequentialProblem):
         #  generate subsequences for x and y
         x = [np.array(bit_seq)]
         # data of x and dummies
-        xx = [ augment(seq, markers, ctrl_start=ctrl_start, add_marker_data=True, add_marker_dummy = False) for seq in x ]       
+        xx = [ self.augment(seq, markers, ctrl_start=ctrl_start, add_marker_data=True, add_marker_dummy = False) for seq in x ]       
 
         # data of x
         data_1 = [arr for a in xx for arr in a[:-1]]
@@ -96,7 +95,7 @@ class SerialRecallMaed(AlgorithmicSequentialProblem):
        
         #dummies output
         markers2 = ctrl_dummy, ctrl_dummy, pos
-        yy = [ augment(np.zeros(target_seq.shape), markers2, ctrl_start=ctrl_inter, add_marker_data=True, add_marker_dummy = False)]
+        yy = [ self.augment(np.zeros(target_seq.shape), markers2, ctrl_start=ctrl_inter, add_marker_data=True, add_marker_dummy = False)]
         data_2 = [arr for a in yy for arr in a[:-1]]
  
          
@@ -140,7 +139,7 @@ if __name__ == "__main__":
     params = {'control_bits': 3, 'data_bits': 8, 'batch_size': 1, 
         'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'seq_start':0, 'skip_step': 2}
     # Create problem object.
-    problem = SerialRecallMaed(params)
+    problem = SerialRecallCommandLines(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.

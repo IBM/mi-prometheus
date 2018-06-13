@@ -1,15 +1,14 @@
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..','..')) 
 
 import torch
 import numpy as np
-from utils import augment, add_ctrl
 from problems.problem import DataTuple
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
+from problems.sequence.seq_to_seq.algorithmic.algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
 
 
-class SequenceEquality(AlgorithmicSequentialProblem):
+class SequenceEqualityCommandLines(AlgorithmicSequentialProblem):
     """
     Class generating sequences of random bit-patterns and targets forcing the system to learn scratch pad problem (overwrite the memory).
 
@@ -23,7 +22,7 @@ class SequenceEquality(AlgorithmicSequentialProblem):
         :param params: Dictionary of parameters.
         """
         # Call parent constructor - sets e.g. the loss function ;)
-        super(SequenceEquality, self).__init__(params)
+        super(SequenceEqualityCommandLines, self).__init__(params)
         
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
@@ -96,17 +95,17 @@ class SequenceEquality(AlgorithmicSequentialProblem):
         target = np.concatenate((dummies_target, actual_target), axis=1)
 
         # data of x and dummies
-        xx = [ augment(seq, markers, ctrl_start=ctrl_start, add_marker_data=True, add_marker_dummy = False) for seq in x ]
+        xx = [ self.augment(seq, markers, ctrl_start=ctrl_start, add_marker_data=True, add_marker_dummy = False) for seq in x ]
 
         # data of x
         data_1 = [arr for a in xx for arr in a[:-1]]
 
         # this is a marker between sub sequence x and dummies
-        inter_seq = [add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)]
+        inter_seq = [self.add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)]
                 # Second Sequence for comparison
         
         markers2 = ctrl_y, ctrl_dummy, pos
-        yy = [ augment(aux_seq, markers2, ctrl_start=ctrl_y, add_marker_data=False, add_marker_dummy = False)]
+        yy = [ self.augment(aux_seq, markers2, ctrl_start=ctrl_y, add_marker_data=False, add_marker_dummy = False)]
         data_2 = [arr for a in yy for arr in a[:-1]]
         data_2[0][:,-1,0:self.control_bits]=np.ones(len(ctrl_dummy))
         #ctrl_data_select = [1,0]
@@ -115,8 +114,8 @@ class SequenceEquality(AlgorithmicSequentialProblem):
         #data_2 = [aux_seq_wctrls]
       
 
-        recall_seq = [add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_dummy, pos)]
-        dummy_data = [add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), np.ones(len(ctrl_dummy)), pos)]
+        recall_seq = [self.add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_dummy, pos)]
+        dummy_data = [self.add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), np.ones(len(ctrl_dummy)), pos)]
 
  
         
@@ -158,7 +157,7 @@ if __name__ == "__main__":
               'min_sequence_length': 1, 'max_sequence_length': 2, 
               'bias': 0.5 }
     # Create problem object.
-    problem = SequenceEquality(params)
+    problem = SequenceEqualityCommandLines(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.

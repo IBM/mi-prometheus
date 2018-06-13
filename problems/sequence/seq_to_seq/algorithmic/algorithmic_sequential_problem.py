@@ -101,6 +101,34 @@ class AlgorithmicSequentialProblem(SequentialProblem):
         """
         self.max_sequence_length = max_length
 
+
+    def add_ctrl(self, seq, ctrl, pos): 
+        """
+        Adds control channels to a sequence.
+        """
+        return np.insert(seq, pos, ctrl, axis=-1)
+
+
+    def augment(self, seq, markers, ctrl_start=None, add_marker_data=False, add_marker_dummy=True):
+        """
+        Creates augmented sequence as well as end marker and a dummy sequence.
+        """
+        ctrl_data, ctrl_dummy, pos = markers
+
+        w = self.add_ctrl(seq, ctrl_data, pos)
+        start = self.add_ctrl(np.zeros((seq.shape[0], 1, seq.shape[2])), ctrl_start, pos)
+        if add_marker_data:
+            w = np.concatenate((start, w), axis=1)
+
+        start_dummy = self.add_ctrl(np.zeros((seq.shape[0], 1, seq.shape[2])), ctrl_dummy, pos)
+        ctrl_data_select = np.ones(len(ctrl_data))
+        dummy = self.add_ctrl(np.zeros_like(seq), ctrl_data_select, pos)
+
+        if add_marker_dummy:
+            dummy = np.concatenate((start_dummy, dummy), axis=1)
+
+        return [w, dummy]
+
     def add_statistics(self, stat_col):
         """
         Add accuracy, seq_length and num_subsequences statistics to collector. 
