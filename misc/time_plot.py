@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 from matplotlib.backends.qt_compat import QtCore, QtWidgets, is_pyqt5
-
 if is_pyqt5():
     from matplotlib.backends.backend_qt5agg import (
         FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
@@ -28,7 +27,7 @@ class TimePlot(QtWidgets.QMainWindow):
         # Empty objects that will be used during visualization.
         self.fig = None
         self.frames = None
-
+        
         # Slider stuff
         hbox_timeline = QtWidgets.QHBoxLayout()
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
@@ -71,14 +70,14 @@ class TimePlot(QtWidgets.QMainWindow):
         writer = Writer(fps=1, extra_args=['-r', '25', '-probesize', '10M'])
         ani.save(name_str, writer=writer, dpi=200)
         logger.info("Saved movie to file '{}'".format(name_str))
-
+        
     def _next_clicked(self):
         self.qapp.quit()
 
     def closeEvent(self, _):
         # Set flag to True, so we could break the external loop.
         self.is_closed = True
-        self.qapp.quit()
+        self.qapp.quit()  
         
     def update(self, fig,  frames):
         # "Save" figure and frame objects.
@@ -105,6 +104,7 @@ class TimePlot(QtWidgets.QMainWindow):
         self.slider.setValue(len(frames) - 1)
         # But call it anyway - for the case when user pressed "next" button.
         self.show_frame(len(frames) - 1)
+    
         # Show.
         self.show()
         self.qapp.exec_()  # Resume event loop
@@ -113,7 +113,6 @@ class TimePlot(QtWidgets.QMainWindow):
         """ Event handler attached to the slider. """
         val = self.slider.value()
         self.show_frame(val)
-
 
     def show_frame(self,  frame_number):
         """ Shows given frame."""
@@ -159,7 +158,6 @@ if __name__ == '__main__':
             x += np.pi / 15.
             y += np.pi / 20.
             # Get axes
-
             artists = [None] * len( fig.axes)
             artists[0] = axes[0].imshow(f(x, y))
             artists[1] = axes[1].imshow(f(x, y))
