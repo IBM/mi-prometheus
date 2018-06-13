@@ -3,8 +3,6 @@ import torch
 from torch import nn
 from models.thalnet.thalnet_cell import ThalNetCell
 from models.model_base import ModelBase
-import pickle
-import io
 import logging
 import numpy as np
 from misc.app_state import AppState
@@ -41,6 +39,9 @@ class ThalNet(ModelBase, nn.Module):
         """
         (inputs, _) = data_tuple
 
+        # set type
+        dtype = torch.cuda.FloatTensor if inputs.is_cuda else torch.FloatTensor
+
         if self.app_state.visualize:
             self.cell_state_history = []
 
@@ -49,7 +50,7 @@ class ThalNet(ModelBase, nn.Module):
         seq_length = inputs.size(-2)
 
         # init state
-        cell_state = self.init_state(batch_size)
+        cell_state = self.ThalnetCell.init_state(batch_size, dtype)
         for j in range(seq_length):
             output_cell, cell_state = self.ThalnetCell(inputs[..., j, :], cell_state)
 
@@ -66,23 +67,9 @@ class ThalNet(ModelBase, nn.Module):
 
             # This is for the time plot
             if self.app_state.visualize:
-                self.cell_state_history.append([cell_state[i].detach().numpy() for i in range(2*self.num_modules)])
+                self.cell_state_history.append(cell_state)
 
         return output
-
-    def init_state(self, batch_size):
-
-        # center state initialisation
-        center_state_per_module = [torch.randn((batch_size, self.center_size_per_module))
-                                        for _ in range(self.num_modules)]
-
-        # module state initialisation
-        module_states = [torch.randn((batch_size, self.center_size_per_module if i != self.num_modules - 1 else self.output_center_size))
-                         for i in range(self.num_modules)]
-
-        states = center_state_per_module + module_states
-
-        return states
 
     def generate_figure_layout(self):
         from matplotlib.figure import Figure
@@ -273,7 +260,7 @@ if __name__ == "__main__":
 
     # Initialize the application state singleton.
     app_state = AppState()
-    app_state.visualize = True
+    app_state.visualize = False
 
     model = ThalNet(params)
 
@@ -281,7 +268,7 @@ if __name__ == "__main__":
     batch_size = 2
 
     # Check for different seq_lengts and batch_sizes.
-    for i in range(1):
+    for i in range(5):
         # Create random Tensors to hold inputs and outputs
         x = torch.randn(batch_size, 1, input_size, input_size)
         logits = torch.randn(batch_size, 1, params['output_size'])
@@ -291,7 +278,7 @@ if __name__ == "__main__":
         # Test forward pass.
         y_pred = model(data_tuple)
 
-        app_state.visualize = True
+        app_state.visualize = False
         if app_state.visualize:
             model.plot_sequence(data_tuple, logits)
 

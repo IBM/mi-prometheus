@@ -65,7 +65,7 @@ class RNNController(nn.Module):
             hidden_state=F.tanh(hidden_state)
         elif self.non_linearity == "relu":
             hidden_state=F.relu(hidden_state)
-       
+
         return hidden_state, RNNStateTuple(hidden_state)
 
 
