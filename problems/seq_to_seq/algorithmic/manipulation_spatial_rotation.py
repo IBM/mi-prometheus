@@ -5,16 +5,15 @@ __author__      = "Tomasz Kornuta"
 
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..')) 
 
-import numpy as np
 import torch
-
+import numpy as np
 from problems.problem import DataTuple
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
+from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem, AlgSeqAuxTuple
 
 
-class ManipulationSpatialRotation(AlgorithmicSequentialProblem):
+class ManipulationSpatialRotation(AlgorithmicSeqToSeqProblem):
     """   
     Creates input being a sequence of bit pattern and target being the same sequence, but with data_bits "bitshifted" by num_bits to right.
     Offers two modes of operation, depending on the value of num_bits parameter:

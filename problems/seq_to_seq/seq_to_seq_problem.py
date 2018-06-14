@@ -1,19 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""problem.py: contains base class for all sequential problems"""
+"""problem.py: contains base class for all seq2seq problems"""
 __author__      = "Tomasz Kornuta"
 
 import collections
 import torch.nn as nn
 from problems.problem import Problem
 
-_MaskAuxTuple = collections.namedtuple('MaskAuxTuple', ('mask'))
-
-class MaskAuxTuple(_MaskAuxTuple):
-    """Tuple used by storing batches of data by sequential problems using mask. Contains one element: mask that might be used for evaluation of the loss function."""
-    __slots__ = ()
-
-class SequentialProblem(Problem):
+class SeqToSeqProblem(Problem):
     """ Class representing base class for all sequential problems.
     """
     
@@ -22,7 +16,7 @@ class SequentialProblem(Problem):
         
         :param params: Dictionary of parameters (read from configuration file). 
         """
-        super(SequentialProblem, self).__init__(params)
+        super(SeqToSeqProblem, self).__init__(params)
 
     def evaluate_loss(self, data_tuple, logits, aux_tuple):
         """ Calculates accuracy equal to mean number of correct predictions in a given batch.

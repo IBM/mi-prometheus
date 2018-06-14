@@ -1,23 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""reverse_recall.py: Spatial NOT manipulation problem"""
+"""reverse_recall.py: Reversel recall problem"""
 __author__      = "Tomasz Kornuta"
 
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..')) 
 
-import numpy as np
 import torch
-
+import numpy as np
 from problems.problem import DataTuple
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
+from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem, AlgSeqAuxTuple
 
 
-class ManipulationSpatialNot(AlgorithmicSequentialProblem):
+class ReverseRecall(AlgorithmicSeqToSeqProblem):
     """   
-    Class generating sequences of random bit-patterns with inverted targets, so the system is supposed to learn NOT logical operation. 
+    Class generating sequences of random bit-patterns and targets forcing the system to learn sevese recall problem (a.k.a. reverse copy task).
+    The formulation follows the original copy task from NTM paper, where:
+    1) There are two markers, indicating
+    - beginning of storing/memorization and
+    - beginning of recalling from memory.
+    2) For other elements of the sequence the command bits are set to zero
+    3) Minor modification I: the target contains only data bits (command bits are skipped)
+    4) Minor modification II: generator returns a mask, which can be used for filtering important elements of the output.
     
+    TODO: sequences of different lengths in batch (filling with zeros?)
     """
     def __init__(self,  params):
         """ 
@@ -26,7 +33,7 @@ class ManipulationSpatialNot(AlgorithmicSequentialProblem):
         :param params: Dictionary of parameters.
         """
         # Call parent constructor - sets e.g. the loss function ;)
-        super(ManipulationSpatialNot, self).__init__(params)
+        super(ReverseRecall, self).__init__(params)
         
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
@@ -41,7 +48,6 @@ class ManipulationSpatialNot(AlgorithmicSequentialProblem):
         # Parameter  denoting 0-1 distribution (0.5 is equal).
         self.bias = params['bias']
         self.dtype = torch.FloatTensor
-
 
     def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
@@ -70,8 +76,8 @@ class ManipulationSpatialNot(AlgorithmicSequentialProblem):
         
         # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS] (only data bits!)
         targets = np.zeros([self.batch_size, 2*seq_length + 2,  self.data_bits], dtype=np.float32)
-        # Set target bit sequence - logical not.
-        targets[:, seq_length+2:,  :] = np.logical_not(bit_seq)
+        # Set bit sequence - but reversed.
+        targets[:, seq_length+2:,  :] = np.fliplr(bit_seq)
 
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
         mask = torch.zeros([self.batch_size, 2*seq_length + 2]).type(torch.ByteTensor)
@@ -86,7 +92,7 @@ class ManipulationSpatialNot(AlgorithmicSequentialProblem):
         aux_tuple = AlgSeqAuxTuple(mask, seq_length, 1)
 
         return data_tuple, aux_tuple
-
+ 
     # method for changing the maximum length, used mainly during curriculum learning
     def set_max_length(self, max_length):
         self.max_sequence_length = max_length
@@ -98,7 +104,7 @@ if __name__ == "__main__":
     params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1, 
         'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
     # Create problem object.
-    problem = ManipulationSpatialNot(params)
+    problem = ReverseRecall(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.

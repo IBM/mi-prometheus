@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""algorithmic_sequential_problem.py: abstract base class for algorithmic, sequential problems"""
+"""algorithmic_seq_to_seq_problem.py: abstract base class for algorithmic, sequential problems"""
 __author__      = "Tomasz Kornuta"
 
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
@@ -13,7 +13,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from problems.problem import DataTuple
-from problems.sequence.sequential_problem import SequentialProblem
+from problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
 
 _AlgSeqAuxTuple = collections.namedtuple('AlgSeqAuxTuple', ('mask','seq_length','num_subsequences'))
 
@@ -27,15 +27,15 @@ class AlgSeqAuxTuple(_AlgSeqAuxTuple):
     """
     __slots__ = ()
     
-class AlgorithmicSequentialProblem(SequentialProblem):
-    ''' Abstract base class for algorithmic, sequential problems. Provides some basic functionality usefull in all problems of such type'''
+class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
+    ''' Base class for algorithmic, sequential problems. Provides some basic functionality usefull in all problems of such type'''
 
     def __init__(self, params):
         """ Initializes problem object. Calls base constructor. Sets nn.BCEWithLogitsLoss() as default loss function.
         
         :param params: Dictionary of parameters (read from configuration file). 
         """
-        super(AlgorithmicSequentialProblem, self).__init__(params)
+        super(AlgorithmicSeqToSeqProblem, self).__init__(params)
 
         # Set default loss function - cross entropy.
         self.loss_function = nn.BCEWithLogitsLoss()

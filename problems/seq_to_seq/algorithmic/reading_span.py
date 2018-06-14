@@ -1,17 +1,16 @@
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..')) 
 
 import torch
 import numpy as np
-
 from problems.problem import DataTuple
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
+from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem, AlgSeqAuxTuple
 
 
-class ScratchPad(AlgorithmicSequentialProblem):
+class ReadingSpan(AlgorithmicSeqToSeqProblem):
     """
-    Class generating sequences of random bit-patterns and targets forcing the system to learn scratch pad problem (overwrite the memory).
+    # TODO : Documentation will be added soon
     """
 
     def __init__(self, params):
@@ -21,7 +20,7 @@ class ScratchPad(AlgorithmicSequentialProblem):
         :param params: Dictionary of parameters.
         """
         # Call parent constructor - sets e.g. the loss function ;)
-        super(ScratchPad, self).__init__(params)
+        super(ReadingSpan, self).__init__(params)
         
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
@@ -41,17 +40,10 @@ class ScratchPad(AlgorithmicSequentialProblem):
         self.dtype = torch.FloatTensor
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
-        SEQ_LENGTH depends on number of sub-sequences and its lengths
-       
-        :returns: Tuple consisting of: input, output and mask
-                  pattern of inputs: x1, x2, ...xn d
-                  pattern of target: d, d,   ...d xn
-                  mask: used to mask the data part of the target
-                  xi, d: sub sequences, dummies
-
-        TODO: deal with batch_size > 1
         """
+        # TODO : Documentation will be added soon
+        """
+
         # define control channel markers
         pos = [0, 0]
         ctrl_data = [0, 0]
@@ -68,11 +60,12 @@ class ScratchPad(AlgorithmicSequentialProblem):
 
         #  generate subsequences for x and y
         x = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_length]
+        x_last = [a[:, None, -1, :] for a in x]
 
         # create the target
         seq_length_tdummies = sum(seq_length) + seq_length.shape[0] + 1
         dummies_target = np.zeros([self.batch_size, seq_length_tdummies, self.data_bits], dtype=np.float32)
-        targets = np.concatenate((dummies_target, x[-1]), axis=1)
+        targets = np.concatenate([dummies_target] + x_last, axis=1)
 
         # data of x and dummies
         xx = [self.augment(seq, markers, ctrl_start=[1,0], add_marker_data=True, add_marker_dummy = False) for seq in x]
@@ -84,10 +77,10 @@ class ScratchPad(AlgorithmicSequentialProblem):
         inter_seq = self.add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
 
         # dummies of x
-        data_2 = [xx[-1][-1]]
+        x_dummy_last = [a[:, None, -1, :] for b in xx for a in b[-1:]]
 
         # concatenate all parts of the inputs
-        inputs = np.concatenate(data_1 + [inter_seq] + data_2, axis=1)
+        inputs = np.concatenate(data_1 + [inter_seq] + x_dummy_last, axis=1)
 
         # PyTorch variables
         inputs = torch.from_numpy(inputs).type(self.dtype)
@@ -107,7 +100,6 @@ class ScratchPad(AlgorithmicSequentialProblem):
         # Returning maximum sequence length - for now.
         aux_tuple = AlgSeqAuxTuple(mask, max(seq_length), num_sub_seq)
 
-
         return data_tuple, aux_tuple
 
 
@@ -120,11 +112,11 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 1,
+    params = {'control_bits': 2, 'data_bits': 8, 'batch_size': 2,
               'min_sequence_length': 1, 'max_sequence_length': 10, 
-              'bias': 0.5, 'num_subseq_min':2 ,'num_subseq_max': 4}
+              'bias': 0.5, 'num_subseq_min':4 ,'num_subseq_max': 4}
     # Create problem object.
-    problem = ScratchPad(params)
+    problem = ReadingSpan(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
