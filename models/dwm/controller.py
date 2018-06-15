@@ -77,7 +77,7 @@ class Controller(nn.Module):
         """
         # Concatenate the 3 inputs to controller
         combined = torch.cat((input, read_data), dim=-1)
-        combined_with_state = torch.cat((combined, tuple_state_prev[0]), dim=-1)
+        combined_with_state = torch.cat((combined, tuple_state_prev.hidden_state), dim=-1)
 
         # Get the state and update; no activation is applied
         state, tuple_state = self.i2s(combined, tuple_state_prev)
