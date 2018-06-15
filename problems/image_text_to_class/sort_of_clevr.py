@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Sort-of-Clevr is a simplified version of Clevr """
+"""Sort-of-CLEVR is a simplified version of CLEVR VQA problem """
 __author__ = "Mikyas Desta"
 
 import pickle
@@ -14,8 +14,7 @@ from algorithmic_sequential_problem import AlgorithmicSequentialProblem
 from algorithmic_sequential_problem import DataTuple
 
 
-@AlgorithmicSequentialProblem.register
-class Sort_of_clevr(AlgorithmicSequentialProblem):
+class Sort_of_CLEVR(Problem):
     """
 
     """

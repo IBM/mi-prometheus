@@ -3,12 +3,12 @@ import os,  sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..')) 
 
 import torch
-from vision_problem import VisionProblem
+from problems.image_to_class.image_to_class_problem import ImageToClassProblem
 from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 from problems.problem import DataTuple
 
-class MNIST(VisionProblem):
+class MNIST(ImageToClassProblem):
     """
     Classic MNIST classification problem.
     """

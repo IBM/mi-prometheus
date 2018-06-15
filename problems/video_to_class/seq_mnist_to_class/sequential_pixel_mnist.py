@@ -1,17 +1,16 @@
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..')) 
 
 import torch
 from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 
-from problems.problem import DataTuple
-from problems.sequence.sequential_problem import MaskAuxTuple
-from sequential_vision_problem import SequentialVisionProblem
+from problems.problem import DataTuple, MaskAuxTuple
+from problems.video_to_class.video_to_class_problem import VideoToClassProblem
 
 
-class SequentialPixelMnist(SequentialVisionProblem):
+class SequentialPixelMNIST(VideoToClassProblem):
     """
     Class generating sequences sequential mnist
     """
@@ -19,7 +18,7 @@ class SequentialPixelMnist(SequentialVisionProblem):
     def __init__(self, params):
         """ Initialize. """         
         # Call base class constructors.
-        super(SequentialPixelMnist, self).__init__(params)
+        super(SequentialPixelMNIST, self).__init__(params)
 
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
@@ -69,7 +68,7 @@ if __name__ == "__main__":
     params = {'batch_size': 3, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist'}
 
     # Create problem object.
-    problem = SequentialPixelMnist(params)
+    problem = SequentialPixelMNIST(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
@@ -79,7 +78,7 @@ if __name__ == "__main__":
     data_tuple, _ = next(generator)
     x, y = data_tuple
 
-    print(x[sample_num, 0].size())
+    print(x.size())
 
     # Display single sample (0) from batch.
     problem.show_sample(x[sample_num, 0].reshape(num_rows, num_columns), y)

@@ -14,6 +14,13 @@ class DataTuple(_DataTuple):
     __slots__ = ()
 
 
+_MaskAuxTuple = collections.namedtuple('MaskAuxTuple', ('mask'))
+
+class MaskAuxTuple(_MaskAuxTuple):
+    """Tuple used by storing batches of data by sequential problems using mask. Contains one element: mask that might be used for evaluation of the loss function."""
+    __slots__ = ()
+
+
 class Problem(metaclass=ABCMeta):
     """ Class representing base class for all Problems.
     """

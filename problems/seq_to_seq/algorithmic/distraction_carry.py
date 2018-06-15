@@ -1,17 +1,18 @@
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..')) 
 
-import numpy as np
 import torch
-
+import numpy as np
 from problems.problem import DataTuple
-from algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
+from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem, AlgSeqAuxTuple
 
-class DistractionIgnore(AlgorithmicSequentialProblem):
+
+class DistractionCarry(AlgorithmicSeqToSeqProblem):
     """
     Class generating successions of sub sequences X  and Y of random bit-patterns, the target was designed to force the system to learn
-    recalling just sub sequences X and ignore Y.
+    recalling the last sub sequence of Y and all sub sequences of X.
+
     """
 
     def __init__(self, params):
@@ -21,7 +22,7 @@ class DistractionIgnore(AlgorithmicSequentialProblem):
         :param params: Dictionary of parameters.
         """
         # Call parent constructor - sets e.g. the loss function ;)
-        super(DistractionIgnore, self).__init__(params)
+        super(DistractionCarry, self).__init__(params)
         
         self.batch_size = params["batch_size"]
         # Number of bits in one element.
@@ -42,19 +43,20 @@ class DistractionIgnore(AlgorithmicSequentialProblem):
     def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
         SEQ_LENGTH depends on number of sub-sequences and its lengths
-
+       
         :returns: Tuple consisting of: input, output and mask
-                  pattern of inputs: # x1 % y1 # x2 % y2 ... # xn % yn & d
-                  pattern of target: dummies ...   ...       ...   ...   all(xi)
+                  pattern of inputs: # x1 % y1 # x2 % y2 ... # xn % yn & d $ d`
+                  pattern of target: dummies ...   ...       ...   ...   yn  all(xi)
                   mask: used to mask the data part of the target.
-                  xi, yi, and d: sub sequences x of random length, sub sequence y of random length and dummies.
+                  xi, yi, and d(d'): sub sequences x of random length, sub sequence y of random length and dummies.
+        
+        TODO: deal with batch_size > 1
         """
         # define control channel markers
         pos = [0, 0, 0, 0]
         ctrl_data = [0, 0, 0, 0]
         ctrl_dummy = [0, 0, 1, 0]
         ctrl_inter = [0, 0, 0, 1]
-
         # assign markers
         markers = ctrl_data, ctrl_dummy, pos
 
@@ -71,13 +73,11 @@ class DistractionIgnore(AlgorithmicSequentialProblem):
         y = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_lengths_b]
 
         # create the target
-        target = np.concatenate(x, axis=1)
+        target_wo_dummies = np.concatenate([y[-1]] + x, axis=1)
 
-        # add marker at the begging of x and dummies of same length
+        # add marker at the begging of x and dummies
         xx = [self.augment(seq, markers, ctrl_start=[1,0,0,0], add_marker_data=True, add_marker_dummy=False) for seq in x]
-
-        # add marker at the begging of y and dummies of same length,  also a marker at the begging of dummies is added
-        # TODO: as we don't need the dummies here (no y needs recalling), we should add an arguements specifying if dummies are needed or not
+        # add marker at the begging of y and dummies of same length, also a marker at the begging of dummies is added
         yy = [self.augment(seq, markers, ctrl_start=[0,1,0,0], add_marker_data=True) for seq in y]
 
         # this is a marker to separate dummies of x and y at the end of the sequence
@@ -87,14 +87,14 @@ class DistractionIgnore(AlgorithmicSequentialProblem):
         data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b[:-1]]
 
         # dummies of y and xs
-        data_2 = [inter_seq] + [a[-1] for a in xx]
+        data_2 = [yy[-1][-1]] + [inter_seq] + [a[-1] for a in xx]
 
         # concatenate all parts of the inputs
         inputs = np.concatenate(data_1 + data_2, axis=1)
 
         # PyTorch variables
         inputs = torch.from_numpy(inputs).type(self.dtype)
-        target = torch.from_numpy(target).type(self.dtype)
+        target_wo_dummies = torch.from_numpy(target_wo_dummies).type(self.dtype)
 
         # create the mask
         mask_all = inputs[:, :, 0:self.control_bits] == 1
@@ -106,19 +106,20 @@ class DistractionIgnore(AlgorithmicSequentialProblem):
         inputs[:, mask[0], 0:self.control_bits] = 0
 
         # Create the target with the dummies
-        target_with_dummies = torch.zeros_like(inputs[:, :, self.control_bits:])
-        target_with_dummies[:, mask[0], :] = target
+        targets = torch.zeros_like(inputs[:, :, self.control_bits:])
+        targets[:, mask[0], :] = target_wo_dummies
 
-        # Return data tuple.
-        data_tuple = DataTuple(inputs, target_with_dummies)
+        # Return tuples.
+        data_tuple = DataTuple(inputs, targets)
         # Returning maximum length of sequence a - for now.
         aux_tuple = AlgSeqAuxTuple(mask, max(seq_lengths_a), nb_sub_seq_a+nb_sub_seq_b)
 
-        return data_tuple, aux_tuple 
+        return data_tuple, aux_tuple
 
     # method for changing the maximum length, used mainly during curriculum learning
     def set_max_length(self, max_length):
         self.max_sequence_length = max_length
+
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
@@ -128,11 +129,17 @@ if __name__ == "__main__":
               'min_sequence_length': 1, 'max_sequence_length': 10, 
               'bias': 0.5, 'num_subseq_min':1 ,'num_subseq_max': 4}
     # Create problem object.
-    problem = DistractionIgnore(params)
+    problem = DistractionCarry(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
     data_tuple,  aux_tuple = next(generator)
     # Display single sample (0) from batch.
     problem.show_sample(data_tuple, aux_tuple)
+
+
+
+
+
+
 

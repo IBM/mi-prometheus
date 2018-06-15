@@ -1,14 +1,14 @@
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..','..')) 
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
 
 import torch
 import numpy as np
 from problems.problem import DataTuple
-from problems.sequence.seq_to_seq.algorithmic.algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
+from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem, AlgSeqAuxTuple
 
 
-class SequenceEqualityCommandLines(AlgorithmicSequentialProblem):
+class SequenceEqualityCommandLines(AlgorithmicSeqToSeqProblem):
     """
     Class generating sequences of random bit-patterns and targets forcing the system to learn scratch pad problem (overwrite the memory).
 

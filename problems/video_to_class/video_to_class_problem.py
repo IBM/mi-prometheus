@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""sequential_vision_problem.py: abstract base class for sequential vision problems"""
-__author__      = "Tomasz Kornuta/Younes"
+"""video_to_class_problem.py: abstract base class for sequential vision problems"""
+__author__      = "Tomasz Kornuta/Younes Bouhadjar"
 
 import torch.nn as nn
-from problems.sequence.sequential_problem import SequentialProblem
+from problems.problem import Problem
 
 
-class SequentialVisionProblem(SequentialProblem):
-    ''' Abstract base class for sequential vision problems. Provides some basic functionality usefull in all problems of such type'''
+class VideoToClassProblem(Problem):
+    ''' Base class for vision classification problems. Provides some basic functionality usefull in all problems of such type'''
 
     
     def __init__(self, params):
@@ -16,7 +16,7 @@ class SequentialVisionProblem(SequentialProblem):
         
         :param params: Dictionary of parameters (read from configuration file). 
         """
-        super(SequentialVisionProblem, self).__init__(params)
+        super(VideoToClassProblem, self).__init__(params)
 
         # Set default loss function - cross entropy.
         self.loss_function = nn.CrossEntropyLoss()
@@ -88,7 +88,7 @@ class SequentialVisionProblem(SequentialProblem):
         # show data.
         plt.xlabel('num_columns')
         plt.ylabel('num_rows')
-        plt.title('number to be predicted:' + str(int(targets[0])))
+        plt.title('Target class:' + str(int(targets[0])))
 
         plt.imshow(inputs, interpolation='nearest', aspect='auto')
         # Plot!

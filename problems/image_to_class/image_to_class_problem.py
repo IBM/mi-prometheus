@@ -8,8 +8,8 @@ from problems.problem import DataTuple
 import torch.nn as nn
 
 
-class VisionProblem(Problem):
-    ''' Abstract base class for vision problems. Provides some basic functionality usefull in all problems of such type'''
+class ImageToClassProblem(Problem):
+    ''' Abstract base class for image classification problems. Provides some basic functionality usefull in all problems of such type'''
 
 
     def __init__(self, params):
@@ -19,12 +19,12 @@ class VisionProblem(Problem):
         :param params: Dictionary of parameters (read from configuration file).        
         """ 
         # Call base class constructors.
-        super(VisionProblem, self).__init__(params)
+        super(ImageToClassProblem, self).__init__(params)
 
         self.loss_function = nn.CrossEntropyLoss()
 
     def calculate_accuracy(self, data_tuple, logits, _):
-        """ Calculates accuracy equal to mean number of correct predictions in a given batch.
+        """ Calculates accuracy equal to mean number of correct classification in a given batch.
         WARNING: Applies mask (from aux_tuple) to logits!
         
         :param logits: Logits being output of the model.
@@ -69,7 +69,7 @@ class VisionProblem(Problem):
         # show data.
         plt.xlabel('num_columns')
         plt.ylabel('num_rows')
-        plt.title('number to be predicted:' + str(int(targets[0])))
+        plt.title('Target class: ' + str(int(targets[0])))
 
         plt.imshow(inputs, interpolation='nearest', aspect='auto')
         # Plot!

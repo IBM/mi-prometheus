@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""reverse_recall_cl.py: Contains definition of reverse recall problem with control markers and command lines"""
-__author__      = "Ryan L. McAvoy"
+
 
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..','..')) 
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
 
 import torch
 import numpy as np
 from problems.problem import DataTuple
-from problems.sequence.seq_to_seq.algorithmic.algorithmic_sequential_problem import AlgorithmicSequentialProblem, AlgSeqAuxTuple
+from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem, AlgSeqAuxTuple
 
 
-class ReverseRecallCommandLines(AlgorithmicSequentialProblem):
+class SkipRecallCommandLines(AlgorithmicSeqToSeqProblem):
     """   
-    Class generating sequences of random bit-patterns and targets forcing the system to learn reverse recall problem.
-    1) There are two markers, indicatinn:
+    Class generating sequences of random bit-patterns and targets forcing the system to learn serial recall problem (a.k.a. copy task).
+    The formulation follows the original copy task from NTM paper, where:
+    1) There are two markers, indicating
     - beginning of storing/memorization and
     - beginning of recalling from memory.
     2) Additionally, there is a command line (3rd command bit) indicating whether given item is to be stored in mememory (0) or recalled (1).
@@ -28,7 +28,7 @@ class ReverseRecallCommandLines(AlgorithmicSequentialProblem):
         :param params: Dictionary of parameters.
         """
         # Call parent constructor - sets e.g. the loss function ;)
-        super(ReverseRecallCommandLines, self).__init__(params)
+        super(SkipRecallCommandLines, self).__init__(params)
         
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
@@ -40,6 +40,8 @@ class ReverseRecallCommandLines(AlgorithmicSequentialProblem):
         # Min and max lengts (number of elements).
         self.min_sequence_length = params['min_sequence_length']
         self.max_sequence_length = params['max_sequence_length']
+        self.seq_start = params['seq_start']
+        self.skip_length = params['skip_step']
 
         # Parameter  denoting 0-1 distribution (0.5 is equal).
         self.bias = params['bias']
@@ -55,6 +57,7 @@ class ReverseRecallCommandLines(AlgorithmicSequentialProblem):
 
         TODO: every item in batch has now the same seq_length.
         """
+        assert(self.max_sequence_length > self.seq_start)
 
         # define control channel markers
         pos = [0, 0, 0]
@@ -73,7 +76,7 @@ class ReverseRecallCommandLines(AlgorithmicSequentialProblem):
         bit_seq = np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
 
         #Generate target by indexing through the array
-        target_seq = np.array(np.fliplr(bit_seq))
+        target_seq = np.array(bit_seq[:,self.seq_start::self.skip_length,:])
 
 
         #  generate subsequences for x and y
@@ -134,7 +137,7 @@ if __name__ == "__main__":
     params = {'control_bits': 3, 'data_bits': 8, 'batch_size': 1, 
         'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'seq_start':0, 'skip_step': 2}
     # Create problem object.
-    problem = ReverseRecallCommandLines(params)
+    problem = SkipRecallCommandLines(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
