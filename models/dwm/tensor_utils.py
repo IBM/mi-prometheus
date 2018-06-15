@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
+
 def normalize(x):
     """
     Normalizes the input torch tensor along the last dimension using the max of the one norm
@@ -12,6 +13,7 @@ def normalize(x):
     """
 
     return x / torch.max(torch.sum(x, dim=-1, keepdim=True), torch.Tensor([1e-12]))
+
 
 def sim(query, data, l2_normalize=False, aligned=True):
     """

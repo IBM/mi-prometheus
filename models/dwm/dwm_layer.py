@@ -7,9 +7,6 @@ from models.dwm.dwm_cell import DWMCell
 from misc.app_state import AppState
 from models.model_base import ModelBase
 
-CUDA = False
-dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
-
 
 class DWM(ModelBase, nn.Module):
     """Applies a DWM layer to an input sequences """
@@ -84,6 +81,9 @@ class DWM(ModelBase, nn.Module):
                 memory_addresses_size = seq_length  # a hack for now
         else:
             memory_addresses_size = self.memory_addresses_size
+
+        # Set type
+        dtype = torch.cuda.FloatTensor if inputs.is_cuda else torch.FloatTensor
 
         # Init state
         cell_state = self.DWMCell.init_state(memory_addresses_size, batch_size, dtype)

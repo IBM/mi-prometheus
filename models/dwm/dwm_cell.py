@@ -4,9 +4,6 @@ from models.dwm.controller import Controller
 from models.dwm.interface import Interface
 import collections
 
-CUDA = False
-dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
-
 # Helper collection type.
 _DWMCellStateTuple = collections.namedtuple('DWMStateTuple', ('ctrl_state', 'interface_state',  'memory_state'))
 
@@ -92,15 +89,6 @@ class DWMCell(nn.Module):
             \item The attention update gate $\delta^i_t = \softmax(\hat{\delta}^i_t)  \in [0,1]^{N_B+1}$
             \item The sharpening parameter $\gamma = 1+\softplus(\hat{\gamma}) \in [1,\infty]$
             \end{itemize}
-
-
-        Examples:
-
-        >>> dwm = DWMCell(3, 5, 2, 1, False, 3, 8)
-        >>> inputs = torch.randn(5, 10)
-        >>> targets = torch.randn(5, 20)
-        >>> data_tuple = (inputs, targets)
-        >>> output = dwm(data_tuple)
 
         """
 
