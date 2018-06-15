@@ -50,7 +50,7 @@ class Module(nn.Module):
         tuple_controller_states = self.controller.init_state(batch_size, dtype)
 
         # center state initialisation
-        center_state_per_module = torch.randn((batch_size, self.center_size_per_module))
+        center_state_per_module = torch.randn((batch_size, self.center_size_per_module)).dtype
 
         return center_state_per_module, tuple_controller_states
 
