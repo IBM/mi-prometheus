@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 
 
-def forward_step(model, problem, data_tuple,  aux_tuple,  use_CUDA):
+def forward_step(model, problem, episode, stat_col, data_tuple,  aux_tuple,  use_CUDA):
     """ Function performs a single forward step.
 
     :returns: logits, loss and accuracy (former using provided criterion)
@@ -16,7 +16,20 @@ def forward_step(model, problem, data_tuple,  aux_tuple,  use_CUDA):
     # Perform forward calculation.
     logits = model(data_tuple)
 
-    loss, accuracy = problem.evaluate_loss_accuracy(logits, data_tuple, aux_tuple)
-    # Return tuple: logits, loss, accuracy.
-    return logits, loss, accuracy
+    # Evaluate loss function.
+    loss = problem.evaluate_loss(data_tuple, logits, aux_tuple)
+
+    # Collect "elementary" statistics - episode and loss.
+    stat_col['episode'] = episode
+    stat_col['loss'] = loss
+
+    # Collect other (potential) statistics from problem & model.
+    problem.collect_statistics(stat_col, data_tuple, logits, aux_tuple)
+    #model.collect_statistics(stat_col, data_tuple, logits)
+
+    # accuracy = problem.calculate_accuracy(logits, data_tuple, aux_tuple)
+    # TODO: move accuracy to problem statistics.
+
+    # Return tuple: logits, loss.
+    return logits, loss 
 

@@ -6,7 +6,7 @@ import torch
 import os,  sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..')) 
 from misc.app_state import AppState
-from problems.sequence.seq_to_seq.algorithmic.algorithmic_sequential_problem import DataTuple
+from problems.problem import DataTuple
 
 class ModelBase(object):
     """ Class representing base class of all models.
@@ -22,6 +22,26 @@ class ModelBase(object):
         if self.app_state.visualize:
             from misc.time_plot import TimePlot
             self.plot = TimePlot()
+
+    def add_statistics(self, stat_col):
+        """
+        Add statistics to collector. 
+        EMPTY - To be redefined in inheriting classes.
+
+        :param stat_col: Statistics collector.
+        """
+        pass
+
+    def collect_statistics(self, stat_col, data_tuple, logits):
+        """
+        Base statistics collection. 
+        EMPTY - To be redefined in inheriting classes.
+
+        :param stat_col: Statistics collector.
+        :param data_tuple: Data tuple containing inputs and targets.
+        :param logits: Logits being output of the model.
+        """
+        pass
 
     def plot_sequence(self, data_tuple, predictions_seq):
         """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).

@@ -31,5 +31,11 @@ class ControllerFactory(object):
         elif name == 'ffn':
             from feedforward_controller import FeedforwardController
             return FeedforwardController(params)
+        elif name == 'gru':
+            from gru_controller import GRUController
+            return GRUController(params)
+        elif name == 'ffgru':
+            from ffgru_controller import FFGRUController
+            return FFGRUController(params)
         else:
             raise ValueError

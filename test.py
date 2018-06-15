@@ -22,6 +22,7 @@ from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
 from misc.app_state import AppState
+from misc.statistics_collector import StatisticsCollector
 from misc.param_interface import ParamInterface
 from utils_training import forward_step
 
@@ -29,63 +30,41 @@ logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 use_CUDA=False
 
-def show_sample(prediction, target, mask, sample_number=0):
-    """ Shows the sample (both input and target sequences) using matplotlib."""
-    
-    import matplotlib.pyplot as plt
-    import matplotlib.ticker as ticker
-    
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
-    # Set ticks.
-    ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-    ax1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-    ax2.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-
-    # Set labels.
-    ax1.set_title('Prediction')
-    ax1.set_ylabel('Data bits')
-    ax2.set_title('Target')
-    ax2.set_ylabel('Data bits')
-    # ax2.set_ylabel('Data bits')
-    ax2.set_xlabel('Item number')
-
-    # Set data.
-    ax1.imshow(np.transpose((prediction[sample_number, :, :]).detach().numpy(), [1, 0]))
-    ax2.imshow(np.transpose((target[sample_number, :, :]).detach().numpy(), [1, 0]))
-
-    plt.show()
-    # Plot!
-
 if __name__ == '__main__':
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input', type=str, default='', dest='input_dir',
-                        help='Input path, containing the saved parameters as well as the yaml file')
+    parser.add_argument('--model', type=str, default='', dest='model',
+                        help='Path to and name of the file containing the saved parameters of the model (model checkpoint)')
     parser.add_argument('--visualize', action='store_true', dest='visualize',
                         help='Activate dynamic visualization')
     parser.add_argument('--log', action='store', dest='log', type=str, default='info',
                         choices=['critical', 'error', 'warning', 'info', 'debug', 'notset'],
                         help="Log level. Default is INFO.")
-    parser.add_argument('--episode', action='store', dest='episode', type=int,
-                        help="Episode of model. Default is 0.")
-    parser.add_argument('-f', action='store', dest='episode_train', type=int,
-                        help="Episode of model for test_train. Default is 0.")
 
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
-    print(FLAGS.episode)
-    # Check if input directory was selected.
-    if FLAGS.input_dir == '':
-        print('Please pass input path folder as --i parameter')
+    
+    # Check if model is present.
+    if FLAGS.model == '':
+        print('Please pass path to and name of the file containing model to be loaded as --m parameter')
         exit(-1)
 
-    # Check if file exists.
-    if not os.path.isdir(FLAGS.input_dir):
-        print('Input path {} does not exist'.format(FLAGS.input_dir))
+    # Check if file with model exists.
+    if not os.path.isfile(FLAGS.model):
+        print('Model file {} does not exist'.format(FLAGS.model))
         exit(-2)
 
-    # Logging
-    log_file = FLAGS.input_dir + '/msgs_test.log'
+    # Extract path.
+    abs_path, model_dir = os.path.split(os.path.dirname(os.path.abspath(FLAGS.model)))
+
+    # Check if configuration file exists
+    config_file = abs_path + '/train_settings.yaml'
+    if not os.path.isfile(config_file):
+        print('Config file {} does not exist'.format(config_file))
+        exit(-3)
+
+    # Logging - to the same dir. :]
+    log_file = abs_path + '/msgs_test.log'
     def logfile():
         return logging.FileHandler(log_file)
 
@@ -102,24 +81,20 @@ if __name__ == '__main__':
     if FLAGS.visualize:
         app_state.visualize = True
 
-    # Read YAML file
+    # Initialize parameter interface.
     param_interface = ParamInterface()
-    with open(FLAGS.input_dir + "/train_settings.yaml", 'r') as stream:
+
+    # Read YAML file    
+    with open(config_file, 'r') as stream:
         param_interface.add_custom_params(yaml.load(stream))
 
-    # set seed
+    # Set seeds.
     if param_interface["settings"]["seed_torch"] != -1:
         torch.manual_seed(param_interface["settings"]["seed_torch"])
         torch.cuda.manual_seed_all(param_interface["settings"]["seed_torch"])
 
     if param_interface["settings"]["seed_numpy"] != -1:
         np.random.seed(param_interface["settings"]["seed_numpy"])
-
-    # Create output file
-    test_file = open(FLAGS.input_dir + '/test.csv', 'w', 1)
-    test_file.write('episode, accuracy, loss, length\n')
-    test_train_file = open(FLAGS.input_dir + '/test_train.csv', 'w', 1)
-    test_train_file.write('episode, accuracy, loss, length\n')
 
     # Determine if CUDA is to be used.
     if torch.cuda.is_available():
@@ -136,36 +111,29 @@ if __name__ == '__main__':
     model = ModelFactory.build_model(param_interface['model'])
     model.cuda() if use_CUDA else None
 
-    if FLAGS.episode != None:
-        # load the trained model
-        model_file_name = FLAGS.input_dir + '/models/model_parameters_episode_{:05d}'.format(FLAGS.episode)
-    else:
-        model_file_name = glob(FLAGS.input_dir + '/models/model_parameters_episode_*')[-1]
-
-    if not os.path.isfile(model_file_name):
-        print('Model path {} does not exist'.format(model_file_name))
-        exit(-3)
-
-
     model.load_state_dict(
-        torch.load(model_file_name,
-                   map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
+        torch.load(FLAGS.model, map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
     )
+
+    # Create statistics collector.
+    stat_col = StatisticsCollector()
+    # Add model/problem dependent statistics.
+    problem.add_statistics(stat_col)
+    #model.add_statistics(stat_col)
+
+    # Create test output csv file.
+    test_file = stat_col.initialize_csv_file(abs_path, '/test.csv')
 
     # Run test
     with torch.no_grad():
         for episode, (data_tuple, aux_tuple)  in enumerate(problem.return_generator()):
 
-            logits, loss, accuracy = forward_step(model, problem, data_tuple, aux_tuple, use_CUDA)
+            logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple, use_CUDA)
 
-            format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d} [Test]'
-            logger.info(format_str.format(episode, accuracy, loss, logits.size(1)))
-            # plot data
-            # show_sample(output, targets, mask)
-
-            format_str = '{:05d}, {:12.10f}, {:12.10f}, {:03d}'
-            format_str = format_str + '\n'
-            test_file.write(format_str.format(episode, accuracy, loss, logits.size(1)))
+            # Log to logger.
+            logger.info(stat_col.export_statistics_to_string('[Test]'))
+            # Export to csv.
+            stat_col.export_statistics_to_csv(test_file)
 
             if app_state.visualize:
                 is_closed = model.plot_sequence(data_tuple,  logits)
