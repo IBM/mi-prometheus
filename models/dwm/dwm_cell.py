@@ -12,71 +12,23 @@ _DWMCellStateTuple = collections.namedtuple('DWMStateTuple', ('ctrl_state', 'int
 
 
 class DWMCellStateTuple(_DWMCellStateTuple):
-    """Tuple used by NTM Cells for storing current/past state information"""
+    """Tuple used by DWM Cells for storing current/past state information"""
     __slots__ = ()
 
 class DWMCell(nn.Module):
+    """Applies a DWM cell to an single input """
     def __init__(self, in_dim, output_units, state_units,
                  num_heads, is_cam, num_shift, M):
 
-        r"""Builds the DWM cell
+        """Builds the DWM cell
 
-        .. math::
-
-            \begin{array}{ll}
-            # read memory
-            r_t= M_t w_t \\
-            # memory update
-            M_t = M_{t-1}\circ (E-w_t \otimes e_t)+w_t\otimes a_t \\
-            # controller
-            h_t=\sigma(W_h[x_t,h_{t-1},r_{t-1}]) \\
-            y_t=W_{y}[x_t,h_{t-1},r_{t-1}] \\
-            P_t=W_{P}[x_t,h_{t-1},r_{t-1}]  \\
-            \end{array}
-
-            The full list of parameters is as follows:
-            \begin{itemize}
-            \item The write vector $a_t \in \mathbb{R}^{N_M} $
-            \item The erase vector $e_t=\sigma(\hat{e}_t) \in [0,1]^{N_M}$
-
-            \item The shift vector $s_t=\softmax(\softplus(\hat{s})) \in [0,1]^3$
-            \item The bookmark update gates $g^i_t = \sigma(\hat{g}^i_t) \in [0,1]^{N_B-1}$
-            \item The attention update gate $\delta^i_t = \softmax(\hat{\delta}^i_t)  \in [0,1]^{N_B+1}$
-            \item The sharpening parameter $\gamma = 1+\softplus(\hat{\gamma}) \in [1,\infty]$
-            \end{itemize}
-
-        Args:
-            in_dim: input size.
-            output_units: output size.
-            state_units: state size.
-            num_heads: number of heads.
-            is_cam: is it content_address    able.
-            num_shift: number of shifts of heads.
-            M: Number of slots per address in the memory bank.
-
-        Inputs: input, hidden
-            - **input** of shape (batch_size, inputs_size): Current input (from time t)
-            - **tuple_cell_state_prev** (tuple_ctrl_state_prev, tuple_interface_prev, mem_prev), object of class DWMCellStateTuple
-                  tuple_ctrl_state_prev: object of class ControllerStateTuple of previous time step, contains (hidden_state of shape (batch_size, state_units))
-                  tuple_interface_prev: object of class RNNStateTuple of previous time step, contains (head_weights of shape (batch_size, num_heads, memory_addresses), snapshot_weights of shape (batch_size, num_heads, memory_addresses))
-                  mem_prev: memory of previous time step, of shape (batch_size, memory_size_content, memory_addresses_size)
-
-
-        Outputs:
-            - **output** of shape `(batch_size, output_size)`:
-            - **tuple_cell_state** = (tuple_ctrl_state, tuple_interface, mem)
-                tuple_ctrl_state: new tuple ctrl_state
-                tuple_interface:  new tuple interface
-                mem: new memory.
-
-
-        Examples::
-
-        >>> dwm = DWMCell(3, 5, 2, 1, False, 3, 8)
-        >>> inputs = torch.randn(5, 10)
-        >>> targets = torch.randn(5, 20)
-        >>> data_tuple = (inputs, targets)
-        >>> output = dwm(data_tuple)
+            :param in_dim: input size.
+            :param output_units: output size.
+            :param state_units: state size.
+            :param num_heads: number of heads.
+            :param is_cam: is it content_address    able.
+            :param num_shift: number of shifts of heads.
+            :param M: Number of slots per address in the memory bank.
 
         """
 
@@ -103,6 +55,54 @@ class DWMCell(nn.Module):
         return DWMCellStateTuple(tuple_ctrl_init_state, tuple_interface_init_state, mem_init)
 
     def forward(self, input, tuple_cell_state_prev):
+
+        """
+        :param input of shape (batch_size, inputs_size): Current input (from time t)
+        :param tuple_cell_state_prev** (tuple_ctrl_state_prev, tuple_interface_prev, mem_prev), object of class DWMCellStateTuple
+               tuple_ctrl_state_prev: object of class ControllerStateTuple of previous time step, contains (hidden_state of shape (batch_size, state_units))
+               tuple_interface_prev: object of class RNNStateTuple of previous time step, contains (head_weights of shape (batch_size, num_heads, memory_addresses), snapshot_weights of shape (batch_size, num_heads, memory_addresses))
+               mem_prev: memory of previous time step, of shape (batch_size, memory_size_content, memory_addresses_size)
+
+        :return output** of shape `(batch_size, output_size)`:
+        :return tuple_cell_state = (tuple_ctrl_state, tuple_interface, mem)
+                tuple_ctrl_state: new tuple ctrl_state
+                tuple_interface:  new tuple interface
+                mem: new memory.
+
+        .. math::
+
+            \begin{array}{ll}
+            # read memory
+            r_t= M_t w_t \\
+            # memory update
+            M_t = M_{t-1}\circ (E-w_t \otimes e_t)+w_t\otimes a_t \\
+            # controller
+            h_t=\sigma(W_h[x_t,h_{t-1},r_{t-1}]) \\
+            y_t=W_{y}[x_t,h_{t-1},r_{t-1}] \\
+            P_t=W_{P}[x_t,h_{t-1},r_{t-1}]  \\
+            \end{array}
+
+            The full list of parameters is as follows:
+            \begin{itemize}
+            \item The write vector $a_t \in \mathbb{R}^{N_M} $
+            \item The erase vector $e_t=\sigma(\hat{e}_t) \in [0,1]^{N_M}$
+
+            \item The shift vector $s_t=\softmax(\softplus(\hat{s})) \in [0,1]^3$
+            \item The bookmark update gates $g^i_t = \sigma(\hat{g}^i_t) \in [0,1]^{N_B-1}$
+            \item The attention update gate $\delta^i_t = \softmax(\hat{\delta}^i_t)  \in [0,1]^{N_B+1}$
+            \item The sharpening parameter $\gamma = 1+\softplus(\hat{\gamma}) \in [1,\infty]$
+            \end{itemize}
+
+
+        Examples:
+
+        >>> dwm = DWMCell(3, 5, 2, 1, False, 3, 8)
+        >>> inputs = torch.randn(5, 10)
+        >>> targets = torch.randn(5, 20)
+        >>> data_tuple = (inputs, targets)
+        >>> output = dwm(data_tuple)
+
+        """
 
         tuple_ctrl_state_prev, tuple_interface_prev, mem_prev = tuple_cell_state_prev
 

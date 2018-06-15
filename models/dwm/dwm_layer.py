@@ -12,38 +12,13 @@ dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 
 
 class DWM(ModelBase, nn.Module):
+    """Applies a DWM layer to an input sequences """
 
     def __init__(self, params):
 
-        r"""Applies a DWM layer to an input sequences.
-
-        Args: Constructor. Initializes parameters on the basis of dictionary of parameters passed as argument.
-             :param control_bits: used as marker to distinguish the data from
-             :param data_bits:
-             :param output_units: output size.
-             :param hidden_state_dim: state size.
-             :param num_heads: number of heads.
-             :param use_content_addressing: use content addressing mechanism tu update attention
-             :param num_shift: number of shifts of heads.
-             :param memory_content_size: Number of slots per address in the memory bank.
-
-        Inputs:
-            - **data_tuple** = (inputs, targets)
-            inputs of shape `(batch, sequence_length, input_size)`: tensor containing the data sequences of the batch.
-            targets of shape `(batch, sequence_length, output_size)`: tensor containing the target sequences of the batch.
-
-        Outputs:
-            - output of shape `(batch, sequence_length, output_size)`:
-
-
-        Examples::
-
-        >>> dwm = DWM(params)
-        >>> inputs = torch.randn(5, 3, 10)
-        >>> targets = torch.randn(5, 3, 20)
-        >>> data_tuple = (inputs, targets)
-        >>> output = dwm(data_tuple)
-
+        """"
+        Constructor. Initializes parameters on the basis of dictionary of parameters passed as argument.
+        :param params: Dictionary of parameters.
         """
 
         self.in_dim = params["control_bits"] + params["data_bits"]
@@ -72,6 +47,25 @@ class DWM(ModelBase, nn.Module):
                                self.num_heads, self.is_cam, self.num_shift, self.M)
 
     def forward(self, data_tuple):
+        """
+        Forward function
+
+        :param data_tuple** = (inputs, targets)
+        :param inputs of shape `(batch, sequence_length, input_size)`: tensor containing the data sequences of the batch.
+        :param targets of shape `(batch, sequence_length, output_size)`: tensor containing the target sequences of the batch.
+
+        :returns output of shape `(batch, sequence_length, output_size)`:
+
+
+        Example:
+
+        >>> dwm = DWM(params)
+        >>> inputs = torch.randn(5, 3, 10)
+        >>> targets = torch.randn(5, 3, 20)
+        >>> data_tuple = (inputs, targets)
+        >>> output = dwm(data_tuple)
+
+        """
 
         (inputs, targets) = data_tuple
 
