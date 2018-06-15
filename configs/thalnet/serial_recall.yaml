@@ -15,6 +15,7 @@ problem_train:
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     bias: 0.5
+    cuda: True  # The presence of the 'cuda' key is optional
 
 # Problem parameters:
 problem_test:
