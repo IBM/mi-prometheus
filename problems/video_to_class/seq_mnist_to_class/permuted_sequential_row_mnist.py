@@ -1,12 +1,16 @@
+# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..'))
+
 import torch
-from sequential_vision_problem import SequentialVisionProblem
-from problems.sequence.sequential_problem import MaskAuxTuple
-from problems.problem import DataTuple
 from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 
+from problems.problem import DataTuple, MaskAuxTuple
+from problems.video_to_class.video_to_class_problem import VideoToClassProblem
 
-class PermutedSequentialRowMnist(SequentialVisionProblem):
+
+class PermutedSequentialRowMnist(VideoToClassProblem):
     """
     Class generating sequences sequential mnist
     """
