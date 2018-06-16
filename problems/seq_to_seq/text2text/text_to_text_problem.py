@@ -90,24 +90,24 @@ class TextToTextProblem(SeqToSeqProblem):
 
         return bleu_score / data_tuple.inputs.size(0)
 
-    def evaluate_loss(self, data_tuple, logits, aux_tuple):
-        """
-        Computes loss.
-        By default, the loss function is the Negative Log Likelihood function.
-        The input given through a forward call is expected to contain log-probabilities (LogSoftmax) of each class.
-        The input has to be a Tensor of size either (batch_size, C) or (batch_size, C, d1, d2,...,dK) with K ≥ 2 for the
-        K-dimensional case.
-        The target that this loss expects is a class index (0 to C-1, where C = number of classes).
-
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param logits: Logits being output of the model.
-        :param aux_tuple: Auxiliary tuple containing mask.
-        :return: loss
-        """
-
-        loss = 0
-
-        # TODO, thinking about using the categorical cross entropy.
+    #def evaluate_loss(self, data_tuple, logits, aux_tuple):
+    #    """
+    #    Computes loss.
+    #    By default, the loss function is the Negative Log Likelihood function.
+    #    The input given through a forward call is expected to contain log-probabilities (LogSoftmax) of each class.
+    #    The input has to be a Tensor of size either (batch_size, C) or (batch_size, C, d1, d2,...,dK) with K ≥ 2 for the
+    #    K-dimensional case.
+    #    The target that this loss expects is a class index (0 to C-1, where C = number of classes).
+    #
+    #    :param data_tuple: Data tuple containing inputs and targets.
+    #    :param logits: Logits being output of the model.
+    #    :param aux_tuple: Auxiliary tuple containing mask.
+    #    :return: loss
+    #    """
+    #
+    #    loss = 0
+    #
+    #    # TODO, thinking about using the categorical cross entropy.
 
     def turn_on_cuda(self, data_tuple, aux_tuple):
         """ Enables computations on GPU - copies all the matrices to GPU.
