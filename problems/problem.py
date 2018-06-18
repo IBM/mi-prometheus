@@ -96,3 +96,19 @@ class Problem(metaclass=ABCMeta):
         :param _: auxiliary tuple (aux_tuple) is not used in this function. 
         """
         pass
+
+    def turn_on_cuda(self, data_tuple, aux_tuple):
+        """ Enables computations on GPU - copies all the matrices to GPU.
+        This method has to be overwritten in derived class if one decides.
+
+        :param data_tuple: Data tuple.
+        :returns: Pair of Data and Auxiliary tupples with variables copied to GPU.
+        """
+        # Unpack tuples and copy data to GPU.
+        gpu_inputs = data_tuple.inputs.cuda()
+        gpu_targets = data_tuple.targets.cuda()
+
+        # Pack matrices to tuples.
+        data_tuple = DataTuple(gpu_inputs, gpu_targets)
+
+        return data_tuple, aux_tuple

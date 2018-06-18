@@ -28,10 +28,6 @@ class SequentialPixelMNIST(VideoToClassProblem):
         self.num_columns = 28
         self.use_train_data = params['use_train_data']
         self.datasets_folder = params['mnist_folder']
-        # TODO: WHY?? Fix this!
-        self.gpu = False
-        
-        self.kwargs = {'num_workers': 1, 'pin_memory': True} if self.gpu else {}
 
         # define transforms
         train_transform = transforms.Compose([
@@ -48,10 +44,9 @@ class SequentialPixelMNIST(VideoToClassProblem):
         self.sampler = SubsetRandomSampler(idx)
 
     def generate_batch(self):
-
         # data loader
         train_loader = torch.utils.data.DataLoader(self.train_datasets, batch_size=self.batch_size,
-                                                   sampler=self.sampler, **self.kwargs)
+                                                   sampler=self.sampler)
         # create an iterator
         train_loader = iter(train_loader)
 
