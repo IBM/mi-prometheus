@@ -50,7 +50,6 @@ class Translation(TextToTextProblem, Lang):
         self.output_lang = None  # will be a Lang instance
         self.pairs = []  # will be used to constitute TextAuxTuple
         self.tensor_pairs = []  # will be used to constitute DataTuple
-        self.gpu = False  # TODO: Problem will need to be prepared for CUDA
 
         # for datasets storage & handling
         self.root = os.path.expanduser(os.curdir)
