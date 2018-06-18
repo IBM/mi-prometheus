@@ -18,7 +18,7 @@ from problems.seq_to_seq.text2text.text_to_text_problem import TextToTextProblem
 class Translation(TextToTextProblem, Lang):
     """
     Class generating sequences of indexes as inputs & targets for a English -> Other Language translation task.
-    TODO: padding for sequences of different lengths in batch needs to be checked
+    Only supports latin alphabet for now.
     """
 
     def __init__(self, params):
@@ -90,10 +90,12 @@ class Translation(TextToTextProblem, Lang):
 
         # Read the source data file and split into lines
         if self.use_train_data:
+            print('Using training set')
             lines = open(os.path.join(self.root, self.processed_folder, self.training_file), encoding='utf-8').\
                 read().strip().split('\n')
         else:
-            lines = open(os.path.join(self.root, self.processed_folder, self.test_file),encoding='utf-8').\
+            print('Using inference set')
+            lines = open(os.path.join(self.root, self.processed_folder, self.test_file), encoding='utf-8').\
                 read().strip().split('\n')
 
         # Split every line into pairs and normalize them
@@ -168,7 +170,7 @@ class Translation(TextToTextProblem, Lang):
         os.unlink(filepath)
 
         # read raw data, split it in training & inference sets and save it to file
-        lines = open(os.path.join(self.root, self.raw_folder, self.output_lang_name+'.txt'), encoding='utf-8').\
+        lines = open(os.path.join(self.root, self.raw_folder, self.output_lang_name + '.txt'), encoding='utf-8').\
             read().strip().split('\n')
 
         nb_samples = len(lines)
@@ -214,6 +216,7 @@ class Translation(TextToTextProblem, Lang):
                                     output [BATCH_SIZE, MAX_SEQUENCE_LENGTH, 1].
         """
         # generate a sample of size batch_size of random indexes without replacement
+        # only considering the start / stop indexes for the training set
         if self.use_train_data:
             indexes = random.sample(population=range(self.num_train), k=self.batch_size)
         else:
@@ -255,8 +258,8 @@ if __name__ == "__main__":
         "they are", "they re "
     )
 
-    params = {'batch_size': 2, 'start_index': 0, 'stop_index': 1000, 'output_lang_name': 'fra', 'max_sequence_length': 10,
-              'eng_prefixes': eng_prefixes, 'use_train_data': True}
+    params = {'batch_size': 2, 'start_index': 0, 'stop_index': 1000, 'output_lang_name': 'fra',
+              'max_sequence_length': 10, 'eng_prefixes': eng_prefixes, 'use_train_data': True}
 
     problem = Translation(params)
     print('Problem successfully created.\n')
