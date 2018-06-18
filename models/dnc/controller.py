@@ -59,7 +59,7 @@ class Controller(nn.Module):
            "num_layers": 1,
            "non_linearity" : self.non_linearity
         }
-   
+
         #self.tm_i2s = nn.Linear(tm_ctrl_in_dim, tm_state_units)
         self.tm_i2s = ControllerFactory.build_model(controller_params)
 
@@ -99,7 +99,7 @@ class Controller(nn.Module):
         # Concatenate the 3 inputs to controller
         combined = torch.cat((tm_input, read_data), dim=-1)
 
-        tm_state, ctrl_state_tuple = self.tm_i2s(combined,prev_ctrl_state_tuple)
+        tm_state, ctrl_state_tuple = self.tm_i2s(combined, prev_ctrl_state_tuple)
 
         tm_output = self.tm_i2o(tm_state)
 

@@ -7,25 +7,19 @@ from models.dwm.dwm_cell import DWMCell
 from misc.app_state import AppState
 from models.model_base import ModelBase
 
-CUDA = False
-dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
-
 
 class DWM(ModelBase, nn.Module):
+    """Applies a DWM layer to an input sequences """
 
     def __init__(self, params):
-        """Initialize an DWM Layer.
 
-        :param in_dim: input size.
-        :param output_units: output size.
-        :param state_units: state size.
-        :param num_heads: number of heads.
-        :param is_cam: is it content_addressable.
-        :param num_shift: number of shifts of heads.
-        :param M: Number of slots per address in the memory bank.
+        """"
+        Constructor. Initializes parameters on the basis of dictionary of parameters passed as argument.
+        :param params: Dictionary of parameters.
         """
+
         self.in_dim = params["control_bits"] + params["data_bits"]
-        #self.output_units = params["data_bits"]
+
         try:
             self.output_units  = params['output_bits']
         except KeyError:
@@ -49,14 +43,27 @@ class DWM(ModelBase, nn.Module):
         self.DWMCell = DWMCell(self.in_dim, self.output_units, self.state_units,
                                self.num_heads, self.is_cam, self.num_shift, self.M)
 
-    def forward(self, data_tuple):       # x : batch_size, seq_len, input_size
+    def forward(self, data_tuple):
         """
-        Runs the DWM cell and plots if necessary
-        
-        :param x: input sequence  [BATCH_SIZE x seq_len x input_size ]
-        :param state: Input hidden state  [BATCH_SIZE x state_size]
-        :return: Tuple [output, hidden_state]
+        Forward function
+
+        :param data_tuple** = (inputs, targets)
+        :param inputs of shape `(batch, sequence_length, input_size)`: tensor containing the data sequences of the batch.
+        :param targets of shape `(batch, sequence_length, output_size)`: tensor containing the target sequences of the batch.
+
+        :returns output of shape `(batch, sequence_length, output_size)`:
+
+
+        Example:
+
+        >>> dwm = DWM(params)
+        >>> inputs = torch.randn(5, 3, 10)
+        >>> targets = torch.randn(5, 3, 20)
+        >>> data_tuple = (inputs, targets)
+        >>> output = dwm(data_tuple)
+
         """
+
         (inputs, targets) = data_tuple
 
         if self.app_state.visualize:
@@ -64,8 +71,9 @@ class DWM(ModelBase, nn.Module):
 
         output = None
         batch_size = inputs.size(0)
-        seq_length = inputs.size(1)
+        seq_length = inputs.size(-2)
 
+        # The length of the memory is set to be equal to the input length in case ```self.memory_addresses_size == -1```
         if self.memory_addresses_size == -1:
             if seq_length < self.num_shift:
                 memory_addresses_size = self.num_shift  # memory size can't be smaller than num_shift (see circular_convolution implementation)
@@ -74,8 +82,13 @@ class DWM(ModelBase, nn.Module):
         else:
             memory_addresses_size = self.memory_addresses_size
 
-        # init state
-        cell_state = self.init_state(memory_addresses_size, batch_size)
+        # Set type
+        dtype = torch.cuda.FloatTensor if inputs.is_cuda else torch.FloatTensor
+
+        # Init state
+        cell_state = self.DWMCell.init_state(memory_addresses_size, batch_size, dtype)
+
+        # loop over the different sequences
         for j in range(seq_length):
             output_cell, cell_state = self.DWMCell(inputs[..., j, :], cell_state)
 
@@ -86,7 +99,7 @@ class DWM(ModelBase, nn.Module):
             if output is None:
                 output = output_cell
 
-            # concatenate output
+            # Concatenate output
             else:
                 output = torch.cat([output, output_cell], dim=-2)
 
@@ -98,22 +111,7 @@ class DWM(ModelBase, nn.Module):
 
         return output
 
-    def init_state(self, memory_addresses_size, batch_size):
-
-        state = torch.ones((batch_size, self.state_units)).type(dtype)
-
-        # initial attention  vector
-        wt = torch.zeros((batch_size, self.num_heads, memory_addresses_size)).type(dtype)
-        wt[:, 0:self.num_heads, 0] = 1.0
-
-        # bookmark
-        wt_dynamic = wt
-
-        mem_t = (torch.ones((batch_size, self.M, memory_addresses_size)) * 0.01).type(dtype)
-
-        states = [state, wt, wt_dynamic, mem_t]
-        return states
-
+    # Method to change memory size
     def set_memory_size(self, mem_size):
         self.memory_addresses_size = mem_size
 

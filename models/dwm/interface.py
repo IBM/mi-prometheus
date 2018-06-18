@@ -1,11 +1,19 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
+import logging
+import collections
 
 from models.dwm.tensor_utils import circular_conv, normalize
 from models.dwm.memory import Memory
 
-import logging
+# Helper collection type.
+_InterfaceStateTuple = collections.namedtuple('InterfaceStateTuple', ('head_weight', 'snapshot_weight'))
+
+
+class InterfaceStateTuple(_InterfaceStateTuple):
+    """Tuple used by interface for storing current/past state information"""
+    __slots__ = ()
 
 logger = logging.getLogger('DWM_interface')
 
@@ -14,7 +22,7 @@ class Interface:
         """Initialize Interface.
 
         :param num_heads: number of heads
-        :param is_cam [boolean]: are the heads allowed to use content addressing
+        :param is_cam (boolean): are the heads allowed to use content addressing
         :param num_shift: number of shifts of heads.
         :param M: Number of slots per address in the memory bank.
         """
@@ -30,6 +38,25 @@ class Interface:
         # create the parameter lengths and store their cumulative sum
         lengths = np.fromiter(self.param_dict.values(), dtype=int)
         self.cum_lengths = np.cumsum(np.insert(lengths, 0, 0), dtype=int).tolist()
+
+    def init_state(self, memory_addresses_size, batch_size, dtype):
+        """
+        Returns 'zero' (initial) state of Interface tuple.
+
+        :param batch_size: Size of the batch in given iteraction/epoch.
+        :param memory_addresses_size
+        :param dtype
+        :returns: Initial state tuple - object of InterfaceStateTuple class: (head_weight_init, snapshot_weight_init)
+
+        """
+        # initial attention  vector
+        head_weight_init = torch.zeros((batch_size, self.num_heads, memory_addresses_size)).type(dtype)
+        head_weight_init[:, 0:self.num_heads, 0] = 1.0
+
+        # bookmark
+        snapshot_weight_init = head_weight_init
+
+        return InterfaceStateTuple(head_weight_init, snapshot_weight_init)
 
     @property
     def read_size(self):
@@ -50,26 +77,35 @@ class Interface:
         return self.num_heads * self.cum_lengths[-1]
 
     def read(self, wt, mem):
+
         """Returns the data read from memory
 
-        :param wt: the read weight [BATCH_SIZE, MEMORY_SIZE]
-        :param mem: the memory [BATCH_SIZE, CONTENT_SIZE, MEMORY_SIZE] 
-        :return: the read data [BATCH_SIZE, CONTENT_SIZE]
+        :param wt of shape (batch_size, num_heads, memory_addresses_size)  : head's weights
+        :param mem (batch_size, memory_content_size, memory_addresses_size)  : the memory content
+
+        :return: the read data of shape (batch_size, num_heads, memory_content_size)
         """
+
         memory = Memory(mem)
         read_data = memory.attention_read(wt)
         # flatten the data_gen in the last 2 dimensions
         sz = read_data.size()[:-2]
         return read_data.view(*sz, self.read_size)
 
-    def update(self, update_data, wt_head_prev, wt_att_snapshot_prev, mem):
+    def update(self, update_data, tuple_interface_prev, mem):
 
         """Erases from memory, writes to memory, updates the weights using various attention mechanisms
-        :param update_data: the parameters from the controllers [update_size]
-        :param wt: the read weight [BATCH_SIZE, MEMORY_SIZE]
-        :param mem: the memory [BATCH_SIZE, CONTENT_SIZE, MEMORY_SIZE] 
-        :return: TUPLE [wt, mem]
+
+        :param update_data: the parameters from the controllers
+        :param tuple_interface_prev = (head_weight, snapshot_weight)
+        head_weight of shape (batch_size, num_heads, memory_size): head attention
+        snapshot_weight of shape (batch_size, num_heads, memory_size): snapshot(bookmark) attention
+
+        :param mem of shape (batch_size, content_size, memory_size): the memory
+        :return: InterfaceTuple: (head_weight, snapshot_weight): the updated weight of head and snapshot
+                 mem: the new memory content
         """
+        wt_head_prev, wt_att_snapshot_prev = tuple_interface_prev
         assert update_data.size()[-1] == self.update_size, "Mismatch in update sizes"
 
         # reshape update data_gen by heads and total parameter size
@@ -136,4 +172,4 @@ class Interface:
             logger.warning("Warning: gamma very high, normalization problem")
 
         mem = memory.content
-        return wt_head, wt_att_snapshot, mem
+        return InterfaceStateTuple(wt_head, wt_att_snapshot), mem
