@@ -7,16 +7,17 @@ __author__      = "Vincent Marois"
 import os, sys
 import random
 import torch
+import errno
+
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..', '..'))
 
-from torch.utils.data.sampler import SubsetRandomSampler
 from problems.problem import DataTuple
 from problems.seq_to_seq.text2text.text_to_text_problem import TextToTextProblem, Lang, TextAuxTuple
 
 
 class Translation(TextToTextProblem, Lang):
     """
-    Class generating sequences of indexes as inputs & targets for a translation task.
+    Class generating sequences of indexes as inputs & targets for a English -> Other Language translation task.
     TODO: padding for sequences of different lengths in batch needs to be checked
     """
 
@@ -32,21 +33,15 @@ class Translation(TextToTextProblem, Lang):
         # parse parameters from the dictionary.
         self.batch_size = params['batch_size']
 
-        # source data filepath TODO: in future, should manage automatic download & storage.
-        self.source_data_filepath = params['source_data_filepath']
-        assert self.source_data_filepath != '', 'The source data filepath cannot be empty.'
-
-        # simple strings to name the input & output languages
-        self.input_lang_name = params['input_lang_name']
+        # name the output language (input language is forced to English for now because of the data source)
         self.output_lang_name = params['output_lang_name']
 
         # max sequence length -> corresponds to max number of words in sentence
         self.max_sequence_length = params['max_sequence_length']
 
-        # to filter the input sentences based on their structure.
-        self.input_lang_prefixes = params['input_lang_prefixes']
+        # to filter the English sentences based on their structure.
+        self.eng_prefixes = params['eng_prefixes']
 
-        # TODO: is it useful? How to delimitate train & test dataset?
         self.start_index = params['start_index']
         self.stop_index = params['stop_index']
 
@@ -57,11 +52,23 @@ class Translation(TextToTextProblem, Lang):
         self.tensor_pairs = []  # will be used to constitute DataTuple
         self.gpu = False  # TODO: Problem will need to be prepared for CUDA
 
+        # for datasets storage & handling
+        self.root = os.path.expanduser(os.curdir)
+        self.raw_folder = 'raw'
+        self.processed_folder = 'processed'
+        self.training_file = 'eng-' + self.output_lang_name + '_training.txt'
+        self.test_file = 'eng-' + self.output_lang_name + '_test.txt'
+        self.training_size = 0.90
+
+        # switch between training & inference
+        self.use_train_data = params['use_train_data']
+
         # create corresponding Lang instances using the names
-        self.input_lang = Lang(self.input_lang_name)
+        self.input_lang = Lang('eng')
         self.output_lang = Lang(self.output_lang_name)
 
         # preprocess source data
+        self.download()
         self.input_lang, self.output_lang, self.pairs = self.prepare_data()
 
         # create tensors of indexes from string pairs
@@ -69,8 +76,9 @@ class Translation(TextToTextProblem, Lang):
                                                     self.output_lang, self.max_sequence_length)
 
         # number of training instances
-        assert self.stop_index < len(self.pairs), "Error: specified stop_index > number of processed pairs."
-        self.num_train = int(self.stop_index - self.start_index)
+        if self.use_train_data:
+            assert self.stop_index < len(self.pairs), "Error: specified stop_index > number of processed training pairs."
+            self.num_train = int(self.stop_index - self.start_index)
 
     def prepare_data(self):
         """
@@ -81,7 +89,12 @@ class Translation(TextToTextProblem, Lang):
         """
 
         # Read the source data file and split into lines
-        lines = open(self.source_data_filepath, encoding='utf-8').read().strip().split('\n')
+        if self.use_train_data:
+            lines = open(os.path.join(self.root, self.processed_folder, self.training_file), encoding='utf-8').\
+                read().strip().split('\n')
+        else:
+            lines = open(os.path.join(self.root, self.processed_folder, self.test_file),encoding='utf-8').\
+                read().strip().split('\n')
 
         # Split every line into pairs and normalize them
         self.pairs = [[self.normalize_string(s) for s in l.split('\t')] for l in lines]
@@ -103,6 +116,76 @@ class Translation(TextToTextProblem, Lang):
 
         return self.input_lang, self.output_lang, self.pairs
 
+    def _check_exists(self):
+        """Check if the training & inference datasets for the specified language already exist or not."""
+        return os.path.exists(os.path.join(self.root, self.processed_folder, self.training_file)) and \
+               os.path.exists(os.path.join(self.root, self.processed_folder, self.test_file))
+
+    def download(self):
+        """
+        Download the specified zip file from http://www.manythings.org/anki/.
+        Notes: This website hosts data files for English -> other language translation: the main file is named after
+        the other language.
+            Ex: for a English -> French translation, the main file is named 'fra.txt',
+                for a English -> German translation, the main file is named 'deu.txt' etc.
+        """
+        # import lines
+        from six.moves.urllib.request import Request, urlopen
+        import zipfile
+
+        # check if the files already exist
+        if self._check_exists():
+            print('Files already exist, no need to re-download them.')
+            return
+
+        # try to create directories for storing files if not already exist
+        try:
+            os.makedirs(os.path.join(self.root, self.raw_folder))
+            os.makedirs(os.path.join(self.root, self.processed_folder))
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            else:
+                raise
+
+        # construct the url from self.output_lang_name
+        # Warning: The source files are named like 'eng-fra.zip' -> careful on the language abbreviation!
+        url = 'http://www.manythings.org/anki/' + self.output_lang_name + '-eng.zip'
+
+        print('Downloading original source file from', url)
+        # have to do a Request in order to pass headers to avoid server security features blocking spider/bot user agent
+        request = Request(url, headers={'User-Agent': 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'})
+        data = urlopen(request)
+
+        # write raw data to file
+        filename = url.rpartition('/')[2]
+        filepath = os.path.join(self.root, self.raw_folder, filename)
+
+        with open(filepath, 'wb') as f:
+            f.write(data.read())
+        with zipfile.ZipFile(filepath, 'r') as zip_f:
+            zip_f.extractall(self.raw_folder)
+        os.unlink(filepath)
+
+        # read raw data, split it in training & inference sets and save it to file
+        lines = open(os.path.join(self.root, self.raw_folder, self.output_lang_name+'.txt'), encoding='utf-8').\
+            read().strip().split('\n')
+
+        nb_samples = len(lines)
+        print('Total number of samples:', nb_samples)
+        nb_training_samples = round(self.training_size * nb_samples)
+        training_samples = lines[:nb_training_samples]
+        inference_samples = lines[nb_training_samples:]
+
+        with open(os.path.join(self.root, self.processed_folder, self.training_file), 'w') as training_f:
+            training_f.write('\n'.join(line for line in training_samples))
+            training_f.close()
+        with open(os.path.join(self.root, self.processed_folder, self.test_file), 'w') as test_f:
+            test_f.write('\n'.join(line for line in inference_samples))
+            test_f.close()
+
+        print('Processing done.')
+
     def filter_pair(self, p):
         """
         Indicate whether a sentence pair is compliant with some filtering criteria, such as:
@@ -116,7 +199,7 @@ class Translation(TextToTextProblem, Lang):
 
         return len(p[0].split(' ')) < self.max_sequence_length and \
                len(p[1].split(' ')) < self.max_sequence_length and \
-               p[0].startswith(self.input_lang_prefixes)
+               p[0].startswith(self.eng_prefixes)
 
     def filter_pairs(self):
         """Filter several pairs at once using filter_pair as a boolean mask.
@@ -131,7 +214,10 @@ class Translation(TextToTextProblem, Lang):
                                     output [BATCH_SIZE, MAX_SEQUENCE_LENGTH, 1].
         """
         # generate a sample of size batch_size of random indexes without replacement
-        indexes = random.sample(population=range(self.num_train), k=self.batch_size)
+        if self.use_train_data:
+            indexes = random.sample(population=range(self.num_train), k=self.batch_size)
+        else:
+            indexes = random.sample(population=range(len(self.tensor_pairs)), k=self.batch_size)
 
         # create main batch inputs & outputs tensor
         inputs = torch.zeros([self.batch_size, self.max_sequence_length])
@@ -160,7 +246,7 @@ class Translation(TextToTextProblem, Lang):
 if __name__ == "__main__":
     """ Tests Problem class"""
 
-    input_lang_prefixes = (
+    eng_prefixes = (
         "i am ", "i m ",
         "he is", "he s ",
         "she is", "she s",
@@ -169,9 +255,8 @@ if __name__ == "__main__":
         "they are", "they re "
     )
 
-    params = {'batch_size': 2, 'start_index': 0, 'stop_index': 1000, 'source_data_filepath': 'eng-fra.txt',
-              'input_lang_name': 'english', 'output_lang_name': 'french', 'max_sequence_length': 10,
-              'input_lang_prefixes': input_lang_prefixes}
+    params = {'batch_size': 2, 'start_index': 0, 'stop_index': 1000, 'output_lang_name': 'fra', 'max_sequence_length': 10,
+              'eng_prefixes': eng_prefixes, 'use_train_data': True}
 
     problem = Translation(params)
     print('Problem successfully created.\n')
