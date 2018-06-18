@@ -7,21 +7,22 @@ from enum import Enum
 import torch
 from torch import nn
 from torch.autograd import Variable
-from misc.app_state import AppState
+#from misc.app_state import AppState
 from models.model_base import ModelBase
 
 class EncoderDecoderLSTM(ModelBase, nn.Module):
     """Simple Encoder Decoder LSTM """
-    '''
-            Constructor. Initializes parameters on the basis of dictionary passed as argument.
-            Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences 
-            becoming input to encoder is of the same length (ends at the same item), the same goes to
-            subsequences being input to decoder.
-
-            :param params: Dictionary of parameters.
-            '''
+    
 
     def  __init__(self, params):
+        '''
+        Constructor. Initializes parameters on the basis of dictionary passed as argument.
+        Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences 
+        becoming input to encoder is of the same length (ends at the same item), the same goes to
+        subsequences being input to decoder.
+
+        :param params: Dictionary of parameters.
+        '''
 
         # Call base constructor.
         super(EncoderDecoderLSTM, self).__init__()
@@ -98,4 +99,4 @@ class EncoderDecoderLSTM(ModelBase, nn.Module):
 
         # Stack logits along the temporal (sequence) axis.
         logits = torch.stack(logits, 1)
-return logits
+        return logits
