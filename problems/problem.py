@@ -98,11 +98,12 @@ class Problem(metaclass=ABCMeta):
         pass
 
     def turn_on_cuda(self, data_tuple, aux_tuple):
-        """ Enables computations on GPU - copies all the matrices to GPU.
-        This method has to be overwritten in derived class if one decides.
+        """ Enables computations on GPU - copies the input and target matrices (from DataTuple) to GPU.
+        This method has to be overwritten in derived class if one decides to copy other matrices as well.
 
         :param data_tuple: Data tuple.
-        :returns: Pair of Data and Auxiliary tupples with variables copied to GPU.
+        :param aux_tuple: Auxiliary tuple (WARNING: Values stored in that variable will remain in CPU)
+        :returns: Pair of Data and Auxiliary tuples (Data on GPU, Aux on CPU).
         """
         # Unpack tuples and copy data to GPU.
         gpu_inputs = data_tuple.inputs.cuda()
