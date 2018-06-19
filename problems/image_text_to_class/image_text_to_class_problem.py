@@ -71,14 +71,3 @@ class ImageTextToClassProblem(Problem):
         stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, _)
 
 
-    def show_sample(self, inputs, targets):
-        import matplotlib.pyplot as plt
-
-        # show data.
-        plt.xlabel('num_columns')
-        plt.ylabel('num_rows')
-        plt.title('Target class: ' + str(int(targets[0])))
-
-        plt.imshow(inputs, interpolation='nearest', aspect='auto')
-        # Plot!
-        plt.show()
