@@ -259,8 +259,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         :return: List of objects - abstract scene representation.
          """
          # Generate list of objects - no more then colors
-        num_objects = MAX_NUM_OBJECTS # np.random.random_integers(2, NUM_COLORS)
-        logger.warning("NUM OBJECTS= {}\n".format(num_objects))
+        num_objects = np.random.random_integers(2, NUM_COLORS)
 
         # Shuffle "grid positions".
         grid_positions = np.arange(N_GRID*N_GRID)
@@ -325,14 +324,14 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         :param objects: List of objects - abstract scene representation.
         """
-        Q = np.zeros((MAX_NUM_OBJECTS*NUM_QUESTIONS, NUM_COLORS+NUM_QUESTIONS), dtype=np.bool)
+        Q = np.zeros((len(objects)*NUM_QUESTIONS, NUM_COLORS+NUM_QUESTIONS), dtype=np.bool)
 
         for i,obj in enumerate(objects):
             v = np.zeros(NUM_COLORS)
             v[obj.color] = True
             Q[i*NUM_QUESTIONS:(i+1)*NUM_QUESTIONS, :NUM_COLORS] = np.tile(v, (NUM_QUESTIONS, 1))
             Q[i*NUM_QUESTIONS:(i+1)*NUM_QUESTIONS, NUM_COLORS:] = np.diag(np.ones(NUM_QUESTIONS))
-        print("Q = \n",Q)
+
         return Q
 
     def generate_answer_matrix(self, objects):
@@ -342,7 +341,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         :param objects: List of objects - abstract scene representation.
         """
-        A = np.zeros((MAX_NUM_OBJECTS*NUM_QUESTIONS, NUM_COLORS+4), dtype=np.bool)
+        A = np.zeros((len(objects)*NUM_QUESTIONS, NUM_COLORS+4), dtype=np.bool)
         for i,obj in enumerate(objects):
             # Q1: circle or rectangle?
             if obj.shape:
@@ -405,7 +404,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
             Q = self.generate_question_matrix(objects)
             A = self.generate_answer_matrix(objects)
             # Iterate through all questions generated for a given scene.
-            for j in range(MAX_NUM_OBJECTS*NUM_QUESTIONS):
+            for j in range(len(objects)*NUM_QUESTIONS):
                 # Create new group.
                 id = '{}'.format(count)
                 grp = f.create_group(id)
@@ -465,7 +464,10 @@ if __name__ == "__main__":
 
     # "Loaded parameters".
     params = {'batch_size': 100, 'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy', 
-        'dataset_size': 100, 'img_size': 128, 'shuffle': False, "regenerate": True}
+        'dataset_size': 10000, 'img_size': 128, 
+        #'shuffle': False,
+        "regenerate": True
+        }
 
     # Configure logger.
     logging.basicConfig(level=logging.DEBUG)
