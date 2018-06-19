@@ -37,7 +37,7 @@ class EncoderDecoderLSTM(ModelBase, nn.Module):
 
         # Indices of control bits triggering encoding/decoding.
         self.encoding_bit = params['encoding_bit']  # Def: 0
-        self.decoding_bit = params['solving_bit']  # Def: 1
+        self.decoding_bit = params['decoding_bit']  # Def: 1
 
         # Create the Encoder.
         self.encoder = nn.LSTMCell(self.input_size_encoder, self.hidden_state_dim)
