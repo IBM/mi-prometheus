@@ -70,6 +70,10 @@ class DWM(ModelBase, nn.Module):
             self.cell_state_history = []
 
         output = None
+        # TODO
+        if len(inputs.size()) == 4:
+            inputs = inputs[:, 0, :, :]
+
         batch_size = inputs.size(0)
         seq_length = inputs.size(-2)
 
@@ -105,9 +109,9 @@ class DWM(ModelBase, nn.Module):
 
             # This is for the time plot
             if self.app_state.visualize:
-                self.cell_state_history.append((cell_state[3].detach().numpy(),
-                                                cell_state[1].detach().numpy(),
-                                                cell_state[2].detach().numpy()))
+                self.cell_state_history.append((cell_state.memory_state.detach().numpy(),
+                                                cell_state.interface_state.head_weight.detach().numpy(),
+                                                cell_state.interface_state.snapshot_weight.detach().numpy()))
 
         return output
 
@@ -195,6 +199,10 @@ class DWM(ModelBase, nn.Module):
         targets_seq = data_tuple.targets[0].cpu().detach().numpy()
         predictions_seq = predictions_seq[0].cpu().detach().numpy()
 
+        # temporary for data with additional channel
+        if len(inputs_seq.shape) == 3:
+            inputs_seq = inputs_seq[0, :, :]
+
         # Create figure template.
         fig = self.generate_figure_layout()
         # Get axes that artists will draw on.
@@ -204,7 +212,7 @@ class DWM(ModelBase, nn.Module):
         inputs_displayed = np.transpose(np.zeros(inputs_seq.shape))
         targets_displayed = np.transpose(np.zeros(targets_seq.shape))
         predictions_displayed = np.transpose(np.zeros(predictions_seq.shape))
-        
+
         head_attention_displayed = np.zeros((self.cell_state_history[0][1].shape[-1], targets_seq.shape[0]))
         snapshot_attention_displayed = np.zeros((self.cell_state_history[0][2].shape[-1], targets_seq.shape[0]))
 
