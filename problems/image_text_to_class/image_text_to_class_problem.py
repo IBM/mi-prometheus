@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""image_to_class_problem.py: contains abstract base class for image classification problems"""
+"""image_to_class_problem.py: contains abstract base class for VQA problems"""
 __author__      = "Tomasz Kornuta"
 
-from problems.problem import Problem
-from problems.problem import DataTuple
+import collections
 import torch.nn as nn
 
+from problems.problem import Problem, DataTuple
 
-class ImageToClassProblem(Problem):
-    ''' Abstract base class for image classification problems. Provides some basic functionality usefull in all problems of such type'''
+
+_ImageTextTuple = collections.namedtuple('ImageTextTuple', ('images', 'texts'))
+
+class ImageTextTuple(_ImageTextTuple):
+    """Tuple used by storing batches of image-text pairs by e.g. VQA problems"""
+    __slots__ = ()
+    
+
+class ImageTextToClassProblem(Problem):
+    ''' Abstract base class for VQA  (Visual Question Answering) problems. Provides some basic functionality usefull in all problems of such type'''
 
 
     def __init__(self, params):
@@ -19,12 +27,12 @@ class ImageToClassProblem(Problem):
         :param params: Dictionary of parameters (read from configuration file).        
         """ 
         # Call base class constructors.
-        super(ImageToClassProblem, self).__init__(params)
+        super(ImageTextToClassProblem, self).__init__(params)
 
         self.loss_function = nn.CrossEntropyLoss()
 
     def calculate_accuracy(self, data_tuple, logits, _):
-        """ Calculates accuracy equal to mean number of correct classification in a given batch.
+        """ Calculates accuracy equal to mean number of correct answers in a given batch.
         WARNING: Applies mask (from aux_tuple) to logits!
         
         :param logits: Logits being output of the model.
