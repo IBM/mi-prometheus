@@ -37,13 +37,12 @@ COLOR = [
     # add more colors here if needed
 ]
 
+# "Hyperparameters"
 N_GRID = 4
-NUM_COLOR = len(COLOR)
-# the number of objects presented in each image
-NUM_SHAPE = 6
-# avoid a color shared by more than one objects
-NUM_SHAPE = min(NUM_SHAPE, NUM_COLOR)
-NUM_Q = 7
+NUM_COLORS = len(COLOR)
+NUM_QUESTIONS = 7
+# Objects are characterised by colors, so cannot have more objects than colors.
+MAX_NUM_OBJECTS = min(6, NUM_COLORS)
 
 
 
@@ -57,8 +56,8 @@ class SceneDescriptionTuple(_SceneDescriptionTuple):
 
 
 
-class SceneDescription:
-    """ Class storing the lists of objects being present in a given scene. """
+class ObjectRepresentation:
+    """ Class storing features of the object being present in a given scene. """
     def __init__(self, x, y, color, shape):
         self.x = x
         self.y = y
@@ -114,6 +113,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
         self.pathfilename = os.path.join(data_folder, data_filename)
 
         try:
+            if params.get("regenerate", False):
+                raise Exception("Must regenerate... must regenerate...")
             self.data = h5py.File(self.pathfilename, 'r')
         except:
             logger.warning('File {} in {} not found. Generating new Sort-of-CLEVR dataset file'.format(data_filename, data_folder))
@@ -158,7 +159,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
             images.append(group['image'].value/255.) 
             questions.append(group['question'].value.astype(np.float32)) 
             answers.append(group['answer'].value.astype(np.float32)) 
-            scenes.append(group['scene_description'])
+            scenes.append(group['scene_description'].value)
 
         # Generate tuple with inputs
         inputs = ImageTextTuple( np.stack(images, axis=0), np.stack(questions, axis=0))
@@ -172,6 +173,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
 
     def color2str(self, color_code):
+        " Decodes color and returns it as a string. "
         return {
             0: 'blue',
             1: 'green',
@@ -180,6 +182,14 @@ class SortOfCLEVR(ImageTextToClassProblem):
             4: 'magenta',
             5: 'cyan',
         }[color_code]
+
+
+    def shape2str(self, shape_code):
+        " Decodes shape and returns it as a string. "
+        return {
+            0: 'rectangle',
+            1: 'circle',
+        }[shape_code]
 
 
     def question_type_template(self, question_code):
@@ -204,20 +214,10 @@ class SortOfCLEVR(ImageTextToClassProblem):
         :return: Question in the form of a string.
         """
         # "Decode" the color_query vector.
-        color = np.argmax(encoded_question[:NUM_COLOR])
-        question_code = np.argmax(encoded_question[NUM_COLOR:])
+        color = np.argmax(encoded_question[:NUM_COLORS])
+        question_code = np.argmax(encoded_question[NUM_COLORS:])
         # Return the question as a string.
         return (self.question_type_template(question_code)).format(self.color2str(color))
-
-    def scene2str(self, scene_desc):
-        """ Returns a string with shape, color and position of every object forming the scene """
-        desc = '| '
-        for i in range(len(scene_desc.x)):
-            # Get object shape.
-            shape = 'circle' if scene_desc.shape[i] else 'rectangle'
-            # Add description
-            desc = desc + ('{} {} at ({}, {}) | '.format(self.color2str(scene_desc.color[i]), shape, scene_desc.x[i], scene_desc.y[i]))
-        return desc
 
 
     def answer2str(self, encoded_answer):
@@ -226,106 +226,158 @@ class SortOfCLEVR(ImageTextToClassProblem):
         :param encoded_answer: One-hot vector.
         """
         return {
+            # 0-5 colors
             0: 'blue',
             1: 'green',
             2: 'red',
             3: 'yellow',
             4: 'magenta',
             5: 'cyan',
-            6: 'circle',
-            7: 'rectangle',
+            # 6-7 shapes
+            6: 'rectangle',
+            7: 'circle',
+            # 8-9 yes/no
             8: 'yes',
             9: 'no',
         }[np.argmax(encoded_answer)]
 
-    def generate_scene(self):
+    def scene2str(self, objects):
+        """
+        Returns a string with shape, color and position of every object forming the scene
+        
+        :param objects: List of objects - abstract scene representation.
+        """
+        desc = '| '
+        for obj in objects:
+            # Add description
+            desc = desc + ('{} {} at ({}, {}) | '.format(self.color2str(obj.color), self.shape2str(obj.shape), obj.x, obj.y))
+        return desc
 
+    def generate_scene_representation(self):
+        """ Generates scene representation
+        
+        :return: List of objects - abstract scene representation.
+         """
+         # Generate list of objects - no more then colors
+        num_objects = MAX_NUM_OBJECTS # np.random.random_integers(2, NUM_COLORS)
+        logger.warning("NUM OBJECTS= {}\n".format(num_objects))
+
+        # Shuffle "grid positions".
+        grid_positions = np.arange(N_GRID*N_GRID)
+        np.random.shuffle(grid_positions)
+        # Size of a "grid block".
+        block_size = int(self.img_size*0.9/N_GRID)
+
+        # Shuffle colors.
+        colors = np.arange(NUM_COLORS)
+        np.random.shuffle(colors)
+        colors = colors[:num_objects]
+
+        # Generate shapes.
+        shapes = np.random.rand(num_objects) < 0.5
+
+        # List of objects presents in the scene.
+        objects = []
+
+        # Generate coordinates.
+        for i in range(num_objects):
+            # Calculate object positions depending on "grid positions"
+            x = grid_positions[i] % N_GRID
+            y = (N_GRID - np.floor(grid_positions[i] / N_GRID) - 1).astype(np.uint8)
+            # Calculate "image coordinates".
+            x_img = (x+0.5)*block_size + np.random.random_integers(-2,2)
+            y_img = (y+0.5)*block_size + np.random.random_integers(-2,2)
+            # Add object to list.
+            objects.append(ObjectRepresentation(x_img, y_img, colors[i], shapes[i] ))
+
+        return objects
+    
+
+
+    def generate_image(self, objects):
+        """
+        Generates image on the basis of a given scene representation 
+
+        :param objects: List of objects - abstract scene representation.
+        """
         img_size = self.img_size
-
-        block_size = int(img_size*0.9/N_GRID)
         shape_size = int((img_size*0.9/N_GRID)*0.7/2)
 
-
-        # Generate I: [img_size, img_size, 3]
+        # Generate image [img_size, img_size, 3]
         img = Image.new('RGB', (img_size, img_size), color=BG_COLOR)
         drawer = ImageDraw.Draw(img)
-        idx_coor = np.arange(N_GRID*N_GRID)
-        np.random.shuffle(idx_coor)
-        idx_color_shape = np.arange(NUM_COLOR)
-        np.random.shuffle(idx_color_shape)
-        coin = np.random.rand(NUM_SHAPE)
-        X = []
-        Y = []
-        for i in range(NUM_SHAPE):
-            x = idx_coor[i] % N_GRID
-            y = (N_GRID - np.floor(idx_coor[i] / N_GRID) - 1).astype(np.uint8)
-            # sqaure terms are added to remove ambiguity of distance
-            position = ((x+0.5)*block_size-shape_size+x**2, (y+0.5)*block_size-shape_size+y**2,
-                        (x+0.5)*block_size+shape_size+x**2, (y+0.5)*block_size+shape_size+y**2)
-            X.append((x+0.5)*block_size+x**2)
-            Y.append((y+0.5)*block_size+y**2)
-            if coin[i] < 0.5:
-                drawer.ellipse(position, fill=COLOR[idx_color_shape[i]])
-            else:
-                drawer.rectangle(position, fill=COLOR[idx_color_shape[i]])
 
-        # Generate its representation
-        color = idx_color_shape[:NUM_SHAPE]
-        shape = coin < 0.5
-        scene_desc = SceneDescription(np.stack(X).astype(np.int),
-                            np.stack(Y).astype(np.int), color, shape)
-        return np.array(img), scene_desc
-        
-    def generate_question_matrix(self, rep):
-        # Generate questions: [# of shape * # of Q, # of color + # of Q]
-        Q = np.zeros((NUM_SHAPE*NUM_Q, NUM_COLOR+NUM_Q), dtype=np.bool)
-        for i in range(NUM_SHAPE):
-            v = np.zeros(NUM_COLOR)
-            v[rep.color[i]] = True
-            Q[i*NUM_Q:(i+1)*NUM_Q, :NUM_COLOR] = np.tile(v, (NUM_Q, 1))
-            Q[i*NUM_Q:(i+1)*NUM_Q, NUM_COLOR:] = np.diag(np.ones(NUM_Q))
-        #print("Q = \n",Q)
+        for obj in objects:
+            # Calculate object position.
+            position = (obj.x-shape_size, obj.y-shape_size, obj.x+shape_size, obj.y+shape_size)
+            # Draw object.
+            if obj.shape == 1:
+                drawer.ellipse(position, fill=COLOR[obj.color])
+            else:
+                drawer.rectangle(position, fill=COLOR[obj.color])            
+
+        # Cast to np.
+        return np.array(img)
+
+    def generate_question_matrix(self, objects):
+        """
+        Generates questions matrix: [# of shape * # of Q, # of color + # of Q]
+
+        :param objects: List of objects - abstract scene representation.
+        """
+        Q = np.zeros((MAX_NUM_OBJECTS*NUM_QUESTIONS, NUM_COLORS+NUM_QUESTIONS), dtype=np.bool)
+
+        for i,obj in enumerate(objects):
+            v = np.zeros(NUM_COLORS)
+            v[obj.color] = True
+            Q[i*NUM_QUESTIONS:(i+1)*NUM_QUESTIONS, :NUM_COLORS] = np.tile(v, (NUM_QUESTIONS, 1))
+            Q[i*NUM_QUESTIONS:(i+1)*NUM_QUESTIONS, NUM_COLORS:] = np.diag(np.ones(NUM_QUESTIONS))
+        print("Q = \n",Q)
         return Q
 
-    def generate_answer_matrix(self, rep):
-        # Generate answers: [# of shape * # of Q, # of color + 4]
-        # # of color + 4: [color 1, color 2, ... , circle, rectangle, yes, no]
-        A = np.zeros((NUM_SHAPE*NUM_Q, NUM_COLOR+4), dtype=np.bool)
-        for i in range(NUM_SHAPE):
+    def generate_answer_matrix(self, objects):
+        """
+        Generates answers matrix: [# of shape * # of Q, # of color + 4]
+        # of color + 4: [color 1, color 2, ... , circle, rectangle, yes, no]
+
+        :param objects: List of objects - abstract scene representation.
+        """
+        A = np.zeros((MAX_NUM_OBJECTS*NUM_QUESTIONS, NUM_COLORS+4), dtype=np.bool)
+        for i,obj in enumerate(objects):
             # Q1: circle or rectangle?
-            if rep.shape[i]:
-                A[i*NUM_Q, NUM_COLOR] = True
+            if obj.shape:
+                A[i*NUM_QUESTIONS, NUM_COLORS+1] = True
             else:
-                A[i*NUM_Q, NUM_COLOR+1] = True
+                A[i*NUM_QUESTIONS, NUM_COLORS] = True
 
             # Q2: bottom?
-            if rep.y[i] > int(self.img_size/2):
-                A[i*NUM_Q+1, NUM_COLOR+2] = True
+            if obj.y > int(self.img_size/2):
+                A[i*NUM_QUESTIONS+1, NUM_COLORS+2] = True
             else:
-                A[i*NUM_Q+1, NUM_COLOR+3] = True
+                A[i*NUM_QUESTIONS+1, NUM_COLORS+3] = True
 
             # Q3: left?
-            if rep.x[i] < int(self.img_size/2):
-                A[i*NUM_Q+2, NUM_COLOR+2] = True
+            if obj.x < int(self.img_size/2):
+                A[i*NUM_QUESTIONS+2, NUM_COLORS+2] = True
             else:
-                A[i*NUM_Q+2, NUM_COLOR+3] = True
+                A[i*NUM_QUESTIONS+2, NUM_COLORS+3] = True
 
-            distance = 1.1*(rep.y - rep.y[i]) ** 2 + (rep.x - rep.x[i]) ** 2
-            idx = distance.argsort()
+            # Calculate distances.
+            distances = np.array([ ((obj.x - other_obj.x) ** 2 + (obj.y - other_obj.y) ** 2) for other_obj in objects])
+            idx = distances.argsort()
+            # Ids of closest and most distant objects. 
+            min_idx = idx[1]
+            max_idx = idx[-1]
 
             # Q4: the shape of the nearest object
-            min_idx = idx[1]
-            A[i*NUM_Q+3, rep.shape[min_idx]] = True
+            A[i*NUM_QUESTIONS+3, NUM_COLORS+objects[min_idx].shape] = True
             # Q5: the shape of the farthest object
-            max_idx = idx[-1]
-            A[i*NUM_Q+4, rep.shape[max_idx]] = True
+            A[i*NUM_QUESTIONS+4, NUM_COLORS+objects[max_idx].shape] = True
 
             # Q6: the color of the nearest object
-            min_idx = idx[1]
-            A[i*NUM_Q+5, rep.color[min_idx]] = True
+            A[i*NUM_QUESTIONS+5, objects[min_idx].color] = True
             # Q7: the color of the farthest object
-            max_idx = idx[-1]
-            A[i*NUM_Q+6, rep.color[max_idx]] = True
+            A[i*NUM_QUESTIONS+6, objects[max_idx].color] = True
 
         return A
 
@@ -347,12 +399,13 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         while(count < self.dataset_size):
             # Generate the scene.
-            I, scene_description = self.generate_scene()
-            # Generate the image corresponding to the scene.
-            A = self.generate_answer_matrix(scene_description)
-            Q = self.generate_question_matrix(scene_description)
+            objects = self.generate_scene_representation()
+            # Generate corresponding image, questions and answers.
+            I = self.generate_image(objects)
+            Q = self.generate_question_matrix(objects)
+            A = self.generate_answer_matrix(objects)
             # Iterate through all questions generated for a given scene.
-            for j in range(NUM_SHAPE*NUM_Q):
+            for j in range(MAX_NUM_OBJECTS*NUM_QUESTIONS):
                 # Create new group.
                 id = '{}'.format(count)
                 grp = f.create_group(id)
@@ -361,7 +414,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
                 grp['image'] = I
                 grp['question'] = Q[j, :]
                 grp['answer'] = A[j, :]
-                grp['scene_description'] = self.scene2str(scene_description)
+                grp['scene_description'] = self.scene2str(objects)
 
                 # Increment counter.
                 count += 1
@@ -392,7 +445,9 @@ class SortOfCLEVR(ImageTextToClassProblem):
         answer = answers[sample_number]
 
         # Print scene description.
-        logger.info("Scene description :\n {}".format(scene_descriptions[sample_number].value))
+        logger.info("Scene description :\n {}".format(scene_descriptions[sample_number]))
+        logger.info("Question :\n {}".format(question))
+        logger.info("Answer :\n {}".format(answer))
 
         # Generate figure.
         fig = plt.figure(1)
@@ -410,7 +465,7 @@ if __name__ == "__main__":
 
     # "Loaded parameters".
     params = {'batch_size': 100, 'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy', 
-        'dataset_size': 100, 'img_size': 128, 'shuffle': False}
+        'dataset_size': 100, 'img_size': 128, 'shuffle': False, "regenerate": True}
 
     # Configure logger.
     logging.basicConfig(level=logging.DEBUG)
