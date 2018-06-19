@@ -463,10 +463,11 @@ if __name__ == "__main__":
     """ Tests sort of CLEVR - generates and displays a sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 100, 'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy', 
-        'dataset_size': 10000, 'img_size': 128, 
+    params = {'batch_size': 100, 
+        'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy', 
         #'shuffle': False,
-        "regenerate": True
+        #"regenerate": True,
+        'dataset_size': 10000, 'img_size': 128
         }
 
     # Configure logger.
