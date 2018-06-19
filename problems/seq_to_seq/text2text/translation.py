@@ -52,7 +52,7 @@ class Translation(TextToTextProblem, Lang):
         self.tensor_pairs = []  # will be used to constitute DataTuple
 
         # for datasets storage & handling
-        self.root = os.path.expanduser(os.curdir)
+        self.root = os.path.expanduser(params['data_folder'])
         self.raw_folder = 'raw'
         self.processed_folder = 'processed'
         self.training_file = 'eng-' + self.output_lang_name + '_training.txt'
@@ -165,7 +165,7 @@ class Translation(TextToTextProblem, Lang):
         with open(filepath, 'wb') as f:
             f.write(data.read())
         with zipfile.ZipFile(filepath, 'r') as zip_f:
-            zip_f.extractall(self.raw_folder)
+            zip_f.extractall(os.path.join(self.root, self.raw_folder))
         os.unlink(filepath)
 
         # read raw data, split it in training & inference sets and save it to file
@@ -258,7 +258,8 @@ if __name__ == "__main__":
     )
 
     params = {'batch_size': 2, 'start_index': 0, 'stop_index': 1000, 'output_lang_name': 'fra',
-              'max_sequence_length': 10, 'eng_prefixes': eng_prefixes, 'use_train_data': True}
+              'max_sequence_length': 10, 'eng_prefixes': eng_prefixes, 'use_train_data': True,
+              'data_folder': '~/data/language'}
 
     problem = Translation(params)
     print('Problem successfully created.\n')
