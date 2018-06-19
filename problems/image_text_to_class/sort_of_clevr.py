@@ -50,7 +50,7 @@ MAX_NUM_OBJECTS = min(6, NUM_COLORS)
 _SceneDescriptionTuple = collections.namedtuple('_SceneDescriptionTuple', ('scene_descriptions'))
 
 class SceneDescriptionTuple(_SceneDescriptionTuple):
-    """Tuple used by storing batches of scene descriptions - in the original form, i.e. list of SceneDescription objects"""
+    """Tuple used by storing batches of scene descriptions - as strings. """
     __slots__ = ()
     
 
