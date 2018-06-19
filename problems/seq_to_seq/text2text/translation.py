@@ -33,6 +33,9 @@ class Translation(TextToTextProblem, Lang):
         # parse parameters from the dictionary.
         self.batch_size = params['batch_size']
 
+        # whether to reverse I/O languages or not
+        self.reverse = params['reverse']
+
         # name the output language (input language is forced to English for now because of the data source)
         self.output_lang_name = params['output_lang_name']
 
@@ -104,6 +107,12 @@ class Translation(TextToTextProblem, Lang):
 
         # filter sentences pairs (based on number of words & prefixes).
         self.pairs = self.filter_pairs()
+
+        # if reverse, switch input & output sentences.
+        if self.reverse:
+            self.pairs = [list(reversed(p)) for p in self.pairs]
+            self.input_lang = Lang(self.output_lang_name)
+            self.output_lang = Lang('eng')
 
         print("Trimmed to %s sentence pairs" % len(self.pairs))
 
@@ -259,7 +268,7 @@ if __name__ == "__main__":
 
     params = {'batch_size': 2, 'start_index': 0, 'stop_index': 1000, 'output_lang_name': 'fra',
               'max_sequence_length': 10, 'eng_prefixes': eng_prefixes, 'use_train_data': True,
-              'data_folder': '~/data/language'}
+              'data_folder': '~/data/language', 'reverse': False}
 
     problem = Translation(params)
     print('Problem successfully created.\n')
