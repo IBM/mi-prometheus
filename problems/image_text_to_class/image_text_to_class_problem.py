@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""image_to_class_problem.py: contains abstract base class for VQA problems"""
+"""image_text_to_class_problem.py: contains abstract base class for VQA problems"""
 __author__      = "Tomasz Kornuta"
 
 import collections
