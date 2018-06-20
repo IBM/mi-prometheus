@@ -12,7 +12,6 @@ import unicodedata
 import re
 import torch
 import torch.nn as nn
-from problems.problem import DataTuple
 from problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
 
 _TextAuxTuple = collections.namedtuple('TextAuxTuple', ('mask', 'inputs_text', 'outputs_text'))
@@ -30,10 +29,6 @@ class TextAuxTuple(_TextAuxTuple):
      TODO: Anything else?
     """
     __slots__ = ()
-
-
-# cuda
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # End Of String & Start Of String tokens
 SOS_token = 0
@@ -108,28 +103,6 @@ class TextToTextProblem(SeqToSeqProblem):
     #    loss = 0
     #
     #    # TODO, thinking about using the categorical cross entropy.
-
-    def turn_on_cuda(self, data_tuple, aux_tuple):
-        """ Enables computations on GPU - copies all the matrices to GPU.
-        This method has to be overwritten in derived class if one decides e.g. to add additional variables/matrices to aux_tuple.
-
-        :param data_tuple: Data tuple.
-        :param aux_tuple: Auxiliary tuple.
-        :returns: Pair of Data and Auxiliary tupples with variables copied to GPU.
-        """
-        # Unpack tuples and copy data to GPU.
-        gpu_inputs = data_tuple.inputs.cuda()
-        gpu_targets = data_tuple.targets.cuda()
-        gpu_mask = aux_tuple.mask.cuda()
-
-        # Pack matrices to tuples.
-        data_tuple = DataTuple(gpu_inputs, gpu_targets)
-
-        # input_text & output_text are probably not necessary to pass on GPU
-        # TODO: Check if input_text & output_text should be passed on GPU
-        aux_tuple = TextAuxTuple(gpu_mask, aux_tuple.inputs_text, aux_tuple.outputs_text)
-
-        return data_tuple, aux_tuple
 
     def set_max_length(self, max_length):
         """ Sets maximum sequence lenth (property).
@@ -222,7 +195,7 @@ class TextToTextProblem(SeqToSeqProblem):
         indexes = self.indexes_from_sentence(lang, sentence, max_seq_length)
         indexes.append(EOS_token)
 
-        return torch.tensor(indexes, dtype=torch.long, device=device)
+        return torch.tensor(indexes, dtype=torch.long)
 
     def tensors_from_pair(self, pair, input_lang, output_lang, max_seq_length):
         """
