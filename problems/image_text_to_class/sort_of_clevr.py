@@ -26,27 +26,6 @@ from problems.problem import DataTuple
 from problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem, ImageTextTuple
 
 
-BG_COLOR = (180, 180, 150)
-COLOR = [
-    (0, 0, 210),
-    (0, 210, 0),
-    (210, 0, 0),
-    (150, 150, 0),
-    (150, 0, 150),
-    (0, 150, 150),
-    # add more colors here if needed
-]
-
-# "Hyperparameters"
-N_GRID = 4
-NUM_COLORS = len(COLOR)
-NUM_QUESTIONS = 7
-# Objects are characterised by colors, so cannot have more objects than colors.
-MAX_NUM_OBJECTS = min(6, NUM_COLORS)
-
-
-
-
 _SceneDescriptionTuple = collections.namedtuple('_SceneDescriptionTuple', ('scene_descriptions'))
 
 class SceneDescriptionTuple(_SceneDescriptionTuple):
@@ -74,8 +53,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
     - generates scenes with dynamic varying number of objects (2-6)
     - more types of intra- and inter-relational questions
     - more natural interpretation of questions
-    - 
-    - Aux tuple containing the scene graphs
+    Additionally it generates:
+    - Aux tuple containing the scene graph.
     """
 
     def __init__(self, params):
@@ -97,9 +76,36 @@ class SortOfCLEVR(ImageTextToClassProblem):
         # Shuffle indices.
         self.shuffle = params.get('shuffle', True)
 
+        # Set general color properties.
+        self.BG_COLOR = (180, 180, 150)
+        self.COLOR = [
+            (0, 0, 210),    # 'blue'
+            (0, 210, 0),    # 'green'
+            (210, 0, 0),    # 'red'
+            (150, 150, 0),  # 'yellow'
+            (150, 0, 150),  # 'magenta'
+            (0, 150, 150),  # 'cyan'
+            # add more colors here if needed
+        ]
+
+        # Other "hyperparameters".
+        self.NUM_SHAPES = 2
+        self.NUM_COLORS = len(self.COLOR)
+        self.NUM_QUESTIONS = 7
+        # Objects are characterised by colors, so cannot have more objects than colors.
+        self.MAX_NUM_OBJECTS = min(6, self.NUM_COLORS)
+        self.GRID_SIZE = 4
+
         # Get path
         data_folder = params['data_folder']
         data_filename = params['data_filename']
+        
+        # Load or generate the dataset.
+        self.load_dataset(data_folder, data_filename)
+
+
+    def load_dataset(self, data_folder, data_filename):
+        """ Loads the dataset from the HDF5-encoded file. If file does not exists it generates new dataset and stores it in a file. """
 
         # Make path absolute.
         if (data_folder[0] == '~'):
@@ -117,7 +123,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
                 raise Exception("Must regenerate... must regenerate...")
             self.data = h5py.File(self.pathfilename, 'r')
         except:
-            logger.warning('File {} in {} not found. Generating new Sort-of-CLEVR dataset file'.format(data_filename, data_folder))
+            logger.warning('File {} in {} not found. Generating new file... '.format(data_filename, data_folder))
             # Create folder - if required.
             if not os.path.exists(data_folder):
                 os.mkdir(data_folder)
@@ -129,7 +135,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
             # Load the file.
             self.data = h5py.File(self.pathfilename, 'r')
 
-        logger.info("Loaded {} Sort-of-CLEVR samples from file {}".format(len(self.data), self.pathfilename))
+        logger.info("Loaded {} samples from file {}".format(len(self.data), self.pathfilename))
         
         # Generate list of indices (strings).
         self.ids = ['{}'.format(i) for i in range(len(self.data))]
@@ -165,10 +171,10 @@ class SortOfCLEVR(ImageTextToClassProblem):
         inputs = ImageTextTuple( np.stack(images, axis=0), np.stack(questions, axis=0))
         targets = np.stack(answers, 0)
 
-        # TODO: aux tuple.
+        # Add scene decription to aux tuple.
         aux_tuple = SceneDescriptionTuple(scenes)
 
-        # Return DataTuple(!) and an aux tuple with scene descriptions.
+        # Return DataTuple(!) and an AuxTuple with scene description.
         return DataTuple(inputs, targets), aux_tuple
 
 
@@ -214,8 +220,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
         :return: Question in the form of a string.
         """
         # "Decode" the color_query vector.
-        color = np.argmax(encoded_question[:NUM_COLORS])
-        question_code = np.argmax(encoded_question[NUM_COLORS:])
+        color = np.argmax(encoded_question[:self.NUM_COLORS])
+        question_code = np.argmax(encoded_question[self.NUM_COLORS:])
         # Return the question as a string.
         return (self.question_type_template(question_code)).format(self.color2str(color))
 
@@ -258,17 +264,17 @@ class SortOfCLEVR(ImageTextToClassProblem):
         
         :return: List of objects - abstract scene representation.
          """
-         # Generate list of objects - no more then colors
-        num_objects = np.random.random_integers(2, NUM_COLORS)
+         # Generate list of objects - no more then colors.
+        num_objects = np.random.random_integers(2, self.MAX_NUM_OBJECTS)
 
         # Shuffle "grid positions".
-        grid_positions = np.arange(N_GRID*N_GRID)
+        grid_positions = np.arange(self.GRID_SIZE*self.GRID_SIZE)
         np.random.shuffle(grid_positions)
         # Size of a "grid block".
-        block_size = int(self.img_size*0.9/N_GRID)
+        block_size = int(self.img_size*0.9/self.GRID_SIZE)
 
         # Shuffle colors.
-        colors = np.arange(NUM_COLORS)
+        colors = np.arange(self.NUM_COLORS)
         np.random.shuffle(colors)
         colors = colors[:num_objects]
 
@@ -281,8 +287,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
         # Generate coordinates.
         for i in range(num_objects):
             # Calculate object positions depending on "grid positions"
-            x = grid_positions[i] % N_GRID
-            y = (N_GRID - np.floor(grid_positions[i] / N_GRID) - 1).astype(np.uint8)
+            x = grid_positions[i] % self.GRID_SIZE
+            y = (self.GRID_SIZE - np.floor(grid_positions[i] / self.GRID_SIZE) - 1).astype(np.uint8)
             # Calculate "image coordinates".
             x_img = (x+0.5)*block_size + np.random.random_integers(-2,2)
             y_img = (y+0.5)*block_size + np.random.random_integers(-2,2)
@@ -300,10 +306,10 @@ class SortOfCLEVR(ImageTextToClassProblem):
         :param objects: List of objects - abstract scene representation.
         """
         img_size = self.img_size
-        shape_size = int((img_size*0.9/N_GRID)*0.7/2)
+        shape_size = int((img_size*0.9/self.GRID_SIZE)*0.7/2)
 
         # Generate image [img_size, img_size, 3]
-        img = Image.new('RGB', (img_size, img_size), color=BG_COLOR)
+        img = Image.new('RGB', (img_size, img_size), color=self.BG_COLOR)
         drawer = ImageDraw.Draw(img)
 
         for obj in objects:
@@ -311,9 +317,9 @@ class SortOfCLEVR(ImageTextToClassProblem):
             position = (obj.x-shape_size, obj.y-shape_size, obj.x+shape_size, obj.y+shape_size)
             # Draw object.
             if obj.shape == 1:
-                drawer.ellipse(position, fill=COLOR[obj.color])
+                drawer.ellipse(position, fill=self.COLOR[obj.color])
             else:
-                drawer.rectangle(position, fill=COLOR[obj.color])            
+                drawer.rectangle(position, fill=self.COLOR[obj.color])            
 
         # Cast to np.
         return np.array(img)
@@ -324,13 +330,13 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         :param objects: List of objects - abstract scene representation.
         """
-        Q = np.zeros((len(objects)*NUM_QUESTIONS, NUM_COLORS+NUM_QUESTIONS), dtype=np.bool)
+        Q = np.zeros((len(objects)*self.NUM_QUESTIONS, self.NUM_COLORS+self.NUM_QUESTIONS), dtype=np.bool)
 
         for i,obj in enumerate(objects):
-            v = np.zeros(NUM_COLORS)
+            v = np.zeros(self.NUM_COLORS)
             v[obj.color] = True
-            Q[i*NUM_QUESTIONS:(i+1)*NUM_QUESTIONS, :NUM_COLORS] = np.tile(v, (NUM_QUESTIONS, 1))
-            Q[i*NUM_QUESTIONS:(i+1)*NUM_QUESTIONS, NUM_COLORS:] = np.diag(np.ones(NUM_QUESTIONS))
+            Q[i*self.NUM_QUESTIONS:(i+1)*self.NUM_QUESTIONS, :self.NUM_COLORS] = np.tile(v, (self.NUM_QUESTIONS, 1))
+            Q[i*self.NUM_QUESTIONS:(i+1)*self.NUM_QUESTIONS, self.NUM_COLORS:] = np.diag(np.ones(self.NUM_QUESTIONS))
 
         return Q
 
@@ -341,25 +347,25 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         :param objects: List of objects - abstract scene representation.
         """
-        A = np.zeros((len(objects)*NUM_QUESTIONS, NUM_COLORS+4), dtype=np.bool)
+        A = np.zeros((len(objects)*self.NUM_QUESTIONS, self.NUM_COLORS+4), dtype=np.bool)
         for i,obj in enumerate(objects):
             # Q1: circle or rectangle?
             if obj.shape:
-                A[i*NUM_QUESTIONS, NUM_COLORS+1] = True
+                A[i*self.NUM_QUESTIONS, self.NUM_COLORS+1] = True
             else:
-                A[i*NUM_QUESTIONS, NUM_COLORS] = True
+                A[i*self.NUM_QUESTIONS, self.NUM_COLORS] = True
 
             # Q2: bottom?
             if obj.y > int(self.img_size/2):
-                A[i*NUM_QUESTIONS+1, NUM_COLORS+2] = True
+                A[i*self.NUM_QUESTIONS+1, self.NUM_COLORS+2] = True
             else:
-                A[i*NUM_QUESTIONS+1, NUM_COLORS+3] = True
+                A[i*self.NUM_QUESTIONS+1, self.NUM_COLORS+3] = True
 
             # Q3: left?
             if obj.x < int(self.img_size/2):
-                A[i*NUM_QUESTIONS+2, NUM_COLORS+2] = True
+                A[i*self.NUM_QUESTIONS+2, self.NUM_COLORS+2] = True
             else:
-                A[i*NUM_QUESTIONS+2, NUM_COLORS+3] = True
+                A[i*self.NUM_QUESTIONS+2, self.NUM_COLORS+3] = True
 
             # Calculate distances.
             distances = np.array([ ((obj.x - other_obj.x) ** 2 + (obj.y - other_obj.y) ** 2) for other_obj in objects])
@@ -369,14 +375,14 @@ class SortOfCLEVR(ImageTextToClassProblem):
             max_idx = idx[-1]
 
             # Q4: the shape of the nearest object
-            A[i*NUM_QUESTIONS+3, NUM_COLORS+objects[min_idx].shape] = True
+            A[i*self.NUM_QUESTIONS+3, self.NUM_COLORS+objects[min_idx].shape] = True
             # Q5: the shape of the farthest object
-            A[i*NUM_QUESTIONS+4, NUM_COLORS+objects[max_idx].shape] = True
+            A[i*self.NUM_QUESTIONS+4, self.NUM_COLORS+objects[max_idx].shape] = True
 
             # Q6: the color of the nearest object
-            A[i*NUM_QUESTIONS+5, objects[min_idx].color] = True
+            A[i*self.NUM_QUESTIONS+5, objects[min_idx].color] = True
             # Q7: the color of the farthest object
-            A[i*NUM_QUESTIONS+6, objects[max_idx].color] = True
+            A[i*self.NUM_QUESTIONS+6, objects[max_idx].color] = True
 
         return A
 
@@ -404,7 +410,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
             Q = self.generate_question_matrix(objects)
             A = self.generate_answer_matrix(objects)
             # Iterate through all questions generated for a given scene.
-            for j in range(len(objects)*NUM_QUESTIONS):
+            for j in range(len(objects)*self.NUM_QUESTIONS):
                 # Create new group.
                 id = '{}'.format(count)
                 grp = f.create_group(id)
@@ -466,7 +472,7 @@ if __name__ == "__main__":
     params = {'batch_size': 100, 
         'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy', 
         #'shuffle': False,
-        #"regenerate": True,
+        "regenerate": True,
         'dataset_size': 10000, 'img_size': 128
         }
 
