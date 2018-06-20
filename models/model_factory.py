@@ -48,6 +48,10 @@ class ModelFactory(object):
             sys.path.append(os.path.join(os.path.dirname(__file__),  'ntm'))
             from models.ntm.ntm_module import NTM
             return NTM(params)
+        elif name == 'seq2seqlstm':
+            sys.path.append(os.path.join(os.path.dirname(__file__), 'seq2seqlstm'))
+            from models.seq2seqlstm.encoder_decoder_lstm import EncoderDecoderLSTM
+            return EncoderDecoderLSTM(params)
         elif name == 'es_lstm':
             sys.path.append(os.path.join(os.path.dirname(__file__),  'encoder_solver'))
             from models.encoder_solver.es_lstm_module import ESLSTM
