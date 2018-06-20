@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Sort-of-CLEVR is a simplified version of CLEVR VQA problem """
+"""sort_of_clevr.py: Sort-of-CLEVR is a simplified version of CLEVR VQA problem """
 __author__ = "Tomasz Kornuta"
 
 import h5py
@@ -202,13 +202,13 @@ class SortOfCLEVR(ImageTextToClassProblem):
         """ Helper function that the string templates a question type. """
         return {
             0: 'What is the shape of the {} object?',
-            1: 'Is the {} object closer to the bottom of the image?',
-            2: 'Is the {} object closer to the left side of the image?',
-            3: 'What is the shape of the object that is nearest to the {} object?',
-            4: 'What is the shape of the object that is farthest from the {} object?',
-            5: 'What is the color of the object that is nearest to the {} object?',
-            6: 'What is the color of the object that is farthest from the {} object?',
-            #7: 'How many objects have the same shape as the {} object?,
+            1: 'Is the {} {} closer to the bottom of the image?',
+            2: 'Is the {} {} closer to the left side of the image?',
+            3: 'What is the shape of the object nearest to the {} {}?',
+            4: 'What is the shape of the object farthest from the {} {}?',
+            5: 'What is the color of the object nearest to the {} {}?',
+            6: 'What is the color of the object farthest from the {} {}?',
+            #7: 'How many objects have the same shape as the {} {}?,
         }[question_code]
 
     def question2str(self, encoded_question):
@@ -223,7 +223,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         color = np.argmax(encoded_question[:self.NUM_COLORS])
         question_code = np.argmax(encoded_question[self.NUM_COLORS:])
         # Return the question as a string.
-        return (self.question_type_template(question_code)).format(self.color2str(color))
+        return (self.question_type_template(question_code)).format(self.color2str(color), 'object')
 
 
     def answer2str(self, encoded_answer):
@@ -279,7 +279,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         colors = colors[:num_objects]
 
         # Generate shapes.
-        shapes = np.random.rand(num_objects) < 0.5
+        shapes = (np.random.rand(num_objects) < 0.5).astype(int)
 
         # List of objects presents in the scene.
         objects = []
@@ -417,8 +417,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
                 # Set data.
                 grp['image'] = I
-                grp['question'] = Q[j, :]
-                grp['answer'] = A[j, :]
+                grp['question'] = Q[j, ...]
+                grp['answer'] = A[j, ...]
                 grp['scene_description'] = self.scene2str(objects)
 
                 # Increment counter.
@@ -451,8 +451,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         # Print scene description.
         logger.info("Scene description :\n {}".format(scene_descriptions[sample_number]))
-        logger.info("Question :\n {}".format(question))
-        logger.info("Answer :\n {}".format(answer))
+        logger.info("Question :\n {} ({})".format(question, self.question2str(question)))
+        logger.info("Answer :\n {} ({})".format(answer, self.answer2str(answer)))
 
         # Generate figure.
         fig = plt.figure(1)
@@ -472,7 +472,7 @@ if __name__ == "__main__":
     params = {'batch_size': 100, 
         'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy', 
         #'shuffle': False,
-        "regenerate": True,
+        #"regenerate": True,
         'dataset_size': 10000, 'img_size': 128
         }
 
