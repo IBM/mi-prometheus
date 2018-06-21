@@ -1,19 +1,29 @@
 import torch
 
 from torch import nn
-from models.thalnet.thalnet_cell import ThalNetCell
-from models.model_base import ModelBase
 import logging
 import numpy as np
+
+
+# Add path to main project directory - so we can test the base plot, saving images, movies etc.
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
+
+from models.sequential_model import SequentialModel
 from misc.app_state import AppState
+from models.thalnet.thalnet_cell import ThalNetCell
 
 
-class ThalNet(ModelBase, nn.Module):
+class ThalNetModel(SequentialModel):
+    """ @Younes: MODEL DESCRIPTION GOES HERE! """
     def __init__(self, params):
         """
+        @Younes: DESCRIPTION GOES HERE!
 
-        :param params:
+        :param params: Parameters read from configuration file.
         """
+        super(ThalNetModel, self).__init__(params)
+
         self.context_input_size = params['context_input_size']
         self.input_size = params['input_size']
         self.output_size = params['output_size']
@@ -27,7 +37,6 @@ class ThalNet(ModelBase, nn.Module):
         # This is for the time plot
         self.cell_state_history = None
 
-        super(ThalNet, self).__init__()
 
         # Create the DWM components
         self.ThalnetCell = ThalNetCell(self.input_size, self.output_size, self.context_input_size,
@@ -132,8 +141,16 @@ class ThalNet(ModelBase, nn.Module):
 
         return fig
 
-    def plot_sequence(self, data_tuple, logits):
+    def plot(self, data_tuple, logits):
+        # Check if we are supposed to visualize at all.
+        if not self.app_state.visualize:
+            return False
 
+        # Initialize timePlot window - if required.
+        if self.plotWindow == None:
+            from misc.time_plot import TimePlot
+            self.plotWindow = TimePlot()
+        
         num_batch = 0
         (inputs, _) = data_tuple
         inputs = inputs.cpu().detach().numpy()
@@ -251,8 +268,8 @@ class ThalNet(ModelBase, nn.Module):
 
         # print("--- %s seconds ---" % (time.time() - start_time))
         # Update time plot fir generated list of figures.
-        self.plot.update(fig,  frames)
-        return self.plot.is_closed
+        self.plotWindow.update(fig,  frames)
+        return self.plotWindow.is_closed
 
 
 if __name__ == "__main__":
@@ -264,7 +281,7 @@ if __name__ == "__main__":
     app_state = AppState()
     app_state.visualize = True
 
-    model = ThalNet(params)
+    model = ThalNetModel(params)
 
     seq_length = 10
     batch_size = 2
@@ -279,10 +296,9 @@ if __name__ == "__main__":
 
         # Test forward pass.
         y_pred = model(data_tuple)
-        app_state.visualize = True
 
-        if app_state.visualize:
-            model.plot_sequence(data_tuple, logits)
+        if model.plot(data_tuple, logits):
+            break
 
         # Change batch size and seq_length.
         seq_length = seq_length + 1

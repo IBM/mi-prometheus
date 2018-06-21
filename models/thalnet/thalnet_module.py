@@ -4,18 +4,21 @@ import collections
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
-from controller_factory import ControllerFactory
+# Add path to main project directory - so we can test the base plot, saving images, movies etc.
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
+from models.controllers.controller_factory import ControllerFactory
 
 
-class Module(nn.Module):
+class ThalnetModule(nn.Module):
+    """ @Younes: MODEL DESCRIPTION GOES HERE! """
     def __init__(self,
                  center_size,
                  context_size,
                  center_size_per_module,
                  input_size,
                  output_size):
-        super(Module, self).__init__()
+        super(ThalnetModule, self).__init__()
 
         self.center_size = center_size
         self.context_size = context_size

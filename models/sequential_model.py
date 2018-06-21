@@ -1,56 +1,46 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""sequential_model.py: contains base model for all sequential models"""
+__author__      = "Tomasz Kornuta"
+
 import numpy as np
 import logging
 import torch
 
 # Add path to main project directory - so we can test the base plot, saving images, movies etc.
-import os,  sys
+import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..')) 
 from misc.app_state import AppState
+from models.model import Model
 from problems.problem import DataTuple
 
-class ModelBase(object):
-    """ Class representing base class of all models.
+
+class SequentialModel(Model):
+    """ Class representing base class for all sequential models.
     Provides basic plotting functionality.
     """
-    def __init__(self):
+    def __init__(self, params):
         """ Initializes application state and sets plot if visualization flag is turned on."""
-        super(ModelBase, self).__init__()
-        # WARNING: at that moment AppState must be initialized and flag must be set. Otherwise the object plot won't be created.
-        # SOLUTION: if application is supposed to show dynamic plot, set flag to True before constructing the model! (and set to False right after if required)
-        self.app_state = AppState()
+        super(SequentialModel, self).__init__(params)
 
-        if self.app_state.visualize:
-            from misc.time_plot import TimePlot
-            self.plot = TimePlot()
 
-    def add_statistics(self, stat_col):
-        """
-        Add statistics to collector. 
-        EMPTY - To be redefined in inheriting classes.
-
-        :param stat_col: Statistics collector.
-        """
-        pass
-
-    def collect_statistics(self, stat_col, data_tuple, logits):
-        """
-        Base statistics collection. 
-        EMPTY - To be redefined in inheriting classes.
-
-        :param stat_col: Statistics collector.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param logits: Logits being output of the model.
-        """
-        pass
-
-    def plot_sequence(self, data_tuple, predictions_seq):
+    def plot(self, data_tuple, predictions):
         """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
         The default visualizatoin contains input, output and target sequences.
         For more model/problem dependent visualization please overwrite this method in the derived model class.
         
         :param data_tuple: Data tuple containing input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
-        :param predictions_seq: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
         """
+        # Check if we are supposed to visualize at all.
+        if not self.app_state.visualize:
+            return False
+
+        # Initialize timePlot window - if required.
+        if self.plotWindow == None:
+            from misc.time_plot import TimePlot
+            self.plotWindow = TimePlot()
+
         from matplotlib.figure import Figure
         import matplotlib.ticker as ticker
 
@@ -68,7 +58,7 @@ class ModelBase(object):
 
         # Create a single "figure layout" for all displayed frames.
         fig = Figure()
-        axes = fig.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={'width_ratios': [predictions_seq.shape[0]]})
+        axes = fig.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={'width_ratios': [predictions.shape[0]]})
 
         # Set ticks.
         axes[0].xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
@@ -84,14 +74,12 @@ class ModelBase(object):
         axes[2].set_title('Predictions')
         axes[2].set_ylabel('Data bits')
         axes[2].set_xlabel('Item number')
- 
         fig.set_tight_layout(True)
         
-        # Change to np arrays and transpose, so x will be time axis.
+        # Detach first batch sample and copy it to CPU.
         inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
         targets_seq = data_tuple.targets[0].cpu().detach().numpy()
-        predictions_seq = predictions_seq[0].cpu().detach().numpy()
-        print(inputs_seq.shape)
+        predictions_seq = predictions[0].cpu().detach().numpy()
 
         # Create empty matrices.
         x = np.transpose(np.zeros(inputs_seq.shape))
@@ -127,10 +115,12 @@ class ModelBase(object):
             frames.append(artists)
 
         # Plot figure and list of frames.
-        self.plot.update(fig,  frames)
+        self.plotWindow.update(fig,  frames)
         
         # Return True if user closed the window.
-        return self.plot.is_closed
+        return self.plotWindow.is_closed
+
+
 
 if __name__ == '__main__':
     # Set logging level.
@@ -139,10 +129,10 @@ if __name__ == '__main__':
     # Set visualization.
     AppState().visualize = True
     
-    # Test code
-    test = ModelBase()
+    # Test sequential model.
+    test = SequentialModel()
     
-    while not test.plot.is_closed:
+    while True:
         # Generate new sequence.
         x = np.random.binomial(1, 0.5, (1,  8,  15))
         y = np.random.binomial(1, 0.5, (1,  8,  15))
@@ -153,5 +143,7 @@ if __name__ == '__main__':
         y=  torch.from_numpy(y).type(torch.FloatTensor)
         z=  torch.from_numpy(z).type(torch.FloatTensor)
         dt = DataTuple(x, y)
-        # Plot it
-        test.plot_sequence(dt, z)
+        # Plot it and check whether window was closed or not. 
+        if test.plot(dt, z):
+            break
+
