@@ -264,7 +264,7 @@ if __name__ == '__main__':
     stat_col = StatisticsCollector()
     # Add model/problem dependent statistics.
     problem.add_statistics(stat_col)
-    #model.add_statistics(stat_col)
+    model.add_statistics(stat_col)
 
     # Create csv files.
     train_file = stat_col.initialize_csv_file(log_dir, '/training.csv')

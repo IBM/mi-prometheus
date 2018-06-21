@@ -5,7 +5,7 @@ __author__ = "Tomasz Kornuta"
 
 import torch 
 import collections
-from interface import Interface
+from ntm_interface import NTMInterface
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
 from controller_factory import ControllerFactory
@@ -57,7 +57,7 @@ class NTMCell(torch.nn.Module):
         # Build the controller.
         self.controller = ControllerFactory.build_model(controller_params)        
         # Interface - entity responsible for accessing the memory.
-        self.interface = Interface(params)
+        self.interface = NTMInterface(params)
 
         # Layer that produces output on the basis of... hidden state?
         ext_hidden_size = self.controller_hidden_state_size +  self.num_memory_content_bits*self.interface_num_read_heads
@@ -118,9 +118,10 @@ class NTMCell(torch.nn.Module):
         # Concatenate inputs with previous read vectors [BATCH_SIZE x (INPUT + NUM_HEADS * MEMORY_CONTENT_BITS)]
         #print("prev_read_vectors_BxC_H =", prev_read_vectors_BxC_H[0].size())
         prev_read_vectors = torch.cat(prev_read_vectors_BxC_H, dim=1)
-        #print("read_vectors =", read_vectors.size())
+        #print("inputs_BxI =", inputs_BxI.size())
+        #print("prev_read_vectors =", prev_read_vectors.size())
         controller_input = torch.cat((inputs_BxI,  prev_read_vectors ), dim=1)
-        
+
         # Execute controller forward step.
         ctrl_output_BxH,  ctrl_state_tuple = self.controller(controller_input,  prev_ctrl_state_tuple)
        

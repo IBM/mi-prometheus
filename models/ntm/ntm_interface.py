@@ -12,9 +12,8 @@ import logging
 logger = logging.getLogger('NTM-Interface')
 
 # Add path to main project directory.
-import os,  sys
+import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
-#from misc.app_state import AppState
 
 
 # Helper collection type.
@@ -33,7 +32,7 @@ class InterfaceStateTuple(_InterfaceStateTuple):
     __slots__ = ()
 
 
-class Interface(torch.nn.Module):
+class NTMInterface(torch.nn.Module):
     """Class realizing interface between controller and memory.
     """
     def __init__(self, params):
@@ -42,7 +41,7 @@ class Interface(torch.nn.Module):
         :param params: Dictionary of parameters.
         """
         # Call constructor of base class.
-        super(Interface, self).__init__() 
+        super(NTMInterface, self).__init__() 
 
         # Parse parameters.
         # Get hidden state size.

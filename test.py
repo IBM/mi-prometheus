@@ -119,7 +119,7 @@ if __name__ == '__main__':
     stat_col = StatisticsCollector()
     # Add model/problem dependent statistics.
     problem.add_statistics(stat_col)
-    #model.add_statistics(stat_col)
+    model.add_statistics(stat_col)
 
     # Create test output csv file.
     test_file = stat_col.initialize_csv_file(abs_path, '/test.csv')

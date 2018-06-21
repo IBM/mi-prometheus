@@ -1,13 +1,17 @@
 import torch
 from torch import nn
 from torch.autograd import Variable
-from misc.app_state import AppState
-from models.model_base import ModelBase
+
+# Add path to main project directory - so we can test the base plot, saving images, movies etc.
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
+from models.sequential_model import SequentialModel
 
 
-class LSTM(ModelBase, nn.Module):
+class LSTM(SequentialModel):
     def __init__(self, params):
-        super(LSTM, self).__init__()
+
+        super(LSTM, self).__init__(params)
 
         self.tm_in_dim = params["control_bits"] + params["data_bits"]
         self.data_bits = params["data_bits"]
@@ -19,7 +23,6 @@ class LSTM(ModelBase, nn.Module):
         self.hidden_state_dim = params["hidden_state_dim"]
         self.num_layers = params["num_layers"]
         assert self.num_layers > 0, "Number of LSTM layers should be > 0"
-        self.app_state = AppState()
 
         # Create the LSTM layers
         self.lstm_layers = nn.ModuleList()

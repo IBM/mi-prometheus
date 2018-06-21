@@ -7,10 +7,9 @@ from enum import Enum
 import torch
 from torch import nn
 from torch.autograd import Variable
-#from misc.app_state import AppState
-from models.model_base import ModelBase
+from models.sequential_model import SequentialModel
 
-class EncoderDecoderLSTM(ModelBase, nn.Module):
+class EncoderDecoderLSTM(SequentialModel):
     """Simple Encoder Decoder LSTM """
     
 
@@ -25,7 +24,7 @@ class EncoderDecoderLSTM(ModelBase, nn.Module):
         '''
 
         # Call base constructor.
-        super(EncoderDecoderLSTM, self).__init__()
+        super(EncoderDecoderLSTM, self).__init__(params)
 
         # Parse parameters.
         # Set input and output sizes.

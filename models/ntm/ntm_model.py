@@ -10,12 +10,15 @@ import numpy as np
 # Add path to main project directory.
 import os,  sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
-from misc.app_state import AppState
-from models.model_base import ModelBase
+from models.sequential_model import SequentialModel
 from models.ntm.ntm_cell import NTMCell
+from problems.problem import DataTuple
 
-class NTM(ModelBase, torch.nn.Module):
-    '''  Class representing the Neural Turing Machine module. '''
+class NTM(SequentialModel):
+    '''
+    Class representing the Neural Turing Machine module.
+    '''
+
     def __init__(self, params):
         '''
         Constructor. Initializes parameters on the basis of dictionary of parameters passed as argument.
@@ -23,7 +26,7 @@ class NTM(ModelBase, torch.nn.Module):
         :param params: Dictionary of parameters.
         '''
         # Call constructor of base class.
-        super(NTM, self).__init__() 
+        super(NTM, self).__init__(params) 
 
         # Parse parameters.
         # It is stored here, but will we used ONLY ONCE - for initialization of memory called from the forward() function.
@@ -35,9 +38,9 @@ class NTM(ModelBase, torch.nn.Module):
         # Set different visualizations depending on the flags.
         try:
             if params['visualization_mode'] == 1:
-                self.plot_sequence = self.plot_memory_attention_sequence
+                self.plot = self.plot_memory_attention_sequence
             elif  params['visualization_mode'] == 2:
-                self.plot_sequence = self.plot_memory_all_model_params_sequence
+                self.plot = self.plot_memory_all_model_params_sequence
             # else: default visualization.
         except KeyError:
              # If the 'visualization_mode' key is not present, catch the exception and do nothing
@@ -76,7 +79,7 @@ class NTM(ModelBase, torch.nn.Module):
         output_logits_BxO_S = []
 
         # Check if we want to collect cell history for the visualization purposes.
-        if AppState().visualize:
+        if self.app_state.visualize:
             self.cell_state_history = []
             self.cell_state_initial = cell_state
             
@@ -88,7 +91,7 @@ class NTM(ModelBase, torch.nn.Module):
             output_logits_BxO_S += [output_BxO]
 
             # Collect cell history - for the visualization purposes.
-            if AppState().visualize:
+            if self.app_state.visualize:
                 self.cell_state_history.append(cell_state)
                 
         # Stack logits along time axis (1).
@@ -162,6 +165,15 @@ class NTM(ModelBase, torch.nn.Module):
         :param data_tuple: Tuple containing input and target sequences.
         :param predictions_seq: Prediction sequence.
         """
+        # Check if we are supposed to visualize at all.
+        if not self.app_state.visualize:
+            return False
+
+        # Initialize timePlot window - if required.
+        if self.plotWindow == None:
+            from misc.time_plot import TimePlot
+            self.plotWindow = TimePlot()
+
         # import time
         # start_time = time.time()
         # Create figure template.
@@ -234,8 +246,8 @@ class NTM(ModelBase, torch.nn.Module):
         # print("--- %s seconds ---" % (time.time() - start_time))
         # Plot figure and list of frames.
         
-        self.plot.update(fig,  frames)
-        return self.plot.is_closed
+        self.plotWindow.update(fig,  frames)
+        return self.plotWindow.is_closed
 
 
     def generate_memory_all_model_params_figure_layout(self):
@@ -323,6 +335,15 @@ class NTM(ModelBase, torch.nn.Module):
         :param data_tuple: Tuple containing input and target sequences.
         :param predictions_seq: Prediction sequence.
         """
+        # Check if we are supposed to visualize at all.
+        if not self.app_state.visualize:
+            return False
+
+        # Initialize timePlot window - if required.
+        if self.plotWindow == None:
+            from misc.time_plot import TimePlot
+            self.plotWindow = TimePlot()
+        
         # import time
         # start_time = time.time()
         # Create figure template.
@@ -428,23 +449,28 @@ class NTM(ModelBase, torch.nn.Module):
         # print("--- %s seconds ---" % (time.time() - start_time))
         # Plot figure and list of frames.
         
-        self.plot.update(fig,  frames)
-        return self.plot.is_closed
+        self.plotWindow.update(fig,  frames)
+        return self.plotWindow.is_closed
 
 
 if __name__ == "__main__":
     # Set logging level.
+    logger = logging.getLogger('NTM-Module')
     logging.basicConfig(level=logging.DEBUG)
+    
+    # Set visualization.
+    from misc.app_state import AppState
+    AppState().visualize = True
+
     # "Loaded parameters".
     params = {'num_control_bits': 2, 'num_data_bits': 8, # input and output size
         'controller': {'name': 'rnn', 'hidden_state_size': 5,  'num_layers': 1, 'non_linearity': 'none'},  # controller parameters
         'interface': {'num_read_heads': 2,  'shift_size': 3},  # interface parameters
-        'memory': {'num_addresses' :4, 'num_content_bits': 7} # memory parameters
-        }
-        
-    logger = logging.getLogger('NTM-Module')
-    logger.debug("params: {}".format(params))    
-        
+        'memory': {'num_addresses' :4, 'num_content_bits': 7}, # memory parameters
+        'visualization_mode': 2
+        }  
+    logger.debug("params: {}".format(params))  
+    
     input_size = params["num_control_bits"] + params["num_data_bits"]
     output_size = params["num_data_bits"]
         
@@ -459,16 +485,21 @@ if __name__ == "__main__":
         # Create random Tensors to hold inputs and outputs
         x = torch.randn(batch_size, seq_length,   input_size)
         y = torch.randn(batch_size, seq_length,  output_size)
+        dt = DataTuple(x,y)
 
         # Test forward pass.
         logger.info("------- forward -------")
-        y_pred = model(x)
+        y_pred = model(dt)
 
         logger.info("------- result -------")
         logger.info("input {}:\n {}".format(x.size(), x))
         logger.info("target.size():\n {}".format(y.size()))
         logger.info("prediction {}:\n {}".format(y_pred.size(), y_pred))
-    
+
+        # Plot it and check whether window was closed or not. 
+        if model.plot(dt, y_pred):
+            break
+
         # Change batch size and seq_length.
         seq_length = seq_length+1
         batch_size = batch_size+1

@@ -13,7 +13,8 @@ from models.dwm.dwm_cell import DWMCell
 
 
 class DWM(SequentialModel):
-    """Applies a DWM layer to an input sequences """
+    """Applies a DWM layer to an input sequences - what kind of description is that...? ;) """
+    """ @Younes: MODEL DESCRIPTION GOES HERE! really...  """
 
     def __init__(self, params):
 
