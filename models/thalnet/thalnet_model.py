@@ -22,6 +22,7 @@ class ThalNetModel(SequentialModel):
 
         :param params: Parameters read from configuration file.
         """
+        # Call base class initialization.
         super(ThalNetModel, self).__init__(params)
 
         self.context_input_size = params['context_input_size']
