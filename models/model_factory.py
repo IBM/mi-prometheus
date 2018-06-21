@@ -53,11 +53,9 @@ class ModelFactory(object):
         elif name == 'simple_cnn':
             from models.simple_cnn.simple_cnn import SimpleConvNet
             return SimpleConvNet(params)
-            
         elif name == 'thalnet':
             from models.thalnet.thalnet_model import ThalNetModel
             return ThalNetModel(params)
-
         elif name == 'alexnet':
             from models.vision.alexnet_wrapper import AlexnetWrapper
             return AlexnetWrapper(params)
