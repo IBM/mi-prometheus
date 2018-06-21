@@ -70,7 +70,7 @@ def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
     # Visualization of validation.
     if AppState().visualize:
         # True means that we should terminate
-        return loss_valid,  model.plot_sequence(data_valid,  logits_valid)
+        return loss_valid, model.plot(data_valid,  logits_valid)
     # Else simply return false, i.e. continue training.
     return loss_valid, False
 
@@ -355,7 +355,7 @@ if __name__ == '__main__':
         # Check visualization of training data.
         if app_state.visualize:
             # Show plot, if user presses Quit - break.
-            if model.plot_sequence(data_tuple,  logits):
+            if model.plot(data_tuple,  logits):
                 break
 
         #  5. Save the model then validate
