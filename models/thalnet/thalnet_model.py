@@ -33,11 +33,8 @@ class ThalNetModel(SequentialModel):
         self.num_modules = params['num_modules']
         self.output_center_size = self.output_size + self.center_size_per_module
 
-        self.app_state = AppState()
-
         # This is for the time plot
         self.cell_state_history = None
-
 
         # Create the DWM components
         self.ThalnetCell = ThalNetCell(self.input_size, self.output_size, self.context_input_size,

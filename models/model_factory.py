@@ -28,7 +28,7 @@ class ModelFactory(object):
         # Try to load model
         name = params['name']
         if name == 'dwm':
-            from models.dwm.dwm_layer import DWM
+            from models.dwm.dwm_model import DWM
             return DWM(params)
         elif name == 'simple_cnn':
             from models.simple_cnn.simple_cnn import SimpleConvNet
