@@ -137,8 +137,7 @@ class ThalNetModel(SequentialModel):
         ax_module[2].set_ylabel('module state size')
         ax_module[3].set_ylabel('module state size')
 
-        # Create buffer and pickle the figure.
-
+        # Return figure.
         return fig
 
     def plot(self, data_tuple, logits):

@@ -8,8 +8,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
 from models.model import Model
 
 class AlexnetWrapper(Model):
+    """ Wrapper class to Alexnet model from TorchVision """
+
     def __init__(self, params):
-        super(AlexnetWrapper, self).__init__()
+        super(AlexnetWrapper, self).__init__(params)
 
         # set model from torchvision
         self.model = models.alexnet(params["num_classes"])

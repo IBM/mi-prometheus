@@ -19,7 +19,11 @@ class Model(torch.nn.Module):
     Provides basic plotting functionality.
     """
     def __init__(self, params):
-        """ Initializes application state and sets plot if visualization flag is turned on."""
+        """ 
+        Initializes application state and sets plot if visualization flag is turned on.
+
+        :param params: Parameters read from configuration file.
+        """
         # Call base class inits here.
         super(Model, self).__init__()
 
