@@ -41,9 +41,9 @@ problem_validation:
 model:
     name: simple_encoder_decoder
     max_length: 10
-    input_size: 3074  # this value is coming from the problem class (problem.input_lang.n_words): I
+    input_voc_size: 3074  # this value is coming from the problem class (problem.input_lang.n_words): I
     hidden_size: 256
-    output_size: 4707
+    output_voc_size: 4707
     use_teacher_forcing: True
 
 # optimizer parameters:

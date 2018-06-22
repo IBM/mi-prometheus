@@ -6,7 +6,6 @@ __author__ = "Vincent Marois "
 import torch
 from torch import nn
 import torch.nn.functional as F
-from torch.autograd import Variable
 
 
 class EncoderRNN(nn.Module):
@@ -60,7 +59,7 @@ class EncoderRNN(nn.Module):
     def init_hidden(self, batch_size, dtype):
         """Returns initial hidden states set to 0.
             The shape is [1 x batch_size x hidden_size] to match with the GRU layer in the Encoder."""
-        h_init = Variable(torch.zeros(1, batch_size, self.hidden_size).type(dtype), requires_grad=False)
+        h_init = torch.zeros(1, batch_size, self.hidden_size).type(dtype)
         return h_init
 
 
@@ -131,7 +130,7 @@ class DecoderRNN(nn.Module):
     def init_hidden(self, batch_size, dtype):
         """Returns initial hidden states set to 0.
         The shape is [1 x batch_size x hidden_size] to match with the GRU layer in the Decoder."""
-        h_init = Variable(torch.zeros(1, batch_size, self.hidden_size).type(dtype), requires_grad=False)
+        h_init = torch.zeros(1, batch_size, self.hidden_size).type(dtype)
         return h_init
 
 
@@ -205,7 +204,7 @@ class SimpleEncoderDecoder(nn.Module):
             decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
 
         else: # without teacher_forcing: use its own predictions as the next input -> equivalent to inference
-            decoder_input = Variable(torch.zeros_like(targets).type(dtype), requires_grad=False)
+            decoder_input = torch.zeros_like(targets).type(dtype)
             decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
 
         return decoder_output
