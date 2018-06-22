@@ -23,7 +23,7 @@ class MaskAuxTuple(_MaskAuxTuple):
 
 
 
-_LabelAuxTuple = collections.namedtuple('MaskAuxTuple', ('label'))
+_LabelAuxTuple = collections.namedtuple('LabelAuxTuple', ('label'))
 class LabelAuxTuple(_LabelAuxTuple):
     """
     Tuple used by storing batches of labels in classification problems.
