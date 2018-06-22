@@ -13,10 +13,7 @@ import subprocess
 import numpy as np
 from glob import glob
 import csv
-
-import matplotlib
-matplotlib.use('Agg')  # Headless backend for matplotlib
-import matplotlib.pyplot as plt
+import pandas as pd
 
 def find_nearest(array, value):
     array = np.asarray(array)
@@ -52,100 +49,45 @@ def main():
 
     # Run in as many threads as there are CPUs available to the script
     with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
-        list_dict_exp = pool.map(run_experiment, experiments_list)
-        exp_values = dict(zip(list_dict_exp[0], zip(*[d.values() for d in list_dict_exp])))
-         
-        with open(directory_checkpoints[0].split("/")[0] + "_test.csv", "w") as outfile:
-            writer = csv.writer(outfile, delimiter = " ")
-            writer.writerow(exp_values.keys())
-            writer.writerows(zip(*exp_values.values()))
-          
+        pool.map(run_experiment, experiments_list)
 
 def run_experiment(path: str):
-    r = {}  # results dictionary
-    run_test = True  
-      
-    r['timestamp'] = os.path.basename(os.path.normpath(path))
 
     # Load yaml file. To get model name and problem name.
     with open(path + '/train_settings.yaml', 'r') as yaml_file:
         params = yaml.load(yaml_file)
-    r['model'] = params['model']['name']
-    r['problem'] = params['problem_train']['name']
 
     # print path
     print(path)
 
-    # Load csv files
-    val_episode, val_accuracy, val_loss, val_length = \
-        np.loadtxt(path + '/validation.csv', delimiter=', ', skiprows=1, unpack=True, dtype='int, float, float, int') 
-    train_episode, train_accuracy, train_loss, train_length = \
-        np.loadtxt(path + '/training.csv', delimiter=', ', skiprows=1, unpack=True, dtype='int, float, float, int')
+    valid_csv = pd.read_csv(path + '/validation.csv', delimiter=',', header=0)
+    train_csv = pd.read_csv(path + '/training.csv', delimiter=',', header=0)
 
-    # Save plot of losses to png file
-    # Save plot of losses to png file
-    try:
-        ax = plt.gca()
-        ax.semilogy(val_episode, val_loss, label='validation loss')
-        ax.semilogy(train_episode, train_loss, label='training loss')
-        plt.savefig(path + '/loss.png')
-        plt.close()
-    except:
-       pass 
-    ### ANALYSIS OF TRAINING AND VALIDATION DATA ###
+    # best train point
+    index_val_loss = pd.Series.idxmin(train_csv.loss)  
+    train_episodes = train_csv.episode.values.astype(int)  # best train loss argument
+    best_train_ep = train_episodes[index_val_loss]  # best train loss argument
+    best_train_loss = train_csv.loss[index_val_loss]
+    
+    # best valid point 
+    index_val_loss = pd.Series.idxmin(valid_csv.loss) 
+    valid_episodes = valid_csv.episode.values.astype(int)  # best train loss argument
+    best_valid_ep = valid_episodes[index_val_loss]  # best train loss argument
+    best_valid_loss = valid_csv.loss[index_val_loss]
 
-    # best valid train 
-    index_val_loss = np.argmin(val_loss) 
-    r['best_valid_arg'] = int(val_episode[index_val_loss])  # best validation loss argument
-    r['best_valid_loss'] = val_loss[index_val_loss]
-    r['best_valid_accuracy'] = val_accuracy[index_val_loss]   
- 
-    # best train loss
-    index_loss = np.where(train_loss<1.E-4)[0]
-        
-    if index_loss.size: 
-        r['best_train_arg'] = int(train_episode[index_loss[0]])  # best validation loss argument
-        r['best_train_loss'] = train_loss[index_loss[0]]
-        r['best_train_accuracy'] = train_accuracy[index_loss[0]]
-    else: 
-        index_loss = np.argmin(train_loss)
-        r['best_train_arg'] = int(train_episode[index_loss])  # best validation loss argument
-        r['best_train_loss'] = train_loss[index_loss]
-        r['best_train_accuracy'] = train_accuracy[index_loss]
-
-    # If the best loss < .1, keep that as the early stopping point
-    # Otherwise, we take the very last data as the stopping point
-    if val_loss[index_val_loss] < 1.E-4:
-        r['converge'] = True
-    else:
-        r['converge'] = False     
- 
-    r['stop_episode'] = train_episode[-1]
-    stop_train_index = -1 
-    index_val_loss = -1
-     
+         
     ### Find the best model ###
     models_list3 = glob(path + '/models/*')
     models_list2 = [os.path.basename(os.path.normpath(e)) for e in models_list3]
     models_list = [int(e.split('_')[-1]) for e in models_list2]    
    
-    # Gather data at chosen stopping point
-    #r['valid_loss'] = val_loss[index_val_loss]
-    #r['valid_accuracy'] = val_accuracy[index_val_loss]
-    #r['valid_length'] = val_length[index_val_loss]
 
     # check if models list is empty
-    if models_list and run_test:
+    if models_list:
         # select the best model 
-        best_num_model, idx_best = find_nearest(models_list, r['best_valid_arg'])
+        best_num_model, idx_best = find_nearest(models_list, best_valid_ep)
         
-        last_model, idx_last = find_nearest(models_list, train_episode[-1])
-      
-        # to avoid selecting model zeros, if training is not converging 
-        if best_num_model == 0:
-            best_num_model = 1000 # hack for now 
-        
-        r['best_model'] = best_num_model  
+        last_model, idx_last = find_nearest(models_list, valid_episodes[-1]) 
              
         # Run the test
         command_str = "cuda-gpupick -n0 python3 test.py --model {0}".format(models_list3[idx_best]).split()
@@ -154,25 +96,9 @@ def run_experiment(path: str):
         if result.returncode != 0:
             print("Testing exited with code:", result.returncode)
    
-        # Load the test results from csv
-        test_episode, test_accuracy, test_loss, test_length = \
-            np.loadtxt(path + '/test.csv', delimiter=', ', skiprows=1, unpack=True)
-
-        # Load the test results from csv
-        test_train_episode, test_train_accuracy, test_train_loss, test_train_length = \
-            np.loadtxt(path + '/test_train.csv', delimiter=', ', skiprows=1, unpack=True)
     
-        # Save test results into dict. We expect that the csv has a single row of data
-        r['train_loss'] = test_train_loss
-        r['train_accuracy'] = test_train_accuracy
-        r['train_length'] = test_train_length
-        r['test_loss'] = test_loss
-        r['test_accuracy'] = test_accuracy
-        r['test_length'] = test_length
     else:
         print('There is no model in checkpoint {} '.format(path))     
-
-    return r
 
 
 if __name__ == '__main__':
