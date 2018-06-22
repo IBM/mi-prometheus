@@ -12,26 +12,26 @@ from torch.autograd import Variable
 class EncoderRNN(nn.Module):
 
     """GRU Encoder for Encoder-Decoder"""
-    def __init__(self, input_size, hidden_size):
+    def __init__(self, input_voc_size, hidden_size):
         """
         Initializes an Encoder network based on a Gated Recurrent Unit.
-        :param input_size: size of the vocabulary set to be embedded by the Embedding layer.
+        :param input_voc_size: size of the vocabulary set to be embedded by the Embedding layer.
         :param hidden_size: length of embedding vectors.
         """
         super(EncoderRNN, self).__init__()
         self.hidden_size = hidden_size
 
         # Embedding: creates a look-up table of the embedding of a vocabulary set
-        # (size: input_size -> input_language.n_words) on vectors of size hidden_size.
+        # (size: input_voc_size -> input_language.n_words) on vectors of size hidden_size.
         # adds 1 dimension to the shape of the tensor
         # WARNING: input must be of type LongTensor
-        self.embedding = nn.Embedding(num_embeddings=input_size, embedding_dim=self.hidden_size)
+        self.embedding = nn.Embedding(num_embeddings=input_voc_size, embedding_dim=self.hidden_size)
 
         # Apply a multi-layer gated recurrent unit (GRU) RNN to an input sequence.
         # NOTE: default number of recurrent layers is 1
         # 1st parameter: expected number of features in the input -> same as hidden_size because of embedding
         # 2nd parameter: expected number of features in hidden state -> hidden_size.
-        # batch_first=True -> input and output tensors are provided as [batch_size x seq_length x input_size]
+        # batch_first=True -> input and output tensors are provided as [batch_size x seq_length x input_voc_size]
         # ! batch_first=True doesn't affect the hidden tensors
         self.gru = nn.GRU(input_size=self.hidden_size, hidden_size=self.hidden_size, num_layers=1, batch_first=True)
 
@@ -68,33 +68,33 @@ class DecoderRNN(nn.Module):
 
     """GRU Decoder for Encoder-Decoder"""
 
-    def __init__(self, hidden_size, output_size):
+    def __init__(self, hidden_size, output_voc_size):
         """
         Initializes an Decoder network based on a Gated Recurrent Unit.
         :param hidden_size: length of embedding vectors.
-        :param output_size: size of the vocabulary set to be embedded by the Embedding layer.
+        :param output_voc_size: size of the vocabulary set to be embedded by the Embedding layer.
         """
 
         super(DecoderRNN, self).__init__()
         self.hidden_size = hidden_size
 
         # Embedding: creates a look-up table of the embedding of a vocabulary set
-        # (size: output_size -> input_language.n_words) on vectors of size hidden_size.
+        # (size: output_voc_size -> input_language.n_words) on vectors of size hidden_size.
         # adds 1 dimension to the shape of the tensor
         # WARNING: input must be of type LongTensor
-        self.embedding = nn.Embedding(num_embeddings=output_size, embedding_dim=hidden_size)
+        self.embedding = nn.Embedding(num_embeddings=output_voc_size, embedding_dim=hidden_size)
 
         # Apply a multi-layer gated recurrent unit (GRU) RNN to an input sequence.
         # NOTE: default number of recurrent layers is 1
         # 1st parameter: expected number of features in the input -> same as hidden_size because of embedding
         # 2nd parameter: expected number of features in hidden state -> hidden_size.
-        # batch_first=True -> input and output tensors are provided as [batch_size x seq_length x input_size]
+        # batch_first=True -> input and output tensors are provided as [batch_size x seq_length x input_voc_size]
         # ! batch_first=True doesn't affect the hidden tensors
         self.gru = nn.GRU(input_size=hidden_size, hidden_size=hidden_size, num_layers=1, batch_first=True)
 
         # Apply a linear transformation to the incoming data: y=Ax+b
         # basically project from the hidden space to the output vocabulary set
-        self.out = nn.Linear(in_features=hidden_size, out_features=output_size)
+        self.out = nn.Linear(in_features=hidden_size, out_features=output_voc_size)
 
         # Apply the Log(Softmax(x)) function to an n-dimensional input Tensor along the specified dimension
         # doesn't change the shape
@@ -107,7 +107,7 @@ class DecoderRNN(nn.Module):
         :param hidden: initial hidden state for each element in the input batch.
         Should be of size [1 x batch_size x hidden_size]
         :return:
-                - output should be of size [batch_size x seq_len x output_size]: tensor containing the output
+                - output should be of size [batch_size x seq_len x output_voc_size]: tensor containing the output
                 features h_t from the last layer of the RNN, for each t.
                 - hidden should be of size [1 x batch_size x hidden_size]: tensor containing the hidden state for
                 t = seq_length
@@ -121,9 +121,9 @@ class DecoderRNN(nn.Module):
         # output should be of shape [batch_size x seq_len x hidden_size]
 
         output = self.out(output)
-        # output should be of shape [batch_size x seq_len x output_size]
+        # output should be of shape [batch_size x seq_len x output_voc_size]
 
-        # apply LogSoftmax along dimension 2 -> output_size
+        # apply LogSoftmax along dimension 2 -> output_voc_size
         output = self.softmax(output)
 
         return output, hidden
@@ -145,9 +145,9 @@ class SimpleEncoderDecoder(nn.Module):
         :param params: dict containing the main parameters set:
             - max_length: maximal length of the input / output sequence of words: i.e, max length of the sentences
             to translate -> upper limit of seq_length
-            - input size: should correspond to the length of the vocabulary set of the input language
+            - input_voc_size: should correspond to the length of the vocabulary set of the input language
             - hidden size: size of the embedding & hidden states vectors.
-            - output size: should correspond to the length of the vocabulary set of the output language
+            - output_voc_size: should correspond to the length of the vocabulary set of the output language
             - use_teacher_forcing: see below
         """
         # call base constructor
@@ -161,17 +161,17 @@ class SimpleEncoderDecoder(nn.Module):
         self.use_teacher_forcing = params['use_teacher_forcing']
 
         # parse params to create encoder
-        self.input_size = params['input_size']
+        self.input_voc_size = params['input_voc_size']
         self.hidden_size = params['hidden_size']
 
         # create encoder
-        self.encoder = EncoderRNN(self.input_size, self.hidden_size)
+        self.encoder = EncoderRNN(self.input_voc_size, self.hidden_size)
 
         # parse param to create decoder
-        self.output_size = params['output_size']
+        self.output_voc_size = params['output_voc_size']
 
         # create decoder
-        self.decoder = DecoderRNN(self.hidden_size, self.output_size)
+        self.decoder = DecoderRNN(self.hidden_size, self.output_voc_size)
 
         print('Simple EncoderDecoderRNN (without attention) created.\n')
 
@@ -237,12 +237,12 @@ if __name__ == '__main__':
     print('Problem successfully created.\n')
 
     # get size of vocabulary for input & output language
-    input_size = problem.input_lang.n_words
-    output_size = problem.output_lang.n_words
+    input_voc_size = problem.input_lang.n_words
+    output_voc_size = problem.output_lang.n_words
 
     # instantiate model with credible parameters
-    model_params = {'max_length': 10, 'input_size': input_size, 'hidden_size': 256,
-                    'output_size': output_size, 'use_teacher_forcing': False}
+    model_params = {'max_length': 10, 'input_voc_size': input_voc_size, 'hidden_size': 256,
+                    'output_voc_size': output_voc_size, 'use_teacher_forcing': False}
     net = SimpleEncoderDecoder(model_params)
 
     # generate a batch
