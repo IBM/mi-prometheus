@@ -110,6 +110,8 @@ if __name__ == '__main__':
     # Build model
     model = ModelFactory.build_model(param_interface['model'])
     model.cuda() if use_CUDA else None
+    model.eval()
+
 
     model.load_state_dict(
         torch.load(FLAGS.model, map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
