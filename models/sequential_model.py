@@ -28,13 +28,14 @@ class SequentialModel(Model):
         super(SequentialModel, self).__init__(params)
 
 
-    def plot(self, data_tuple, predictions):
+    def plot(self, data_tuple, predictions, sample_number = 0):
         """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
         The default visualizatoin contains input, output and target sequences.
         For more model/problem dependent visualization please overwrite this method in the derived model class.
         
         :param data_tuple: Data tuple containing input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
         :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param sample_number: Number of sample in batch (DEFAULT: 0) 
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
@@ -80,10 +81,10 @@ class SequentialModel(Model):
         axes[2].set_xlabel('Item number')
         fig.set_tight_layout(True)
         
-        # Detach first batch sample and copy it to CPU.
-        inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
-        targets_seq = data_tuple.targets[0].cpu().detach().numpy()
-        predictions_seq = predictions[0].cpu().detach().numpy()
+        # Detach a sample from batch and copy it to CPU.
+        inputs_seq = data_tuple.inputs[sample_number].cpu().detach().numpy()
+        targets_seq = data_tuple.targets[sample_number].cpu().detach().numpy()
+        predictions_seq = predictions[sample_number].cpu().detach().numpy()
 
         # Create empty matrices.
         x = np.transpose(np.zeros(inputs_seq.shape))

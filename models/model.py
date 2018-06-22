@@ -3,18 +3,16 @@
 """model.py: contains base abstract model for all models"""
 __author__      = "Tomasz Kornuta"
 
-import numpy as np
-import logging
-import torch
+from torch import nn
+from abc import ABCMeta, abstractmethod
 
 # Add path to main project directory - so we can test the base plot, saving images, movies etc.
 import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..')) 
 from misc.app_state import AppState
-from problems.problem import DataTuple
 
 
-class Model(torch.nn.Module):
+class Model(nn.Module):
     """ Class representing base class of all models.
     Provides basic plotting functionality.
     """
@@ -54,36 +52,15 @@ class Model(torch.nn.Module):
         """
         pass
 
-    def plot(self, data_tuple, predictions):
-        """ 
-        Empty function.
-        :param data_tuple: Data tuple containing input  and target.
-        :param predictions: Prediction.
-        """
-        pass
 
-if __name__ == '__main__':
-    # Set logging level.
-    logging.basicConfig(level=logging.DEBUG)
-    
-    # Set visualization.
-    AppState().visualize = True
-    
-    # Test base model.
-    params = []
-    test = Model(params)
-    
-    while True:
-        # Generate new sequence.
-        x = np.random.binomial(1, 0.5, (1,  15))
-        y = np.random.binomial(1, 0.5, (1,  15))
-        z = np.random.binomial(1, 0.5, (1,  15))
-        print(x.shape)
-        # Transform to PyTorch.
-        x = torch.from_numpy(x).type(torch.FloatTensor)
-        y=  torch.from_numpy(y).type(torch.FloatTensor)
-        z=  torch.from_numpy(z).type(torch.FloatTensor)
-        dt = DataTuple(x, y)
-        # Plot it and check whether window was closed or not. 
-        if test.plot(dt, z):
-            break
+    @abstractmethod
+    def plot(self, data_tuple, predictions, sample_number = 0):
+        """
+        Plots inputs, targets and predictions, along with model-dependent variables. 
+        Abstract - to be defined in derived classes. 
+
+        :param data_tuple: Data tuple containing input and target batches.
+        :param predictions: Prediction.
+        :param sample_number: Number of sample in batch (DEFAULT: 0) 
+        """
+

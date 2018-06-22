@@ -1,12 +1,14 @@
+import numpy as np
+import torch
+from torchvision import datasets, transforms
+from torch.utils.data.sampler import SubsetRandomSampler
+
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..')) 
 
-import torch
+from problems.problem import DataTuple, LabelAuxTuple
 from problems.image_to_class.image_to_class_problem import ImageToClassProblem
-from torchvision import datasets, transforms
-from torch.utils.data.sampler import SubsetRandomSampler
-from problems.problem import DataTuple
 
 
 class MNIST(ImageToClassProblem):
@@ -45,6 +47,9 @@ class MNIST(ImageToClassProblem):
         idx = indices[self.start_index: self.stop_index]
         self.sampler = SubsetRandomSampler(idx)
 
+        # Class names.
+        self.mnist_class_names = 'Zero One Two Three Four Five Six Seven Eight Nine'.split(' ')
+
     def generate_batch(self):
 
         # data loader
@@ -56,24 +61,25 @@ class MNIST(ImageToClassProblem):
         # train_loader a generator: (data, label)
         (data, label) = next(train_loader)
 
+        # Generate labels for aux tuple
+        class_names = [self.mnist_class_names[i] for i in label]
+
         # Return DataTuple(!) and an empty (aux) tuple.
-        return DataTuple(data,label), ()
+        return DataTuple(data, label), LabelAuxTuple(class_names)
 
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'batch_size':1, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist'}
+    params = {'batch_size':2, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist'}
 
     # Create problem object.
     problem = MNIST(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
-    data_tuple, y = next(generator)
-    x, y = data_tuple
+    dt, at = next(generator)
 
     # Display single sample (0) from batch.
-    sample_numer = 0
-    problem.show_sample(x[sample_numer, 0], y)
+    problem.show_sample(dt, at, 0)

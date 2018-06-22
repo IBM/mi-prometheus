@@ -3,9 +3,11 @@
 """image_to_class_problem.py: contains abstract base class for image classification problems"""
 __author__      = "Tomasz Kornuta"
 
+import numpy as np
+import torch.nn as nn
+
 from problems.problem import Problem
 from problems.problem import DataTuple
-import torch.nn as nn
 
 
 class ImageToClassProblem(Problem):
@@ -63,14 +65,36 @@ class ImageToClassProblem(Problem):
         stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, _)
 
 
-    def show_sample(self, inputs, targets):
+    def show_sample(self, data_tuple, aux_tuple, sample_number = 0):
+        """ 
+        Shows a sample from the batch.
+
+        :param data_tuple: Tuple containing inputs and targets.
+        :param aux_tuple: Auxiliary tuple containing scene descriptions.
+        :param sample_number: Number of sample in batch (DEFAULT: 0) 
+        """
         import matplotlib.pyplot as plt
 
-        # show data.
-        plt.xlabel('num_columns')
-        plt.ylabel('num_rows')
-        plt.title('Target class: ' + str(int(targets[0])))
+        # Unpack tuples.
+        images, targets = data_tuple
 
-        plt.imshow(inputs, interpolation='nearest', aspect='auto')
+        # Get sample.
+        image = images[sample_number].cpu().detach().numpy()
+        target = targets[sample_number].cpu().detach().numpy()
+        label = aux_tuple.label[sample_number]
+
+        # Reshape image.
+        if (image.shape[0] == 1):
+            # This is single channel image - get rid of that dimension
+            image = np.squeeze(image, axis=0)
+        else:
+            # More channels - move channels to axis2, according to matplotilb doc it should be ok 
+            # (X : array_like, shape (n, m) or (n, m, 3) or (n, m, 4))    
+            image = image.transpose(1, 2, 0)
+
+        # Show data.
+        plt.title('Target class: {} ({})'.format(label, target) )
+        plt.imshow(image, interpolation='nearest', aspect='auto')
+
         # Plot!
         plt.show()

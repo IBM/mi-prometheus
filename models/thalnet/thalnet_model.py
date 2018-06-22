@@ -1,5 +1,5 @@
-import torch
 
+import torch
 from torch import nn
 import logging
 import numpy as np
@@ -138,7 +138,7 @@ class ThalNetModel(SequentialModel):
         # Return figure.
         return fig
 
-    def plot(self, data_tuple, logits):
+    def plot(self, data_tuple, logits, sample_number = 0):
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
             return False
@@ -148,17 +148,11 @@ class ThalNetModel(SequentialModel):
             from misc.time_plot import TimePlot
             self.plotWindow = TimePlot()
         
-        num_batch = 0
         (inputs, _) = data_tuple
         inputs = inputs.cpu().detach().numpy()
         predictions_seq = logits.cpu().detach().numpy()
 
-        input_seq = inputs[num_batch, 0] if len(inputs.shape) == 4 else inputs[num_batch]
-
-        """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
-        The default visualizatoin contains input, output and target sequences.
-        For more model/problem dependent visualization please overwrite this method in the derived model class.
-        """
+        input_seq = inputs[sample_number, 0] if len(inputs.shape) == 4 else inputs[sample_number]
 
         # Create figure template.
         fig = self.generate_figure_layout()
@@ -205,36 +199,36 @@ class ThalNetModel(SequentialModel):
             artists = [None] * len(fig.axes)
 
             # centers state
-            center_state_displayed_1[:, i] = state_tuple[0][num_batch, :]
+            center_state_displayed_1[:, i] = state_tuple[0][sample_number, :]
             entity = fig.axes[0]
             artists[0] = entity.imshow(center_state_displayed_1, interpolation='nearest', aspect='auto')
 
-            center_state_displayed_2[:, i] = state_tuple[1][num_batch, :]
+            center_state_displayed_2[:, i] = state_tuple[1][sample_number, :]
             entity = fig.axes[1]
             artists[1] = entity.imshow(center_state_displayed_2, interpolation='nearest', aspect='auto')
 
-            center_state_displayed_3[:, i] = state_tuple[2][num_batch, :]
+            center_state_displayed_3[:, i] = state_tuple[2][sample_number, :]
             entity = fig.axes[2]
             artists[2] = entity.imshow(center_state_displayed_3, interpolation='nearest', aspect='auto')
 
-            center_state_displayed_4[:, i] = state_tuple[3][num_batch, :]
+            center_state_displayed_4[:, i] = state_tuple[3][sample_number, :]
             entity = fig.axes[3]
             artists[3] = entity.imshow(center_state_displayed_4, interpolation='nearest', aspect='auto')
 
             # module state
-            module_state_displayed_1[:, i] = state_tuple[4][num_batch, :]
+            module_state_displayed_1[:, i] = state_tuple[4][sample_number, :]
             entity = fig.axes[4]
             artists[4] = entity.imshow(module_state_displayed_1, interpolation='nearest', aspect='auto')
 
-            module_state_displayed_2[:, i] = state_tuple[5][num_batch, :]
+            module_state_displayed_2[:, i] = state_tuple[5][sample_number, :]
             entity = fig.axes[5]
             artists[5] = entity.imshow(module_state_displayed_2, interpolation='nearest', aspect='auto')
 
-            module_state_displayed_3[:, i] = state_tuple[6][num_batch, :]
+            module_state_displayed_3[:, i] = state_tuple[6][sample_number, :]
             entity = fig.axes[6]
             artists[6] = entity.imshow(module_state_displayed_3, interpolation='nearest', aspect='auto')
 
-            module_state_displayed_4[:, i] = state_tuple[7][num_batch, :]
+            module_state_displayed_4[:, i] = state_tuple[7][sample_number, :]
             entity = fig.axes[7]
             artists[7] = entity.imshow(module_state_displayed_4, interpolation='nearest', aspect='auto')
 
@@ -245,11 +239,11 @@ class ThalNetModel(SequentialModel):
             #     # "Show" data on "axes".
             #     entity = fig.axes[j]
             #     if self.num_modules <= h < 2 * self.num_modules :
-            #         modules_plot[j - self.num_modules][:, i] = state[num_batch, :]
+            #         modules_plot[j - self.num_modules][:, i] = state[sample_number, :]
             #         artists[j] = entity.imshow(modules_plot[j - self.num_modules], interpolation='nearest', aspect='auto')
             #
             #     else:
-            #         center_plot[j][:, i] = state[num_batch, :]
+            #         center_plot[j][:, i] = state[sample_number, :]
             #         artists[j] = entity.imshow(center_plot[j], interpolation='nearest', aspect='auto')
             #
             #     h += 1

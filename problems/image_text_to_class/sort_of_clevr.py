@@ -432,6 +432,13 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
 
     def show_sample(self, data_tuple, aux_tuple, sample_number = 0):
+        """ 
+        Shows a sample from the batch.
+
+        :param data_tuple: Tuple containing inputs and targets.
+        :param aux_tuple: Auxiliary tuple containing scene descriptions.
+        :param sample_number: Number of sample in batch (DEFAULT: 0) 
+        """
         import matplotlib.pyplot as plt
 
         # Unpack tuples.
