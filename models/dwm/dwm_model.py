@@ -216,7 +216,7 @@ class DWM(SequentialModel):
         # start_time = time.time()
         inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
         targets_seq = data_tuple.targets[0].cpu().detach().numpy()
-        predictions_seq = predictions_seq[0].cpu().detach().numpy()
+        predictions_seq = predictions[0].cpu().detach().numpy()
 
         # temporary for data with additional channel
         if len(inputs_seq.shape) == 3:
