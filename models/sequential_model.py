@@ -33,7 +33,9 @@ class SequentialModel(Model):
         The default visualizatoin contains input, output and target sequences.
         For more model/problem dependent visualization please overwrite this method in the derived model class.
         
-        :param data_tuple: Data tuple containing input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param data_tuple: Data tuple containing 
+           - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and 
+           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
         :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
         :param sample_number: Number of sample in batch (DEFAULT: 0) 
         """
@@ -142,7 +144,7 @@ if __name__ == '__main__':
         x = np.random.binomial(1, 0.5, (1,  8,  15))
         y = np.random.binomial(1, 0.5, (1,  8,  15))
         z = np.random.binomial(1, 0.5, (1,  8, 15))
-        print(x.shape)
+
         # Transform to PyTorch.
         x = torch.from_numpy(x).type(torch.FloatTensor)
         y=  torch.from_numpy(y).type(torch.FloatTensor)

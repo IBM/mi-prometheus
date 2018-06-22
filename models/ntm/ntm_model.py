@@ -157,13 +157,16 @@ class NTM(SequentialModel):
         fig.set_tight_layout(True)
         return fig
 
-    def plot_memory_attention_sequence(self, data_tuple, predictions_seq):
+    def plot_memory_attention_sequence(self, data_tuple, predictions, sample_number = 0):
         """ Creates list of figures used in interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
         The visualization presents input, output and target sequences passed as input parameters.
         Additionally, it utilizes state tuples collected during the experiment for displaying the memory state, read and write attentions.
         
-        :param data_tuple: Tuple containing input and target sequences.
-        :param predictions_seq: Prediction sequence.
+        :param data_tuple: Data tuple containing 
+           - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and 
+           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param sample_number: Number of sample in batch (DEFAULT: 0) 
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
@@ -182,9 +185,9 @@ class NTM(SequentialModel):
         (ax_memory,  ax_write_attention,  ax_read_attention,  ax_inputs,  ax_targets,  ax_predictions) = fig.axes
         
 		# Unpack data tuple.
-        inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
-        targets_seq = data_tuple.targets[0].cpu().detach().numpy()
-        predictions_seq = predictions_seq[0].cpu().detach().numpy()
+        inputs_seq = data_tuple.inputs[sample_number].cpu().detach().numpy()
+        targets_seq = data_tuple.targets[sample_number].cpu().detach().numpy()
+        predictions_seq = predictions[sample_number].cpu().detach().numpy()
 
         # Set intial values of displayed  inputs, targets and predictions - simply zeros.
         inputs_displayed = np.transpose(np.zeros(inputs_seq.shape))
@@ -327,13 +330,17 @@ class NTM(SequentialModel):
         fig.set_tight_layout(True)
         return fig
 
-    def plot_memory_all_model_params_sequence(self, data_tuple, predictions_seq):
-        """ Creates list of figures used in interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
+    def plot_memory_all_model_params_sequence(self, data_tuple, predictions, sample_number = 0):
+        """ 
+        Creates list of figures used in interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
         The visualization presents input, output and target sequences passed as input parameters.
-        Additionally, it utilizes state tuples collected during the experiment for displaying the memory state, read and write attentions.
+        Additionally, it utilizes state tuples collected during the experiment for displaying the memory state, read and write attentions; and gating params.
         
-        :param data_tuple: Tuple containing input and target sequences.
-        :param predictions_seq: Prediction sequence.
+        :param data_tuple: Data tuple containing 
+           - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and 
+           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param sample_number: Number of sample in batch (DEFAULT: 0) 
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
@@ -355,9 +362,9 @@ class NTM(SequentialModel):
             ax_inputs,  ax_targets,  ax_predictions) = fig.axes
  
 		# Unpack data tuple.
-        inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
-        targets_seq = data_tuple.targets[0].cpu().detach().numpy()
-        predictions_seq = predictions_seq[0].cpu().detach().numpy()
+        inputs_seq = data_tuple.inputs[sample_number].cpu().detach().numpy()
+        targets_seq = data_tuple.targets[sample_number].cpu().detach().numpy()
+        predictions_seq = predictions[sample_number].cpu().detach().numpy()
         
         # Set intial values of displayed  inputs, targets and predictions - simply zeros.
         inputs_displayed = np.transpose(np.zeros(inputs_seq.shape))

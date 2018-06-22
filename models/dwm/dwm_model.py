@@ -193,9 +193,15 @@ class DWM(SequentialModel):
         #fig.subplots_adjust(left = 0)
         return fig
 
-    def plot(self, data_tuple,  predictions_seq):
-        """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
-        The default visualizatoin contains input, output and target sequences.
+    def plot(self, data_tuple, predictions, sample_number = 0):
+        """ 
+        Interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
+        
+        :param data_tuple: Data tuple containing 
+           - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and 
+           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param sample_number: Number of sample in batch (DEFAULT: 0) 
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:

@@ -43,7 +43,6 @@ class DNC(SequentialModel):
         #self.batch_size = params["batch_size"]
         self.memory_addresses_size = params["memory_addresses_size"]
         self.label = params["name"]
-        self.app_state = AppState()
         self.cell_state_history = None 
 
         # Create the DNC components
@@ -98,10 +97,17 @@ class DNC(SequentialModel):
 
         return output
 
-    def plot_memory_attention(self, output, states):
+    def plot_memory_attention(self, data_tuple, predictions, sample_number = 0):
+        """
+        Plots memory and attention TODO: fix
+
+        :param data_tuple: Data tuple containing input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param sample_number: Number of sample in batch (DEFAULT: 0) 
+        """        
         # plot attention/memory
 
         from models.dnc.plot_data import plot_memory_attention
-        plot_memory_attention(output, states[2], states[1][0], states[1][1], states[1][2], self.label)
+        #plot_memory_attention(output, states[2], states[1][0], states[1][1], states[1][2], self.label)
 
 
