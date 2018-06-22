@@ -1,8 +1,5 @@
 """
-This scripts does a random search on DNC's hyper parameters.
-It works by loading a template yaml file, modifying the resulting dict, and dumping that as yaml into a
-temporary file. The `train.py` script is then launched using the temporary yaml file as the task.
-It will run as many concurrent jobs as possible.
+This script post processes the output of batch_train and batch_test. It takes as input the same file as batch_test and executes on every run of the model in that directory. I.e. if you tell it to run on serial_recall/dnc, it will process every time you have ever run serial_recall with the DNC as long as test.py has been executed. This should be fixed later.
 """
 
 import os
@@ -45,9 +42,15 @@ def main():
     # Keep only the folders that contain validation.csv and training.csv
     experiments_list = [elem for elem in experiments_list
                         if os.path.isfile(elem + '/validation.csv') and os.path.isfile(elem + '/training.csv')]
+    experiments_list = [elem for elem in experiments_list
+                        if os.path.isfile(elem + '/test.csv')]
+
     # check if the files are empty except for the first line
     experiments_list = [elem for elem in experiments_list
                         if os.stat(elem + '/validation.csv').st_size > 24  and os.stat(elem + '/training.csv').st_size > 24 ]
+    experiments_list = [elem for elem in experiments_list
+                        if os.stat(elem + '/test.csv').st_size > 24]
+
 
 
     # Run in as many threads as there are CPUs available to the script
