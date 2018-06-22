@@ -111,15 +111,15 @@ class DecoderRNN(nn.Module):
                 - hidden should be of size [1 x batch_size x hidden_size]: tensor containing the hidden state for
                 t = seq_length
         """
-        output = self.embedding(inputs.type(torch.long))
-        # output should be of shape [batch_size x seq_length x hidden_size]
+        embedded = self.embedding(inputs.type(torch.long))
+        # embedded should be of shape [batch_size x seq_length x hidden_size]
 
-        output = F.relu(output)  # relu doesn't change the output shape
+        gru_input = F.relu(embedded)  # relu doesn't change the output shape
 
-        output, hidden = self.gru(output, hidden)
-        # output should be of shape [batch_size x seq_len x hidden_size]
+        gru_output, hidden = self.gru(gru_input, hidden)
+        # gru_output should be of shape [batch_size x seq_len x hidden_size]
 
-        output = self.out(output)
+        output = self.out(gru_output)
         # output should be of shape [batch_size x seq_len x output_voc_size]
 
         # apply LogSoftmax along dimension 2 -> output_voc_size
