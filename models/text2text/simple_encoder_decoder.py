@@ -147,17 +147,11 @@ class SimpleEncoderDecoder(nn.Module):
             - input_voc_size: should correspond to the length of the vocabulary set of the input language
             - hidden size: size of the embedding & hidden states vectors.
             - output_voc_size: should correspond to the length of the vocabulary set of the output language
-            - use_teacher_forcing: see below
         """
         # call base constructor
         super(SimpleEncoderDecoder, self).__init__()
 
         self.max_length = params['max_length']
-
-        # 'teacher forcing' param: “Teacher forcing” is the concept of using the real target outputs
-        # as each next input, instead of using the decoder’s guess as the next input.
-        # -> Is used to switch between training & inference
-        self.use_teacher_forcing = params['use_teacher_forcing']
 
         # parse params to create encoder
         self.input_voc_size = params['input_voc_size']
@@ -198,12 +192,12 @@ class SimpleEncoderDecoder(nn.Module):
         # decoder
         decoder_hidden = encoder_hidden
 
-        if self.use_teacher_forcing:
+        if self.training:
             # teacher_forcing: feed the target as the next input -> equivalent to training
             decoder_input = targets
             decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
 
-        else: # without teacher_forcing: use its own predictions as the next input -> equivalent to inference
+        else:  # without teacher_forcing: use its own predictions as the next input -> equivalent to inference
             decoder_input = torch.zeros_like(targets).type(dtype)
             decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
 
@@ -241,7 +235,7 @@ if __name__ == '__main__':
 
     # instantiate model with credible parameters
     model_params = {'max_length': 10, 'input_voc_size': input_voc_size, 'hidden_size': 256,
-                    'output_voc_size': output_voc_size, 'use_teacher_forcing': False}
+                    'output_voc_size': output_voc_size}
     net = SimpleEncoderDecoder(model_params)
 
     # generate a batch
