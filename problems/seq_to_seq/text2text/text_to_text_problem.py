@@ -14,19 +14,17 @@ import torch
 import torch.nn as nn
 from problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
 
-_TextAuxTuple = collections.namedtuple('TextAuxTuple', ('mask', 'inputs_text', 'outputs_text'))
+_TextAuxTuple = collections.namedtuple('TextAuxTuple', ('inputs_text', 'outputs_text', 'input_lang', 'output_lang'))
 
 
 class TextAuxTuple(_TextAuxTuple):
     """
     Tuple used for storing batches of data by text to text sequential problems.
     Contains two elements:
-     - padding mask indicating which elements in the sequence were added to deal with variable lengths sequence
-        -> would be of the form [1 1 1 1...0 0] with 0s indicating the padding elements.
      - text input sentence (e.g. string in input language for translation)
      - text output sentence (e.g. string in output language for translation
-
-     TODO: Anything else?
+     - Lang() instance of the input language
+     - Lang() instance of the output language
     """
     __slots__ = ()
 
@@ -85,24 +83,28 @@ class TextToTextProblem(SeqToSeqProblem):
 
         return bleu_score / data_tuple.inputs.size(0)
 
-    #def evaluate_loss(self, data_tuple, logits, aux_tuple):
-    #    """
-    #    Computes loss.
-    #    By default, the loss function is the Negative Log Likelihood function.
-    #    The input given through a forward call is expected to contain log-probabilities (LogSoftmax) of each class.
-    #    The input has to be a Tensor of size either (batch_size, C) or (batch_size, C, d1, d2,...,dK) with K ≥ 2 for the
-    #    K-dimensional case.
-    #    The target that this loss expects is a class index (0 to C-1, where C = number of classes).
-    #
-    #    :param data_tuple: Data tuple containing inputs and targets.
-    #    :param logits: Logits being output of the model.
-    #    :param aux_tuple: Auxiliary tuple containing mask.
-    #    :return: loss
-    #    """
-    #
-    #    loss = 0
-    #
-    #    # TODO, thinking about using the categorical cross entropy.
+    def evaluate_loss(self, data_tuple, logits, aux_tuple):
+        """
+        Computes loss.
+        By default, the loss function is the Negative Log Likelihood function.
+        The input given through a forward call is expected to contain log-probabilities (LogSoftmax) of each class.
+        The input has to be a Tensor of size either (batch_size, C) or (batch_size, C, d1, d2,...,dK) with K ≥ 2 for the
+        K-dimensional case.
+        The target that this loss expects is a class index (0 to C-1, where C = number of classes).
+
+        :param data_tuple: Data tuple containing inputs and targets.
+        :param logits: Logits being outputs of the model.
+        :param aux_tuple: Auxiliary tuple containing mask.
+        :return: loss
+        """
+
+        # logits should be of shape [batch_size x output_size x seq_length]
+        # target should be of shape [batch_size x seq_length]
+        batch_size = data_tuple.targets.size(0)
+        seq_length = data_tuple.targets.size(1)
+        loss = self.loss_function(logits.view(batch_size, -1, seq_length), data_tuple.targets)
+
+        return loss
 
     def set_max_length(self, max_length):
         """ Sets maximum sequence lenth (property).
@@ -113,24 +115,23 @@ class TextToTextProblem(SeqToSeqProblem):
 
     def add_statistics(self, stat_col):
         """
-        Add BLEU score and seq_length statistics to collector.
+        Add BLEU score to collector.
 
         :param stat_col: Statistics collector.
         """
-        stat_col.add_statistic('bleu', '{:12.10f}')
-        stat_col.add_statistic('seq_length', '{:d}')
+        stat_col.add_statistic('bleu_score', '{:4.5f}')
 
     def collect_statistics(self, stat_col, data_tuple, logits, aux_tuple):
         """
-        Collects BLEU score & seq_length.
+        Collects BLEU score.
 
         :param stat_col: Statistics collector.
         :param data_tuple: Data tuple containing inputs and targets.
         :param logits: Logits being output of the model.
-        :param aux_tuple: auxiliary tuple (aux_tuple) is not used in this function.
+        :param aux_tuple: auxiliary tuple (aux_tuple).
         """
-        stat_col['bleu'] = self.compute_BLEU_score(data_tuple, logits, aux_tuple)
-        stat_col['seq_length'] = aux_tuple.seq_length
+        _, logits = logits.topk(k=1, dim=2)
+        stat_col['bleu_score'] = self.compute_BLEU_score(data_tuple, logits.squeeze(), aux_tuple, output_lang=aux_tuple.output_lang)
 
     def show_sample(self, data_tuple, aux_tuple, sample_number=0):
         """ Shows the sample (both input and target sequences) using matplotlib.

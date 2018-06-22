@@ -59,5 +59,9 @@ class ModelFactory(object):
         elif name == 'alexnet':
             from models.vision.alexnet_wrapper import AlexnetWrapper
             return AlexnetWrapper(params)
+        elif name == 'simple_encoder_decoder':
+            sys.path.append(os.path.join(os.path.dirname(__file__),  'simple_encoder_solver'))
+            from models.text2text.simple_encoder_decoder import SimpleEncoderDecoder
+            return SimpleEncoderDecoder(params)
         else:
             raise ValueError

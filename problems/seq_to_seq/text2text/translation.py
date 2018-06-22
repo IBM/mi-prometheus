@@ -231,8 +231,8 @@ class Translation(TextToTextProblem, Lang):
             indexes = random.sample(population=range(len(self.tensor_pairs)), k=self.batch_size)
 
         # create main batch inputs & outputs tensor
-        inputs = torch.zeros([self.batch_size, self.max_sequence_length])
-        targets = torch.zeros([self.batch_size, self.max_sequence_length])
+        inputs = torch.zeros([self.batch_size, self.max_sequence_length], dtype=torch.long)
+        targets = torch.zeros([self.batch_size, self.max_sequence_length], dtype=torch.long)
 
         # for TextAuxTuple
         inputs_text = []
@@ -249,7 +249,7 @@ class Translation(TextToTextProblem, Lang):
 
         # Return tuples.
         data_tuple = DataTuple(inputs, targets)
-        aux_tuple = TextAuxTuple(0, inputs_text, outputs_text)
+        aux_tuple = TextAuxTuple(inputs_text, outputs_text, self.input_lang, self.output_lang)
 
         return data_tuple, aux_tuple
 
