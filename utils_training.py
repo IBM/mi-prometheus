@@ -25,10 +25,7 @@ def forward_step(model, problem, episode, stat_col, data_tuple,  aux_tuple,  use
 
     # Collect other (potential) statistics from problem & model.
     problem.collect_statistics(stat_col, data_tuple, logits, aux_tuple)
-    #model.collect_statistics(stat_col, data_tuple, logits)
-
-    # accuracy = problem.calculate_accuracy(logits, data_tuple, aux_tuple)
-    # TODO: move accuracy to problem statistics.
+    model.collect_statistics(stat_col, data_tuple, logits)
 
     # Return tuple: logits, loss.
     return logits, loss 

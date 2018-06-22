@@ -119,7 +119,7 @@ if __name__ == '__main__':
     stat_col = StatisticsCollector()
     # Add model/problem dependent statistics.
     problem.add_statistics(stat_col)
-    #model.add_statistics(stat_col)
+    model.add_statistics(stat_col)
 
     # Create test output csv file.
     test_file = stat_col.initialize_csv_file(abs_path, '/test.csv')
@@ -136,7 +136,7 @@ if __name__ == '__main__':
             stat_col.export_statistics_to_csv(test_file)
 
             if app_state.visualize:
-                is_closed = model.plot_sequence(data_tuple,  logits)
+                is_closed = model.plot(data_tuple,  logits)
                 if is_closed:
                     break
             else:

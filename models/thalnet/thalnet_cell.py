@@ -1,16 +1,19 @@
 import torch
 from torch import nn
 import collections
-from models.thalnet.module import Module
+from models.thalnet.thalnet_module import ThalnetModule
 
 
 class ThalNetCell(nn.Module):
+    """ @Younes: MODEL DESCRIPTION GOES HERE! """
     def __init__(self,
                  input_size,
                  output_size,
                  context_input_size,
                  center_size_per_module,
                  num_modules):
+        # Call base class inits here.
+        super(ThalNetCell, self).__init__()
 
         self.context_input_size = context_input_size
         self.input_size = input_size
@@ -18,18 +21,17 @@ class ThalNetCell(nn.Module):
         self.center_size = num_modules * center_size_per_module
         self.center_size_per_module = center_size_per_module
         self.num_modules = num_modules
-        super(ThalNetCell, self).__init__()
 
         # init module-center cell
         self.modules_thalnet = nn.ModuleList()
 
-        self.modules_thalnet.append(Module(center_size=self.center_size,
+        self.modules_thalnet.append(ThalnetModule(center_size=self.center_size,
                             context_size=self.context_input_size,
                             center_size_per_module=self.center_size_per_module,
                             input_size=self.input_size,
                             output_size=0))
 
-        self.modules_thalnet.extend([Module(center_size=self.center_size,
+        self.modules_thalnet.extend([ThalnetModule(center_size=self.center_size,
                             context_size=self.context_input_size,
                             center_size_per_module=self.center_size_per_module,
                             input_size=0,

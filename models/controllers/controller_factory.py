@@ -23,19 +23,19 @@ class ControllerFactory(object):
         # Try to load model
         name = params['name']
         if name == 'lstm':
-            from lstm_controller import LSTMController
+            from models.controllers.lstm_controller import LSTMController
             return LSTMController(params)
         elif name == 'rnn':
-            from rnn_controller import RNNController
+            from models.controllers.rnn_controller import RNNController
             return RNNController(params)
         elif name == 'ffn':
-            from feedforward_controller import FeedforwardController
+            from models.controllers.feedforward_controller import FeedforwardController
             return FeedforwardController(params)
         elif name == 'gru':
-            from gru_controller import GRUController
+            from models.controllers.gru_controller import GRUController
             return GRUController(params)
         elif name == 'ffgru':
-            from ffgru_controller import FFGRUController
+            from models.controllers.ffgru_controller import FFGRUController
             return FFGRUController(params)
         else:
             raise ValueError

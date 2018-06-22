@@ -7,12 +7,15 @@ from enum import Enum
 import torch
 from torch import nn
 from torch.autograd import Variable
-from misc.app_state import AppState
-from models.model_base import ModelBase
+
+# Add path to main project directory - so we can test the base plot, saving images, movies etc.
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
+from models.sequential_model import SequentialModel
 
 
-class ESLSTM(ModelBase, nn.Module):
-    '''  Class representing the Neural Turing Machine module. '''
+class EncoderSolverSLSTM(SequentialModel):
+    '''  Class representing the Encoder-Solver architecture using LSTM cells as both encoder and solver modules. '''
 
     def __init__(self, params):
         '''
@@ -25,7 +28,7 @@ class ESLSTM(ModelBase, nn.Module):
         :param params: Dictionary of parameters.
         '''
         # Call base constructor.
-        super(ESLSTM, self).__init__()
+        super(EncoderSolverSLSTM, self).__init__(params)
 
         # Parse parameters.
         # Set input and output sizes. 
