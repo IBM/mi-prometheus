@@ -28,7 +28,7 @@ from misc.param_interface import ParamInterface
 
 # Import problems factory and data tuple.
 from problems.problem_factory import ProblemFactory
-from utils_training import forward_step
+from utils_worker import forward_step, check_and_set_cuda
 
 
 def save_model(model, episode,   model_dir):
@@ -54,7 +54,7 @@ def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
 
     # Calculate loss of the validation data.
     with torch.no_grad():
-        logits_valid, loss_valid = forward_step(model, problem, episode, stat_col, data_valid, aux_valid, use_CUDA)
+        logits_valid, loss_valid = forward_step(model, problem, episode, stat_col, data_valid, aux_valid)
 
     # Log to logger.
     logger.info(stat_col.export_statistics_to_string('[Validation]'))
@@ -222,21 +222,8 @@ if __name__ == '__main__':
     if FLAGS.visualize is not None:
         app_state.visualize = True
 
-    use_CUDA=False
-    # Determine if CUDA is to be used.
-    if torch.cuda.is_available():
-        try:  # If the 'cuda' key is not present, catch the exception and do nothing
-            if param_interface['problem_train']['cuda']:
-                use_CUDA = True
-                app_state.dtype=torch.cuda.FloatTensor
-                app_state.dtype_long=torch.cuda.LongTensor
-                logger.info('Running with CUDA enabled')
-        except KeyError:
-            pass
-    elif param_interface['problem_train']['cuda']:
-        logger.info('CUDA is enabled but there is no available device')
-
-
+    # check if CUDA is available turn it on
+    check_and_set_cuda(param_interface['problem_train'], logger) 
 
     # Build problem for the training
     problem = ProblemFactory.build_problem(param_interface['problem_train'])
@@ -253,7 +240,7 @@ if __name__ == '__main__':
 
     # Build the model.
     model = ModelFactory.build_model(param_interface['model'])
-    model.cuda() if use_CUDA else None
+    model.cuda() if app_state.use_CUDA else None
 
     # Set optimizer.
     optimizer_conf = dict(param_interface['optimizer'])
@@ -316,7 +303,7 @@ if __name__ == '__main__':
             app_state.visualize = False
 
         # 1. Perform forward step, calculate logits and loss.
-        logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple, use_CUDA)
+        logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple)
 
         # Store the calculated loss on a list.
         last_losses.append(loss)

@@ -326,7 +326,7 @@ class NTMInterface(torch.nn.Module):
 
         # Check whether inputs are already on GPU or not.
         #dtype = torch.cuda.LongTensor if attention_BxAx1.is_cuda else torch.LongTensor
-        dtype = AppState().dtype_long
+        dtype = AppState().LongTensor
 
         # Get number of memory addresses and batch size.
         batch_size =prev_memory_BxAxC.size(0) 
