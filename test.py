@@ -28,7 +28,6 @@ from utils_training import forward_step
 
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
-use_CUDA=False
 
 if __name__ == '__main__':
     # Create parser with list of  runtime arguments.
@@ -96,13 +95,19 @@ if __name__ == '__main__':
     if param_interface["settings"]["seed_numpy"] != -1:
         np.random.seed(param_interface["settings"]["seed_numpy"])
 
+    use_CUDA=False
     # Determine if CUDA is to be used.
     if torch.cuda.is_available():
         try:  # If the 'cuda' key is not present, catch the exception and do nothing
             if param_interface['problem_test']['cuda']:
                 use_CUDA = True
+                app_state.dtype=torch.cuda.FloatTensor
+                app_state.dtype_long=torch.cuda.LongTensor
+                logger.info('Running with CUDA enabled')
         except KeyError:
             pass
+    elif param_interface['problem_test']['cuda']:
+        logger.info('CUDA is enabled but there is no available device')
 
     # Build new problem
     problem = ProblemFactory.build_problem(param_interface['problem_test'])

@@ -30,8 +30,6 @@ from misc.param_interface import ParamInterface
 from problems.problem_factory import ProblemFactory
 from utils_training import forward_step
 
-use_CUDA = False
-
 
 def save_model(model, episode,   model_dir):
     """
@@ -224,6 +222,7 @@ if __name__ == '__main__':
     if FLAGS.visualize is not None:
         app_state.visualize = True
 
+    use_CUDA=False
     # Determine if CUDA is to be used.
     if torch.cuda.is_available():
         try:  # If the 'cuda' key is not present, catch the exception and do nothing
@@ -231,9 +230,11 @@ if __name__ == '__main__':
                 use_CUDA = True
                 app_state.dtype=torch.cuda.FloatTensor
                 app_state.dtype_long=torch.cuda.LongTensor
+                logger.info('Running with CUDA enabled')
         except KeyError:
             pass
-
+    elif param_interface['problem_train']['cuda']:
+        logger.info('CUDA is enabled but there is no available device')
 
 
 
