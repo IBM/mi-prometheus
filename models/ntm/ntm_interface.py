@@ -230,16 +230,16 @@ class NTMInterface(torch.nn.Module):
         # Produce gating param.
         gate_Bx1x1 = F.sigmoid(gate_Bx1).unsqueeze(2)
         # Produce location-addressing params.
-        shift_BxSx1_tmp = F.softmax(shift_BxS, dim=1).unsqueeze(2)
+        shift_BxSx1 = F.softmax(shift_BxS, dim=1).unsqueeze(2)
         # Gamma - oneplus.
         gamma_Bx1x1 =F.softplus(gamma_Bx1).unsqueeze(2) +1
         # Truncate gamma to  range 1-50
         #gamma_Bx1x1 = torch.clamp(F.softplus(gamma_Bx1 + 1), 1, 50).unsqueeze(2)
 
-        dtype = AppState().dtype
         # HARD SHIFT! TODO: Remove!
-        shift_BxSx1 = torch.zeros_like(shift_BxSx1_tmp,  requires_grad= False).type(dtype)
-        shift_BxSx1[:, -1, 0] = 1
+        #dtype = AppState().dtype
+        #shift_BxSx1 = torch.zeros_like(shift_BxSx1_tmp,  requires_grad= False).type(dtype)
+        #shift_BxSx1[:, -1, 0] = 1
 
         # Content-based addressing.
         content_attention_BxAx1 = self.content_based_addressing(query_vector_Bx1xC,  beta_Bx1x1,  prev_memory_BxAxC)
