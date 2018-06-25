@@ -7,7 +7,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import collections
-
+from misc.app_state import AppState
 
 _LSTMStateTuple = collections.namedtuple('LSTMStateTuple', ('hidden_state', 'cell_state'))
 class LSTMStateTuple(_LSTMStateTuple):
@@ -31,13 +31,14 @@ class LSTMController(nn.Module):
       
         self.lstm=nn.LSTMCell(self.input_size, self.ctrl_hidden_state_size)
         
-    def init_state(self,  batch_size,dtype):
+    def init_state(self,  batch_size):
         """
         Returns 'zero' (initial) state tuple.
         
         :param batch_size: Size of the batch in given iteraction/epoch.
         :returns: Initial state tuple - object of LSTMStateTuple class.
         """
+        dtype = AppState().dtype
         # Initialize LSTM hidden state [BATCH_SIZE x CTRL_HIDDEN_SIZE].
         hidden_state = torch.zeros((batch_size, self.ctrl_hidden_state_size), requires_grad = False).type(dtype)
         # Initialize LSTM memory cell [BATCH_SIZE x CTRL_HIDDEN_SIZE].

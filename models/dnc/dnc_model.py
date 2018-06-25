@@ -60,7 +60,7 @@ class DNC(SequentialModel):
 
         (inputs, targets) = data_tuple
 
-        dtype = torch.cuda.FloatTensor if inputs.is_cuda else torch.FloatTensor
+        dtype = AppState().dtype
 
         output = None
 
@@ -76,7 +76,7 @@ class DNC(SequentialModel):
             memory_addresses_size = seq_length  # a hack for now
 
         # init state
-        cell_state = self.DNCCell.init_state(memory_addresses_size,batch_size,dtype)
+        cell_state = self.DNCCell.init_state(memory_addresses_size,batch_size)
 
 
         #cell_state = self.init_state(memory_addresses_size)

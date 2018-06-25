@@ -74,7 +74,7 @@ class Controller(nn.Module):
 
         #rest parameters
         #self.reset_parameters()
-    def init_state(self,  batch_size, dtype):
+    def init_state(self,  batch_size):
         """
         Returns 'zero' (initial) state tuple.
         
@@ -86,7 +86,7 @@ class Controller(nn.Module):
         # Initialize LSTM memory cell [BATCH_SIZE x CTRL_HIDDEN_SIZE].
        # cell_state = torch.zeros(batch_size, self.ctrl_hidden_state_size, requires_grad=False)
 
-        return self.tm_i2s.init_state(batch_size, dtype)
+        return self.tm_i2s.init_state(batch_size)
 
     def forward(self, tm_input, prev_ctrl_state_tuple, read_data):
         """

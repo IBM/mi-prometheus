@@ -1,6 +1,5 @@
 import torch
-CUDA = False
-dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
+from misc.app_state import AppState
 
 # Ensure values are greater than epsilon to avoid numerical instability.
 _EPSILON = 1e-6
@@ -26,7 +25,7 @@ class MemoryUsage(object):
         super(MemoryUsage, self).__init__()
         self._memory_size = memory_size
   
-    def init_state(self, memory_address_size,  batch_size,dtype):
+    def init_state(self, memory_address_size, batch_size):
         """
         Returns 'zero' (initial) state tuple.
         
@@ -34,6 +33,7 @@ class MemoryUsage(object):
         :returns: Initial state tuple - object of InterfaceStateTuple class.
         """
         # links NEED TO UPDATE SIZE [BATCH_SIZE x MEMORY_SIZE]
+        dtype = AppState().dtype
         self._memory_size=memory_address_size
 
         usage = torch.zeros((batch_size,  memory_address_size)).type(dtype)
@@ -166,7 +166,7 @@ class MemoryUsage(object):
         return unsorted_all
     def exclusive_cumprod_temp(self, sorted_usage, dim=1):
         #TODO: expand this so it works for any dim
-        dtype = torch.cuda.FloatTensor if sorted_usage.is_cuda else torch.FloatTensor
+        dtype = AppState().dtype
         a=torch.ones((sorted_usage.shape[0],1)).type(dtype)
         b=torch.cat((a,sorted_usage),dim=dim).type(dtype)
         prod_sorted_usage = torch.cumprod(b, dim=dim)[:,:-1]

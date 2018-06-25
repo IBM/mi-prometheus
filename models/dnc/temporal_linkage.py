@@ -1,5 +1,6 @@
 import torch
 import collections 
+from misc.app_state import AppState
 
 _TemporalLinkageState = collections.namedtuple('TemporalLinkageState',
                                               ('link', 'precedence_weights'))
@@ -7,10 +8,6 @@ _TemporalLinkageState = collections.namedtuple('TemporalLinkageState',
 class TemporalLinkageState(_TemporalLinkageState):
     """Tuple used by interface for storing current/past state information"""
     __slots__ = ()
-
-
-CUDA = False
-dtype = torch.cuda.FloatTensor if CUDA else torch.FloatTensor
 
 
 class TemporalLinkage():
@@ -35,7 +32,7 @@ class TemporalLinkage():
         self._memory_size = memory_size
         self._num_writes = num_writes
         
-    def init_state(self, memory_address_size,  batch_size,dtype):
+    def init_state(self, memory_address_size,  batch_size):
         """
         Returns 'zero' (initial) state tuple.
         
@@ -43,6 +40,7 @@ class TemporalLinkage():
         :returns: Initial state tuple - object of InterfaceStateTuple class.
         """
                 # links NEED TO UPDATE SIZE [BATCH_SIZE x MEMORY_SIZE]
+        dtype = AppState().dtype
         self._memory_size = memory_address_size
         link = torch.ones((batch_size, self._num_writes, memory_address_size, memory_address_size)).type(dtype)*1e-6
         

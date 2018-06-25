@@ -218,19 +218,24 @@ if __name__ == '__main__':
     if param_interface["settings"]["seed_numpy"] != -1:
         np.random.seed(param_interface["settings"]["seed_numpy"])
 
+        # Initialize the application state singleton.
+    app_state = AppState()
+    # If we are going to use SOME visualization - set flag to True now, before creation of problem and model objects.
+    if FLAGS.visualize is not None:
+        app_state.visualize = True
+
     # Determine if CUDA is to be used.
     if torch.cuda.is_available():
         try:  # If the 'cuda' key is not present, catch the exception and do nothing
             if param_interface['problem_train']['cuda']:
                 use_CUDA = True
+                app_state.dtype=torch.cuda.FloatTensor
+                app_state.dtype_long=torch.cuda.LongTensor
         except KeyError:
             pass
 
-    # Initialize the application state singleton.
-    app_state = AppState()
-    # If we are going to use SOME visualization - set flag to True now, before creation of problem and model objects.
-    if FLAGS.visualize is not None:
-        app_state.visualize = True
+
+
 
     # Build problem for the training
     problem = ProblemFactory.build_problem(param_interface['problem_train'])

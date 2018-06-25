@@ -6,6 +6,7 @@ import collections
 
 from models.dwm.tensor_utils import circular_conv, normalize
 from models.dwm.memory import Memory
+from misc.app_state import AppState
 
 # Helper collection type.
 _InterfaceStateTuple = collections.namedtuple('InterfaceStateTuple', ('head_weight', 'snapshot_weight'))
@@ -39,16 +40,17 @@ class Interface:
         lengths = np.fromiter(self.param_dict.values(), dtype=int)
         self.cum_lengths = np.cumsum(np.insert(lengths, 0, 0), dtype=int).tolist()
 
-    def init_state(self, memory_addresses_size, batch_size, dtype):
+    def init_state(self, memory_addresses_size, batch_size):
         """
         Returns 'zero' (initial) state of Interface tuple.
 
         :param batch_size: Size of the batch in given iteraction/epoch.
         :param memory_addresses_size
-        :param dtype
         :returns: Initial state tuple - object of InterfaceStateTuple class: (head_weight_init, snapshot_weight_init)
 
         """
+        dtype = AppState().dtype
+
         # initial attention  vector
         head_weight_init = torch.zeros((batch_size, self.num_heads, memory_addresses_size)).type(dtype)
         head_weight_init[:, 0:self.num_heads, 0] = 1.0

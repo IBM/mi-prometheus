@@ -3,6 +3,7 @@ from torch import nn
 from models.dwm.controller import Controller
 from models.dwm.interface import Interface
 import collections
+from misc.app_state import AppState
 
 # Helper collection type.
 _DWMCellStateTuple = collections.namedtuple('DWMStateTuple', ('ctrl_state', 'interface_state',  'memory_state'))
@@ -38,13 +39,14 @@ class DWMCell(nn.Module):
         self.controller = Controller(in_dim, output_units, state_units,
                                      self.interface.read_size, self.interface.update_size)
 
-    def init_state(self, memory_addresses_size, batch_size, dtype):
+    def init_state(self, memory_addresses_size, batch_size):
+        dtype = AppState().dtype
 
         # Initialize controller state.
-        tuple_ctrl_init_state = self.controller.init_state(batch_size, dtype)
+        tuple_ctrl_init_state = self.controller.init_state(batch_size)
 
         # Initialize interface state.
-        tuple_interface_init_state = self.interface.init_state(memory_addresses_size, batch_size, dtype)
+        tuple_interface_init_state = self.interface.init_state(memory_addresses_size, batch_size)
 
         # Initialize memory
         mem_init = (torch.ones((batch_size, self.M, memory_addresses_size)) * 0.01).type(dtype)

@@ -9,6 +9,7 @@ from torch import nn
 import torch.nn.functional as F
 import numpy as np
 import collections
+from misc.app_state import AppState
 
 _RNNStateTuple = collections.namedtuple('RNNStateTuple', ('hidden_state'))
 class RNNStateTuple(_RNNStateTuple):
@@ -34,7 +35,7 @@ class RNNController(nn.Module):
         full_size=self.input_size+self.ctrl_hidden_state_size
         self.rnn=nn.Linear(full_size, self.ctrl_hidden_state_size)
     
-    def init_state(self,  batch_size,dtype):
+    def init_state(self,  batch_size):
         """
         Returns 'zero' (initial) state tuple.
         
@@ -42,6 +43,7 @@ class RNNController(nn.Module):
         :returns: Initial state tuple - object of RNNStateTuple class.
         """
         # Initialize LSTM hidden state [BATCH_SIZE x CTRL_HIDDEN_SIZE].
+        dtype = AppState().dtype
         hidden_state = torch.zeros((batch_size, self.ctrl_hidden_state_size), requires_grad=False).type(dtype)
 
         return RNNStateTuple(hidden_state)        

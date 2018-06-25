@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import collections
 from models.thalnet.thalnet_module import ThalnetModule
-
+from misc.app_state import AppState
 
 class ThalNetCell(nn.Module):
     """ @Younes: MODEL DESCRIPTION GOES HERE! """
@@ -38,10 +38,11 @@ class ThalNetCell(nn.Module):
                             output_size=self.output_size if i == self.num_modules - 1 else 0)
                                  for i in range(1, self.num_modules)])
 
-    def init_state(self, batch_size, dtype):
+    def init_state(self, batch_size):
+
 
         # module and center state initialisation
-        states = [self.modules_thalnet[i].init_state(batch_size, dtype) for i in range(self.num_modules)]
+        states = [self.modules_thalnet[i].init_state(batch_size) for i in range(self.num_modules)]
 
         return states
 

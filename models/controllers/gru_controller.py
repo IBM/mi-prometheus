@@ -7,7 +7,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import collections
-
+from misc.app_state import AppState
 
 _GRUStateTuple = collections.namedtuple('GRUStateTuple', ('hidden_state'))
 class GRUStateTuple(_GRUStateTuple):
@@ -31,7 +31,7 @@ class GRUController(nn.Module):
       
         self.gru = nn.GRUCell(self.input_size, self.ctrl_hidden_state_size)
         
-    def init_state(self, batch_size, dtype):
+    def init_state(self, batch_size):
         """
         Returns 'zero' (initial) state tuple.
         
@@ -40,6 +40,7 @@ class GRUController(nn.Module):
         :returns: Initial state tuple - object of GRUStateTuple class.
         """
         # Initialize GRU hidden state [BATCH_SIZE x CTRL_HIDDEN_SIZE].
+        dtype = AppState().dtype
         hidden_state = torch.zeros((batch_size, self.ctrl_hidden_state_size), requires_grad=False).type(dtype)
 
         return GRUStateTuple(hidden_state)
