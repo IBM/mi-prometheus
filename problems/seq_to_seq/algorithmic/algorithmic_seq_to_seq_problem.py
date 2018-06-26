@@ -49,29 +49,15 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         :param aux_tuple: Auxiliary tuple containing mask.        
         """
 
-        # Check if mask should be is used - if so, apply. TODO!
-        masked_logits = logits[:, aux_tuple.mask[0], :]
-        masked_targets = data_tuple.targets[:, aux_tuple.mask[0], :]
+        # Check if mask should be is used - if so, apply.
+        if (self.use_mask):
+            masked_logits = logits[:, aux_tuple.mask[0], :]
+            masked_targets = data_tuple.targets[:, aux_tuple.mask[0], :]
+        else:
+            masked_logits = logits
+            masked_targets = data_tuple.targets            
 
         return (1 - torch.abs(torch.round(F.sigmoid(masked_logits)) - masked_targets)).mean()
-
-    def evaluate_loss(self, data_tuple, logits, aux_tuple):
-        """ Calculates loss.
-        WARNING: Applies mask (from aux_tuple) to both logits and targets!
-        
-        :param logits: Logits being output of the model.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param aux_tuple: Auxiliary tuple containing mask.
-        """
-        # Check if mask should be is used - if so, apply. TODO!
-        masked_logits = logits[:, aux_tuple.mask[0], :]
-        masked_targets = data_tuple.targets[:, aux_tuple.mask[0], :]
-
-        # Compute loss using the provided criterion.
-        loss = self.loss_function(masked_logits, masked_targets)
-
-        return loss
-
 
     def turn_on_cuda(self, data_tuple, aux_tuple):
         """ Enables computations on GPU - copies all the matrices to GPU.

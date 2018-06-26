@@ -18,6 +18,10 @@ class SeqToSeqProblem(Problem):
         """
         super(SeqToSeqProblem, self).__init__(params)
 
+        # Check if predictions/targets should be masked.
+        self.use_mask = params.get("use_mask", True) # TODO: Set false as default!
+        print("use mask =",self.use_mask)
+
     def evaluate_loss(self, data_tuple, logits, aux_tuple):
         """ Calculates accuracy equal to mean number of correct predictions in a given batch.
         WARNING: Applies mask (from aux_tuple) to both logits and targets!
@@ -26,9 +30,13 @@ class SeqToSeqProblem(Problem):
         :param data_tuple: Data tuple containing inputs and targets.
         :param aux_tuple: Auxiliary tuple containing mask.
         """
-        # Check if mask should be is used - if so, apply. TODO!
-        masked_logits = logits[:, aux_tuple.mask[0], :]
-        masked_targets = data_tuple.targets[:, aux_tuple.mask[0], :]
+        # Check if mask should be is used - if so, apply.
+        if (self.use_mask):
+            masked_logits = logits[:, aux_tuple.mask[0], :]
+            masked_targets = data_tuple.targets[:, aux_tuple.mask[0], :]
+        else:
+            masked_logits = logits
+            masked_targets = data_tuple.targets            
 
         # Compute loss using the provided loss function between predictions/logits and targets!
         loss = self.loss_function(masked_logits, masked_targets)
