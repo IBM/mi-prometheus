@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""maes_module.py: File containing Memory Augmented Encoder-Solver main module."""
+"""maes_module.py: File containing Memory Augmented Encoder-Solver model class."""
 __author__ = "Tomasz Kornuta"
 
 from enum import Enum
@@ -10,10 +10,14 @@ from torch.autograd import Variable
 from misc.app_state import AppState
 from models.sequential_model import SequentialModel
 
+from models.encoder_solver.mae_cell import MAECell
+from models.encoder_solver.mas_cell import MASCell
+
+
 
 class MAES(SequentialModel):
     '''
-    Class implementing the Memory Augmented Encoder-Solver model. 
+    Class implementing the Memory Augmented Encoder-Solver (MAES) model. 
     '''
 
     def __init__(self, params):
@@ -30,46 +34,27 @@ class MAES(SequentialModel):
         super(MAES, self).__init__(params)
 
         # Parse parameters.
-        # Set input and output sizes. 
-        self.input_size = params["control_bits"] + params["data_bits"]
-        try:
-            self.output_size  = params['output_bits']
-        except KeyError:
-            self.output_size = params['data_bits']
-        self.hidden_state_dim = params["hidden_state_dim"]
-
         # Indices of control bits triggering encoding/decoding. 
         self.encoding_bit =  params['encoding_bit'] # Def: 0
         self.solving_bit =  params['solving_bit'] # Def: 1
 
-        # Create the Encoder.
-        self.encoder = nn.LSTMCell(self.input_size, self.hidden_state_dim) 
+        # It is stored here, but will we used ONLY ONCE - for initialization of memory called from the forward() function.
+        self.num_memory_addresses = params['memory']['num_addresses']
+        self.num_memory_content_bits = params['memory']['num_content_bits']
+
+        # Create the Encoder cell.
+        self.encoder = nn.MAECell(params) 
 
         # Create the Decoder/Solver.
-        self.solver = nn.LSTMCell(self.input_size, self.hidden_state_dim)
+        self.solver = nn.MASCell(params)
 
         # Output linear layer.
         self.output = nn.Linear(self.hidden_state_dim, self.output_size)
 
+        # Operation modes.
         self.modes = Enum('Modes', ['Encode', 'Solve'])
 
-    def init_state(self,  batch_size,  dtype):
-        """
-        Returns 'zero' (initial) state.
-        
-        :param batch_size: Size of the batch in given iteraction/epoch.
-        :param dtype: dtype of the matrix denoting the device placement (CPU/GPU).
-       :returns: Initial state tuple (hidden, memory cell).
-        """
 
-        # Initialize the hidden state.
-        h_init = Variable(torch.zeros(batch_size, self.hidden_state_dim).type(dtype), requires_grad=False)
-
-        # Initialize the memory cell state.
-        c_init = Variable(torch.zeros(batch_size, self.hidden_state_dim).type(dtype), requires_grad=False)
-        
-        # Pack and return a tuple.
-        return (h_init, c_init)
 
     def forward(self, data_tuple):
         """
@@ -98,19 +83,20 @@ class MAES(SequentialModel):
             # Squeeze x.
             x = x.squeeze(1)
 
-            #switch between the encoder and decoder modes. It will stay in this mode till it hits the opposite kind of marker
-            if x[0, self.solving_bit] and not x[0, self.encoding_bit]:
-                mode = self.modes.Solve
-            elif x[0, self.encoding_bit] and not x[0, self.solving_bit]:
+            # Switch between the encoder and decoder modes. It will stay in this mode till it hits the opposite kind of marker.
+            if x[0, self.encoding_bit] and not x[0, self.solving_bit]:
                 mode = self.modes.Encode
+            elif x[0, self.solving_bit] and not x[0, self.encoding_bit]:
+                mode = self.modes.Solve
             elif x[0, self.encoding_bit] and x[0, self.solving_bit]:
                 print('Error: both encoding and decoding bit were true')
                 exit(-1)
 
-            if mode == self.modes.Solve:
-                h, c = self.solver(x, (h, c))
-            elif mode == self.modes.Encode:
+            if mode == self.modes.Encode:
                 h, c = self.encoder(x, (h, c))
+            elif mode == self.modes.Solve:
+                h, c = self.solver(x, (h, c))
+
                             
             # Collect logits - whatever happens :] (BUT THIS CAN BE EASILY SOLVED - COLLECT LOGITS ONLY IN DECODER!!)
             logit = self.output(h)

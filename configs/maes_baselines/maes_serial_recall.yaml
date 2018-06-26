@@ -50,6 +50,9 @@ model:
     # Output bits = [data_bits]
     num_control_bits: *cbits
     num_data_bits: *dbits
+    # Indices of control bits triggering encoding/decoding.
+    encoding_bit: 0
+    solving_bit: 1
     # Controller parameters.
     controller:
         name: rnn

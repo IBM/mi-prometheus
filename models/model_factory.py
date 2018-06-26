@@ -48,7 +48,7 @@ class ModelFactory(object):
             return LSTM(params)
         elif name == 'maes':
             logger.info('Loading the MAES model from models.encoder_solver.maes_model')
-            #sys.path.append(os.path.join(os.path.dirname(__file__),  'encoder_solver'))
+            sys.path.append(os.path.join(os.path.dirname(__file__),  'encoder_solver'))
             from models.encoder_solver.maes_model import MAES
             return MAES(params)
         elif name == 'ntm':
