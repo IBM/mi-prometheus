@@ -46,7 +46,7 @@ problem_test:
 model:
     name: ntm
     # Optional parameter: visualization.
-    visualization_mode: 1
+    visualization_mode: 2
     # Input bits = [command_bits, data_bits]
     # Output bits = [data_bits]
     num_control_bits: *cbits

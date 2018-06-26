@@ -49,10 +49,11 @@ model:
     name: ntm
     # Optional parameter: visualization.
     visualization_mode: 2
-    # Input bits = [command_bits, data_bits]
-    # Output bits = [data_bits]
-    num_control_bits: *cbits
+    # Input bits = [control_bits, data_bits]
+    # Output bits = [1]
+    num_control_bits: *cbits 
     num_data_bits: *dbits
+    num_output_bits: *obits
     # Controller parameters.
     controller:
         name: rnn
@@ -65,7 +66,7 @@ model:
         shift_size: 3
     # Memory parameters.
     memory:
-        num_content_bits: 10
+        num_content_bits: 11
         num_addresses: -1
     
 # optimizer parameters:

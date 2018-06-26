@@ -33,9 +33,13 @@ class NTMCell(torch.nn.Module):
         super(NTMCell, self).__init__() 
         
         # Parse parameters.
-        # Get input and output  dimensions.
+        # Set input and output sizes. 
         self.input_size = params["num_control_bits"] + params["num_data_bits"]
-        self.output_size = params["num_data_bits"]
+        try:
+            self.output_size  = params['num_output_bits']
+        except KeyError:
+            self.output_size = params['num_data_bits']
+
         # Get controller hidden state size.
         self.controller_hidden_state_size = params['controller']['hidden_state_size']
         

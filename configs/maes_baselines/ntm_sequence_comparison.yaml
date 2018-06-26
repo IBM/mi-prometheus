@@ -2,7 +2,7 @@
 problem_train:
     name: &name maes_baselines/sequence_comparison_cl
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: &cbits 4
+    control_bits: &cbits 3
     data_bits: &dbits 8
     output_bits: &obits 1
     batch_size: &bs 64
@@ -49,10 +49,11 @@ model:
     name: ntm
     # Optional parameter: visualization.
     visualization_mode: 2
-    # Input bits = [command_bits, data_bits]
-    # Output bits = [data_bits]
-    num_control_bits: *cbits
+    # Input bits = [control_bits, data_bits]
+    # Output bits = [1]
+    num_control_bits: *cbits 
     num_data_bits: *dbits
+    num_output_bits: *obits
     # Controller parameters.
     controller:
         name: rnn
@@ -65,7 +66,7 @@ model:
         shift_size: 3
     # Memory parameters.
     memory:
-        num_content_bits: 10
+        num_content_bits: 11
         num_addresses: -1
     
 # optimizer parameters:
