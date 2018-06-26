@@ -8,6 +8,7 @@ import torch
 from torch import nn
 from torch.autograd import Variable
 from models.sequential_model import SequentialModel
+from misc.app_state import AppState
 
 class EncoderDecoderLSTM(SequentialModel):
     """Simple Encoder Decoder LSTM """
@@ -49,13 +50,16 @@ class EncoderDecoderLSTM(SequentialModel):
 
         self.modes = Enum('Modes', ['Encode', 'Decode'])
 
-    def init_state(self, batch_size, dtype):
+    def init_state(self, batch_size):
+
+
+        dtype = AppState().dtype
 
         # Initialize the hidden state.
-        h_init = Variable(torch.zeros(batch_size, self.hidden_state_dim).type(dtype), requires_grad=False)
+        h_init = torch.zeros(batch_size, self.hidden_state_dim, requires_grad=False).type(dtype)
 
         # Initialize the memory cell state.
-        c_init = Variable(torch.zeros(batch_size, self.hidden_state_dim).type(dtype), requires_grad=False)
+        c_init = torch.zeros(batch_size, self.hidden_state_dim, requires_grad=False).type(dtype)
 
         # Pack and return a tuple.
         return (h_init, c_init)
@@ -66,11 +70,8 @@ class EncoderDecoderLSTM(SequentialModel):
         (inputs, targets) = data_tuple
         batch_size = inputs.size(0)
 
-        # Check if the class has been converted to cuda (through .cuda() method)
-        dtype = torch.cuda.FloatTensor if next(self.encoder.parameters()).is_cuda else torch.FloatTensor
-
         # Initialize state variables.
-        (h, c) = self.init_state(batch_size, dtype)
+        (h, c) = self.init_state(batch_size)
 
         # Logits container.
         logits = []

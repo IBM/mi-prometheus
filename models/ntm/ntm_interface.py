@@ -13,6 +13,7 @@ logger = logging.getLogger('NTM-Interface')
 
 # Add path to main project directory.
 import os, sys
+from misc.app_state import AppState
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
 
 
@@ -84,16 +85,17 @@ class NTMInterface(torch.nn.Module):
        # Forward linear layer that generates parameters of write heads.
         self.hidden2write_params = torch.nn.Linear(self.ctrl_hidden_state_size,  num_write_params)
 
-    def init_state(self,  batch_size,  num_memory_addresses,  dtype):
+    def init_state(self,  batch_size,  num_memory_addresses):
         """
         Returns 'zero' (initial) state tuple.
         
         :param batch_size: Size of the batch in given iteraction/epoch.
         :param num_memory_addresses: Number of memory addresses.
-         :param dtype: dtype of the matrix denoting the device placement (CPU/GPU).
-       :returns: Initial state tuple - object of InterfaceStateTuple class.
+        :returns: Initial state tuple - object of InterfaceStateTuple class.
         """
+        dtype = AppState().dtype
         # Add read head states - one for each read head.
+        # TODO: U
         read_state_tuples = []
 
         # Initial  attention weights [BATCH_SIZE x MEMORY_ADDRESSES x 1]
@@ -234,8 +236,8 @@ class NTMInterface(torch.nn.Module):
         # Truncate gamma to  range 1-50
         #gamma_Bx1x1 = torch.clamp(F.softplus(gamma_Bx1 + 1), 1, 50).unsqueeze(2)
 
+        dtype = AppState().dtype
         # HARD SHIFT! TODO: Remove!
-        dtype = torch.cuda.FloatTensor if shift_BxSx1_tmp.is_cuda else torch.FloatTensor
         shift_BxSx1 = torch.zeros_like(shift_BxSx1_tmp,  requires_grad= False).type(dtype)
         shift_BxSx1[:, -1, 0] = 1
 
@@ -323,8 +325,9 @@ class NTMInterface(torch.nn.Module):
             else: return idx
 
         # Check whether inputs are already on GPU or not.
-        dtype = torch.cuda.LongTensor if attention_BxAx1.is_cuda else torch.LongTensor
-        
+        #dtype = torch.cuda.LongTensor if attention_BxAx1.is_cuda else torch.LongTensor
+        dtype = AppState().LongTensor
+
         # Get number of memory addresses and batch size.
         batch_size =prev_memory_BxAxC.size(0) 
         num_addr = prev_memory_BxAxC.size(1)

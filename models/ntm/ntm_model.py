@@ -13,6 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
 from models.sequential_model import SequentialModel
 from models.ntm.ntm_cell import NTMCell
 from problems.problem import DataTuple
+from misc.app_state import AppState
 
 class NTM(SequentialModel):
     '''
@@ -60,8 +61,6 @@ class NTM(SequentialModel):
 		# Unpack data tuple.
         (inputs_BxSxI, targets) = data_tuple
         
-        # Check whether inputs are already on GPU or not.
-        dtype = torch.cuda.FloatTensor if inputs_BxSxI.is_cuda else torch.FloatTensor
 
         # "Data-driven memory size".
         # Save as TEMPORAL VARIABLE! 
@@ -73,7 +72,7 @@ class NTM(SequentialModel):
             num_memory_addresses = self.num_memory_addresses
             
         # Initialize 'zero' state.
-        cell_state = self.ntm_cell.init_state(inputs_BxSxI.size(0),  num_memory_addresses,  dtype)
+        cell_state = self.ntm_cell.init_state(inputs_BxSxI.size(0),  num_memory_addresses)
 
         # List of output logits [BATCH_SIZE x OUTPUT_SIZE] of length SEQ_LENGTH
         output_logits_BxO_S = []

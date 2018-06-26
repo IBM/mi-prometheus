@@ -9,6 +9,7 @@ from ntm_interface import NTMInterface
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
 from controller_factory import ControllerFactory
+from misc.app_state import AppState
 
 # Helper collection type.
 _NTMCellStateTuple = collections.namedtuple('NTMCellStateTuple', ('ctrl_state', 'interface_state',  'memory_state', 'read_vectors'))
@@ -64,7 +65,7 @@ class NTMCell(torch.nn.Module):
         self.hidden2output = torch.nn.Linear(ext_hidden_size, self.output_size)
         
         
-    def init_state(self,  batch_size,  num_memory_addresses,  dtype):
+    def init_state(self,  batch_size,  num_memory_addresses):
         """
         Returns 'zero' (initial) state:
         * memory  is reset to random values.
@@ -73,14 +74,15 @@ class NTMCell(torch.nn.Module):
         
         :param batch_size: Size of the batch in given iteraction/epoch.
         :param num_memory_addresses: Number of memory addresses.
-        :param dtype: dtype of the matrix denoting the device placement (CPU/GPU).
-       :returns: Initial state tuple - object of NTMCellStateTuple class.
+        :returns: Initial state tuple - object of NTMCellStateTuple class.
         """
+        dtype = AppState().dtype
+
         # Initialize controller state.
-        ctrl_init_state =  self.controller.init_state(batch_size,  dtype)
+        ctrl_init_state =  self.controller.init_state(batch_size)
 
         # Initialize interface state. 
-        interface_init_state =  self.interface.init_state(batch_size,  num_memory_addresses,  dtype)
+        interface_init_state =  self.interface.init_state(batch_size,  num_memory_addresses)
 
         # Memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS] 
         init_memory_BxAxC = torch.zeros(batch_size,  num_memory_addresses,  self.num_memory_content_bits).type(dtype)

@@ -12,7 +12,7 @@ from torch.autograd import Variable
 import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
 from models.sequential_model import SequentialModel
-
+from misc.app_state import AppState
 
 class EncoderSolverSLSTM(SequentialModel):
     '''  Class representing the Encoder-Solver architecture using LSTM cells as both encoder and solver modules. '''
@@ -54,20 +54,19 @@ class EncoderSolverSLSTM(SequentialModel):
 
         self.modes = Enum('Modes', ['Encode', 'Solve'])
 
-    def init_state(self,  batch_size,  dtype):
+    def init_state(self,  batch_size):
         """
         Returns 'zero' (initial) state.
         
         :param batch_size: Size of the batch in given iteraction/epoch.
-        :param dtype: dtype of the matrix denoting the device placement (CPU/GPU).
-       :returns: Initial state tuple (hidden, memory cell).
+        :returns: Initial state tuple (hidden, memory cell).
         """
-
+        dtype = AppState().dtype
         # Initialize the hidden state.
-        h_init = Variable(torch.zeros(batch_size, self.hidden_state_dim).type(dtype), requires_grad=False)
+        h_init = torch.zeros(batch_size, self.hidden_state_dim, requires_grad=False).type(dtype)
 
         # Initialize the memory cell state.
-        c_init = Variable(torch.zeros(batch_size, self.hidden_state_dim).type(dtype), requires_grad=False)
+        c_init = torch.zeros(batch_size, self.hidden_state_dim, requires_grad=False).type(dtype)
         
         # Pack and return a tuple.
         return (h_init, c_init)
@@ -86,11 +85,9 @@ class EncoderSolverSLSTM(SequentialModel):
         (inputs, targets) = data_tuple
         batch_size = inputs.size(0)
 
-        # Check if the class has been converted to cuda (through .cuda() method)
-        dtype = torch.cuda.FloatTensor if next(self.encoder.parameters()).is_cuda else torch.FloatTensor
 
         # Initialize state variables.
-        (h, c) = self.init_state(batch_size, dtype)
+        (h, c) = self.init_state(batch_size)
 
         # Logits container.
         logits = []

@@ -10,7 +10,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
 
 from models.sequential_model import SequentialModel
 from models.dwm.dwm_cell import DWMCell
-
+from misc.app_state import AppState
 
 class DWM(SequentialModel):
     """Applies a DWM layer to an input sequences - what kind of description is that...? ;) """
@@ -90,11 +90,9 @@ class DWM(SequentialModel):
         else:
             memory_addresses_size = self.memory_addresses_size
 
-        # Set type
-        dtype = torch.cuda.FloatTensor if inputs.is_cuda else torch.FloatTensor
 
         # Init state
-        cell_state = self.DWMCell.init_state(memory_addresses_size, batch_size, dtype)
+        cell_state = self.DWMCell.init_state(memory_addresses_size, batch_size)
 
         # loop over the different sequences
         for j in range(seq_length):

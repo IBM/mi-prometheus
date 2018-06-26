@@ -3,7 +3,7 @@ from torch import nn
 import collections
 import os
 import sys
-
+from misc.app_state import AppState
 # Add path to main project directory - so we can test the base plot, saving images, movies etc.
 import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
@@ -48,9 +48,12 @@ class ThalnetModule(nn.Module):
 
         self.controller = ControllerFactory.build_model(controller_params)
 
-    def init_state(self, batch_size, dtype):
+    def init_state(self, batch_size):
+
+        dtype = AppState().dtype
+
         # module state initialisation
-        tuple_controller_states = self.controller.init_state(batch_size, dtype)
+        tuple_controller_states = self.controller.init_state(batch_size)
 
         # center state initialisation
         center_state_per_module = torch.randn((batch_size, self.center_size_per_module)).type(dtype)

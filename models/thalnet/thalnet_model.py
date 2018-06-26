@@ -47,9 +47,6 @@ class ThalNetModel(SequentialModel):
         """
         (inputs, _) = data_tuple
 
-        # Set type
-        dtype = torch.cuda.FloatTensor if inputs.is_cuda else torch.FloatTensor
-
         if self.app_state.visualize:
             self.cell_state_history = []
 
@@ -58,7 +55,7 @@ class ThalNetModel(SequentialModel):
         seq_length = inputs.size(-2)
 
         # init state
-        cell_state = self.ThalnetCell.init_state(batch_size, dtype)
+        cell_state = self.ThalnetCell.init_state(batch_size)
         for j in range(seq_length):
             output_cell, cell_state = self.ThalnetCell(inputs[..., j, :], cell_state)
 

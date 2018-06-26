@@ -24,11 +24,10 @@ from models.model_factory import ModelFactory
 from misc.app_state import AppState
 from misc.statistics_collector import StatisticsCollector
 from misc.param_interface import ParamInterface
-from utils_training import forward_step
+from utils_worker import forward_step, check_and_set_cuda
 
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
-use_CUDA=False
 
 if __name__ == '__main__':
     # Create parser with list of  runtime arguments.
@@ -96,20 +95,15 @@ if __name__ == '__main__':
     if param_interface["settings"]["seed_numpy"] != -1:
         np.random.seed(param_interface["settings"]["seed_numpy"])
 
-    # Determine if CUDA is to be used.
-    if torch.cuda.is_available():
-        try:  # If the 'cuda' key is not present, catch the exception and do nothing
-            if param_interface['problem_test']['cuda']:
-                use_CUDA = True
-        except KeyError:
-            pass
+    # Check is CUDA is available and turn it on
+    check_and_set_cuda(param_interface['problem_test'], logger)
 
     # Build new problem
     problem = ProblemFactory.build_problem(param_interface['problem_test'])
 
     # Build model
     model = ModelFactory.build_model(param_interface['model'])
-    model.cuda() if use_CUDA else None
+    model.cuda() if app_state.use_CUDA else None
 
     model.load_state_dict(
         torch.load(FLAGS.model, map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
@@ -128,7 +122,7 @@ if __name__ == '__main__':
     with torch.no_grad():
         for episode, (data_tuple, aux_tuple)  in enumerate(problem.return_generator()):
 
-            logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple, use_CUDA)
+            logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple)
 
             # Log to logger.
             logger.info(stat_col.export_statistics_to_string('[Test]'))

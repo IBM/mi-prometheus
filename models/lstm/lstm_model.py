@@ -6,7 +6,7 @@ from torch.autograd import Variable
 import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
 from models.sequential_model import SequentialModel
-
+from misc.app_state import AppState
 
 class LSTM(SequentialModel):
     def __init__(self, params):
@@ -35,14 +35,14 @@ class LSTM(SequentialModel):
     def forward(self, data_tuple):
         (x, targets) = data_tuple
         # Check if the class has been converted to cuda (through .cuda() method)
-        dtype = torch.cuda.FloatTensor if next(self.linear.parameters()).is_cuda else torch.FloatTensor
+        dtype = AppState().dtype
 
         # Create the hidden state tensors
-        h = [Variable(torch.zeros(x.size(0), self.hidden_state_dim).type(dtype), requires_grad=False)
+        h = [torch.zeros(x.size(0), self.hidden_state_dim, requires_grad = False).type(dtype)
                   for _ in range(self.num_layers)]
 
         # Create the internal state tensors
-        c = [Variable(torch.zeros(x.size(0), self.hidden_state_dim).type(dtype), requires_grad=False)
+        c = [torch.zeros(x.size(0), self.hidden_state_dim, requires_grad = False).type(dtype)
                   for _ in range(self.num_layers)]
 
         outputs = []

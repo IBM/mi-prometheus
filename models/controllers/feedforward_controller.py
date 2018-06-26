@@ -4,6 +4,7 @@
 __author__ = "Tomasz Kornuta/Ryan L. McAvoy"
 
 import torch 
+from misc.app_state import AppState
 
 class FeedforwardController(torch.nn.Module):
     """A wrapper class for a feedforward controller.
@@ -24,7 +25,7 @@ class FeedforwardController(torch.nn.Module):
         # Processes input and produces hidden state of the controller.
         self.ff = torch.nn.Linear(self.input_size, self.ctrl_hidden_state_size)
 
-    def init_state(self,  batch_size, dtype):
+    def init_state(self,  batch_size):
         """
         Returns 'zero' (initial) state tuple - in this case empy tuple.
         
