@@ -19,7 +19,7 @@ class SeqToSeqProblem(Problem):
         super(SeqToSeqProblem, self).__init__(params)
 
         # Check if predictions/targets should be masked.
-        self.use_mask = params.get("use_mask", False)
+        self.use_mask = params.get("use_mask", True) # TODO: Set false as default!
         print("use mask =",self.use_mask)
 
     def evaluate_loss(self, data_tuple, logits, aux_tuple):
