@@ -42,8 +42,15 @@ def run_experiment(yaml_file_path: str):
         params = yaml.load(yaml_file)
 
     # Change some params to random ones with specified ranges
-    params['settings']['loss_stop'] = 1.E-4
+    params['settings']['loss_stop'] = 1.E-5
     params['settings']['max_episodes'] = 100000
+    params['problem_train']['cuda'] = False
+    params['problem_train']['min_sequence_length'] = 1
+    params['problem_train']['max_sequence_length'] = 20
+    params['problem_train']['curriculum_learning']['interval'] = 500
+    params['problem_train']['curriculum_learning']['initial_max_sequence_length'] = 4
+    params['problem_validation']['min_sequence_length'] = 21
+    params['problem_validation']['max_sequence_length'] = 21
     params['settings']['seed_numpy'] = randrange(0, 2**32)
     params['settings']['seed_torch'] = randrange(0, 2**32)
 
