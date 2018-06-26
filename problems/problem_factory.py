@@ -6,7 +6,8 @@ __author__ = "Tomasz Kornuta"
 import sys, inspect
 import os.path
 import glob
-
+import logging
+logger = logging.getLogger('ProblemFactory')
 
 class ProblemFactory(object):
     """
@@ -22,7 +23,7 @@ class ProblemFactory(object):
         """
         # Check name
         if 'name' not in params:
-            print("Problem parameter dictionary does not contain 'name'")
+            logger.error("Problem parameter dictionary does not contain 'name'")
             raise ValueError
         # Try to load model
         name = os.path.basename(params['name'])
@@ -43,7 +44,7 @@ class ProblemFactory(object):
         class_name = clsmembers[0][0]
         # Get problem class
         problem_class = getattr(module, class_name)
-        print('Successfully loaded problem {} from {}'.format(class_name, name))
+        logger.info('Loading the {} problem from {}'.format(class_name, name))
         # Create problem object.
         return problem_class(params)
 
