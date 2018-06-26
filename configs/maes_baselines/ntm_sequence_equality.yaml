@@ -65,7 +65,7 @@ model:
         shift_size: 3
     # Memory parameters.
     memory:
-        num_content_bits: 10
+        num_content_bits: 11
         num_addresses: -1
     
 # optimizer parameters:

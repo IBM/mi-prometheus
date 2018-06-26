@@ -14,7 +14,7 @@ problem_train:
     max_sequence_length: 20
     #Curriculum learning - optional.
     curriculum_learning:
-        interval: 2000
+        interval: 500
         initial_max_sequence_length: 4
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
@@ -71,7 +71,7 @@ model:
         shift_size: 3
     # Memory parameters.
     memory:
-        num_content_bits: 10
+        num_content_bits: 11
         num_addresses: -1
 
     
