@@ -85,6 +85,7 @@ class MAES(SequentialModel):
  
         # Initialize memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS] 
         init_memory_BxAxC = torch.zeros(batch_size,  num_memory_addresses,  self.num_memory_content_bits).type(dtype)
+        print("memory size = ",init_memory_BxAxC.size())
 
         # Initialize 'zero' state.
         encoder_state = self.encoder.init_state(init_memory_BxAxC)
