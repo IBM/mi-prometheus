@@ -5,11 +5,12 @@ __author__ = "Tomasz Kornuta"
 
 import torch 
 import collections
-from ntm_interface import NTMInterface
 import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
-from controller_factory import ControllerFactory
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+
 from misc.app_state import AppState
+from models.controllers.controller_factory import ControllerFactory
+from models.ntm.ntm_interface import NTMInterface
 
 # Helper collection type.
 _NTMCellStateTuple = collections.namedtuple('NTMCellStateTuple', ('ctrl_state', 'interface_state',  'memory_state', 'read_vectors'))
