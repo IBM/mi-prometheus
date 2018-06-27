@@ -126,10 +126,12 @@ class NTMInterface(torch.nn.Module):
         # Normalize through division by number of addresses.
         #init_attentions.append(torch.ones(batch_size, num_memory_addresses,  1).type(dtype)/num_memory_addresses)
 
-        # Zero-hard attention.
+        # Initialize attention: to address 0.
         zh_attention = torch.zeros(batch_size, num_memory_addresses,  1).type(dtype)
         zh_attention[:, 0, 0] = 1
-        init_gating = torch.zeros(batch_size, 1,  1).type(dtype)
+        # Initialize gating: to previous attention (i.e. zero-hard).
+        init_gating = torch.ones(batch_size, 1,  1).type(dtype)
+        # Initialize shift - to zero.
         init_shift = torch.zeros(batch_size, self.interface_shift_size,  1).type(dtype)
         init_shift[:, 1, 0] = 1
 
@@ -282,12 +284,12 @@ class NTMInterface(torch.nn.Module):
             #logger.debug("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
 
             # Location-based addressing.
-            location_attention_BxAx1 = self.location_based_addressing(attention_after_gating_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC)
+            location_attention_BxAx1 = self.location_based_addressing(attention_after_gating_BxAx1,  shift_BxSx1,  gamma_Bx1x1)
             #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))    
         
         else:
             # Location-based addressing ONLY!
-            location_attention_BxAx1 = self.location_based_addressing(prev_attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC)
+            location_attention_BxAx1 = self.location_based_addressing(prev_attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1)
             #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))  
             content_attention_BxAx1 = torch.zeros_like(location_attention_BxAx1)
             gate_Bx1x1 =  torch.zeros_like(gamma_Bx1x1)
@@ -324,30 +326,28 @@ class NTMInterface(torch.nn.Module):
         #logger.debug("attention_BxAx1 {}:\n {}".format(attention_BxAx1.size(),  attention_BxAx1))    
         return attention_BxAx1
 
-    def location_based_addressing(self,  attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC):
+    def location_based_addressing(self,  attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1):
         """ Computes location-based addressing, i.e. shitfts the head and sharpens.
         
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param shift_BxSx1: soft shift maks (convolutional kernel) [BATCH_SIZE x SHIFT_SIZE x 1]
         :param gamma_Bx1x1: sharpening factor [BATCH_SIZE x 1 x 1]
-        :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
         """
 
         # 1. Perform circular convolution.
-        shifted_attention_BxAx1 = self.circular_convolution(attention_BxAx1,  shift_BxSx1,  prev_memory_BxAxC)
+        shifted_attention_BxAx1 = self.circular_convolution(attention_BxAx1,  shift_BxSx1)
         
         # 2. Perform Sharpening.
         sharpened_attention_BxAx1 = self.sharpening(shifted_attention_BxAx1,  gamma_Bx1x1)
                
         return sharpened_attention_BxAx1
 
-    def circular_convolution(self,  attention_BxAx1,  shift_BxSx1,  prev_memory_BxAxC):
-        """ Performs circular convoution, i.e. shitfts the attention accodring to given shift vector (convolution mask).
+    def circular_convolution(self,  attention_BxAx1,  shift_BxSx1):
+        """ Performs circular convolution, i.e. shitfts the attention accodring to given shift vector (convolution mask).
         
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param shift_BxSx1: soft shift maks (convolutional kernel) [BATCH_SIZE x SHIFT_SIZE x 1]
-        :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
         """
         def circular_index(idx, num_addr):
@@ -364,8 +364,8 @@ class NTMInterface(torch.nn.Module):
         dtype = AppState().LongTensor
 
         # Get number of memory addresses and batch size.
-        batch_size =prev_memory_BxAxC.size(0) 
-        num_addr = prev_memory_BxAxC.size(1)
+        batch_size =attention_BxAx1.size(0) 
+        num_addr = attention_BxAx1.size(1)
         shift_size = self.interface_shift_size
         
         #logger.debug("shift_BxSx1 {}: {}".format(shift_BxSx1,  shift_BxSx1.size()))    
