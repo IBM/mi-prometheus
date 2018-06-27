@@ -302,6 +302,12 @@ if __name__ == '__main__':
         else:
             app_state.visualize = False
 
+        # TODO: remove!
+        #logger.info("Before forward")
+        #logger.info("model.params:")
+        #for name, param in model.named_parameters():
+        #    logger.info("  {} ({}): {}".format(name, param.size(), param.data.cpu().numpy()))
+
         # 1. Perform forward step, calculate logits and loss.
         logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple)
 
@@ -310,6 +316,12 @@ if __name__ == '__main__':
         # Truncate list length.
         if len(last_losses) > param_interface['settings']['length_loss']:
             last_losses.popleft()
+
+        # TODO: remove!
+        #logger.info("After forward")
+        #logger.info("model.params:")
+        #for name, param in model.named_parameters():
+        #    logger.info("  {} ({}): {}".format(name, param.size(), param.data.cpu().numpy()))
 
         # 2. Backward gradient flow.
         loss.backward()
@@ -322,13 +334,26 @@ if __name__ == '__main__':
             # Else - do nothing.
             pass
 
+        # TODO: remove!
+        logger.info("After backward")
+        logger.info("model.params:")
+        for name, param in model.named_parameters():
+            logger.info("  {} ({}): {}".format(name, param.size(), param.data.cpu().numpy()))
+        logger.info("model.gradients:")
+        for name, param in model.named_parameters():
+            logger.info("  {} ({}): {}".format(name, param.size(), param.grad.data.cpu().numpy()))
+
         # 3. Perform optimization.
         optimizer.step()
 
         # TODO: remove!
-        logger.info("model.named_paramaters:")
+        logger.info("After optimizer")
+        logger.info("model.params:")
         for name, param in model.named_parameters():
-            logger.info("  {} ({})".format(name, param.size()))
+            logger.info("  {} ({}): {}".format(name, param.size(), param.data.cpu().numpy()))
+        logger.info("model.gradients:")
+        for name, param in model.named_parameters():
+            logger.info("  {} ({}): {}".format(name, param.size(), param.grad.data.cpu().numpy()))
 
         # 4. Log statistics.
         # Log to logger.

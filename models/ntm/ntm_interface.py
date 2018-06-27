@@ -127,7 +127,7 @@ class NTMInterface(torch.nn.Module):
         #init_attentions.append(torch.ones(batch_size, num_memory_addresses,  1).type(dtype)/num_memory_addresses)
 
         # Initialize attention: to address 0.
-        zh_attention = torch.zeros(batch_size, num_memory_addresses,  1).type(dtype)
+        zh_attention = torch.zeros(batch_size, num_memory_addresses, 1).type(dtype)
         zh_attention[:, 0, 0] = 1
         # Initialize gating: to previous attention (i.e. zero-hard).
         init_gating = torch.ones(batch_size, 1,  1).type(dtype)
@@ -262,8 +262,11 @@ class NTMInterface(torch.nn.Module):
         # Add 3rd dimensions where required and apply non-linear transformations.
         # Produce location-addressing params.
         shift_BxSx1 = F.softmax(shift_BxS, dim=1).unsqueeze(2)
+        logger.info("shift_BxSx1 {}:\n {}".format(shift_BxSx1.size(),  shift_BxSx1))    
         # Gamma - oneplus.
         gamma_Bx1x1 =F.softplus(gamma_Bx1).unsqueeze(2) +1
+        logger.info("gamma_Bx1x1 {}:\n {}".format(gamma_Bx1x1.size(),  gamma_Bx1x1))    
+
 
         if  self.use_content_based_addressing:
             # Add 3rd dimensions where required and apply non-linear transformations.
@@ -281,18 +284,20 @@ class NTMInterface(torch.nn.Module):
             #logger.debug("prev_attention_BxAx1 {}:\n {}".format(prev_attention_BxAx1.size(),  prev_attention_BxAx1))    
         
             attention_after_gating_BxAx1 = gate_Bx1x1 * content_attention_BxAx1  +(torch.ones_like(gate_Bx1x1) - gate_Bx1x1) * prev_attention_BxAx1
+            #attention_after_gating_BxAx1 = prev_attention_BxAx1
             #logger.debug("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
 
             # Location-based addressing.
-            location_attention_BxAx1 = self.location_based_addressing(attention_after_gating_BxAx1,  shift_BxSx1,  gamma_Bx1x1)
+            #location_attention_BxAx1 = self.location_based_addressing(attention_after_gating_BxAx1,  shift_BxSx1,  gamma_Bx1x1)
+            location_attention_BxAx1 = attention_after_gating_BxAx1
             #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))    
         
         else:
             # Location-based addressing ONLY!
             location_attention_BxAx1 = self.location_based_addressing(prev_attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1)
             #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))  
-            content_attention_BxAx1 = torch.zeros_like(location_attention_BxAx1)
-            gate_Bx1x1 =  torch.zeros_like(gamma_Bx1x1)
+            content_attention_BxAx1 = torch.zeros_like(location_attention_BxAx1, requires_grad=True)
+            gate_Bx1x1 =  torch.zeros_like(gamma_Bx1x1, requires_grad=True)
             
 
         return location_attention_BxAx1,  HeadStateTuple(location_attention_BxAx1, content_attention_BxAx1,  gate_Bx1x1,  shift_BxSx1)
