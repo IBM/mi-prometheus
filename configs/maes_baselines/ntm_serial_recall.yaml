@@ -60,6 +60,7 @@ model:
     interface:
         num_read_heads: 1
         shift_size: 3
+        use_content_based_addressing: True
     # Memory parameters.
     memory:
         num_content_bits: 11

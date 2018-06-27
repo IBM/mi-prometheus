@@ -56,32 +56,56 @@ class NTMInterface(torch.nn.Module):
         self.interface_num_read_heads = params['interface']['num_read_heads']
         assert self.interface_num_read_heads >= 1, "NTM requires at least 1 read head (currently %r)" % self.interface_num_read_heads     
 
+        # Check if CBA should be used or not.
+        self.use_content_based_addressing = params['interface'].get('use_content_based_addressing', True)
  
         # -------------- READ HEADS -----------------#
-        # Number/size of parameters of a single read head: key [MEMORY_CONTENT_BITS] + beta [1] + gate [1] + gamma [1] + shift kernel size [SHIFT_SIZE]
-        # All read params = NUM_HEADS * above (but it's not important here)
-        num_read_params =  (self.num_memory_content_bits +1 +1 +1 +self.interface_shift_size)
-        # Dictionary with read parameters - used during slicing.
-        self.read_param_locations = self.calculate_param_locations({'query_vector': self.num_memory_content_bits, 'beta': 1, 'gate': 1,  
-            'shift': self.interface_shift_size, 'gamma': 1},  "Read")
-        assert num_read_params == self.read_param_locations[-1], "Last location must be equal to number of read params."
-        
+
+        # Number/size of parameters of a single read head: 
+        if self.use_content_based_addressing:
+            # key [MEMORY_CONTENT_BITS] + beta [1] + gate [1] + gamma [1] + shift kernel size [SHIFT_SIZE]
+            # All read params = NUM_HEADS * above (but it's not important here)
+            num_read_params =  (self.num_memory_content_bits +1 +1 +1 +self.interface_shift_size)
+            # Dictionary with read parameters - used during slicing.
+            self.read_param_locations = self.calculate_param_locations({'query_vector': self.num_memory_content_bits, 'beta': 1, 'gate': 1,  
+                'shift': self.interface_shift_size, 'gamma': 1},  "Read")
+            assert num_read_params == self.read_param_locations[-1], "Last location must be equal to number of read params."
+        else:
+            # gamma [1] + shift kernel size [SHIFT_SIZE]
+            # All read params = NUM_HEADS * above (but it's not important here)
+            num_read_params =  (1 +self.interface_shift_size)
+            # Dictionary with read parameters - used during slicing.
+            self.read_param_locations = self.calculate_param_locations({  
+                'shift': self.interface_shift_size, 'gamma': 1},  "Read")
+            assert num_read_params == self.read_param_locations[-1], "Last location must be equal to number of read params."
+
+
        # Forward linear layers that generate parameters of read heads.
         self.hidden2read_list = torch.nn.ModuleList()
         for _ in range(self.interface_num_read_heads):
             self.hidden2read_list.append(torch.nn.Linear(self.ctrl_hidden_state_size,  num_read_params))
  
         # -------------- WRITE HEAD -----------------#
-        # Number/size of wrrite parameters:  key [MEMORY_BITS] + beta [1] + gate [1] + gamma [1] + 
-        # + shift kernel size [SHIFT_SIZE] + erase vector [MEMORY_CONTENT_BITS] + write vector[MEMORY_BITS]  
-        num_write_params = 3*self.num_memory_content_bits +1 +1 +1 +self.interface_shift_size
-        
-        # Write parameters - used during slicing.
-        self.write_param_locations = self.calculate_param_locations({'query_vector': self.num_memory_content_bits, 'beta': 1, 'gate': 1,  
-            'shift': self.interface_shift_size, 'gamma': 1, 
-            'erase_vector': self.num_memory_content_bits, 'add_vector': self.num_memory_content_bits}, "Write")
-        assert num_write_params == self.write_param_locations[-1], "Last location must be equal to number of write params."
-        
+        # Number/size of wrrite parameters:
+        if self.use_content_based_addressing:
+            #   key [MEMORY_BITS] + beta [1] + gate [1] + gamma [1] + 
+            # + shift kernel size [SHIFT_SIZE] + erase vector [MEMORY_CONTENT_BITS] + write vector[MEMORY_BITS]  
+            num_write_params = 3*self.num_memory_content_bits +1 +1 +1 +self.interface_shift_size
+            # Write parameters - used during slicing.
+            self.write_param_locations = self.calculate_param_locations({'query_vector': self.num_memory_content_bits, 'beta': 1, 'gate': 1,  
+                'shift': self.interface_shift_size, 'gamma': 1, 
+                'erase_vector': self.num_memory_content_bits, 'add_vector': self.num_memory_content_bits}, "Write")
+            assert num_write_params == self.write_param_locations[-1], "Last location must be equal to number of write params."
+        else:
+            # gamma [1] + 
+            # + shift kernel size [SHIFT_SIZE] + erase vector [MEMORY_CONTENT_BITS] + write vector[MEMORY_BITS]  
+            num_write_params = 2*self.num_memory_content_bits +1 +self.interface_shift_size
+            # Write parameters - used during slicing.
+            self.write_param_locations = self.calculate_param_locations({ 
+                'shift': self.interface_shift_size, 'gamma': 1, 
+                'erase_vector': self.num_memory_content_bits, 'add_vector': self.num_memory_content_bits}, "Write")
+            assert num_write_params == self.write_param_locations[-1], "Last location must be equal to number of write params."
+                    
        # Forward linear layer that generates parameters of write heads.
         self.hidden2write_params = torch.nn.Linear(self.ctrl_hidden_state_size,  num_write_params)
 
@@ -95,7 +119,7 @@ class NTMInterface(torch.nn.Module):
         """
         dtype = AppState().dtype
         # Add read head states - one for each read head.
-        # TODO: U
+
         read_state_tuples = []
 
         # Initial  attention weights [BATCH_SIZE x MEMORY_ADDRESSES x 1]
@@ -148,11 +172,17 @@ class NTMInterface(torch.nn.Module):
             # Calculate parameters of a given read head.
             params_BxP = self.hidden2read_list[i](ctrl_hidden_state_BxH)
 
-            # Split the parameters.
-            query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1 = self.split_params(params_BxP,  self.read_param_locations)
+            if self.use_content_based_addressing:
+                # Split the parameters.
+                query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1 = self.split_params(params_BxP,  self.read_param_locations)
+                # Update the attention of a given read head.
+                read_attention_BxAx1,  read_state_tuple = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attentions_BxAx1_H[i])
+            else:
+                # Split the parameters.
+                shift_BxS, gamma_Bx1 = self.split_params(params_BxP,  self.read_param_locations)
+                # Update the attention of a given read head.
+                read_attention_BxAx1,  read_state_tuple = self.update_attention(_,  _,  _, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attentions_BxAx1_H[i])
 
-            # Update the attention of a given read head.
-            read_attention_BxAx1,  read_state_tuple = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attentions_BxAx1_H[i])
             #logger.debug("read_attention_BxAx1 {}:\n {}".format(read_attention_BxAx1.size(),  read_attention_BxAx1))  
 
             # Read vector from memory [BATCH_SIZE x CONTENT_BITS].
@@ -168,16 +198,22 @@ class NTMInterface(torch.nn.Module):
         # Calculate parameters of a given read head.
         params_BxP = self.hidden2write_params(ctrl_hidden_state_BxH)
 
-        # Split the parameters.
-        query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  erase_vector_BxC,  add_vector_BxC  = self.split_params(params_BxP,  self.write_param_locations)
+        if self.use_content_based_addressing:
+            # Split the parameters.
+            query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  erase_vector_BxC,  add_vector_BxC  = self.split_params(params_BxP,  self.write_param_locations)
+            # Update the attention of the write head.
+            write_attention_BxAx1,  write_state_tuple = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_write_attention_BxAx1)
+        else:
+            # Split the parameters.
+            shift_BxS, gamma_Bx1,  erase_vector_BxC,  add_vector_BxC  = self.split_params(params_BxP,  self.write_param_locations)
+            # Update the attention of the write head.
+            write_attention_BxAx1,  write_state_tuple = self.update_attention(_,  _,  _, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_write_attention_BxAx1)
 
         # Add 3rd dimensions where required and apply non-linear transformations.
         # I didn't had that non-linear transformation in TF!
         erase_vector_Bx1xC = F.sigmoid(erase_vector_BxC).unsqueeze(1) 
         add_vector_Bx1xC = F.sigmoid(add_vector_BxC).unsqueeze(1) 
 
-        # Update the attention of the write head.
-        write_attention_BxAx1,  write_state_tuple = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_write_attention_BxAx1)
         #logger.debug("write_attention_BxAx1 {}:\n {}".format(write_attention_BxAx1.size(),  write_attention_BxAx1))  
 
         # Update the memory.
@@ -222,42 +258,41 @@ class NTMInterface(torch.nn.Module):
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
         """
         # Add 3rd dimensions where required and apply non-linear transformations.
-        # Produce content-addressing params.
-        # Query/key: I didn't had that non-linear transformation in TF!
-        query_vector_Bx1xC = F.sigmoid(query_vector_BxC).unsqueeze(1) 
-        # Beta: oneplus
-        beta_Bx1x1 = F.softplus(beta_Bx1).unsqueeze(2) +1
-        # Produce gating param.
-        gate_Bx1x1 = F.sigmoid(gate_Bx1).unsqueeze(2)
         # Produce location-addressing params.
         shift_BxSx1 = F.softmax(shift_BxS, dim=1).unsqueeze(2)
         # Gamma - oneplus.
         gamma_Bx1x1 =F.softplus(gamma_Bx1).unsqueeze(2) +1
-        # Truncate gamma to  range 1-50
-        #gamma_Bx1x1 = torch.clamp(F.softplus(gamma_Bx1 + 1), 1, 50).unsqueeze(2)
 
-        # HARD SHIFT! TODO: Remove!
-        #dtype = AppState().dtype
-        #shift_BxSx1 = torch.zeros_like(shift_BxSx1_tmp,  requires_grad= False).type(dtype)
-        #shift_BxSx1[:, -1, 0] = 1
+        if  self.use_content_based_addressing:
+            # Add 3rd dimensions where required and apply non-linear transformations.
+            # Produce content-addressing params.
+            query_vector_Bx1xC = F.sigmoid(query_vector_BxC).unsqueeze(1) 
+            # Beta: oneplus
+            beta_Bx1x1 = F.softplus(beta_Bx1).unsqueeze(2) +1
+            # Produce gating param.
+            gate_Bx1x1 = F.sigmoid(gate_Bx1).unsqueeze(2)
 
-        # Content-based addressing.
-        content_attention_BxAx1 = self.content_based_addressing(query_vector_Bx1xC,  beta_Bx1x1,  prev_memory_BxAxC)
-    
-        # HARD CBA ! TODO: Remove!
-        #content_attention_BxAx1 = torch.zeros_like(prev_attention_BxAx1,  requires_grad= False)
-        #content_attention_BxAx1[:, 0, 0] = 1
-    
-        # Gating mechanism - choose beetween new attention from CBA or attention from previous iteration. [BATCH_SIZE x ADDRESSES x 1].
-        #logger.debug("prev_attention_BxAx1 {}:\n {}".format(prev_attention_BxAx1.size(),  prev_attention_BxAx1))    
+            # Content-based addressing.
+            content_attention_BxAx1 = self.content_based_addressing(query_vector_Bx1xC,  beta_Bx1x1,  prev_memory_BxAxC)
+
+            # Gating mechanism - choose beetween new attention from CBA or attention from previous iteration. [BATCH_SIZE x ADDRESSES x 1].
+            #logger.debug("prev_attention_BxAx1 {}:\n {}".format(prev_attention_BxAx1.size(),  prev_attention_BxAx1))    
         
-        attention_after_gating_BxAx1 = gate_Bx1x1 * content_attention_BxAx1  +(torch.ones_like(gate_Bx1x1) - gate_Bx1x1) * prev_attention_BxAx1
-        #logger.debug("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
+            attention_after_gating_BxAx1 = gate_Bx1x1 * content_attention_BxAx1  +(torch.ones_like(gate_Bx1x1) - gate_Bx1x1) * prev_attention_BxAx1
+            #logger.debug("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
 
-        # Location-based addressing.
-        location_attention_BxAx1 = self.location_based_addressing(attention_after_gating_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC)
-        #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))    
+            # Location-based addressing.
+            location_attention_BxAx1 = self.location_based_addressing(attention_after_gating_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC)
+            #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))    
         
+        else:
+            # Location-based addressing ONLY!
+            location_attention_BxAx1 = self.location_based_addressing(prev_attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC)
+            #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))  
+            content_attention_BxAx1 = torch.zeros_like(location_attention_BxAx1)
+            gate_Bx1x1 =  torch.zeros_like(gamma_Bx1x1)
+            
+
         return location_attention_BxAx1,  HeadStateTuple(location_attention_BxAx1, content_attention_BxAx1,  gate_Bx1x1,  shift_BxSx1)
         
     def content_based_addressing(self,  query_vector_Bx1xC, beta_Bx1x1, prev_memory_BxAxC):
