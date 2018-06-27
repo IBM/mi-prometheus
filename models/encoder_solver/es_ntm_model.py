@@ -104,9 +104,10 @@ class EncoderSolverNTM(SequentialModel):
             if x[0, self.solving_bit] and not x[0, self.encoding_bit]:
                 mode = self.modes.Solve
                 if self.pass_cell_state:
+                    # Initialize solver state with encoder state.
                     solver_state = encoder_state
                 else:
-                    # Initialize solver state - with last state of memory.
+                    # Initialize solver state - with last state of memory only.
                     solver_state = self.solver.init_state(encoder_state.memory_state)
 
             elif x[0, self.encoding_bit] and x[0, self.solving_bit]:

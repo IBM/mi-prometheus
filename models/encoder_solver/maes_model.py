@@ -42,6 +42,8 @@ class MAES(SequentialModel):
         # Indices of control bits triggering encoding/decoding. 
         self.encoding_bit =  params['encoding_bit'] # Def: 0
         self.solving_bit =  params['solving_bit'] # Def: 1
+        # Check if we want to pass the whole cell state or only the memory.
+        self.pass_cell_state = params.get('pass_cell_state', False)
 
         # It is stored here, but will we used ONLY ONCE - for initialization of memory called from the forward() function.
         self.num_memory_addresses = params['memory']['num_addresses']
@@ -85,7 +87,6 @@ class MAES(SequentialModel):
  
         # Initialize memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS] 
         init_memory_BxAxC = torch.zeros(batch_size,  num_memory_addresses,  self.num_memory_content_bits).type(dtype)
-        print("memory size = ",init_memory_BxAxC.size())
 
         # Initialize 'zero' state.
         encoder_state = self.encoder.init_state(init_memory_BxAxC)
@@ -108,9 +109,13 @@ class MAES(SequentialModel):
             # Switch between the encoder and decoder modes.
             if x[0, self.solving_bit] and not x[0, self.encoding_bit]:
                 mode = self.modes.Solve
-                # Initialize solver.
-                solver_state = self.solver.init_state(encoder_state)
-            
+                if self.pass_cell_state:
+                    # Initialize solver state with final encoder state.
+                    solver_state = self.solver.init_state_with_encoder_state(encoder_state)
+                else:
+                    # Initialize solver state - with final state of memory and final attention only.
+                    solver_state = self.solver.init_state(encoder_state.memory_state, encoder_state.interface_state.attention)
+
             elif x[0, self.encoding_bit] and x[0, self.solving_bit]:
                 logger.error('Both encoding and decoding bit were true')
                 exit(-1)

@@ -1,6 +1,6 @@
 # Problem parameters:
 problem_train:
-    name: &name maes_baselines/serial_recall_cl
+    name: &name maes_baselines/reverse_recall_cl
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 3
     data_bits: &dbits 3

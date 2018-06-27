@@ -73,17 +73,47 @@ class MASCell(torch.nn.Module):
         self.hidden2output = torch.nn.Linear(ext_hidden_size, self.output_size)
 
 
-    def init_state(self,  encoder_state):
+    def init_state(self, final_enc_memory_BxAxC, final_enc_attention_BxAx1):
         """
-        Initializes the solver cell state depending on the last state of the encoder.
+        Initializes the solver cell state depending on the last memory state.
         Recursively initialization: controller, interface.        
 
         :param encoder_state: Last state of MAE cell.
         :returns: Initial state tuple - object of MASCellStateTuple class.
         """
+        # Get number of memory addresses.
+        batch_size = final_enc_memory_BxAxC.size(0)
+        num_memory_addresses = final_enc_memory_BxAxC.size(1)
+
+        # Initialize controller state.
+        ctrl_init_state =  self.controller.init_state(batch_size)
+
+        # Initialize interface state. 
+        interface_init_state =  self.interface.init_state(batch_size,  num_memory_addresses, final_enc_attention_BxAx1)
+        
+        # Initialize read vectors - one for every head.
+        # Unpack cell state.
+        (init_read_attention_BxAx1, _, _, _) = interface_init_state
+        
+        # Read a vector from memory using the initial attention.
+        read_vector_BxC = self.interface.read_from_memory(init_read_attention_BxAx1, final_enc_memory_BxAxC)
+        
+        # Pack and return a tuple.
+        cell_state = MASCellStateTuple(ctrl_init_state, interface_init_state, final_enc_memory_BxAxC, read_vector_BxC)
+        return cell_state
+
+
+    def init_state_with_encoder_state(self, final_enc_cell_state):
+        """
+        Creates 'zero' (initial) state on the basis of he previous cell state.
+        "Recursivelly" calls controller and interface initialization.
+        
+        :param final_enc_cell_state: Last state of MAE cell.
+        :returns: Initial state tuple - object of MASCellStateTuple class.
+        """
         #batch_size,  final_encoder_memory_BxAxC, final_encoder_attention_BxAx1
         # Unpack encoder state tuple.
-        (_, enc_interface_state,  enc_memory_BxAxC) = encoder_state
+        (enc_ctrl_state, enc_interface_state,  enc_memory_BxAxC) = final_enc_cell_state
         (enc_attention_BxAx1, _) = enc_interface_state
 
         # Get dtype.
@@ -92,8 +122,6 @@ class MASCell(torch.nn.Module):
         batch_size = enc_memory_BxAxC.size(0)
         num_memory_addresses = enc_memory_BxAxC.size(1)
 
-        # Initialize controller state.
-        ctrl_init_state =  self.controller.init_state(batch_size)
 
         # Initialize interface state. 
         interface_init_state =  self.interface.init_state(batch_size,  num_memory_addresses, enc_attention_BxAx1)
@@ -106,7 +134,8 @@ class MASCell(torch.nn.Module):
         read_vector_BxC = self.interface.read_from_memory(init_read_attention_BxAx1, enc_memory_BxAxC)
         
         # Pack and return a tuple.
-        return MASCellStateTuple(ctrl_init_state, interface_init_state, enc_memory_BxAxC, read_vector_BxC)
+        cell_state = MASCellStateTuple(enc_ctrl_state, interface_init_state, enc_memory_BxAxC, read_vector_BxC)
+        return cell_state
 
 
     def forward(self, inputs_BxI,  prev_cell_state):
@@ -126,13 +155,13 @@ class MASCell(torch.nn.Module):
        
         # Execute interface forward step.
         read_vector_BxC, memory_BxAxC, interface_state_tuple = self.interface(ctrl_output_BxH, prev_memory_BxAxC,  prev_interface_state_tuple)
-        logger.warning("ctrl_output_BxH {}:\n {}".format(ctrl_output_BxH.size(),  ctrl_output_BxH))  
-        logger.warning("read_vector_BxC {}:\n {}".format(read_vector_BxC.size(),  read_vector_BxC))  
+        #logger.warning("ctrl_output_BxH {}:\n {}".format(ctrl_output_BxH.size(),  ctrl_output_BxH))  
+        #logger.warning("read_vector_BxC {}:\n {}".format(read_vector_BxC.size(),  read_vector_BxC))  
         
         # Output layer - takes controller output concateneted with new read vectors.
         ext_hidden = torch.cat([ctrl_output_BxH,  read_vector_BxC], dim=1)
         logits_BxO = self.hidden2output(ext_hidden)
-        logger.warning("logits_BxO {}:\n {}".format(logits_BxO.size(),  logits_BxO))  
+        #logger.warning("logits_BxO {}:\n {}".format(logits_BxO.size(),  logits_BxO))  
         
         # Pack current cell state.
         cell_state_tuple = MASCellStateTuple(ctrl_state_tuple, interface_state_tuple,  memory_BxAxC, read_vector_BxC)

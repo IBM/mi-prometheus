@@ -234,7 +234,7 @@ class MAEInterface(torch.nn.Module):
         """
                     
         # Power.        
-        pow_attention_BxAx1 = torch.pow(attention_BxAx1,  gamma_Bx1x1)
+        pow_attention_BxAx1 = torch.pow(attention_BxAx1 + 1e-12,  gamma_Bx1x1)
         #logger.debug("pow_attention_BxAx1 {}:\n {}".format(pow_attention_BxAx1.size(),  pow_attention_BxAx1))
         
         # Normalize along addresses. 

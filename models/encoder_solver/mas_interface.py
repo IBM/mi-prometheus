@@ -83,7 +83,7 @@ class MASInterface(torch.nn.Module):
         init_gating = torch.zeros(batch_size, 2,  1).type(dtype)
         init_gating[:, 0, 0] = 1 # Initialize as "prev attention"
 
-        # Gating [BATCH x SHIFT_SIZE x 1]
+        # Shift [BATCH x SHIFT_SIZE x 1]
         init_shift = torch.zeros(batch_size, self.interface_shift_size,  1).type(dtype)
         init_shift[:, 1, 0] = 1 # Initialize as "0 shift".
         
@@ -268,7 +268,7 @@ class MASInterface(torch.nn.Module):
         #logger.debug("gamma_Bx1x1 {}:\n {}".format(gamma_Bx1x1.size(),  gamma_Bx1x1))
                     
         # Power.        
-        pow_attention_BxAx1 = torch.pow(attention_BxAx1,  gamma_Bx1x1)
+        pow_attention_BxAx1 = torch.pow(attention_BxAx1 + 1e-12,  gamma_Bx1x1)
         #logger.debug("pow_attention_BxAx1 {}:\n {}".format(pow_attention_BxAx1.size(),  pow_attention_BxAx1))
         
         # Normalize along addresses. 
