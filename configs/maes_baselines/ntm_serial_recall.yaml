@@ -6,11 +6,11 @@ problem_train:
     data_bits: &dbits 8
     batch_size: &bs 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 1
+    min_sequence_length: 2
     max_sequence_length: 20
     #Curriculum learning - optional.
     curriculum_learning:
-        interval: 2000
+        interval: 500
         initial_max_sequence_length: 4
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
@@ -60,7 +60,7 @@ model:
     interface:
         num_read_heads: 1
         shift_size: 3
-        use_content_based_addressing: True
+        use_content_based_addressing: False
     # Memory parameters.
     memory:
         num_content_bits: 11
@@ -81,5 +81,5 @@ settings:
     loss_stop: 1.0e-5
     max_episodes: 100000
     validation_stopping: True
-    seed_numpy: 0
-    seed_torch: 2
+    seed_numpy: -1
+    seed_torch: -1
