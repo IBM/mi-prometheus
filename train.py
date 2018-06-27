@@ -325,6 +325,11 @@ if __name__ == '__main__':
         # 3. Perform optimization.
         optimizer.step()
 
+        # TODO: remove!
+        print("model.named_paramaters:")
+        for name, param in model.named_parameters():
+            print("  {} ({})".format(name, param.size()))
+
         # 4. Log statistics.
         # Log to logger.
         logger.info(stat_col.export_statistics_to_string())
@@ -338,12 +343,19 @@ if __name__ == '__main__':
             # Export histograms.
             if FLAGS.tensorboard >= 1:
                 for name, param in model.named_parameters():
-                    training_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
-
+                    try:
+                        #print("!!! name = {} ".format(name))
+                        training_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
+                    except Exception as e:
+                        print(" data error: name = {} error = {}".format(name, e))
             # Export gradients.
             if FLAGS.tensorboard >= 2:
                 for name, param in model.named_parameters():
-                    training_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
+                    try:
+                        #print("!!! name = {} ".format(name))
+                        training_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
+                    except Exception as e:
+                        print(" grad error: name = {} error = {}".format(name, e))
 
         # Check visualization of training data.
         if app_state.visualize:

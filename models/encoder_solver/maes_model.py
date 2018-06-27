@@ -85,7 +85,6 @@ class MAES(SequentialModel):
  
         # Initialize memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS] 
         init_memory_BxAxC = torch.zeros(batch_size,  num_memory_addresses,  self.num_memory_content_bits).type(dtype)
-        print(init_memory_BxAxC.size(0))
 
         # Initialize 'zero' state.
         encoder_state = self.encoder.init_state(init_memory_BxAxC)
@@ -93,6 +92,10 @@ class MAES(SequentialModel):
 
         # Start as encoder.
         mode = self.modes.Encode
+
+        # TODO: REMOVE! TMP!
+        #solver_state = self.solver.init_state(encoder_state)
+        #mode = self.modes.Solve
 
         # Logits container.
         logits = []
@@ -106,7 +109,7 @@ class MAES(SequentialModel):
                 mode = self.modes.Solve
                 # Initialize solver.
                 solver_state = self.solver.init_state(encoder_state)
-
+            
             elif x[0, self.encoding_bit] and x[0, self.solving_bit]:
                 logger.error('Both encoding and decoding bit were true')
                 exit(-1)

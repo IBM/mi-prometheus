@@ -5,6 +5,12 @@ __author__ = "Tomasz Kornuta"
 
 import torch 
 import collections
+
+# Set logging level.
+import logging
+logger = logging.getLogger('MAS-Cell')
+logging.basicConfig(level=logging.DEBUG)
+
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
 from controller_factory import ControllerFactory
@@ -65,7 +71,8 @@ class MASCell(torch.nn.Module):
         # Layer that produces output on the basis of hidden state and vector read from the memory.
         ext_hidden_size = self.controller_hidden_state_size +  params['memory']['num_content_bits']
         self.hidden2output = torch.nn.Linear(ext_hidden_size, self.output_size)
-        
+
+
     def init_state(self,  encoder_state):
         """
         Initializes the solver cell state depending on the last state of the encoder.
@@ -119,10 +126,13 @@ class MASCell(torch.nn.Module):
        
         # Execute interface forward step.
         read_vector_BxC, memory_BxAxC, interface_state_tuple = self.interface(ctrl_output_BxH, prev_memory_BxAxC,  prev_interface_state_tuple)
+        logger.warning("ctrl_output_BxH {}:\n {}".format(ctrl_output_BxH.size(),  ctrl_output_BxH))  
+        logger.warning("read_vector_BxC {}:\n {}".format(read_vector_BxC.size(),  read_vector_BxC))  
         
         # Output layer - takes controller output concateneted with new read vectors.
-        ext_hidden = torch.cat((ctrl_output_BxH,  read_vector_BxC ), dim=1)
+        ext_hidden = torch.cat([ctrl_output_BxH,  read_vector_BxC], dim=1)
         logits_BxO = self.hidden2output(ext_hidden)
+        logger.warning("logits_BxO {}:\n {}".format(logits_BxO.size(),  logits_BxO))  
         
         # Pack current cell state.
         cell_state_tuple = MASCellStateTuple(ctrl_state_tuple, interface_state_tuple,  memory_BxAxC, read_vector_BxC)

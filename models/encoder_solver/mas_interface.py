@@ -159,9 +159,10 @@ class MASInterface(torch.nn.Module):
 
         # Produce gating param.
         gate_Bx2x1 = F.sigmoid(gate_Bx2).unsqueeze(2)
-        gate0_Bx2x1 = gate_Bx2x1[:,0,:].reshape(-1,1,1)
-        gate1_Bx2x1 = gate_Bx2x1[:,1,:].reshape(-1,1,1)
-        
+        gate0_Bx2x1 = gate_Bx2x1[:,0,:].unsqueeze(2)
+        gate1_Bx2x1 = gate_Bx2x1[:,1,:].unsqueeze(2)
+        #logger.debug("gate0_Bx2x1 {}:\n {}".format(gate0_Bx2x1.size(), gate0_Bx2x1))
+    
         # Produce location-addressing params.
         shift_BxSx1 = F.softmax(shift_BxS, dim=1).unsqueeze(2)
         # Gamma - oneplus.
@@ -172,12 +173,11 @@ class MASInterface(torch.nn.Module):
 
         # Location-based addressing.
         location_attention_BxAx1 = self.location_based_addressing(prev_attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC)
-        logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))   
+        #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))   
 
-        logger.warning("gate0_Bx2x1 {}:\n {}".format(gate0_Bx2x1.size(), gate0_Bx2x1))
-
+    
         attention_after_gating_BxAx1 = gate0_Bx2x1 * location_attention_BxAx1  + gate1_Bx2x1 * self.final_encoder_attention_BxAx1
-        logger.warning("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
+        #logger.debug("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
         
         return attention_after_gating_BxAx1, MASInterfaceStateTuple(attention_after_gating_BxAx1, self.final_encoder_attention_BxAx1, gate_Bx2x1, shift_BxSx1)
 
