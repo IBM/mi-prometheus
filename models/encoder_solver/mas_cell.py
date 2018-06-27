@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""mad_cell.py: pytorch module implementing single (recurrent) cell of Memory-Augmented Decoder"""
+"""mas_cell.py: pytorch module implementing single (recurrent) cell of Memory-Augmented Solver"""
 __author__ = "Tomasz Kornuta"
 
 import torch 
@@ -10,17 +10,17 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
 from controller_factory import ControllerFactory
 from misc.app_state import AppState
 
-from models.encoder_solver.mad_interface import MADInterface
+from models.encoder_solver.mas_interface import MASInterface
 
 # Helper collection type.
-_MADCellStateTuple = collections.namedtuple('MADCellStateTuple', ('ctrl_state', 'interface_state',  'memory_state', 'read_vector'))
+_MASCellStateTuple = collections.namedtuple('MASCellStateTuple', ('ctrl_state', 'interface_state',  'memory_state', 'read_vector'))
 
-class MADCellStateTuple(_MADCellStateTuple):
-    """Tuple used by MAD Cells for storing current/past state information"""
+class MASCellStateTuple(_MASCellStateTuple):
+    """Tuple used by MAS Cells for storing current/past state information"""
     __slots__ = ()
 
 
-class MADCell(torch.nn.Module):
+class MASCell(torch.nn.Module):
     """ Class representing a single Memory-Augmented Decoder cell. """
 
     def __init__(self, params):
@@ -31,7 +31,7 @@ class MADCell(torch.nn.Module):
         :param params: Dictionary of parameters.
         """
         # Call constructor of base class.
-        super(MADCell, self).__init__() 
+        super(MASCell, self).__init__() 
         
         # Parse parameters.
         # Set input and output sizes. 
@@ -45,7 +45,7 @@ class MADCell(torch.nn.Module):
         self.controller_hidden_state_size = params['controller']['hidden_state_size']
 
 
-        # Controller - entity that processes input and produces hidden state of the MAD cell.        
+        # Controller - entity that processes input and produces hidden state of the MAS cell.        
         ext_controller_inputs_size = self.input_size 
 
         # Create dictionary wirh controller parameters.
@@ -60,53 +60,55 @@ class MADCell(torch.nn.Module):
         self.controller = ControllerFactory.build_model(controller_params)     
 
         # Interface - entity responsible for accessing the memory.
-        self.interface = MADInterface(params)
+        self.interface = MASInterface(params)
 
         # Layer that produces output on the basis of hidden state and vector read from the memory.
-        ext_hidden_size = self.controller_hidden_state_size +  self.num_memory_content_bits
+        ext_hidden_size = self.controller_hidden_state_size +  params['memory']['num_content_bits']
         self.hidden2output = torch.nn.Linear(ext_hidden_size, self.output_size)
         
-    def init_state(self,  batch_size,  final_encoder_memory_BxAxC, final_encoder_attention_BxAx1):
+    def init_state(self,  encoder_state):
         """
-        Returns 'zero' (initial) state:
-        * memory  is reset to random values.
-        * read & write weights are set to 1e-6.
-        * read_vectors are initialize as 0s.
-        
-        :param batch_size: Size of the batch in given iteraction/epoch.
-        :param final_encoder_memory_BxAxC: Final state of memory produced by the encoder [BATCH_SIZE x MEMORY_ADDRESSES x MEMORY_CONTENT].
-        :param final_encoder_attention_BxAx1: Final attention of the encoder [BATCH_SIZE x MEMORY_ADDRESSES x 1]
-        :returns: Initial state tuple - object of MADCellStateTuple class.
+        Initializes the solver cell state depending on the last state of the encoder.
+        Recursively initialization: controller, interface.        
+
+        :param encoder_state: Last state of MAE cell.
+        :returns: Initial state tuple - object of MASCellStateTuple class.
         """
+        #batch_size,  final_encoder_memory_BxAxC, final_encoder_attention_BxAx1
+        # Unpack encoder state tuple.
+        (_, enc_interface_state,  enc_memory_BxAxC) = encoder_state
+        (enc_attention_BxAx1, _) = enc_interface_state
+
         # Get dtype.
         #dtype = AppState().dtype
         # Get number of memory addresses.
-        num_memory_addresses = final_encoder_memory_BxAxC.size(1)
+        batch_size = enc_memory_BxAxC.size(0)
+        num_memory_addresses = enc_memory_BxAxC.size(1)
 
         # Initialize controller state.
         ctrl_init_state =  self.controller.init_state(batch_size)
 
         # Initialize interface state. 
-        interface_init_state =  self.interface.init_state(batch_size,  num_memory_addresses, final_encoder_attention_BxAx1)
+        interface_init_state =  self.interface.init_state(batch_size,  num_memory_addresses, enc_attention_BxAx1)
         
         # Initialize read vectors - one for every head.
         # Unpack cell state.
-        (init_read_attention_BxAx1, _, _, _) = zip(*interface_init_state)
+        (init_read_attention_BxAx1, _, _, _) = interface_init_state
         
         # Read a vector from memory using the initial attention.
-        read_vector_BxC = self.interface.read_from_memory(init_read_attention_BxAx1, final_encoder_memory_BxAxC)
+        read_vector_BxC = self.interface.read_from_memory(init_read_attention_BxAx1, enc_memory_BxAxC)
         
         # Pack and return a tuple.
-        return MADCellStateTuple(ctrl_init_state, interface_init_state, final_encoder_memory_BxAxC, read_vector_BxC)
+        return MASCellStateTuple(ctrl_init_state, interface_init_state, enc_memory_BxAxC, read_vector_BxC)
 
 
     def forward(self, inputs_BxI,  prev_cell_state):
         """
-        Forward function of MAD cell.
+        Forward function of MAS cell.
         
         :param inputs_BxI: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE]
-        :param  prev_cell_state: a MADCellStateTuple tuple, containing previous state of the cell.
-        :returns: an output Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and  MADCellStateTuple tuple containing current cell state.
+        :param  prev_cell_state: a MASCellStateTuple tuple, containing previous state of the cell.
+        :returns: an output Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and  MASCellStateTuple tuple containing current cell state.
         """
         # Unpack previous cell  state.
         (prev_ctrl_state_tuple, prev_interface_state_tuple,  prev_memory_BxAxC, _) = prev_cell_state
@@ -123,7 +125,7 @@ class MADCell(torch.nn.Module):
         logits_BxO = self.hidden2output(ext_hidden)
         
         # Pack current cell state.
-        cell_state_tuple = MADCellStateTuple(ctrl_state_tuple, interface_state_tuple,  memory_BxAxC, read_vector_BxC)
+        cell_state_tuple = MASCellStateTuple(ctrl_state_tuple, interface_state_tuple,  memory_BxAxC, read_vector_BxC)
         
         # Return logits and current cell state.
         return logits_BxO, cell_state_tuple

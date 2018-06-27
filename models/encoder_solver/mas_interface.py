@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""mad_interface.py: contains pytorch module implementing Memory Augmented Decoder interface to external memory."""
+"""mas_interface.py: contains pytorch module implementing Memory Augmented Solver interface to external memory."""
 __author__ = "Tomasz Kornuta"
 
 
@@ -8,6 +8,11 @@ import torch
 import torch.nn.functional as F
 import collections
 import numpy as np
+import logging
+# Set logging level.
+logger = logging.getLogger('MAS-Interface')
+logging.basicConfig(level=logging.DEBUG)
+
 
 # Add path to main project directory.
 import os, sys
@@ -16,15 +21,15 @@ from misc.app_state import AppState
 
 
 # Helper collection type.
-_MADInterfaceStateTuple = collections.namedtuple('MADInterfaceStateTuple', ('attention', 'final_encoder_attention' 'gate', 'shift'))
+_MASInterfaceStateTuple = collections.namedtuple('MASInterfaceStateTuple', ('attention', 'final_encoder_attention', 'gate', 'shift'))
 
-class MADInterfaceStateTuple(_MADInterfaceStateTuple):
-    """Tuple used by interface for storing current/past Memory Augmented Decoder interface state information"""
+class MASInterfaceStateTuple(_MASInterfaceStateTuple):
+    """Tuple used by interface for storing current/past Memory Augmented Solver interface state information"""
     __slots__ = ()
 
 
-class MADInterface(torch.nn.Module):
-    """Class realizing interface between MAD controller and memory.
+class MASInterface(torch.nn.Module):
+    """Class realizing interface between MAS controller and memory.
     """
     def __init__(self, params):
         """ Constructor.
@@ -32,7 +37,7 @@ class MADInterface(torch.nn.Module):
         :param params: Dictionary of parameters.
         """
         # Call constructor of base class.
-        super(MADInterface, self).__init__() 
+        super(MASInterface, self).__init__() 
 
         # Parse parameters.
         # Get hidden state size.
@@ -86,7 +91,7 @@ class MADInterface(torch.nn.Module):
         self.final_encoder_attention_BxAx1 = final_encoder_attention_BxAx1
 
         # Return tuple.
-        return MADInterfaceStateTuple(zh_attention, self.final_encoder_attention_BxAx1, init_gating, init_shift)
+        return MASInterfaceStateTuple(zh_attention, self.final_encoder_attention_BxAx1, init_gating, init_shift)
 
     def forward(self, ctrl_hidden_state_BxH,  prev_memory_BxAxC,  prev_interface_state_tuple):
         """
@@ -98,7 +103,7 @@ class MADInterface(torch.nn.Module):
         :returns: List of read vectors [BATCH_SIZE x CONTENT_SIZE], updated memory and state tuple (object of LSTMStateTuple class).
         """
        # Unpack cell state.
-        (prev_read_attention_BxAxH, _, _, _) = zip(*prev_interface_state_tuple)
+        (prev_read_attention_BxAxH, _, _, _) = prev_interface_state_tuple
          
         # !! Execute single step !!
 
@@ -154,6 +159,9 @@ class MADInterface(torch.nn.Module):
 
         # Produce gating param.
         gate_Bx2x1 = F.sigmoid(gate_Bx2).unsqueeze(2)
+        gate0_Bx2x1 = gate_Bx2x1[:,0,:].reshape(-1,1,1)
+        gate1_Bx2x1 = gate_Bx2x1[:,1,:].reshape(-1,1,1)
+        
         # Produce location-addressing params.
         shift_BxSx1 = F.softmax(shift_BxS, dim=1).unsqueeze(2)
         # Gamma - oneplus.
@@ -164,12 +172,14 @@ class MADInterface(torch.nn.Module):
 
         # Location-based addressing.
         location_attention_BxAx1 = self.location_based_addressing(prev_attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC)
-        #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))    
+        logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))   
+
+        logger.warning("gate0_Bx2x1 {}:\n {}".format(gate0_Bx2x1.size(), gate0_Bx2x1))
+
+        attention_after_gating_BxAx1 = gate0_Bx2x1 * location_attention_BxAx1  + gate1_Bx2x1 * self.final_encoder_attention_BxAx1
+        logger.warning("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
         
-        attention_after_gating_BxAx1 = gate_Bx2x1[0] * location_attention_BxAx1  + gate_Bx2x1[1] * self.final_encoder_attention_BxAx1
-        #logger.debug("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
-        
-        return attention_after_gating_BxAx1, MADInterfaceStateTuple(attention_after_gating_BxAx1, self.final_encoder_attention_BxAx1, gate_Bx2x1, shift_BxSx1)
+        return attention_after_gating_BxAx1, MASInterfaceStateTuple(attention_after_gating_BxAx1, self.final_encoder_attention_BxAx1, gate_Bx2x1, shift_BxSx1)
 
 
     def location_based_addressing(self,  attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC):

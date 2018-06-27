@@ -31,7 +31,7 @@ class MAECell(torch.nn.Module):
         :param params: Dictionary of parameters.
         """
         # Call constructor of base class.
-        super(NTMCell, self).__init__() 
+        super(MAECell, self).__init__() 
         
         # Parse parameters.
         # Set input and output sizes. 
@@ -66,21 +66,16 @@ class MAECell(torch.nn.Module):
         self.hidden2output = torch.nn.Linear(ext_hidden_size, self.output_size)
 
         
-    def init_state(self,  batch_size,  init_memory_BxAxC):
+    def init_state(self,  init_memory_BxAxC):
         """
-        Returns 'zero' (initial) state:
-        * memory  is reset to random values.
-        * read & write weights are set to 1e-6.
-        * read_vectors are initialize as 0s.
+        Initializes state of MAE cell.
+        Recursively initialization: controller, interface.
         
-        :param batch_size: Size of the batch in given iteraction/epoch.
-        :param num_memory_addresses: Number of memory addresses.
-        :param num_memory_content_bits: Number of memory content bits.
+        :param init_memory_BxAxC: Initial memory state [BATCH_SIZE x MEMORY_ADDRESSES x MEMORY_CONTENT].
         :returns: Initial state tuple - object of NTMCellStateTuple class.
         """
-        # Get dtype.
-        #dtype = AppState().dtype
         # Get number of memory addresses.
+        batch_size = init_memory_BxAxC.size(0)
         num_memory_addresses = init_memory_BxAxC.size(1)
 
         # Initialize controller state.
