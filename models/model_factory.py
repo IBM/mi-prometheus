@@ -42,6 +42,11 @@ class ModelFactory(object):
             sys.path.append(os.path.join(os.path.dirname(__file__),  'encoder_solver'))
             from models.encoder_solver.es_lstm_model import EncoderSolverLSTM
             return EncoderSolverLSTM(params)
+        elif name == 'es_ntm':
+            logger.info('Loading the EncoderSolverNTM model from models.encoder_solver.es_ntm_model')
+            sys.path.append(os.path.join(os.path.dirname(__file__),  'encoder_solver'))
+            from models.encoder_solver.es_ntm_model import EncoderSolverNTM
+            return EncoderSolverNTM(params)
         elif name == 'lstm':
             logger.info('Loading the LSTM model from models.lstm.lstm_model')
             from models.lstm.lstm_model import LSTM
