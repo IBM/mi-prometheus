@@ -30,9 +30,10 @@ class NTM(SequentialModel):
         super(NTM, self).__init__(params) 
 
         # Parse parameters.
-        # It is stored here, but will we used ONLY ONCE - for initialization of memory called from the forward() function.
+        # It is stored here, but will we used ONLY ONCE - for initialization of memory in the forward() function.
         self.num_memory_addresses = params['memory']['num_addresses']
-        
+        self.num_memory_content_bits = params['memory']['num_content_bits']
+
         # Initialize recurrent NTM cell.
         self.ntm_cell = NTMCell(params)
 
@@ -57,10 +58,11 @@ class NTM(SequentialModel):
 
 		:return: Predictions being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] .
         """
+        dtype = AppState().dtype
 
 		# Unpack data tuple.
-        (inputs_BxSxI, targets) = data_tuple
-        
+        (inputs_BxSxI, targets) = data_tuple  
+        batch_size = inputs_BxSxI.size(0)      
 
         # "Data-driven memory size".
         # Save as TEMPORAL VARIABLE! 
@@ -70,9 +72,12 @@ class NTM(SequentialModel):
             num_memory_addresses = inputs_BxSxI.size(1)
         else:
             num_memory_addresses = self.num_memory_addresses
-            
+
+        # Initialize memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS] 
+        init_memory_BxAxC = torch.zeros(batch_size,  num_memory_addresses,  self.num_memory_content_bits).type(dtype)
+
         # Initialize 'zero' state.
-        cell_state = self.ntm_cell.init_state(inputs_BxSxI.size(0),  num_memory_addresses)
+        cell_state = self.ntm_cell.init_state(init_memory_BxAxC)
 
         # List of output logits [BATCH_SIZE x OUTPUT_SIZE] of length SEQ_LENGTH
         output_logits_BxO_S = []
