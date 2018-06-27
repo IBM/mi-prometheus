@@ -123,20 +123,23 @@ class NTMInterface(torch.nn.Module):
         read_state_tuples = []
 
         # Initial  attention weights [BATCH_SIZE x MEMORY_ADDRESSES x 1]
-        # Normalize through division by number of addresses.
-        #init_attentions.append(torch.ones(batch_size, num_memory_addresses,  1).type(dtype)/num_memory_addresses)
-
         # Initialize attention: to address 0.
         zh_attention = torch.zeros(batch_size, num_memory_addresses, 1).type(dtype)
         zh_attention[:, 0, 0] = 1
+
         # Initialize gating: to previous attention (i.e. zero-hard).
         init_gating = torch.ones(batch_size, 1,  1).type(dtype)
+
         # Initialize shift - to zero.
         init_shift = torch.zeros(batch_size, self.interface_shift_size,  1).type(dtype)
         init_shift[:, 1, 0] = 1
 
-        for _ in range(self.interface_num_read_heads):
-            read_state_tuples.append(HeadStateTuple(zh_attention,  zh_attention, init_gating, init_shift))
+        for i in range(self.interface_num_read_heads):
+
+            read_ht = HeadStateTuple(zh_attention,  zh_attention, init_gating, init_shift)
+
+            # Single read head tuple.
+            read_state_tuples.append(read_ht)
         
         # Single write head tuple.
         write_state_tuple = HeadStateTuple(zh_attention,  zh_attention, init_gating, init_shift)
@@ -184,8 +187,6 @@ class NTMInterface(torch.nn.Module):
                 shift_BxS, gamma_Bx1 = self.split_params(params_BxP,  self.read_param_locations)
                 # Update the attention of a given read head.
                 read_attention_BxAx1,  read_state_tuple = self.update_attention(_,  _,  _, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attentions_BxAx1_H[i])
-
-            #logger.debug("read_attention_BxAx1 {}:\n {}".format(read_attention_BxAx1.size(),  read_attention_BxAx1))  
 
             # Read vector from memory [BATCH_SIZE x CONTENT_BITS].
             read_vector_BxC = self.read_from_memory(read_attention_BxAx1,  prev_memory_BxAxC)
@@ -262,10 +263,8 @@ class NTMInterface(torch.nn.Module):
         # Add 3rd dimensions where required and apply non-linear transformations.
         # Produce location-addressing params.
         shift_BxSx1 = F.softmax(shift_BxS, dim=1).unsqueeze(2)
-        logger.info("shift_BxSx1 {}:\n {}".format(shift_BxSx1.size(),  shift_BxSx1))    
         # Gamma - oneplus.
         gamma_Bx1x1 =F.softplus(gamma_Bx1).unsqueeze(2) +1
-        logger.info("gamma_Bx1x1 {}:\n {}".format(gamma_Bx1x1.size(),  gamma_Bx1x1))    
 
 
         if  self.use_content_based_addressing:
@@ -280,27 +279,24 @@ class NTMInterface(torch.nn.Module):
             # Content-based addressing.
             content_attention_BxAx1 = self.content_based_addressing(query_vector_Bx1xC,  beta_Bx1x1,  prev_memory_BxAxC)
 
-            # Gating mechanism - choose beetween new attention from CBA or attention from previous iteration. [BATCH_SIZE x ADDRESSES x 1].
-            #logger.debug("prev_attention_BxAx1 {}:\n {}".format(prev_attention_BxAx1.size(),  prev_attention_BxAx1))    
-        
+            # Gating mechanism - choose beetween new attention from CBA or attention from previous iteration. [BATCH_SIZE x ADDRESSES x 1].        
             attention_after_gating_BxAx1 = gate_Bx1x1 * content_attention_BxAx1  +(torch.ones_like(gate_Bx1x1) - gate_Bx1x1) * prev_attention_BxAx1
-            #attention_after_gating_BxAx1 = prev_attention_BxAx1
             #logger.debug("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
 
             # Location-based addressing.
-            #location_attention_BxAx1 = self.location_based_addressing(attention_after_gating_BxAx1,  shift_BxSx1,  gamma_Bx1x1)
-            location_attention_BxAx1 = attention_after_gating_BxAx1
-            #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))    
+            location_attention_BxAx1 = self.location_based_addressing(attention_after_gating_BxAx1,  shift_BxSx1,  gamma_Bx1x1)
         
         else:
             # Location-based addressing ONLY!
             location_attention_BxAx1 = self.location_based_addressing(prev_attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1)
-            #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))  
-            content_attention_BxAx1 = torch.zeros_like(location_attention_BxAx1, requires_grad=True)
-            gate_Bx1x1 =  torch.zeros_like(gamma_Bx1x1, requires_grad=True)
+            content_attention_BxAx1 = torch.zeros_like(location_attention_BxAx1)
+            gate_Bx1x1 =  torch.zeros_like(gamma_Bx1x1)
             
+        #logger.warning("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))  
 
-        return location_attention_BxAx1,  HeadStateTuple(location_attention_BxAx1, content_attention_BxAx1,  gate_Bx1x1,  shift_BxSx1)
+        head_tuple = HeadStateTuple(location_attention_BxAx1, content_attention_BxAx1,  gate_Bx1x1,  shift_BxSx1)
+
+        return location_attention_BxAx1, head_tuple
         
     def content_based_addressing(self,  query_vector_Bx1xC, beta_Bx1x1, prev_memory_BxAxC):
         """Computes content-based addressing. Uses query vectors for calculation of similarity.
@@ -342,10 +338,10 @@ class NTMInterface(torch.nn.Module):
 
         # 1. Perform circular convolution.
         shifted_attention_BxAx1 = self.circular_convolution(attention_BxAx1,  shift_BxSx1)
-        
+
         # 2. Perform Sharpening.
         sharpened_attention_BxAx1 = self.sharpening(shifted_attention_BxAx1,  gamma_Bx1x1)
-               
+
         return sharpened_attention_BxAx1
 
     def circular_convolution(self,  attention_BxAx1,  shift_BxSx1):
@@ -393,13 +389,6 @@ class NTMInterface(torch.nn.Module):
         shifted_attention_BxAx1 = torch.transpose(torch.cat(tmp_attention_list,  dim=0),  1,  2)
         #logger.debug("shifted_attention_BxAx1 {}:\n {}".format(shifted_attention_BxAx1.size(),  shifted_attention_BxAx1))
         
-        # Manual test of convolution
-        #sum = 0
-        #el =0
-        #b = 0
-        #for i in range(3):
-        #    sum += ext_attention_BxEAx1[b][el+i][0] * shift_BxSx1[b][i][0]
-        #print("SUM= ", sum)
         return shifted_attention_BxAx1
 
     def sharpening(self,  attention_BxAx1,  gamma_Bx1x1):
@@ -409,19 +398,14 @@ class NTMInterface(torch.nn.Module):
         :param gamma_Bx1x1: sharpening factor [BATCH_SIZE x 1 x 1]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
         """
-        #gamma_Bx1x1[0][0][0]=40
-        #gamma_Bx1x1[0][0][0]=10
-        
-        #logger.debug("gamma_Bx1x1 {}:\n {}".format(gamma_Bx1x1.size(),  gamma_Bx1x1))
-                    
         # Power.        
-        pow_attention_BxAx1 = torch.pow(attention_BxAx1,  gamma_Bx1x1)
-        #logger.debug("pow_attention_BxAx1 {}:\n {}".format(pow_attention_BxAx1.size(),  pow_attention_BxAx1))
-        
+        pow_attention_BxAx1 = torch.pow(attention_BxAx1 + 1e-12,  gamma_Bx1x1)
+        #logger.error("pow_attention_BxAx1 {}:\n {}".format(pow_attention_BxAx1.size(),  pow_attention_BxAx1))
+
         # Normalize along addresses. 
-        norm_attention_BxAx1 = F.normalize(pow_attention_BxAx1, p=1,  dim=1)
-        #logger.debug("norm_attention_BxAx1 {}:\n {}".format(norm_attention_BxAx1.size(),  norm_attention_BxAx1))
-  
+        norm_attention_BxAx1 = F.normalize(pow_attention_BxAx1, p=1,  dim=1)  
+        #logger.error("EEEE norm_attention_BxAx1 {}:\n {}".format(norm_attention_BxAx1.size(),  norm_attention_BxAx1))
+
         return norm_attention_BxAx1
 
 
