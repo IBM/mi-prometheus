@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""ntm_cell.py: pytorch module implementing single (recurrent) cell of Neural Turing Machine"""
+"""mad_cell.py: pytorch module implementing single (recurrent) cell of Memory-Augmented Decoder"""
 __author__ = "Tomasz Kornuta"
 
 import torch 
@@ -10,28 +10,28 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
 from controller_factory import ControllerFactory
 from misc.app_state import AppState
 
-from models.encoder_solver.mae_interface import MAEInterface
+from models.encoder_solver.mad_interface import MADInterface
 
 # Helper collection type.
-_MAECellStateTuple = collections.namedtuple('MAECellStateTuple', ('ctrl_state', 'interface_state',  'memory_state'))
+_MADCellStateTuple = collections.namedtuple('MADCellStateTuple', ('ctrl_state', 'interface_state',  'memory_state', 'read_vector'))
 
-class MAECellStateTuple(_MAECellStateTuple):
-    """Tuple used by MAE Cells for storing current/past state information"""
+class MADCellStateTuple(_MADCellStateTuple):
+    """Tuple used by MAD Cells for storing current/past state information"""
     __slots__ = ()
 
 
-class MAECell(torch.nn.Module):
-    """ Class representing a single Memory-Augmented Encoder cell. """
+class MADCell(torch.nn.Module):
+    """ Class representing a single Memory-Augmented Decoder cell. """
 
     def __init__(self, params):
         """ Cell constructor.
         Cell creates controller and interface.
-        It also initializes memory "block" that will be passed between states.
+        Assumes that memory will be initialized by the encoder.
             
         :param params: Dictionary of parameters.
         """
         # Call constructor of base class.
-        super(NTMCell, self).__init__() 
+        super(MADCell, self).__init__() 
         
         # Parse parameters.
         # Set input and output sizes. 
@@ -43,10 +43,13 @@ class MAECell(torch.nn.Module):
 
         # Get controller hidden state size.
         self.controller_hidden_state_size = params['controller']['hidden_state_size']
+        
+        # Get interface parameters - required by initialization of read vectors. :]
+        self.interface_num_read_heads = params['interface']['num_read_heads']
 
+        # Controller - entity that processes input and produces hidden state of the MAD cell.        
+        ext_controller_inputs_size = self.input_size 
 
-        # Controller - entity that processes input and produces hidden state of the ntm cell.        
-        ext_controller_inputs_size = self.input_size
         # Create dictionary wirh controller parameters.
         controller_params = {
            "name":  params['controller']['name'],
@@ -56,11 +59,11 @@ class MAECell(torch.nn.Module):
            "num_layers": params['controller']['num_layers']
         }
         # Build the controller.
-        self.controller = ControllerFactory.build_model(controller_params)  
+        self.controller = ControllerFactory.build_model(controller_params)     
 
         # Interface - entity responsible for accessing the memory.
-        self.interface = MAEInterface(params)
-
+        self.interface = MADInterface(params)
+       
         
     def init_state(self,  batch_size,  init_memory_BxAxC):
         """
@@ -71,8 +74,7 @@ class MAECell(torch.nn.Module):
         
         :param batch_size: Size of the batch in given iteraction/epoch.
         :param num_memory_addresses: Number of memory addresses.
-        :param num_memory_content_bits: Number of memory content bits.
-        :returns: Initial state tuple - object of NTMCellStateTuple class.
+        :returns: Initial state tuple - object of MADCellStateTuple class.
         """
         # Get dtype.
         #dtype = AppState().dtype
@@ -85,31 +87,44 @@ class MAECell(torch.nn.Module):
         # Initialize interface state. 
         interface_init_state =  self.interface.init_state(batch_size,  num_memory_addresses)
         
+        # Initialize read vectors - one for every head.
+        # Unpack cell state.
+        (init_read_state_tuple) = interface_init_state
+        (init_read_attention_BxAxH, _, _, _) = zip(*init_read_state_tuple)
+        
+        # Read vectors from memory using the initial attention.
+        read_vector_BxCxH = self.interface.read_from_memory(init_read_attention_BxAxH, init_memory_BxAxC)
+        
         # Pack and return a tuple.
-        return MAECellStateTuple(ctrl_init_state, interface_init_state,  init_memory_BxAxC)
+        return MADCellStateTuple(ctrl_init_state, interface_init_state,  init_memory_BxAxC, read_vector_BxCxH)
 
 
     def forward(self, inputs_BxI,  prev_cell_state):
         """
-        Forward function of NTM cell.
+        Forward function of MAD cell.
         
         :param inputs_BxI: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE]
-        :param  prev_cell_state: a MAECellStateTuple tuple, containing previous state of the cell.
-        :returns: MAECellStateTuple tuple containing current cell state.
+        :param  prev_cell_state: a MADCellStateTuple tuple, containing previous state of the cell.
+        :returns: an output Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and  MADCellStateTuple tuple containing current cell state.
         """
         # Unpack previous cell  state.
-        (prev_ctrl_state_tuple, prev_interface_state_tuple,  prev_memory_BxAxC) = prev_cell_state
+        (prev_ctrl_state_tuple, prev_interface_state_tuple,  prev_memory_BxAxC, prev_read_vectors_BxC_H) = prev_cell_state
 
         controller_input = inputs_BxI
         # Execute controller forward step.
         ctrl_output_BxH,  ctrl_state_tuple = self.controller(controller_input,  prev_ctrl_state_tuple)
        
         # Execute interface forward step.
-        memory_BxAxC, interface_state_tuple = self.interface(ctrl_output_BxH, prev_memory_BxAxC,  prev_interface_state_tuple)
+        read_vectors_BxC_H,  memory_BxAxC, interface_state_tuple = self.interface(ctrl_output_BxH, prev_memory_BxAxC,  prev_interface_state_tuple)
+        
+        # Output layer - takes controller output concateneted with new read vectors.
+        read_vectors = torch.cat(read_vectors_BxC_H, dim=1)
+        ext_hidden = torch.cat((ctrl_output_BxH,  read_vectors ), dim=1)
+        logits_BxO = self.hidden2output(ext_hidden)
         
         # Pack current cell state.
-        cell_state_tuple = MAECellStateTuple(ctrl_state_tuple, interface_state_tuple,  memory_BxAxC)
+        cell_state_tuple = MADCellStateTuple(ctrl_state_tuple, interface_state_tuple,  memory_BxAxC, read_vectors_BxC_H)
         
         # Return logits and current cell state.
-        return cell_state_tuple
+        return logits_BxO, cell_state_tuple
     

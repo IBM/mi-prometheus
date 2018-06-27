@@ -67,8 +67,27 @@ class MAES(SequentialModel):
         """
 
         # Unpack tuple.
-        (inputs, targets) = data_tuple
-        batch_size = inputs.size(0)
+        (inputs_BxSxI, targets) = data_tuple
+        batch_size = inputs_BxSxI.size(0)
+
+        # "Data-driven memory size".
+        # Save as TEMPORAL VARIABLE! 
+        # (do not overwrite self.num_memory_addresses, which will cause problem with next batch!)
+        if self.num_memory_addresses == -1:
+            # Set equal to input sequence length.
+            num_memory_addresses = inputs_BxSxI.size(1)
+        else:
+            num_memory_addresses = self.num_memory_addresses
+ 
+        # Initialize memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS] 
+        init_memory_BxAxC = torch.zeros(batch_size,  num_memory_addresses,  self.num_memory_content_bits).type(dtype)
+
+        # Initialize 'zero' state.
+        encoder_state = self.encoder.init_state(batch_size,  init_memory_BxAxC)
+
+
+        # TODO: REST FROM HERE!
+
 
         # Check if the class has been converted to cuda (through .cuda() method)
         dtype = torch.cuda.FloatTensor if next(self.encoder.parameters()).is_cuda else torch.FloatTensor
@@ -92,13 +111,13 @@ class MAES(SequentialModel):
                 print('Error: both encoding and decoding bit were true')
                 exit(-1)
 
+            # Run encoder or solver - depending on the state.
             if mode == self.modes.Encode:
                 h, c = self.encoder(x, (h, c))
             elif mode == self.modes.Solve:
                 h, c = self.solver(x, (h, c))
-
                             
-            # Collect logits - whatever happens :] (BUT THIS CAN BE EASILY SOLVED - COLLECT LOGITS ONLY IN DECODER!!)
+            # Collect logits from both encoder and solver - they will be masked afterwards.
             logit = self.output(h)
             logits += [logit]
 

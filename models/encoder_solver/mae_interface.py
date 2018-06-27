@@ -18,15 +18,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
 
 
 # Helper collection type.
-_MAEHeadStateTuple = collections.namedtuple('MAEHeadStateTuple', ('attention',  'shift'))
-
-class MAEHeadStateTuple(_MAEHeadStateTuple):
-    """Tuple used by interface for storing current/past MAE head state information"""
-    __slots__ = ()
-
-
-# Helper collection type.
-_MAEInterfaceStateTuple = collections.namedtuple('MAEInterfaceStateTuple', ('write_head'))
+_MAEInterfaceStateTuple = collections.namedtuple('MAEInterfaceStateTuple', ('attention',  'shift'))
 
 class MAEInterfaceStateTuple(_MAEInterfaceStateTuple):
     """Tuple used by interface for storing current/past MAE interface state information"""
@@ -66,6 +58,9 @@ class MAEInterface(torch.nn.Module):
             'erase_vector': self.num_memory_content_bits, 'add_vector': self.num_memory_content_bits}, "Write")
         assert num_write_params == self.write_param_locations[-1], "Last location must be equal to number of write params."
         
+        # Forward linear layer that generates parameters of write head.
+        self.hidden2write_params = torch.nn.Linear(self.ctrl_hidden_state_size,  num_write_params)
+
     def init_state(self,  batch_size,  num_memory_addresses):
         """
         Returns 'zero' (initial) state tuple.
@@ -74,14 +69,8 @@ class MAEInterface(torch.nn.Module):
         :param num_memory_addresses: Number of memory addresses.
         :returns: Initial state tuple - object of InterfaceStateTuple class.
         """
+        # Get dtype.
         dtype = AppState().dtype
-        # Add read head states - one for each read head.
-        # TODO: U
-        read_state_tuples = []
-
-        # Initial  attention weights [BATCH_SIZE x MEMORY_ADDRESSES x 1]
-        # Normalize through division by number of addresses.
-        #init_attentions.append(torch.ones(batch_size, num_memory_addresses,  1).type(dtype)/num_memory_addresses)
 
         # Zero-hard attention.
         zh_attention = torch.zeros(batch_size, num_memory_addresses,  1).type(dtype)
@@ -89,12 +78,9 @@ class MAEInterface(torch.nn.Module):
         # Init gating.
         init_shift = torch.zeros(batch_size, self.interface_shift_size,  1).type(dtype)
         init_shift[:, 1, 0] = 1
-
-        # Single write head tuple.
-        write_state_tuple = MAEHeadStateTuple(zh_attention, init_shift)
         
         # Return tuple.
-        return MAEInterfaceStateTuple(write_state_tuple)
+        return MAEInterfaceStateTuple(zh_attention, init_shift)
 
     def forward(self, ctrl_hidden_state_BxH,  prev_memory_BxAxC,  prev_interface_state_tuple):
         """
@@ -105,11 +91,8 @@ class MAEInterface(torch.nn.Module):
         :param prev_interface_state_tuple: Tuple containing previous interface tuple.
         :returns: updated memory and state tuple (object of MAEInterfaceStateTuple class).
         """
-        # Unpack previous cell  state - just to make sure that everything is ok...
-        #(prev_read_attentions_BxAx1_H,  prev_write_attention_BxAx1) = prev_interface_state_tuple
-       # Unpack cell state.
-        (prev_write_state_tuple) = prev_interface_state_tuple
-        (prev_write_attention_BxAx1, _, _, _) = prev_write_state_tuple
+        # Unpack previous cell state.
+        (prev_write_attention_BxAx1, _) = prev_interface_state_tuple
          
         # !! Execute single step !!
             
@@ -130,12 +113,9 @@ class MAEInterface(torch.nn.Module):
 
         # Update the memory.
         memory_BxAxC = self.update_memory(write_attention_BxAx1,  erase_vector_Bx1xC,  add_vector_Bx1xC,  prev_memory_BxAxC)
-
-        # Pack current cell state.        
-        interface_state_tuple = MAEInterfaceStateTuple(write_state_tuple)
         
         # Return new memory state and state tuple.
-        return memory_BxAxC,  interface_state_tuple
+        return memory_BxAxC,  write_state_tuple
  
     def calculate_param_locations(self,  param_sizes_dict,  head_name):
         """ Calculates locations of parameters, that will subsequently be used during parameter splitting.
@@ -177,7 +157,7 @@ class MAEInterface(torch.nn.Module):
         location_attention_BxAx1 = self.location_based_addressing(prev_attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC)
         #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))    
         
-        return location_attention_BxAx1,  MAEHeadStateTuple(location_attention_BxAx1, shift_BxSx1)
+        return location_attention_BxAx1,  MAEInterfaceStateTuple(location_attention_BxAx1, shift_BxSx1)
         
 
     def location_based_addressing(self,  attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC):
@@ -216,8 +196,7 @@ class MAEInterface(torch.nn.Module):
             else: return idx
 
         # Check whether inputs are already on GPU or not.
-        #dtype = torch.cuda.LongTensor if attention_BxAx1.is_cuda else torch.LongTensor
-        dtype = AppState().LongTensor
+        long_dtype = AppState().LongTensor
 
         # Get number of memory addresses and batch size.
         batch_size =prev_memory_BxAxC.size(0) 
@@ -226,7 +205,7 @@ class MAEInterface(torch.nn.Module):
         
         #logger.debug("shift_BxSx1 {}: {}".format(shift_BxSx1,  shift_BxSx1.size()))    
         # Create an extended list of indices indicating what elements of the sequence will be where.
-        ext_indices_tensor = torch.Tensor([circular_index(shift, num_addr) for shift in range(-shift_size//2+1,  num_addr+shift_size//2)]).type(dtype)
+        ext_indices_tensor = torch.Tensor([circular_index(shift, num_addr) for shift in range(-shift_size//2+1,  num_addr+shift_size//2)]).type(long_dtype)
         #logger.debug("ext_indices {}:\n {}".format(ext_indices_tensor.size(),  ext_indices_tensor))
     
         # Use indices for creation of an extended attention vector.
