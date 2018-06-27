@@ -4,9 +4,9 @@ problem_train:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 3
     data_bits: &dbits 8
-    batch_size: &bs 16
+    batch_size: &bs 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 1
+    min_sequence_length: 2
     max_sequence_length: 20
     #Curriculum learning - optional.
     curriculum_learning:
@@ -53,6 +53,8 @@ model:
     # Indices of control bits triggering encoding/decoding.
     encoding_bit: 0
     solving_bit: 1
+    # Pass the whole state from encoder to solver cell.
+    pass_cell_state: True
     # Controller parameters.
     controller:
         name: rnn

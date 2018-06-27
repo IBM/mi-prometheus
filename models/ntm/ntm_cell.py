@@ -73,10 +73,8 @@ class NTMCell(torch.nn.Module):
         
     def init_state(self,  init_memory_BxAxC):
         """
-        Returns 'zero' (initial) state:
-        * memory  is reset to random values.
-        * read & write weights are set to 1e-6.
-        * read_vectors are initialize as 0s.
+        Returns 'zero' (initial) state.
+        "Recursivelly" calls controller and interface initialization.
         
         :param init_memory_BxAxC: Initial memory.
         :returns: Initial state tuple - object of NTMCellStateTuple class.
@@ -103,7 +101,30 @@ class NTMCell(torch.nn.Module):
             read_vectors_BxC_H.append(self.interface.read_from_memory(init_read_attentions_BxAx1_H[h],  init_memory_BxAxC))
         
         # Pack and return a tuple.
-        return NTMCellStateTuple(ctrl_init_state, interface_init_state,  init_memory_BxAxC, read_vectors_BxC_H)
+        ntm_state = NTMCellStateTuple(ctrl_init_state, interface_init_state,  init_memory_BxAxC, read_vectors_BxC_H)
+        return ntm_state
+
+       
+    #def init_state_from_prev_state(self, prev_cell_state):
+        #"""
+        #Creates 'zero' (initial) state on the basis of he previous cell state.
+        #"Recursivelly" calls controller and interface initialization.
+        #
+        #:param prev_cell_state: Previous cell state.
+        #:returns: Initial state tuple - object of NTMCellStateTuple class.
+        #"""
+        # Unpack previous cell state
+        #prev_ctrl_state, prev_interface_state, prev_memory_BxAxC, prev_read_vectors_BxC_H = prev_cell_state
+
+        # Initialize controller state.
+        #ctrl_init_state =  self.controller.init_state_from_state(prev_ctrl_state)
+
+        # Initialize interface state. 
+        #interface_init_state =  self.interface.init_state_from_state(prev_interface_state)
+               
+        # Pack and return a tuple.
+        #ntm_state = NTMCellStateTuple(prev_ctrl_state, prev_interface_state,  prev_memory_BxAxC, prev_read_vectors_BxC_H)
+        #return ntm_state
 
 
     def forward(self, inputs_BxI,  prev_cell_state):

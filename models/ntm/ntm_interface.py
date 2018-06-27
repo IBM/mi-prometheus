@@ -145,7 +145,9 @@ class NTMInterface(torch.nn.Module):
         write_state_tuple = HeadStateTuple(zh_attention,  zh_attention, init_gating, init_shift)
         
         # Return tuple.
-        return InterfaceStateTuple(read_state_tuples,  write_state_tuple)
+        interface_state = InterfaceStateTuple(read_state_tuples,  write_state_tuple)
+        return interface_state
+
 
     def forward(self, ctrl_hidden_state_BxH,  prev_memory_BxAxC,  prev_interface_state_tuple):
         """

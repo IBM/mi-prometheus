@@ -40,6 +40,8 @@ class EncoderSolverNTM(SequentialModel):
         # Indices of control bits triggering encoding/decoding. 
         self.encoding_bit =  params['encoding_bit'] # Def: 0
         self.solving_bit =  params['solving_bit'] # Def: 1
+        # Check if we want to pass the whole cell state or only the memory.
+        self.pass_cell_state = params.get('pass_cell_state', False)
 
         # It is stored here, but will we used ONLY ONCE - for initialization of memory called from the forward() function.
         self.num_memory_addresses = params['memory']['num_addresses']
@@ -91,7 +93,6 @@ class EncoderSolverNTM(SequentialModel):
         # Start as encoder.
         mode = self.modes.Encode
 
-
         # Logits container.
         logits = []
 
@@ -102,9 +103,12 @@ class EncoderSolverNTM(SequentialModel):
             # Switch to decoder mode when required.
             if x[0, self.solving_bit] and not x[0, self.encoding_bit]:
                 mode = self.modes.Solve
-                # Initialize solver - with last state of memory.
-                solver_state = self.solver.init_state(encoder_state.memory_state)
-            
+                if self.pass_cell_state:
+                    solver_state = encoder_state
+                else:
+                    # Initialize solver state - with last state of memory.
+                    solver_state = self.solver.init_state(encoder_state.memory_state)
+
             elif x[0, self.encoding_bit] and x[0, self.solving_bit]:
                 logger.error('Both encoding and decoding bit were true')
                 exit(-1)
