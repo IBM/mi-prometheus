@@ -19,10 +19,10 @@ class SimpleConvNet(Model):
     def __init__(self, params):
         super(SimpleConvNet, self).__init__(params)
 
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=5)
+        self.conv2 = nn.Conv2d(16, 16, kernel_size=5)
         self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(320, 50)
+        self.fc1 = nn.Linear(256, 50)
         self.fc2 = nn.Linear(50, 10)
 
     def forward(self, data_tuple):
@@ -31,7 +31,7 @@ class SimpleConvNet(Model):
 
         x = F.relu(F.max_pool2d(self.conv1(inputs), 2))
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        x = x.view(-1, 320)
+        x = x.view(-1, 256)
 
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
@@ -72,16 +72,21 @@ class SimpleConvNet(Model):
         plt.title('Prediction: {} (Target: {})'.format(np.argmax(prediction), target) )
         plt.imshow(image, interpolation='nearest', aspect='auto')
 
+        # feature layer 2
         f = plt.figure()
-        gs = gridspec.GridSpec(2, 2)
+        gs = gridspec.GridSpec(4, 4)
 
-        for i in range():
-            ax1 = plt.subplot(gs[0])
+        for i in range(16):
+            ax = plt.subplot(gs[i])
+            ax.imshow(self.conv1.weight[i, 0].detach().numpy())
 
-        x = [1, 2, 3, 4]
-        y = [2, 4, 6, 8]
+        # feature layer 1
+        f = plt.figure()
+        gs = gridspec.GridSpec(4, 4)
 
-        ax1.plot(x, y)
+        for i in range(16):
+            ax = plt.subplot(gs[i])
+            ax.imshow(self.conv2.weight[i, 0].detach().numpy())
 
         # Plot!
         plt.show()

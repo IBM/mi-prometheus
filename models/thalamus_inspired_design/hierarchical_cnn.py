@@ -29,16 +29,17 @@ class HierarchicalCNN(Model):
         # unpack data
         image, target = data_tuple
 
-        # apply cnn layer1
-        features_layer1 = F.relu(F.max_pool2d(self.conv1(image), 2))
+        for i in range(2):
+            # apply cnn layer1
+            features_layer1 = F.relu(F.max_pool2d(self.conv1(image), 2))
 
-        # apply cnn layer2
-        features_layer2 = F.relu(F.max_pool2d(self.conv2(features_layer1), 2))
+            # apply cnn layer2
+            features_layer2 = F.relu(F.max_pool2d(self.conv2(features_layer1), 2))
 
-        features_layer1_flatten = features_layer1.view(-1, 1440)
-        features_layer2_flatten = features_layer2.view(-1, 320)
+            features_layer1_flatten = features_layer1.view(-1, 1440)
+            features_layer2_flatten = features_layer2.view(-1, 320)
 
-        features = torch.cat((features_layer1_flatten, features_layer2_flatten), dim=1)
+            features = torch.cat((features_layer1_flatten, features_layer2_flatten), dim=1)
 
         x = F.relu(self.fc1(features))
         x = F.dropout(x, training=self.training)
