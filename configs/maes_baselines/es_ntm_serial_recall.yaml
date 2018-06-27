@@ -4,7 +4,7 @@ problem_train:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 3
     data_bits: &dbits 8
-    batch_size: &bs 64
+    batch_size: &bs 1
     # Parameters denoting min and max lengths.
     min_sequence_length: 1
     max_sequence_length: 20
@@ -23,7 +23,7 @@ problem_validation:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 64
+    batch_size: 1
     # Parameters denoting min and max lengths.
     min_sequence_length: 21
     max_sequence_length: 21
@@ -43,13 +43,16 @@ problem_test:
 
 # Model parameters:
 model:
-    name: ntm
+    name: es_ntm
     # Optional parameter: visualization.
-    visualization_mode: 2
+    #visualization_mode: 2
     # Input bits = [command_bits, data_bits]
     # Output bits = [data_bits]
     num_control_bits: *cbits
     num_data_bits: *dbits
+    # Indices of control bits triggering encoding/decoding.
+    encoding_bit: 0
+    solving_bit: 1
     # Controller parameters.
     controller:
         name: rnn
@@ -58,8 +61,8 @@ model:
         non_linearity: sigmoid
     # Interface
     interface:
-        num_read_heads: 1
         shift_size: 3
+        num_read_heads: 1
         use_content_based_addressing: True
     # Memory parameters.
     memory:
@@ -75,8 +78,6 @@ optimizer:
 
 # settings parameters
 settings:
-    # masked output and target
-    use_mask: True
     length_loss: 10
     loss_stop: 1.0e-5
     max_episodes: 100000

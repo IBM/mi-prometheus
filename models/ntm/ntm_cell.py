@@ -5,11 +5,12 @@ __author__ = "Tomasz Kornuta"
 
 import torch 
 import collections
-from ntm_interface import NTMInterface
 import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
-from controller_factory import ControllerFactory
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+
 from misc.app_state import AppState
+from models.controllers.controller_factory import ControllerFactory
+from models.ntm.ntm_interface import NTMInterface
 
 # Helper collection type.
 _NTMCellStateTuple = collections.namedtuple('NTMCellStateTuple', ('ctrl_state', 'interface_state',  'memory_state', 'read_vectors'))
@@ -43,9 +44,10 @@ class NTMCell(torch.nn.Module):
         # Get controller hidden state size.
         self.controller_hidden_state_size = params['controller']['hidden_state_size']
         
-        # Get memory parameters - required by initialization of read vectors. :]
+        # Get memory parameters - required by initialization of ext_controller input size.
         self.num_memory_content_bits = params['memory']['num_content_bits']
-        # Get interface parameters - required by initialization of read vectors. :]
+
+        # Get number of read heads.
         self.interface_num_read_heads = params['interface']['num_read_heads']
 
         # Controller - entity that processes input and produces hidden state of the ntm cell.        
@@ -69,34 +71,28 @@ class NTMCell(torch.nn.Module):
         self.hidden2output = torch.nn.Linear(ext_hidden_size, self.output_size)
         
         
-    def init_state(self,  batch_size,  num_memory_addresses):
+    def init_state(self,  init_memory_BxAxC):
         """
         Returns 'zero' (initial) state:
         * memory  is reset to random values.
         * read & write weights are set to 1e-6.
         * read_vectors are initialize as 0s.
         
-        :param batch_size: Size of the batch in given iteraction/epoch.
-        :param num_memory_addresses: Number of memory addresses.
+        :param init_memory_BxAxC: Initial memory.
         :returns: Initial state tuple - object of NTMCellStateTuple class.
         """
-        dtype = AppState().dtype
+        batch_size = init_memory_BxAxC.size(0)
+        num_memory_addresses = init_memory_BxAxC.size(1)
 
         # Initialize controller state.
         ctrl_init_state =  self.controller.init_state(batch_size)
 
         # Initialize interface state. 
         interface_init_state =  self.interface.init_state(batch_size,  num_memory_addresses)
-
-        # Memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS] 
-        init_memory_BxAxC = torch.zeros(batch_size,  num_memory_addresses,  self.num_memory_content_bits).type(dtype)
-        #init_memory_BxAxC = torch.empty(batch_size,  num_memory_addresses,  self.num_memory_content_bits).type(dtype)
-        #torch.nn.init.normal_(init_memory_BxAxC, mean=0.5, std=0.2)
         
         # Initialize read vectors - one for every head.
         # Unpack cell state.
-        (init_read_state_tuples,  init_write_state_tuple) = interface_init_state
-        (init_write_attention_BxAx1, _, _, _) = init_write_state_tuple
+        (init_read_state_tuples,  _) = interface_init_state
         (init_read_attentions_BxAx1_H, _, _, _) = zip(*init_read_state_tuples)
         
         read_vectors_BxC_H = []
