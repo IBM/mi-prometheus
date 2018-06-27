@@ -181,7 +181,7 @@ class NTMInterface(torch.nn.Module):
                 read_attention_BxAx1,  read_state_tuple = self.update_attention(query_vector_BxC,  beta_Bx1,  gate_Bx1, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attentions_BxAx1_H[i])
             else:
                 # Split the parameters.
-                shift_BxS, gamma_Bx1 = self.split_params(params_BxP,  self.read_param_locations)
+                aaa, shift_BxS, gamma_Bx1 = self.split_params(params_BxP,  self.read_param_locations)
                 # Update the attention of a given read head.
                 read_attention_BxAx1,  read_state_tuple = self.update_attention(_,  _,  _, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attentions_BxAx1_H[i])
 

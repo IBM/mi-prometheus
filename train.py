@@ -346,14 +346,14 @@ if __name__ == '__main__':
                     try:
                         training_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
                     except Exception as e:
-                        logger.error("  {} ::  data error :: {}".format(name, e))
+                        logger.error("  {} :: data :: {}".format(name, e))
             # Export gradients.
             if FLAGS.tensorboard >= 2:
                 for name, param in model.named_parameters():
                     try:
                         training_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
                     except Exception as e:
-                        logger.error("  {} :: grad error :: {}".format(name, e))
+                        logger.error("  {} :: grad :: {}".format(name, e))
 
         # Check visualization of training data.
         if app_state.visualize:
