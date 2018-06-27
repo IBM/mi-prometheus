@@ -108,14 +108,14 @@ class MAEInterface(torch.nn.Module):
         add_vector_Bx1xC = F.sigmoid(add_vector_BxC).unsqueeze(1) 
 
         # Update the attention of the write head.
-        write_attention_BxAx1,  write_state_tuple = self.update_attention(shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_write_attention_BxAx1)
+        write_attention_BxAx1,  interface_state_tuple = self.update_attention(shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_write_attention_BxAx1)
         #logger.debug("write_attention_BxAx1 {}:\n {}".format(write_attention_BxAx1.size(),  write_attention_BxAx1))  
 
         # Update the memory.
         memory_BxAxC = self.update_memory(write_attention_BxAx1,  erase_vector_Bx1xC,  add_vector_Bx1xC,  prev_memory_BxAxC)
         
         # Return new memory state and state tuple.
-        return memory_BxAxC,  write_state_tuple
+        return memory_BxAxC,  interface_state_tuple
  
     def calculate_param_locations(self,  param_sizes_dict,  head_name):
         """ Calculates locations of parameters, that will subsequently be used during parameter splitting.

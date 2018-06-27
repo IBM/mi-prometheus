@@ -61,6 +61,10 @@ class MAECell(torch.nn.Module):
         # Interface - entity responsible for accessing the memory.
         self.interface = MAEInterface(params)
 
+        # Layer that produces output on the basis of... hidden state?
+        ext_hidden_size = self.controller_hidden_state_size
+        self.hidden2output = torch.nn.Linear(ext_hidden_size, self.output_size)
+
         
     def init_state(self,  batch_size,  init_memory_BxAxC):
         """
@@ -107,9 +111,12 @@ class MAECell(torch.nn.Module):
         # Execute interface forward step.
         memory_BxAxC, interface_state_tuple = self.interface(ctrl_output_BxH, prev_memory_BxAxC,  prev_interface_state_tuple)
         
+        # Output layer - takes controller hidden state.
+        logits_BxO = self.hidden2output(ctrl_output_BxH)
+
         # Pack current cell state.
         cell_state_tuple = MAECellStateTuple(ctrl_state_tuple, interface_state_tuple,  memory_BxAxC)
         
         # Return logits and current cell state.
-        return cell_state_tuple
+        return logits_BxO, cell_state_tuple
     

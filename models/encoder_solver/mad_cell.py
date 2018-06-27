@@ -43,9 +43,7 @@ class MADCell(torch.nn.Module):
 
         # Get controller hidden state size.
         self.controller_hidden_state_size = params['controller']['hidden_state_size']
-        
-        # Get interface parameters - required by initialization of read vectors. :]
-        self.interface_num_read_heads = params['interface']['num_read_heads']
+
 
         # Controller - entity that processes input and produces hidden state of the MAD cell.        
         ext_controller_inputs_size = self.input_size 
@@ -63,9 +61,12 @@ class MADCell(torch.nn.Module):
 
         # Interface - entity responsible for accessing the memory.
         self.interface = MADInterface(params)
-       
+
+        # Layer that produces output on the basis of hidden state and vector read from the memory.
+        ext_hidden_size = self.controller_hidden_state_size +  self.num_memory_content_bits
+        self.hidden2output = torch.nn.Linear(ext_hidden_size, self.output_size)
         
-    def init_state(self,  batch_size,  init_memory_BxAxC):
+    def init_state(self,  batch_size,  final_encoder_memory_BxAxC, final_encoder_attention_BxAx1):
         """
         Returns 'zero' (initial) state:
         * memory  is reset to random values.
@@ -73,30 +74,30 @@ class MADCell(torch.nn.Module):
         * read_vectors are initialize as 0s.
         
         :param batch_size: Size of the batch in given iteraction/epoch.
-        :param num_memory_addresses: Number of memory addresses.
+        :param final_encoder_memory_BxAxC: Final state of memory produced by the encoder [BATCH_SIZE x MEMORY_ADDRESSES x MEMORY_CONTENT].
+        :param final_encoder_attention_BxAx1: Final attention of the encoder [BATCH_SIZE x MEMORY_ADDRESSES x 1]
         :returns: Initial state tuple - object of MADCellStateTuple class.
         """
         # Get dtype.
         #dtype = AppState().dtype
         # Get number of memory addresses.
-        num_memory_addresses = init_memory_BxAxC.size(1)
+        num_memory_addresses = final_encoder_memory_BxAxC.size(1)
 
         # Initialize controller state.
         ctrl_init_state =  self.controller.init_state(batch_size)
 
         # Initialize interface state. 
-        interface_init_state =  self.interface.init_state(batch_size,  num_memory_addresses)
+        interface_init_state =  self.interface.init_state(batch_size,  num_memory_addresses, final_encoder_attention_BxAx1)
         
         # Initialize read vectors - one for every head.
         # Unpack cell state.
-        (init_read_state_tuple) = interface_init_state
-        (init_read_attention_BxAxH, _, _, _) = zip(*init_read_state_tuple)
+        (init_read_attention_BxAx1, _, _, _) = zip(*interface_init_state)
         
-        # Read vectors from memory using the initial attention.
-        read_vector_BxCxH = self.interface.read_from_memory(init_read_attention_BxAxH, init_memory_BxAxC)
+        # Read a vector from memory using the initial attention.
+        read_vector_BxC = self.interface.read_from_memory(init_read_attention_BxAx1, final_encoder_memory_BxAxC)
         
         # Pack and return a tuple.
-        return MADCellStateTuple(ctrl_init_state, interface_init_state,  init_memory_BxAxC, read_vector_BxCxH)
+        return MADCellStateTuple(ctrl_init_state, interface_init_state, final_encoder_memory_BxAxC, read_vector_BxC)
 
 
     def forward(self, inputs_BxI,  prev_cell_state):
@@ -108,22 +109,21 @@ class MADCell(torch.nn.Module):
         :returns: an output Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and  MADCellStateTuple tuple containing current cell state.
         """
         # Unpack previous cell  state.
-        (prev_ctrl_state_tuple, prev_interface_state_tuple,  prev_memory_BxAxC, prev_read_vectors_BxC_H) = prev_cell_state
+        (prev_ctrl_state_tuple, prev_interface_state_tuple,  prev_memory_BxAxC, _) = prev_cell_state
 
         controller_input = inputs_BxI
         # Execute controller forward step.
         ctrl_output_BxH,  ctrl_state_tuple = self.controller(controller_input,  prev_ctrl_state_tuple)
        
         # Execute interface forward step.
-        read_vectors_BxC_H,  memory_BxAxC, interface_state_tuple = self.interface(ctrl_output_BxH, prev_memory_BxAxC,  prev_interface_state_tuple)
+        read_vector_BxC, memory_BxAxC, interface_state_tuple = self.interface(ctrl_output_BxH, prev_memory_BxAxC,  prev_interface_state_tuple)
         
         # Output layer - takes controller output concateneted with new read vectors.
-        read_vectors = torch.cat(read_vectors_BxC_H, dim=1)
-        ext_hidden = torch.cat((ctrl_output_BxH,  read_vectors ), dim=1)
+        ext_hidden = torch.cat((ctrl_output_BxH,  read_vector_BxC ), dim=1)
         logits_BxO = self.hidden2output(ext_hidden)
         
         # Pack current cell state.
-        cell_state_tuple = MADCellStateTuple(ctrl_state_tuple, interface_state_tuple,  memory_BxAxC, read_vectors_BxC_H)
+        cell_state_tuple = MADCellStateTuple(ctrl_state_tuple, interface_state_tuple,  memory_BxAxC, read_vector_BxC)
         
         # Return logits and current cell state.
         return logits_BxO, cell_state_tuple
