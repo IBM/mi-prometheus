@@ -28,6 +28,7 @@ class ModelFactory(object):
 
         # Try to load model
         name = params['name']
+        print(name)
         if name == 'dnc':
             logger.info('Loading the DNC model from models.dnc.dnc_model')
             sys.path.append(os.path.join(os.path.dirname(__file__),  'dnc'))
@@ -69,5 +70,10 @@ class ModelFactory(object):
             logger.warning("Warning: AlexnetWrapper not tested!")
             from models.vision.alexnet_wrapper import AlexnetWrapper
             return AlexnetWrapper(params)
+        elif name == 'hierarchical_cnn':
+            logger.info('Loading the HierarchicalCNN model from models.thalamus_inspired_design.hierarchical_cnn')
+            logger.warning("Warning: HierarchicalCNN under development")
+            from models.thalamus_inspired_design.hierarchical_cnn import HierarchicalCNN
+            return HierarchicalCNN(params)
         else:
             raise ValueError

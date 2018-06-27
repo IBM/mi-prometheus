@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 
 # Add path to main project directory - so we can test the base plot, saving images, movies etc.
@@ -30,6 +32,7 @@ class SimpleConvNet(Model):
         x = F.relu(F.max_pool2d(self.conv1(inputs), 2))
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
         x = x.view(-1, 320)
+
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
@@ -69,6 +72,17 @@ class SimpleConvNet(Model):
         plt.title('Prediction: {} (Target: {})'.format(np.argmax(prediction), target) )
         plt.imshow(image, interpolation='nearest', aspect='auto')
 
+        f = plt.figure()
+        gs = gridspec.GridSpec(2, 2)
+
+        for i in range():
+            ax1 = plt.subplot(gs[0])
+
+        x = [1, 2, 3, 4]
+        y = [2, 4, 6, 8]
+
+        ax1.plot(x, y)
+
         # Plot!
         plt.show()
 
@@ -94,6 +108,7 @@ if __name__ == '__main__':
         prediction = torch.from_numpy(prediction_np).type(torch.FloatTensor)
 
         dt = DataTuple(input, target)
+        output = model(dt)
         # Plot it and check whether window was closed or not. 
         if model.plot(dt, prediction):
             break
