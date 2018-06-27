@@ -1,0 +1,5 @@
+configs/maes_baselines/dnc_comparison.yaml
+configs/maes_baselines/dnc_equality.yaml
+configs/maes_baselines/dnc_odd_recall.yaml
+configs/maes_baselines/dnc_serial_recall.yaml
+configs/maes_baselines/dnc_reverse_recall.yaml
