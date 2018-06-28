@@ -3,9 +3,12 @@
 """translation.py: translation problem"""
 __author__      = "Vincent Marois"
 
-# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os, sys
 import random
+
+# fix the random seed for results repeatability
+random.seed(0)
+
 import torch
 import errno
 
@@ -45,9 +48,6 @@ class Translation(TextToTextProblem, Lang):
         # to filter the English sentences based on their structure.
         self.eng_prefixes = params['eng_prefixes']
 
-        self.start_index = params['start_index']
-        self.stop_index = params['stop_index']
-
         # other attributes
         self.input_lang = None  # will be a Lang instance
         self.output_lang = None  # will be a Lang instance
@@ -60,7 +60,7 @@ class Translation(TextToTextProblem, Lang):
         self.processed_folder = 'processed'
         self.training_file = 'eng-' + self.output_lang_name + '_training.txt'
         self.test_file = 'eng-' + self.output_lang_name + '_test.txt'
-        self.training_size = 0.90
+        self.training_size = params['training_size']
 
         # switch between training & inference
         self.use_train_data = params['use_train_data']
@@ -77,10 +77,6 @@ class Translation(TextToTextProblem, Lang):
         self.tensor_pairs = self.tensors_from_pairs(self.pairs, self.input_lang,
                                                     self.output_lang, self.max_sequence_length)
 
-        # number of training instances
-        if self.use_train_data:
-            assert self.stop_index < len(self.pairs), "Error: specified stop_index > number of processed training pairs."
-            self.num_train = int(self.stop_index - self.start_index)
 
     def prepare_data(self):
         """
@@ -224,11 +220,7 @@ class Translation(TextToTextProblem, Lang):
                                     output [BATCH_SIZE, MAX_SEQUENCE_LENGTH, 1].
         """
         # generate a sample of size batch_size of random indexes without replacement
-        # only considering the start / stop indexes for the training set
-        if self.use_train_data:
-            indexes = random.sample(population=range(self.num_train), k=self.batch_size)
-        else:
-            indexes = random.sample(population=range(len(self.tensor_pairs)), k=self.batch_size)
+        indexes = random.sample(population=range(len(self.tensor_pairs)), k=self.batch_size)
 
         # create main batch inputs & outputs tensor
         inputs = torch.zeros([self.batch_size, self.max_sequence_length], dtype=torch.long)
@@ -266,9 +258,8 @@ if __name__ == "__main__":
         "they are", "they re "
     )
 
-    params = {'batch_size': 2, 'start_index': 0, 'stop_index': 1000, 'output_lang_name': 'fra',
-              'max_sequence_length': 10, 'eng_prefixes': eng_prefixes, 'use_train_data': True,
-              'data_folder': '~/data/language', 'reverse': False}
+    params = {'batch_size': 2, 'training_size': 0.90, 'output_lang_name': 'fra', 'max_sequence_length': 10,
+              'eng_prefixes': eng_prefixes, 'use_train_data': True, 'data_folder': '~/data/language', 'reverse': False}
 
     problem = Translation(params)
     print('Problem successfully created.\n')

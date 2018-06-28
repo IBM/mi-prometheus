@@ -45,8 +45,8 @@ class TextToTextProblem(SeqToSeqProblem):
         super(TextToTextProblem, self).__init__(params)
 
         # set default loss function - negative log likelihood and ignores padding elements.
-        self.loss_function = nn.NLLLoss(ignore_index=0)
-
+        self.loss_function = nn.NLLLoss(size_average=False)
+    '''
     def compute_BLEU_score(self, data_tuple, logits, aux_tuple, output_lang):
         """
         Compute BLEU score in order to evaluate the translation quality (equivalent of accuracy)
@@ -82,7 +82,7 @@ class TextToTextProblem(SeqToSeqProblem):
             bleu_score += sentence_bleu([targets_text[i]], logits_text[i], weights=weights)
 
         return bleu_score / data_tuple.inputs.size(0)
-
+    '''
     def evaluate_loss(self, data_tuple, logits, aux_tuple):
         """
         Computes loss.
@@ -98,11 +98,23 @@ class TextToTextProblem(SeqToSeqProblem):
         :return: loss
         """
 
-        # logits should be of shape [batch_size x output_size x seq_length]
-        # target should be of shape [batch_size x seq_length]
-        batch_size = data_tuple.targets.size(0)
-        seq_length = data_tuple.targets.size(1)
-        loss = self.loss_function(logits.view(batch_size, -1, seq_length), data_tuple.targets)
+        def reshape_tensor(tensor):
+            """
+            Helper function to reshape the tensor. Also removes padding (with 1s) except for the last element.
+            :param tensor: tensor to be reshaped & unpadded
+            :return: transformed tensor.
+            """
+            # get indexes of elements not equal to ones
+            index = (tensor[0, :] != 1).nonzero().squeeze().numpy()
+            # create new tensor being transposed compared to tensor + 1 element longer
+            return_tensor = torch.ones(index.shape[0] + 1, 1).type(torch.long)
+            # copy elements
+            return_tensor[index] = tensor[0, index].view(-1, 1)
+
+            return return_tensor
+
+        targets = reshape_tensor(data_tuple.targets)
+        loss = self.loss_function(logits, targets.squeeze())
 
         return loss
 
@@ -116,22 +128,22 @@ class TextToTextProblem(SeqToSeqProblem):
     def add_statistics(self, stat_col):
         """
         Add BLEU score to collector.
-
         :param stat_col: Statistics collector.
         """
-        stat_col.add_statistic('bleu_score', '{:4.5f}')
+        #stat_col.add_statistic('bleu_score', '{:4.5f}')
+        pass  # compute_BLEU_score() is broken
 
     def collect_statistics(self, stat_col, data_tuple, logits, aux_tuple):
         """
         Collects BLEU score.
-
         :param stat_col: Statistics collector.
         :param data_tuple: Data tuple containing inputs and targets.
         :param logits: Logits being output of the model.
         :param aux_tuple: auxiliary tuple (aux_tuple).
         """
-        _, logits = logits.topk(k=1, dim=2)
-        stat_col['bleu_score'] = self.compute_BLEU_score(data_tuple, logits.squeeze(), aux_tuple, output_lang=aux_tuple.output_lang)
+        #_, logits = logits.topk(k=1, dim=2)
+        #stat_col['bleu_score'] = self.compute_BLEU_score(data_tuple, logits.squeeze(), aux_tuple, output_lang=aux_tuple.output_lang)
+        pass   # compute_BLEU_score() is broken
 
     def show_sample(self, data_tuple, aux_tuple, sample_number=0):
         """ Shows the sample (both input and target sequences) using matplotlib.
@@ -142,6 +154,7 @@ class TextToTextProblem(SeqToSeqProblem):
         :param sample_number: Number of sample in a batch (DEFAULT: 0)
         """
         # TODO
+        pass
 
     # ----------------------
     # The following are helper functions for data pre-processing in the case of a translation task

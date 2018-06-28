@@ -1,54 +1,51 @@
 # Problem parameters:
 problem_train:
     name: &name translation
-    batch_size: &b 64
-    start_index: 0
-    stop_index: 11000
+    batch_size: &b 1
+    training_size: &t 0.90
     output_lang_name: 'fra'
     max_sequence_length: 10
     eng_prefixes: !!python/tuple ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
     use_train_data: True
     data_folder: '~/data/language'
-    reverse: False
+    reverse: True
 
 # Problem parameters:
 problem_test:
     name: *name
     batch_size: *b
-    start_index: 0
-    stop_index: 11000
+    training_size: *t
     output_lang_name: 'fra'
     max_sequence_length: 10
     eng_prefixes: !!python/tuple ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
     use_train_data: False
     data_folder: '~/data/language'
-    reverse: False
+    reverse: True
 
 # Problem parameters:
 problem_validation:
     name: *name
     batch_size: *b
-    start_index: 0
-    stop_index: 11000
+    training_size: *t
     output_lang_name: 'fra'
     max_sequence_length: 10
     eng_prefixes: !!python/tuple ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
     use_train_data: True
     data_folder: '~/data/language'
-    reverse: False
+    reverse: True
 
 # Model parameters:
 model:
     name: simple_encoder_decoder
     max_length: 10
-    input_voc_size: 3074  # this value is coming from the problem class (problem.input_lang.n_words): I
+    input_voc_size: 4707  # this value is coming from the problem class (problem.input_lang.n_words)
     hidden_size: 256
-    output_voc_size: 4707
+    output_voc_size: 3074
 
 # optimizer parameters:
 optimizer:
     # Exact name of the pytorch optimizer function
-    name: Adam
+    name: SGD
     # Function arguments of the optimizer, by name
     lr: 0.01
 
@@ -57,7 +54,7 @@ settings:
     # masked output and target
     use_mask: False
     length_loss: 10
-    loss_stop: 1.0e-2
-    max_episodes: 50000
+    loss_stop: 0.1
+    max_episodes: 100000
     seed_numpy: 4354
     seed_torch: 2452
