@@ -52,15 +52,21 @@ class SimpleConvNet(Model):
         self.fc1 = nn.Linear(self.depth_conv2 * self.width_features_conv2 * self.height_features_conv2, 50)
         self.fc2 = nn.Linear(50, 10)
 
+        if self.app_state.visualize:
+            self.output_conv1 = []
+            self.output_conv2 = []
+
     def forward(self, data_tuple):
 
         (inputs, targets) = data_tuple
-        #print('input_size:', inputs.size())
 
-        x = F.relu(F.max_pool2d(self.conv1(inputs), self.num_pooling))
-        x = F.relu(F.max_pool2d(self.conv2(x), self.num_pooling))
+        x1 = self.conv1(inputs)
+        x1_max_pool = F.relu(F.max_pool2d(x1, self.num_pooling))
 
-        x = x.view(-1, self.depth_conv2 * self.width_features_conv2 * self.height_features_conv2)
+        x2 = self.conv2(x1_max_pool)
+        x2_max_pool = F.relu(F.max_pool2d(x2, self.num_pooling))
+
+        x = x2_max_pool.view(-1, self.depth_conv2 * self.width_features_conv2 * self.height_features_conv2)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
