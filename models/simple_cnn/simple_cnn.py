@@ -61,9 +61,15 @@ class SimpleConvNet(Model):
         (inputs, targets) = data_tuple
 
         x1 = self.conv1(inputs)
+        if self.app_state.visualize:
+            self.output_conv1 = x1
+
         x1_max_pool = F.relu(F.max_pool2d(x1, self.num_pooling))
 
         x2 = self.conv2(x1_max_pool)
+        if self.app_state.visualize:
+            self.output_conv1 = x2
+
         x2_max_pool = F.relu(F.max_pool2d(x2, self.num_pooling))
 
         x = x2_max_pool.view(-1, self.depth_conv2 * self.width_features_conv2 * self.height_features_conv2)
