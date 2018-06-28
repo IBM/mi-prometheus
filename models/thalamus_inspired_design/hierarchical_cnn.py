@@ -29,12 +29,19 @@ class HierarchicalCNN(Model):
         # unpack data
         image, target = data_tuple
 
+        batch_size = image.size(0)
+        weights_conv1, weights_conv2 = self.init_attention(batch_size)
+
         for i in range(2):
             # apply cnn layer1
             features_layer1 = F.relu(F.max_pool2d(self.conv1(image), 2))
 
             # apply cnn layer2
             features_layer2 = F.relu(F.max_pool2d(self.conv2(features_layer1), 2))
+
+            print(features_layer1.size())
+            print(torch.bmm(features_layer1, weights_conv1))
+            exit()
 
             features_layer1_flatten = features_layer1.view(-1, 1440)
             features_layer2_flatten = features_layer2.view(-1, 320)
@@ -46,6 +53,12 @@ class HierarchicalCNN(Model):
         x = self.fc2(x)
 
         return x
+
+    def init_attention(self, batch_size):
+        weights_conv1 = torch.randn((batch_size, 10))
+        weights_conv2 = torch.randn((batch_size, 20))
+
+        return [weights_conv1, weights_conv2]
 
 
 if __name__ == '__main__':
