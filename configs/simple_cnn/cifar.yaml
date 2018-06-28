@@ -6,7 +6,7 @@ problem_train:
     start_index: 0
     stop_index: 40000
     use_train_data: True
-    folder: '~/data/cifar'
+    folder: '~/data/cifar10'
     padding: &p [0,0,0,0] # ex: (x1, x2, x3, x4) pad last dim by (x1, x2) and 2nd to last by (x3, x4)
     cuda: False  # The presence of the 'cuda' key is optional
 
@@ -19,7 +19,7 @@ problem_test:
     stop_index: 9999
     use_train_data: False
     padding: *p
-    folder: '~/data/cifar'
+    folder: '~/data/cifar10'
 
 # Problem parameters:
 problem_validation:
@@ -30,17 +30,17 @@ problem_validation:
     stop_index: 49999
     use_train_data: True
     padding: *p
-    folder: '~/data/cifar'
+    folder: '~/data/cifar10'
 
 # Model parameters:
 model:
     name: simple_cnn   # dynamic_working_memory
     # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
-    depth_conv1: 16
-    depth_conv2: 8
-    filter_size_conv1: 6
-    filter_size_conv2: 6
+    depth_conv1: 6
+    depth_conv2: 16
+    filter_size_conv1: 5
+    filter_size_conv2: 5
     num_pooling: 2
 
     # image size

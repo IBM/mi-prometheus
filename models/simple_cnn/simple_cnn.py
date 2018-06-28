@@ -49,8 +49,9 @@ class SimpleConvNet(Model):
 
         self.conv1 = nn.Conv2d(self.num_channels, self.depth_conv1, kernel_size=self.filter_size_conv1)
         self.conv2 = nn.Conv2d(self.depth_conv1, self.depth_conv2, kernel_size=self.filter_size_conv2)
-        self.fc1 = nn.Linear(self.depth_conv2 * self.width_features_conv2 * self.height_features_conv2, 50)
-        self.fc2 = nn.Linear(50, 10)
+        self.fc1 = nn.Linear(self.depth_conv2 * self.width_features_conv2 * self.height_features_conv2, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
 
         if self.app_state.visualize:
             self.output_conv1 = []
@@ -78,7 +79,8 @@ class SimpleConvNet(Model):
 
         x = x2_max_pool.view(-1, self.depth_conv2 * self.width_features_conv2 * self.height_features_conv2)
         x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
         return x
 
     def plot(self, data_tuple, predictions, sample_number = 0):

@@ -12,7 +12,7 @@ from problems.problem import DataTuple, LabelAuxTuple
 from problems.image_to_class.image_to_class_problem import ImageToClassProblem
 
 
-class CIFAR(ImageToClassProblem):
+class CIFAR10(ImageToClassProblem):
     """
     Classic CFIAR classification problem.
     """
@@ -25,7 +25,7 @@ class CIFAR(ImageToClassProblem):
         """
 
         # Call base class constructors.
-        super(CIFAR, self).__init__(params)
+        super(CIFAR10, self).__init__(params)
 
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
@@ -79,10 +79,10 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'batch_size':2, 'start_index': 0, 'stop_index': 40000, 'use_train_data': True, 'folder': '~/data/cifar'}
+    params = {'batch_size':2, 'start_index': 0, 'stop_index': 40000, 'use_train_data': True, 'folder': '~/data/cifar10'}
 
     # Create problem object.
-    problem = CIFAR(params)
+    problem = CIFAR10(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
