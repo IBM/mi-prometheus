@@ -6,6 +6,7 @@ from models.dnc.tensor_utils import circular_conv, normalize
 from models.dnc.memory import Memory
 from models.dnc.memory_usage import MemoryUsage
 from models.dnc.temporal_linkage import TemporalLinkage
+from misc.app_state import AppState
 
 # Helper collection type.
 _InterfaceStateTuple = collections.namedtuple('InterfaceStateTuple', ('read_weights', 'write_weights', 'usage', 'links'))
@@ -101,13 +102,15 @@ class Interface:
 
 
 
-    def init_state(self, memory_address_size,  batch_size, dtype):
+    def init_state(self, memory_address_size, batch_size):
         """
         Returns 'zero' (initial) state tuple.
         
         :param batch_size: Size of the batch in given iteraction/epoch.
         :returns: Initial state tuple - object of InterfaceStateTuple class.
         """
+        dtype = AppState().dtype
+
         # Read attention weights [BATCH_SIZE x MEMORY_SIZE]
         read_attention = torch.ones((batch_size, self._num_reads, memory_address_size)).type(dtype)*1e-6
         
@@ -115,10 +118,10 @@ class Interface:
         write_attention = torch.ones((batch_size, self._num_writes,  memory_address_size)).type(dtype)*1e-6
 
         # Usage of memory cells [BATCH_SIZE x MEMORY_SIZE]
-        usage = self.mem_usage.init_state(memory_address_size,  batch_size, dtype)
+        usage = self.mem_usage.init_state(memory_address_size,  batch_size)
         
         # temporal links tuple
-        link_tuple = self.temporal_linkage.init_state(memory_address_size,  batch_size, dtype)
+        link_tuple = self.temporal_linkage.init_state(memory_address_size,  batch_size)
 
         return InterfaceStateTuple(read_attention,  write_attention,usage,link_tuple)
 

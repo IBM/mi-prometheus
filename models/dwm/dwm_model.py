@@ -3,13 +3,18 @@ import logging
 import numpy as np
 
 from torch import nn
+
+# Add path to main project directory - so we can test the base plot, saving images, movies etc.
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
+
+from models.sequential_model import SequentialModel
 from models.dwm.dwm_cell import DWMCell
 from misc.app_state import AppState
-from models.model_base import ModelBase
 
-
-class DWM(ModelBase, nn.Module):
-    """Applies a DWM layer to an input sequences """
+class DWM(SequentialModel):
+    """Applies a DWM layer to an input sequences - what kind of description is that...? ;) """
+    """ @Younes: MODEL DESCRIPTION GOES HERE! really...  """
 
     def __init__(self, params):
 
@@ -17,6 +22,8 @@ class DWM(ModelBase, nn.Module):
         Constructor. Initializes parameters on the basis of dictionary of parameters passed as argument.
         :param params: Dictionary of parameters.
         """
+        # Call base class initialization.
+        super(DWM, self).__init__(params)
 
         self.in_dim = params["control_bits"] + params["data_bits"]
 
@@ -32,12 +39,9 @@ class DWM(ModelBase, nn.Module):
         self.M = params["memory_content_size"]
         self.memory_addresses_size = params["memory_addresses_size"]
         self.label = params["name"]
-        self.app_state = AppState()
 
         # This is for the time plot
         self.cell_state_history = None
-
-        super(DWM, self).__init__()
 
         # Create the DWM components
         self.DWMCell = DWMCell(self.in_dim, self.output_units, self.state_units,
@@ -63,7 +67,7 @@ class DWM(ModelBase, nn.Module):
         >>> output = dwm(data_tuple)
 
         """
-
+        # Unpack tuple.
         (inputs, targets) = data_tuple
 
         if self.app_state.visualize:
@@ -86,11 +90,9 @@ class DWM(ModelBase, nn.Module):
         else:
             memory_addresses_size = self.memory_addresses_size
 
-        # Set type
-        dtype = torch.cuda.FloatTensor if inputs.is_cuda else torch.FloatTensor
 
         # Init state
-        cell_state = self.DWMCell.init_state(memory_addresses_size, batch_size, dtype)
+        cell_state = self.DWMCell.init_state(memory_addresses_size, batch_size)
 
         # loop over the different sequences
         for j in range(seq_length):
@@ -189,15 +191,30 @@ class DWM(ModelBase, nn.Module):
         #fig.subplots_adjust(left = 0)
         return fig
 
-    def plot_sequence(self, data_tuple,  predictions_seq):
-        """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
-        The default visualizatoin contains input, output and target sequences.
+    def plot(self, data_tuple, predictions, sample_number = 0):
+        """ 
+        Interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
+        
+        :param data_tuple: Data tuple containing 
+           - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and 
+           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param sample_number: Number of sample in batch (DEFAULT: 0) 
         """
+        # Check if we are supposed to visualize at all.
+        if not self.app_state.visualize:
+            return False
+
+        # Initialize timePlot window - if required.
+        if self.plotWindow == None:
+            from misc.time_plot import TimePlot
+            self.plotWindow = TimePlot()
+
         # import time
         # start_time = time.time()
         inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
         targets_seq = data_tuple.targets[0].cpu().detach().numpy()
-        predictions_seq = predictions_seq[0].cpu().detach().numpy()
+        predictions_seq = predictions[0].cpu().detach().numpy()
 
         # temporary for data with additional channel
         if len(inputs_seq.shape) == 3:
@@ -256,5 +273,5 @@ class DWM(ModelBase, nn.Module):
         # print("--- %s seconds ---" % (time.time() - start_time))
         # Plot figure and list of frames.
         
-        self.plot.update(fig,  frames)
-        return self.plot.is_closed
+        self.plotWindow.update(fig,  frames)
+        return self.plotWindow.is_closed

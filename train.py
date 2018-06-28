@@ -28,9 +28,7 @@ from misc.param_interface import ParamInterface
 
 # Import problems factory and data tuple.
 from problems.problem_factory import ProblemFactory
-from utils_training import forward_step
-
-use_CUDA = False
+from utils_worker import forward_step, check_and_set_cuda
 
 
 def save_model(model, episode,   model_dir):
@@ -56,7 +54,7 @@ def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
     model.eval()
     # Calculate loss of the validation data.
     with torch.no_grad():
-        logits_valid, loss_valid = forward_step(model, problem, episode, stat_col, data_valid, aux_valid, use_CUDA)
+        logits_valid, loss_valid = forward_step(model, problem, episode, stat_col, data_valid, aux_valid)
 
     # Log to logger.
     logger.info(stat_col.export_statistics_to_string('[Validation]'))
@@ -70,7 +68,7 @@ def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
     # Visualization of validation.
     if AppState().visualize:
         # True means that we should terminate
-        return loss_valid,  model.plot_sequence(data_valid,  logits_valid)
+        return loss_valid, model.plot(data_valid,  logits_valid)
     # Else simply return false, i.e. continue training.
     return loss_valid, False
 
@@ -218,19 +216,14 @@ if __name__ == '__main__':
     if param_interface["settings"]["seed_numpy"] != -1:
         np.random.seed(param_interface["settings"]["seed_numpy"])
 
-    # Determine if CUDA is to be used.
-    if torch.cuda.is_available():
-        try:  # If the 'cuda' key is not present, catch the exception and do nothing
-            if param_interface['problem_train']['cuda']:
-                use_CUDA = True
-        except KeyError:
-            pass
-
-    # Initialize the application state singleton.
+        # Initialize the application state singleton.
     app_state = AppState()
     # If we are going to use SOME visualization - set flag to True now, before creation of problem and model objects.
     if FLAGS.visualize is not None:
         app_state.visualize = True
+
+    # check if CUDA is available turn it on
+    check_and_set_cuda(param_interface['problem_train'], logger) 
 
     # Build problem for the training
     problem = ProblemFactory.build_problem(param_interface['problem_train'])
@@ -247,7 +240,7 @@ if __name__ == '__main__':
 
     # Build the model.
     model = ModelFactory.build_model(param_interface['model'])
-    model.cuda() if use_CUDA else None
+    model.cuda() if app_state.use_CUDA else None
 
     # Set optimizer.
     optimizer_conf = dict(param_interface['optimizer'])
@@ -264,7 +257,7 @@ if __name__ == '__main__':
     stat_col = StatisticsCollector()
     # Add model/problem dependent statistics.
     problem.add_statistics(stat_col)
-    #model.add_statistics(stat_col)
+    model.add_statistics(stat_col)
 
     # Create csv files.
     train_file = stat_col.initialize_csv_file(log_dir, '/training.csv')
@@ -311,7 +304,7 @@ if __name__ == '__main__':
 
         model.train()
         # 1. Perform forward step, calculate logits and loss.
-        logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple, use_CUDA)
+        logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple)
 
         # Store the calculated loss on a list.
         last_losses.append(loss)
@@ -346,17 +339,22 @@ if __name__ == '__main__':
             # Export histograms.
             if FLAGS.tensorboard >= 1:
                 for name, param in model.named_parameters():
-                    training_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
-
+                    try:
+                        training_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
+                    except Exception as e:
+                        logger.error("  {} :: data :: {}".format(name, e))
             # Export gradients.
             if FLAGS.tensorboard >= 2:
                 for name, param in model.named_parameters():
-                    training_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
+                    try:
+                        training_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
+                    except Exception as e:
+                        logger.error("  {} :: grad :: {}".format(name, e))
 
         # Check visualization of training data.
         if app_state.visualize:
             # Show plot, if user presses Quit - break.
-            if model.plot_sequence(data_tuple,  logits):
+            if model.plot(data_tuple,  logits):
                 break
 
         #  5. Save the model then validate

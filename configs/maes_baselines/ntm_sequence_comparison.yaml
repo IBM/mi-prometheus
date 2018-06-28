@@ -46,17 +46,28 @@ problem_test:
 
 # Model parameters:
 model:
-    name: es_lstm
+    name: ntm
+    # Optional parameter: visualization.
+    visualization_mode: 2
     # Input bits = [control_bits, data_bits]
     # Output bits = [1]
-    control_bits: *cbits 
-    data_bits: *dbits
-    output_bits: *obits
-    # Controller hidden state.
-    hidden_state_dim: 256
-    # Indices of control bits triggering encoding/decoding.
-    encoding_bit: 0
-    solving_bit: 1
+    num_control_bits: *cbits 
+    num_data_bits: *dbits
+    num_output_bits: *obits
+    # Controller parameters.
+    controller:
+        name: rnn
+        hidden_state_size: 20
+        num_layers: 1
+        non_linearity: sigmoid
+    # Interface
+    interface:
+        num_read_heads: 1
+        shift_size: 3
+    # Memory parameters.
+    memory:
+        num_content_bits: 11
+        num_addresses: -1
     
 # optimizer parameters:
 optimizer:

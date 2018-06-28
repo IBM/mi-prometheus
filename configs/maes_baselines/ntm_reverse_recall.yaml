@@ -1,10 +1,9 @@
 # Problem parameters:
 problem_train:
-    name: &name maes_baselines/sequence_comparison_cl
+    name: &name maes_baselines/reverse_recall_cl
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 3
     data_bits: &dbits 8
-    output_bits: &obits 1
     batch_size: &bs 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 1
@@ -23,8 +22,7 @@ problem_validation:
     name: *name
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
-    data_bits: *dbits 
-    output_bits: *obits
+    data_bits: *dbits
     batch_size: 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 21
@@ -36,8 +34,7 @@ problem_test:
     name: *name
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
-    data_bits: *dbits 
-    output_bits: *obits
+    data_bits: *dbits
     batch_size: 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 100
@@ -46,17 +43,27 @@ problem_test:
 
 # Model parameters:
 model:
-    name: es_lstm
-    # Input bits = [control_bits, data_bits]
-    # Output bits = [1]
-    control_bits: *cbits 
-    data_bits: *dbits
-    output_bits: *obits
-    # Controller hidden state.
-    hidden_state_dim: 256
-    # Indices of control bits triggering encoding/decoding.
-    encoding_bit: 0
-    solving_bit: 1
+    name: ntm
+    # Optional parameter: visualization.
+    visualization_mode: 2
+    # Input bits = [command_bits, data_bits]
+    # Output bits = [data_bits]
+    num_control_bits: *cbits
+    num_data_bits: *dbits
+    # Controller parameters.
+    controller:
+        name: rnn
+        hidden_state_size: 20
+        num_layers: 1
+        non_linearity: sigmoid
+    # Interface
+    interface:
+        num_read_heads: 1
+        shift_size: 3
+    # Memory parameters.
+    memory:
+        num_content_bits: 11
+        num_addresses: -1
     
 # optimizer parameters:
 optimizer:

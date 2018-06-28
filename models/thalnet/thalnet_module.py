@@ -3,19 +3,22 @@ from torch import nn
 import collections
 import os
 import sys
+from misc.app_state import AppState
+# Add path to main project directory - so we can test the base plot, saving images, movies etc.
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
+from models.controllers.controller_factory import ControllerFactory
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
-from controller_factory import ControllerFactory
 
-
-class Module(nn.Module):
+class ThalnetModule(nn.Module):
+    """ @Younes: MODEL DESCRIPTION GOES HERE! """
     def __init__(self,
                  center_size,
                  context_size,
                  center_size_per_module,
                  input_size,
                  output_size):
-        super(Module, self).__init__()
+        super(ThalnetModule, self).__init__()
 
         self.center_size = center_size
         self.context_size = context_size
@@ -45,9 +48,12 @@ class Module(nn.Module):
 
         self.controller = ControllerFactory.build_model(controller_params)
 
-    def init_state(self, batch_size, dtype):
+    def init_state(self, batch_size):
+
+        dtype = AppState().dtype
+
         # module state initialisation
-        tuple_controller_states = self.controller.init_state(batch_size, dtype)
+        tuple_controller_states = self.controller.init_state(batch_size)
 
         # center state initialisation
         center_state_per_module = torch.randn((batch_size, self.center_size_per_module)).type(dtype)

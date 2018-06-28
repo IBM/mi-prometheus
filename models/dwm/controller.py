@@ -51,16 +51,15 @@ class Controller(nn.Module):
         # Output layer
         self.i2o = nn.Linear(self.ctrl_in_state_dim, self.output_units)
 
-    def init_state(self, batch_size, dtype):
+    def init_state(self, batch_size):
         """
         Returns 'zero' (initial) state tuple.
 
         :param batch_size: Size of the batch in given iteraction/epoch.
-        :param dtype
         :returns: Initial state tuple - object of LSTMStateTuple class.
         """
 
-        return self.i2s.init_state(batch_size, dtype)
+        return self.i2s.init_state(batch_size)
 
     def forward(self, input, tuple_state_prev, read_data):
         """

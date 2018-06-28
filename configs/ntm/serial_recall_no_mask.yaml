@@ -16,8 +16,6 @@ problem_train:
         initial_max_sequence_length: 3
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 0.01
-    # masked output and target
-    use_mask: True
 
 # Problem parameters:
 problem_validation:
@@ -31,8 +29,6 @@ problem_validation:
     max_sequence_length: 21
     bias: 0.5
     frequency: 500
-    # masked output and target
-    use_mask: True
 
 # Problem parameters:
 problem_test:
@@ -45,8 +41,6 @@ problem_test:
     min_sequence_length: 30
     max_sequence_length: 30
     bias: 0.5
-    # masked output and target
-    use_mask: True
 
 # Model parameters:
 model:
@@ -79,6 +73,7 @@ optimizer:
 
 # settings parameters
 settings:
+    # masked output and target
     length_loss: 100
     loss_stop: 0.0001
     max_episodes: 10000

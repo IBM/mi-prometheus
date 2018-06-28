@@ -8,17 +8,28 @@ import collections
 from abc import ABCMeta, abstractmethod
 
 _DataTuple = collections.namedtuple('DataTuple', ('inputs', 'targets'))
-
 class DataTuple(_DataTuple):
     """Tuple used by storing batches of data by problems"""
     __slots__ = ()
 
 
 _MaskAuxTuple = collections.namedtuple('MaskAuxTuple', ('mask'))
-
 class MaskAuxTuple(_MaskAuxTuple):
-    """Tuple used by storing batches of data by sequential problems using mask. Contains one element: mask that might be used for evaluation of the loss function."""
+    """
+    Tuple used by storing batches of data by sequential problems using mask.
+    Contains one element: mask that might be used for evaluation of the loss function.
+    """
     __slots__ = ()
+
+
+
+_LabelAuxTuple = collections.namedtuple('LabelAuxTuple', ('label'))
+class LabelAuxTuple(_LabelAuxTuple):
+    """
+    Tuple used by storing batches of labels in classification problems.
+    """
+    __slots__ = ()
+
 
 
 class Problem(metaclass=ABCMeta):

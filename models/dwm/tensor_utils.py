@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
-
+from misc.app_state import AppState
 
 def normalize(x):
     """
@@ -11,8 +11,8 @@ def normalize(x):
     :param x: input of shape  (batch_size, A, A1 ..An) if the input is the weight vector x'sahpe (batch_size, num_heads, memory_size)
     :return:  normalized x of shape (batch_size, A, A1 ..An)
     """
-
-    return x / torch.max(torch.sum(x, dim=-1, keepdim=True), torch.Tensor([1e-12]))
+    dtype = AppState().dtype
+    return x / torch.max(torch.sum(x, dim=-1, keepdim=True), torch.Tensor([1e-12]).type(dtype))
 
 
 def sim(query, data, l2_normalize=False, aligned=True):

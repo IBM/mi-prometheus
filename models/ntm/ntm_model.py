@@ -10,12 +10,17 @@ import numpy as np
 # Add path to main project directory.
 import os,  sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
-from misc.app_state import AppState
-from models.model_base import ModelBase
-from models.ntm.ntm_cell import NTMCell
 
-class NTM(ModelBase, torch.nn.Module):
-    '''  Class representing the Neural Turing Machine module. '''
+from models.sequential_model import SequentialModel
+from models.ntm.ntm_cell import NTMCell
+from problems.problem import DataTuple
+from misc.app_state import AppState
+
+class NTM(SequentialModel):
+    '''
+    Class representing the Neural Turing Machine module.
+    '''
+
     def __init__(self, params):
         '''
         Constructor. Initializes parameters on the basis of dictionary of parameters passed as argument.
@@ -23,21 +28,22 @@ class NTM(ModelBase, torch.nn.Module):
         :param params: Dictionary of parameters.
         '''
         # Call constructor of base class.
-        super(NTM, self).__init__() 
+        super(NTM, self).__init__(params) 
 
         # Parse parameters.
-        # It is stored here, but will we used ONLY ONCE - for initialization of memory called from the forward() function.
+        # It is stored here, but will we used ONLY ONCE - for initialization of memory in the forward() function.
         self.num_memory_addresses = params['memory']['num_addresses']
-        
+        self.num_memory_content_bits = params['memory']['num_content_bits']
+
         # Initialize recurrent NTM cell.
         self.ntm_cell = NTMCell(params)
 
         # Set different visualizations depending on the flags.
         try:
             if params['visualization_mode'] == 1:
-                self.plot_sequence = self.plot_memory_attention_sequence
+                self.plot = self.plot_memory_attention_sequence
             elif  params['visualization_mode'] == 2:
-                self.plot_sequence = self.plot_memory_all_model_params_sequence
+                self.plot = self.plot_memory_all_model_params_sequence
             # else: default visualization.
         except KeyError:
              # If the 'visualization_mode' key is not present, catch the exception and do nothing
@@ -53,12 +59,11 @@ class NTM(ModelBase, torch.nn.Module):
 
 		:return: Predictions being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] .
         """
+        dtype = AppState().dtype
 
 		# Unpack data tuple.
-        (inputs_BxSxI, targets) = data_tuple
-        
-        # Check whether inputs are already on GPU or not.
-        dtype = torch.cuda.FloatTensor if inputs_BxSxI.is_cuda else torch.FloatTensor
+        (inputs_BxSxI, targets) = data_tuple  
+        batch_size = inputs_BxSxI.size(0)      
 
         # "Data-driven memory size".
         # Save as TEMPORAL VARIABLE! 
@@ -68,15 +73,18 @@ class NTM(ModelBase, torch.nn.Module):
             num_memory_addresses = inputs_BxSxI.size(1)
         else:
             num_memory_addresses = self.num_memory_addresses
-            
+
+        # Initialize memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS] 
+        init_memory_BxAxC = torch.zeros(batch_size,  num_memory_addresses,  self.num_memory_content_bits).type(dtype)
+
         # Initialize 'zero' state.
-        cell_state = self.ntm_cell.init_state(inputs_BxSxI.size(0),  num_memory_addresses,  dtype)
+        cell_state = self.ntm_cell.init_state(init_memory_BxAxC)
 
         # List of output logits [BATCH_SIZE x OUTPUT_SIZE] of length SEQ_LENGTH
         output_logits_BxO_S = []
 
         # Check if we want to collect cell history for the visualization purposes.
-        if AppState().visualize:
+        if self.app_state.visualize:
             self.cell_state_history = []
             self.cell_state_initial = cell_state
             
@@ -88,7 +96,7 @@ class NTM(ModelBase, torch.nn.Module):
             output_logits_BxO_S += [output_BxO]
 
             # Collect cell history - for the visualization purposes.
-            if AppState().visualize:
+            if self.app_state.visualize:
                 self.cell_state_history.append(cell_state)
                 
         # Stack logits along time axis (1).
@@ -154,14 +162,26 @@ class NTM(ModelBase, torch.nn.Module):
         fig.set_tight_layout(True)
         return fig
 
-    def plot_memory_attention_sequence(self, data_tuple, predictions_seq):
+    def plot_memory_attention_sequence(self, data_tuple, predictions, sample_number = 0):
         """ Creates list of figures used in interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
         The visualization presents input, output and target sequences passed as input parameters.
         Additionally, it utilizes state tuples collected during the experiment for displaying the memory state, read and write attentions.
         
-        :param data_tuple: Tuple containing input and target sequences.
-        :param predictions_seq: Prediction sequence.
+        :param data_tuple: Data tuple containing 
+           - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and 
+           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param sample_number: Number of sample in batch (DEFAULT: 0) 
         """
+        # Check if we are supposed to visualize at all.
+        if not self.app_state.visualize:
+            return False
+
+        # Initialize timePlot window - if required.
+        if self.plotWindow == None:
+            from misc.time_plot import TimePlot
+            self.plotWindow = TimePlot()
+
         # import time
         # start_time = time.time()
         # Create figure template.
@@ -170,9 +190,9 @@ class NTM(ModelBase, torch.nn.Module):
         (ax_memory,  ax_write_attention,  ax_read_attention,  ax_inputs,  ax_targets,  ax_predictions) = fig.axes
         
 		# Unpack data tuple.
-        inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
-        targets_seq = data_tuple.targets[0].cpu().detach().numpy()
-        predictions_seq = predictions_seq[0].cpu().detach().numpy()
+        inputs_seq = data_tuple.inputs[sample_number].cpu().detach().numpy()
+        targets_seq = data_tuple.targets[sample_number].cpu().detach().numpy()
+        predictions_seq = predictions[sample_number].cpu().detach().numpy()
 
         # Set intial values of displayed  inputs, targets and predictions - simply zeros.
         inputs_displayed = np.transpose(np.zeros(inputs_seq.shape))
@@ -234,8 +254,8 @@ class NTM(ModelBase, torch.nn.Module):
         # print("--- %s seconds ---" % (time.time() - start_time))
         # Plot figure and list of frames.
         
-        self.plot.update(fig,  frames)
-        return self.plot.is_closed
+        self.plotWindow.update(fig,  frames)
+        return self.plotWindow.is_closed
 
 
     def generate_memory_all_model_params_figure_layout(self):
@@ -315,14 +335,27 @@ class NTM(ModelBase, torch.nn.Module):
         fig.set_tight_layout(True)
         return fig
 
-    def plot_memory_all_model_params_sequence(self, data_tuple, predictions_seq):
-        """ Creates list of figures used in interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
+    def plot_memory_all_model_params_sequence(self, data_tuple, predictions, sample_number = 0):
+        """ 
+        Creates list of figures used in interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
         The visualization presents input, output and target sequences passed as input parameters.
-        Additionally, it utilizes state tuples collected during the experiment for displaying the memory state, read and write attentions.
+        Additionally, it utilizes state tuples collected during the experiment for displaying the memory state, read and write attentions; and gating params.
         
-        :param data_tuple: Tuple containing input and target sequences.
-        :param predictions_seq: Prediction sequence.
+        :param data_tuple: Data tuple containing 
+           - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and 
+           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param sample_number: Number of sample in batch (DEFAULT: 0) 
         """
+        # Check if we are supposed to visualize at all.
+        if not self.app_state.visualize:
+            return False
+
+        # Initialize timePlot window - if required.
+        if self.plotWindow == None:
+            from misc.time_plot import TimePlot
+            self.plotWindow = TimePlot()
+        
         # import time
         # start_time = time.time()
         # Create figure template.
@@ -334,9 +367,9 @@ class NTM(ModelBase, torch.nn.Module):
             ax_inputs,  ax_targets,  ax_predictions) = fig.axes
  
 		# Unpack data tuple.
-        inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
-        targets_seq = data_tuple.targets[0].cpu().detach().numpy()
-        predictions_seq = predictions_seq[0].cpu().detach().numpy()
+        inputs_seq = data_tuple.inputs[sample_number].cpu().detach().numpy()
+        targets_seq = data_tuple.targets[sample_number].cpu().detach().numpy()
+        predictions_seq = predictions[sample_number].cpu().detach().numpy()
         
         # Set intial values of displayed  inputs, targets and predictions - simply zeros.
         inputs_displayed = np.transpose(np.zeros(inputs_seq.shape))
@@ -428,23 +461,28 @@ class NTM(ModelBase, torch.nn.Module):
         # print("--- %s seconds ---" % (time.time() - start_time))
         # Plot figure and list of frames.
         
-        self.plot.update(fig,  frames)
-        return self.plot.is_closed
+        self.plotWindow.update(fig,  frames)
+        return self.plotWindow.is_closed
 
 
 if __name__ == "__main__":
     # Set logging level.
+    logger = logging.getLogger('NTM-Module')
     logging.basicConfig(level=logging.DEBUG)
+    
+    # Set visualization.
+    from misc.app_state import AppState
+    AppState().visualize = True
+
     # "Loaded parameters".
     params = {'num_control_bits': 2, 'num_data_bits': 8, # input and output size
         'controller': {'name': 'rnn', 'hidden_state_size': 5,  'num_layers': 1, 'non_linearity': 'none'},  # controller parameters
         'interface': {'num_read_heads': 2,  'shift_size': 3},  # interface parameters
-        'memory': {'num_addresses' :4, 'num_content_bits': 7} # memory parameters
-        }
-        
-    logger = logging.getLogger('NTM-Module')
-    logger.debug("params: {}".format(params))    
-        
+        'memory': {'num_addresses' :4, 'num_content_bits': 7}, # memory parameters
+        'visualization_mode': 2
+        }  
+    logger.debug("params: {}".format(params))  
+    
     input_size = params["num_control_bits"] + params["num_data_bits"]
     output_size = params["num_data_bits"]
         
@@ -459,16 +497,21 @@ if __name__ == "__main__":
         # Create random Tensors to hold inputs and outputs
         x = torch.randn(batch_size, seq_length,   input_size)
         y = torch.randn(batch_size, seq_length,  output_size)
+        dt = DataTuple(x,y)
 
         # Test forward pass.
         logger.info("------- forward -------")
-        y_pred = model(x)
+        y_pred = model(dt)
 
         logger.info("------- result -------")
         logger.info("input {}:\n {}".format(x.size(), x))
         logger.info("target.size():\n {}".format(y.size()))
         logger.info("prediction {}:\n {}".format(y_pred.size(), y_pred))
-    
+
+        # Plot it and check whether window was closed or not. 
+        if model.plot(dt, y_pred):
+            break
+
         # Change batch size and seq_length.
         seq_length = seq_length+1
         batch_size = batch_size+1

@@ -29,7 +29,7 @@ class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
         # Number of bits in one element.
         self.control_bits = params['control_bits']
         self.data_bits = params['data_bits']
-        assert self.control_bits >=2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
+        assert self.control_bits >=3, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
         assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
         # Min and max lengts (number of elements).
         self.min_sequence_length = params['min_sequence_length']
@@ -51,13 +51,13 @@ class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
         TODO: deal with batch_size > 1
         """
         # define control channel markers
-        pos = [0, 0, 0, 0]
-        ctrl_data = [0, 0, 0, 0]
-        ctrl_dummy = [0, 0, 0, 1 ]
-        ctrl_inter = [0, 1, 0, 0]
-        ctrl_y = [0, 0, 1, 0]
-        ctrl_start = [1, 0, 0, 0]
-        ctrl_output = [1, 1, 1, 1]
+        pos = [0, 0, 0]
+        ctrl_data = [0, 0, 0]
+        ctrl_dummy = [0, 0, 1]
+        ctrl_inter = [0, 1, 0]
+        #ctrl_y = [0, 0, 1]
+        ctrl_start = [1, 0, 0]
+        ctrl_output = [1, 1, 1]
         # assign markers
         markers = ctrl_data, ctrl_dummy, pos
 
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 1,
+    params = {'control_bits': 3, 'data_bits': 8, 'batch_size': 1,
               'min_sequence_length': 2, 'max_sequence_length': 3, 
               'bias': 0.5 }
     # Create problem object.
