@@ -7,7 +7,7 @@ import os, sys
 import random
 
 # fix the random seed for results repeatability
-random.seed(0)
+#random.seed(0)
 
 import torch
 import errno

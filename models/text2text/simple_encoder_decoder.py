@@ -13,6 +13,7 @@ app_state = AppState()
 
 from models.text2text.encoder import EncoderRNN
 from models.text2text.base_decoder import DecoderRNN
+from models.text2text.attn_decoder import AttnDecoderRNN
 from models.sequential_model import SequentialModel
 
 SOS_token = 0
@@ -49,7 +50,10 @@ class SimpleEncoderDecoder(SequentialModel):
         self.output_voc_size = params['output_voc_size']
 
         # create decoder
-        self.decoder = DecoderRNN(hidden_size=self.hidden_size, output_voc_size=self.output_voc_size)
+        #self.decoder = DecoderRNN(hidden_size=self.hidden_size, output_voc_size=self.output_voc_size)
+
+        # create attention decoder
+        self.decoder = AttnDecoderRNN(self.hidden_size, self.output_voc_size, dropout_p=0.1, max_length=self.max_length)
 
         print('Simple EncoderDecoderRNN (without attention) created.\n')
 
@@ -100,18 +104,26 @@ class SimpleEncoderDecoder(SequentialModel):
         # init encoder hidden states
         encoder_hidden = self.encoder.init_hidden(batch_size)
 
+        # for attention decoder
+        encoder_outputs = torch.zeros(self.max_length, self.hidden_size)
+
         # encoder manual loop
         for ei in range(input_length):
             encoder_output, encoder_hidden = self.encoder(input_tensor[ei], encoder_hidden)
+            encoder_outputs[ei] = encoder_output[0, 0]
 
         # decoder
-        decoder_input = torch.tensor([SOS_token])
+        decoder_input = torch.tensor([[SOS_token]])
         decoder_hidden = encoder_hidden
         decoder_outputs = torch.zeros(target_length, self.output_voc_size)
 
-        if self.training:  # Teacher forcing: Feed the target as the next input
+        if self.training and self.use_teacher_forcing:  # Teacher forcing: Feed the target as the next input
             for di in range(target_length):
-                decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+                # base decoder
+                #decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+
+                # attention decoder
+                decoder_output, decoder_hidden, decoder_attention = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
                 decoder_outputs[di, :] = decoder_output.squeeze()
 
                 decoder_input = target_tensor[di]  # Teacher forcing
@@ -119,7 +131,11 @@ class SimpleEncoderDecoder(SequentialModel):
         else:
             # Without teacher forcing: use its own predictions as the next input
             for di in range(target_length):
-                decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+                #base decoder
+                #decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+
+                # attention decoder
+                decoder_output, decoder_hidden, decoder_attention = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
                 decoder_outputs[di, :] = decoder_output.squeeze()
 
                 topv, topi = decoder_output.topk(k=1, dim=-1)
