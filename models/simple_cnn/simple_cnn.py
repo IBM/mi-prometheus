@@ -61,9 +61,15 @@ class SimpleConvNet(Model):
         (inputs, targets) = data_tuple
 
         x1 = self.conv1(inputs)
+        if self.app_state.visualize:
+            self.output_conv1 = x1
+
         x1_max_pool = F.relu(F.max_pool2d(x1, self.num_pooling))
 
         x2 = self.conv2(x1_max_pool)
+        if self.app_state.visualize:
+            self.output_conv2 = x2
+
         x2_max_pool = F.relu(F.max_pool2d(x2, self.num_pooling))
 
         x = x2_max_pool.view(-1, self.depth_conv2 * self.width_features_conv2 * self.height_features_conv2)
@@ -83,6 +89,7 @@ class SimpleConvNet(Model):
         if not self.app_state.visualize:
             return False
         import matplotlib.pyplot as plt
+        import matplotlib.gridspec as gridspec
 
         # Unpack tuples.
         images, targets = data_tuple
@@ -105,8 +112,27 @@ class SimpleConvNet(Model):
         plt.title('Prediction: {} (Target: {})'.format(np.argmax(prediction), target) )
         plt.imshow(image, interpolation='nearest', aspect='auto')
 
+        # feature layer 2
+        f = plt.figure()
+        grid_size = int(np.sqrt(self.depth_conv1))+1
+        gs = gridspec.GridSpec(grid_size, grid_size)
+
+        for i in range(self.depth_conv1):
+            ax = plt.subplot(gs[i])
+            ax.imshow(self.output_conv1[0, i].detach().numpy())
+
+        # feature layer 1
+        f = plt.figure()
+        grid_size = int(np.sqrt(self.depth_conv2)) + 1
+        gs = gridspec.GridSpec(grid_size, grid_size)
+
+        for i in range(self.depth_conv2):
+            ax = plt.subplot(gs[i])
+            ax.imshow(self.output_conv2[0, i].detach().numpy())
+
         # Plot!
         plt.show()
+        exit()
 
 
 if __name__ == '__main__':
