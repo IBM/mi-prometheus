@@ -16,8 +16,10 @@ from models.text2text.base_decoder import DecoderRNN
 from models.text2text.attn_decoder import AttnDecoderRNN
 from models.sequential_model import SequentialModel
 
-SOS_token = 0
-EOS_token = 1
+# global tokens
+PAD_token = 0
+SOS_token = 1
+EOS_token = 2
 
 
 class SimpleEncoderDecoder(SequentialModel):
@@ -59,20 +61,20 @@ class SimpleEncoderDecoder(SequentialModel):
 
     def reshape_tensor(self, tensor):
         """
-        Helper function to reshape the tensor. Also removes padding (with 1s) except for the last element. E.g.
-        tensor([[ 127,  223,  641,    5,    1,    1,    1,    1,    1,    1]]) -> return_tensor:  tensor([[ 127],
-                                                                                                          [ 223],
-                                                                                                          [ 641],
-                                                                                                          [   5],
-                                                                                                          [   1]])
+        Helper function to reshape the tensor. Also removes padding (with PAD_token). E.g.
+        tensor([[ 127, 223, 641, 5, 2, 0, 0, 0, 0, 0]]) -> return_tensor:  tensor([[ 127],
+                                                                                   [ 223],
+                                                                                   [ 641],
+                                                                                   [   5],
+                                                                                   [   2]])
 
         :param tensor: tensor to be reshaped & unpadded
         :return: transformed tensor.
         """
         # get indexes of elements not equal to ones
-        index = (tensor[0, :] != 1).nonzero().squeeze().numpy()
+        index = (tensor[0, :] != PAD_token).nonzero().squeeze().numpy()
         # create new tensor being transposed compared to tensor + 1 element longer
-        return_tensor = torch.ones(index.shape[0] + 1, 1).type(torch.long)
+        return_tensor = torch.ones(index.shape[0], 1).type(torch.long)
         # copy elements
         return_tensor[index] = tensor[0, index].view(-1, 1)
 

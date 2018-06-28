@@ -28,10 +28,10 @@ class TextAuxTuple(_TextAuxTuple):
     """
     __slots__ = ()
 
-# End Of String & Start Of String tokens
-SOS_token = 0
-EOS_token = 1
-
+# global tokens
+PAD_token = 0
+SOS_token = 1
+EOS_token = 2
 
 class TextToTextProblem(SeqToSeqProblem):
     """Base class for text to text sequential problems.
@@ -100,14 +100,14 @@ class TextToTextProblem(SeqToSeqProblem):
 
         def reshape_tensor(tensor):
             """
-            Helper function to reshape the tensor. Also removes padding (with 1s) except for the last element.
+            Helper function to reshape the tensor. Also removes padding (with PAD_token)
             :param tensor: tensor to be reshaped & unpadded
             :return: transformed tensor.
             """
             # get indexes of elements not equal to ones
-            index = (tensor[0, :] != 1).nonzero().squeeze().numpy()
+            index = (tensor[0, :] != PAD_token).nonzero().squeeze().numpy()
             # create new tensor being transposed compared to tensor + 1 element longer
-            return_tensor = torch.ones(index.shape[0] + 1, 1).type(torch.long)
+            return_tensor = torch.ones(index.shape[0], 1).type(torch.long)
             # copy elements
             return_tensor[index] = tensor[0, index].view(-1, 1)
 
@@ -191,10 +191,9 @@ class TextToTextProblem(SeqToSeqProblem):
 
         :return: list of indexes.
         """
-        lst = [lang.word2index[word] for word in sentence.split(' ')]
-        if len(lst) < max_seq_length:
-            lst += [1] * (max_seq_length - len(lst) - 1)
-        return lst
+        seq = [lang.word2index[word] for word in sentence.split(' ')] + [EOS_token]
+        seq += [PAD_token for i in range(max_seq_length - len(seq))]
+        return seq
 
     def tensor_from_sentence(self, lang, sentence, max_seq_length):
         """
@@ -207,7 +206,7 @@ class TextToTextProblem(SeqToSeqProblem):
         :return: tensor of indexes, terminated by the EOS token.
         """
         indexes = self.indexes_from_sentence(lang, sentence, max_seq_length)
-        indexes.append(EOS_token)
+        #indexes.append(EOS_token)
 
         return torch.tensor(indexes, dtype=torch.long)
 
