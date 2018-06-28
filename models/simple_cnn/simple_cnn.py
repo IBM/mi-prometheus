@@ -58,11 +58,7 @@ class SimpleConvNet(Model):
         #print('input_size:', inputs.size())
 
         x = F.relu(F.max_pool2d(self.conv1(inputs), self.num_pooling))
-        #print('after first layer', x.size())
         x = F.relu(F.max_pool2d(self.conv2(x), self.num_pooling))
-        #print('after second layer', x.size())
-        #print(self.depth_conv1, self.width_features_conv1, self.height_features_conv1)
-        #print(self.depth_conv2, self.width_features_conv2, self.height_features_conv2)
 
         x = x.view(-1, self.depth_conv2 * self.width_features_conv2 * self.height_features_conv2)
         x = F.relu(self.fc1(x))
@@ -113,7 +109,7 @@ if __name__ == '__main__':
 
     # Test base model.
     params = {'depth_conv1': 10, 'depth_conv2': 20, 'filter_size_conv1': 5, 'filter_size_conv2': 5, 'num_pooling': 2,
-    'num_channels': 1, 'height': 28, 'width': 28, 'padding': (50,50,50,50)}
+    'num_channels': 1, 'height': 28, 'width': 28, 'padding': (0,0,0,0)}
 
     # model
     model = SimpleConvNet(params)
@@ -129,9 +125,6 @@ if __name__ == '__main__':
         dt = DataTuple(input, target)
         # prediction.
         prediction = model(dt)
-
-        #prediction_np = np.random.binomial(1, 0.5, (1, 10))
-        #prediction = torch.from_numpy(prediction_np).type(torch.FloatTensor)
 
         # Plot it and check whether window was closed or not. 
         if model.plot(dt, prediction):
