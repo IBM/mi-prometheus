@@ -117,7 +117,7 @@ class SimpleEncoderDecoder(SequentialModel):
         decoder_hidden = encoder_hidden
         decoder_outputs = torch.zeros(target_length, self.output_voc_size)
 
-        if self.training and self.use_teacher_forcing:  # Teacher forcing: Feed the target as the next input
+        if self.training:  # Teacher forcing: Feed the target as the next input
             for di in range(target_length):
                 # base decoder
                 #decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
