@@ -51,6 +51,11 @@ class ModelFactory(object):
             logger.info('Loading the LSTM model from models.lstm.lstm_model')
             from models.lstm.lstm_model import LSTM
             return LSTM(params)
+        elif name == 'maes':
+            logger.info('Loading the MAES model from models.encoder_solver.maes_model')
+            sys.path.append(os.path.join(os.path.dirname(__file__),  'encoder_solver'))
+            from models.encoder_solver.maes_model import MAES
+            return MAES(params)
         elif name == 'ntm':
             logger.info('Loading the NTM model from models.ntm.ntm_model')
             sys.path.append(os.path.join(os.path.dirname(__file__),  'ntm'))

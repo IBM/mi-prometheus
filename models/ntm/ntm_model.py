@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""ntm_module.py: pytorch module implementing Neural Turing Machine"""
+"""ntm_model.py: pytorch module implementing Neural Turing Machine"""
 __author__ = "Tomasz Kornuta"
 
 import torch 

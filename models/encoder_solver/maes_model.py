@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""es_ntm_model.py: File containing Encoder-Solver NTM model class."""
+"""maes_module.py: File containing Memory Augmented Encoder-Solver model class."""
 __author__ = "Tomasz Kornuta"
 
 from enum import Enum
@@ -15,12 +15,14 @@ from misc.app_state import AppState
 from problems.problem import DataTuple
 from models.sequential_model import SequentialModel
 
-from models.ntm.ntm_cell import NTMCell
+from models.encoder_solver.mae_cell import MAECell
+from models.encoder_solver.mas_cell import MASCell
 
 
-class EncoderSolverNTM(SequentialModel):
+
+class MAES(SequentialModel):
     '''
-    Class implementing the Encoder-Solver NTM model. 
+    Class implementing the Memory Augmented Encoder-Solver (MAES) model. 
     '''
 
     def __init__(self, params):
@@ -34,7 +36,7 @@ class EncoderSolverNTM(SequentialModel):
         :param params: Dictionary of parameters.
         '''
         # Call base constructor.
-        super(EncoderSolverNTM, self).__init__(params)
+        super(MAES, self).__init__(params)
 
         # Parse parameters.
         # Indices of control bits triggering encoding/decoding. 
@@ -48,10 +50,10 @@ class EncoderSolverNTM(SequentialModel):
         self.num_memory_content_bits = params['memory']['num_content_bits']
 
         # Create the Encoder cell.
-        self.encoder = NTMCell(params) 
+        self.encoder = MAECell(params) 
 
         # Create the Decoder/Solver.
-        self.solver = NTMCell(params)
+        self.solver = MASCell(params)
 
         # Operation modes.
         self.modes = Enum('Modes', ['Encode', 'Solve'])
@@ -93,6 +95,10 @@ class EncoderSolverNTM(SequentialModel):
         # Start as encoder.
         mode = self.modes.Encode
 
+        # TODO: REMOVE! TMP!
+        #solver_state = self.solver.init_state(encoder_state)
+        #mode = self.modes.Solve
+
         # Logits container.
         logits = []
 
@@ -100,15 +106,15 @@ class EncoderSolverNTM(SequentialModel):
             # Squeeze x.
             x = x.squeeze(1)
 
-            # Switch to decoder mode when required.
+            # Switch between the encoder and decoder modes.
             if x[0, self.solving_bit] and not x[0, self.encoding_bit]:
                 mode = self.modes.Solve
                 if self.pass_cell_state:
-                    # Initialize solver state with encoder state.
-                    solver_state = encoder_state
+                    # Initialize solver state with final encoder state.
+                    solver_state = self.solver.init_state_with_encoder_state(encoder_state)
                 else:
-                    # Initialize solver state - with last state of memory only.
-                    solver_state = self.solver.init_state(encoder_state.memory_state)
+                    # Initialize solver state - with final state of memory and final attention only.
+                    solver_state = self.solver.init_state(encoder_state.memory_state, encoder_state.interface_state.attention)
 
             elif x[0, self.encoding_bit] and x[0, self.solving_bit]:
                 logger.error('Both encoding and decoding bit were true')
@@ -133,7 +139,7 @@ class EncoderSolverNTM(SequentialModel):
 
 if __name__ == "__main__":
     # Set logging level.
-    logger = logging.getLogger('EncoderSolverNTM')
+    logger = logging.getLogger('MAES')
     logging.basicConfig(level=logging.DEBUG)
     
     # Set visualization.
@@ -144,9 +150,9 @@ if __name__ == "__main__":
     params = {'num_control_bits': 3, 'num_data_bits': 8, # input and output size
         'encoding_bit': 0, 'solving_bit': 1,
         'controller': {'name': 'rnn', 'hidden_state_size': 20, 'num_layers': 1, 'non_linearity': 'sigmoid'},  # controller parameters
-        'interface': {'num_read_heads':1, 'shift_size': 3},  # interface parameters
+        'interface': {'shift_size': 3},  # interface parameters
         'memory': {'num_addresses' :-1, 'num_content_bits': 11}, # memory parameters
-        'visualization_mode': 0
+        'visualization_mode': 2
         }  
     logger.debug("params: {}".format(params))  
     
@@ -157,7 +163,7 @@ if __name__ == "__main__":
     batch_size = 2
     
     # Construct our model by instantiating the class defined above.
-    model = EncoderSolverNTM(params)
+    model = MAES(params)
     
 
     # Check for different seq_lengts and batch_sizes.
