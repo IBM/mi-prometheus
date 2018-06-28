@@ -45,7 +45,7 @@ class TextToTextProblem(SeqToSeqProblem):
         super(TextToTextProblem, self).__init__(params)
 
         # set default loss function - negative log likelihood and ignores padding elements.
-        self.loss_function = nn.NLLLoss(size_average=False)
+        self.loss_function = nn.NLLLoss(size_average=False, ignore_index=0)
     '''
     def compute_BLEU_score(self, data_tuple, logits, aux_tuple, output_lang):
         """
@@ -98,23 +98,7 @@ class TextToTextProblem(SeqToSeqProblem):
         :return: loss
         """
 
-        def reshape_tensor(tensor):
-            """
-            Helper function to reshape the tensor. Also removes padding (with PAD_token)
-            :param tensor: tensor to be reshaped & unpadded
-            :return: transformed tensor.
-            """
-            # get indexes of elements not equal to ones
-            index = (tensor[0, :] != PAD_token).nonzero().squeeze().numpy()
-            # create new tensor being transposed compared to tensor + 1 element longer
-            return_tensor = torch.ones(index.shape[0], 1).type(torch.long)
-            # copy elements
-            return_tensor[index] = tensor[0, index].view(-1, 1)
-
-            return return_tensor
-
-        targets = reshape_tensor(data_tuple.targets)
-        loss = self.loss_function(logits, targets.squeeze())
+        loss = self.loss_function(logits, data_tuple.targets.view(-1, 1).squeeze())
 
         return loss
 
@@ -192,7 +176,7 @@ class TextToTextProblem(SeqToSeqProblem):
         :return: list of indexes.
         """
         seq = [lang.word2index[word] for word in sentence.split(' ')] + [EOS_token]
-        seq += [PAD_token for i in range(max_seq_length - len(seq))]
+        seq += [PAD_token for _ in range(max_seq_length - len(seq))]
         return seq
 
     def tensor_from_sentence(self, lang, sentence, max_seq_length):

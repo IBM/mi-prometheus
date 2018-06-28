@@ -59,27 +59,6 @@ class SimpleEncoderDecoder(SequentialModel):
 
         print('Simple EncoderDecoderRNN (without attention) created.\n')
 
-    def reshape_tensor(self, tensor):
-        """
-        Helper function to reshape the tensor. Also removes padding (with PAD_token). E.g.
-        tensor([[ 127, 223, 641, 5, 2, 0, 0, 0, 0, 0]]) -> return_tensor:  tensor([[ 127],
-                                                                                   [ 223],
-                                                                                   [ 641],
-                                                                                   [   5],
-                                                                                   [   2]])
-
-        :param tensor: tensor to be reshaped & unpadded
-        :return: transformed tensor.
-        """
-        # get indexes of elements not equal to ones
-        index = (tensor[0, :] != PAD_token).nonzero().squeeze().numpy()
-        # create new tensor being transposed compared to tensor + 1 element longer
-        return_tensor = torch.ones(index.shape[0], 1).type(torch.long)
-        # copy elements
-        return_tensor[index] = tensor[0, index].view(-1, 1)
-
-        return return_tensor
-
     # global forward pass
     def forward(self, data_tuple):
         """
@@ -95,9 +74,8 @@ class SimpleEncoderDecoder(SequentialModel):
         batch_size = inputs.size(0)
 
         # reshape tensors
-        # TODO: will need to be avoided in the future
-        input_tensor = self.reshape_tensor(inputs)
-        target_tensor = self.reshape_tensor(targets)
+        input_tensor = inputs.view(-1, 1)
+        target_tensor = targets.view(-1, 1)
 
         # get sequences length
         input_length = input_tensor.size(0)
