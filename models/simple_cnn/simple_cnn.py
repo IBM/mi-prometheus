@@ -68,7 +68,7 @@ class SimpleConvNet(Model):
 
         x2 = self.conv2(x1_max_pool)
         if self.app_state.visualize:
-            self.output_conv1 = x2
+            self.output_conv2 = x2
 
         x2_max_pool = F.relu(F.max_pool2d(x2, self.num_pooling))
 
@@ -89,6 +89,7 @@ class SimpleConvNet(Model):
         if not self.app_state.visualize:
             return False
         import matplotlib.pyplot as plt
+        import matplotlib.gridspec as gridspec
 
         # Unpack tuples.
         images, targets = data_tuple
@@ -110,6 +111,22 @@ class SimpleConvNet(Model):
         # Show data.
         plt.title('Prediction: {} (Target: {})'.format(np.argmax(prediction), target) )
         plt.imshow(image, interpolation='nearest', aspect='auto')
+
+        # feature layer 2
+        f = plt.figure()
+        gs = gridspec.GridSpec(5, 2)
+
+        for i in range(10):
+            ax = plt.subplot(gs[i])
+            ax.imshow(self.conv1.weight[i, 0].detach().numpy())
+
+        # feature layer 1
+        f = plt.figure()
+        gs = gridspec.GridSpec(5, 4)
+
+        for i in range(20):
+            ax = plt.subplot(gs[i])
+            ax.imshow(self.conv2.weight[i, 0].detach().numpy())
 
         # Plot!
         plt.show()
