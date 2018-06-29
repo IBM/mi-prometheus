@@ -148,7 +148,7 @@ if __name__ == '__main__':
         "they are", "they re "
     )
 
-    params = {'batch_size': 64, 'training_size': 0.90, 'output_lang_name': 'fra', 'max_sequence_length': 10,
+    params = {'batch_size': 64, 'training_size': 0.90, 'output_lang_name': 'fra', 'max_sequence_length': 15,
               'eng_prefixes': eng_prefixes, 'use_train_data': True, 'data_folder': '~/data/language', 'reverse': True}
 
     problem = pb.Translation(params)
@@ -159,7 +159,7 @@ if __name__ == '__main__':
     output_voc_size = problem.output_lang.n_words
 
     # instantiate model with credible parameters
-    model_params = {'max_length': 10, 'input_voc_size': input_voc_size, 'hidden_size': 256,
+    model_params = {'max_length': 15, 'input_voc_size': input_voc_size, 'hidden_size': 256,
                     'output_voc_size': output_voc_size}
     net = SimpleEncoderDecoder(model_params)
 

@@ -275,7 +275,7 @@ if __name__ == "__main__":
         "they are", "they re "
     )
 
-    params = {'batch_size': 2, 'training_size': 0.9, 'output_lang_name': 'fra', 'max_sequence_length': 10,
+    params = {'batch_size': 2, 'training_size': 0.9, 'output_lang_name': 'fra', 'max_sequence_length': 15,
               'eng_prefixes': eng_prefixes, 'use_train_data': True, 'data_folder': '~/data/language', 'reverse': False}
 
     problem = Translation(params)
