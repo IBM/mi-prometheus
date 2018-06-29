@@ -55,6 +55,9 @@ model:
     solving_bit: 1
     # Pass the whole state from encoder to solver cell.
     pass_cell_state: True
+    # Save/load encoder.
+    #save_encoder: True
+    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180629_002252/models/encoder_episode_01400.pt
     # Controller parameters.
     controller:
         name: rnn

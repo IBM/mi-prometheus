@@ -52,8 +52,19 @@ class MAE2S(SequentialModel):
         self.num_memory_addresses = params['memory']['num_addresses']
         self.num_memory_content_bits = params['memory']['num_content_bits']
 
+        # Save/load encoder.
+        self.save_encoder = params.get('save_encoder', False)
+        self.load_encoder = params.get('load_encoder', '') # Path+filename to encoder.
+
         # Create the Encoder cell.
-        self.encoder = MAECell(params) 
+        self.encoder = MAECell(params)
+
+        # Load and freeze encoder - if required.
+        if self.load_encoder != '':
+            self.encoder.load_state_dict(torch.load(self.load_encoder, map_location=lambda storage, loc: storage))
+            logger.info("Encoder imported from {}".format(self.load_encoder))  
+            # Freeze weights - TODO: NOT IMPLEMENTED!
+            self.encoder.freeze()  
 
         # Create the Solver for first task.
         self.solver1 = MASCell(params)
@@ -63,6 +74,26 @@ class MAE2S(SequentialModel):
 
         # Operation modes.
         self.modes = Enum('Modes', ['Encode', 'Solve1', 'Solve2'])
+
+
+    def save(self, model_dir, episode):
+        """
+        Method saves the model and encoder to file.
+
+        :param model_dir: Directory where the model will be saved.
+        :param episode: Episode number used as model identifier.
+        :returns: False if saving was successful (TODO: implement true condition if there was an error)
+        """
+        # Save the model.
+        model_filename = 'model_episode_{:05d}.pt'.format(episode)
+        torch.save(self.state_dict(), model_dir + model_filename)
+        logger.info("Model exported to {}".format(model_dir + model_filename))
+
+        # Additionally, if flag is set to True, save the encoder.
+        if self.save_encoder:
+            encoder_filename = 'encoder_episode_{:05d}.pt'.format(episode)
+            torch.save(self.encoder.state_dict(), model_dir + encoder_filename)
+            logger.info("Encoder exported to {}".format(model_dir + encoder_filename))            
 
 
     def forward(self, data_tuple):
@@ -141,10 +172,10 @@ class MAE2S(SequentialModel):
                 logit, encoder_state = self.encoder(x, encoder_state)
                 #print("encoder")
             elif mode == self.modes.Solve1:
-                logit, solver_state1 = self.solver1(x, solver1_state)
+                logit, solver1_state = self.solver1(x, solver1_state)
                 #print("solver1")
             #elif mode == self.modes.Solve2:
-            #    logit, solver_state2 = self.solver2(x, solver2_state)
+            #    logit, solver2_state = self.solver2(x, solver2_state)
                             
             # Collect logits from both encoder and solver - they will be masked afterwards.
             logits += [logit]

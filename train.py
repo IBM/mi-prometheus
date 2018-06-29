@@ -31,17 +31,6 @@ from problems.problem_factory import ProblemFactory
 from utils_worker import forward_step, check_and_set_cuda
 
 
-def save_model(model, episode,   model_dir):
-    """
-    Function saves the model..
-
-    :returns: False if saving was successful (need to implement true condition if there was an error)
-    """
-    model_filename = 'model_parameters_episode_{:05d}'.format(episode)
-    torch.save(model.state_dict(), model_dir + model_filename)
-    logger.info("Model exported")
-
-
 def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS, logger, validation_file,
                validation_writer):
     """
@@ -358,7 +347,7 @@ if __name__ == '__main__':
 
         #  5. Save the model then validate
         if (episode % validation_frequency) == 0:
-            save_model(model, episode,  model_dir)
+            model.save(model_dir, episode)
 
 
         if (episode % validation_frequency) == 0 and do_validation:
@@ -388,7 +377,7 @@ if __name__ == '__main__':
 
             if loss_stop or episode == param_interface['settings']['max_episodes'] :
                 terminal_condition = True
-                save_model(model, episode,  model_dir)
+                model.save(model_dir, episode)
 
                 break
                 # "Finish" episode.
