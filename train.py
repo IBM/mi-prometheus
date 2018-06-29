@@ -235,7 +235,9 @@ if __name__ == '__main__':
     optimizer_conf = dict(param_interface['optimizer'])
     optimizer_name = optimizer_conf['name']
     del optimizer_conf['name']
-    optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), **optimizer_conf)
+    # Select for optimization only those parameters that require update!
+    optimizer = getattr(torch.optim, optimizer_name)(
+        filter(lambda p: p.requires_grad,model.parameters()), **optimizer_conf)
 
     # Start Training
     episode = 0

@@ -70,22 +70,21 @@ class MAECell(torch.nn.Module):
         # Layer that produces output on the basis of... hidden state?
         ext_hidden_size = self.controller_hidden_state_size
         self.hidden2output = torch.nn.Linear(ext_hidden_size, self.output_size)
-
+        for param in self.hidden2output.parameters():
+            param.requires_grad = False
 
     def freeze(self):
         """ Freezes the trainable weigths """
-        # TODO!
         # Freeze controller.
-        #for param in self.controller.parameters():
-        #    param.requires_grad = False
+        for param in self.controller.parameters():
+            param.requires_grad = False
 
         # Freeze interface.
-        #self.interface =
+        self.interface.freeze()
 
         # Freeze output layer.
-        #for param in self.hidden2output.parameters():
-        #    param.requires_grad = False
-
+        for param in self.hidden2output.parameters():
+            param.requires_grad = False
 
     def init_state(self,  init_memory_BxAxC):
         """
