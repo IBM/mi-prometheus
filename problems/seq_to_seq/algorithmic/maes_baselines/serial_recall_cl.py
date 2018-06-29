@@ -60,7 +60,6 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],
         mask [BATCH_SIZE, 2*SEQ_LENGTH+2]
 
-        TODO: every item in batch has now the same seq_length.
         """
         # Define control channel bits.
         # ctrl_main = [0, 0, 0] # not really used.

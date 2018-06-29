@@ -38,6 +38,8 @@ class RepeatSerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         self.data_bits = params['data_bits']
         assert self.control_bits >=3, "Problem requires at least 3 control bits (currently %r)" % self.control_bits
         assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+        self.randomize_control_lines = params.get('randomize_control_lines', False)
+
         # Min and max lengts (number of elements).
         self.min_sequence_length = params['min_sequence_length']
         self.max_sequence_length = params['max_sequence_length']
@@ -57,7 +59,6 @@ class RepeatSerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],
         mask [BATCH_SIZE, 2*SEQ_LENGTH+2]
 
-        TODO: every item in batch has now the same seq_length.
         """
         # Define control channel bits.
         # ctrl_main = [0, 0, 0] # not really used.
@@ -67,9 +68,12 @@ class RepeatSerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         if (self.control_bits == 3):
             ctrl_aux[2] = 1 #[0, 0, 1]
         else:
-            # Randomly pick one of the bits to be set.
-            ctrl_bit = np.random.randint(2, self.control_bits)
-            ctrl_aux[ctrl_bit] = 1
+            if self.randomize_control_lines:
+                # Randomly pick one of the bits to be set.
+                ctrl_bit = np.random.randint(2, self.control_bits)
+                ctrl_aux[ctrl_bit] = 1
+            else:
+                ctrl_aux[self.control_bits-1] = 1
 
         # Markers.
         marker_start_main = np.zeros(self.control_bits)

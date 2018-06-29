@@ -37,6 +37,7 @@ class SkipRecallCommandLines(AlgorithmicSeqToSeqProblem):
         self.data_bits = params['data_bits']
         assert self.control_bits ==3, "Problem requires EXACTLY 3 control bits (currently %r)" % self.control_bits
         assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+
         # Min and max lengts (number of elements).
         self.min_sequence_length = params['min_sequence_length']
         self.max_sequence_length = params['max_sequence_length']

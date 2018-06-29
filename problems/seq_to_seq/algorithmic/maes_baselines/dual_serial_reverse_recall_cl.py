@@ -39,7 +39,7 @@ class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         self.data_bits = params['data_bits']
         assert self.control_bits >=4, "Problem requires at least 4 control bits (currently %r)" % self.control_bits
         assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
-        self.randomize_control_lines = params.get('randomize_control_lines', True)
+        self.randomize_control_lines = params.get('randomize_control_lines', False)
         
         # Min and max lengts (number of elements).
         self.min_sequence_length = params['min_sequence_length']
@@ -139,8 +139,8 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'control_bits': 7, 'data_bits': 8, 'batch_size': 2, 
-        #'randomize_control_lines': False,
+    params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 2, 
+        #'randomize_control_lines': True,
         'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
     # Create problem object.
     problem = DualSerialReverseRecallCommandLines(params)
