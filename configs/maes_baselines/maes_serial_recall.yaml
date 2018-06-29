@@ -11,7 +11,7 @@ problem_train:
     #Curriculum learning - optional.
     curriculum_learning:
         interval: 500
-        initial_max_sequence_length: 4
+        initial_max_sequence_length: 5
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     bias: 0.5

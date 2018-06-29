@@ -20,7 +20,7 @@ class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
     - beginning of storing/memorization,
     - beginning of forward recalling from memory and
     - beginning of reverse recalling from memory.
-    2) Additionally, there is a command line (4rd command bit) indicating whether given item is to be stored in mememory (0)
+    2) Additionally, there is a command line (4th command bit) indicating whether given item is to be stored in mememory (0)
      or recalled (1).
     """
     def __init__(self,  params):
@@ -62,12 +62,12 @@ class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         #ctrl_aux = [0, 0, 0, 1]
 
         ctrl_aux = np.zeros(self.control_bits)
-        #if (self.control_bits == 4):
-        #    ctrl_aux[3] = 1 #[0, 0, 0, 1]
-        #else:
-        # Randomly pick one of the bits to be set.
-        ctrl_bit = np.random.randint(2, self.control_bits)
-        ctrl_aux[ctrl_bit] = 1
+        if (self.control_bits == 4):
+            ctrl_aux[3] = 1 #[0, 0, 0, 1]
+        else:
+            # Randomly pick one of the bits to be set.
+            ctrl_bit = np.random.randint(2, self.control_bits)
+            ctrl_aux[ctrl_bit] = 1
 
         # Markers.
         marker_start_main = np.zeros(self.control_bits)
@@ -76,8 +76,6 @@ class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         marker_start_aux_serial[1] = 1 #[0, 1, 0, 0]
         marker_start_aux_reverse = np.zeros(self.control_bits)
         marker_start_aux_reverse[2] = 1 #[0, 0, 1, 0]
-
-
 
         # Set sequence length.
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
@@ -116,11 +114,6 @@ class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         mask = torch.zeros([self.batch_size, 3*seq_length + 3]).type(torch.ByteTensor)
         mask[:, seq_length+2:2*seq_length+2] = 1
         mask[:, 2*seq_length+3:] = 1
-
-        # TODO: REMOVE! Cuts out the third subsequence.
-        inputs = inputs[:, :2*seq_length + 2, :]
-        targets = targets[:, :2*seq_length + 2, :]
-        mask = mask[:, :2*seq_length + 2]
 
         # PyTorch variables.
         ptinputs = torch.from_numpy(inputs).type(self.dtype)
