@@ -62,11 +62,21 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         """
         # Define control channel bits.
         # ctrl_main = [0, 0, 0] # not really used.
-        ctrl_aux = [0, 0, 1]
+
+        #ctrl_aux[2:self.control_bits] = 1 #[0, 0, 1]
+        ctrl_aux = np.zeros(self.control_bits)
+        if (self.control_bits == 3):
+            ctrl_aux[2] = 1 #[0, 0, 1]
+        else:
+            # Randomly pick one of the bits to be set.
+            ctrl_bit = np.random.randint(2, self.control_bits)
+            ctrl_aux[ctrl_bit] = 1
 
         # Markers.
-        marker_start_main = [1, 0, 0]
-        marker_start_aux = [0, 1, 0]
+        marker_start_main = np.zeros(self.control_bits)
+        marker_start_main[0] = 1 #[1, 0, 0]
+        marker_start_aux = np.zeros(self.control_bits)
+        marker_start_aux[1] = 1 #[0, 1, 0]
 
         # Set sequence length.
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
@@ -79,15 +89,15 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         inputs = np.zeros([self.batch_size, 2*seq_length + 2, self.control_bits +  self.data_bits], dtype=np.float32)
 
         # Set start main control marker.
-        inputs[:, 0, 0:3] = np.tile(marker_start_main, (self.batch_size, 1))
+        inputs[:, 0, 0:self.control_bits] = np.tile(marker_start_main, (self.batch_size, 1))
 
         # Set bit sequence.
         inputs[:, 1:seq_length+1,  self.control_bits:self.control_bits+self.data_bits] = bit_seq
-        # inputs[:, 1:seq_length+1, 0:3] = np.tile(ctrl_main, (self.batch_size, seq_length,1)) # not used as ctrl_main is all zeros.
+        # inputs[:, 1:seq_length+1, 0:self.control_bits] = np.tile(ctrl_main, (self.batch_size, seq_length,1)) # not used as ctrl_main is all zeros.
 
         # Set start aux control marker.
-        inputs[:, seq_length+1, 0:3] = np.tile(marker_start_aux, (self.batch_size, 1))
-        inputs[:, seq_length+2:2*seq_length+2, 0:3] = np.tile(ctrl_aux, (self.batch_size, seq_length,1))
+        inputs[:, seq_length+1, 0:self.control_bits] = np.tile(marker_start_aux, (self.batch_size, 1))
+        inputs[:, seq_length+2:2*seq_length+2, 0:self.control_bits] = np.tile(ctrl_aux, (self.batch_size, seq_length,1))
         
         # 2. Generate targets.
         # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS] (only data bits!)
@@ -105,7 +115,7 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         pttargets = torch.from_numpy(targets).type(self.dtype)
 
         # Return tuples.
-        data_tuple = DataTuple(inputs, targets)
+        data_tuple = DataTuple(ptinputs, pttargets)
         aux_tuple = AlgSeqAuxTuple(mask, seq_length, 1)
 
         return data_tuple, aux_tuple
@@ -118,8 +128,8 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'control_bits': 3, 'data_bits': 8, 'batch_size': 1, 
-        'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
+    params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 1, 
+        'min_sequence_length': 2, 'max_sequence_length': 5,  'bias': 0.5}
     # Create problem object.
     problem = SerialRecallCommandLines(params)
     # Get generator

@@ -57,15 +57,27 @@ class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
 
         TODO: every item in batch has now the same seq_length.
         """
-
         # Define control channel bits.
         # ctrl_main = [0, 0, 0, 0] # not really used.
-        ctrl_aux = [0, 0, 0, 1]
+        #ctrl_aux = [0, 0, 0, 1]
+
+        ctrl_aux = np.zeros(self.control_bits)
+        #if (self.control_bits == 4):
+        #    ctrl_aux[3] = 1 #[0, 0, 0, 1]
+        #else:
+        # Randomly pick one of the bits to be set.
+        ctrl_bit = np.random.randint(2, self.control_bits)
+        ctrl_aux[ctrl_bit] = 1
 
         # Markers.
-        marker_start_main = [1, 0, 0, 0]
-        marker_start_aux_serial = [0, 1, 0, 0]
-        marker_start_aux_reverse = [0, 0, 1, 0]
+        marker_start_main = np.zeros(self.control_bits)
+        marker_start_main[0] = 1 #[1, 0, 0, 0]
+        marker_start_aux_serial = np.zeros(self.control_bits)
+        marker_start_aux_serial[1] = 1 #[0, 1, 0, 0]
+        marker_start_aux_reverse = np.zeros(self.control_bits)
+        marker_start_aux_reverse[2] = 1 #[0, 0, 1, 0]
+
+
 
         # Set sequence length.
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
@@ -77,18 +89,18 @@ class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         # Generate input:  [BATCH_SIZE, 3*SEQ_LENGTH+3, CONTROL_BITS+DATA_BITS]
         inputs = np.zeros([self.batch_size, 3*seq_length + 3, self.control_bits +  self.data_bits], dtype=np.float32)
         # Set start main control marker.
-        inputs[:, 0, 0:4] = np.tile(marker_start_main, (self.batch_size, 1))
+        inputs[:, 0, 0:self.control_bits] = np.tile(marker_start_main, (self.batch_size, 1))
 
         # Set bit sequence.
         inputs[:, 1:seq_length+1,  self.control_bits:self.control_bits+self.data_bits] = bit_seq
 
         # Set start aux serial recall control marker.
-        inputs[:, seq_length+1, 0:4] = np.tile(marker_start_aux_serial, (self.batch_size, 1))
-        inputs[:, seq_length+2:2*seq_length+2, 0:4] = np.tile(ctrl_aux, (self.batch_size, seq_length,1))
+        inputs[:, seq_length+1, 0:self.control_bits] = np.tile(marker_start_aux_serial, (self.batch_size, 1))
+        inputs[:, seq_length+2:2*seq_length+2, 0:self.control_bits] = np.tile(ctrl_aux, (self.batch_size, seq_length,1))
 
         # Set start aux serial reverse control marker.
-        inputs[:, 2*seq_length+2, 0:4] = np.tile(marker_start_aux_reverse, (self.batch_size, 1))
-        inputs[:, 2*seq_length+3:3*seq_length+3, 0:4] = np.tile(ctrl_aux, (self.batch_size, seq_length,1))
+        inputs[:, 2*seq_length+2, 0:self.control_bits] = np.tile(marker_start_aux_reverse, (self.batch_size, 1))
+        inputs[:, 2*seq_length+3:3*seq_length+3, 0:self.control_bits] = np.tile(ctrl_aux, (self.batch_size, seq_length,1))
 
         
         # 2. Generate targets.
@@ -96,21 +108,26 @@ class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         targets = np.zeros([self.batch_size, 3*seq_length + 3,  self.data_bits], dtype=np.float32)
         # Set bit sequence for serial recall.
         targets[:, seq_length+2:2*seq_length+2,  :] = bit_seq
-        # Set bit sequence for serial recall.
+        # Set bit sequence for reverse recall.
         targets[:, 2*seq_length+3:,  :] = np.fliplr(bit_seq)
 
         # 3. Generate mask.
-        # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
+        # Generate target mask: [BATCH_SIZE, 3*SEQ_LENGTH+3]
         mask = torch.zeros([self.batch_size, 3*seq_length + 3]).type(torch.ByteTensor)
         mask[:, seq_length+2:2*seq_length+2] = 1
         mask[:, 2*seq_length+3:] = 1
+
+        # TODO: REMOVE! Cuts out the third subsequence.
+        inputs = inputs[:, :2*seq_length + 2, :]
+        targets = targets[:, :2*seq_length + 2, :]
+        mask = mask[:, :2*seq_length + 2]
 
         # PyTorch variables.
         ptinputs = torch.from_numpy(inputs).type(self.dtype)
         pttargets = torch.from_numpy(targets).type(self.dtype)
 
         # Return tuples.
-        data_tuple = DataTuple(inputs, targets)
+        data_tuple = DataTuple(ptinputs, pttargets)
         aux_tuple = AlgSeqAuxTuple(mask, seq_length, 1)
 
         return data_tuple, aux_tuple
