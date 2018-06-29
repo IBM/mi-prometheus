@@ -23,15 +23,15 @@ from models.encoder_solver.mas_cell import MASCell
 class MAES(SequentialModel):
     '''
     Class implementing the Memory Augmented Encoder-Solver (MAES) model. 
+
+    Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences 
+    becoming input to encoder is of the same length (ends at the same item).
+    The same goes to subsequences being input to decoder.
     '''
 
     def __init__(self, params):
         '''
         Constructor. Initializes parameters on the basis of dictionary passed as argument.
-
-        Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences 
-        becoming input to encoder is of the same length (ends at the same item), the same goes to
-        subsequences being input to decoder.
         
         :param params: Dictionary of parameters.
         '''
@@ -90,14 +90,10 @@ class MAES(SequentialModel):
 
         # Initialize 'zero' state.
         encoder_state = self.encoder.init_state(init_memory_BxAxC)
-        solver_state = None # For now.
+        solver_state = None # For now, it will be set during execution.
 
         # Start as encoder.
         mode = self.modes.Encode
-
-        # TODO: REMOVE! TMP!
-        #solver_state = self.solver.init_state(encoder_state)
-        #mode = self.modes.Solve
 
         # Logits container.
         logits = []
@@ -106,7 +102,7 @@ class MAES(SequentialModel):
             # Squeeze x.
             x = x.squeeze(1)
 
-            # Switch between the encoder and decoder modes.
+            # Switch between the encoder and solver modes.
             if x[0, self.solving_bit] and not x[0, self.encoding_bit]:
                 mode = self.modes.Solve
                 if self.pass_cell_state:
@@ -117,7 +113,7 @@ class MAES(SequentialModel):
                     solver_state = self.solver.init_state(encoder_state.memory_state, encoder_state.interface_state.attention)
 
             elif x[0, self.encoding_bit] and x[0, self.solving_bit]:
-                logger.error('Both encoding and decoding bit were true')
+                logger.error('Two control bits were on:\n {}'.format(x))
                 exit(-1)
 
             # Run encoder or solver - depending on the state.
