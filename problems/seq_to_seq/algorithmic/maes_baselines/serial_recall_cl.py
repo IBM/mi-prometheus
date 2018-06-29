@@ -61,7 +61,7 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         TODO: every item in batch has now the same seq_length.
         """
         # Define control channel bits.
-        ctrl_main = [0, 0, 0]
+        # ctrl_main = [0, 0, 0] # not really used.
         ctrl_aux = [0, 0, 1]
 
         # Markers.
@@ -77,20 +77,25 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         # 1. Generate inputs.
         # Generate input:  [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
         inputs = np.zeros([self.batch_size, 2*seq_length + 2, self.control_bits +  self.data_bits], dtype=np.float32)
+
         # Set start main control marker.
-        inputs[:, 0, 0:3] = np.tile(ctrl_main, (self.batch_size, 1))
+        inputs[:, 0, 0:3] = np.tile(marker_start_main, (self.batch_size, 1))
+
         # Set bit sequence.
         inputs[:, 1:seq_length+1,  self.control_bits:self.control_bits+self.data_bits] = bit_seq
+        # inputs[:, 1:seq_length+1, 0:3] = np.tile(ctrl_main, (self.batch_size, seq_length,1)) # not used as ctrl_main is all zeros.
+
         # Set start aux control marker.
-        inputs[:, seq_length+1, 0:3] = np.tile(ctrl_aux, (self.batch_size, 1))
+        inputs[:, seq_length+1, 0:3] = np.tile(marker_start_aux, (self.batch_size, 1))
+        inputs[:, seq_length+2:2*seq_length+2, 0:3] = np.tile(ctrl_aux, (self.batch_size, seq_length,1))
         
-        # 2. Generate inputs.
+        # 2. Generate targets.
         # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS] (only data bits!)
         targets = np.zeros([self.batch_size, 2*seq_length + 2,  self.data_bits], dtype=np.float32)
         # Set bit sequence.
         targets[:, seq_length+2:,  :] = bit_seq
 
-        # 3. Generate maks.
+        # 3. Generate mask.
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
         mask = torch.zeros([self.batch_size, 2*seq_length + 2]).type(torch.ByteTensor)
         mask[:, seq_length+2:] = 1
@@ -114,7 +119,7 @@ if __name__ == "__main__":
     
     # "Loaded parameters".
     params = {'control_bits': 3, 'data_bits': 8, 'batch_size': 1, 
-        'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'seq_start':0, 'skip_step': 2}
+        'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
     # Create problem object.
     problem = SerialRecallCommandLines(params)
     # Get generator
