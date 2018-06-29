@@ -4,11 +4,10 @@ problem_train:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 4
     data_bits: &dbits 8
-    randomize_control_lines: False
     batch_size: &bs 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 2
-    max_sequence_length: 20
+    min_sequence_length: 4
+    max_sequence_length: 10
     #Curriculum learning - optional.
     curriculum_learning:
         interval: 500
@@ -24,11 +23,10 @@ problem_validation:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    randomize_control_lines: False
     batch_size: 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 21
-    max_sequence_length: 21
+    min_sequence_length: 11
+    max_sequence_length: 11
     bias: 0.5
 
 # Problem parameters:
@@ -37,7 +35,6 @@ problem_test:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    randomize_control_lines: False
     batch_size: 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 100

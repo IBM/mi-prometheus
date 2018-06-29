@@ -6,8 +6,8 @@ problem_train:
     data_bits: &dbits 8
     batch_size: &bs 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 2
-    max_sequence_length: 20
+    min_sequence_length: 4
+    max_sequence_length: 10
     # Number of repetitions.
     min_recall_number: 1
     max_recall_number: 4
@@ -28,8 +28,8 @@ problem_validation:
     data_bits: *dbits
     batch_size: 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 21
-    max_sequence_length: 21
+    min_sequence_length: 11
+    max_sequence_length: 11
     # Number of repetitions.
     min_recall_number: 5
     max_recall_number: 5

@@ -1,3 +1,5 @@
+__author__      = "Ryan McAvoy"
+
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """sequence_symmetry_cl.py: Contains implementation of sequence symmetry task."""
-__author__      = "Tomasz Kornuta"
+__author__      = "Ryan McAvoy/Tomasz Kornuta"
 
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys

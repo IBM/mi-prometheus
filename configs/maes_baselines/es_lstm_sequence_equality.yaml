@@ -2,17 +2,17 @@
 problem_train:
     name: &name maes_baselines/sequence_equality_cl
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: &cbits 3
+    control_bits: &cbits 4
     data_bits: &dbits 8
     output_bits: &obits 1
     batch_size: &bs 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 1
-    max_sequence_length: 20
+    min_sequence_length: 4
+    max_sequence_length: 10
     #Curriculum learning - optional.
     curriculum_learning:
-        interval: 2000
-        initial_max_sequence_length: 4
+        interval: 500
+        initial_max_sequence_length: 5
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     bias: 0.5
@@ -27,8 +27,8 @@ problem_validation:
     output_bits: *obits
     batch_size: 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 21
-    max_sequence_length: 21
+    min_sequence_length: 11
+    max_sequence_length: 11
     bias: 0.5
 
 # Problem parameters:
@@ -73,5 +73,5 @@ settings:
     loss_stop: 1.0e-5
     max_episodes: 100000
     validation_stopping: True
-    seed_numpy: 0
-    seed_torch: 2
+    seed_numpy: -1
+    seed_torch: -1
