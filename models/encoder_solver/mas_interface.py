@@ -50,12 +50,11 @@ class MASInterface(torch.nn.Module):
         assert self.interface_shift_size % 2 != 0,  'Shift size must be an odd number'
         assert self.interface_shift_size >0,  'Shift size must be > 0'
 
- 
         # -------------- READ HEAD -----------------#
-        # Number/size of parameters of a read head: gate [2] + gamma [1] + shift kernel size [SHIFT_SIZE]
-        num_read_params =  (2 +1 +self.interface_shift_size)
+        # Number/size of parameters of a read head: gate [3] + gamma [1] + shift kernel size [SHIFT_SIZE]
+        num_read_params =  (3 +1 +self.interface_shift_size)
         # Dictionary with read parameters - used during slicing.
-        self.read_param_locations = self.calculate_param_locations({'gate': 2,  
+        self.read_param_locations = self.calculate_param_locations({'gate': 3,  
             'shift': self.interface_shift_size, 'gamma': 1},  "Read")
         assert num_read_params == self.read_param_locations[-1], "Last location must be equal to number of read params."
 
@@ -79,14 +78,16 @@ class MASInterface(torch.nn.Module):
         zh_attention = torch.zeros(batch_size, num_memory_addresses,  1).type(dtype)
         zh_attention[:, 0, 0] = 1 # Initialize as "hard attention on 0 address"
 
-        # Gating [BATCH x 2 x 1]
-        init_gating = torch.zeros(batch_size, 2,  1).type(dtype)
+        # Gating [BATCH x 3 x 1]
+        init_gating = torch.zeros(batch_size, 3,  1).type(dtype)
         init_gating[:, 0, 0] = 1 # Initialize as "prev attention"
 
         # Shift [BATCH x SHIFT_SIZE x 1]
         init_shift = torch.zeros(batch_size, self.interface_shift_size,  1).type(dtype)
         init_shift[:, 1, 0] = 1 # Initialize as "0 shift".
-        
+
+        # Remember zero-hard attention.        
+        self.zero_hard_attention_BxAx1 = zh_attention
         # Remember final attention of encoder.
         self.final_encoder_attention_BxAx1 = final_encoder_attention_BxAx1
 
@@ -111,10 +112,10 @@ class MASInterface(torch.nn.Module):
         params_BxP = self.hidden2read_params(ctrl_hidden_state_BxH)
 
         # Split the parameters.
-        gate_Bx2, shift_BxS, gamma_Bx1 = self.split_params(params_BxP,  self.read_param_locations)
+        gate_Bx3, shift_BxS, gamma_Bx1 = self.split_params(params_BxP,  self.read_param_locations)
 
         # Update the attention of a given read head.
-        read_attention_BxAx1,  interface_state_tuple = self.update_attention(gate_Bx2, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attention_BxAxH)
+        read_attention_BxAx1,  interface_state_tuple = self.update_attention(gate_Bx3, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_read_attention_BxAxH)
         #logger.debug("read_attention_BxAx1 {}:\n {}".format(read_attention_BxAx1.size(),  read_attention_BxAx1))  
 
         # Read vector from memory [BATCH_SIZE x CONTENT_BITS].
@@ -144,10 +145,10 @@ class MASInterface(torch.nn.Module):
         #logger.debug("Splitted params:\n {}".format(param_splits)) 
         return param_splits
 
-    def update_attention(self,  gate_Bx2, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_attention_BxAx1):
+    def update_attention(self,  gate_Bx3, shift_BxS, gamma_Bx1,  prev_memory_BxAxC,  prev_attention_BxAx1):
         """ Updates the attention weights.
         
-        :param gate_Bx2:
+        :param gate_Bx3:
         :param shift_BxS:
         :param gamma_Bx1:
         :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
@@ -158,9 +159,10 @@ class MASInterface(torch.nn.Module):
 
 
         # Produce gating param.
-        gate_Bx2x1 = F.sigmoid(gate_Bx2).unsqueeze(2)
-        gate0_Bx2x1 = gate_Bx2x1[:,0,:].unsqueeze(2)
-        gate1_Bx2x1 = gate_Bx2x1[:,1,:].unsqueeze(2)
+        gate_Bx3x1 = F.sigmoid(gate_Bx3).unsqueeze(2)
+        gate0_Bx3x1 = gate_Bx3x1[:,0,:].unsqueeze(2)
+        gate1_Bx3x1 = gate_Bx3x1[:,1,:].unsqueeze(2)
+        gate2_Bx3x1 = gate_Bx3x1[:,2,:].unsqueeze(2)
         #logger.debug("gate0_Bx2x1 {}:\n {}".format(gate0_Bx2x1.size(), gate0_Bx2x1))
     
         # Produce location-addressing params.
@@ -176,10 +178,13 @@ class MASInterface(torch.nn.Module):
         #logger.debug("location_attention_BxAx1 {}:\n {}".format(location_attention_BxAx1.size(),  location_attention_BxAx1))   
 
     
-        attention_after_gating_BxAx1 = gate0_Bx2x1 * location_attention_BxAx1  + gate1_Bx2x1 * self.final_encoder_attention_BxAx1
+        attention_after_gating_BxAx1 = gate0_Bx3x1 * location_attention_BxAx1  + \
+            gate1_Bx3x1 * self.final_encoder_attention_BxAx1 + \
+            gate2_Bx3x1 * self.zero_hard_attention_BxAx1
+
         #logger.debug("attention_after_gating_BxAx1 {}:\n {}".format(attention_after_gating_BxAx1.size(),  attention_after_gating_BxAx1))    
-        
-        return attention_after_gating_BxAx1, MASInterfaceStateTuple(attention_after_gating_BxAx1, self.final_encoder_attention_BxAx1, gate_Bx2x1, shift_BxSx1)
+        int_state = MASInterfaceStateTuple(attention_after_gating_BxAx1, self.final_encoder_attention_BxAx1, gate_Bx3x1, shift_BxSx1)
+        return attention_after_gating_BxAx1, int_state
 
 
     def location_based_addressing(self,  attention_BxAx1,  shift_BxSx1,  gamma_Bx1x1,  prev_memory_BxAxC):
