@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""reverse_recall_cl.py: Contains definition of reverse recall problem with control markers and command lines"""
+"""dual_serial_reverse_recall_cl.py: Contains definition of dual serial-reverse recall problem with control markers and command lines"""
 __author__      = "Tomasz Kornuta"
 
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
@@ -13,13 +13,15 @@ from problems.problem import DataTuple
 from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem, AlgSeqAuxTuple
 
 
-class ReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
+class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
     """   
     Class generating sequences of random bit-patterns and targets forcing the system to learn reverse recall problem.
-    1) There are two markers, indicatinn:
-    - beginning of storing/memorization and
-    - beginning of recalling from memory.
-    2) Additionally, there is a command line (3rd command bit) indicating whether given item is to be stored in mememory (0) or recalled (1).
+    1) There are three markers, indicatinn:
+    - beginning of storing/memorization,
+    - beginning of forward recalling from memory and
+    - beginning of reverse recalling from memory.
+    2) Additionally, there is a command line (4rd command bit) indicating whether given item is to be stored in mememory (0)
+     or recalled (1).
     """
     def __init__(self,  params):
         """ 
@@ -28,14 +30,14 @@ class ReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         :param params: Dictionary of parameters.
         """
         # Call parent constructor - sets e.g. the loss function ;)
-        super(ReverseRecallCommandLines, self).__init__(params)
+        super(DualSerialReverseRecallCommandLines, self).__init__(params)
         
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
         # Number of bits in one element.
         self.control_bits = params['control_bits']
         self.data_bits = params['data_bits']
-        assert self.control_bits >=3, "Problem requires at least 3 control bits (currently %r)" % self.control_bits
+        assert self.control_bits >=4, "Problem requires at least 4 control bits (currently %r)" % self.control_bits
         assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
         # Min and max lengts (number of elements).
         self.min_sequence_length = params['min_sequence_length']
@@ -56,22 +58,26 @@ class ReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         TODO: every item in batch has now the same seq_length.
         """
         # Define control channel bits.
-        # ctrl_main = [0, 0, 0] # not really used.
+        # ctrl_main = [0, 0, 0, 0] # not really used.
+        #ctrl_aux = [0, 0, 0, 1]
 
-        #ctrl_aux[2:self.control_bits] = 1 #[0, 0, 1]
         ctrl_aux = np.zeros(self.control_bits)
-        if (self.control_bits == 3):
-            ctrl_aux[2] = 1 #[0, 0, 1]
-        else:
-            # Randomly pick one of the bits to be set.
-            ctrl_bit = np.random.randint(2, self.control_bits)
-            ctrl_aux[ctrl_bit] = 1
+        #if (self.control_bits == 4):
+        #    ctrl_aux[3] = 1 #[0, 0, 0, 1]
+        #else:
+        # Randomly pick one of the bits to be set.
+        ctrl_bit = np.random.randint(2, self.control_bits)
+        ctrl_aux[ctrl_bit] = 1
 
         # Markers.
         marker_start_main = np.zeros(self.control_bits)
-        marker_start_main[0] = 1 #[1, 0, 0]
-        marker_start_aux = np.zeros(self.control_bits)
-        marker_start_aux[1] = 1 #[0, 1, 0]
+        marker_start_main[0] = 1 #[1, 0, 0, 0]
+        marker_start_aux_serial = np.zeros(self.control_bits)
+        marker_start_aux_serial[1] = 1 #[0, 1, 0, 0]
+        marker_start_aux_reverse = np.zeros(self.control_bits)
+        marker_start_aux_reverse[2] = 1 #[0, 0, 1, 0]
+
+
 
         # Set sequence length.
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
@@ -80,30 +86,41 @@ class ReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         bit_seq = np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
         
         # 1. Generate inputs.
-        # Generate input:  [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
-        inputs = np.zeros([self.batch_size, 2*seq_length + 2, self.control_bits +  self.data_bits], dtype=np.float32)
-
+        # Generate input:  [BATCH_SIZE, 3*SEQ_LENGTH+3, CONTROL_BITS+DATA_BITS]
+        inputs = np.zeros([self.batch_size, 3*seq_length + 3, self.control_bits +  self.data_bits], dtype=np.float32)
         # Set start main control marker.
         inputs[:, 0, 0:self.control_bits] = np.tile(marker_start_main, (self.batch_size, 1))
 
         # Set bit sequence.
         inputs[:, 1:seq_length+1,  self.control_bits:self.control_bits+self.data_bits] = bit_seq
-        # inputs[:, 1:seq_length+1, 0:self.control_bits] = np.tile(ctrl_main, (self.batch_size, seq_length,1)) # not used as ctrl_main is all zeros.
 
-        # Set start aux control marker.
-        inputs[:, seq_length+1, 0:self.control_bits] = np.tile(marker_start_aux, (self.batch_size, 1))
+        # Set start aux serial recall control marker.
+        inputs[:, seq_length+1, 0:self.control_bits] = np.tile(marker_start_aux_serial, (self.batch_size, 1))
         inputs[:, seq_length+2:2*seq_length+2, 0:self.control_bits] = np.tile(ctrl_aux, (self.batch_size, seq_length,1))
+
+        # Set start aux serial reverse control marker.
+        inputs[:, 2*seq_length+2, 0:self.control_bits] = np.tile(marker_start_aux_reverse, (self.batch_size, 1))
+        inputs[:, 2*seq_length+3:3*seq_length+3, 0:self.control_bits] = np.tile(ctrl_aux, (self.batch_size, seq_length,1))
+
         
         # 2. Generate targets.
-        # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS] (only data bits!)
-        targets = np.zeros([self.batch_size, 2*seq_length + 2,  self.data_bits], dtype=np.float32)
-        # Set bit sequence.
-        targets[:, seq_length+2:,  :] = np.fliplr(bit_seq)
+        # Generate target:  [BATCH_SIZE, 3*SEQ_LENGTH+3, DATA_BITS] (only data bits!)
+        targets = np.zeros([self.batch_size, 3*seq_length + 3,  self.data_bits], dtype=np.float32)
+        # Set bit sequence for serial recall.
+        targets[:, seq_length+2:2*seq_length+2,  :] = bit_seq
+        # Set bit sequence for reverse recall.
+        targets[:, 2*seq_length+3:,  :] = np.fliplr(bit_seq)
 
         # 3. Generate mask.
-        # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
-        mask = torch.zeros([self.batch_size, 2*seq_length + 2]).type(torch.ByteTensor)
-        mask[:, seq_length+2:] = 1
+        # Generate target mask: [BATCH_SIZE, 3*SEQ_LENGTH+3]
+        mask = torch.zeros([self.batch_size, 3*seq_length + 3]).type(torch.ByteTensor)
+        mask[:, seq_length+2:2*seq_length+2] = 1
+        mask[:, 2*seq_length+3:] = 1
+
+        # TODO: REMOVE! Cuts out the third subsequence.
+        inputs = inputs[:, :2*seq_length + 2, :]
+        targets = targets[:, :2*seq_length + 2, :]
+        mask = mask[:, :2*seq_length + 2]
 
         # PyTorch variables.
         ptinputs = torch.from_numpy(inputs).type(self.dtype)
@@ -114,6 +131,7 @@ class ReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         aux_tuple = AlgSeqAuxTuple(mask, seq_length, 1)
 
         return data_tuple, aux_tuple
+
 
     # method for changing the maximum length, used mainly during curriculum learning
     def set_max_length(self, max_length):
@@ -126,7 +144,7 @@ if __name__ == "__main__":
     params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 2, 
         'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
     # Create problem object.
-    problem = ReverseRecallCommandLines(params)
+    problem = DualSerialReverseRecallCommandLines(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
