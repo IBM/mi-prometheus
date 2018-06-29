@@ -79,7 +79,6 @@ class Translation(TextToTextProblem, Lang):
         self.tensor_pairs = self.tensors_from_pairs(self.pairs, self.input_lang,
                                                     self.output_lang, self.max_sequence_length)
 
-
     def prepare_data(self):
         """
         Prepare the data for generating batches. Uses read_langs() & filter_pairs() to normalize, trim & filter input
@@ -102,6 +101,9 @@ class Translation(TextToTextProblem, Lang):
         self.pairs = [[self.normalize_string(s) for s in l.split('\t')] for l in lines]
 
         print("Read %s sentence pairs" % len(self.pairs))
+
+        # shuffle pairs of sentences
+        random.shuffle(self.pairs)
 
         # filter sentences pairs (based on number of words & prefixes).
         self.pairs = self.filter_pairs()
@@ -179,11 +181,19 @@ class Translation(TextToTextProblem, Lang):
         lines = open(os.path.join(self.root, self.raw_folder, self.output_lang_name + '.txt'), encoding='utf-8').\
             read().strip().split('\n')
 
+        # shuffle list of lines
+        random.shuffle(lines)
+
         nb_samples = len(lines)
         print('Total number of samples:', nb_samples)
         nb_training_samples = round(self.training_size * nb_samples)
-        training_samples = lines[:nb_training_samples]
-        inference_samples = lines[nb_training_samples:]
+
+        # choose nb_training_samples elements at random in lines to create the training set
+        training_samples_index = random.sample(range(len(lines)), nb_training_samples)
+        training_samples = []
+        for index in sorted(training_samples_index, reverse=True):
+            training_samples.append(lines.pop(index))
+        inference_samples = lines
 
         with open(os.path.join(self.root, self.processed_folder, self.training_file), 'w') as training_f:
             training_f.write('\n'.join(line for line in training_samples))
