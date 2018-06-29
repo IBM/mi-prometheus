@@ -52,10 +52,10 @@ class SimpleEncoderDecoder(SequentialModel):
         self.output_voc_size = params['output_voc_size']
 
         # create decoder
-        self.decoder = DecoderRNN(hidden_size=self.hidden_size, output_voc_size=self.output_voc_size)
+        #self.decoder = DecoderRNN(hidden_size=self.hidden_size, output_voc_size=self.output_voc_size)
 
         # create attention decoder
-        #self.decoder = AttnDecoderRNN(self.hidden_size, self.output_voc_size, dropout_p=0.1, max_length=self.max_length)
+        self.decoder = AttnDecoderRNN(self.hidden_size, self.output_voc_size, dropout_p=0.1, max_length=self.max_length)
 
         print('Simple EncoderDecoderRNN (without attention) created.\n')
 
@@ -100,10 +100,10 @@ class SimpleEncoderDecoder(SequentialModel):
         if self.training:  # Teacher forcing: Feed the target as the next input
             for di in range(self.max_length):
                 # base decoder
-                decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+                #decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
 
                 # attention decoder
-                #decoder_output, decoder_hidden, decoder_attention = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
+                decoder_output, decoder_hidden, decoder_attention = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
 
                 decoder_outputs[di] = decoder_output.squeeze()
 
@@ -113,10 +113,10 @@ class SimpleEncoderDecoder(SequentialModel):
             # Without teacher forcing: use its own predictions as the next input
             for di in range(self.max_length):
                 #base decoder
-                decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+                #decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
 
                 # attention decoder
-                #decoder_output, decoder_hidden, decoder_attention = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
+                decoder_output, decoder_hidden, decoder_attention = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
                 decoder_outputs[di] = decoder_output.squeeze()
 
                 topv, topi = decoder_output.topk(k=1, dim=-1)
@@ -148,7 +148,7 @@ if __name__ == '__main__':
         "they are", "they re "
     )
 
-    params = {'batch_size': 1, 'training_size': 0.90, 'output_lang_name': 'fra', 'max_sequence_length': 10,
+    params = {'batch_size': 64, 'training_size': 0.90, 'output_lang_name': 'fra', 'max_sequence_length': 10,
               'eng_prefixes': eng_prefixes, 'use_train_data': True, 'data_folder': '~/data/language', 'reverse': True}
 
     problem = pb.Translation(params)

@@ -21,7 +21,7 @@ class DecoderRNN(nn.Module):
         self.hidden_size = hidden_size
 
         # Embedding: creates a look-up table of the embedding of a vocabulary set
-        # (size: output_voc_size -> input_language.n_words) on vectors of size hidden_size.
+        # (size: output_voc_size -> output_language.n_words) on vectors of size hidden_size.
         # adds 1 dimension to the shape of the tensor
         # WARNING: input must be of type LongTensor
         self.embedding = nn.Embedding(num_embeddings=output_voc_size, embedding_dim=hidden_size)
@@ -30,6 +30,8 @@ class DecoderRNN(nn.Module):
         # NOTE: default number of recurrent layers is 1
         # 1st parameter: expected number of features in the input -> same as hidden_size because of embedding
         # 2nd parameter: expected number of features in hidden state -> hidden_size.
+        # batch_first=True -> input and output tensors are provided as (batch, seq, feature)
+        # batch_first=True do not affect hidden states
         self.gru = nn.GRU(input_size=hidden_size, hidden_size=hidden_size, num_layers=1, batch_first=True)
 
         # Apply a linear transformation to the incoming data: y=Ax+b
