@@ -51,23 +51,30 @@ class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
                   mask: used to mask the data part of the target
                   xi, d: sub sequences, dummies
 
-        TODO: deal with batch_size > 1
         """
         # define control channel markers
-        pos = [0, 0, 0]
-        ctrl_data = [0, 0, 0]
-        ctrl_dummy = [0, 0, 1]
-        ctrl_inter = [0, 1, 0]
-        #ctrl_y = [0, 0, 1]
-        ctrl_start = [1, 0, 0]
-        ctrl_output = [1, 1, 1]
+        # pos = [0, 0, 0]
+        pos = np.zeros(self.control_bits) # [0, 0, 0]
+        # ctrl_data = [0, 0, 0]
+        ctrl_data =  np.zeros(self.control_bits) # [0, 0, 0]
+
+        # ctrl_inter = [0, 1, 0]
+        ctrl_inter =  np.zeros(self.control_bits) 
+        ctrl_inter[1] = 1 # [0, 1, 0]
+
+        # ctrl_output = [1, 1, 1]
+        ctrl_output = np.ones(self.control_bits) # [1, 1, 1]
+
+        # ctrl_dummy = [0, 0, 1]
+        ctrl_dummy = np.zeros(self.control_bits) 
+        ctrl_dummy[2] = 1 # [0, 0, 1]
+
+        #ctrl_start = [1, 0, 0]
+        ctrl_start = np.zeros(self.control_bits)
+        ctrl_start[0] = 1 # [1, 0, 0]
         # assign markers
         markers = ctrl_data, ctrl_dummy, pos
-
-        # number sub sequences
-        #num_sub_seq = np.random.randint(self.num_subseq_min, self.num_subseq_max+1)
-        #num_sub_seq = np.random.randint(self.num_subseq_min, self.num_subseq_max+1)
-
+        
         # set the sequence length of each marker
         seq_length = np.random.randint(low=self.min_sequence_length, high=self.max_sequence_length + 1)
 
@@ -89,7 +96,7 @@ class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
         aux_seq = np.array(np.logical_xor(x[0], xor_scrambler))
 
         #if the xor scambler is all zeros then x and y will be the same so target will be true
-        actual_target = np.array(np.any(xor_scrambler, axis= 2, keepdims=True))
+        actual_target = np.logical_not(np.array(np.any(xor_scrambler, axis= 2, keepdims=True)))
         #actual_target = actual_target[:, np.newaxis,np.newaxis]
 
 
@@ -112,20 +119,10 @@ class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
         yy = [ self.augment(aux_seq, markers2, ctrl_start=ctrl_output, add_marker_data=False, add_marker_dummy = False)]
         data_2 = [arr for a in yy for arr in a[:-1]]
 
-        #ctrl_data_select = [1,0]
-        #aux_seq_wctrls=add_ctrl(aux_seq, ctrl_data_select, pos)
-        #aux_seq_wctrls[:,-1,0:self.control_bits]=np.ones(len(ctrl_dummy))
-        #data_2 = [aux_seq_wctrls]
-      
 
         recall_seq = [self.add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_dummy, pos)]
         dummy_data = [self.add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), np.ones(len(ctrl_dummy)), pos)]
 
- 
-        
-        #print(data_1[0].shape)
-        #print(inter_seq[0].shape)
-        #print(data_2[0].shape)
         # concatenate all parts of the inputs
         inputs = np.concatenate(data_1 + inter_seq + data_2, axis=1)
      
@@ -138,7 +135,6 @@ class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
         for i in range(self.control_bits):
             mask = mask_all[..., i] * mask
         
-        # TODO: fix the batch indexing
         # rest channel values of data dummies
         inputs[:, mask[0], 0:self.control_bits] = torch.tensor(ctrl_dummy).type(self.dtype)
 
