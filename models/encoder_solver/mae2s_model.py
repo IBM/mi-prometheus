@@ -59,7 +59,7 @@ class MAE2S(SequentialModel):
         self.solver1 = MASCell(params)
 
         # Create the Solver for the second task.
-        self.solver2 = MASCell(params)
+        #self.solver2 = MASCell(params)
 
         # Operation modes.
         self.modes = Enum('Modes', ['Encode', 'Solve1', 'Solve2'])
@@ -96,7 +96,7 @@ class MAE2S(SequentialModel):
         # Initialize 'zero' state.
         encoder_state = self.encoder.init_state(init_memory_BxAxC)
         solver1_state = None # For now, it will be set during execution.
-        solver2_state = None # For now, it will be set during execution.
+        #solver2_state = None # For now, it will be set during execution.
 
         # Start as encoder.
         mode = self.modes.Encode
@@ -109,6 +109,13 @@ class MAE2S(SequentialModel):
             x = x.squeeze(1)
 
             # Switch between the encoder and solver modes.
+            # But first - verify the control bits.
+            if ((x[0, self.encoding_bit] and x[0, self.solving1_bit]) or
+                 (x[0, self.encoding_bit] and x[0, self.solving2_bit]) or
+                 (x[0, self.solving1_bit] and x[0, self.solving2_bit])):
+                logger.error('Two control bits were on:\n {}'.format(x))
+                exit(-1)
+
             if x[0, self.solving1_bit] and not x[0, self.solving2_bit] and not x[0, self.encoding_bit]:
                 mode = self.modes.Solve1
                 if self.pass_cell_state:
@@ -118,28 +125,23 @@ class MAE2S(SequentialModel):
                     # Initialize solver state - with final state of memory and final attention only.
                     solver1_state = self.solver1.init_state(encoder_state.memory_state, encoder_state.interface_state.attention)
 
-            elif x[0, self.solving2_bit] and not x[0, self.solving1_bit] and not x[0, self.encoding_bit]:
-                mode = self.modes.Solve2
-                if self.pass_cell_state:
-                    # Initialize solver state with final encoder state.
-                    solver2_state = self.solver2.init_state_with_encoder_state(encoder_state)
-                else:
-                    # Initialize solver state - with final state of memory and final attention only.
-                    solver2_state = self.solver2.init_state(encoder_state.memory_state, encoder_state.interface_state.attention)
+            #elif x[0, self.solving2_bit] and not x[0, self.solving1_bit] and not x[0, self.encoding_bit]:
+            #    mode = self.modes.Solve2
+            #    if self.pass_cell_state:
+            #        # Initialize solver state with final encoder state.
+            #        solver2_state = self.solver2.init_state_with_encoder_state(encoder_state)
+            #    else:
+            #        # Initialize solver state - with final state of memory and final attention only.
+            #        solver2_state = self.solver2.init_state(encoder_state.memory_state, encoder_state.interface_state.attention)
 
-            elif ((x[0, self.encoding_bit] and x[0, self.solving1_bit]) or
-                 (x[0, self.encoding_bit] and x[0, self.solving2_bit]) or
-                 (x[0, self.solving1_bit] and x[0, self.solving2_bit])):
-                logger.error('Two control bits were on:\n {}'.format(x))
-                exit(-1)
 
             # Run encoder or solver - depending on the state.
             if mode == self.modes.Encode:
                 logit, encoder_state = self.encoder(x, encoder_state)
             elif mode == self.modes.Solve1:
                 logit, solver_state1 = self.solver1(x, solver1_state)
-            elif mode == self.modes.Solve2:
-                logit, solver_state2 = self.solver2(x, solver2_state)
+            #elif mode == self.modes.Solve2:
+            #    logit, solver_state2 = self.solver2(x, solver2_state)
                             
             # Collect logits from both encoder and solver - they will be masked afterwards.
             logits += [logit]

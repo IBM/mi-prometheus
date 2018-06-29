@@ -2,7 +2,7 @@
 problem_train:
     name: &name maes_baselines/serial_recall_cl
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: &cbits 3
+    control_bits: &cbits 4
     data_bits: &dbits 8
     batch_size: &bs 64
     # Parameters denoting min and max lengths.
@@ -66,7 +66,7 @@ model:
         shift_size: 3
     # Memory parameters.
     memory:
-        num_content_bits: 11
+        num_content_bits: 15
         num_addresses: -1
     
 # optimizer parameters:
