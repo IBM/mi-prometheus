@@ -4,7 +4,7 @@ problem_train:
     batch_size: &b 64
     training_size: &t 0.90
     output_lang_name: 'fra'
-    max_sequence_length: 10
+    max_sequence_length: &seq
     eng_prefixes: !!python/tuple ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
     use_train_data: True
     data_folder: '~/data/language'
@@ -17,7 +17,7 @@ problem_test:
     batch_size: *b
     training_size: *t
     output_lang_name: 'fra'
-    max_sequence_length: 10
+    max_sequence_length: *seq
     eng_prefixes: !!python/tuple ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
     use_train_data: False
     data_folder: '~/data/language'
@@ -29,7 +29,7 @@ problem_validation:
     batch_size: *b
     training_size: *t
     output_lang_name: 'fra'
-    max_sequence_length: 10
+    max_sequence_length: *seq
     eng_prefixes: !!python/tuple ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
     use_train_data: True
     data_folder: '~/data/language'
@@ -38,10 +38,10 @@ problem_validation:
 # Model parameters:
 model:
     name: simple_encoder_decoder
-    max_length: 10
-    input_voc_size: 4707  # this value is coming from the problem class (problem.input_lang.n_words)
+    max_length: *seq
+    input_voc_size: 5249  # this value is coming from the problem class (problem.input_lang.n_words)
     hidden_size: 256
-    output_voc_size: 3074
+    output_voc_size: 3454
 
 # optimizer parameters:
 optimizer:
