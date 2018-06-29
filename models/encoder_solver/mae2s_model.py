@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""maes_module.py: File containing Memory Augmented Encoder-Solver model class."""
+"""maes_module.py: File containing Memory Augmented Encoder-Dual-Solver model class."""
 __author__ = "Tomasz Kornuta"
 
 from enum import Enum
 import torch
 from torch import nn
 import logging
-logger = logging.getLogger('MAES-Model')
+logger = logging.getLogger('MAE2S-Model')
 
 # Add path to main project directory.
 import os, sys
@@ -21,9 +21,10 @@ from models.encoder_solver.mas_cell import MASCell
 
 
 
-class MAES(SequentialModel):
+class MAE2S(SequentialModel):
     '''
-    Class implementing the Memory Augmented Encoder-Solver (MAES) model. 
+    Class implementing the Memory Augmented Encoder-Dual-Solver (MAE2S) model. 
+    The model is variation of MAES, but with two solvers - for dual-task training of the encoder.
 
     Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences 
     becoming input to encoder is of the same length (ends at the same item).
@@ -33,16 +34,17 @@ class MAES(SequentialModel):
     def __init__(self, params):
         '''
         Constructor. Initializes parameters on the basis of dictionary passed as argument.
-        
+
         :param params: Dictionary of parameters.
         '''
         # Call base constructor.
-        super(MAES, self).__init__(params)
+        super(MAE2S, self).__init__(params)
 
         # Parse parameters.
         # Indices of control bits triggering encoding/decoding. 
-        self.encoding_bit =  params['encoding_bit'] # Def: 0
-        self.solving_bit =  params['solving_bit'] # Def: 1
+        self.encoding_bit =  params.get('encoding_bit', 0) # Def: 0
+        self.solving1_bit =  params.get('solving1_bit', 1) # Def: 1
+        self.solving2_bit =  params.get('solving2_bit', 2) # Def: 2
         # Check if we want to pass the whole cell state or only the memory.
         self.pass_cell_state = params.get('pass_cell_state', True)
 
@@ -63,12 +65,15 @@ class MAES(SequentialModel):
             logger.info("Encoder imported from {}".format(self.load_encoder))  
             # Freeze weights - TODO: NOT IMPLEMENTED!
             self.encoder.freeze()  
- 
-        # Create the Decoder/Solver.
-        self.solver = MASCell(params)
+
+        # Create the Solver for first task.
+        self.solver1 = MASCell(params)
+
+        # Create the Solver for the second task.
+        self.solver2 = MASCell(params)
 
         # Operation modes.
-        self.modes = Enum('Modes', ['Encode', 'Solve'])
+        self.modes = Enum('Modes', ['Encode', 'Solve1', 'Solve2'])
 
 
     def save(self, model_dir, episode):
@@ -88,7 +93,7 @@ class MAES(SequentialModel):
         if self.save_encoder:
             encoder_filename = 'encoder_episode_{:05d}.pt'.format(episode)
             torch.save(self.encoder.state_dict(), model_dir + encoder_filename)
-            logger.info("Encoder exported to {}".format(model_dir + encoder_filename))
+            logger.info("Encoder exported to {}".format(model_dir + encoder_filename))            
 
 
     def forward(self, data_tuple):
@@ -121,7 +126,8 @@ class MAES(SequentialModel):
 
         # Initialize 'zero' state.
         encoder_state = self.encoder.init_state(init_memory_BxAxC)
-        solver_state = None # For now, it will be set during execution.
+        solver1_state = None # For now, it will be set during execution.
+        solver2_state = None # For now, it will be set during execution.
 
         # Start as encoder.
         mode = self.modes.Encode
@@ -134,24 +140,45 @@ class MAES(SequentialModel):
             x = x.squeeze(1)
 
             # Switch between the encoder and solver modes.
-            if x[0, self.solving_bit] and not x[0, self.encoding_bit]:
-                mode = self.modes.Solve
-                if self.pass_cell_state:
-                    # Initialize solver state with final encoder state.
-                    solver_state = self.solver.init_state_with_encoder_state(encoder_state)
-                else:
-                    # Initialize solver state - with final state of memory and final attention only.
-                    solver_state = self.solver.init_state(encoder_state.memory_state, encoder_state.interface_state.attention)
-
-            elif x[0, self.encoding_bit] and x[0, self.solving_bit]:
+            # But first - verify the control bits.
+            if ((x[0, self.encoding_bit] and x[0, self.solving1_bit]) or
+                 (x[0, self.encoding_bit] and x[0, self.solving2_bit]) or
+                 (x[0, self.solving1_bit] and x[0, self.solving2_bit])):
                 logger.error('Two control bits were on:\n {}'.format(x))
                 exit(-1)
+
+            # Check if we are stopping the encoder.
+            if mode == self.modes.Encode and (x[0, self.solving1_bit] or x[0, self.solving2_bit]):
+                #print("initializing solver states")
+                # Initialize states of both solvers.
+                if self.pass_cell_state:
+                    # Initialize solver state with final encoder state.
+                    solver1_state = self.solver1.init_state_with_encoder_state(encoder_state)
+                    solver2_state = self.solver2.init_state_with_encoder_state(encoder_state)
+                else:
+                    # Initialize solver state - with final state of memory and final attention only.
+                    solver1_state = self.solver1.init_state(encoder_state.memory_state, encoder_state.interface_state.attention)
+                    solver2_state = self.solver2.init_state(encoder_state.memory_state, encoder_state.interface_state.attention)
+ 
+            # Now check which
+            if x[0, self.solving1_bit]:
+                #print("switching to solver1")
+                mode = self.modes.Solve1
+
+            elif x[0, self.solving2_bit]:
+                #print("switching to solver2")
+                mode = self.modes.Solve2
 
             # Run encoder or solver - depending on the state.
             if mode == self.modes.Encode:
                 logit, encoder_state = self.encoder(x, encoder_state)
-            elif mode == self.modes.Solve:
-                logit, solver_state = self.solver(x, solver_state)
+                #print("encoder")
+            elif mode == self.modes.Solve1:
+                logit, solver1_state = self.solver1(x, solver1_state)
+                #print("solver1")
+            elif mode == self.modes.Solve2:
+                #print("solver2")
+                logit, solver2_state = self.solver2(x, solver2_state)
                             
             # Collect logits from both encoder and solver - they will be masked afterwards.
             logits += [logit]
@@ -166,7 +193,7 @@ class MAES(SequentialModel):
 
 if __name__ == "__main__":
     # Set logging level.
-    logger = logging.getLogger('MAES')
+    logger = logging.getLogger('MAE2S')
     logging.basicConfig(level=logging.DEBUG)
     
     # Set visualization.
@@ -174,8 +201,8 @@ if __name__ == "__main__":
     AppState().visualize = True
 
     # "Loaded parameters".
-    params = {'num_control_bits': 3, 'num_data_bits': 8, # input and output size
-        'encoding_bit': 0, 'solving_bit': 1,
+    params = {'num_control_bits': 4, 'num_data_bits': 8, # input and output size
+        'encoding_bit': 0, 'solving1_bit': 1, 'solving2_bit': 2,
         'controller': {'name': 'rnn', 'hidden_state_size': 20, 'num_layers': 1, 'non_linearity': 'sigmoid'},  # controller parameters
         'interface': {'shift_size': 3},  # interface parameters
         'memory': {'num_addresses' :-1, 'num_content_bits': 11}, # memory parameters
@@ -190,7 +217,7 @@ if __name__ == "__main__":
     batch_size = 2
     
     # Construct our model by instantiating the class defined above.
-    model = MAES(params)
+    model = MAE2S(params)
     
 
     # Check for different seq_lengts and batch_sizes.
@@ -199,13 +226,15 @@ if __name__ == "__main__":
         enc = torch.zeros(batch_size, 1, input_size)
         enc[:, 0, params['encoding_bit']] = 1
         data = torch.randn(batch_size, seq_length,   input_size)
-        data[:,:, 0:1] = 0
-        dec = torch.zeros(batch_size, 1, input_size)
-        dec[:, 0, params['solving_bit']] = 1
+        data[:,:, 0:2] = 0
+        dec1 = torch.zeros(batch_size, 1, input_size)
+        dec1[:, 0, params['solving1_bit']] = 1
         dummy = torch.zeros(batch_size, seq_length, input_size)
-        x = torch.cat([enc, data, dec, dummy], dim=1)
+        dec2 = torch.zeros(batch_size, 1, input_size)
+        dec2[:, 0, params['solving2_bit']] = 1
+        x = torch.cat([enc, data, dec1, dummy, dec2, dummy], dim=1)
         # Output        
-        y = torch.randn(batch_size, 2+2*seq_length,  output_size)
+        y = torch.randn(batch_size, 3+3*seq_length,  output_size)
         dt = DataTuple(x,y)
 
         # Test forward pass.

@@ -29,8 +29,9 @@ class SequenceEqualityCommandLines(AlgorithmicSeqToSeqProblem):
         # Number of bits in one element.
         self.control_bits = params['control_bits']
         self.data_bits = params['data_bits']
-        assert self.control_bits ==3, "Problem requires EXACTLY 3 control bits (currently %r)" % self.control_bits
+        assert self.control_bits >=3, "Problem requires at least 3 control bits (currently %r)" % self.control_bits
         assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+
         # Min and max lengts (number of elements).
         self.min_sequence_length = params['min_sequence_length']
         self.max_sequence_length = params['max_sequence_length']
@@ -153,7 +154,7 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'control_bits': 3, 'data_bits': 8, 'batch_size': 1,
+    params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 1,
               'min_sequence_length': 1, 'max_sequence_length': 2, 
               'bias': 0.5 }
     # Create problem object.

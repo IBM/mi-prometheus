@@ -9,7 +9,7 @@ import collections
 # Set logging level.
 import logging
 logger = logging.getLogger('MAS-Cell')
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
@@ -136,6 +136,7 @@ class MASCell(torch.nn.Module):
         # Pack and return a tuple.
         cell_state = MASCellStateTuple(enc_ctrl_state, interface_init_state, enc_memory_BxAxC, read_vector_BxC)
         return cell_state
+       
 
 
     def forward(self, inputs_BxI,  prev_cell_state):

@@ -5,6 +5,12 @@ __author__ = "Tomasz Kornuta"
 
 import torch 
 import collections
+
+# Set logging level.
+import logging
+logger = logging.getLogger('MAE-Cell')
+#logging.basicConfig(level=logging.DEBUG)
+
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
 from controller_factory import ControllerFactory
@@ -64,8 +70,22 @@ class MAECell(torch.nn.Module):
         # Layer that produces output on the basis of... hidden state?
         ext_hidden_size = self.controller_hidden_state_size
         self.hidden2output = torch.nn.Linear(ext_hidden_size, self.output_size)
+        for param in self.hidden2output.parameters():
+            param.requires_grad = False
 
-        
+    def freeze(self):
+        """ Freezes the trainable weigths """
+        # Freeze controller.
+        for param in self.controller.parameters():
+            param.requires_grad = False
+
+        # Freeze interface.
+        self.interface.freeze()
+
+        # Freeze output layer.
+        for param in self.hidden2output.parameters():
+            param.requires_grad = False
+
     def init_state(self,  init_memory_BxAxC):
         """
         Initializes state of MAE cell.

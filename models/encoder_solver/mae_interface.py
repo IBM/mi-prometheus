@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import collections
 import numpy as np
 import logging
-logger = logging.getLogger('NTM-Interface')
+logger = logging.getLogger('MAE-Interface')
 
 # Add path to main project directory.
 import os, sys
@@ -60,6 +60,13 @@ class MAEInterface(torch.nn.Module):
         
         # Forward linear layer that generates parameters of write head.
         self.hidden2write_params = torch.nn.Linear(self.ctrl_hidden_state_size,  num_write_params)
+
+    def freeze(self):
+        """ Freezes the trainable weigths """
+        # Freeze linear layer.
+        for param in self.hidden2write_params.parameters():
+            param.requires_grad = False
+
 
     def init_state(self,  batch_size,  num_memory_addresses):
         """

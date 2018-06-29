@@ -1,6 +1,6 @@
 # Problem parameters:
 problem_train:
-    name: &name maes_baselines/serial_recall_cl
+    name: &name maes_baselines/repeat_reverse_recall_cl
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 4
     data_bits: &dbits 8
@@ -8,6 +8,9 @@ problem_train:
     # Parameters denoting min and max lengths.
     min_sequence_length: 2
     max_sequence_length: 20
+    # Number of repetitions.
+    min_recall_number: 1
+    max_recall_number: 4
     #Curriculum learning - optional.
     curriculum_learning:
         interval: 500
@@ -27,6 +30,9 @@ problem_validation:
     # Parameters denoting min and max lengths.
     min_sequence_length: 21
     max_sequence_length: 21
+    # Number of repetitions.
+    min_recall_number: 5
+    max_recall_number: 5
     bias: 0.5
 
 # Problem parameters:
@@ -39,6 +45,9 @@ problem_test:
     # Parameters denoting min and max lengths.
     min_sequence_length: 100
     max_sequence_length: 100
+    # Number of repetitions.
+    min_recall_number: 10
+    max_recall_number: 10
     bias: 0.5
 
 # Model parameters:
@@ -55,9 +64,6 @@ model:
     solving_bit: 1
     # Pass the whole state from encoder to solver cell.
     pass_cell_state: True
-    # Save/load encoder.
-    #save_encoder: True
-    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/mae2s/20180629_012142/models/encoder_episode_01300.pt
     # Controller parameters.
     controller:
         name: rnn

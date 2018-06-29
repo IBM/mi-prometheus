@@ -56,6 +56,11 @@ class ModelFactory(object):
             sys.path.append(os.path.join(os.path.dirname(__file__),  'encoder_solver'))
             from models.encoder_solver.maes_model import MAES
             return MAES(params)
+        elif name == 'mae2s':
+            logger.info('Loading the MAE2S model from models.encoder_solver.mae2s_model')
+            sys.path.append(os.path.join(os.path.dirname(__file__),  'encoder_solver'))
+            from models.encoder_solver.mae2s_model import MAE2S
+            return MAE2S(params)
         elif name == 'ntm':
             logger.info('Loading the NTM model from models.ntm.ntm_model')
             sys.path.append(os.path.join(os.path.dirname(__file__),  'ntm'))

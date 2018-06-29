@@ -3,8 +3,12 @@
 """model.py: contains base abstract model for all models"""
 __author__      = "Tomasz Kornuta"
 
+import torch
 from torch import nn
 from abc import ABCMeta, abstractmethod
+
+import logging
+logger = logging.getLogger('Model')
 
 # Add path to main project directory - so we can test the base plot, saving images, movies etc.
 import os, sys
@@ -64,3 +68,15 @@ class Model(nn.Module):
         :param sample_number: Number of sample in batch (DEFAULT: 0) 
         """
 
+    def save(self, model_dir, episode):
+        """
+        Generic method saving the model parameters to file.
+        It can be overloaded if one needs more control.
+
+        :param model_dir: Directory where the model will be saved.
+        :param episode: Episode number used as model identifier.
+        :returns: False if saving was successful (TODO: implement true condition if there was an error)
+        """
+        model_filename = 'model_episode_{:05d}.pt'.format(episode)
+        torch.save(self.state_dict(), model_dir + model_filename)
+        logger.info("Model exported to {}".format(model_dir + model_filename))
