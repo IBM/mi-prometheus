@@ -215,10 +215,14 @@ class Translation(TextToTextProblem, Lang):
 
         :return: True if the pair respects the filtering constraints else False.
         """
+        if self.eng_prefixes is not None:
 
-        return len(p[0].split(' ')) < self.max_sequence_length and \
-               len(p[1].split(' ')) < self.max_sequence_length and \
-               p[0].startswith(self.eng_prefixes)
+            return len(p[0].split(' ')) < self.max_sequence_length and \
+                   len(p[1].split(' ')) < self.max_sequence_length and \
+                   p[0].startswith(self.eng_prefixes)
+        else:
+            return len(p[0].split(' ')) < self.max_sequence_length and \
+                   len(p[1].split(' ')) < self.max_sequence_length
 
     def filter_pairs(self):
         """Filter several pairs at once using filter_pair as a boolean mask.
@@ -271,7 +275,7 @@ if __name__ == "__main__":
         "they are", "they re "
     )
 
-    params = {'batch_size': 2, 'training_size': 0.98, 'output_lang_name': 'fra', 'max_sequence_length': 10,
+    params = {'batch_size': 2, 'training_size': 0.9, 'output_lang_name': 'fra', 'max_sequence_length': 10,
               'eng_prefixes': eng_prefixes, 'use_train_data': True, 'data_folder': '~/data/language', 'reverse': False}
 
     problem = Translation(params)
