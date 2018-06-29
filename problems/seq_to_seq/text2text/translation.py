@@ -60,9 +60,9 @@ class Translation(TextToTextProblem, Lang):
         self.root = os.path.expanduser(params['data_folder'])
         self.raw_folder = 'raw'
         self.processed_folder = 'processed'
-        self.training_file = 'eng-' + self.output_lang_name + '_training.txt'
-        self.test_file = 'eng-' + self.output_lang_name + '_test.txt'
         self.training_size = params['training_size']
+        self.training_file = 'eng-' + self.output_lang_name + '_training_' + str(self.training_size) + '.txt'
+        self.test_file = 'eng-' + self.output_lang_name + '_test_' + str(self.training_size) + '.txt'
 
         # switch between training & inference
         self.use_train_data = params['use_train_data']
@@ -127,7 +127,8 @@ class Translation(TextToTextProblem, Lang):
         return self.input_lang, self.output_lang, self.pairs
 
     def _check_exists(self):
-        """Check if the training & inference datasets for the specified language already exist or not."""
+        """Check if the training & inference datasets (of the specified training size) for the specified language
+        already exist or not."""
         return os.path.exists(os.path.join(self.root, self.processed_folder, self.training_file)) and \
                os.path.exists(os.path.join(self.root, self.processed_folder, self.test_file))
 
@@ -270,7 +271,7 @@ if __name__ == "__main__":
         "they are", "they re "
     )
 
-    params = {'batch_size': 2, 'training_size': 0.90, 'output_lang_name': 'fra', 'max_sequence_length': 10,
+    params = {'batch_size': 2, 'training_size': 0.98, 'output_lang_name': 'fra', 'max_sequence_length': 10,
               'eng_prefixes': eng_prefixes, 'use_train_data': True, 'data_folder': '~/data/language', 'reverse': False}
 
     problem = Translation(params)
