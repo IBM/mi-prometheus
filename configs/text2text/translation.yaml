@@ -39,9 +39,9 @@ problem_validation:
 model:
     name: simple_encoder_decoder
     max_length: *seq
-    input_voc_size: 5244  # this value is coming from the problem class (problem.input_lang.n_words)
+    input_voc_size: 5245  # this value is coming from the problem class (problem.input_lang.n_words)
     hidden_size: 256
-    output_voc_size: 3499
+    output_voc_size: 3500
 
 # optimizer parameters:
 optimizer:
