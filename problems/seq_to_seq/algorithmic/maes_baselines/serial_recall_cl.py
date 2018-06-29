@@ -105,7 +105,7 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         pttargets = torch.from_numpy(targets).type(self.dtype)
 
         # Return tuples.
-        data_tuple = DataTuple(inputs, targets)
+        data_tuple = DataTuple(ptinputs, pttargets)
         aux_tuple = AlgSeqAuxTuple(mask, seq_length, 1)
 
         return data_tuple, aux_tuple
