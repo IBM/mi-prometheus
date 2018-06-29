@@ -45,7 +45,7 @@ class TextToTextProblem(SeqToSeqProblem):
         super(TextToTextProblem, self).__init__(params)
 
         # set default loss function - negative log likelihood and ignores padding elements.
-        self.loss_function = nn.NLLLoss(size_average=False, ignore_index=0)
+        self.loss_function = nn.NLLLoss(size_average=True, ignore_index=0)
     '''
     def compute_BLEU_score(self, data_tuple, logits, aux_tuple, output_lang):
         """
@@ -97,8 +97,7 @@ class TextToTextProblem(SeqToSeqProblem):
         :param aux_tuple: Auxiliary tuple containing mask.
         :return: loss
         """
-
-        loss = self.loss_function(logits, data_tuple.targets.view(-1, 1).squeeze())
+        loss = self.loss_function(logits.transpose(1, 2), data_tuple.targets)
 
         return loss
 

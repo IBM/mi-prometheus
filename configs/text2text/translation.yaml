@@ -1,7 +1,7 @@
 # Problem parameters:
 problem_train:
     name: &name translation
-    batch_size: &b 1
+    batch_size: &b 64
     training_size: &t 0.90
     output_lang_name: 'fra'
     max_sequence_length: 10

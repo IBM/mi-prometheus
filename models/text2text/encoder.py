@@ -31,7 +31,7 @@ class EncoderRNN(nn.Module):
         # NOTE: default number of recurrent layers is 1
         # 1st parameter: expected number of features in the input -> same as hidden_size because of embedding
         # 2nd parameter: expected number of features in hidden state -> hidden_size.
-        self.gru = nn.GRU(input_size=hidden_size, hidden_size=hidden_size, num_layers=1, batch_first=False)
+        self.gru = nn.GRU(input_size=hidden_size, hidden_size=hidden_size, num_layers=1, batch_first=True)
 
     def forward(self, input, hidden):
         """
@@ -46,7 +46,7 @@ class EncoderRNN(nn.Module):
                 - hidden should be of size [1 x batch_size x hidden_size]: tensor containing the hidden state for
                 t = seq_length
         """
-        embedded = self.embedding(input).view(1, 1, -1)
+        embedded = self.embedding(input)
         output = embedded
         output, hidden = self.gru(output, hidden)
         return output, hidden

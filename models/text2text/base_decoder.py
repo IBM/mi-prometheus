@@ -3,6 +3,7 @@
 """Implementation of a GRU based decoder for text2text problems (e.g. translation)"""
 __author__ = "Vincent Marois "
 
+import torch
 from torch import nn
 import torch.nn.functional as F
 
@@ -29,7 +30,7 @@ class DecoderRNN(nn.Module):
         # NOTE: default number of recurrent layers is 1
         # 1st parameter: expected number of features in the input -> same as hidden_size because of embedding
         # 2nd parameter: expected number of features in hidden state -> hidden_size.
-        self.gru = nn.GRU(input_size=hidden_size, hidden_size=hidden_size, num_layers=1, batch_first=False)
+        self.gru = nn.GRU(input_size=hidden_size, hidden_size=hidden_size, num_layers=1, batch_first=True)
 
         # Apply a linear transformation to the incoming data: y=Ax+b
         # basically project from the hidden space to the output vocabulary set
@@ -37,7 +38,7 @@ class DecoderRNN(nn.Module):
 
         # Apply the Log(Softmax(x)) function to an n-dimensional input Tensor along the specified dimension
         # doesn't change the shape
-        self.softmax = nn.LogSoftmax(dim=1)
+        self.softmax = nn.LogSoftmax(dim=-1)
 
     def forward(self, input, hidden):
         """
@@ -46,13 +47,20 @@ class DecoderRNN(nn.Module):
         :param hidden: initial hidden state for each element in the input batch.
         Should be of size [1 x batch_size x hidden_size]
         :return:
-                - output should be of size [batch_size x seq_len x output_voc_size] (unsqueezed): tensor containing the
+                - output should be of size [batch_size x 1 x output_voc_size]: tensor containing the
                 output features h_t from the last layer of the RNN, for each t.
                 - hidden should be of size [1 x batch_size x hidden_size]: tensor containing the hidden state for
                 t = seq_length
         """
-        output = self.embedding(input).view(1, 1, -1)
-        output = F.relu(output)
-        output, hidden = self.gru(output, hidden)
-        output = self.softmax(self.out(output[0]))
+        embedded = self.embedding(input.type(torch.long))
+        # should be of shape [batch_size x 1 x hidden_size]
+
+        gru_input = F.relu(embedded)  # doesn't change shape
+        gru_output, hidden = self.gru(gru_input, hidden)
+        # gru_output: [batch_size x 1 x hidden_size], hidden: [1 x batch_size x hidden_size]
+
+        output = self.out(gru_output)  # [batch_size x 1 x output_voc_size]
+
+        output = self.softmax(output)  # doesn't change shape
+
         return output, hidden

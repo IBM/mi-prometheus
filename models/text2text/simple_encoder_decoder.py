@@ -52,10 +52,10 @@ class SimpleEncoderDecoder(SequentialModel):
         self.output_voc_size = params['output_voc_size']
 
         # create decoder
-        #self.decoder = DecoderRNN(hidden_size=self.hidden_size, output_voc_size=self.output_voc_size)
+        self.decoder = DecoderRNN(hidden_size=self.hidden_size, output_voc_size=self.output_voc_size)
 
         # create attention decoder
-        self.decoder = AttnDecoderRNN(self.hidden_size, self.output_voc_size, dropout_p=0.1, max_length=self.max_length)
+        #self.decoder = AttnDecoderRNN(self.hidden_size, self.output_voc_size, dropout_p=0.1, max_length=self.max_length)
 
         print('Simple EncoderDecoderRNN (without attention) created.\n')
 
@@ -70,61 +70,64 @@ class SimpleEncoderDecoder(SequentialModel):
         # unpack data_tuple
         (inputs, targets) = data_tuple
 
-        # get batch_size, essentially equal to 1 for now
+        # get batch_size (dim 0)
         batch_size = inputs.size(0)
 
-        # reshape tensors
-        input_tensor = inputs.view(-1, 1)
-        target_tensor = targets.view(-1, 1)
-
-        # get sequences length
-        input_length = input_tensor.size(0)
-        target_length = target_tensor.size(0)
+        # reshape tensors: from [batch_size x max_seq_length] to [max_seq_length x batch_size]
+        input_tensor = inputs.transpose(0, 1)
+        target_tensor = targets.transpose(0, 1)
 
         # init encoder hidden states
         encoder_hidden = self.encoder.init_hidden(batch_size)
 
-        # for attention decoder
-        encoder_outputs = torch.zeros(self.max_length, self.hidden_size)
+        # for attention decoder !! Careful about the shape
+        encoder_outputs = torch.zeros(self.max_length, batch_size, self.hidden_size)
 
         # encoder manual loop
-        for ei in range(input_length):
-            encoder_output, encoder_hidden = self.encoder(input_tensor[ei], encoder_hidden)
-            encoder_outputs[ei] = encoder_output[0, 0]
+        for ei in range(self.max_length):
+            encoder_output, encoder_hidden = self.encoder(input_tensor[ei].unsqueeze(-1), encoder_hidden)
+            encoder_outputs[ei] = encoder_output.squeeze()
+
+        # TODO: check shape of encoder_outputs for attn_decoder
+        encoder_outputs = encoder_outputs.transpose(0, 1)
 
         # decoder
-        decoder_input = torch.tensor([[SOS_token]])
+        decoder_input = torch.ones(batch_size, 1) * SOS_token
         decoder_hidden = encoder_hidden
-        decoder_outputs = torch.zeros(target_length, self.output_voc_size)
+
+        decoder_outputs = torch.zeros(self.max_length, batch_size, self.output_voc_size)
 
         if self.training:  # Teacher forcing: Feed the target as the next input
-            for di in range(target_length):
+            for di in range(self.max_length):
                 # base decoder
-                #decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+                decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
 
                 # attention decoder
-                decoder_output, decoder_hidden, decoder_attention = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
-                decoder_outputs[di, :] = decoder_output.squeeze()
+                #decoder_output, decoder_hidden, decoder_attention = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
 
-                decoder_input = target_tensor[di]  # Teacher forcing
+                decoder_outputs[di] = decoder_output.squeeze()
+
+                decoder_input = target_tensor[di].unsqueeze(-1)  # Teacher forcing
 
         else:
             # Without teacher forcing: use its own predictions as the next input
-            for di in range(target_length):
+            for di in range(self.max_length):
                 #base decoder
-                #decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+                decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
 
                 # attention decoder
-                decoder_output, decoder_hidden, decoder_attention = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
-                decoder_outputs[di, :] = decoder_output.squeeze()
+                #decoder_output, decoder_hidden, decoder_attention = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
+                decoder_outputs[di] = decoder_output.squeeze()
 
                 topv, topi = decoder_output.topk(k=1, dim=-1)
-                decoder_input = topi.squeeze().detach()  # detach from history as input
 
-                if decoder_input.item() == EOS_token:
-                    break
+                decoder_input = topi.view(batch_size, 1).detach()  # detach from history as input
 
-        return decoder_outputs
+                # TODO: fix this??
+                #if decoder_input.item() == EOS_token:
+                #    break
+
+        return decoder_outputs.transpose(0, 1)
 
 
 if __name__ == '__main__':
