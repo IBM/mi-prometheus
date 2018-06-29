@@ -70,7 +70,7 @@ class MAE2S(SequentialModel):
         self.solver1 = MASCell(params)
 
         # Create the Solver for the second task.
-        #self.solver2 = MASCell(params)
+        self.solver2 = MASCell(params)
 
         # Operation modes.
         self.modes = Enum('Modes', ['Encode', 'Solve1', 'Solve2'])
@@ -127,7 +127,7 @@ class MAE2S(SequentialModel):
         # Initialize 'zero' state.
         encoder_state = self.encoder.init_state(init_memory_BxAxC)
         solver1_state = None # For now, it will be set during execution.
-        #solver2_state = None # For now, it will be set during execution.
+        solver2_state = None # For now, it will be set during execution.
 
         # Start as encoder.
         mode = self.modes.Encode
@@ -147,25 +147,27 @@ class MAE2S(SequentialModel):
                 logger.error('Two control bits were on:\n {}'.format(x))
                 exit(-1)
 
-            elif x[0, self.solving1_bit] and not x[0, self.solving2_bit] and not x[0, self.encoding_bit]:
-                #print("switching to solver1")
-                mode = self.modes.Solve1
+            # Check if we are stopping the encoder.
+            if mode == self.modes.Encode and (x[0, self.solving1_bit] or x[0, self.solving2_bit]):
+                #print("initializing solver states")
+                # Initialize states of both solvers.
                 if self.pass_cell_state:
                     # Initialize solver state with final encoder state.
                     solver1_state = self.solver1.init_state_with_encoder_state(encoder_state)
+                    solver2_state = self.solver2.init_state_with_encoder_state(encoder_state)
                 else:
                     # Initialize solver state - with final state of memory and final attention only.
                     solver1_state = self.solver1.init_state(encoder_state.memory_state, encoder_state.interface_state.attention)
+                    solver2_state = self.solver2.init_state(encoder_state.memory_state, encoder_state.interface_state.attention)
+ 
+            # Now check which
+            if x[0, self.solving1_bit]:
+                #print("switching to solver1")
+                mode = self.modes.Solve1
 
-            #elif x[0, self.solving2_bit] and not x[0, self.solving1_bit] and not x[0, self.encoding_bit]:
-            #    mode = self.modes.Solve2
-            #    if self.pass_cell_state:
-            #        # Initialize solver state with final encoder state.
-            #        solver2_state = self.solver2.init_state_with_encoder_state(encoder_state)
-            #    else:
-            #        # Initialize solver state - with final state of memory and final attention only.
-            #        solver2_state = self.solver2.init_state(encoder_state.memory_state, encoder_state.interface_state.attention)
-
+            elif x[0, self.solving2_bit]:
+                #print("switching to solver2")
+                mode = self.modes.Solve2
 
             # Run encoder or solver - depending on the state.
             if mode == self.modes.Encode:
@@ -174,8 +176,9 @@ class MAE2S(SequentialModel):
             elif mode == self.modes.Solve1:
                 logit, solver1_state = self.solver1(x, solver1_state)
                 #print("solver1")
-            #elif mode == self.modes.Solve2:
-            #    logit, solver2_state = self.solver2(x, solver2_state)
+            elif mode == self.modes.Solve2:
+                #print("solver2")
+                logit, solver2_state = self.solver2(x, solver2_state)
                             
             # Collect logits from both encoder and solver - they will be masked afterwards.
             logits += [logit]
