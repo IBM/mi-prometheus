@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""serial_repeat_recall_cl.py: Contains definition of serial memorization and repeat recall problem with control markers and command lines"""
+"""repeat_serial_recall_cl.py: Contains definition of serial memorization and repeat recall problem with control markers and command lines"""
 __author__      = "Tomasz Kornuta"
 
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
@@ -13,9 +13,9 @@ from problems.problem import DataTuple
 from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem, AlgSeqAuxTuple
 
 
-class SerialRepeatRecallCommandLines(AlgorithmicSeqToSeqProblem):
+class RepeatSerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
     """   
-    Class generating sequences of random bit-patterns and targets forcing the system to learn reverse recall problem.
+    Class generating sequences of random bit-patterns and targets forcing the system to learn repeated serial recall problem.
     1) There are 2 markers, indicatinn:
     - beginning of storing/memorization,
     - beginning of forward recalling from memory,
@@ -29,7 +29,7 @@ class SerialRepeatRecallCommandLines(AlgorithmicSeqToSeqProblem):
         :param params: Dictionary of parameters.
         """
         # Call parent constructor - sets e.g. the loss function ;)
-        super(SerialRepeatRecallCommandLines, self).__init__(params)
+        super(RepeatSerialRecallCommandLines, self).__init__(params)
         
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
@@ -113,11 +113,6 @@ class SerialRepeatRecallCommandLines(AlgorithmicSeqToSeqProblem):
         for r in range(recall_number):
             mask[:, (r+1)*(seq_length+1)+1:(r+2)*(seq_length+1)] = 1
 
-        # TODO: REMOVE! Cuts out the third subsequence.
-        #inputs = inputs[:, :2*seq_length + 2, :]
-        #targets = targets[:, :2*seq_length + 2, :]
-        #mask = mask[:, :2*seq_length + 2]
-
         # PyTorch variables.
         ptinputs = torch.from_numpy(inputs).type(self.dtype)
         pttargets = torch.from_numpy(targets).type(self.dtype)
@@ -140,7 +135,7 @@ if __name__ == "__main__":
     params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 2, 
         'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
     # Create problem object.
-    problem = SerialRepeatRecallCommandLines(params)
+    problem = RepeatSerialRecallCommandLines(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
