@@ -62,8 +62,9 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         """
         # Define control channel bits.
         # ctrl_main = [0, 0, 0] # not really used.
-        ctrl_aux = np.zeros(self.control_bits)
+
         #ctrl_aux[2:self.control_bits] = 1 #[0, 0, 1]
+        ctrl_aux = np.zeros(self.control_bits)
         if (self.control_bits == 3):
             ctrl_aux[2] = 1 #[0, 0, 1]
         else:

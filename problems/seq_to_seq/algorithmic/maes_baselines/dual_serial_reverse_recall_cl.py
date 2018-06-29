@@ -96,14 +96,19 @@ class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         targets = np.zeros([self.batch_size, 3*seq_length + 3,  self.data_bits], dtype=np.float32)
         # Set bit sequence for serial recall.
         targets[:, seq_length+2:2*seq_length+2,  :] = bit_seq
-        # Set bit sequence for serial recall.
-        targets[:, 2*seq_length+3:,  :] = bit_seq #np.fliplr(bit_seq)
+        # Set bit sequence for reverse recall.
+        targets[:, 2*seq_length+3:,  :] = np.fliplr(bit_seq)
 
         # 3. Generate mask.
-        # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
+        # Generate target mask: [BATCH_SIZE, 3*SEQ_LENGTH+3]
         mask = torch.zeros([self.batch_size, 3*seq_length + 3]).type(torch.ByteTensor)
         mask[:, seq_length+2:2*seq_length+2] = 1
         mask[:, 2*seq_length+3:] = 1
+
+        # TODO: REMOVE! Cuts out the third subsequence.
+        inputs = inputs[:, :2*seq_length + 2, :]
+        targets = targets[:, :2*seq_length + 2, :]
+        mask = mask[:, :2*seq_length + 2]
 
         # PyTorch variables.
         ptinputs = torch.from_numpy(inputs).type(self.dtype)
