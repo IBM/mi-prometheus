@@ -9,6 +9,7 @@ problem_train:
     use_train_data: True
     data_folder: '~/data/language'
     reverse: True
+    cuda: True
 
 # Problem parameters:
 problem_test:
