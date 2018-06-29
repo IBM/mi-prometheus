@@ -81,7 +81,7 @@ class SimpleEncoderDecoder(SequentialModel):
         encoder_hidden = self.encoder.init_hidden(batch_size)
 
         # for attention decoder !! Careful about the shape
-        encoder_outputs = torch.zeros(self.max_length, batch_size, self.hidden_size)
+        encoder_outputs = torch.zeros(self.max_length, batch_size, self.hidden_size).type(app_state.dtype)
 
         # encoder manual loop
         for ei in range(self.max_length):
@@ -92,10 +92,10 @@ class SimpleEncoderDecoder(SequentialModel):
         encoder_outputs = encoder_outputs.transpose(0, 1)
 
         # decoder
-        decoder_input = torch.ones(batch_size, 1) * SOS_token
+        decoder_input = torch.ones(batch_size, 1).type(app_state.LongTensor) * SOS_token
         decoder_hidden = encoder_hidden
 
-        decoder_outputs = torch.zeros(self.max_length, batch_size, self.output_voc_size)
+        decoder_outputs = torch.zeros(self.max_length, batch_size, self.output_voc_size).type(app_state.dtype)
 
         if self.training:  # Teacher forcing: Feed the target as the next input
             for di in range(self.max_length):

@@ -52,7 +52,7 @@ class DecoderRNN(nn.Module):
                 - hidden should be of size [1 x batch_size x hidden_size]: tensor containing the hidden state for
                 t = seq_length
         """
-        embedded = self.embedding(input.type(torch.long))
+        embedded = self.embedding(input)
         # should be of shape [batch_size x 1 x hidden_size]
 
         gru_input = F.relu(embedded)  # doesn't change shape

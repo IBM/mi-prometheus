@@ -7,6 +7,9 @@ __author__      = "Vincent Marois"
 import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..', '..'))
 
+from misc.app_state import AppState
+app_state = AppState()
+
 import collections
 import unicodedata
 import re
@@ -191,7 +194,7 @@ class TextToTextProblem(SeqToSeqProblem):
         indexes = self.indexes_from_sentence(lang, sentence, max_seq_length)
         #indexes.append(EOS_token)
 
-        return torch.tensor(indexes, dtype=torch.long)
+        return torch.tensor(indexes).type(app_state.LongTensor)
 
     def tensors_from_pair(self, pair, input_lang, output_lang, max_seq_length):
         """

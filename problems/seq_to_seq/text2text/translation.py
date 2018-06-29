@@ -11,6 +11,8 @@ import random
 
 import torch
 import errno
+from misc.app_state import AppState
+app_state = AppState()
 
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..', '..'))
 
@@ -223,8 +225,8 @@ class Translation(TextToTextProblem, Lang):
         indexes = random.sample(population=range(len(self.tensor_pairs)), k=self.batch_size)
 
         # create main batch inputs & outputs tensor
-        inputs = torch.zeros([self.batch_size, self.max_sequence_length], dtype=torch.long)
-        targets = torch.zeros([self.batch_size, self.max_sequence_length], dtype=torch.long)
+        inputs = torch.zeros(self.batch_size, self.max_sequence_length).type(app_state.LongTensor)
+        targets = torch.zeros(self.batch_size, self.max_sequence_length).type(app_state.LongTensor)
 
         # for TextAuxTuple
         inputs_text = []

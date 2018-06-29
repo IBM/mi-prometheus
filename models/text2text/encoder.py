@@ -5,6 +5,8 @@ __author__ = "Vincent Marois "
 
 import torch
 from torch import nn
+from misc.app_state import AppState
+app_state = AppState()
 
 
 class EncoderRNN(nn.Module):
@@ -52,4 +54,4 @@ class EncoderRNN(nn.Module):
         return output, hidden
 
     def init_hidden(self, batch_size):
-        return torch.zeros(1, batch_size, self.hidden_size)
+        return torch.zeros(1, batch_size, self.hidden_size).type(app_state.dtype)
