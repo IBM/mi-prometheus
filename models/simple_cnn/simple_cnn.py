@@ -49,8 +49,10 @@ class SimpleConvNet(Model):
 
         self.conv1 = nn.Conv2d(self.num_channels, self.depth_conv1, kernel_size=self.filter_size_conv1)
         self.conv2 = nn.Conv2d(self.depth_conv1, self.depth_conv2, kernel_size=self.filter_size_conv2)
-        self.fc1 = nn.Linear(self.depth_conv2 * self.width_features_conv2 * self.height_features_conv2, 50)
-        self.fc2 = nn.Linear(50, 10)
+
+        self.fc1 = nn.Linear(self.depth_conv2 * self.width_features_conv2 * self.height_features_conv2, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
 
         if self.app_state.visualize:
             self.output_conv1 = []
@@ -60,21 +62,26 @@ class SimpleConvNet(Model):
 
         (inputs, targets) = data_tuple
 
+        # apply convectional layer 1
         x1 = self.conv1(inputs)
         if self.app_state.visualize:
             self.output_conv1 = x1
 
+        # apply max_pooling and relu
         x1_max_pool = F.relu(F.max_pool2d(x1, self.num_pooling))
 
+        # apply convectional layer 1
         x2 = self.conv2(x1_max_pool)
         if self.app_state.visualize:
             self.output_conv2 = x2
 
+        # apply max_pooling and relu
         x2_max_pool = F.relu(F.max_pool2d(x2, self.num_pooling))
 
         x = x2_max_pool.view(-1, self.depth_conv2 * self.width_features_conv2 * self.height_features_conv2)
         x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
         return x
 
     def plot(self, data_tuple, predictions, sample_number = 0):
@@ -114,23 +121,25 @@ class SimpleConvNet(Model):
 
         # feature layer 2
         f = plt.figure()
-        gs = gridspec.GridSpec(5, 2)
+        grid_size = int(np.sqrt(self.depth_conv1))+1
+        gs = gridspec.GridSpec(grid_size, grid_size)
 
-        for i in range(10):
+        for i in range(self.depth_conv1):
             ax = plt.subplot(gs[i])
-            ax.imshow(self.conv1.weight[i, 0].detach().numpy())
+            ax.imshow(self.output_conv1[0, i].detach().numpy())
 
         # feature layer 1
         f = plt.figure()
-        gs = gridspec.GridSpec(5, 4)
+        grid_size = int(np.sqrt(self.depth_conv2)) + 1
+        gs = gridspec.GridSpec(grid_size, grid_size)
 
-        for i in range(20):
+        for i in range(self.depth_conv2):
             ax = plt.subplot(gs[i])
-            ax.imshow(self.conv2.weight[i, 0].detach().numpy())
+            ax.imshow(self.output_conv2[0, i].detach().numpy())
 
         # Plot!
         plt.show()
-
+        exit()
 
 if __name__ == '__main__':
     # Set visualization.
@@ -155,9 +164,6 @@ if __name__ == '__main__':
         # prediction.
         prediction = model(dt)
 
-        #prediction_np = np.random.binomial(1, 0.5, (1, 10))
-        #prediction = torch.from_numpy(prediction_np).type(torch.FloatTensor)
-
-        # Plot it and check whether window was closed or not. 
+        # Plot it and check whether window was closed or not.
         if model.plot(dt, prediction):
             break

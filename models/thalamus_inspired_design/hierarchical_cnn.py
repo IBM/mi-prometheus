@@ -17,12 +17,12 @@ class HierarchicalCNN(Model):
         super(HierarchicalCNN, self).__init__(params)
 
         # plug first cnn layers
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv1 = nn.Conv2d(3, 10, kernel_size=5)
 
         # plug second cnn layers
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
 
-        self.fc1 = nn.Linear(1760, 50)
+        self.fc1 = nn.Linear(2460, 50)
         self.fc2 = nn.Linear(50, 10)
 
     def forward(self, data_tuple):
@@ -32,19 +32,15 @@ class HierarchicalCNN(Model):
         batch_size = image.size(0)
         weights_conv1, weights_conv2 = self.init_attention(batch_size)
 
-        for i in range(2):
+        for i in range(1):
             # apply cnn layer1
             features_layer1 = F.relu(F.max_pool2d(self.conv1(image), 2))
 
             # apply cnn layer2
             features_layer2 = F.relu(F.max_pool2d(self.conv2(features_layer1), 2))
 
-            print(features_layer1.size())
-            print(torch.bmm(features_layer1, weights_conv1))
-            exit()
-
-            features_layer1_flatten = features_layer1.view(-1, 1440)
-            features_layer2_flatten = features_layer2.view(-1, 320)
+            features_layer1_flatten = features_layer1.view(-1, 1960)
+            features_layer2_flatten = features_layer2.view(-1, 500)
 
             features = torch.cat((features_layer1_flatten, features_layer2_flatten), dim=1)
 
