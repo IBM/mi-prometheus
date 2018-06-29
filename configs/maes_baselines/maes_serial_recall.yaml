@@ -57,7 +57,7 @@ model:
     pass_cell_state: True
     # Save/load encoder.
     #save_encoder: True
-    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180629_002252/models/encoder_episode_01400.pt
+    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/mae2s/20180629_005318/models/encoder_episode_00900.pt
     # Controller parameters.
     controller:
         name: rnn

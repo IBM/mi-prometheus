@@ -39,6 +39,8 @@ class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         self.data_bits = params['data_bits']
         assert self.control_bits >=4, "Problem requires at least 4 control bits (currently %r)" % self.control_bits
         assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+        self.randomize_control_lines = params.get('randomize_control_lines', True)
+        
         # Min and max lengts (number of elements).
         self.min_sequence_length = params['min_sequence_length']
         self.max_sequence_length = params['max_sequence_length']
@@ -65,9 +67,12 @@ class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         if (self.control_bits == 4):
             ctrl_aux[3] = 1 #[0, 0, 0, 1]
         else:
-            # Randomly pick one of the bits to be set.
-            ctrl_bit = np.random.randint(2, self.control_bits)
-            ctrl_aux[ctrl_bit] = 1
+            if self.randomize_control_lines:
+                # Randomly pick one of the bits to be set.
+                ctrl_bit = np.random.randint(3, self.control_bits)
+                ctrl_aux[ctrl_bit] = 1
+            else:
+                ctrl_aux[self.control_bits-1] = 1
 
         # Markers.
         marker_start_main = np.zeros(self.control_bits)
@@ -134,7 +139,8 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 2, 
+    params = {'control_bits': 7, 'data_bits': 8, 'batch_size': 2, 
+        #'randomize_control_lines': False,
         'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5}
     # Create problem object.
     problem = DualSerialReverseRecallCommandLines(params)

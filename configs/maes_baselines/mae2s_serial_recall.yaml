@@ -4,6 +4,7 @@ problem_train:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 4
     data_bits: &dbits 8
+    randomize_control_lines: False
     batch_size: &bs 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 2
@@ -23,6 +24,7 @@ problem_validation:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
+    randomize_control_lines: False
     batch_size: 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 21
@@ -35,6 +37,7 @@ problem_test:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
+    randomize_control_lines: False
     batch_size: 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 100
@@ -55,8 +58,8 @@ model:
     solving1_bit: 1
     solving2_bit: 2
     # Save/load encoder.
-    #save_encoder: True
-    load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180629_002252/models/encoder_episode_01400.pt
+    save_encoder: True
+    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180629_002252/models/encoder_episode_01400.pt
     # Pass the whole state from encoder to solver cell.
     pass_cell_state: True
     # Controller parameters.
