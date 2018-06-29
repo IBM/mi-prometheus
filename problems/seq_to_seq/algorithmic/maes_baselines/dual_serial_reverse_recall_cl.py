@@ -97,7 +97,7 @@ class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         # Set bit sequence for serial recall.
         targets[:, seq_length+2:2*seq_length+2,  :] = bit_seq
         # Set bit sequence for serial recall.
-        targets[:, 2*seq_length+3:,  :] = np.fliplr(bit_seq)
+        targets[:, 2*seq_length+3:,  :] = bit_seq #np.fliplr(bit_seq)
 
         # 3. Generate mask.
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]

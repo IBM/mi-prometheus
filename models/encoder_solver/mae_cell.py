@@ -5,6 +5,12 @@ __author__ = "Tomasz Kornuta"
 
 import torch 
 import collections
+
+# Set logging level.
+import logging
+logger = logging.getLogger('MAE-Cell')
+#logging.basicConfig(level=logging.DEBUG)
+
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
 from controller_factory import ControllerFactory

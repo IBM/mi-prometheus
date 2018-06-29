@@ -11,7 +11,7 @@ import numpy as np
 import logging
 # Set logging level.
 logger = logging.getLogger('MAS-Interface')
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 
 
 # Add path to main project directory.

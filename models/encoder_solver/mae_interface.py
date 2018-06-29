@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import collections
 import numpy as np
 import logging
-logger = logging.getLogger('NTM-Interface')
+logger = logging.getLogger('MAE-Interface')
 
 # Add path to main project directory.
 import os, sys
