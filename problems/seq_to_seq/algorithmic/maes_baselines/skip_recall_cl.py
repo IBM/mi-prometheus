@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+__author__      = "Ryan McAvoy"
 
 
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)

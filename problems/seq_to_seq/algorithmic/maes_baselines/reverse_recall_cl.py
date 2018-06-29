@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """reverse_recall_cl.py: Contains definition of reverse recall problem with control markers and command lines"""
-__author__      = "Tomasz Kornuta"
+__author__      = "Ryan McAvoy/Tomasz Kornuta"
 
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
@@ -55,7 +55,6 @@ class ReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],
         mask [BATCH_SIZE, 2*SEQ_LENGTH+2]
 
-        TODO: every item in batch has now the same seq_length.
         """
         # Define control channel bits.
         # ctrl_main = [0, 0, 0] # not really used.
