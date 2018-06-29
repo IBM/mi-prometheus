@@ -49,7 +49,7 @@ class TextToTextProblem(SeqToSeqProblem):
 
         # set default loss function - negative log likelihood and ignores padding elements.
         self.loss_function = nn.NLLLoss(size_average=True, ignore_index=0)
-    '''
+
     def compute_BLEU_score(self, data_tuple, logits, aux_tuple, output_lang):
         """
         Compute BLEU score in order to evaluate the translation quality (equivalent of accuracy)
@@ -85,7 +85,7 @@ class TextToTextProblem(SeqToSeqProblem):
             bleu_score += sentence_bleu([targets_text[i]], logits_text[i], weights=weights)
 
         return bleu_score / data_tuple.inputs.size(0)
-    '''
+
     def evaluate_loss(self, data_tuple, logits, aux_tuple):
         """
         Computes loss.
@@ -247,8 +247,8 @@ class Lang:
         self.word2index = {}  # dict 'word': index
         self.word2count = {}  # keep track of the occurrence of each word in the language. Can be used to replace
         # rare words.
-        self.index2word = {0: "SOS", 1: "EOS"}  # dict 'index': 'word', initializes with EOS, SOS tokens
-        self.n_words = 2  # Number of words in the language. Start by counting SOS and EOS tokens.
+        self.index2word = {0: "PAD", 1: "SOS", 2: "EOS"}  # dict 'index': 'word', initializes with PAD, EOS, SOS tokens
+        self.n_words = 3  # Number of words in the language. Start by counting SOS and EOS tokens.
 
     def add_sentence(self, sentence):
         """
