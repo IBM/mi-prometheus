@@ -51,7 +51,7 @@ class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
 
         """
         # define control channel markers
-        # ctrl_data = [0, 0, 0]
+        # pos = [0, 0, 0]
         pos = np.zeros(self.control_bits) # [0, 0, 0]
         # ctrl_data = [0, 0, 0]
         ctrl_data =  np.zeros(self.control_bits) # [0, 0, 0]
