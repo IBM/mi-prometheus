@@ -46,7 +46,7 @@ class MAE2S(SequentialModel):
         self.solving1_bit =  params.get('solving1_bit', 1) # Def: 1
         self.solving2_bit =  params.get('solving2_bit', 2) # Def: 2
         # Check if we want to pass the whole cell state or only the memory.
-        self.pass_cell_state = params.get('pass_cell_state', False)
+        self.pass_cell_state = params.get('pass_cell_state', True)
 
         # It is stored here, but will we used ONLY ONCE - for initialization of memory called from the forward() function.
         self.num_memory_addresses = params['memory']['num_addresses']
@@ -116,7 +116,8 @@ class MAE2S(SequentialModel):
                 logger.error('Two control bits were on:\n {}'.format(x))
                 exit(-1)
 
-            if x[0, self.solving1_bit] and not x[0, self.solving2_bit] and not x[0, self.encoding_bit]:
+            elif x[0, self.solving1_bit] and not x[0, self.solving2_bit] and not x[0, self.encoding_bit]:
+                #print("switching to solver1")
                 mode = self.modes.Solve1
                 if self.pass_cell_state:
                     # Initialize solver state with final encoder state.
@@ -138,8 +139,10 @@ class MAE2S(SequentialModel):
             # Run encoder or solver - depending on the state.
             if mode == self.modes.Encode:
                 logit, encoder_state = self.encoder(x, encoder_state)
+                #print("encoder")
             elif mode == self.modes.Solve1:
                 logit, solver_state1 = self.solver1(x, solver1_state)
+                #print("solver1")
             #elif mode == self.modes.Solve2:
             #    logit, solver_state2 = self.solver2(x, solver2_state)
                             

@@ -44,7 +44,7 @@ class MAES(SequentialModel):
         self.encoding_bit =  params['encoding_bit'] # Def: 0
         self.solving_bit =  params['solving_bit'] # Def: 1
         # Check if we want to pass the whole cell state or only the memory.
-        self.pass_cell_state = params.get('pass_cell_state', False)
+        self.pass_cell_state = params.get('pass_cell_state', True)
 
         # It is stored here, but will we used ONLY ONCE - for initialization of memory called from the forward() function.
         self.num_memory_addresses = params['memory']['num_addresses']
