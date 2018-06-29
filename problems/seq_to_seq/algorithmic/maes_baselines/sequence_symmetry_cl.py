@@ -57,12 +57,27 @@ class SequenceSymmetryCommandLines(AlgorithmicSeqToSeqProblem):
 
         """
         # define control channel markers
-        pos = [0, 0, 0]
-        ctrl_data = [0, 0, 0]
-        ctrl_dummy = [0, 0, 0 ]
-        ctrl_inter = [0, 1, 0]
-        ctrl_y = [0, 0, 1]
-        ctrl_start = [1, 0, 0]
+        # pos = [0, 0, 0]
+        pos = np.zeros(self.control_bits) # [0, 0, 0]
+
+        # ctrl_data = [0, 0, 0]
+        ctrl_data =  np.zeros(self.control_bits) # [0, 0, 0]
+
+        # ctrl_dummy = [0, 0, 0 ]
+        ctrl_dummy = np.zeros(self.control_bits) 
+
+        # ctrl_inter = [0, 1, 0]
+        ctrl_inter =  np.zeros(self.control_bits) 
+        ctrl_inter[1] = 1 # [0, 1, 0]
+
+        # ctrl_y = [0, 0, 1]
+        ctrl_y =  np.zeros(self.control_bits) 
+        ctrl_y[2] = 1 # [0, 1, 0]
+
+        # ctrl_start = [1, 0, 0]
+        ctrl_start = np.zeros(self.control_bits)
+        ctrl_start[0] = 1 # [1, 0, 0]
+
         # assign markers
         markers = ctrl_data, ctrl_dummy, pos
 
@@ -88,7 +103,7 @@ class SequenceSymmetryCommandLines(AlgorithmicSeqToSeqProblem):
 
         #if the xor scambler is all zeros then x and y will be the same so target will be true
         actual_target = np.array(np.any(xor_scrambler, axis=(1, 2)))
-        actual_target = actual_target[:, np.newaxis,np.newaxis]
+        actual_target = np.logical_not(actual_target[:, np.newaxis,np.newaxis])
 
 
         # create the target
