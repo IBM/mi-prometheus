@@ -73,7 +73,7 @@ class ReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         bit_seq = np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
 
         #Generate target by indexing through the array
-        target_seq = np.array(np.fliplr(bit_seq))
+        target_seq = np.fliplr(bit_seq)
 
 
         #  generate subsequences for x and y
