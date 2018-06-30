@@ -82,13 +82,13 @@ class SimpleEncoderDecoder(SequentialModel):
 
         # for attention decoder !! Careful about the shape
         encoder_outputs = torch.zeros(self.max_length, batch_size, self.hidden_size).type(app_state.dtype)
+        self.decoder_attentions = torch.zeros(batch_size, self.max_length, self.max_length).type(app_state.dtype)
 
         # encoder manual loop
         for ei in range(self.max_length):
             encoder_output, encoder_hidden = self.encoder(input_tensor[ei].unsqueeze(-1), encoder_hidden)
             encoder_outputs[ei] = encoder_output.squeeze()
 
-        # TODO: check shape of encoder_outputs for attn_decoder
         encoder_outputs = encoder_outputs.transpose(0, 1)
 
         # decoder
@@ -118,6 +118,9 @@ class SimpleEncoderDecoder(SequentialModel):
                 # attention decoder
                 decoder_output, decoder_hidden, decoder_attention = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
                 decoder_outputs[di] = decoder_output.squeeze()
+
+                # save attention weights
+                self.decoder_attentions[:, di, :] = decoder_attention.squeeze()
 
                 topv, topi = decoder_output.topk(k=1, dim=-1)
 
