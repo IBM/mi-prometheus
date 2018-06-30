@@ -12,7 +12,7 @@ from random import randrange
 from tempfile import NamedTemporaryFile
 from multiprocessing.pool import ThreadPool
 import subprocess
-
+from time import sleep
 
 EXPERIMENT_REPETITIONS = 10
 MAX_THREADS = 7
@@ -58,7 +58,7 @@ def run_experiment(yaml_file_path: str):
     # Change some params to random ones with specified ranges
     params['settings']['loss_stop'] = 1.E-5
     params['settings']['max_episodes'] = 100000
-    params['problem_train']['cuda'] = False
+    params['problem_train']['cuda'] = True
     params['problem_train']['control_bits'] = 4
     params['problem_validation']['control_bits'] = 4
     params['problem_test']['control_bits'] = 4
