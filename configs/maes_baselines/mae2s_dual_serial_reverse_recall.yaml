@@ -63,8 +63,11 @@ model:
         num_layers: 1
         non_linearity: sigmoid
     # Interface
-    interface:
+    mae_interface:
         shift_size: 3
+    mas_interface:
+        shift_size: 3
+
     # Memory parameters.
     memory:
         num_content_bits: 15
