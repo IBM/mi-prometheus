@@ -4,10 +4,10 @@ problem_train:
     batch_size: 32
     data_folder: '~/data/sort-of-clevr/'
     data_filename: 'training.hy'
-    dataset_size: 10000
+    dataset_size: 15000
     img_size: 128
     regenerate: False
-    cuda: True
+    cuda: False
 
 # Problem parameters:
 problem_test:

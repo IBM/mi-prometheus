@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 import torch.nn.init as init
 
 from models.model import Model
@@ -34,9 +35,16 @@ class SimpleVQA(Model):
             drop=0.5,
         )
 
+        for m in self.modules():
+            if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+                init.xavier_uniform(m.weight)
+                if m.bias is not None:
+                    m.bias.data.zero_()
+
     def forward(self, data_tuple):
         (images, questions), _ = data_tuple
         images = images.transpose(1, 3)
+        images = images.transpose(2, 3)
 
         a = self.attention(images, questions)
         v = apply_attention(images, a)
@@ -44,6 +52,36 @@ class SimpleVQA(Model):
         combined = torch.cat([v, questions], dim=1)
         answer = self.classifier(combined)
         return answer
+
+    def plot(self, data_tuple, predictions, sample_number=0):
+        """
+        Simple plot - shows MNIST image with target and actual predicted class.
+
+        :param data_tuple: Data tuple containing input and target batches.
+        :param predictions: Prediction.
+        :param sample_number: Number of sample in batch (DEFAULT: 0)
+        """
+        # Check if we are supposed to visualize at all.
+        if not self.app_state.visualize:
+            return False
+        import matplotlib.pyplot as plt
+        import matplotlib.gridspec as gridspec
+
+        # Unpack tuples.
+        (images, texts), targets = data_tuple
+
+        # Get sample.
+        image = images[sample_number].cpu().detach().numpy()
+        target = targets[sample_number].cpu().detach().numpy()
+        prediction = predictions[sample_number].cpu().detach().numpy()
+
+        # Show data.
+        plt.title('Prediction: {} (Target: {})'.format(np.argmax(prediction), target))
+        plt.imshow(image, interpolation='nearest', aspect='auto')
+
+        # Plot!
+        plt.show()
+        exit()
 
 
 class Classifier(nn.Sequential):
@@ -114,3 +152,4 @@ def tile_2d_over_nd(feature_vector, feature_map):
     tiled = feature_vector.view(n, c, *([1] * spatial_size)).expand_as(feature_map)
 
     return tiled
+
