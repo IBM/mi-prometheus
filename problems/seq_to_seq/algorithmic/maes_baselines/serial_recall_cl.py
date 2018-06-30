@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """reverse_recall_cl.py: Contains definition of serial recall problem with control markers and command lines"""
-__author__      = "Ryan L. McAvoy"
+__author__      = "Ryan McAvoy/Tomasz Kornuta"
 
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
@@ -40,8 +40,10 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         # Number of bits in one element.
         self.control_bits = params['control_bits']
         self.data_bits = params['data_bits']
-        assert self.control_bits >=2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
-        assert self.data_bits >=2, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+        assert self.control_bits >=3, "Problem requires at least 3 control bits (currently %r)" % self.control_bits
+        assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+        self.randomize_control_lines = params.get('randomize_control_lines', True)
+
         # Min and max lengts (number of elements).
         self.min_sequence_length = params['min_sequence_length']
         self.max_sequence_length = params['max_sequence_length']
@@ -58,72 +60,66 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],
         mask [BATCH_SIZE, 2*SEQ_LENGTH+2]
 
-        TODO: every item in batch has now the same seq_length.
         """
+        # Define control channel bits.
+        # ctrl_main = [0, 0, 0] # not really used.
 
-        # define control channel markers
-        pos = [0, 0, 0]
-        ctrl_data = [0, 0, 0]
-        ctrl_inter = [0, 1, 0]
-        ctrl_y = [0, 0, 1]
-        ctrl_dummy = [1, 1, 1]
-        ctrl_start = [1, 0, 0]
-        # assign markers
-        markers = ctrl_data, ctrl_dummy, pos
+        #ctrl_aux[2:self.control_bits] = 1 #[0, 0, 1]
+        ctrl_aux = np.zeros(self.control_bits)
+        if (self.control_bits == 3):
+            ctrl_aux[2] = 1 #[0, 0, 1]
+        else:
+            if self.randomize_control_lines:
+                # Randomly pick one of the bits to be set.
+                ctrl_bit = np.random.randint(2, self.control_bits)
+                ctrl_aux[ctrl_bit] = 1
+            else:
+                ctrl_aux[self.control_bits-1] = 1
 
-        # Set sequence length
+        # Markers.
+        marker_start_main = np.zeros(self.control_bits)
+        marker_start_main[0] = 1 #[1, 0, 0]
+        marker_start_aux = np.zeros(self.control_bits)
+        marker_start_aux[1] = 1 #[0, 1, 0]
+
+        # Set sequence length.
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)
 
         # Generate batch of random bit sequences [BATCH_SIZE x SEQ_LENGTH X DATA_BITS]
         bit_seq = np.random.binomial(1, self.bias, (self.batch_size, seq_length, self.data_bits))
+        
+        # 1. Generate inputs.
+        # Generate input:  [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
+        inputs = np.zeros([self.batch_size, 2*seq_length + 2, self.control_bits +  self.data_bits], dtype=np.float32)
 
-        #Generate target by indexing through the array
-        target_seq = np.array(bit_seq)
+        # Set start main control marker.
+        inputs[:, 0, 0:self.control_bits] = np.tile(marker_start_main, (self.batch_size, 1))
 
+        # Set bit sequence.
+        inputs[:, 1:seq_length+1,  self.control_bits:self.control_bits+self.data_bits] = bit_seq
+        # inputs[:, 1:seq_length+1, 0:self.control_bits] = np.tile(ctrl_main, (self.batch_size, seq_length,1)) # not used as ctrl_main is all zeros.
 
-        #  generate subsequences for x and y
-        x = [np.array(bit_seq)]
-        # data of x and dummies
-        xx = [ self.augment(seq, markers, ctrl_start=ctrl_start, add_marker_data=True, add_marker_dummy = False) for seq in x ]       
+        # Set start aux control marker.
+        inputs[:, seq_length+1, 0:self.control_bits] = np.tile(marker_start_aux, (self.batch_size, 1))
+        inputs[:, seq_length+2:2*seq_length+2, 0:self.control_bits] = np.tile(ctrl_aux, (self.batch_size, seq_length,1))
+        
+        # 2. Generate targets.
+        # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS] (only data bits!)
+        targets = np.zeros([self.batch_size, 2*seq_length + 2,  self.data_bits], dtype=np.float32)
+        # Set bit sequence.
+        targets[:, seq_length+2:,  :] = bit_seq
 
-        # data of x
-        data_1 = [arr for a in xx for arr in a[:-1]]
+        # 3. Generate mask.
+        # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
+        mask = torch.zeros([self.batch_size, 2*seq_length + 2]).type(torch.ByteTensor)
+        mask[:, seq_length+2:] = 1
 
-
-        # this is a marker between sub sequence x and dummies
-        #inter_seq = [add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)]
-       
-        #dummies output
-        markers2 = ctrl_dummy, ctrl_dummy, pos
-        yy = [ self.augment(np.zeros(target_seq.shape), markers2, ctrl_start=ctrl_inter, add_marker_data=True, add_marker_dummy = False)]
-        data_2 = [arr for a in yy for arr in a[:-1]]
- 
-         
-        #add dummies to target
-        seq_length_tdummies = seq_length+2
-        dummies_target = np.zeros([self.batch_size, seq_length_tdummies, self.data_bits], dtype=np.float32)
-        targets = np.concatenate((dummies_target, target_seq), axis=1)
-
-        inputs = np.concatenate(data_1 + data_2, axis=1)
-
-        # PyTorch variables
-        inputs = torch.from_numpy(inputs).type(self.dtype)
-        targets = torch.from_numpy(targets).type(self.dtype)
-        # TODO: batch might have different sequence lengths
-        mask_all = inputs[..., 0:self.control_bits] == 1
-        mask = mask_all[..., 0]
-        for i in range(self.control_bits):
-            mask = mask_all[..., i] * mask
-        # TODO: fix the batch indexing
-        # rest channel values of data dummies
-        #inputs[:, mask[0], 0:self.control_bits] = ctrl_dummy
-        # TODO: fix the batch indexing
-        # rest channel values of data dummies
-
-        inputs[:, mask[0], 0:self.control_bits] = torch.tensor(ctrl_y).type(self.dtype)
+        # PyTorch variables.
+        ptinputs = torch.from_numpy(inputs).type(self.dtype)
+        pttargets = torch.from_numpy(targets).type(self.dtype)
 
         # Return tuples.
-        data_tuple = DataTuple(inputs, targets)
+        data_tuple = DataTuple(ptinputs, pttargets)
         aux_tuple = AlgSeqAuxTuple(mask, seq_length, 1)
 
         return data_tuple, aux_tuple
@@ -136,8 +132,9 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
     
     # "Loaded parameters".
-    params = {'control_bits': 3, 'data_bits': 8, 'batch_size': 1, 
-        'min_sequence_length': 1, 'max_sequence_length': 10,  'bias': 0.5, 'seq_start':0, 'skip_step': 2}
+    params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 1, 
+        #'randomize_control_lines': False,
+        'min_sequence_length': 2, 'max_sequence_length': 5,  'bias': 0.5}
     # Create problem object.
     problem = SerialRecallCommandLines(params)
     # Get generator
