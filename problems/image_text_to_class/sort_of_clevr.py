@@ -24,15 +24,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..'))
 import torch
 from problems.problem import DataTuple
 from problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem, ImageTextTuple
-
-
-_SceneDescriptionTuple = collections.namedtuple('_SceneDescriptionTuple', ('scene_descriptions'))
-
-class SceneDescriptionTuple(_SceneDescriptionTuple):
-    """Tuple used by storing batches of scene descriptions - as strings. """
-    __slots__ = ()
-    
-
+from problems.image_text_to_class.image_text_to_class_problem import SceneDescriptionTuple
 
 
 class ObjectRepresentation:

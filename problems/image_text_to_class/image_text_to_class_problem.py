@@ -14,6 +14,14 @@ _ImageTextTuple = collections.namedtuple('ImageTextTuple', ('images', 'texts'))
 class ImageTextTuple(_ImageTextTuple):
     """Tuple used by storing batches of image-text pairs by e.g. VQA problems"""
     __slots__ = ()
+
+
+_SceneDescriptionTuple = collections.namedtuple('_SceneDescriptionTuple', ('scene_descriptions'))
+
+
+class SceneDescriptionTuple(_SceneDescriptionTuple):
+    """Tuple used by storing batches of scene descriptions - as strings. """
+    __slots__ = ()
     
 
 class ImageTextToClassProblem(Problem):
@@ -57,7 +65,6 @@ class ImageTextToClassProblem(Problem):
         :param stat_col: Statistics collector.
         """
         stat_col.add_statistic('acc', '{:12.10f}')
-    
 
     def collect_statistics(self, stat_col, data_tuple, logits, _):
         """
@@ -69,5 +76,26 @@ class ImageTextToClassProblem(Problem):
         :param _: auxiliary tuple (aux_tuple) is not used in this function. 
         """
         stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, _)
+
+    def turn_on_cuda(self, data_tuple, aux_tuple):
+        """ Enables computations on GPU - copies the input and target matrices (from DataTuple) to GPU.
+        This method has to be overwritten in derived class if one decides to copy other matrices as well.
+
+        :param data_tuple: Data tuple.
+        :param aux_tuple: Auxiliary tuple (WARNING: Values stored in that variable will remain in CPU)
+        :returns: Pair of Data and Auxiliary tuples (Data on GPU, Aux on CPU).
+        """
+        # Unpack tuples and copy data to GPU.
+        images, texts = data_tuple.inputs
+        gpu_images = images.cuda()
+        gpu_texts = texts.cuda()
+        gpu_targets = data_tuple.targets.cuda()
+
+        gpu_inputs = ImageTextTuple(gpu_images, gpu_texts)
+
+        # Pack matrices to tuples.
+        data_tuple = DataTuple(gpu_inputs, gpu_targets)
+
+        return data_tuple, aux_tuple
 
 
