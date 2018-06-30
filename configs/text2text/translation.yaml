@@ -1,7 +1,7 @@
 # Problem parameters:
 problem_train:
     name: &name translation
-    batch_size: &b 64
+    batch_size: &b 32
     training_size: &t 0.90
     output_lang_name: 'fra'
     max_sequence_length: &seq 15
@@ -56,6 +56,6 @@ settings:
     use_mask: False
     length_loss: 10
     loss_stop: 0.1
-    max_episodes: 100000
+    max_episodes: 1300
     seed_numpy: 4354
     seed_torch: 2452
