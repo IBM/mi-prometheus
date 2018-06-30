@@ -40,8 +40,10 @@ class ProblemFactory(object):
         is_class_member = lambda member: inspect.isclass(member) and member.__module__ == name
         clsmembers = inspect.getmembers(sys.modules[name], is_class_member)
         # Assert there is only one class.
-        assert len(clsmembers) == 1
-        class_name = clsmembers[0][0]
+
+        #assert len(clsmembers) == 1
+        class_name = clsmembers[2][0]
+
         # Get problem class
         problem_class = getattr(module, class_name)
         logger.info('Loading the {} problem from {}'.format(class_name, name))

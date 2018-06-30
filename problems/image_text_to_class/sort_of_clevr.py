@@ -72,6 +72,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         self.img_size = params["img_size"]
         self.dataset_size = params["dataset_size"]
+        self.regenerate = params["regenerate"]
 
         # Shuffle indices.
         self.shuffle = params.get('shuffle', True)
@@ -97,7 +98,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         self.GRID_SIZE = 4
 
         # Get path
-        data_folder = params['data_folder']
+        data_folder = os.path.expanduser(params['data_folder'])
         data_filename = params['data_filename']
         
         # Load or generate the dataset.
@@ -108,24 +109,25 @@ class SortOfCLEVR(ImageTextToClassProblem):
         """ Loads the dataset from the HDF5-encoded file. If file does not exists it generates new dataset and stores it in a file. """
 
         # Make path absolute.
-        if (data_folder[0] == '~'):
-            # Path to home dir.
-            data_folder = os.path.expanduser('~') + data_folder[1:]
-        elif not os.path.isabs(data_folder):
+        #if (data_folder[0] == '~'):
+        #    # Path to home dir.
+        #    data_folder = os.path.expanduser('~') + data_folder[1:]
+        #elif not os.path.isabs(data_folder):
             # Path to current dir.
-            data_folder = os.path.abspath(data_folder)
+        #    data_folder = os.path.abspath(data_folder)
 
         # Ok, try to load the file.
         self.pathfilename = os.path.join(data_folder, data_filename)
+        #self.pathfilename = os.path.expanduser('~') + self.pathfilename
 
         try:
-            if params.get("regenerate", False):
+            if self.regenerate:
                 raise Exception("Must regenerate... must regenerate...")
             self.data = h5py.File(self.pathfilename, 'r')
         except:
             logger.warning('File {} in {} not found. Generating new file... '.format(data_filename, data_folder))
             # Create folder - if required.
-            if not os.path.exists(data_folder):
+            if not os.path.exists(os.path.expanduser(data_folder)):
                 os.mkdir(data_folder)
                 
             # Generate the dataset, if not exists.
@@ -168,14 +170,15 @@ class SortOfCLEVR(ImageTextToClassProblem):
             scenes.append(group['scene_description'].value)
 
         # Generate tuple with inputs
-        inputs = ImageTextTuple( np.stack(images, axis=0), np.stack(questions, axis=0))
+        inputs = ImageTextTuple(torch.from_numpy(np.stack(images, axis=0)).type(torch.FloatTensor), torch.from_numpy(np.stack(questions, axis=0)))
         targets = np.stack(answers, 0)
+        index_targets = torch.from_numpy(np.argmax(targets, axis=1))
 
         # Add scene decription to aux tuple.
         aux_tuple = SceneDescriptionTuple(scenes)
 
         # Return DataTuple(!) and an AuxTuple with scene description.
-        return DataTuple(inputs, targets), aux_tuple
+        return DataTuple(inputs, index_targets), aux_tuple
 
 
     def color2str(self, color_code):
@@ -469,14 +472,11 @@ class SortOfCLEVR(ImageTextToClassProblem):
         # Plot!
         plt.show()
 
-
-
-
 if __name__ == "__main__":
     """ Tests sort of CLEVR - generates and displays a sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 100, 
+    params = {'batch_size': 1,
         'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy', 
         #'shuffle': False,
         #"regenerate": True,

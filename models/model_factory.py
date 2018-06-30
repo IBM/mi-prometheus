@@ -70,10 +70,10 @@ class ModelFactory(object):
             logger.warning("Warning: AlexnetWrapper not tested!")
             from models.vision.alexnet_wrapper import AlexnetWrapper
             return AlexnetWrapper(params)
-        elif name == 'hierarchical_cnn':
+        elif name == 'simple_vqa':
             logger.info('Loading the HierarchicalCNN model from models.thalamus_inspired_design.hierarchical_cnn')
             logger.warning("Warning: HierarchicalCNN under development")
-            from models.thalamus_inspired_design.hierarchical_cnn import HierarchicalCNN
-            return HierarchicalCNN(params)
+            from models.thalamus_inspired_design.simple_vqa import SimpleVQA
+            return SimpleVQA(params)
         else:
             raise ValueError

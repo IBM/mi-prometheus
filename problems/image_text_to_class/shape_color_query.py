@@ -84,9 +84,6 @@ class ShapeColorQuery(SortOfCLEVR):
         return Q
 
 
-
-
-
 if __name__ == "__main__":
     """ Tests Shape-Color-Query - generates and displays a sample"""
 
@@ -104,10 +101,15 @@ if __name__ == "__main__":
 
     # Create problem object.
     problem = ShapeColorQuery(params)
+
     # Get generator
     generator = problem.return_generator()
+
     # Get batch.
     data_tuple, aux_tuple = next(generator)
     for i in range(params['batch_size']):
+        (images, texts), _ = data_tuple
+        print(texts)
+        exit()
         # Display single sample from batch.
         problem.show_sample(data_tuple, aux_tuple, i)
