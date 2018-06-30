@@ -50,7 +50,7 @@ class TextToTextProblem(SeqToSeqProblem):
         # set default loss function - negative log likelihood and ignores padding elements.
         self.loss_function = nn.NLLLoss(size_average=True, ignore_index=0)
 
-    def compute_BLEU_score(self, data_tuple, logits, aux_tuple, output_lang):
+    def compute_BLEU_score(self, data_tuple, logits, aux_tuple):
         """
         Compute BLEU score in order to evaluate the translation quality (equivalent of accuracy)
         Reference paper: http://www.aclweb.org/anthology/P02-1040.pdf
@@ -65,6 +65,9 @@ class TextToTextProblem(SeqToSeqProblem):
 
         :return: Average BLEU Score for the whole batch ( 0 < BLEU < 1)
         """
+        _, top_indexes = logits.topk(k=1, dim=-1)
+        logits = top_indexes.squeeze()
+        batch_size = logits.shape[0]
 
         from nltk.translate.bleu_score import sentence_bleu
 
@@ -76,15 +79,13 @@ class TextToTextProblem(SeqToSeqProblem):
         # retrieve text sentences from the logits (which should be tensors of indexes)
         logits_text = []
         for logit in logits:
-            logits_text.append([output_lang.index2word[index] for index in logit.numpy() if index != 1])
+            logits_text.append([aux_tuple.output_lang.index2word[index] for index in logit.numpy()])
 
         bleu_score = 0
-        for i in range(len(logits_text)):
-            # we have to compute specific weights for each pair of sentence ('cumulative n-gram score')
-            weights = tuple([1/len(logits_text[i])] * len(logits_text[i]))
-            bleu_score += sentence_bleu([targets_text[i]], logits_text[i], weights=weights)
+        for i in range(batch_size):
+            bleu_score += sentence_bleu([targets_text[i]], logits_text[i])
 
-        return bleu_score / data_tuple.inputs.size(0)
+        return round(bleu_score / batch_size, 4)
 
     def evaluate_loss(self, data_tuple, logits, aux_tuple):
         """
@@ -116,8 +117,7 @@ class TextToTextProblem(SeqToSeqProblem):
         Add BLEU score to collector.
         :param stat_col: Statistics collector.
         """
-        #stat_col.add_statistic('bleu_score', '{:4.5f}')
-        pass  # compute_BLEU_score() is broken
+        stat_col.add_statistic('bleu_score', '{:4.5f}')
 
     def collect_statistics(self, stat_col, data_tuple, logits, aux_tuple):
         """
@@ -127,9 +127,8 @@ class TextToTextProblem(SeqToSeqProblem):
         :param logits: Logits being output of the model.
         :param aux_tuple: auxiliary tuple (aux_tuple).
         """
-        #_, logits = logits.topk(k=1, dim=2)
-        #stat_col['bleu_score'] = self.compute_BLEU_score(data_tuple, logits.squeeze(), aux_tuple, output_lang=aux_tuple.output_lang)
-        pass   # compute_BLEU_score() is broken
+
+        stat_col['bleu_score'] = self.compute_BLEU_score(data_tuple, logits, aux_tuple)
 
     def show_sample(self, data_tuple, aux_tuple, sample_number=0):
         """ Shows the sample (both input and target sequences) using matplotlib.
@@ -244,11 +243,11 @@ class Lang:
         :param name: string to name the language (e.g. french, english)
         """
         self.name = name
-        self.word2index = {}  # dict 'word': index
+        self.word2index = {"PAD": 0, "SOS": 1, "EOS": 2}  # dict 'word': index
         self.word2count = {}  # keep track of the occurrence of each word in the language. Can be used to replace
         # rare words.
         self.index2word = {0: "PAD", 1: "SOS", 2: "EOS"}  # dict 'index': 'word', initializes with PAD, EOS, SOS tokens
-        self.n_words = 3  # Number of words in the language. Start by counting SOS and EOS tokens.
+        self.n_words = 3  # Number of words in the language. Start by counting PAD, EOS, SOS tokens.
 
     def add_sentence(self, sentence):
         """
@@ -266,7 +265,7 @@ class Lang:
         :return: None.
         """
 
-        if word not in self.word2index: # if the current has not been seen before
+        if word not in self.word2index:  # if the current word has not been seen before
             self.word2index[word] = self.n_words  # create a new entry in word2index
             self.word2count[word] = 1  # count first occurrence of this word
             self.index2word[self.n_words] = word  # create a new entry in index2word

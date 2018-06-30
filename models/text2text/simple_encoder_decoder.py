@@ -175,3 +175,6 @@ if __name__ == '__main__':
     loss = problem.evaluate_loss(data_tuple=DataTuple, logits=outputs, aux_tuple=AuxTuple)
     print('loss: ', loss.item())
     loss.backward()
+
+    bleu_score = problem.compute_BLEU_score(DataTuple, outputs, AuxTuple)
+    print('BLEU score:', bleu_score)
