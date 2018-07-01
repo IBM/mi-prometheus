@@ -14,7 +14,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
 from models.sequential_model import SequentialModel
 from misc.app_state import AppState
 
-class EncoderSolverSLSTM(SequentialModel):
+class EncoderSolverLSTM(SequentialModel):
     '''  Class representing the Encoder-Solver architecture using LSTM cells as both encoder and solver modules. '''
 
     def __init__(self, params):
@@ -28,7 +28,7 @@ class EncoderSolverSLSTM(SequentialModel):
         :param params: Dictionary of parameters.
         '''
         # Call base constructor.
-        super(EncoderSolverSLSTM, self).__init__(params)
+        super(EncoderSolverLSTM, self).__init__(params)
 
         # Parse parameters.
         # Set input and output sizes. 

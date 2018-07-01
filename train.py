@@ -31,17 +31,6 @@ from problems.problem_factory import ProblemFactory
 from utils_worker import forward_step, check_and_set_cuda
 
 
-def save_model(model, episode,   model_dir):
-    """
-    Function saves the model..
-
-    :returns: False if saving was successful (need to implement true condition if there was an error)
-    """
-    model_filename = 'model_parameters_episode_{:05d}'.format(episode)
-    torch.save(model.state_dict(), model_dir + model_filename)
-    logger.info("Model exported")
-
-
 def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS, logger, validation_file,
                validation_writer):
     """
@@ -246,7 +235,9 @@ if __name__ == '__main__':
     optimizer_conf = dict(param_interface['optimizer'])
     optimizer_name = optimizer_conf['name']
     del optimizer_conf['name']
-    optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), **optimizer_conf)
+    # Select for optimization only those parameters that require update!
+    optimizer = getattr(torch.optim, optimizer_name)(
+        filter(lambda p: p.requires_grad,model.parameters()), **optimizer_conf)
 
     # Start Training
     episode = 0
@@ -338,22 +329,29 @@ if __name__ == '__main__':
             # Export histograms.
             if FLAGS.tensorboard >= 1:
                 for name, param in model.named_parameters():
-                    training_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
-
+                    try:
+                        training_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
+                    except Exception as e:
+                        logger.error("  {} :: data :: {}".format(name, e))
             # Export gradients.
             if FLAGS.tensorboard >= 2:
                 for name, param in model.named_parameters():
-                    training_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
+                    try:
+                        training_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
+                    except Exception as e:
+                        logger.error("  {} :: grad :: {}".format(name, e))
 
         # Check visualization of training data.
         if app_state.visualize:
+            # Allow for preprocessing
+            data_tuple, aux_tuple, logits = problem.plot_preprocessing(data_tuple, aux_tuple, logits)
             # Show plot, if user presses Quit - break.
             if model.plot(data_tuple,  logits):
                 break
 
         #  5. Save the model then validate
         if (episode % validation_frequency) == 0:
-            save_model(model, episode,  model_dir)
+            model.save(model_dir, episode)
 
 
         if (episode % validation_frequency) == 0 and do_validation:
@@ -383,7 +381,7 @@ if __name__ == '__main__':
 
             if loss_stop or episode == param_interface['settings']['max_episodes'] :
                 terminal_condition = True
-                save_model(model, episode,  model_dir)
+                model.save(model_dir, episode)
 
                 break
                 # "Finish" episode.

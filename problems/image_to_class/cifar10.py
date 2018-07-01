@@ -14,7 +14,7 @@ from problems.image_to_class.image_to_class_problem import ImageToClassProblem
 
 class CIFAR10(ImageToClassProblem):
     """
-    Classic CFIAR classification problem.
+    Classic CFIAR10 classification problem.
     """
 
     def __init__(self, params):
@@ -34,10 +34,11 @@ class CIFAR10(ImageToClassProblem):
         self.use_train_data = params['use_train_data']
         self.datasets_folder = params['folder']
         self.padding = params['padding']
+        self.up_scaling = params['up_scaling']
 
-        # define transforms
-        train_transform = transforms.Compose([
-            transforms.ToTensor()])
+        # Define transforms
+        train_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()]) \
+        if self.up_scaling else transforms.Compose([transforms.ToTensor()])
 
         # load the datasets
         self.train_datasets = datasets.CIFAR10(self.datasets_folder, train=self.use_train_data, download=True,
@@ -77,9 +78,12 @@ class CIFAR10(ImageToClassProblem):
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
+    np.random.seed(0)
+    torch.manual_seed(0)
 
     # "Loaded parameters".
-    params = {'batch_size':2, 'start_index': 0, 'stop_index': 40000, 'use_train_data': True, 'folder': '~/data/cifar10'}
+    params = {'batch_size':2, 'start_index': 0, 'stop_index': 40000, 'use_train_data': True, 'folder': '~/data/cifar10', 'padding': [0,0,0,0],
+              'up_scaling': True}
 
     # Create problem object.
     problem = CIFAR10(params)

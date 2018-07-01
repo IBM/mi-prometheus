@@ -1,14 +1,10 @@
 # Problem parameters:
 problem_train:
-    name: &name maes_baselines/skip_recall_cl
+    name: &name maes_baselines/serial_recall_cl
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: &cbits 4
     data_bits: &dbits 8
     batch_size: &bs 64
-    # Skip params.
-    seq_start: &start 0
-    skip_step: &skip 2
-    bias: 0.5
     # Parameters denoting min and max lengths.
     min_sequence_length: 4
     max_sequence_length: 10
@@ -18,8 +14,9 @@ problem_train:
         initial_max_sequence_length: 5
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
+    bias: 0.5
     cuda: True
-   
+
 # Problem parameters:
 problem_validation:
     name: *name
@@ -27,14 +24,10 @@ problem_validation:
     control_bits: *cbits
     data_bits: *dbits
     batch_size: 64
-    seq_start: *start
-    skip_step: *skip
-
     # Parameters denoting min and max lengths.
     min_sequence_length: 11
     max_sequence_length: 11
     bias: 0.5
-
 
 # Problem parameters:
 problem_test:
@@ -42,26 +35,43 @@ problem_test:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    seq_start: *start
-    skip_step: *skip
     batch_size: 64
     # Parameters denoting min and max lengths.
     min_sequence_length: 100
     max_sequence_length: 100
     bias: 0.5
- 
+
 # Model parameters:
 model:
-    name: es_lstm
-    # Input bits = [control_bits, data_bits]
+    name: mae2s
+    # Optional parameter: visualization.
+    #visualization_mode: 2
+    # Input bits = [command_bits, data_bits]
     # Output bits = [data_bits]
-    control_bits: *cbits 
-    data_bits: *dbits
-    # Controller hidden state.
-    hidden_state_dim: 256
+    num_control_bits: *cbits
+    num_data_bits: *dbits
     # Indices of control bits triggering encoding/decoding.
     encoding_bit: 0
-    solving_bit: 1
+    solving1_bit: 1
+    solving2_bit: 2
+    # Save/load encoder.
+    save_encoder: True
+    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180629_002252/models/encoder_episode_01400.pt
+    # Pass the whole state from encoder to solver cell.
+    pass_cell_state: True
+    # Controller parameters.
+    controller:
+        name: rnn
+        hidden_state_size: 20
+        num_layers: 1
+        non_linearity: sigmoid
+    # Interface
+    interface:
+        shift_size: 3
+    # Memory parameters.
+    memory:
+        num_content_bits: 15
+        num_addresses: -1
     
 # optimizer parameters:
 optimizer:
@@ -72,8 +82,6 @@ optimizer:
 
 # settings parameters
 settings:
-    # masked output and target
-    use_mask: True
     length_loss: 10
     loss_stop: 1.0e-5
     max_episodes: 100000

@@ -7,12 +7,12 @@ problem_train:
     output_bits: &obits 1
     batch_size: &bs 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 1
-    max_sequence_length: 20
+    min_sequence_length: 4
+    max_sequence_length: 10
     #Curriculum learning - optional.
     curriculum_learning:
-        interval: 2000
-        initial_max_sequence_length: 4
+        interval: 500
+        initial_max_sequence_length: 5
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     bias: 0.5
@@ -27,8 +27,8 @@ problem_validation:
     output_bits: *obits
     batch_size: 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 21
-    max_sequence_length: 21
+    min_sequence_length: 11
+    max_sequence_length: 11
     bias: 0.5
 
 # Problem parameters:
@@ -49,10 +49,11 @@ model:
     name: ntm
     # Optional parameter: visualization.
     visualization_mode: 2
-    # Input bits = [command_bits, data_bits]
-    # Output bits = [data_bits]
-    num_control_bits: *cbits
+    # Input bits = [control_bits, data_bits]
+    # Output bits = [1]
+    num_control_bits: *cbits 
     num_data_bits: *dbits
+    num_output_bits: *obits
     # Controller parameters.
     controller:
         name: rnn
@@ -65,7 +66,7 @@ model:
         shift_size: 3
     # Memory parameters.
     memory:
-        num_content_bits: 10
+        num_content_bits: 15
         num_addresses: -1
     
 # optimizer parameters:
@@ -83,5 +84,5 @@ settings:
     loss_stop: 1.0e-5
     max_episodes: 100000
     validation_stopping: True
-    seed_numpy: 0
-    seed_torch: 2
+    seed_numpy: -1
+    seed_torch: -1
