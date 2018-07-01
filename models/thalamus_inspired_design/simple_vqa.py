@@ -7,7 +7,7 @@ import torch.nn.init as init
 from models.model import Model
 from problems.problem import DataTuple
 from misc.app_state import AppState
-
+from problems.image_text_to_class.sort_of_clevr import
 
 class SimpleVQA(Model):
     """ Re-implementation of ``Show, Ask, Attend, and Answer: A Strong Baseline For Visual Question Answering'' [0]
@@ -77,7 +77,7 @@ class SimpleVQA(Model):
 
         # Show data.
         plt.title('Prediction: {} (Target: {})'.format(np.argmax(prediction), target))
-        plt.imshow(image, interpolation='nearest', aspect='auto')
+        plt.imshow(image.transpose(0,1,2), interpolation='nearest', aspect='auto')
 
         # Plot!
         plt.show()
