@@ -66,7 +66,6 @@ class ModelFactory(object):
             return ThalNetModel(params)
         elif name == 'alexnet':
             logger.info('Loading the AlexnetWrapper model from models.vision.alexnet_wrapper')
-            logger.warning("Warning: AlexnetWrapper not tested!")
             from models.vision.alexnet_wrapper import AlexnetWrapper
             return AlexnetWrapper(params)
         else:

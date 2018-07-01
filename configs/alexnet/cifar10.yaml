@@ -1,14 +1,15 @@
 # Problem parameters:
 problem_train:
-    name: &name cifar
+    name: &name cifar10
     # Size of generated input: [batch_size x sequence_length x number of control and data bits].
     batch_size: 64
     start_index: 0
     stop_index: 40000
     use_train_data: True
-    folder: '~/data/cifar'
-    padding: &p [96,96,96,96] # ex: (x1, x2, x3, x4) pad last dim by (x1, x2) and 2nd to last by (x3, x4)
+    folder: '~/data/cifar10'
+    padding: &p [0,0,0,0] # ex: (x1, x2, x3, x4) pad last dim by (x1, x2) and 2nd to last by (x3, x4)
     cuda: False  # The presence of the 'cuda' key is optional
+    up_scaling: &scale True # if up_scale true the image is resized to 224 x 224
 
 # Problem parameters:
 problem_test:
@@ -19,7 +20,8 @@ problem_test:
     stop_index: 9999
     use_train_data: False
     padding: *p
-    folder: '~/data/cifar'
+    folder: '~/data/cifar10'
+    up_scaling: *scale
 
 # Problem parameters:
 problem_validation:
@@ -30,7 +32,8 @@ problem_validation:
     stop_index: 49999
     use_train_data: True
     padding: *p
-    folder: '~/data/cifar'
+    folder: '~/data/cifar10'
+    up_scaling: *scale
 
 # Model parameters:
 model:
@@ -38,6 +41,7 @@ model:
     # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
     num_classes: 10
+    up_scaling: *scale
 
 # optimizer parameters:
 optimizer:

@@ -34,10 +34,12 @@ class MNIST(ImageToClassProblem):
         self.use_train_data = params['use_train_data']
         self.datasets_folder = params['mnist_folder']
         self.padding = params['padding']
+        # up scaling the image to 224, 224 if True
+        self.up_scaling = params['up_scaling']
 
-        # define transforms
-        train_transform = transforms.Compose([
-            transforms.ToTensor()])
+        # Define transforms
+        train_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()]) \
+        if self.up_scaling else transforms.Compose([transforms.ToTensor()])
 
         # load the datasets
         self.train_datasets = datasets.MNIST(self.datasets_folder, train=self.use_train_data, download=True,
@@ -77,7 +79,8 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'batch_size':2, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist', 'padding': [4,4,3,3]}
+    params = {'batch_size':2, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist', 'padding': [4,4,3,3],
+              'up_scaling': False}
 
     # Create problem object.
     problem = MNIST(params)

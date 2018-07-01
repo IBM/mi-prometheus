@@ -27,8 +27,8 @@ class SimpleConvNet(Model):
 
         # image size
         self.num_channels = params['num_channels']
-        self.height = params['height']
-        self.width = params['width']
+        self.height = 224 if params['up_scaling'] else params['height']
+        self.width = 224 if params['up_scaling'] else params['width']
         self.padding = params['padding']
 
         self.height_padded = self.height + sum(self.padding[0:2])
