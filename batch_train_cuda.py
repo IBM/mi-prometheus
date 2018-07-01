@@ -43,7 +43,7 @@ def main():
 
             # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
             sleep(3)
-            while [r.ready() for r in thread_results].count(False) < MAX_THREADS:
+            while [r.ready() for r in thread_results].count(False) >= MAX_THREADS:
                 sleep(3)
 
         # Equivalent of what would usually be called "join" for threads
