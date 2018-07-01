@@ -182,7 +182,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
             3: 'yellow',
             4: 'magenta',
             5: 'cyan',
-        }[color_code]
+        }[int(color_code)]
 
 
     def shape2str(self, shape_code):
@@ -204,7 +204,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
             5: 'What is the color of the object nearest to the {} {}?',
             6: 'What is the color of the object farthest from the {} {}?',
             #7: 'How many objects have the same shape as the {} {}?,
-        }[question_code]
+        }[int(question_code)]
 
     def question2str(self, encoded_question):
         """ Decodes question, i.e. produces a human-understandable string. 
@@ -240,7 +240,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
             # 8-9 yes/no
             8: 'yes',
             9: 'no',
-        }[np.argmax(encoded_answer)]
+        }[np.argmax(int(encoded_answer))]
 
     def scene2str(self, objects):
         """
@@ -472,7 +472,7 @@ if __name__ == "__main__":
         'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy', 
         #'shuffle': False,
         #"regenerate": True,
-        'dataset_size': 10000, 'img_size': 128
+        'dataset_size': 10000, 'img_size': 128, 'regenerate': False
         }
 
     # Configure logger.
