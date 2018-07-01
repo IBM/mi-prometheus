@@ -1,4 +1,2 @@
-configs/maes_baselines/dnc_serial_recall.yaml
-configs/maes_baselines/ntm_serial_recall.yaml
 configs/maes_baselines/maes_serial_recall.yaml
 configs/maes_baselines/maes_dual_serial_reverse_recall.yaml

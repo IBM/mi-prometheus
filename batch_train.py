@@ -14,7 +14,7 @@ from multiprocessing.pool import ThreadPool
 import subprocess
 
 
-EXPERIMENT_REPETITIONS = 1
+EXPERIMENT_REPETITIONS = 10
 
 
 def main():

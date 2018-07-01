@@ -60,6 +60,7 @@ model:
     solving_bit: 1
     # Pass the whole state from encoder to solver cell.
     pass_cell_state: True
+    load_encoder: ''
     # Controller parameters.
     controller:
         name: rnn
