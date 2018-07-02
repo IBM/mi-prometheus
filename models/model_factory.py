@@ -89,5 +89,10 @@ class ModelFactory(object):
             logger.warning("Warning: HierarchicalCNN under development")
             from models.thalamus_inspired_design.simple_vqa import SimpleVQA
             return SimpleVQA(params)
+        elif name == 'memory_vqa':
+            logger.info('Loading the HierarchicalCNN model from models.thalamus_inspired_design.hierarchical_cnn')
+            logger.warning("Warning: HierarchicalCNN under development")
+            from models.thalamus_inspired_design.memory_vqa import MemoryVQA
+            return MemoryVQA(params)
         else:
             raise ValueError

@@ -190,7 +190,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         return {
             0: 'rectangle',
             1: 'circle',
-        }[shape_code]
+        }[int(shape_code)]
 
 
     def question_type_template(self, question_code):
@@ -468,7 +468,7 @@ if __name__ == "__main__":
     """ Tests sort of CLEVR - generates and displays a sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 1,
+    params = {'batch_size': 10,
         'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy', 
         #'shuffle': False,
         #"regenerate": True,

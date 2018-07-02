@@ -88,9 +88,9 @@ if __name__ == "__main__":
     """ Tests Shape-Color-Query - generates and displays a sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 100, 
+    params = {'batch_size': 10,
         'data_folder': '~/data/shape-color-query/', 'data_filename': 'training.hy', 
-        'shuffle': False,
+        'shuffle': True,
         "regenerate": True,
         'dataset_size': 100, 'img_size': 128
         }
@@ -109,7 +109,6 @@ if __name__ == "__main__":
     data_tuple, aux_tuple = next(generator)
     for i in range(params['batch_size']):
         (images, texts), _ = data_tuple
-        print(texts)
-        exit()
+
         # Display single sample from batch.
         problem.show_sample(data_tuple, aux_tuple, i)

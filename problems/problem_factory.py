@@ -42,7 +42,7 @@ class ProblemFactory(object):
         # Assert there is only one class.
 
         #assert len(clsmembers) == 1
-        class_name = clsmembers[1][0]
+        class_name = clsmembers[0][0]
 
         # Get problem class
         problem_class = getattr(module, class_name)
