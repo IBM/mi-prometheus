@@ -34,6 +34,9 @@ class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
         assert self.control_bits >=3, "Problem requires at least 3 control bits (currently %r)" % self.control_bits
         assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
 
+        # The bit that idicates whether we want to return true when items are equal or not equal 
+        self.predict_inverse = params.get('predict_inverse', True)
+
         # Min and max lengts (number of elements).
         self.min_sequence_length = params['min_sequence_length']
         self.max_sequence_length = params['max_sequence_length']
@@ -95,11 +98,12 @@ class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
 
         aux_seq = np.array(np.logical_xor(x[0], xor_scrambler))
 
-        #if the xor scambler is all zeros then x and y will be the same so target will be true
-        actual_target = np.logical_not(np.array(np.any(xor_scrambler, axis= 2, keepdims=True)))
-        #actual_target = actual_target[:, np.newaxis,np.newaxis]
-
-
+        if self.predict_inverse:
+            #if the xor scambler is all zeros then x and y will be the same so target will be true
+            actual_target = np.array(np.any(xor_scrambler, axis= 2, keepdims=True))
+        else:
+            actual_target = np.logical_not(np.array(np.any(xor_scrambler, axis= 2, keepdims=True)))
+            
         # create the target
         seq_length_tdummies = seq_length+2
         dummies_target = np.zeros([self.batch_size, seq_length_tdummies, 1], dtype=np.float32)
@@ -155,7 +159,8 @@ if __name__ == "__main__":
 
     # "Loaded parameters".
     params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 1,
-              'min_sequence_length': 10, 'max_sequence_length': 20, 
+              #'predict_inverse': False,
+              'min_sequence_length': 1, 'max_sequence_length': 3, 
               'bias': 0.5 }
     # Create problem object.
     problem = SequenceComparisonCommandLines(params)

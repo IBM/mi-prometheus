@@ -57,6 +57,10 @@ def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
     # Visualization of validation.
     if AppState().visualize:
         # True means that we should terminate
+
+        # Allow for preprocessing
+        data_valid, aux_valid, logits_valid = problem.plot_preprocessing(data_valid, aux_valid, logits_valid)
+        
         return loss_valid, model.plot(data_valid,  logits_valid)
     # Else simply return false, i.e. continue training.
     return loss_valid, False
@@ -399,7 +403,7 @@ if __name__ == '__main__':
 
             # Perform validation.
             _, _ = validation(model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger,
-                               validation_file, validation_writer, stat_col)
+                               validation_file, validation_writer)
 
         else:
             app_state.visualize = False
