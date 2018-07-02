@@ -59,6 +59,7 @@ def run_experiment(yaml_file_path: str):
     params['settings']['loss_stop'] = 1.E-5
     params['settings']['max_episodes'] = 100000
     params['problem_train']['cuda'] = True
+    params['problem_test']['cuda'] = True
     params['problem_train']['control_bits'] = 4
     params['problem_validation']['control_bits'] = 4
     params['problem_test']['control_bits'] = 4
