@@ -4,6 +4,7 @@
 __author__ = "Vincent Marois "
 
 import torch
+import random
 # Add path to main project directory
 import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
@@ -58,6 +59,42 @@ class SimpleEncoderDecoder(SequentialModel):
         self.decoder = AttnDecoderRNN(self.hidden_size, self.output_voc_size, dropout_p=0.1, max_length=self.max_length)
 
         print('Simple EncoderDecoderRNN (without attention) created.\n')
+
+    def plot(self, data_tuple, logits):
+        """
+        Plot function to visualize the attention weights on the input sequence as the model is generating the output
+        sequence.
+        :param data_tuple: data_tuple: Data tuple containing
+           - input [BATCH_SIZE x SEQUENCE_LENGTH] and
+           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH]
+        :param logits: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH] -> already converted from indexes to word in
+        problem.plot_preprocessing()
+        """
+        # select 1 random in the batch and retrieve corresponding input_text, logit_text, attention_weight
+        batch_size = data_tuple.targets.shape[0]
+        sample = random.choice(range(batch_size))
+
+        input_text = data_tuple.inputs_text[sample].split()
+        target_text = logits[sample]
+        attn_weights = self.decoder_attentions[sample]
+
+        import matplotlib.pyplot as plt
+        import matplotlib.ticker as ticker
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        cax = ax.matshow(attn_weights.numpy())
+
+        # set up axes
+        ax.set_xticklabels(input_text, rotation=90)
+        ax.set_yticklabels(target_text)
+
+        # show label at every tick
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+
+        plt.show()
+
 
     # global forward pass
     def forward(self, data_tuple):

@@ -262,6 +262,31 @@ class Translation(TextToTextProblem, Lang):
 
         return data_tuple, aux_tuple
 
+    def plot_preprocessing(self, data_tuple, aux_tuple, logits):
+        """
+        Does some preprocessing to logits to then plot the attention weights.
+
+        :param data_tuple: Data tuple (inputs, targets)
+        :param aux_tuple: Auxiliary tuple ('inputs_text', 'outputs_text', 'input_lang', 'output_lang')
+        :param logits: prediction
+        :return:
+        """
+        print('in plot_preprocessing')
+        # get most probable words indexes for the batch
+        _, top_indexes = logits.topk(k=1, dim=-1)
+        logits = top_indexes.squeeze()
+        print('logits shape after selection', logits.shape)
+
+        # retrieve text sentences from the logits (which should be tensors of indexes)
+        logits_text = []
+        for logit in logits:
+            logits_text.append([aux_tuple.output_lang.index2word[index.item()] for index in logit])
+        print('logits_text shape', len(logits_text))
+
+        data_tuple.inputs_text = aux_tuple.inputs_text
+
+        return data_tuple, aux_tuple, logits_text
+
 
 if __name__ == "__main__":
     """ Tests Problem class"""
