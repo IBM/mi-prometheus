@@ -12,10 +12,10 @@ from random import randrange
 from tempfile import NamedTemporaryFile
 from multiprocessing.pool import ThreadPool
 import subprocess
-
+from time import sleep
 
 EXPERIMENT_REPETITIONS = 10
-
+MAX_THREADS = 7
 
 def main():
     batch_file = sys.argv[1]
@@ -32,9 +32,23 @@ def main():
         experiments_list.extend(yaml_files)
 
     # Run in as many threads as there are CPUs available to the script
-    with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
-        pool.map(run_experiment, experiments_list)
+#    with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
+ #       pool.map(run_experiment, experiments_list)
+    with ThreadPool(processes=MAX_THREADS) as pool:
+        thread_results = []  # This contains a list of `AsyncResult` objects. To check if completed and get result.
 
+        for task in experiments_list:
+            thread_results.append(pool.apply_async(run_experiment, (task,)))
+            print("Started training", task)
+
+            # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
+            sleep(3)
+            while [r.ready() for r in thread_results].count(False) >= MAX_THREADS:
+                sleep(3)
+
+        # Equivalent of what would usually be called "join" for threads
+        for r in thread_results:
+            r.wait()
 
 def run_experiment(yaml_file_path: str):
     # Load template yaml file
@@ -44,7 +58,7 @@ def run_experiment(yaml_file_path: str):
     # Change some params to random ones with specified ranges
     params['settings']['loss_stop'] = 1.E-5
     params['settings']['max_episodes'] = 100000
-    params['problem_train']['cuda'] = False
+    params['problem_train']['cuda'] = True
     params['problem_train']['control_bits'] = 4
     params['problem_validation']['control_bits'] = 4
     params['problem_test']['control_bits'] = 4
@@ -83,7 +97,7 @@ def run_experiment(yaml_file_path: str):
     with NamedTemporaryFile(mode='w') as temp_yaml:
         yaml.dump(params, temp_yaml, default_flow_style=False)
 
-        command_str = "python3 train.py --c {0}".format(temp_yaml.name).split()
+        command_str = "cuda-gpupick -n1 python3 train.py --c {0}".format(temp_yaml.name).split()
 
         with open(os.devnull, 'w') as devnull:
             result = subprocess.run(command_str, stdout=devnull)

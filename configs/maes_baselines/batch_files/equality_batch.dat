@@ -1,0 +1,3 @@
+configs/maes_baselines/dnc_equality.yaml
+configs/maes_baselines/ntm_sequence_equality.yaml
+configs/maes_baselines/maes_sequence_equality.yaml

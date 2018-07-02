@@ -60,6 +60,7 @@ model:
     solving_bit: 1
     # Pass the whole state from encoder to solver cell.
     pass_cell_state: True
+    load_encoder: ''
     # Controller parameters.
     controller:
         name: rnn
@@ -67,7 +68,9 @@ model:
         num_layers: 1
         non_linearity: sigmoid
     # Interface
-    interface:
+    mae_interface:
+        shift_size: 3
+    mas_interface:
         shift_size: 3
     # Memory parameters.
     memory:
