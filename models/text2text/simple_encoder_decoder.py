@@ -70,6 +70,15 @@ class SimpleEncoderDecoder(SequentialModel):
         :param predictions: logits as dict {'inputs_text', 'logits_text'}
         :param sample_number:
         """
+        # Check if we are supposed to visualize at all.
+        if not self.app_state.visualize:
+            return False
+
+        # Initialize timePlot window - if required.
+        if self.plotWindow == None:
+            from misc.time_plot import TimePlot
+            self.plotWindow = TimePlot()
+
         # select 1 random in the batch and retrieve corresponding input_text, logit_text, attention_weight
         batch_size = data_tuple.targets.shape[0]
         sample = random.choice(range(batch_size))
@@ -79,14 +88,14 @@ class SimpleEncoderDecoder(SequentialModel):
         print('input sentence: ', predictions['inputs_text'][sample])
         target_text = predictions['logits_text'][sample]
         print('predicted translation:', target_text)
-        attn_weights = self.decoder_attentions[sample]
+        attn_weights = self.decoder_attentions[sample].cpu().detach().numpy()
 
         import matplotlib.pyplot as plt
         import matplotlib.ticker as ticker
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        cax = ax.matshow(attn_weights.numpy())
+        cax = ax.matshow(attn_weights)
 
         # set up axes
         ax.set_xticklabels([''] + input_text, rotation=90)
@@ -96,9 +105,11 @@ class SimpleEncoderDecoder(SequentialModel):
         ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
         ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
 
-        plt.show()
+        # Plot figure and list of frames.
+        self.plotWindow.update(fig, frames=[[cax]])
 
-        return True
+        # Return True if user closed the window.
+        return self.plotWindow.is_closed
 
     # global forward pass
     def forward(self, data_tuple):
