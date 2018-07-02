@@ -42,9 +42,12 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         try:
             # If the 'curriculum_learning' section is not present, this line will throw an exception.
-            self.curriculum_config = params['curriculum_learning']
+            self.curriculum_config = params['curriculum_learning'].to_dict()
+            # Copy parameters required for curriculum learning
+            self.curriculum_config['max_sequence_length'] = params['max_sequence_length']
+            #self.curriculum_config.update({'max_sequence_length': params['max_sequence_length']})
         except KeyError:
-            # Else: set empty dictionary.
+             # Else: set empty dictionary.
             self.curriculum_config = {}
             pass
         
