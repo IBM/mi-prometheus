@@ -402,7 +402,7 @@ if __name__ == '__main__':
 
             # Perform validation.
             _, _ = validation(model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger,
-                               validation_file, validation_writer, stat_col)
+                               validation_file, validation_writer)
 
         else:
             app_state.visualize = False
