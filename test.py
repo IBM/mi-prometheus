@@ -130,6 +130,10 @@ if __name__ == '__main__':
             stat_col.export_statistics_to_csv(test_file)
 
             if app_state.visualize:
+                # Allow for preprocessing
+                data_tuple, aux_tuple, logits = problem.plot_preprocessing(data_tuple, aux_tuple, logits)
+
+                # Show plot, if user presses Quit - break.
                 is_closed = model.plot(data_tuple,  logits)
                 if is_closed:
                     break

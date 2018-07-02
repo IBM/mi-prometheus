@@ -343,6 +343,8 @@ if __name__ == '__main__':
 
         # Check visualization of training data.
         if app_state.visualize:
+            # Allow for preprocessing
+            data_tuple, aux_tuple, logits = problem.plot_preprocessing(data_tuple, aux_tuple, logits)
             # Show plot, if user presses Quit - break.
             if model.plot(data_tuple,  logits):
                 break

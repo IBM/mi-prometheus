@@ -12,29 +12,28 @@ from problems.problem import DataTuple, LabelAuxTuple
 from problems.image_to_class.image_to_class_problem import ImageToClassProblem
 
 
-class MNIST(ImageToClassProblem):
+class CIFAR10(ImageToClassProblem):
     """
-    Classic MNIST classification problem.
+    Classic CFIAR10 classification problem.
     """
 
     def __init__(self, params):
         """
-        Initializes MNIST problem, calls base class initialization, sets properties using the provided parameters.
+        Initializes CIFAR problem, calls base class initialization, sets properties using the provided parameters.
 
         :param params: Dictionary of parameters (read from configuration file).
         """
 
         # Call base class constructors.
-        super(MNIST, self).__init__(params)
+        super(CIFAR10, self).__init__(params)
 
         # Retrieve parameters from the dictionary.
         self.batch_size = params['batch_size']
         self.start_index = params['start_index']
         self.stop_index = params['stop_index']
         self.use_train_data = params['use_train_data']
-        self.datasets_folder = params['mnist_folder']
+        self.datasets_folder = params['folder']
         self.padding = params['padding']
-        # up scaling the image to 224, 224 if True
         self.up_scaling = params['up_scaling']
 
         # Define transforms
@@ -42,23 +41,25 @@ class MNIST(ImageToClassProblem):
         if self.up_scaling else transforms.Compose([transforms.ToTensor()])
 
         # load the datasets
-        self.train_datasets = datasets.MNIST(self.datasets_folder, train=self.use_train_data, download=True,
+        self.train_datasets = datasets.CIFAR10(self.datasets_folder, train=self.use_train_data, download=True,
                                      transform=train_transform)
 
         # set split data (for training and validation data)
         num_train = len(self.train_datasets)
+
         indices = list(range(num_train))
         idx = indices[self.start_index: self.stop_index]
         self.sampler = SubsetRandomSampler(idx)
 
         # Class names.
-        self.mnist_class_names = 'Zero One Two Three Four Five Six Seven Eight Nine'.split(' ')
+        self.cifar_class_names = 'Airplane Automobile Bird Cat Deer Dog Frog Horse Shipe Truck'.split(' ')
 
     def generate_batch(self):
 
         # data loader
         train_loader = torch.utils.data.DataLoader(self.train_datasets, batch_size=self.batch_size,
                                                    sampler=self.sampler)
+
         # create an iterator
         train_loader = iter(train_loader)
 
@@ -69,7 +70,7 @@ class MNIST(ImageToClassProblem):
         data_padded = F.pad(data, self.padding, 'constant', 0)
 
         # Generate labels for aux tuple
-        class_names = [self.mnist_class_names[i] for i in label]
+        class_names = [self.cifar_class_names[i] for i in label]
 
         # Return DataTuple(!) and an empty (aux) tuple.
         return DataTuple(data_padded, label), LabelAuxTuple(class_names)
@@ -77,13 +78,15 @@ class MNIST(ImageToClassProblem):
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
+    np.random.seed(0)
+    torch.manual_seed(0)
 
     # "Loaded parameters".
-    params = {'batch_size':2, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist', 'padding': [4,4,3,3],
-              'up_scaling': False}
+    params = {'batch_size':2, 'start_index': 0, 'stop_index': 40000, 'use_train_data': True, 'folder': '~/data/cifar10', 'padding': [0,0,0,0],
+              'up_scaling': True}
 
     # Create problem object.
-    problem = MNIST(params)
+    problem = CIFAR10(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
