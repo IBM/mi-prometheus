@@ -60,22 +60,25 @@ class SimpleEncoderDecoder(SequentialModel):
 
         print('Simple EncoderDecoderRNN (without attention) created.\n')
 
-    def plot(self, data_tuple, logits):
+    def plot(self, data_tuple, predictions, sample_number=0):
         """
         Plot function to visualize the attention weights on the input sequence as the model is generating the output
         sequence.
         :param data_tuple: data_tuple: Data tuple containing
            - input [BATCH_SIZE x SEQUENCE_LENGTH] and
            - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH]
-        :param logits: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH] -> already converted from indexes to word in
-        problem.plot_preprocessing()
+        :param predictions: logits as dict {'inputs_text', 'logits_text'}
+        :param sample_number:
         """
         # select 1 random in the batch and retrieve corresponding input_text, logit_text, attention_weight
         batch_size = data_tuple.targets.shape[0]
         sample = random.choice(range(batch_size))
 
-        input_text = data_tuple.inputs_text[sample].split()
-        target_text = logits[sample]
+        # pred should be a dict {'inputs_text', 'logits_text'} created by Translation.plot_processing()
+        input_text = predictions['inputs_text'][sample].split()
+        print('input sentence: ', predictions['inputs_text'][sample])
+        target_text = predictions['logits_text'][sample]
+        print('predicted translation:', target_text)
         attn_weights = self.decoder_attentions[sample]
 
         import matplotlib.pyplot as plt
@@ -86,8 +89,8 @@ class SimpleEncoderDecoder(SequentialModel):
         cax = ax.matshow(attn_weights.numpy())
 
         # set up axes
-        ax.set_xticklabels(input_text, rotation=90)
-        ax.set_yticklabels(target_text)
+        ax.set_xticklabels([''] + input_text, rotation=90)
+        ax.set_yticklabels([''] + target_text)
 
         # show label at every tick
         ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
@@ -95,6 +98,7 @@ class SimpleEncoderDecoder(SequentialModel):
 
         plt.show()
 
+        return True
 
     # global forward pass
     def forward(self, data_tuple):

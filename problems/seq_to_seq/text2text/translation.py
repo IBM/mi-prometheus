@@ -268,24 +268,22 @@ class Translation(TextToTextProblem, Lang):
 
         :param data_tuple: Data tuple (inputs, targets)
         :param aux_tuple: Auxiliary tuple ('inputs_text', 'outputs_text', 'input_lang', 'output_lang')
-        :param logits: prediction
-        :return:
+        :param logits: prediction, shape [batch_size x max_seq_length x output_voc_size]
+        :return: data_tuple, aux_tuple untouched + logits as dict {'inputs_text', 'logits_text'}
         """
-        print('in plot_preprocessing')
         # get most probable words indexes for the batch
         _, top_indexes = logits.topk(k=1, dim=-1)
-        logits = top_indexes.squeeze()
-        print('logits shape after selection', logits.shape)
+        top_indexes = top_indexes.squeeze()
 
         # retrieve text sentences from the logits (which should be tensors of indexes)
         logits_text = []
-        for logit in logits:
+        for logit in top_indexes:
             logits_text.append([aux_tuple.output_lang.index2word[index.item()] for index in logit])
-        print('logits_text shape', len(logits_text))
 
-        data_tuple.inputs_text = aux_tuple.inputs_text
+        # cannot modify DataTuple so modifying logits to contain the input sentences and predicted sentences
+        logits = {'inputs_text': aux_tuple.inputs_text, 'logits_text': logits_text}
 
-        return data_tuple, aux_tuple, logits_text
+        return data_tuple, aux_tuple, logits
 
 
 if __name__ == "__main__":
