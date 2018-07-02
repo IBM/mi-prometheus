@@ -70,21 +70,56 @@ class MAECell(torch.nn.Module):
         # Layer that produces output on the basis of... hidden state?
         ext_hidden_size = self.controller_hidden_state_size
         self.hidden2output = torch.nn.Linear(ext_hidden_size, self.output_size)
-        for param in self.hidden2output.parameters():
-            param.requires_grad = False
+
+
+    def load(self, filename):
+        # Check filename.
+        if os.path.isfile(filename):
+            # Load checkpoint from filename.
+            checkpoint = torch.load(filename, map_location=lambda storage, loc: storage)
+            # Load controller and interface
+            self.controller.load_state_dict(checkpoint['ctrl_dict'])
+            self.interface.load_state_dict(checkpoint['interface_dict'])
+            logger.info("Encoder imported from checkpoint {}".format(filename))
+        else:
+            logger.error("Encoder checkpoint ont found at {}".format(filename))
+
+    def save(self, model_dir, episode):
+        """
+        Method saves the model and encoder to file.
+
+        :param model_dir: Directory where the model will be saved.
+        :param episode: Episode number used as model identifier.
+        :returns: False if saving was successful (TODO: implement true condition if there was an error)
+        """
+        # Dictionary to be saved.
+        saved_dict = {
+            'episode': episode,
+            'ctrl_dict': self.controller.state_dict(),
+            'interface_dict': self.interface.state_dict()
+        }
+
+        # Generate filename pth.tar.
+        encoder_filename = 'encoder_episode_{:05d}.pth.tar'.format(episode)
+        # Save dictionary to file.
+        torch.save(saved_dict, model_dir + encoder_filename)
+        logger.info("Encoder exported to checkpoint {}".format(model_dir + encoder_filename))
+
 
     def freeze(self):
         """ Freezes the trainable weigths """
         # Freeze controller.
         for param in self.controller.parameters():
             param.requires_grad = False
+        logger.info("Encoder controller is frozen")
 
         # Freeze interface.
         self.interface.freeze()
+        logger.info("Encoder interface is frozen")
 
         # Freeze output layer.
-        for param in self.hidden2output.parameters():
-            param.requires_grad = False
+        #for param in self.hidden2output.parameters():
+        #    param.requires_grad = False
 
     def init_state(self,  init_memory_BxAxC):
         """

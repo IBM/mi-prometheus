@@ -5,17 +5,18 @@ problem_train:
     control_bits: &cbits 4
     data_bits: &dbits 8
     batch_size: &bs 64
+    #randomize_control_lines: True
     # Parameters denoting min and max lengths.
-    min_sequence_length: 4
-    max_sequence_length: 10
+    min_sequence_length: 3
+    max_sequence_length: 20
     #Curriculum learning - optional.
-    curriculum_learning:
-        interval: 500
-        initial_max_sequence_length: 5
+    #curriculum_learning:
+    #    interval: 500
+    #    initial_max_sequence_length: 5
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     bias: 0.5
-    cuda: True
+    #cuda: True
 
 # Problem parameters:
 problem_validation:
@@ -25,8 +26,8 @@ problem_validation:
     data_bits: *dbits
     batch_size: 64
     # Parameters denoting min and max lengths.
-    min_sequence_length: 11
-    max_sequence_length: 11
+    min_sequence_length: 21
+    max_sequence_length: 21
     bias: 0.5
 
 # Problem parameters:
@@ -56,8 +57,9 @@ model:
     # Pass the whole state from encoder to solver cell.
     pass_cell_state: True
     # Save/load encoder.
-    save_encoder: True
-    load_encoder: ''
+    #save_encoder: True
+    load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180702_132024/models/encoder_episode_09400.pth.tar
+    #freeze_encoder: True
     # Controller parameters.
     controller:
         name: rnn

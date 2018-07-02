@@ -77,6 +77,6 @@ class Model(nn.Module):
         :param episode: Episode number used as model identifier.
         :returns: False if saving was successful (TODO: implement true condition if there was an error)
         """
-        model_filename = 'model_episode_{:05d}.pt'.format(episode)
+        model_filename = 'model_episode_{:05d}.pth.tar'.format(episode)
         torch.save(self.state_dict(), model_dir + model_filename)
-        logger.info("Model exported to {}".format(model_dir + model_filename))
+        logger.info("Model exported to checkpoint {}".format(model_dir + model_filename))
