@@ -135,7 +135,8 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         """
         stat_col.add_statistic('acc', '{:12.10f}')
         stat_col.add_statistic('seq_length', '{:d}')
-        stat_col.add_statistic('num_subseq', '{:d}')
+        #stat_col.add_statistic('num_subseq', '{:d}')
+        stat_col.add_statistic('max_seq_length', '{:d}')
 
 
     def collect_statistics(self, stat_col, data_tuple, logits, aux_tuple):
@@ -149,7 +150,8 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         """
         stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, aux_tuple)
         stat_col['seq_length'] = aux_tuple.seq_length
-        stat_col['num_subseq'] = aux_tuple.num_subsequences
+        #stat_col['num_subseq'] = aux_tuple.num_subsequences
+        stat_col['max_seq_length'] = self.max_sequence_length
 
 
     def show_sample(self,  data_tuple, aux_tuple,  sample_number = 0):
