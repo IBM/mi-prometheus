@@ -40,6 +40,15 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         # Set default loss function - cross entropy.
         self.loss_function = nn.BCEWithLogitsLoss()
 
+        try:
+            # If the 'curriculum_learning' section is not present, this line will throw an exception.
+            self.curriculum_config = params['curriculum_learning']
+        except KeyError:
+            # Else: set empty dictionary.
+            self.curriculum_config = {}
+            pass
+        
+
     def calculate_accuracy(self, data_tuple, logits, aux_tuple):
         """ Calculate accuracy equal to mean difference between outputs and targets.
         WARNING: Applies mask (from aux_tuple) to both logits and targets!
@@ -80,12 +89,12 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         return data_tuple, aux_tuple
 
-    def set_max_length(self, max_length):
-        """ Sets maximum sequence lenth (property).
-        
-        :param max_length: Length to be saved as max.
-        """
-        self.max_sequence_length = max_length
+    #def set_max_length(self, max_length):
+    #    """ Sets maximum sequence lenth (property).
+    #    
+    #    :param max_length: Length to be saved as max.
+    #    """
+    #    self.max_sequence_length = max_length
 
 
     def add_ctrl(self, seq, ctrl, pos): 
@@ -184,3 +193,35 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         # Plot!
         plt.tight_layout()
         plt.show()
+
+
+
+    def curriculum_learning_update_params(self, episode):
+        """
+        Updates problem parameters according to curriculum learning.
+        In the case of algorithmic sequential problems it updates the max sequence length, depending on configuration parameters 
+
+        :param episode: Number of the current episode.
+        :returns: Boolean informing whether curriculum learning is finished (or wasn't active at all).
+        """
+        # Curriculum learning stop condition.
+        curric_done = True
+        try:
+            # Read curriculum learning parameters.
+            max_max_length = self.curriculum_config['max_sequence_length']
+            interval = self.curriculum_config['interval']
+            initial_max_sequence_length = self.curriculum_config['initial_max_sequence_length']
+
+            if self.curriculum_config['interval'] > 0:
+                # Curriculum learning goes from the initial max length to the max length in steps of size 1
+                max_length = initial_max_sequence_length + (episode // interval)
+                if max_length >= max_max_length:
+                    max_length = max_max_length
+                else:
+                    curric_done = False
+                # Change max length.
+                self.max_sequence_length = max_length
+        except KeyError:
+            pass
+        # Return information whether we finished CL (i.e. reached max sequence length).
+        return curric_done

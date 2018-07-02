@@ -62,35 +62,6 @@ def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
     return loss_valid, False
 
 
-def curriculum_learning_update_problem_params(problem, episode, param_interface):
-    """
-    Updates problem parameters according to curriculum learning.
-
-    :returns: Boolean informing whether curriculum learning is finished (or wasn't active at all).
-    """
-    # Curriculum learning stop condition.
-    curric_done = True
-    try:
-        # If the 'curriculum_learning' section is not present, this line will throw an exception.
-        curr_config = param_interface['problem_train']['curriculum_learning']
-
-        # Read min and max length.
-        min_length = param_interface['problem_train']['min_sequence_length']
-        max_max_length = param_interface['problem_train']['max_sequence_length']
-
-        if curr_config['interval'] > 0:
-            # Curriculum learning goes from the initial max length to the max length in steps of size 1
-            max_length = curr_config['initial_max_sequence_length'] + (episode // curr_config['interval'])
-            if max_length >= max_max_length:
-                max_length = max_max_length
-            else:
-                curric_done = False
-                # Change max length.
-            problem.set_max_length(max_length)
-    except KeyError:
-        pass
-    # Return information whether we finished CL (i.e. reached max sequence length).
-    return curric_done
 
 
 if __name__ == '__main__':
@@ -218,7 +189,7 @@ if __name__ == '__main__':
     problem = ProblemFactory.build_problem(param_interface['problem_train'])
 
     # Initialize curriculum learning.
-    curric_done = curriculum_learning_update_problem_params(problem, 0, param_interface)
+    curric_done = problem.curriculum_learning_update_params(0)
 
     # Build problem for the validation
     problem_validation = ProblemFactory.build_problem(param_interface['problem_validation'])
@@ -282,7 +253,7 @@ if __name__ == '__main__':
     for data_tuple, aux_tuple in problem.return_generator():
 
         # apply curriculum learning - change problem max seq_length
-        curric_done = curriculum_learning_update_problem_params(problem, episode, param_interface)
+        curric_done = problem.curriculum_learning_update_params(episode)
 
         # reset gradients
         optimizer.zero_grad()

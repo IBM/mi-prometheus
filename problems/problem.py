@@ -136,3 +136,15 @@ class Problem(metaclass=ABCMeta):
         :return: data_tuplem aux_tuple, logits after preprocessing.
         """
         return data_tuple, aux_tuple, logits
+
+
+    def curriculum_learning_update_params(self, episode):
+        """
+        Updates problem parameters according to curriculum learning.
+        There is no general solution to curriculum learning.
+        This method should be overwriten in the derived classes.
+
+        :param episode: Number of the current episode.
+        :returns: True informing that CL wasn't active at all (i.e. is finished).
+        """
+        return True
