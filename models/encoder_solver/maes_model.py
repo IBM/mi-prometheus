@@ -71,20 +71,20 @@ class MAES(SequentialModel):
         self.modes = Enum('Modes', ['Encode', 'Solve'])
 
 
-    def save(self, model_dir, episode):
+    def save(self, model_dir, episode, best_model):
         """
         Method saves the model and encoder to file.
 
         :param model_dir: Directory where the model will be saved.
         :param episode: Episode number used as model identifier.
-        :returns: False if saving was successful (TODO: implement true condition if there was an error)
+        :param best_model: Flag indicating whether it is the best model or not. 
         """
         # Call the case method to save the whole model.
-        super(SequentialModel, self).save(model_dir, episode) 
+        super(SequentialModel, self).save(model_dir, episode, best_model) 
 
         # Additionally, if flag is set to True, save the encoder.
         if self.save_encoder:
-            self.encoder.save(model_dir, episode)
+            self.encoder.save(model_dir, episode, best_model)
 
 
     def forward(self, data_tuple):

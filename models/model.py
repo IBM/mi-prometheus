@@ -7,6 +7,8 @@ import torch
 from torch import nn
 from abc import ABCMeta, abstractmethod
 
+import shutil
+
 import logging
 logger = logging.getLogger('Model')
 
@@ -68,15 +70,18 @@ class Model(nn.Module):
         :param sample_number: Number of sample in batch (DEFAULT: 0) 
         """
 
-    def save(self, model_dir, episode):
+    def save(self, model_dir, episode, best_model):
         """
         Generic method saving the model parameters to file.
         It can be overloaded if one needs more control.
 
         :param model_dir: Directory where the model will be saved.
         :param episode: Episode number used as model identifier.
-        :returns: False if saving was successful (TODO: implement true condition if there was an error)
+        :param best_model: Flag indicating whether it is the best model or not. 
         """
-        model_filename = 'model_episode_{:05d}.pth.tar'.format(episode)
-        torch.save(self.state_dict(), model_dir + model_filename)
-        logger.info("Model exported to checkpoint {}".format(model_dir + model_filename))
+        filename = model_dir + 'model_episode_{:05d}.pth.tar'.format(episode)
+        torch.save(self.state_dict(), filename)
+        logger.info("Model exported to checkpoint {}".format(filename))
+        # Check whether it is the best model or not.
+        if best_model:
+            shutil.copyfile(filename, model_dir + 'model_best.pth.tar')

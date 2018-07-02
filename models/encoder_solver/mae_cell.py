@@ -5,6 +5,7 @@ __author__ = "Tomasz Kornuta"
 
 import torch 
 import collections
+import shutil
 
 # Set logging level.
 import logging
@@ -82,15 +83,15 @@ class MAECell(torch.nn.Module):
             self.interface.load_state_dict(checkpoint['interface_dict'])
             logger.info("Encoder imported from checkpoint {}".format(filename))
         else:
-            logger.error("Encoder checkpoint ont found at {}".format(filename))
+            logger.error("Encoder checkpoint not found at {}".format(filename))
 
-    def save(self, model_dir, episode):
+    def save(self, model_dir, episode, best_model):
         """
         Method saves the model and encoder to file.
 
         :param model_dir: Directory where the model will be saved.
         :param episode: Episode number used as model identifier.
-        :returns: False if saving was successful (TODO: implement true condition if there was an error)
+        :param best_model: Flag indicating whether it is the best model or not. 
         """
         # Dictionary to be saved.
         saved_dict = {
@@ -100,11 +101,13 @@ class MAECell(torch.nn.Module):
         }
 
         # Generate filename pth.tar.
-        encoder_filename = 'encoder_episode_{:05d}.pth.tar'.format(episode)
+        filename = model_dir + 'encoder_episode_{:05d}.pth.tar'.format(episode)
         # Save dictionary to file.
-        torch.save(saved_dict, model_dir + encoder_filename)
-        logger.info("Encoder exported to checkpoint {}".format(model_dir + encoder_filename))
-
+        torch.save(saved_dict, filename)
+        logger.info("Encoder exported to checkpoint {}".format(filename))
+        # Check whether it is the best model or not.
+        if best_model:
+            shutil.copyfile(filename, model_dir + 'encoder_best.pth.tar')
 
     def freeze(self):
         """ Freezes the trainable weigths """
