@@ -53,15 +53,15 @@ class MAES(SequentialModel):
         # Save/load encoder.
         self.save_encoder = params.get('save_encoder', False)
         self.load_encoder = params.get('load_encoder', '') # Path+filename to encoder.
+        self.freeze_encoder = params.get('freeze_encoder', False)
 
         # Create the Encoder cell.
         self.encoder = MAECell(params)
 
         # Load and freeze encoder - if required.
         if self.load_encoder != '':
-            self.encoder.load_state_dict(torch.load(self.load_encoder, map_location=lambda storage, loc: storage))
-            logger.info("Encoder imported from {}".format(self.load_encoder))  
-            # Freeze weights - TODO: NOT IMPLEMENTED!
+            self.encoder.load(self.load_encoder)
+        if self.freeze_encoder:
             self.encoder.freeze()  
  
         # Create the Decoder/Solver.
@@ -71,24 +71,20 @@ class MAES(SequentialModel):
         self.modes = Enum('Modes', ['Encode', 'Solve'])
 
 
-    def save(self, model_dir, episode):
+    def save(self, model_dir, episode, best_model):
         """
         Method saves the model and encoder to file.
 
         :param model_dir: Directory where the model will be saved.
         :param episode: Episode number used as model identifier.
-        :returns: False if saving was successful (TODO: implement true condition if there was an error)
+        :param best_model: Flag indicating whether it is the best model or not. 
         """
-        # Save the model.
-        model_filename = 'model_episode_{:05d}.pt'.format(episode)
-        torch.save(self.state_dict(), model_dir + model_filename)
-        logger.info("Model exported to {}".format(model_dir + model_filename))
+        # Call the case method to save the whole model.
+        super(SequentialModel, self).save(model_dir, episode, best_model) 
 
         # Additionally, if flag is set to True, save the encoder.
         if self.save_encoder:
-            encoder_filename = 'encoder_episode_{:05d}.pt'.format(episode)
-            torch.save(self.encoder.state_dict(), model_dir + encoder_filename)
-            logger.info("Encoder exported to {}".format(model_dir + encoder_filename))
+            self.encoder.save(model_dir, episode, best_model)
 
 
     def forward(self, data_tuple):

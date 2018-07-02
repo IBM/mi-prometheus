@@ -55,12 +55,15 @@ model:
     num_control_bits: *cbits 
     num_data_bits: *dbits
     num_output_bits: *obits
+    # Save/load encoder.
+    #save_encoder: True
+    load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180702_132024/models/encoder_episode_09400.pth.tar
+    freeze_encoder: True
     # Indices of control bits triggering encoding/decoding.
     encoding_bit: 0
     solving_bit: 1
     # Pass the whole state from encoder to solver cell.
     pass_cell_state: True
-    load_encoder: ''
     # Controller parameters.
     controller:
         name: rnn

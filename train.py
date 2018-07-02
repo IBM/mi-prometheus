@@ -66,35 +66,6 @@ def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
     return loss_valid, False
 
 
-def curriculum_learning_update_problem_params(problem, episode, param_interface):
-    """
-    Updates problem parameters according to curriculum learning.
-
-    :returns: Boolean informing whether curriculum learning is finished (or wasn't active at all).
-    """
-    # Curriculum learning stop condition.
-    curric_done = True
-    try:
-        # If the 'curriculum_learning' section is not present, this line will throw an exception.
-        curr_config = param_interface['problem_train']['curriculum_learning']
-
-        # Read min and max length.
-        min_length = param_interface['problem_train']['min_sequence_length']
-        max_max_length = param_interface['problem_train']['max_sequence_length']
-
-        if curr_config['interval'] > 0:
-            # Curriculum learning goes from the initial max length to the max length in steps of size 1
-            max_length = curr_config['initial_max_sequence_length'] + (episode // curr_config['interval'])
-            if max_length >= max_max_length:
-                max_length = max_max_length
-            else:
-                curric_done = False
-                # Change max length.
-            problem.set_max_length(max_length)
-    except KeyError:
-        pass
-    # Return information whether we finished CL (i.e. reached max sequence length).
-    return curric_done
 
 
 if __name__ == '__main__':
@@ -222,7 +193,7 @@ if __name__ == '__main__':
     problem = ProblemFactory.build_problem(param_interface['problem_train'])
 
     # Initialize curriculum learning.
-    curric_done = curriculum_learning_update_problem_params(problem, 0, param_interface)
+    curric_done = problem.curriculum_learning_update_params(0)
 
     # Build problem for the validation
     problem_validation = ProblemFactory.build_problem(param_interface['problem_validation'])
@@ -246,7 +217,8 @@ if __name__ == '__main__':
     # Start Training
     episode = 0
     last_losses = collections.deque()
-    validation_loss=.7 #default value so the loop won't terminate if the validation is not done on the first step
+    # Initialization of best loss - as INF.
+    best_loss = np.inf
 
     # Create statistics collector.
     stat_col = StatisticsCollector()
@@ -286,7 +258,7 @@ if __name__ == '__main__':
     for data_tuple, aux_tuple in problem.return_generator():
 
         # apply curriculum learning - change problem max seq_length
-        curric_done = curriculum_learning_update_problem_params(problem, episode, param_interface)
+        curric_done = problem.curriculum_learning_update_params(episode)
 
         # reset gradients
         optimizer.zero_grad()
@@ -353,28 +325,40 @@ if __name__ == '__main__':
             if model.plot(data_tuple,  logits):
                 break
 
-        #  5. Save the model then validate
+        #  5. Validate and, save the model.
+        user_pressed_stop = False
         if (episode % validation_frequency) == 0:
-            model.save(model_dir, episode)
+        
+            if do_validation:
+
+                # Check visualization flag - turn on when we wanted to visualize (at least) validation.
+                if FLAGS.visualize is not None and (FLAGS.visualize == 1 or FLAGS.visualize == 2):
+                    app_state.visualize = True
+                else:
+                    app_state.visualize = False
+
+                # Perform validation.
+                validation_loss, user_pressed_stop = validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
+                        logger,   validation_file,  validation_writer)
+
+                # Check the score.
+                if (validation_loss < best_loss):
+                    best_loss = validation_loss
+                    model.save(model_dir, episode, True)
+                else:
+                    model.save(model_dir, episode, False)
+                              
+            else: 
+                # Save model without validation, so we have no idea whether it is the best model or not.
+                model.save(model_dir, episode, False)
 
 
-        if (episode % validation_frequency) == 0 and do_validation:
+        # 6. Terminal conditions.
+        # I. User pressed stop during visualization.
+        if user_pressed_stop:
+            break
 
-            # Check visualization flag - turn on when we wanted to visualize (at least) validation.
-            if FLAGS.visualize is not None and (FLAGS.visualize == 1 or FLAGS.visualize == 2):
-                app_state.visualize = True
-            else:
-                app_state.visualize = False
-
-            validation_loss, stop_now = validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
-                    logger,   validation_file,  validation_writer)
-            
-            # Perform validation.
-            if stop_now:
-                break
-            # End of validation.
-
-
+        # II. & III - only when we finished curriculum. 
         if curric_done:
             # break if conditions applied: convergence or max episodes
             loss_stop=True
@@ -385,14 +369,15 @@ if __name__ == '__main__':
 
             if loss_stop or episode == param_interface['settings']['max_episodes'] :
                 terminal_condition = True
-                model.save(model_dir, episode)
+                # The line below makes no sense, because we already saved exactly that model. :]
+                # model.save(model_dir, episode)
 
                 break
                 # "Finish" episode.
 
         episode += 1
 
-    # Check whether we have finished training!
+    # Check whether we have finished training properly.
     if terminal_condition:
         logger.info('Learning finished!')
         logger.info('Model saved in '+ log_dir)
