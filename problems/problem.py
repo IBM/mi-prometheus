@@ -124,3 +124,15 @@ class Problem(metaclass=ABCMeta):
         data_tuple = DataTuple(gpu_inputs, gpu_targets)
 
         return data_tuple, aux_tuple
+
+    def plot_preprocessing(self, data_tuple, aux_tuple, logits):
+        """
+        Allows for some data preprocessing before the model creates a plot for visualization during training or
+        inference.
+        To be redefined in inheriting classes.
+        :param data_tuple: Data tuple.
+        :param aux_tuple: Auxiliary tuple.
+        :param logits: Logits being output of the model.
+        :return: data_tuplem aux_tuple, logits after preprocessing.
+        """
+        return data_tuple, aux_tuple, logits

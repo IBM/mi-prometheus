@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""lstm_controller.py: pytorch module implementing NTM interface to external memory."""
+"""ntm_interface.py: pytorch module implementing NTM interface to external memory."""
 __author__ = "Tomasz Kornuta"
 
 

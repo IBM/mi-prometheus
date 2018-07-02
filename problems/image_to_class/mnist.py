@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler
+import torch.nn.functional as F
 
 # Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
 import os,  sys
@@ -32,10 +33,13 @@ class MNIST(ImageToClassProblem):
         self.stop_index = params['stop_index']
         self.use_train_data = params['use_train_data']
         self.datasets_folder = params['mnist_folder']
+        self.padding = params['padding']
+        # up scaling the image to 224, 224 if True
+        self.up_scaling = params['up_scaling']
 
-        # define transforms
-        train_transform = transforms.Compose([
-            transforms.ToTensor()])
+        # Define transforms
+        train_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()]) \
+        if self.up_scaling else transforms.Compose([transforms.ToTensor()])
 
         # load the datasets
         self.train_datasets = datasets.MNIST(self.datasets_folder, train=self.use_train_data, download=True,
@@ -61,18 +65,22 @@ class MNIST(ImageToClassProblem):
         # train_loader a generator: (data, label)
         (data, label) = next(train_loader)
 
+        # padding data
+        data_padded = F.pad(data, self.padding, 'constant', 0)
+
         # Generate labels for aux tuple
         class_names = [self.mnist_class_names[i] for i in label]
 
         # Return DataTuple(!) and an empty (aux) tuple.
-        return DataTuple(data, label), LabelAuxTuple(class_names)
+        return DataTuple(data_padded, label), LabelAuxTuple(class_names)
 
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'batch_size':2, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist'}
+    params = {'batch_size':2, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist', 'padding': [4,4,3,3],
+              'up_scaling': False}
 
     # Create problem object.
     problem = MNIST(params)

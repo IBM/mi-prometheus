@@ -51,6 +51,16 @@ class ModelFactory(object):
             logger.info('Loading the LSTM model from models.lstm.lstm_model')
             from models.lstm.lstm_model import LSTM
             return LSTM(params)
+        elif name == 'maes':
+            logger.info('Loading the MAES model from models.encoder_solver.maes_model')
+            sys.path.append(os.path.join(os.path.dirname(__file__),  'encoder_solver'))
+            from models.encoder_solver.maes_model import MAES
+            return MAES(params)
+        elif name == 'mae2s':
+            logger.info('Loading the MAE2S model from models.encoder_solver.mae2s_model')
+            sys.path.append(os.path.join(os.path.dirname(__file__),  'encoder_solver'))
+            from models.encoder_solver.mae2s_model import MAE2S
+            return MAE2S(params)
         elif name == 'ntm':
             logger.info('Loading the NTM model from models.ntm.ntm_model')
             sys.path.append(os.path.join(os.path.dirname(__file__),  'ntm'))
@@ -71,7 +81,6 @@ class ModelFactory(object):
             return ThalNetModel(params)
         elif name == 'alexnet':
             logger.info('Loading the AlexnetWrapper model from models.vision.alexnet_wrapper')
-            logger.warning("Warning: AlexnetWrapper not tested!")
             from models.vision.alexnet_wrapper import AlexnetWrapper
             return AlexnetWrapper(params)
         elif name == 'simple_encoder_decoder':

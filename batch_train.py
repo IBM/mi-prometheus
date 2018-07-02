@@ -42,8 +42,40 @@ def run_experiment(yaml_file_path: str):
         params = yaml.load(yaml_file)
 
     # Change some params to random ones with specified ranges
-    params['settings']['loss_stop'] = 1.E-4
+    params['settings']['loss_stop'] = 1.E-5
     params['settings']['max_episodes'] = 100000
+    params['problem_train']['cuda'] = False
+    params['problem_train']['control_bits'] = 4
+    params['problem_validation']['control_bits'] = 4
+    params['problem_test']['control_bits'] = 4
+    params['problem_train']['min_sequence_length'] = 3
+    params['problem_train']['max_sequence_length'] = 10
+    params['problem_train']['curriculum_learning']['interval'] = 1000
+    params['problem_train']['curriculum_learning']['initial_max_sequence_length'] = 3
+    params['problem_validation']['min_sequence_length'] = 11
+    params['problem_validation']['max_sequence_length'] = 11
+    params['problem_test']['min_sequence_length'] = 1000
+    params['problem_test']['max_sequence_length'] = 1000
+
+    try:
+        params['model']['memory']['num_content_bits'] = 15
+    except KeyError:
+        pass
+    try:
+        params['model']['memory_content_size'] = 15
+    except KeyError:
+        pass
+
+    try:
+        params['model']['num_control_bits'] = 4
+    except KeyError:
+        pass
+    try:
+        params['model']['control_bits'] = 4
+    except KeyError:
+        pass
+
+
     params['settings']['seed_numpy'] = randrange(0, 2**32)
     params['settings']['seed_torch'] = randrange(0, 2**32)
 
@@ -51,7 +83,7 @@ def run_experiment(yaml_file_path: str):
     with NamedTemporaryFile(mode='w') as temp_yaml:
         yaml.dump(params, temp_yaml, default_flow_style=False)
 
-        command_str = "cuda-gpupick -n0 python3 train.py --c {0} --tensorboard 0".format(temp_yaml.name).split()
+        command_str = "python3 train.py --c {0}".format(temp_yaml.name).split()
 
         with open(os.devnull, 'w') as devnull:
             result = subprocess.run(command_str, stdout=devnull)
