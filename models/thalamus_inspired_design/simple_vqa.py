@@ -7,7 +7,7 @@ import torch.nn.init as init
 from models.model import Model
 from problems.problem import DataTuple
 from misc.app_state import AppState
-from problems.image_text_to_class.sort_of_clevr import
+
 
 class SimpleVQA(Model):
     """ Re-implementation of ``Show, Ask, Attend, and Answer: A Strong Baseline For Visual Question Answering'' [0]
@@ -25,7 +25,7 @@ class SimpleVQA(Model):
             v_features=vision_features,
             q_features=question_features,
             mid_features=50,
-            glimpses=2,
+            glimpses=glimpses,
             drop=0.5,
         )
         self.classifier = Classifier(
@@ -34,12 +34,6 @@ class SimpleVQA(Model):
             out_features=10,
             drop=0.5,
         )
-
-        for m in self.modules():
-            if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
-                init.xavier_uniform(m.weight)
-                if m.bias is not None:
-                    m.bias.data.zero_()
 
     def forward(self, data_tuple):
         (images, questions), _ = data_tuple
@@ -139,6 +133,7 @@ def apply_attention(input, attention):
     weighted = input * attention
     # sum over only the spatial dimension
     weighted_mean = weighted.sum(dim=3)
+
     # the shape at this point is (n, glimpses, c, 1)
     return weighted_mean.view(n, -1)
 
@@ -153,3 +148,33 @@ def tile_2d_over_nd(feature_vector, feature_map):
 
     return tiled
 
+if __name__ == '__main__':
+    # Set visualization.
+    AppState().visualize = True
+
+    # Test base model.
+    params = []
+
+    # model
+    model = SimpleVQA(params)
+
+    while True:
+        # Generate new sequence.
+        # "Image" - batch x channels x width x height
+        input_np = np.random.binomial(1, 0.5, (1, 128,  128, 3))
+        image = torch.from_numpy(input_np).type(torch.FloatTensor)
+
+        #Question
+        questions_np = np.random.binomial(1, 0.5, (1, 13))
+        questions = torch.from_numpy(questions_np).type(torch.FloatTensor)
+
+        # Target.
+        target = torch.randint(10, (10,), dtype=torch.int64)
+
+        dt = (image, questions), target
+        # prediction.
+        prediction = model(dt)
+
+        # Plot it and check whether window was closed or not.
+        if model.plot(dt, prediction):
+            break

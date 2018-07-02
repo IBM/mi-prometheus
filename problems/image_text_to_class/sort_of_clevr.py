@@ -164,9 +164,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         # Generate tuple with inputs
         inputs = ImageTextTuple(torch.from_numpy(np.stack(images, axis=0)).type(torch.FloatTensor), torch.from_numpy(np.stack(questions, axis=0)))
         targets = np.stack(answers, 0)
-        print(targets)
         index_targets = torch.from_numpy(np.argmax(targets, axis=1))
-        print(index_targets)
 
         # Add scene decription to aux tuple.
         aux_tuple = SceneDescriptionTuple(scenes)
