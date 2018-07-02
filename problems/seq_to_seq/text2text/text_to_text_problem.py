@@ -65,11 +65,12 @@ class TextToTextProblem(SeqToSeqProblem):
 
         :return: Average BLEU Score for the whole batch ( 0 < BLEU < 1)
         """
+        # get most probable words indexes for the batch
         _, top_indexes = logits.topk(k=1, dim=-1)
         logits = top_indexes.squeeze()
         batch_size = logits.shape[0]
 
-        from nltk.translate.bleu_score import sentence_bleu
+        from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 
         # retrieve target sentences from TextAuxTuple
         targets_text = []
@@ -79,11 +80,11 @@ class TextToTextProblem(SeqToSeqProblem):
         # retrieve text sentences from the logits (which should be tensors of indexes)
         logits_text = []
         for logit in logits:
-            logits_text.append([aux_tuple.output_lang.index2word[index] for index in logit.numpy()])
+            logits_text.append([aux_tuple.output_lang.index2word[index.item()] for index in logit])
 
         bleu_score = 0
         for i in range(batch_size):
-            bleu_score += sentence_bleu([targets_text[i]], logits_text[i])
+            bleu_score += sentence_bleu([targets_text[i]], logits_text[i], smoothing_function=SmoothingFunction().method1)
 
         return round(bleu_score / batch_size, 4)
 
