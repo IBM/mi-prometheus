@@ -369,8 +369,8 @@ if __name__ == '__main__':
 
             if loss_stop or episode == param_interface['settings']['max_episodes'] :
                 terminal_condition = True
-                # The line below makes no sense, because we already saved exactly that model. :]
-                # model.save(model_dir, episode)
+                # If this episode is different from the one set by "validation_interval"
+                model.save(model_dir, episode)
 
                 break
                 # "Finish" episode.
