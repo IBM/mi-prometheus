@@ -2,8 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from models.stacked_attention_vqa.image_encoding import ImageEncoding
 
+
+from models.stacked_attention_vqa.image_encoding import ImageEncoding
 from models.model import Model
 from misc.app_state import AppState
 
@@ -80,8 +81,9 @@ class StackedAttentionVQA(Model):
         return answer
 
     def init_hidden_states(self, batch_size):
-        hx = torch.randn(self.num_layers, batch_size, self.hidden_size)
-        cx = torch.randn(self.num_layers, batch_size, self.hidden_size)
+        dtype = AppState().dtype
+        hx = torch.randn(self.num_layers, batch_size, self.hidden_size).type(dtype)
+        cx = torch.randn(self.num_layers, batch_size, self.hidden_size).type(dtype)
 
         return hx, cx
 

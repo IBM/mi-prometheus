@@ -90,14 +90,9 @@ class ModelFactory(object):
             from models.stacked_attention_vqa.simple_vqa import SimpleVQA
             return SimpleVQA(params)
         elif name == 'stacked_attention':
-            logger.info('Loading the HierarchicalCNN model from models.thalamus_inspired_design.simple_vqa')
+            logger.info('Loading the HierarchicalCNN model from models.thalamus_inspired_design.stacked_attention_vqa')
             logger.warning("Warning: HierarchicalCNN under development")
             from models.stacked_attention_vqa.stacked_attention_vqa import StackedAttentionVQA
             return StackedAttentionVQA(params)
-        elif name == 'memory_vqa':
-            logger.info('Loading the HierarchicalCNN model models.memory_vqa.memory_vqa')
-            logger.warning("Warning: HierarchicalCNN under development")
-            from models.memory_vqa.memory_vqa import MemoryVQA
-            return MemoryVQA(params)
         else:
             raise ValueError
