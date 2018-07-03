@@ -15,7 +15,7 @@ import subprocess
 
 
 EXPERIMENT_REPETITIONS = 10
-MAX_PROCESSES = 1
+MAX_PROCESSES = 1000
 
 def main():
     batch_file = sys.argv[1]
