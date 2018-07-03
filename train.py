@@ -74,7 +74,7 @@ if __name__ == '__main__':
     parser.add_argument('--agree', dest='confirm', action='store_true',
                         help='Request user confirmation just after loading the settings, before starting training  (Default: False)')
     parser.add_argument('--config', dest='config', type=str, default='',
-                        help='Name of the configuration file to be loaded')
+                        help='Name of the configuration file(s) to be loaded (more than one file must be separated with coma ",")')
     parser.add_argument('--savetag', dest='savetag', type=str, default='',
                         help='Tag for the save directory')
     parser.add_argument('--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2], type=int,
@@ -99,17 +99,24 @@ if __name__ == '__main__':
 
     # Check if config file was selected.
     if FLAGS.config == '':
-        print('Please pass configuration file as --c parameter')
+        print('Please pass configuration file(s) as --c parameter')
         exit(-1)
-    # Check if file exists.
-    if not os.path.isfile(FLAGS.config):
-        print('Configuration file {} does not exists'.format(FLAGS.config))
-        exit(-2)
+    configs = FLAGS.config.split(',')
 
-    # Read the YAML file.
+    # Create parm interface object.
     param_interface = ParamInterface()
-    with open(FLAGS.config, 'r') as stream:
-        param_interface.add_custom_params(yaml.load(stream))
+
+    # Read the YAML files one by one.
+    for config in configs:
+        # Check if file exists.
+        if not os.path.isfile(config):
+            print('Configuration file {} does not exists'.format(config))
+            exit(-2)
+
+        # Open and overwrite
+        with open(config, 'r') as stream:
+            param_interface.add_custom_params(yaml.load(stream))
+    # Done. In here param interface contains configuration loaded (and overwritten) from several files. 
 
     # Get problem and model names.
     task_name = param_interface['problem_train']['name']
@@ -349,8 +356,12 @@ if __name__ == '__main__':
                     model.save(model_dir, episode, False)
                               
             else: 
-                # Save model without validation, so we have no idea whether it is the best model or not.
-                model.save(model_dir, episode, False)
+                # We are not doing validation, so we rely on train loss.
+                if (max(last_losses) < best_loss):
+                    best_loss = max(last_losses)
+                    model.save(model_dir, episode, True)
+                else:
+                    model.save(model_dir, episode, False)
 
 
         # 6. Terminal conditions.
@@ -364,17 +375,18 @@ if __name__ == '__main__':
             loss_stop=True
             if validation_stopping:
                 loss_stop = validation_loss < param_interface['settings']['loss_stop']
+                # We already saved that model.
             else:
                 loss_stop = max(last_losses) < param_interface['settings']['loss_stop']
+                # We already saved that model.
 
-            if loss_stop or episode == param_interface['settings']['max_episodes'] :
+            if episode == param_interface['settings']['max_episodes'] :
                 terminal_condition = True
-                # If this episode is different from the one set by "validation_interval"
-                model.save(model_dir, episode)
-
+                # If we are here then it means that we didn't converged and the model is bad for sure. 
+                model.save(model_dir, episode, False)
+                # "Finish" the training.
                 break
-                # "Finish" episode.
-
+        # Next episode.
         episode += 1
 
     # Check whether we have finished training properly.
