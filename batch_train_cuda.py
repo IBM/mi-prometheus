@@ -15,7 +15,7 @@ import subprocess
 from time import sleep
 
 EXPERIMENT_REPETITIONS = 10
-MAX_THREADS = 7
+MAX_THREADS = 6 
 
 def main():
     batch_file = sys.argv[1]
@@ -60,18 +60,21 @@ def run_experiment(yaml_file_path: str):
     params['settings']['max_episodes'] = 100000
     params['problem_train']['cuda'] = True
     params['problem_test']['cuda'] = True
-    params['problem_train']['control_bits'] = 4
-    params['problem_validation']['control_bits'] = 4
-    params['problem_test']['control_bits'] = 4
+    params['problem_train']['control_bits'] = 3
+    params['problem_validation']['control_bits'] = 3
+    params['problem_test']['control_bits'] = 3
     params['problem_train']['min_sequence_length'] = 3
-    params['problem_train']['max_sequence_length'] = 10
-    params['problem_train']['curriculum_learning']['interval'] = 1000
-    params['problem_train']['curriculum_learning']['initial_max_sequence_length'] = 3
-    params['problem_validation']['min_sequence_length'] = 11
-    params['problem_validation']['max_sequence_length'] = 11
+    params['problem_train']['max_sequence_length'] = 20
+    params['problem_train']['curriculum_learning']['interval'] = 500
+    params['problem_train']['curriculum_learning']['initial_max_sequence_length'] = 5
+    params['problem_validation']['min_sequence_length'] = 21
+    params['problem_validation']['max_sequence_length'] = 21
     params['problem_test']['min_sequence_length'] = 1000
     params['problem_test']['max_sequence_length'] = 1000
 
+    param['problem_validation']['frequency'] = 1000
+    params['model']['num_layers'] = 3
+    params['model']['hidden_state_dim'] = 512
     try:
         params['model']['memory']['num_content_bits'] = 15
     except KeyError:
@@ -82,11 +85,11 @@ def run_experiment(yaml_file_path: str):
         pass
 
     try:
-        params['model']['num_control_bits'] = 4
+        params['model']['num_control_bits'] = 3
     except KeyError:
         pass
     try:
-        params['model']['control_bits'] = 4
+        params['model']['control_bits'] = 3
     except KeyError:
         pass
 
