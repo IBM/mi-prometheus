@@ -72,7 +72,6 @@ def run_experiment(yaml_file_path: str):
     params['problem_test']['min_sequence_length'] = 1000
     params['problem_test']['max_sequence_length'] = 1000
 
-    params['problem_validation']['frequency'] = 1000
     try:
         params['model']['memory']['num_content_bits'] = 15
     except KeyError:
