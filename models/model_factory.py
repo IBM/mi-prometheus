@@ -87,13 +87,13 @@ class ModelFactory(object):
         elif name == 'simple_vqa':
             logger.info('Loading the HierarchicalCNN model from models.thalamus_inspired_design.simple_vqa')
             logger.warning("Warning: HierarchicalCNN under development")
-            from models.thalamus_inspired_design.simple_vqa import SimpleVQA
+            from models.stacked_attention_vqa.simple_vqa import SimpleVQA
             return SimpleVQA(params)
         elif name == 'simple_vqa_v1':
             logger.info('Loading the HierarchicalCNN model from models.thalamus_inspired_design.simple_vqa')
             logger.warning("Warning: HierarchicalCNN under development")
-            from models.thalamus_inspired_design.simple_vqa_v1 import SimpleVQA
-            return SimpleVQA(params)
+            from models.stacked_attention_vqa.stacked_attention_vqa import StackedAttentionVQA
+            return StackedAttentionVQA(params)
         elif name == 'memory_vqa':
             logger.info('Loading the HierarchicalCNN model models.memory_vqa.memory_vqa')
             logger.warning("Warning: HierarchicalCNN under development")

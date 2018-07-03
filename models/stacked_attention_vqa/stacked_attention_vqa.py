@@ -2,35 +2,42 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import torch.nn.init as init
+from models.stacked_attention_vqa.image_encoding import ImageEncoding
 
 from models.model import Model
-from problems.problem import DataTuple
 from misc.app_state import AppState
 
 
-class SimpleVQA(Model):
+class StackedAttentionVQA(Model):
     """ Re-implementation of ``Show, Ask, Attend, and Answer: A Strong Baseline For Visual Question Answering'' [0]
 
     [0]: https://arxiv.org/abs/1704.03162
     """
 
     def __init__(self, params):
-        super(SimpleVQA, self).__init__(params)
+        super(StackedAttentionVQA, self).__init__(params)
+
+        # Retrieve attention and image parameters
         question_features = 10
         vision_features = 3
-        glimpses = 2
-        mid_features = 50
+        glimpses = 3
+        mid_features = 64
+
+        # LSTM parameters
         self.hidden_size = 10
-        input_size = 7
+        self.word_embedded_size = 7
         self.num_layers = 3
 
-        self.encoded_image = ImageEncoding(
-            v_features = 3,
-            mid_features = mid_features
+        # Instantiate class for image encoding
+        self.image_encoding = ImageEncoding(
+            num_channels_image=3,
+            depth_conv1=16,
+            depth_conv2=32,
+            depth_conv3=64
         )
 
-        self.lstm = nn.LSTM(input_size, self.hidden_size, self.num_layers, batch_first=True)
+        # Instantiate class for question encoding
+        self.lstm = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
 
         self.attention = Attention(
             q_features=question_features,
@@ -51,22 +58,33 @@ class SimpleVQA(Model):
         images = images.transpose(1, 3)
         images = images.transpose(2, 3)
 
-        encoded_images = self.encoded_image(images)
+        # step1 : encode image
+        encoded_images = self.image_encoding(images)
 
-        # initial hidden_state
+        # Initial hidden_state for question encoding
         batch_size = images.size(0)
+        hx, cx = self.init_hidden_states(batch_size)
+
+        # step2 : encode question
+        encoded_question, _ = self.lstm(questions, (hx, cx))
+        last_layer_encoded_question = encoded_question[:, -1, :]
+
+        # step3 : apply attention
+        a = self.attention(encoded_images, last_layer_encoded_question)
+        v = apply_attention(images, a)
+
+        # step 4: classifying based in the encoded questions and attention
+        combined = torch.cat([v, last_layer_encoded_question], dim=1)
+        answer = self.classifier(combined)
+        return answer
+
+    def init_hidden_states(self, batch_size):
         hx = torch.randn(self.num_layers, batch_size, self.hidden_size)
         cx = torch.randn(self.num_layers, batch_size, self.hidden_size)
 
-        encoded_question, _ = self.lstm(questions, (hx, cx))
-        encoded_question_last = encoded_question[:, -1, :]
+        return hx, cx
 
-        a = self.attention(encoded_images, encoded_question_last)
-        v = apply_attention(images, a)
 
-        combined = torch.cat([v, encoded_question_last], dim=1)
-        answer = self.classifier(combined)
-        return answer
 
     def plot(self, data_tuple, predictions, sample_number=0):
         """
@@ -97,20 +115,6 @@ class SimpleVQA(Model):
         # Plot!
         plt.show()
         exit()
-
-
-class ImageEncoding(nn.Module):
-    def __init__(self, v_features, mid_features, drop=0.0):
-        super(ImageEncoding, self).__init__()
-        self.v_conv = nn.Conv2d(v_features, mid_features, 1, bias=False)  # let self.lin take care of bias
-
-        self.drop = nn.Dropout(drop)
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, v):
-        v = self.v_conv(self.drop(v))
-
-        return v
 
 
 class Attention(nn.Module):
@@ -187,7 +191,7 @@ if __name__ == '__main__':
     params = []
 
     # model
-    model = SimpleVQA(params)
+    model = StackedAttentionVQA(params)
 
     while True:
         # Generate new sequence.
@@ -196,7 +200,7 @@ if __name__ == '__main__':
         image = torch.from_numpy(input_np).type(torch.FloatTensor)
 
         #Question
-        questions_np = np.random.binomial(1, 0.5, (1, 13))
+        questions_np = np.random.binomial(1, 0.5, (1, 13, 7))
         questions = torch.from_numpy(questions_np).type(torch.FloatTensor)
 
         # Target.
