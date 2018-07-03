@@ -72,9 +72,13 @@ def run_experiment(yaml_file_path: str):
     params['problem_test']['min_sequence_length'] = 1000
     params['problem_test']['max_sequence_length'] = 1000
 
+<<<<<<< HEAD
     param['problem_validation']['frequency'] = 1000
     params['model']['num_layers'] = 3
     params['model']['hidden_state_dim'] = 512
+=======
+    params['problem_validation']['frequency'] = 1000
+>>>>>>> fdcfbb033e1e512f1eb7d472347e7d376c52d820
     try:
         params['model']['memory']['num_content_bits'] = 15
     except KeyError:
