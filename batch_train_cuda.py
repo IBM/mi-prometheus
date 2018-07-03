@@ -71,8 +71,8 @@ def run_experiment(yaml_file_path: str):
     params['problem_validation']['max_sequence_length'] = 21
     params['problem_test']['min_sequence_length'] = 1000
     params['problem_test']['max_sequence_length'] = 1000
-
-    param['problem_validation']['frequency'] = 1000
+    
+    params['problem_validation']['frequency'] = 1000
     params['model']['num_layers'] = 3
     params['model']['hidden_state_dim'] = 512
     try:
