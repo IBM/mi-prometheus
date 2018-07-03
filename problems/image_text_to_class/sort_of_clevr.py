@@ -23,17 +23,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..'))
 
 import torch
 from problems.problem import DataTuple
-from problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem, ImageTextTuple
-from problems.image_text_to_class.image_text_to_class_problem import SceneDescriptionTuple
-
-
-class ObjectRepresentation:
-    """ Class storing features of the object being present in a given scene. """
-    def __init__(self, x, y, color, shape):
-        self.x = x
-        self.y = y
-        self.color = color
-        self.shape = shape
+from problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem, ImageTextTuple, SceneDescriptionTuple, ObjectRepresentation
 
 
 class SortOfCLEVR(ImageTextToClassProblem):

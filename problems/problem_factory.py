@@ -41,7 +41,7 @@ class ProblemFactory(object):
         clsmembers = inspect.getmembers(sys.modules[name], is_class_member)
         # Assert there is only one class.
 
-        #assert len(clsmembers) == 1
+        assert len(clsmembers) == 1
         class_name = clsmembers[0][0]
 
         # Get problem class

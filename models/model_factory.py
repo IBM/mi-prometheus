@@ -85,14 +85,19 @@ class ModelFactory(object):
             from models.vision.alexnet_wrapper import AlexnetWrapper
             return AlexnetWrapper(params)
         elif name == 'simple_vqa':
-            logger.info('Loading the HierarchicalCNN model from models.thalamus_inspired_design.hierarchical_cnn')
+            logger.info('Loading the HierarchicalCNN model from models.thalamus_inspired_design.simple_vqa')
             logger.warning("Warning: HierarchicalCNN under development")
             from models.thalamus_inspired_design.simple_vqa import SimpleVQA
             return SimpleVQA(params)
-        elif name == 'memory_vqa':
-            logger.info('Loading the HierarchicalCNN model from models.thalamus_inspired_design.hierarchical_cnn')
+        elif name == 'simple_vqa_v1':
+            logger.info('Loading the HierarchicalCNN model from models.thalamus_inspired_design.simple_vqa')
             logger.warning("Warning: HierarchicalCNN under development")
-            from models.thalamus_inspired_design.memory_vqa import MemoryVQA
+            from models.thalamus_inspired_design.simple_vqa_v1 import SimpleVQA
+            return SimpleVQA(params)
+        elif name == 'memory_vqa':
+            logger.info('Loading the HierarchicalCNN model models.memory_vqa.memory_vqa')
+            logger.warning("Warning: HierarchicalCNN under development")
+            from models.memory_vqa.memory_vqa import MemoryVQA
             return MemoryVQA(params)
         else:
             raise ValueError

@@ -7,29 +7,40 @@ import torch.nn.init as init
 from models.model import Model
 from problems.problem import DataTuple
 from misc.app_state import AppState
+from problems.image_text_to_class.shape_color_query import ShapeColorQuery
 
 
-class SimpleVQA(Model):
+class MemoryVQA(Model):
     """ Re-implementation of ``Show, Ask, Attend, and Answer: A Strong Baseline For Visual Question Answering'' [0]
 
     [0]: https://arxiv.org/abs/1704.03162
     """
 
     def __init__(self, params):
-        super(SimpleVQA, self).__init__(params)
-        question_features = 13
+        super(MemoryVQA, self).__init__(params)
+        question_features = 10
         vision_features = 3
+        num_words = 3
         self.glimpses = 3
+        mid_features = 50
+        self.hidden_size = 10
+        input_size = 7
+
+        self.encoded_image = ImageEncoding(
+            v_features = 3,
+            mid_features = mid_features
+        )
+
+        self.lstm = nn.LSTMCell(input_size, self.hidden_size)
 
         self.get_attention = Attention(
-            v_features=vision_features,
             q_features=question_features,
-            mid_features=50,
+            mid_features=mid_features,
             glimpses=self.glimpses,
             drop=0.5,
         )
         self.classifier = Classifier(
-            in_features=self.glimpses * vision_features + question_features,
+            in_features=(self.glimpses * vision_features)*num_words + question_features,
             mid_features=1024,
             out_features=10,
             drop=0.5,
@@ -42,12 +53,30 @@ class SimpleVQA(Model):
         images = images.transpose(1, 3)
         images = images.transpose(2, 3)
 
-        attention = self.get_attention(images, questions)
-        self.attention = attention
+        # step 1 : encode image
+        encoded_images = self.encoded_image(images)
 
-        v = apply_attention(images, attention)
+        # initial hidden_state
+        batch_size = images.size(0)
+        hx = torch.randn(batch_size, self.hidden_size)
+        cx = torch.randn(batch_size, self.hidden_size)
 
-        combined = torch.cat([v, questions], dim=1)
+        v_features = None
+        for i in range(questions.size(1)):
+            # step 2: encode words
+            hx, cx = self.lstm(questions[:, i, :], (hx, cx))
+
+            attention = self.get_attention(encoded_images, hx)
+            self.attention = attention
+
+            v = apply_attention(images, attention)
+
+            if v_features is None:
+                 v_features = v
+            else:
+                v_features = torch.cat((v_features, v), dim=-1)
+
+        combined = torch.cat([v_features, hx], dim=1)
         answer = self.classifier(combined)
         return answer
 
@@ -66,15 +95,28 @@ class SimpleVQA(Model):
         import matplotlib.gridspec as gridspec
 
         # Unpack tuples.
-        (images, texts), targets = data_tuple
+        (images, questions), targets = data_tuple
+
+        # "Loaded parameters".
+        params = {'batch_size': 10,
+                  'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy',
+                  # 'shuffle': False,
+                  # "regenerate": True,
+                  'dataset_size': 10000, 'img_size': 128, 'regenerate': False
+                  }
+
+        # instantiate shape color class
+        shape_color_query = ShapeColorQuery(params)
 
         # Get sample.
-        image = images[sample_number].cpu().detach().numpy()
-        target = targets[sample_number].cpu().detach().numpy()
-        prediction = predictions[sample_number].cpu().detach().numpy()
+        image = images[sample_number].detach().numpy()
+        answer = targets[sample_number].detach().numpy()
+        prediction = predictions[sample_number].detach().numpy()
+        question = questions[sample_number].detach().numpy()
 
         # Show data.
-        plt.title('Prediction: {} (Target: {})'.format(np.argmax(prediction), target))
+        plt.xlabel('Prediction: {} (Target: {})'.format(shape_color_query.answer2str(np.argmax(prediction)), shape_color_query.answer2str(answer)))
+        plt.title('Q: {}'.format(shape_color_query.question2str(question)))
         plt.imshow(image.transpose(0,1,2), interpolation='nearest', aspect='auto')
 
         # feature attention
@@ -93,20 +135,23 @@ class SimpleVQA(Model):
         exit()
 
 
-class Classifier(nn.Sequential):
-    def __init__(self, in_features, mid_features, out_features, drop=0.0):
-        super(Classifier, self).__init__()
-        self.add_module('drop1', nn.Dropout(drop))
-        self.add_module('lin1', nn.Linear(in_features, mid_features))
-        self.add_module('relu', nn.ReLU())
-        self.add_module('drop2', nn.Dropout(drop))
-        self.add_module('lin2', nn.Linear(mid_features, out_features))
+class ImageEncoding(nn.Module):
+    def __init__(self, v_features, mid_features, drop=0.0):
+        super(ImageEncoding, self).__init__()
+        self.v_conv = nn.Conv2d(v_features, mid_features, 1, bias=False)  # let self.lin take care of bias
+
+        self.drop = nn.Dropout(drop)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, v):
+        v = self.v_conv(self.drop(v))
+
+        return v
 
 
 class Attention(nn.Module):
-    def __init__(self, v_features, q_features, mid_features, glimpses, drop=0.0):
+    def __init__(self, q_features, mid_features, glimpses, drop=0.0):
         super(Attention, self).__init__()
-        self.v_conv = nn.Conv2d(v_features, mid_features, 1, bias=False)  # let self.lin take care of bias
         self.q_lin = nn.Linear(q_features, mid_features)
         self.x_conv = nn.Conv2d(mid_features, glimpses, 1)
 
@@ -114,7 +159,6 @@ class Attention(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, v, q):
-        v = self.v_conv(self.drop(v))
         q = self.q_lin(self.drop(q))
         q = tile_2d_over_nd(q, v)
         x = self.relu(v + q)
@@ -152,6 +196,14 @@ def apply_attention(input, attention):
     # the shape at this point is (n, glimpses, c, 1)
     return weighted_mean.view(n, -1)
 
+class Classifier(nn.Sequential):
+    def __init__(self, in_features, mid_features, out_features, drop=0.0):
+        super(Classifier, self).__init__()
+        self.add_module('drop1', nn.Dropout(drop))
+        self.add_module('lin1', nn.Linear(in_features, mid_features))
+        self.add_module('relu', nn.ReLU())
+        self.add_module('drop2', nn.Dropout(drop))
+        self.add_module('lin2', nn.Linear(mid_features, out_features))
 
 def tile_2d_over_nd(feature_vector, feature_map):
     """ Repeat the same feature vector over all spatial positions of a given feature map.
@@ -171,7 +223,7 @@ if __name__ == '__main__':
     params = []
 
     # model
-    model = SimpleVQA(params)
+    model = MemoryVQA(params)
 
     while True:
         # Generate new sequence.
@@ -180,7 +232,7 @@ if __name__ == '__main__':
         image = torch.from_numpy(input_np).type(torch.FloatTensor)
 
         #Question
-        questions_np = np.random.binomial(1, 0.5, (1, 13))
+        questions_np = np.random.binomial(1, 0.5, (1, 3, 7))
         questions = torch.from_numpy(questions_np).type(torch.FloatTensor)
 
         # Target.

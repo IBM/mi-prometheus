@@ -9,14 +9,14 @@ from problems.problem import DataTuple
 from misc.app_state import AppState
 
 
-class MemoryVQA(Model):
+class SimpleVQA(Model):
     """ Re-implementation of ``Show, Ask, Attend, and Answer: A Strong Baseline For Visual Question Answering'' [0]
 
     [0]: https://arxiv.org/abs/1704.03162
     """
 
     def __init__(self, params):
-        super(MemoryVQA, self).__init__(params)
+        super(SimpleVQA, self).__init__(params)
         question_features = 10
         vision_features = 3
         glimpses = 2
@@ -38,6 +38,7 @@ class MemoryVQA(Model):
             glimpses=glimpses,
             drop=0.5,
         )
+
         self.classifier = Classifier(
             in_features=glimpses * vision_features + question_features,
             mid_features=1024,
@@ -186,7 +187,7 @@ if __name__ == '__main__':
     params = []
 
     # model
-    model = MemoryVQA(params)
+    model = SimpleVQA(params)
 
     while True:
         # Generate new sequence.

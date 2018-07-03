@@ -22,7 +22,16 @@ _SceneDescriptionTuple = collections.namedtuple('_SceneDescriptionTuple', ('scen
 class SceneDescriptionTuple(_SceneDescriptionTuple):
     """Tuple used by storing batches of scene descriptions - as strings. """
     __slots__ = ()
-    
+
+
+class ObjectRepresentation:
+    """ Class storing features of the object being present in a given scene. """
+    def __init__(self, x, y, color, shape):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.shape = shape
+
 
 class ImageTextToClassProblem(Problem):
     ''' Abstract base class for VQA  (Visual Question Answering) problems. Provides some basic functionality usefull in all problems of such type'''

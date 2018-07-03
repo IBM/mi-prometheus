@@ -1,0 +1,56 @@
+# Problem parameters:
+problem_train:
+    name: &name shape_color_query
+    batch_size: 32
+    data_folder: '~/data/shape-color-query/'
+    data_filename: 'training.hy'
+    dataset_size: 15000
+    img_size: 128
+    shuffle: True
+    regenerate: False
+    cuda: False
+
+# Problem parameters:
+problem_test:
+    name: *name
+    batch_size: 32
+    data_folder: '~/data/shape-color-query/'
+    data_filename: 'training.hy'
+    dataset_size: 100
+    img_size: 128
+    shuffle: True
+    regenerate: False
+
+# Problem parameters:
+problem_validation:
+    name: *name
+    batch_size: 32
+    data_folder: '~/data/shape-color-query/'
+    data_filename: 'training.hy'
+    dataset_size: 100
+    img_size: 128
+    shuffle: True
+    regenerate: False
+
+# Model parameters:
+model:
+    name: simple_vqa_v1   # dynamic_working_memory
+    # Input bits = [control_bits, data_bits]
+    # Output bits = [data_bits]
+
+# optimizer parameters:
+optimizer:
+    # Exact name of the pytorch optimizer function
+    name: Adam
+    # Function arguments of the optimizer, by name
+    lr: 0.01
+
+# settings parameters
+settings:
+    # masked output and target
+    use_mask: True
+    length_loss: 10
+    loss_stop: 1.0e-5
+    max_episodes: 50000
+    seed_numpy: 4354
+    seed_torch: 2452

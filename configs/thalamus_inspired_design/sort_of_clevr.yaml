@@ -6,7 +6,7 @@ problem_train:
     data_filename: 'training.hy'
     dataset_size: 15000
     img_size: 128
-    regenerate: False
+    regenerate: True
     cuda: False
 
 # Problem parameters:
