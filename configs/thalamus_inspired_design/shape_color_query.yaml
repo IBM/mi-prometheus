@@ -34,7 +34,7 @@ problem_validation:
 
 # Model parameters:
 model:
-    name: simple_vqa_v1   # dynamic_working_memory
+    name: stacked_attention   # dynamic_working_memory
     # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
 

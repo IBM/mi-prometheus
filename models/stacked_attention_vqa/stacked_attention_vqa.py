@@ -19,9 +19,9 @@ class StackedAttentionVQA(Model):
 
         # Retrieve attention and image parameters
         question_features = 10
-        vision_features = 3
-        glimpses = 3
-        mid_features = 64
+        self.num_channels_image = 3
+        self.glimpses = 3
+        self.mid_features = 64
 
         # LSTM parameters
         self.hidden_size = 10
@@ -41,13 +41,13 @@ class StackedAttentionVQA(Model):
 
         self.attention = Attention(
             q_features=question_features,
-            mid_features=mid_features,
-            glimpses=glimpses,
+            mid_features=self.mid_features,
+            glimpses=self.glimpses,
             drop=0.5,
         )
 
         self.classifier = Classifier(
-            in_features=glimpses * vision_features + question_features,
+            in_features=self.glimpses * self.mid_features + question_features,
             mid_features=1024,
             out_features=10,
             drop=0.5,
@@ -71,10 +71,11 @@ class StackedAttentionVQA(Model):
 
         # step3 : apply attention
         a = self.attention(encoded_images, last_layer_encoded_question)
-        v = apply_attention(images, a)
+        v = apply_attention(encoded_images, a)
 
         # step 4: classifying based in the encoded questions and attention
         combined = torch.cat([v, last_layer_encoded_question], dim=1)
+
         answer = self.classifier(combined)
         return answer
 
@@ -83,8 +84,6 @@ class StackedAttentionVQA(Model):
         cx = torch.randn(self.num_layers, batch_size, self.hidden_size)
 
         return hx, cx
-
-
 
     def plot(self, data_tuple, predictions, sample_number=0):
         """
@@ -131,6 +130,7 @@ class Attention(nn.Module):
         q = tile_2d_over_nd(q, v)
         x = self.relu(v + q)
         x = self.x_conv(self.drop(x))
+
         return x
 
 
@@ -160,7 +160,6 @@ def apply_attention(input, attention):
     weighted = input * attention
     # sum over only the spatial dimension
     weighted_mean = weighted.sum(dim=3)
-
     # the shape at this point is (n, glimpses, c, 1)
     return weighted_mean.view(n, -1)
 

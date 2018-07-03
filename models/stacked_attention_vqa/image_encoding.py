@@ -25,16 +25,16 @@ class ImageEncoding(nn.Module):
         # apply max_pooling and relu
         x1_max_pool = F.relu(F.max_pool2d(x1, self.num_pooling))
 
-        # apply convectional layer 1
+        # apply Convolutional layer 1
         x2 = self.conv2(x1_max_pool)
 
         # apply max_pooling and relu
         x2_max_pool = F.relu(F.max_pool2d(x2, self.num_pooling))
 
-        # apply convectional layer 1
-        x2 = self.conv2(x1_max_pool)
+        # apply convectional layer 2
+        x3 = self.conv3(x2_max_pool)
 
         # apply max_pooling and relu
-        x2_max_pool = F.relu(F.max_pool2d(x2, self.num_pooling))
+        x3_max_pool = F.relu(F.max_pool2d(x3, self.num_pooling))
 
-        return x2_max_pool
+        return x3_max_pool
