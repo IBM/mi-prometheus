@@ -146,7 +146,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         for id in batch_ids:
             group = self.data[id]
             # Process data
-            images.append(group['image'].value/255.) 
+            images.append((group['image'].value/255).transpose(2,1,0))
             questions.append(group['question'].value.astype(np.float32)) 
             answers.append(group['answer'].value.astype(np.float32)) 
             scenes.append(group['scene_description'].value)
@@ -437,7 +437,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         scene_descriptions = aux_tuple.scene_descriptions
 
         # Get sample.
-        image = images[sample_number]
+        image = images[sample_number].numpy().transpose(1,2,0)
         question = questions[sample_number]
         answer = answers[sample_number]
 

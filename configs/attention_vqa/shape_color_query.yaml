@@ -1,37 +1,40 @@
 # Problem parameters:
 problem_train:
-    name: &name sort_of_clevr
+    name: &name shape_color_query
     batch_size: 32
-    data_folder: '~/data/sort-of-clevr/'
+    data_folder: '~/data/shape-color-query/'
     data_filename: 'training.hy'
     dataset_size: 15000
     img_size: 128
-    regenerate: True
+    shuffle: True
+    regenerate: False
     cuda: False
 
 # Problem parameters:
 problem_test:
     name: *name
     batch_size: 32
-    data_folder: '~/data/sort-of-clevr/'
+    data_folder: '~/data/shape-color-query/'
     data_filename: 'training.hy'
     dataset_size: 100
     img_size: 128
+    shuffle: True
     regenerate: False
 
 # Problem parameters:
 problem_validation:
     name: *name
     batch_size: 32
-    data_folder: '~/data/sort-of-clevr/'
+    data_folder: '~/data/shape-color-query/'
     data_filename: 'training.hy'
     dataset_size: 100
     img_size: 128
+    shuffle: True
     regenerate: False
 
 # Model parameters:
 model:
-    name: simple_vqa   # dynamic_working_memory
+    name: attention_vqa   # use attention visual question answering
     # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
 

@@ -85,14 +85,14 @@ class ModelFactory(object):
             from models.vision.alexnet_wrapper import AlexnetWrapper
             return AlexnetWrapper(params)
         elif name == 'simple_vqa':
-            logger.info('Loading the HierarchicalCNN model from models.thalamus_inspired_design.simple_vqa')
-            logger.warning("Warning: HierarchicalCNN under development")
-            from models.stacked_attention_vqa.simple_vqa import SimpleVQA
+            logger.info('Loading the SimpleVQA model models.simple_vqa.simple_vqa')
+            logger.warning("Warning: SimpleVQA under development")
+            from models.simple_vqa.simple_vqa import SimpleVQA
             return SimpleVQA(params)
-        elif name == 'stacked_attention':
-            logger.info('Loading the HierarchicalCNN model from models.thalamus_inspired_design.stacked_attention_vqa')
-            logger.warning("Warning: HierarchicalCNN under development")
-            from models.stacked_attention_vqa.stacked_attention_vqa import StackedAttentionVQA
-            return StackedAttentionVQA(params)
+        elif name == 'attention_vqa':
+            logger.info('Loading the AttentionVQA model from models.attention_vqa.attention_vqa')
+            logger.warning("Warning: AttentionVQA under development")
+            from models.attention_vqa.attention_vqa import AttentionVQA
+            return AttentionVQA(params)
         else:
             raise ValueError

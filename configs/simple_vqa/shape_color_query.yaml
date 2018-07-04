@@ -5,9 +5,9 @@ problem_train:
     data_folder: '~/data/shape-color-query/'
     data_filename: 'training.hy'
     dataset_size: 15000
-    img_size: 128
+    img_size: 224
     shuffle: True
-    regenerate: False
+    regenerate: True
     cuda: False
 
 # Problem parameters:
@@ -34,7 +34,7 @@ problem_validation:
 
 # Model parameters:
 model:
-    name: stacked_attention   # dynamic_working_memory
+    name: simple_vqa   # simple visual question answering
     # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
 
