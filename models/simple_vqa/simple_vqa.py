@@ -21,7 +21,7 @@ class SimpleVQA(Model):
         super(SimpleVQA, self).__init__(params)
 
         # Retrieve attention and image parameters
-        self.question_features = 13
+        self.question_features = 20
         self.num_channels_image = 3
         self.glimpses = 3
         self.mid_features = 256
@@ -33,22 +33,19 @@ class SimpleVQA(Model):
 
         # Instantiate class for image encoding
         #self.image_encoding = alexnet(True).features # pretrained model
-        #self.image_encoding = ImageEncoding(
-        #    num_channels_image=3,
-        #    depth_conv1=16,
-        #    depth_conv2=32,
-        #    depth_conv3=64
-        #)
         self.image_encoding = ConvInputModel()
 
         # Instantiate class for question encoding
-        self.lstm = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
+        self.question_encoding = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
 
         self.classifier = Classifier(
             in_features= 1536 + self.question_features, #self.glimpses * self.mid_features + question_features,
             mid_features=256,
             out_features=10,
         )
+
+    #sort of clevr = in features 1536, question features 13
+    #shape = in features 1536, word size 7
 
     def forward(self, data_tuple):
         (images, questions), _ = data_tuple
@@ -61,8 +58,8 @@ class SimpleVQA(Model):
         hx, cx = self.init_hidden_states(batch_size)
 
         # step2 : encode question
-        #encoded_question, _ = self.lstm(questions, (hx, cx))
-        last_layer_encoded_question = questions
+        encoded_question, _ = self.question_encoding(questions, (hx, cx))
+        last_layer_encoded_question = encoded_question[:, -1, :]
 
         # step 3: classifying based in the encoded questions and image
         encoded_image_flattened = encoded_images.view(batch_size, -1)
