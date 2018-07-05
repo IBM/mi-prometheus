@@ -10,14 +10,16 @@ from misc.app_state import AppState
 
 
 class StackedAttention(nn.Module):
-    def __init__(self, q_features, mid_features, glimpses, drop=0.0):
+    def __init__(self, v_features, q_features, mid_features, glimpses, drop=0.0):
         super(StackedAttention, self).__init__()
+        self.v_conv = nn.Conv2d(v_features, mid_features, 1, bias=False)
         self.key_lin = nn.Linear(q_features, mid_features)
         self.x_conv = nn.Conv2d(mid_features, glimpses, 1)
 
         self.drop = nn.Dropout(drop)
 
     def forward(self, encoded_image, encoded_question):
+        encoded_image = self.v_conv(self.drop(encoded_image))
         key = self.key_lin(self.drop(encoded_question))
         key_expanded = tile_2d_over_nd(key, encoded_image)
 

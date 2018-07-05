@@ -23,7 +23,8 @@ class AttentionVQA(Model):
         self.question_features = 13
         self.num_channels_image = 3
         self.glimpses = 3
-        self.mid_features = 24
+        self.mid_features = 200
+        self.image_encoding_channels = 24
 
         # LSTM parameters
         self.hidden_size = self.question_features
@@ -39,6 +40,7 @@ class AttentionVQA(Model):
 
         # Instantiate class for attention
         self.apply_attention = StackedAttention(
+            v_features=self.image_encoding_channels,
             q_features=self.question_features,
             mid_features=self.mid_features,
             glimpses=self.glimpses,
@@ -135,7 +137,7 @@ if __name__ == '__main__':
     AppState().visualize = True
 
     # Test base model.
-    params = {'use_question_encoding': False}
+    params = {'use_question_encoding': True}
 
     # model
     model = AttentionVQA(params)
