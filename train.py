@@ -237,18 +237,20 @@ if __name__ == '__main__':
     train_file = stat_col.initialize_csv_file(log_dir, '/training.csv')
     validation_file = stat_col.initialize_csv_file(log_dir, '/validation.csv')
 
-    # Try to read validation frequency from config, else set default (100)
+    # Validation frequency (DEFAULT: 100).
     try:
         validation_frequency = param_interface['problem_validation']['frequency']
     except KeyError:
         validation_frequency = 100
 
-    #whether to do validation (default True)
+    # Run validation (DEFAULT: True).
     try:
         do_validation = param_interface['settings']['do_validation']
     except KeyError:
         do_validation = True
 
+
+    # Use validation loss in early stopping (DEFAULT: True).
     if do_validation:
     # Figure out if validation is defined else assume that it should be true
         try:
@@ -372,7 +374,7 @@ if __name__ == '__main__':
         # II. & III - only when we finished curriculum. 
         if curric_done:
             # break if conditions applied: convergence or max episodes
-            loss_stop=True
+            loss_stop=False
             if validation_stopping:
                 loss_stop = validation_loss < param_interface['settings']['loss_stop']
                 # We already saved that model.
@@ -380,12 +382,18 @@ if __name__ == '__main__':
                 loss_stop = max(last_losses) < param_interface['settings']['loss_stop']
                 # We already saved that model.
 
-            if episode == param_interface['settings']['max_episodes'] :
+            if loss_stop:
+                # Ok, we have converged.
                 terminal_condition = True
-                # If we are here then it means that we didn't converged and the model is bad for sure. 
-                model.save(model_dir, episode, False)
                 # "Finish" the training.
                 break
+
+        if episode == param_interface['settings']['max_episodes'] :
+            terminal_condition = True
+            # If we are here then it means that we didn't converged and the model is bad for sure. 
+            model.save(model_dir, episode, False)
+            # "Finish" the training.
+            break
         # Next episode.
         episode += 1
 
