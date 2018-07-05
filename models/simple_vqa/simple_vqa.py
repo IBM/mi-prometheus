@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 
 
-from models.attention_vqa.image_encoding import ImageEncoding
+from models.simple_vqa.image_encoding import ImageEncoding, ConvInputModel
 from models.attention_vqa.attention import StackedAttention
 from torchvision.models import alexnet
 from models.model import Model
@@ -21,41 +21,33 @@ class SimpleVQA(Model):
         super(SimpleVQA, self).__init__(params)
 
         # Retrieve attention and image parameters
-        question_features = 10
+        self.question_features = 13
         self.num_channels_image = 3
         self.glimpses = 3
         self.mid_features = 256
 
         # LSTM parameters
-        self.hidden_size = 10
+        self.hidden_size = self.question_features
         self.word_embedded_size = 7
         self.num_layers = 2
 
         # Instantiate class for image encoding
-        self.image_encoding = alexnet(True).features
+        #self.image_encoding = alexnet(True).features # pretrained model
         #self.image_encoding = ImageEncoding(
         #    num_channels_image=3,
         #    depth_conv1=16,
         #    depth_conv2=32,
         #    depth_conv3=64
         #)
+        self.image_encoding = ConvInputModel()
 
         # Instantiate class for question encoding
         self.lstm = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
 
-        # Instantiate class for attention
-        self.apply_attention = StackedAttention(
-            q_features=question_features,
-            mid_features=self.mid_features,
-            glimpses=self.glimpses,
-            drop=0.5,
-        )
-
         self.classifier = Classifier(
-            in_features= 9216 + question_features, #self.glimpses * self.mid_features + question_features,
-            mid_features=1024,
+            in_features= 1536 + self.question_features, #self.glimpses * self.mid_features + question_features,
+            mid_features=256,
             out_features=10,
-            drop=0.5,
         )
 
     def forward(self, data_tuple):
@@ -69,11 +61,12 @@ class SimpleVQA(Model):
         hx, cx = self.init_hidden_states(batch_size)
 
         # step2 : encode question
-        encoded_question, _ = self.lstm(questions, (hx, cx))
-        last_layer_encoded_question = encoded_question[:, -1, :]
+        #encoded_question, _ = self.lstm(questions, (hx, cx))
+        last_layer_encoded_question = questions
 
         # step 3: classifying based in the encoded questions and image
         encoded_image_flattened = encoded_images.view(batch_size, -1)
+
         combined = torch.cat([encoded_image_flattened, last_layer_encoded_question], dim=1)
         answer = self.classifier(combined)
 
@@ -118,13 +111,19 @@ class SimpleVQA(Model):
 
 
 class Classifier(nn.Sequential):
-    def __init__(self, in_features, mid_features, out_features, drop=0.0):
+    def __init__(self, in_features, mid_features, out_features):
         super(Classifier, self).__init__()
-        self.add_module('drop1', nn.Dropout(drop))
-        self.add_module('lin1', nn.Linear(in_features, mid_features))
-        self.add_module('relu', nn.ReLU())
-        self.add_module('drop2', nn.Dropout(drop))
-        self.add_module('lin2', nn.Linear(mid_features, out_features))
+
+        self.fc1 = nn.Linear(in_features, mid_features)
+        self.fc2 = nn.Linear(mid_features, mid_features)
+        self.fc3 = nn.Linear(mid_features, out_features)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.dropout(x)
+        x = self.fc3(x)
+        return F.log_softmax(x, dim=-1)
 
 
 if __name__ == '__main__':
@@ -140,7 +139,7 @@ if __name__ == '__main__':
     while True:
         # Generate new sequence.
         # "Image" - batch x channels x width x height
-        input_np = np.random.binomial(1, 0.5, (1, 3, 224,  224))
+        input_np = np.random.binomial(1, 0.5, (1, 3, 128,  128))
         image = torch.from_numpy(input_np).type(torch.FloatTensor)
 
         #Question
