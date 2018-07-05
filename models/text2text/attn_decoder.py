@@ -11,13 +11,14 @@ import torch.nn.functional as F
 class AttnDecoderRNN(nn.Module):
     """GRU Attention Decoder for Encoder-Decoder"""
 
-    def __init__(self, hidden_size, output_voc_size, dropout_p=0.1, max_length=10):
+    def __init__(self, hidden_size, output_voc_size, dropout_p=0.1, max_length=10, encoder_bidirectional=True):
         """
         Initializes an Decoder network based on a Gated Recurrent Unit.
         :param hidden_size: length of embedding vectors.
         :param output_voc_size: size of the vocabulary set to be embedded by the Embedding layer.
         :param dropout_p: probability of an element to be zeroed for the Dropout layer.
         :param max_length: maximum sequence length.
+        :param encoder_bidirectional: whether the associated encoder is bidirectional or not.
         """
         # call base constructor
         super(AttnDecoderRNN, self).__init__()
@@ -25,6 +26,7 @@ class AttnDecoderRNN(nn.Module):
         self.output_voc_size = output_voc_size
         self.dropout_p = dropout_p
         self.max_length = max_length
+        self.encoder_bidirectional = encoder_bidirectional
 
         # Embedding: creates a look-up table of the embedding of a vocabulary set
         # (size: output_voc_size -> output_language.n_words) on vectors of size hidden_size.
@@ -34,11 +36,17 @@ class AttnDecoderRNN(nn.Module):
 
         # Apply a linear transformation to the incoming data: y=Ax+b
         # used to create the attention weights
-        self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
+        if self.encoder_bidirectional:
+            self.attn = nn.Linear(self.hidden_size * 3, self.max_length)
+        else:
+            self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
 
         # Apply a linear transformation to the incoming data: y=Ax+b
         # used to combine the embedded decoder inputs & the attention-weighted encoder outputs
-        self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
+        if self.encoder_bidirectional:
+            self.attn_combine = nn.Linear(self.hidden_size * 3, self.hidden_size)
+        else:
+            self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
 
         # Dropout layer
         self.dropout = nn.Dropout(self.dropout_p)
@@ -74,8 +82,11 @@ class AttnDecoderRNN(nn.Module):
         # embedded: [batch_size x 1 x hidden_size]
 
         # concatenate embedded decoder inputs & hidden states
+        batch_size = input.shape[0]
+        if self.encoder_bidirectional:
+            hidden = hidden.view(1, batch_size, -1)
         embedded_hidden_concat = torch.cat((embedded, hidden.transpose(0, 1)), dim=-1)
-        # embedded_hidden_concat: [batch_size x 1 x 2*hidden_size]
+        # embedded_hidden_concat: [batch_size x 1 x (hidden_size * (1 + encoder.n_dir)]
 
         # compute attention weights
         attn_weights = self.attn(embedded_hidden_concat)
@@ -84,15 +95,19 @@ class AttnDecoderRNN(nn.Module):
 
         # apply attention weights on the encoder outputs
         attn_applied = torch.bmm(attn_weights, encoder_outputs)
-        # attn_applied: [batch_size x 1 x hidden_size]
+        # attn_applied: [batch_size x 1 x (hidden_size * (1 + encoder.n_dir)]
 
         # combine the embedded decoder inputs & attn_applied encoder outputs
         embedded_attn_applied_concat = torch.cat((embedded, attn_applied), dim=-1)
         gru_input = self.attn_combine(embedded_attn_applied_concat)
         gru_input = F.relu(gru_input)
 
+        if self.encoder_bidirectional:  # select hidden state of forward layer of encoder only
+            hidden = hidden[:, :, :self.hidden_size]
         gru_output, hidden = self.gru(gru_input, hidden)
 
+        if self.encoder_bidirectional:
+            hidden = torch.cat((hidden, hidden), dim=0)
         output = self.out(gru_output)
         output = F.log_softmax(output, dim=-1)
 

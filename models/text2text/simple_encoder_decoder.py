@@ -45,9 +45,11 @@ class SimpleEncoderDecoder(SequentialModel):
         # parse params to create encoder
         self.input_voc_size = params['input_voc_size']
         self.hidden_size = params['hidden_size']
+        self.encoder_bidirectional = params['encoder_bidirectional']
 
         # create encoder
-        self.encoder = EncoderRNN(input_voc_size=self.input_voc_size, hidden_size=self.hidden_size)
+        self.encoder = EncoderRNN(input_voc_size=self.input_voc_size, hidden_size=self.hidden_size,
+                                  bidirectional=self.encoder_bidirectional, n_layers=1)
 
         # parse param to create decoder
         self.output_voc_size = params['output_voc_size']
@@ -56,7 +58,8 @@ class SimpleEncoderDecoder(SequentialModel):
         #self.decoder = DecoderRNN(hidden_size=self.hidden_size, output_voc_size=self.output_voc_size)
 
         # create attention decoder
-        self.decoder = AttnDecoderRNN(self.hidden_size, self.output_voc_size, dropout_p=0.1, max_length=self.max_length)
+        self.decoder = AttnDecoderRNN(self.hidden_size, self.output_voc_size, dropout_p=0.1, max_length=self.max_length,
+                                      encoder_bidirectional=self.encoder_bidirectional)
 
         print('Simple EncoderDecoderRNN (without attention) created.\n')
 
@@ -132,8 +135,13 @@ class SimpleEncoderDecoder(SequentialModel):
         # init encoder hidden states
         encoder_hidden = self.encoder.init_hidden(batch_size)
 
-        # for attention decoder !! Careful about the shape
-        encoder_outputs = torch.zeros(self.max_length, batch_size, self.hidden_size).type(app_state.dtype)
+        # create placeholder for the encoder outputs -> will be passed to attention decoder
+        if self.encoder.bidirectional:
+            encoder_outputs = torch.zeros(self.max_length, batch_size, (self.hidden_size * 2)).type(app_state.dtype)
+        else:
+            encoder_outputs = torch.zeros(self.max_length, batch_size, (self.hidden_size * 1)).type(app_state.dtype)
+
+        # create placeholder for the attention weights -> for visualization
         self.decoder_attentions = torch.zeros(batch_size, self.max_length, self.max_length).type(app_state.dtype)
 
         # encoder manual loop
@@ -141,12 +149,16 @@ class SimpleEncoderDecoder(SequentialModel):
             encoder_output, encoder_hidden = self.encoder(input_tensor[ei].unsqueeze(-1), encoder_hidden)
             encoder_outputs[ei] = encoder_output.squeeze()
 
+        # reshape encoder_outputs to be batch_size first: [max_length, batch_size, *] -> [batch_size, max_length, *]
         encoder_outputs = encoder_outputs.transpose(0, 1)
 
-        # decoder
+        # decoder input : [batch_size x 1] initialized to the value of SOS_token
         decoder_input = torch.ones(batch_size, 1).type(app_state.LongTensor) * SOS_token
+
+        # pass along the hidden states: shape [[(encoder.n_layers * encoder.n_directions) x batch_size x hidden_size]]
         decoder_hidden = encoder_hidden
 
+        # create placeholder for the decoder outputs -> will be the logits
         decoder_outputs = torch.zeros(self.max_length, batch_size, self.output_voc_size).type(app_state.dtype)
 
         if self.training:  # Teacher forcing: Feed the target as the next input
@@ -215,7 +227,7 @@ if __name__ == '__main__':
 
     # instantiate model with credible parameters
     model_params = {'max_length': 15, 'input_voc_size': input_voc_size, 'hidden_size': 256,
-                    'output_voc_size': output_voc_size}
+                    'output_voc_size': output_voc_size, 'encoder_bidirectional': True}
     net = SimpleEncoderDecoder(model_params)
 
     # generate a batch

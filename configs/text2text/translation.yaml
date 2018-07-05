@@ -42,6 +42,7 @@ model:
     input_voc_size: 5245  # this value is coming from the problem class (problem.input_lang.n_words)
     hidden_size: 256
     output_voc_size: 3500
+    encoder_bidirectional: True
 
 # optimizer parameters:
 optimizer:
