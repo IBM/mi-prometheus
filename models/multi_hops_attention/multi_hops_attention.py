@@ -20,21 +20,21 @@ class MultiHopsAttention(Model):
         super(MultiHopsAttention, self).__init__(params)
 
         # Retrieve attention and image parameters
-        self.question_features = 13
         self.num_channels_image = 3
         self.glimpses = 3
         self.mid_features = 24
 
         # LSTM parameters
-        self.hidden_size = self.question_features
+        self.hidden_size = 13
+        self.question_features = self.hidden_size
         self.word_embedded_size = 7
-        self.num_layers = 3
+        self.num_words = 3
 
         # Instantiate class for image encoding
         self.image_encoding = ConvInputModel()
 
         # Instantiate class for question encoding
-        self.lstm = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
+        self.lstm = nn.LSTMCell(self.word_embedded_size, self.hidden_size)
 
         # Instantiate class for attention
         self.apply_attention = StackedAttention(
@@ -45,7 +45,7 @@ class MultiHopsAttention(Model):
         )
 
         self.classifier = Classifier(
-            in_features=self.glimpses * self.mid_features + self.question_features,
+            in_features=self.num_words*(self.glimpses * self.mid_features) + self.question_features,
             mid_features=256,
             out_features=10)
 
@@ -60,21 +60,28 @@ class MultiHopsAttention(Model):
         hx, cx = self.init_hidden_states(batch_size)
 
         # step2 : encode question
+        v_features = None
+        for i in range(questions.size(1)):
+            # step 2: encode words
+            hx, cx = self.lstm(questions[:, i, :], (hx, cx))
 
+            v = self.apply_attention(encoded_images, hx)
 
-        # step3 : apply attention
-        encoded_image_attention = self.apply_attention(encoded_images, last_layer_encoded_question)
+            if v_features is None:
+                 v_features = v
+            else:
+                v_features = torch.cat((v_features, v), dim=-1)
 
         # step 4: classifying based in the encoded questions and attention
-        combined = torch.cat([encoded_image_attention, last_layer_encoded_question], dim=1)
+        combined = torch.cat([v_features, hx], dim=1)
         answer = self.classifier(combined)
 
         return answer
 
     def init_hidden_states(self, batch_size):
         dtype = AppState().dtype
-        hx = torch.randn(self.num_layers, batch_size, self.hidden_size).type(dtype)
-        cx = torch.randn(self.num_layers, batch_size, self.hidden_size).type(dtype)
+        hx = torch.randn(batch_size, self.hidden_size).type(dtype)
+        cx = torch.randn(batch_size, self.hidden_size).type(dtype)
 
         return hx, cx
 
@@ -133,7 +140,7 @@ if __name__ == '__main__':
     params = []
 
     # model
-    model = AttentionVQA(params)
+    model = MultiHopsAttention(params)
 
     while True:
         # Generate new sequence.
@@ -142,7 +149,7 @@ if __name__ == '__main__':
         image = torch.from_numpy(input_np).type(torch.FloatTensor)
 
         #Question
-        questions_np = np.random.binomial(1, 0.5, (1, 13))
+        questions_np = np.random.binomial(1, 0.5, (1, 3, 7))
         questions = torch.from_numpy(questions_np).type(torch.FloatTensor)
 
         # Target.

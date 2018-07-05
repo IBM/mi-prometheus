@@ -94,5 +94,10 @@ class ModelFactory(object):
             logger.warning("Warning: AttentionVQA under development")
             from models.attention_vqa.attention_vqa import AttentionVQA
             return AttentionVQA(params)
+        elif name == 'multi_hops_attention':
+            logger.info('Loading the MultiHopsAttention model from models.multi_hops_attention.multi_hops_attention')
+            logger.warning("Warning: MultiHopsAttention under development")
+            from models.multi_hops_attention.multi_hops_attention import MultiHopsAttention
+            return MultiHopsAttention(params)
         else:
             raise ValueError
