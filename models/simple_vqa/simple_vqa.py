@@ -4,9 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 
 
-from models.simple_vqa.image_encoding import ImageEncoding, ConvInputModel
-from models.attention_vqa.attention import StackedAttention
-from torchvision.models import alexnet
+from models.simple_vqa.image_encoding import ImageEncoding
 from models.model import Model
 from misc.app_state import AppState
 
@@ -21,25 +19,25 @@ class SimpleVQA(Model):
         super(SimpleVQA, self).__init__(params)
 
         # Retrieve attention and image parameters
-        self.question_features = 20
+        self.question_encoding_size = 13
         self.num_channels_image = 3
         self.glimpses = 3
         self.mid_features = 256
 
         # LSTM parameters
-        self.hidden_size = self.question_features
+        self.hidden_size = self.question_encoding_size
         self.word_embedded_size = 7
         self.num_layers = 2
+        self.use_question_encoding = params['use_question_encoding']
 
         # Instantiate class for image encoding
-        #self.image_encoding = alexnet(True).features # pretrained model
-        self.image_encoding = ConvInputModel()
+        self.image_encoding = ImageEncoding()
 
         # Instantiate class for question encoding
         self.question_encoding = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
 
         self.classifier = Classifier(
-            in_features= 1536 + self.question_features, #self.glimpses * self.mid_features + question_features,
+            in_features=1536 + self.question_encoding_size, #self.glimpses * self.mid_features + question_features,
             mid_features=256,
             out_features=10,
         )
@@ -58,13 +56,16 @@ class SimpleVQA(Model):
         hx, cx = self.init_hidden_states(batch_size)
 
         # step2 : encode question
-        encoded_question, _ = self.question_encoding(questions, (hx, cx))
-        last_layer_encoded_question = encoded_question[:, -1, :]
+        if self.use_question_encoding:
+            encoded_question, _ = self.question_encoding(questions, (hx, cx))
+            encoded_question = encoded_question[:, -1, :]  # take layer's last output
+        else:
+            encoded_question = questions
 
         # step 3: classifying based in the encoded questions and image
         encoded_image_flattened = encoded_images.view(batch_size, -1)
 
-        combined = torch.cat([encoded_image_flattened, last_layer_encoded_question], dim=1)
+        combined = torch.cat([encoded_image_flattened, encoded_question], dim=1)
         answer = self.classifier(combined)
 
         return answer
@@ -128,7 +129,7 @@ if __name__ == '__main__':
     AppState().visualize = True
 
     # Test base model.
-    params = []
+    params = {'use_question_encoding': False}
 
     # model
     model = SimpleVQA(params)
@@ -136,11 +137,15 @@ if __name__ == '__main__':
     while True:
         # Generate new sequence.
         # "Image" - batch x channels x width x height
-        input_np = np.random.binomial(1, 0.5, (1, 3, 128,  128))
+        input_np = np.random.binomial(1, 0.5, (2, 3, 128,  128))
         image = torch.from_numpy(input_np).type(torch.FloatTensor)
 
-        #Question
-        questions_np = np.random.binomial(1, 0.5, (1, 13, 7))
+        # Question
+        if params['use_question_encoding']:
+            questions_np = np.random.binomial(1, 0.5, (2, 13, 7))
+        else:
+            questions_np = np.random.binomial(1, 0.5, (2, 13))
+
         questions = torch.from_numpy(questions_np).type(torch.FloatTensor)
 
         # Target.

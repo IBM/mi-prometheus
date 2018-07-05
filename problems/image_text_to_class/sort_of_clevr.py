@@ -467,11 +467,11 @@ if __name__ == "__main__":
 
     # "Loaded parameters".
     params = {'batch_size': 10,
-        'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy', 
+        'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy',
         'use_train_data':False,
         #'shuffle': False,
         #"regenerate": True,
-        'dataset_size': 10000, 'img_size': 128, 'regenerate': False
+        'dataset_size': 10000, 'img_size': 128, 'regenerate': True
         }
 
     # Configure logger.

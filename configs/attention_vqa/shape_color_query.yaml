@@ -4,7 +4,7 @@ problem_train:
     batch_size: 32
     data_folder: '~/data/shape-color-query/'
     data_filename: 'training.hy'
-    dataset_size: 15000
+    dataset_size: &ds 12000
     img_size: 128
     shuffle: True
     regenerate: False
@@ -17,7 +17,7 @@ problem_test:
     batch_size: 32
     data_folder: '~/data/shape-color-query/'
     data_filename: 'training.hy'
-    dataset_size: 100
+    dataset_size: *ds
     img_size: 128
     shuffle: True
     regenerate: False
@@ -29,7 +29,7 @@ problem_validation:
     batch_size: 32
     data_folder: '~/data/shape-color-query/'
     data_filename: 'training.hy'
-    dataset_size: 100
+    dataset_size: *ds
     img_size: 128
     shuffle: True
     regenerate: False
@@ -38,8 +38,7 @@ problem_validation:
 # Model parameters:
 model:
     name: attention_vqa   # use attention visual question answering
-    # Input bits = [control_bits, data_bits]
-    # Output bits = [data_bits]
+    use_question_encoding: True
 
 # optimizer parameters:
 optimizer:

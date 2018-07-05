@@ -1,11 +1,11 @@
 # Problem parameters:
 problem_train:
     name: &name shape_color_query
-    batch_size: 32
+    batch_size: 64
     data_folder: '~/data/shape-color-query/'
     data_filename: 'training.hy'
-    dataset_size: 15000
-    img_size: 224
+    dataset_size: &ds 12000
+    img_size: 128
     shuffle: True
     regenerate: True
     cuda: False
@@ -14,10 +14,10 @@ problem_train:
 # Problem parameters:
 problem_test:
     name: *name
-    batch_size: 32
+    batch_size: 64
     data_folder: '~/data/shape-color-query/'
     data_filename: 'training.hy'
-    dataset_size: 100
+    dataset_size: *ds
     img_size: 128
     shuffle: True
     regenerate: False
@@ -26,10 +26,10 @@ problem_test:
 # Problem parameters:
 problem_validation:
     name: *name
-    batch_size: 32
+    batch_size: 64
     data_folder: '~/data/shape-color-query/'
     data_filename: 'training.hy'
-    dataset_size: 100
+    dataset_size: *ds
     img_size: 128
     shuffle: True
     regenerate: False
@@ -38,8 +38,7 @@ problem_validation:
 # Model parameters:
 model:
     name: simple_vqa   # simple visual question answering
-    # Input bits = [control_bits, data_bits]
-    # Output bits = [data_bits]
+    use_question_encoding: True
 
 # optimizer parameters:
 optimizer:

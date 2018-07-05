@@ -29,6 +29,7 @@ class AttentionVQA(Model):
         self.hidden_size = self.question_features
         self.word_embedded_size = 7
         self.num_layers = 3
+        self.use_question_encoding = params['use_question_encoding']
 
         # Instantiate class for image encoding
         self.image_encoding = ConvInputModel()
@@ -60,14 +61,17 @@ class AttentionVQA(Model):
         hx, cx = self.init_hidden_states(batch_size)
 
         # step2 : encode question
-        #encoded_question, _ = self.lstm(questions, (hx, cx))
-        last_layer_encoded_question = questions
+        if self.use_question_encoding:
+            encoded_question, _ = self.lstm(questions, (hx, cx))
+            encoded_question = encoded_question[:, -1, :]
+        else:
+            encoded_question = questions
 
         # step3 : apply attention
-        encoded_image_attention = self.apply_attention(encoded_images, last_layer_encoded_question)
+        encoded_image_attention = self.apply_attention(encoded_images, encoded_question)
 
         # step 4: classifying based in the encoded questions and attention
-        combined = torch.cat([encoded_image_attention, last_layer_encoded_question], dim=1)
+        combined = torch.cat([encoded_image_attention, encoded_question], dim=1)
         answer = self.classifier(combined)
 
         return answer
@@ -131,7 +135,7 @@ if __name__ == '__main__':
     AppState().visualize = True
 
     # Test base model.
-    params = []
+    params = {'use_question_encoding': False}
 
     # model
     model = AttentionVQA(params)
@@ -139,11 +143,15 @@ if __name__ == '__main__':
     while True:
         # Generate new sequence.
         # "Image" - batch x channels x width x height
-        input_np = np.random.binomial(1, 0.5, (1, 3, 128,  128))
+        input_np = np.random.binomial(1, 0.5, (2, 3, 128,  128))
         image = torch.from_numpy(input_np).type(torch.FloatTensor)
 
-        #Question
-        questions_np = np.random.binomial(1, 0.5, (1, 13))
+        # Question
+        if params['use_question_encoding']:
+            questions_np = np.random.binomial(1, 0.5, (2, 13, 7))
+        else:
+            questions_np = np.random.binomial(1, 0.5, (2, 13))
+
         questions = torch.from_numpy(questions_np).type(torch.FloatTensor)
 
         # Target.
