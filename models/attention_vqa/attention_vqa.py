@@ -46,10 +46,8 @@ class AttentionVQA(Model):
 
         self.classifier = Classifier(
             in_features=self.glimpses * self.mid_features + self.question_features,
-            mid_features=1024,
-            out_features=10,
-            drop=0.5,
-        )
+            mid_features=256,
+            out_features=10)
 
     def forward(self, data_tuple):
         (images, questions), _ = data_tuple
@@ -113,13 +111,19 @@ class AttentionVQA(Model):
 
 
 class Classifier(nn.Sequential):
-    def __init__(self, in_features, mid_features, out_features, drop=0.0):
+    def __init__(self, in_features, mid_features, out_features):
         super(Classifier, self).__init__()
-        self.add_module('drop1', nn.Dropout(drop))
-        self.add_module('lin1', nn.Linear(in_features, mid_features))
-        self.add_module('relu', nn.ReLU())
-        self.add_module('drop2', nn.Dropout(drop))
-        self.add_module('lin2', nn.Linear(mid_features, out_features))
+
+        self.fc1 = nn.Linear(in_features, mid_features)
+        self.fc2 = nn.Linear(mid_features, mid_features)
+        self.fc3 = nn.Linear(mid_features, out_features)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.dropout(x)
+        x = self.fc3(x)
+        return F.log_softmax(x, dim=-1)
 
 
 if __name__ == '__main__':
