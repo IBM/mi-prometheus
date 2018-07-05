@@ -201,6 +201,11 @@ if __name__ == '__main__':
 
     # Initialize curriculum learning.
     curric_done = problem.curriculum_learning_update_params(0)
+    # Run validation (DEFAULT: True).
+    try:
+        must_finish_curriculum = param_interface['problem_train']['curriculum_learning']['must_finish']
+    except KeyError:
+        must_finish_curriculum = True
 
     # Build problem for the validation
     problem_validation = ProblemFactory.build_problem(param_interface['problem_validation'])
@@ -248,7 +253,6 @@ if __name__ == '__main__':
         do_validation = param_interface['settings']['do_validation']
     except KeyError:
         do_validation = True
-
 
     # Use validation loss in early stopping (DEFAULT: True).
     if do_validation:
@@ -372,7 +376,7 @@ if __name__ == '__main__':
             break
 
         # II. & III - only when we finished curriculum. 
-        if curric_done:
+        if curric_done or not must_finish_curriculum:
             # break if conditions applied: convergence or max episodes
             loss_stop=False
             if validation_stopping:
@@ -400,13 +404,13 @@ if __name__ == '__main__':
     # Check whether we have finished training properly.
     if terminal_condition:
         logger.info('Learning finished!')
-        logger.info('Model saved in '+ log_dir)
         # Check visualization flag - turn on when we wanted to visualize (at least) validation.
         if FLAGS.visualize is not None and (FLAGS.visualize == 3):
             app_state.visualize = True
 
             # Perform validation.
-            _, _ = validation(model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger,
+            if do_validation:
+                _, _ = validation(model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger,
                                validation_file, validation_writer)
 
         else:
