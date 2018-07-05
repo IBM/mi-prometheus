@@ -9,6 +9,7 @@ problem_train:
     shuffle: True
     regenerate: False
     cuda: False
+    use_train_data: True
 
 # Problem parameters:
 problem_test:
@@ -20,6 +21,7 @@ problem_test:
     img_size: 128
     shuffle: True
     regenerate: False
+    use_train_data: False
 
 # Problem parameters:
 problem_validation:
@@ -31,6 +33,7 @@ problem_validation:
     img_size: 128
     shuffle: True
     regenerate: False
+    use_train_data: False
 
 # Model parameters:
 model:

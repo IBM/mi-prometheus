@@ -8,6 +8,7 @@ problem_train:
     img_size: 128
     regenerate: False
     cuda: False
+    use_train_data: True
 
 # Problem parameters:
 problem_test:
@@ -18,6 +19,7 @@ problem_test:
     dataset_size: 100
     img_size: 128
     regenerate: False
+    use_train_data: False
 
 # Problem parameters:
 problem_validation:
@@ -28,6 +30,7 @@ problem_validation:
     dataset_size: 100
     img_size: 128
     regenerate: False
+    use_train_data: False
 
 # Model parameters:
 model:

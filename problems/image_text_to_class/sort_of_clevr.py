@@ -56,6 +56,11 @@ class SortOfCLEVR(ImageTextToClassProblem):
         self.dataset_size = params["dataset_size"]
         self.regenerate = params["regenerate"]
 
+        # training, testing data is 90%, 10% of the total data size respectively
+        self.use_train_data = params['use_train_data']
+        self.data_test_size = int(self.dataset_size * 0.1)
+        self.data_train_size = int(self.dataset_size * 0.9)
+
         # Shuffle indices.
         self.shuffle = params.get('shuffle', True)
 
@@ -122,7 +127,10 @@ class SortOfCLEVR(ImageTextToClassProblem):
         logger.info("Loaded {} samples from file {}".format(len(self.data), self.pathfilename))
         
         # Generate list of indices (strings).
-        self.ids = ['{}'.format(i) for i in range(len(self.data))]
+        if self.use_train_data:
+            self.ids = ['{}'.format(i) for i in range(self.data_train_size)]
+        else:
+            self.ids = ['{}'.format(i) for i in range(self.data_train_size, self.data_train_size+self.data_test_size)]
 
 
     def generate_batch(self):
@@ -135,7 +143,6 @@ class SortOfCLEVR(ImageTextToClassProblem):
             random.shuffle(self.ids)
         # Get batch of indices.
         batch_ids = self.ids[:self.batch_size]
-        #print(batch_ids)
 
         # Get batch.
         images = []
@@ -145,6 +152,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         for id in batch_ids:
             group = self.data[id]
+
             # Process data
             images.append((group['image'].value/255).transpose(2,1,0))
             questions.append(group['question'].value.astype(np.float32)) 
@@ -460,6 +468,7 @@ if __name__ == "__main__":
     # "Loaded parameters".
     params = {'batch_size': 10,
         'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy', 
+        'use_train_data':False,
         #'shuffle': False,
         #"regenerate": True,
         'dataset_size': 10000, 'img_size': 128, 'regenerate': False
