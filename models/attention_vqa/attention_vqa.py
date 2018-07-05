@@ -5,7 +5,7 @@ import numpy as np
 
 
 from models.attention_vqa.image_encoding import ImageEncoding, ConvInputModel
-from models.attention_vqa.attention import StackedAttention
+from models.attention_vqa.attention import StackedAttention, Attention
 from models.model import Model
 from misc.app_state import AppState
 
@@ -19,15 +19,14 @@ class AttentionVQA(Model):
     def __init__(self, params):
         super(AttentionVQA, self).__init__(params)
 
-        # Retrieve attention and image parameters
-        self.question_features = 13
+        # Retrieve attention and image/questions parameters
+        self.encoded_question_size = 13
         self.num_channels_image = 3
-        self.glimpses = 3
-        self.mid_features = 200
-        self.image_encoding_channels = 24
+        self.mid_features = 512
+        self.encoded_image_channels = 8*8
 
         # LSTM parameters
-        self.hidden_size = self.question_features
+        self.hidden_size = self.encoded_question_size
         self.word_embedded_size = 7
         self.num_layers = 3
         self.use_question_encoding = params['use_question_encoding']
@@ -39,16 +38,14 @@ class AttentionVQA(Model):
         self.lstm = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
 
         # Instantiate class for attention
-        self.apply_attention = StackedAttention(
-            v_features=self.image_encoding_channels,
-            q_features=self.question_features,
-            mid_features=self.mid_features,
-            glimpses=self.glimpses,
-            drop=0.5,
+        self.apply_attention = Attention(
+            question_encoding_size=self.encoded_question_size,
+            image_encoding_size=self.encoded_image_channels,
+            image_text_features=self.mid_features
         )
 
         self.classifier = Classifier(
-            in_features=self.glimpses * self.mid_features + self.question_features,
+            in_features=64 + self.encoded_question_size,
             mid_features=256,
             out_features=10)
 
