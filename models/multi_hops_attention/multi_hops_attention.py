@@ -4,8 +4,8 @@ import torch.nn.functional as F
 import numpy as np
 
 
-from models.attention_vqa.image_encoding import ImageEncoding, ConvInputModel
-from models.attention_vqa.attention import StackedAttention, Attention
+from models.multi_hops_attention.image_encoding import ImageEncoding, ConvInputModel
+from models.multi_hops_attention.attention import StackedAttention, Attention
 from models.model import Model
 from misc.app_state import AppState
 
