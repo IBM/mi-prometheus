@@ -91,7 +91,6 @@ class SortOfCLEVR(ImageTextToClassProblem):
         # Load or generate the dataset.
         self.load_dataset(data_folder, data_filename)
 
-
     def load_dataset(self, data_folder, data_filename):
         """ Loads the dataset from the HDF5-encoded file. If file does not exists it generates new dataset and stores it in a file. """
 
@@ -132,7 +131,6 @@ class SortOfCLEVR(ImageTextToClassProblem):
         else:
             self.ids = ['{}'.format(i) for i in range(self.data_train_size, self.data_train_size+self.data_test_size)]
 
-
     def generate_batch(self):
         """ Generates batch.
         
@@ -170,7 +168,6 @@ class SortOfCLEVR(ImageTextToClassProblem):
         # Return DataTuple(!) and an AuxTuple with scene description.
         return DataTuple(inputs, index_targets), aux_tuple
 
-
     def color2str(self, color_code):
         " Decodes color and returns it as a string. "
         return {
@@ -182,14 +179,12 @@ class SortOfCLEVR(ImageTextToClassProblem):
             5: 'cyan',
         }[int(color_code)]
 
-
     def shape2str(self, shape_code):
         " Decodes shape and returns it as a string. "
         return {
             0: 'rectangle',
             1: 'circle',
         }[int(shape_code)]
-
 
     def question_type_template(self, question_code):
         """ Helper function that the string templates a question type. """
@@ -217,7 +212,6 @@ class SortOfCLEVR(ImageTextToClassProblem):
         question_code = np.argmax(encoded_question[self.NUM_COLORS:])
         # Return the question as a string.
         return (self.question_type_template(question_code)).format(self.color2str(color), 'object')
-
 
     def answer2str(self, encoded_answer):
         """ Encodes answer into a string.
@@ -429,7 +423,6 @@ class SortOfCLEVR(ImageTextToClassProblem):
         f.close()
         logger.info('Generated dataset with {} samples and saved to {}'.format(self.dataset_size, self.pathfilename))
 
-
     def show_sample(self, data_tuple, aux_tuple, sample_number = 0):
         """ 
         Shows a sample from the batch.
@@ -461,6 +454,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         plt.imshow(image, interpolation='nearest', aspect='auto')
         # Plot!
         plt.show()
+
 
 if __name__ == "__main__":
     """ Tests sort of CLEVR - generates and displays a sample"""

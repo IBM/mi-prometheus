@@ -11,9 +11,12 @@ from misc.app_state import AppState
 
 
 class AttentionVQA(Model):
-    """ Re-implementation of ``Show, Ask, Attend, and Answer: A Strong Baseline For Visual Question Answering'' [0]
+    """ Implementation of simple vqa model with attention, it performs the following steps:
+       step1: image encoding
+       step2: question encoding if needed
+       step3: apply attention, the question used to create a weighting over image's channels
+       step4: classifier, create the probabilities
 
-    [0]: https://arxiv.org/abs/1704.03162
     """
 
     def __init__(self, params):
@@ -23,7 +26,7 @@ class AttentionVQA(Model):
         self.encoded_question_size = 13
         self.num_channels_image = 3
         self.mid_features = 512
-        self.encoded_image_channels = 8*8
+        self.encoded_image_features_size = 8*8
 
         # LSTM parameters
         self.hidden_size = self.encoded_question_size
@@ -40,12 +43,13 @@ class AttentionVQA(Model):
         # Instantiate class for attention
         self.apply_attention = Attention(
             question_encoding_size=self.encoded_question_size,
-            image_encoding_size=self.encoded_image_channels,
+            image_encoding_size=self.encoded_image_features_size,
             image_text_features=self.mid_features
         )
 
+        # Instantiate classifier class
         self.classifier = Classifier(
-            in_features=64 + self.encoded_question_size,
+            in_features=8*8 + self.encoded_question_size,
             mid_features=256,
             out_features=10)
 
@@ -111,6 +115,7 @@ class AttentionVQA(Model):
         plt.imshow(image.transpose(1,2,0), interpolation='nearest', aspect='auto')
 
         f = plt.figure()
+        plt.title('Attention')
         attention_visualize = self.encoded_image_attention_visualize[0].view(8,8).detach().numpy()
         plt.imshow(attention_visualize, interpolation='nearest', aspect='auto')
 

@@ -5,30 +5,34 @@ import numpy as np
 
 
 from models.attention_vqa.image_encoding import ImageEncoding, ConvInputModel
-from models.attention_vqa.attention import StackedAttention
+from models.attention_vqa.attention import StackedAttention, Attention
 from models.model import Model
 from misc.app_state import AppState
 
 
 class MultiHopsAttention(Model):
-    """ Re-implementation of ``Show, Ask, Attend, and Answer: A Strong Baseline For Visual Question Answering'' [0]
+    """ Implementation of simple vqa model with mult attention hops over the words of the question, it performs the following steps:
+       step1: image encoding
+       step2: word encoding
+       step3: apply attention, an attention over the image is generates for every word, after that all the attentions are concatenated
+       step4: classifier, create the probabilities
 
-    [0]: https://arxiv.org/abs/1704.03162
     """
 
     def __init__(self, params):
         super(MultiHopsAttention, self).__init__(params)
 
-        # Retrieve attention and image parameters
+        # Retrieve attention and image/questions parameters
+        self.encoded_question_size = 13
         self.num_channels_image = 3
-        self.glimpses = 3
-        self.mid_features = 24
+        self.mid_features = 512
+        self.encoded_image_features_size = 8*8
+        self.num_words = 3
 
         # LSTM parameters
-        self.hidden_size = 13
-        self.question_features = self.hidden_size
+        self.hidden_size = self.encoded_question_size
         self.word_embedded_size = 7
-        self.num_words = 3
+        self.num_layers = 3
 
         # Instantiate class for image encoding
         self.image_encoding = ConvInputModel()
@@ -37,15 +41,15 @@ class MultiHopsAttention(Model):
         self.lstm = nn.LSTMCell(self.word_embedded_size, self.hidden_size)
 
         # Instantiate class for attention
-        self.apply_attention = StackedAttention(
-            q_features=self.question_features,
-            mid_features=self.mid_features,
-            glimpses=self.glimpses,
-            drop=0.5,
+        self.apply_attention = Attention(
+            question_encoding_size=self.encoded_question_size,
+            image_encoding_size=self.encoded_image_features_size,
+            image_text_features=self.mid_features
         )
 
+        # Instantiate class for classifier
         self.classifier = Classifier(
-            in_features=self.num_words*(self.glimpses * self.mid_features) + self.question_features,
+            in_features=self.num_words*(8*8) + self.encoded_question_size,
             mid_features=256,
             out_features=10)
 

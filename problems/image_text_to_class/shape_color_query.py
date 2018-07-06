@@ -33,7 +33,6 @@ class ShapeColorQuery(SortOfCLEVR):
         # Call base class constructors.
         super(ShapeColorQuery, self).__init__(params)
 
-
     def question2str(self, encoded_question):
         """ Decodes question, i.e. produces a human-understandable string. 
         
@@ -51,7 +50,6 @@ class ShapeColorQuery(SortOfCLEVR):
         query = self.question_type_template(np.argmax(encoded_question[2, :]))
         # Return the question as a string.
         return query.format(color, shape)
-
 
     def generate_question_matrix(self, objects):
         """

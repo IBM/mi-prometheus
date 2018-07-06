@@ -10,9 +10,11 @@ from misc.app_state import AppState
 
 
 class SimpleVQA(Model):
-    """ Re-implementation of ``Show, Ask, Attend, and Answer: A Strong Baseline For Visual Question Answering'' [0]
+    """ Implementation of simple vqa model, it performs the following steps:
+       step1: image encoding
+       step2: question encoding if needed
+       step4: classifier, create the probabilities
 
-    [0]: https://arxiv.org/abs/1704.03162
     """
 
     def __init__(self, params):
