@@ -51,6 +51,7 @@ class MAES(SequentialModel):
         self.num_memory_content_bits = params['memory']['num_content_bits']
 
         # Save/load encoder.
+        #params['encoder']['save'].add_default_params(False)
         self.save_encoder = params.get('save_encoder', False)
         self.load_encoder = params.get('load_encoder', '') # Path+filename to encoder.
         self.freeze_encoder = params.get('freeze_encoder', False)

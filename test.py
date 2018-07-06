@@ -24,7 +24,7 @@ from models.model_factory import ModelFactory
 from misc.app_state import AppState
 from misc.statistics_collector import StatisticsCollector
 from misc.param_interface import ParamInterface
-from utils_worker import forward_step, check_and_set_cuda
+from worker_utils import forward_step, check_and_set_cuda
 
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 

@@ -42,39 +42,6 @@ problem_test:
     max_sequence_length: 100
     bias: 0.5
 
-# Model parameters:
-model:
-    name: maes
-    # Optional parameter: visualization.
-    #visualization_mode: 2
-    # Input bits = [command_bits, data_bits]
-    # Output bits = [data_bits]
-    num_control_bits: *cbits
-    num_data_bits: *dbits
-    # Indices of control bits triggering encoding/decoding.
-    encoding_bit: 0
-    solving_bit: 1
-    # Pass the whole state from encoder to solver cell.
-    pass_cell_state: True
-    # Save/load encoder.
-    save_encoder: True
-    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180702_132024/models/encoder_episode_09400.pth.tar
-    #freeze_encoder: True
-    # Controller parameters.
-    controller:
-        name: rnn
-        hidden_state_size: 20
-        num_layers: 1
-        non_linearity: sigmoid
-    # Interface
-    mae_interface:
-        shift_size: 3
-    mas_interface:
-        shift_size: 3
-    # Memory parameters.
-    memory:
-        num_content_bits: 15
-        num_addresses: -1
     
 # optimizer parameters:
 optimizer:

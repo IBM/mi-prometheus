@@ -35,6 +35,9 @@ class Model(nn.Module):
         # SOLUTION: if application is supposed to show dynamic plot, set flag to True before constructing the model! (and set to False right after if required)
         self.app_state = AppState()
 
+        # Store pointer to params.
+        self.params = params
+
         # Window in which the data will be ploted.
         self.plotWindow = None
 

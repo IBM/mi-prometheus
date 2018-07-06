@@ -6,7 +6,7 @@ import os
 os.environ["OMP_NUM_THREADS"] = '1'
 
 import yaml
-import os.path
+
 from datetime import datetime
 from time import sleep
 import argparse
@@ -20,7 +20,7 @@ from misc.app_state import AppState
 from misc.statistics_collector import StatisticsCollector
 
 # Import model factory.
-import sys
+import sys, os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
 from models.model_factory import ModelFactory
@@ -28,7 +28,7 @@ from misc.param_interface import ParamInterface
 
 # Import problems factory and data tuple.
 from problems.problem_factory import ProblemFactory
-from utils_worker import forward_step, check_and_set_cuda
+from worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse
 
 
 def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS, logger, validation_file,
@@ -77,6 +77,8 @@ if __name__ == '__main__':
                         help='Name of the configuration file(s) to be loaded (more than one file must be separated with coma ",")')
     parser.add_argument('--savetag', dest='savetag', type=str, default='',
                         help='Tag for the save directory')
+    parser.add_argument('--outdir', dest='outdir', type=str, default="./experiments",
+                        help='Path to output directory where the experiments will be stored (DEFAULT: ./experiments)12')
     parser.add_argument('--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2], type=int,
                         help="If present, log to TensorBoard. Log levels:\n"
                              "0: Just log the loss, accuracy, and seq_len\n"
@@ -101,36 +103,45 @@ if __name__ == '__main__':
     if FLAGS.config == '':
         print('Please pass configuration file(s) as --c parameter')
         exit(-1)
-    configs = FLAGS.config.split(',')
 
-    # Create parm interface object.
+    # Get list of configs that need to be loaded.
+    configs_to_load = recurrent_config_parse(FLAGS.config, [])
+    
+    # Create param interface object.
     param_interface = ParamInterface()
 
-    # Read the YAML files one by one.
-    for config in configs:
-        # Check if file exists.
-        if not os.path.isfile(config):
-            print('Configuration file {} does not exists'.format(config))
-            exit(-2)
-
-        # Open and overwrite
+    # Read the YAML files one by one - but in reverse order!
+    for config in reversed(configs_to_load):
+        # Open file and try to add that to list of parameter dictionaries.
         with open(config, 'r') as stream:
+            # Load param dictionaries in reverse order.
             param_interface.add_custom_params(yaml.load(stream))
-    # Done. In here param interface contains configuration loaded (and overwritten) from several files. 
+        print('Loaded configuration from file {}'.format(config))
+        # Add to list of loaded configs.
+        configs_to_load.append(config)
+    # Done. In here Param Registry contains configuration loaded (and overwritten) from several files. 
 
     # Get problem and model names.
-    task_name = param_interface['problem_train']['name']
-    model_name = param_interface['model']['name']
+    try:
+        task_name = param_interface['problem_train']['name']
+    except:
+        print("Error: Couldn't retrieve problem name from the loaded configuration")
+        exit(-1)
+
+    try:
+        model_name = param_interface['model']['name']
+    except:
+        print("Error: Couldn't retrieve model name from the loaded configuration")
+        exit(-1)
 
 
     # Prepare output paths for logging
-    path_root = "./experiments/"
     while True:  # Dirty fix: if log_dir already exists, wait for 1 second and try again
         try:
             time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
             if FLAGS.savetag != '':
                 time_str = time_str + "_" + FLAGS.savetag
-            log_dir = path_root + task_name + '/' + model_name + '/' + time_str + '/'
+            log_dir = FLAGS.outdir + '/' + task_name + '/' + model_name + '/' + time_str + '/'
             os.makedirs(log_dir, exist_ok=False)
         except FileExistsError:
             sleep(1)
@@ -201,6 +212,11 @@ if __name__ == '__main__':
 
     # Initialize curriculum learning.
     curric_done = problem.curriculum_learning_update_params(0)
+    # Run validation (DEFAULT: True).
+    try:
+        must_finish_curriculum = param_interface['problem_train']['curriculum_learning']['must_finish']
+    except KeyError:
+        must_finish_curriculum = True
 
     # Build problem for the validation
     problem_validation = ProblemFactory.build_problem(param_interface['problem_validation'])
@@ -224,8 +240,6 @@ if __name__ == '__main__':
     # Start Training
     episode = 0
     last_losses = collections.deque()
-    # Initialization of best loss - as INF.
-    best_loss = np.inf
 
     # Create statistics collector.
     stat_col = StatisticsCollector()
@@ -248,7 +262,6 @@ if __name__ == '__main__':
         do_validation = param_interface['settings']['do_validation']
     except KeyError:
         do_validation = True
-
 
     # Use validation loss in early stopping (DEFAULT: True).
     if do_validation:
@@ -350,20 +363,12 @@ if __name__ == '__main__':
                 validation_loss, user_pressed_stop = validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
                         logger,   validation_file,  validation_writer)
 
-                # Check the score.
-                if (validation_loss < best_loss):
-                    best_loss = validation_loss
-                    model.save(model_dir, episode, True)
-                else:
-                    model.save(model_dir, episode, False)
+                # Save model using validation statistics.
+                model.save(model_dir, stat_col)
                               
             else: 
-                # We are not doing validation, so we rely on train loss.
-                if (max(last_losses) < best_loss):
-                    best_loss = max(last_losses)
-                    model.save(model_dir, episode, True)
-                else:
-                    model.save(model_dir, episode, False)
+                # Save model using training statistics.
+                model.save(model_dir, stat_col)
 
 
         # 6. Terminal conditions.
@@ -372,7 +377,7 @@ if __name__ == '__main__':
             break
 
         # II. & III - only when we finished curriculum. 
-        if curric_done:
+        if curric_done or not must_finish_curriculum:
             # break if conditions applied: convergence or max episodes
             loss_stop=False
             if validation_stopping:
@@ -390,23 +395,24 @@ if __name__ == '__main__':
 
         if episode == param_interface['settings']['max_episodes'] :
             terminal_condition = True
-            # If we are here then it means that we didn't converged and the model is bad for sure. 
-            model.save(model_dir, episode, False)
+            # If we are here then it means that we didn't converged and the model is bad for sure - but try to save it anyway. 
+            model.save(model_dir, stat_col)
             # "Finish" the training.
             break
+        
         # Next episode.
         episode += 1
 
     # Check whether we have finished training properly.
     if terminal_condition:
         logger.info('Learning finished!')
-        logger.info('Model saved in '+ log_dir)
         # Check visualization flag - turn on when we wanted to visualize (at least) validation.
         if FLAGS.visualize is not None and (FLAGS.visualize == 3):
             app_state.visualize = True
 
             # Perform validation.
-            _, _ = validation(model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger,
+            if do_validation:
+                _, _ = validation(model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger,
                                validation_file, validation_writer)
 
         else:
