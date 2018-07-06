@@ -5,7 +5,6 @@ __author__ = "Tomasz Kornuta"
 
 import torch 
 import collections
-import shutil
 
 # Set logging level.
 import logging
@@ -85,29 +84,39 @@ class MAECell(torch.nn.Module):
         else:
             logger.error("Encoder checkpoint not found at {}".format(filename))
 
-    def save(self, model_dir, episode, best_model):
+    def save(self, model_dir, stat_col, is_best_model, save_intermediate):
         """
         Method saves the model and encoder to file.
 
         :param model_dir: Directory where the model will be saved.
-        :param episode: Episode number used as model identifier.
-        :param best_model: Flag indicating whether it is the best model or not. 
+        :param stat_col: Statistics collector that contain current loss and episode number (and other statistics). 
+        :param is_best_model: Flag indicating whether it is the best model or not. 
+        :parma save_intermediate: Flag indicating whether intermediate models should be saved or not.
         """
-        # Dictionary to be saved.
-        saved_dict = {
-            'episode': episode,
+        episode = stat_col['episode']
+        # Checkpoint to be saved.
+        chkpt = {
             'ctrl_dict': self.controller.state_dict(),
-            'interface_dict': self.interface.state_dict()
+            'interface_dict': self.interface.state_dict(),
+            'stats': stat_col.statistics
         }
 
-        # Generate filename pth.tar.
-        filename = model_dir + 'encoder_episode_{:05d}.pth.tar'.format(episode)
-        # Save dictionary to file.
-        torch.save(saved_dict, filename)
-        logger.info("Encoder exported to checkpoint {}".format(filename))
-        # Check whether it is the best model or not.
-        if best_model:
-            shutil.copyfile(filename, model_dir + 'encoder_best.pth.tar')
+        # Save the intermediate checkpoint.                       
+        if save_intermediate:
+            # Generate filename pt.
+            filename = model_dir + 'encoder_episode_{:05d}.pt'.format(episode)
+            # Save dictionary to file.
+            torch.save(chkpt, filename)
+            logger.info("Encoder and statistics exported to checkpoint {}".format(filename))
+
+        # Save the best model.
+        if is_best_model:
+            # Generate filename pt.
+            filename = model_dir + 'encoder_best.pt'
+            # Save dictionary to file.
+            torch.save(chkpt, filename)
+            logger.info("Encoder and statistics exported to checkpoint {}".format(filename))
+
 
     def freeze(self):
         """ Freezes the trainable weigths """

@@ -58,8 +58,8 @@ model:
     # Pass the whole state from encoder to solver cell.
     pass_cell_state: True
     # Save/load encoder.
-    save_encoder: True
-    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180702_132024/models/encoder_episode_09400.pth.tar
+    #save_encoder: True
+    load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180705_185519/models/model_best.pt
     #freeze_encoder: True
     # Controller parameters.
     controller:

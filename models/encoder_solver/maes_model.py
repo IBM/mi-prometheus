@@ -38,6 +38,8 @@ class MAES(SequentialModel):
         '''
         # Call base constructor.
         super(MAES, self).__init__(params)
+        # Model name.
+        self.name = 'MAES'
 
         # Parse parameters.
         # Indices of control bits triggering encoding/decoding. 
@@ -71,21 +73,22 @@ class MAES(SequentialModel):
         self.modes = Enum('Modes', ['Encode', 'Solve'])
 
 
-    def save(self, model_dir, episode, best_model):
+    def save(self, model_dir, stat_col):
         """
         Method saves the model and encoder to file.
 
         :param model_dir: Directory where the model will be saved.
-        :param episode: Episode number used as model identifier.
-        :param best_model: Flag indicating whether it is the best model or not. 
+        :param stat_col: Statistics collector that contain current loss and episode number (and other statistics). 
+        :return: True if this is the best model that is found till now (considering loss).
         """
         # Call the case method to save the whole model.
-        super(SequentialModel, self).save(model_dir, episode, best_model) 
+        is_best_model = super(SequentialModel, self).save(model_dir, stat_col) 
 
         # Additionally, if flag is set to True, save the encoder.
         if self.save_encoder:
-            self.encoder.save(model_dir, episode, best_model)
+            self.encoder.save(model_dir, stat_col, is_best_model, self.save_intermediate)
 
+        return is_best_model
 
     def forward(self, data_tuple):
         """
@@ -155,7 +158,6 @@ class MAES(SequentialModel):
         # Stack logits along the temporal (sequence) axis.
         logits = torch.stack(logits, 1)
         return logits
-
 
 
 
