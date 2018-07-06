@@ -49,18 +49,18 @@ class AttentionVQA(Model):
             mid_features=256,
             out_features=10)
 
+        self.encoded_image_attention_visualize = []
+
     def forward(self, data_tuple):
         (images, questions), _ = data_tuple
 
         # step1 : encode image
         encoded_images = self.image_encoding(images)
 
-        # Initial hidden_state for question encoding
-        batch_size = images.size(0)
-        hx, cx = self.init_hidden_states(batch_size)
-
         # step2 : encode question
         if self.use_question_encoding:
+            batch_size = images.size(0)
+            hx, cx = self.init_hidden_states(batch_size)
             encoded_question, _ = self.lstm(questions, (hx, cx))
             encoded_question = encoded_question[:, -1, :]
         else:
@@ -68,6 +68,8 @@ class AttentionVQA(Model):
 
         # step3 : apply attention
         encoded_image_attention = self.apply_attention(encoded_images, encoded_question)
+        if self.app_state.visualize:
+            self.encoded_image_attention_visualize = encoded_image_attention
 
         # step 4: classifying based in the encoded questions and attention
         combined = torch.cat([encoded_image_attention, encoded_question], dim=1)
@@ -107,6 +109,10 @@ class AttentionVQA(Model):
         # Show data.
         plt.title('Prediction: {} (Target: {})'.format(np.argmax(prediction), target))
         plt.imshow(image.transpose(1,2,0), interpolation='nearest', aspect='auto')
+
+        f = plt.figure()
+        attention_visualize = self.encoded_image_attention_visualize[0].view(8,8).detach().numpy()
+        plt.imshow(attention_visualize, interpolation='nearest', aspect='auto')
 
         # Plot!
         plt.show()
