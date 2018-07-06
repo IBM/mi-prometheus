@@ -141,8 +141,6 @@ class SortOfCLEVR(ImageTextToClassProblem):
         # Get batch of indices.
         batch_ids = self.ids[:self.batch_size]
 
-        print(batch_ids)
-
         # Get batch.
         images = []
         questions = []
