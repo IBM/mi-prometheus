@@ -71,9 +71,6 @@ class MNIST(ImageToClassProblem):
         # Generate labels for aux tuple
         class_names = [self.mnist_class_names[i] for i in label]
 
-        print(data.size())
-        exit()
-
         # Return DataTuple(!) and an empty (aux) tuple.
         return DataTuple(data_padded, label), LabelAuxTuple(class_names)
 
