@@ -50,12 +50,11 @@ class SimpleVQA(Model):
         # step1 : encode image
         encoded_images = self.image_encoding(images)
 
-        # Initial hidden_state for question encoding
         batch_size = images.size(0)
-        hx, cx = self.init_hidden_states(batch_size)
-
         # step2 : encode question
         if self.use_question_encoding:
+            # Initial hidden_state for question encoding
+            hx, cx = self.init_hidden_states(batch_size)
             encoded_question, _ = self.question_encoding(questions, (hx, cx))
             encoded_question = encoded_question[:, -1, :]  # take layer's last output
         else:

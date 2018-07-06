@@ -8,7 +8,7 @@ problem_train:
     img_size: 128
     shuffle: True
     regenerate: False
-    cuda: False
+    cuda: True
     use_train_data: True
 
 # Problem parameters:

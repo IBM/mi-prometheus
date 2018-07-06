@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 
 
-from models.attention_vqa.image_encoding import ImageEncoding, ConvInputModel
+from models.attention_vqa.image_encoding import ImageEncoding
 from models.attention_vqa.attention import StackedAttention, Attention
 from models.model import Model
 from misc.app_state import AppState
@@ -35,7 +35,7 @@ class AttentionVQA(Model):
         self.use_question_encoding = params['use_question_encoding']
 
         # Instantiate class for image encoding
-        self.image_encoding = ConvInputModel()
+        self.image_encoding = ImageEncoding()
 
         # Instantiate class for question encoding
         self.lstm = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)

@@ -7,7 +7,7 @@ problem_train:
     dataset_size: &ds 12000
     img_size: 128
     regenerate: False
-    cuda: False
+    cuda: True
     use_train_data: True
 
 # Problem parameters:
