@@ -59,7 +59,7 @@ model:
     pass_cell_state: True
     # Save/load encoder.
     #save_encoder: True
-    load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180705_185519/models/model_best.pt
+    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180705_191214/models/encoder_best.pt
     #freeze_encoder: True
     # Controller parameters.
     controller:

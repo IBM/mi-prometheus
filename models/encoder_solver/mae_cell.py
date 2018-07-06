@@ -76,11 +76,11 @@ class MAECell(torch.nn.Module):
         # Check filename.
         if os.path.isfile(filename):
             # Load checkpoint from filename.
-            checkpoint = torch.load(filename, map_location=lambda storage, loc: storage)
+            chkpt = torch.load(filename, map_location=lambda storage, loc: storage)
             # Load controller and interface
-            self.controller.load_state_dict(checkpoint['ctrl_dict'])
-            self.interface.load_state_dict(checkpoint['interface_dict'])
-            logger.info("Encoder imported from checkpoint {}".format(filename))
+            self.controller.load_state_dict(chkpt['ctrl_dict'])
+            self.interface.load_state_dict(chkpt['interface_dict'])
+            logger.info("Imported {} parameters from checkpoint (episode {}, loss {}) from file {}".format(chkpt['name'], chkpt['stats']['episode'], chkpt['stats']['loss'], filename))
         else:
             logger.error("Encoder checkpoint not found at {}".format(filename))
 

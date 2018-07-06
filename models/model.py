@@ -130,5 +130,5 @@ class Model(nn.Module):
         self.load_state_dict(chkpt['state_dict'])
 
         # Print statistics.
-        logger.info("Imported {} from checkpoint (episode {}, loss {})".format(chkpt['name'], chkpt['stats']['episode'], chkpt['stats']['loss']))
+        logger.info("Imported {} parameters from checkpoint (episode {}, loss {})".format(chkpt['name'], chkpt['stats']['episode'], chkpt['stats']['loss']))
 
