@@ -96,6 +96,7 @@ class MAECell(torch.nn.Module):
         episode = stat_col['episode']
         # Checkpoint to be saved.
         chkpt = {
+            'name': 'MAE controller and interface',
             'ctrl_dict': self.controller.state_dict(),
             'interface_dict': self.interface.state_dict(),
             'stats': stat_col.statistics
