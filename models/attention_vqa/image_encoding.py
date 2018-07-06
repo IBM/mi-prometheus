@@ -14,7 +14,7 @@ class ImageEncoding(nn.Module):
         self.num_pooling = 2
 
         # Instantiate conv layers
-        self.conv1 = nn.Conv2d(self.num_channels, self.depth_conv1, kernel_size=10)
+        self.conv1 = nn.Conv2d(self.num_channels, self.depth_conv1, kernel_size=3)
         self.conv2 = nn.Conv2d(self.depth_conv1, self.depth_conv2, kernel_size=3)
         self.conv3 = nn.Conv2d(self.depth_conv2, self.depth_conv3, kernel_size=3)
 

@@ -23,7 +23,6 @@ class SimpleVQA(Model):
         # Retrieve attention and image parameters
         self.question_encoding_size = 13
         self.num_channels_image = 3
-        self.glimpses = 3
         self.mid_features = 256
 
         # LSTM parameters
@@ -38,14 +37,12 @@ class SimpleVQA(Model):
         # Instantiate class for question encoding
         self.question_encoding = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
 
+        # Instantiate class for classifier
         self.classifier = Classifier(
-            in_features=1536 + self.question_encoding_size, #self.glimpses * self.mid_features + question_features,
-            mid_features=256,
+            in_features=1536 + self.question_encoding_size,
+            mid_features=self.mid_features,
             out_features=10,
         )
-
-    #sort of clevr = in features 1536, question features 13
-    #shape = in features 1536, word size 7
 
     def forward(self, data_tuple):
         (images, questions), _ = data_tuple

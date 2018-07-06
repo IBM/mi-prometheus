@@ -95,16 +95,15 @@ class SortOfCLEVR(ImageTextToClassProblem):
         """ Loads the dataset from the HDF5-encoded file. If file does not exists it generates new dataset and stores it in a file. """
 
         # Make path absolute.
-        #if (data_folder[0] == '~'):
-        #    # Path to home dir.
-        #    data_folder = os.path.expanduser('~') + data_folder[1:]
-        #elif not os.path.isabs(data_folder):
+        if (data_folder[0] == '~'):
+            # Path to home dir.
+            data_folder = os.path.expanduser('~') + data_folder[1:]
+        elif not os.path.isabs(data_folder):
             # Path to current dir.
-        #    data_folder = os.path.abspath(data_folder)
+            data_folder = os.path.abspath(data_folder)
 
         # Ok, try to load the file.
         self.pathfilename = os.path.join(data_folder, data_filename)
-        #self.pathfilename = os.path.expanduser('~') + self.pathfilename
 
         try:
             if self.regenerate:
@@ -141,6 +140,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
             random.shuffle(self.ids)
         # Get batch of indices.
         batch_ids = self.ids[:self.batch_size]
+
+        print(batch_ids)
 
         # Get batch.
         images = []
@@ -465,7 +466,7 @@ if __name__ == "__main__":
         'use_train_data':False,
         #'shuffle': False,
         #"regenerate": True,
-        'dataset_size': 10000, 'img_size': 128, 'regenerate': True
+        'dataset_size': 10000, 'img_size': 128, 'regenerate': False
         }
 
     # Configure logger.
