@@ -7,7 +7,7 @@ import torch
 from torch import nn
 from abc import ABCMeta, abstractmethod
 
-import shutil
+import numpy as np
 
 import logging
 logger = logging.getLogger('Model')
@@ -31,8 +31,7 @@ class Model(nn.Module):
         # Call base class inits here.
         super(Model, self).__init__()
 
-        # WARNING: at that moment AppState must be initialized and flag must be set. Otherwise the object plot won't be created.
-        # SOLUTION: if application is supposed to show dynamic plot, set flag to True before constructing the model! (and set to False right after if required)
+        # Initialize app state.
         self.app_state = AppState()
 
         # Store pointer to params.
@@ -40,6 +39,15 @@ class Model(nn.Module):
 
         # Window in which the data will be ploted.
         self.plotWindow = None
+
+        # Initialization of best loss - as INF.
+        self.best_loss = np.inf
+
+        # Flag indicating whether intermediate checkpoints should be saved or not (DEFAULT: false).
+        self.save_intermediate = params.get("save_intermediate", False)
+
+        # Model name.
+        self.name = 'Model'
 
     def add_statistics(self, stat_col):
         """
@@ -73,18 +81,57 @@ class Model(nn.Module):
         :param sample_number: Number of sample in batch (DEFAULT: 0) 
         """
 
-    def save(self, model_dir, episode, best_model):
+    def save(self, model_dir, stat_col):
         """
         Generic method saving the model parameters to file.
         It can be overloaded if one needs more control.
 
         :param model_dir: Directory where the model will be saved.
-        :param episode: Episode number used as model identifier.
-        :param best_model: Flag indicating whether it is the best model or not. 
+        :param stat_col: Statistics collector that contain current loss and episode number (and other statistics). 
+        :return: True if this is the best model that is found till now (considering loss).
         """
-        filename = model_dir + 'model_episode_{:05d}.pth.tar'.format(episode)
-        torch.save(self.state_dict(), filename)
-        logger.info("Model exported to checkpoint {}".format(filename))
-        # Check whether it is the best model or not.
-        if best_model:
-            shutil.copyfile(filename, model_dir + 'model_best.pth.tar')
+        # Get two elementary statistics.
+        loss = stat_col['loss']
+        episode = stat_col['episode']
+
+        # Checkpoint to be saved.
+        chkpt = {
+            'name': self.name,
+            'state_dict': self.state_dict(),
+            'stats': stat_col.statistics
+        }
+
+        #for key, value in stat_col.statistics.items():
+        #    logger.warning("{}: {}".format(key, value))
+
+        # Save the intermediate checkpoint.                       
+        if self.save_intermediate:
+            filename = model_dir + 'model_episode_{:05d}.pt'.format(episode)
+            torch.save(chkpt, filename)
+            logger.info("Model and statistics exported to checkpoint {}".format(filename))
+
+        # Save the best model.
+        if (loss < self.best_loss):
+            self.best_loss = loss
+            filename = model_dir + 'model_best.pt'
+            torch.save(chkpt, filename)
+            logger.info("Model and statistics exported to checkpoint {}".format(filename))
+            return True
+        # Else: that was not the best model.
+        return False
+
+
+    def load(self, checkpoint_file):
+        """ Loads model from the checkpoint file 
+        
+        :param checkpoint_file: File containing dictionary with model state and statistics.
+        """
+        # Load checkpoint
+        chkpt = torch.load(checkpoint_file, map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
+
+        # Load model.
+        self.load_state_dict(chkpt['state_dict'])
+
+        # Print statistics.
+        logger.info("Imported {} parameters from checkpoint (episode {}, loss {})".format(chkpt['name'], chkpt['stats']['episode'], chkpt['stats']['loss']))
+

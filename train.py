@@ -218,6 +218,7 @@ if __name__ == '__main__':
         problem.curriculum_learning_initialize(param_interface['training']['curriculum_learning'])
         # If key is not present in config then it has to be finished (DEFAULT: True)
         must_finish_curriculum = param_interface['training']['curriculum_learning'].get('must_finish', True)
+        logger.info("Using curriculum learning")
     else:
         # Initialize curriculum learning - with empty dict.
         problem.curriculum_learning_initialize({})
@@ -256,11 +257,12 @@ if __name__ == '__main__':
 
         # Turn on validation.
         use_validation_problem = True
-
+        logger.info("Using validation problem for calculation of loss and model validation")
         
     else:
         # We do not have validation problem - so turn it off.
         use_validation_problem = False
+        logger.info("Using training problem for calculation of loss and model validation")
 
         # Use loss length (DEFAULT: 10).
         try:
