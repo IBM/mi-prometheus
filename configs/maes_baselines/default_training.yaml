@@ -1,11 +1,11 @@
 # Problem parameters:
 training:
-    #Curriculum learning - optional.
+    # Curriculum learning - optional.
     curriculum_learning:
         interval: 500
         initial_max_sequence_length: 5
 
-    #Ooptimizer parameters:
+    # Optimizer parameters:
     optimizer:
         # Exact name of the pytorch optimizer function
         name: Adam
@@ -14,6 +14,9 @@ training:
 
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
+    # How often the model will be validates/saved.
+    validation_interval: 100
+    # Optional - used when validation section is not present.
     length_loss: 10
 
     # Terminal condition parameters:
@@ -23,5 +26,6 @@ training:
 
 # Additional settings:
 settings:
+    cuda: True
     seed_numpy: -1
     seed_torch: -1

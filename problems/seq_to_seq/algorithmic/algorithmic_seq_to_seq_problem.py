@@ -39,17 +39,6 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         # Set default loss function - cross entropy.
         self.loss_function = nn.BCEWithLogitsLoss()
-
-        try:
-            # If the 'curriculum_learning' section is not present, this line will throw an exception.
-            self.curriculum_config = params['curriculum_learning'].to_dict()
-            # Copy parameters required for curriculum learning
-            self.curriculum_config['max_sequence_length'] = params['max_sequence_length']
-            #self.curriculum_config.update({'max_sequence_length': params['max_sequence_length']})
-        except KeyError:
-             # Else: set empty dictionary.
-            self.curriculum_config = {}
-            pass
         
 
     def calculate_accuracy(self, data_tuple, logits, aux_tuple):
@@ -200,7 +189,6 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         plt.show()
 
 
-
     def curriculum_learning_update_params(self, episode):
         """
         Updates problem parameters according to curriculum learning.
@@ -213,11 +201,11 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         curric_done = True
         try:
             # Read curriculum learning parameters.
-            max_max_length = self.curriculum_config['max_sequence_length']
-            interval = self.curriculum_config['interval']
-            initial_max_sequence_length = self.curriculum_config['initial_max_sequence_length']
+            max_max_length = self.params['max_sequence_length']
+            interval = self.curriculum_params['interval']
+            initial_max_sequence_length = self.curriculum_params['initial_max_sequence_length']
 
-            if self.curriculum_config['interval'] > 0:
+            if self.curriculum_params['interval'] > 0:
                 # Curriculum learning goes from the initial max length to the max length in steps of size 1
                 max_length = initial_max_sequence_length + (episode // interval)
                 if max_length >= max_max_length:

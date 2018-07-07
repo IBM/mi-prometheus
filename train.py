@@ -204,41 +204,32 @@ if __name__ == '__main__':
         app_state.visualize = True
 
     # check if CUDA is available turn it on
-    check_and_set_cuda(param_interface['problem_train'], logger) 
-
-    # Build problem for the training
-    problem = ProblemFactory.build_problem(param_interface['problem_train'])
-
-    # Initialize curriculum learning.
-    curric_done = problem.curriculum_learning_update_params(0)
-    # Run validation (DEFAULT: True).
-    try:
-        must_finish_curriculum = param_interface['problem_train']['curriculum_learning']['must_finish']
-    except KeyError:
-        must_finish_curriculum = True
-
-    # Build problem for the validation
-    problem_validation = ProblemFactory.build_problem(param_interface['problem_validation'])
-    generator_validation = problem_validation.return_generator()
-
-    # Get a single batch that will be used for validation (!)
-    data_valid, aux_valid = next(generator_validation)
+    check_and_set_cuda(param_interface['settings'], logger) 
 
     # Build the model.
     model = ModelFactory.build_model(param_interface['model'])
     model.cuda() if app_state.use_CUDA else None
 
-    # Set optimizer.
-    optimizer_conf = dict(param_interface['optimizer'])
-    optimizer_name = optimizer_conf['name']
-    del optimizer_conf['name']
-    # Select for optimization only those parameters that require update!
-    optimizer = getattr(torch.optim, optimizer_name)(
-        filter(lambda p: p.requires_grad,model.parameters()), **optimizer_conf)
+    # Build problem for the training
+    problem = ProblemFactory.build_problem(param_interface['training']['problem'])
 
-    # Start Training
-    episode = 0
-    last_losses = collections.deque()
+    if 'curriculum_learning' in param_interface['training']:
+        # Initialize curriculum learning - with values from config.
+        problem.curriculum_learning_initialize(param_interface['training']['curriculum_learning'])
+        # If key is not present in config then it has to be finished (DEFAULT: True)
+        must_finish_curriculum = param_interface['training']['curriculum_learning'].get('must_finish', True)
+    else:
+        # Initialize curriculum learning - with empty dict.
+        problem.curriculum_learning_initialize({})
+        # If not using curriculum then it does not have to be finished.
+        must_finish_curriculum = False
+        
+
+    # Model validation interval (DEFAULT: 100).
+    try:
+        model_validation_interval = param_interface['training']['validation_interval']
+    except KeyError:
+        model_validation_interval = 100
 
     # Create statistics collector.
     stat_col = StatisticsCollector()
@@ -246,31 +237,50 @@ if __name__ == '__main__':
     problem.add_statistics(stat_col)
     model.add_statistics(stat_col)
 
-    # Create csv files.
-    train_file = stat_col.initialize_csv_file(log_dir, '/training.csv')
-    validation_file = stat_col.initialize_csv_file(log_dir, '/validation.csv')
+    # Create csv file.
+    training_file = stat_col.initialize_csv_file(log_dir, '/training.csv')
 
-    # Validation frequency (DEFAULT: 100).
-    try:
-        validation_frequency = param_interface['problem_validation']['frequency']
-    except KeyError:
-        validation_frequency = 100
+    # Check if validation section is present AND problem section is also present...
+    if ('validation' in param_interface) and ('problem' in param_interface['validation']):
+        # ... then load problem, set variables etc. 
 
-    # Run validation (DEFAULT: True).
-    try:
-        do_validation = param_interface['settings']['do_validation']
-    except KeyError:
-        do_validation = True
+        # Build problem for the validation
+        problem_validation = ProblemFactory.build_problem(param_interface['validation']['problem'])
+        generator_validation = problem_validation.return_generator()
 
-    # Use validation loss in early stopping (DEFAULT: True).
-    if do_validation:
-    # Figure out if validation is defined else assume that it should be true
-        try:
-            validation_stopping = param_interface['settings']['validation_stopping']
-        except KeyError:
-            validation_stopping = True
+        # Get a single batch that will be used for validation (!)
+        data_valid, aux_valid = next(generator_validation)
+
+        # Create csv file.
+        validation_file = stat_col.initialize_csv_file(log_dir, '/validation.csv')
+
+        # Turn on validation.
+        use_validation_problem = True
+
+        
     else:
-        validation_stopping = False
+        # We do not have validation problem - so turn it off.
+        use_validation_problem = False
+
+        # Use loss length (DEFAULT: 10).
+        try:
+            loss_length = param_interface['training']['length_loss']
+        except KeyError:
+            loss_length = 10
+        
+
+    # Set optimizer.
+    optimizer_conf = dict(param_interface['training']['optimizer'])
+    optimizer_name = optimizer_conf['name']
+    del optimizer_conf['name']
+    # Select for optimization only those parameters that require update!
+    optimizer = getattr(torch.optim, optimizer_name)(
+        filter(lambda p: p.requires_grad,model.parameters()), **optimizer_conf)
+
+
+    # Start Training
+    episode = 0
+    last_losses = collections.deque()
 
     # Flag denoting whether we converged (or reached last episode).
     terminal_condition = False
@@ -293,18 +303,19 @@ if __name__ == '__main__':
         # 1. Perform forward step, calculate logits and loss.
         logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple)
 
-        # Store the calculated loss on a list.
-        last_losses.append(loss)
-        # Truncate list length.
-        if len(last_losses) > param_interface['settings']['length_loss']:
-            last_losses.popleft()
+        if not use_validation_problem:
+            # Store the calculated loss on a list.
+            last_losses.append(loss)
+            # Truncate list length.
+            if len(last_losses) > loss_length:
+                last_losses.popleft()
 
         # 2. Backward gradient flow.
         loss.backward()
         # Check the presence of parameter 'gradient_clipping'.
         try:
             # if present - clip gradients to a range (-gradient_clipping, gradient_clipping)
-            val = param_interface['problem_train']['gradient_clipping']
+            val = param_interface['training']['gradient_clipping']
             nn.utils.clip_grad_value_(model.parameters(), val)
         except KeyError:
             # Else - do nothing.
@@ -317,7 +328,7 @@ if __name__ == '__main__':
         # Log to logger.
         logger.info(stat_col.export_statistics_to_string())
         # Export to csv.
-        stat_col.export_statistics_to_csv(train_file)
+        stat_col.export_statistics_to_csv(training_file)
 
         # Export data to tensorboard.
         if (FLAGS.tensorboard is not None) and (episode % FLAGS.logging_frequency == 0):
@@ -346,11 +357,12 @@ if __name__ == '__main__':
             if model.plot(data_tuple,  logits):
                 break
 
-        #  5. Validate and, save the model.
+        #  5. Validate and (optionally) save the model.
         user_pressed_stop = False
-        if (episode % validation_frequency) == 0:
-        
-            if do_validation:
+        if (episode % model_validation_interval) == 0:
+            
+            # Validate on the problem if required.
+            if use_validation_problem:
 
                 # Check visualization flag - turn on when we wanted to visualize (at least) validation.
                 if FLAGS.visualize is not None and (FLAGS.visualize == 1 or FLAGS.visualize == 2):
@@ -362,12 +374,8 @@ if __name__ == '__main__':
                 validation_loss, user_pressed_stop = validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
                         logger,   validation_file,  validation_writer)
 
-                # Save model using validation statistics.
-                model.save(model_dir, stat_col)
-                              
-            else: 
-                # Save model using training statistics.
-                model.save(model_dir, stat_col)
+            # Save the model using latest (validation or training) statistics.
+            model.save(model_dir, stat_col)
 
 
         # 6. Terminal conditions.
@@ -379,11 +387,11 @@ if __name__ == '__main__':
         if curric_done or not must_finish_curriculum:
             # break if conditions applied: convergence or max episodes
             loss_stop=False
-            if validation_stopping:
-                loss_stop = validation_loss < param_interface['settings']['loss_stop']
+            if use_validation_problem:
+                loss_stop = validation_loss < param_interface['training']['terminal_condition']['loss_stop']
                 # We already saved that model.
             else:
-                loss_stop = max(last_losses) < param_interface['settings']['loss_stop']
+                loss_stop = max(last_losses) < param_interface['training']['terminal_condition']['loss_stop']
                 # We already saved that model.
 
             if loss_stop:
@@ -392,9 +400,10 @@ if __name__ == '__main__':
                 # "Finish" the training.
                 break
 
-        if episode == param_interface['settings']['max_episodes'] :
+        if episode == param_interface['training']['terminal_condition']['max_episodes'] :
             terminal_condition = True
-            # If we are here then it means that we didn't converged and the model is bad for sure - but try to save it anyway. 
+            # If we are here then it means that we didn't converged and the model is bad for sure.
+            # But let's try to save it anyway, maybe it is still better than the previous one. 
             model.save(model_dir, stat_col)
             # "Finish" the training.
             break
@@ -410,7 +419,7 @@ if __name__ == '__main__':
             app_state.visualize = True
 
             # Perform validation.
-            if do_validation:
+            if use_validation_problem:
                 _, _ = validation(model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger,
                                validation_file, validation_writer)
 
@@ -419,10 +428,10 @@ if __name__ == '__main__':
 
 
     else:
-        logger.info('Learning interrupted!')
+        logger.warning('Learning interrupted!')
 
     # Close files.
-    train_file.close()
+    training_file.close()
     validation_file.close()
     if (FLAGS.tensorboard is not None):
         # Close TB writers.

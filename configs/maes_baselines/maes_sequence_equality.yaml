@@ -71,7 +71,6 @@ model:
         shift_size: 3
     mas_interface:
         shift_size: 3
-    load_encoder: ''
     # Memory parameters.
     memory:
         num_content_bits: 15

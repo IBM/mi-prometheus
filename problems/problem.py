@@ -45,6 +45,9 @@ class Problem(metaclass=ABCMeta):
         # Set default loss function.
         self.loss_function = None
 
+        # Store pointer to params.
+        self.params = params
+
 
     def set_loss_function(self, loss_function):
         """ Sets loss function.
@@ -136,6 +139,17 @@ class Problem(metaclass=ABCMeta):
         :return: data_tuplem aux_tuple, logits after preprocessing.
         """
         return data_tuple, aux_tuple, logits
+
+
+    def curriculum_learning_initialize(self, curriculum_params):
+        """ 
+        Initializes curriculum learning - simply saves the curriculum params.
+        This method can be overwriten in the derived classes.
+
+        :curriculum_params: Interface to parameters accessing curriculum learning view of the registry tree. 
+        """
+        # Save params.
+        self.curriculum_params = curriculum_params
 
 
     def curriculum_learning_update_params(self, episode):
