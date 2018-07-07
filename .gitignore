@@ -5,7 +5,7 @@
 # Recursively allow files under subtree
 !train.py
 !test.py
-!utils_training.py
+!worker_utils.py
 !batch_train.py
 !batch_train_cuda.py
 !batch_test.py
