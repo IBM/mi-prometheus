@@ -106,6 +106,7 @@ if __name__ == '__main__':
 
     # Get list of configs that need to be loaded.
     configs_to_load = recurrent_config_parse(FLAGS.config, [])
+
     
     # Create param interface object.
     param_interface = ParamInterface()

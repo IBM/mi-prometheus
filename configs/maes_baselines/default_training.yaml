@@ -1,0 +1,27 @@
+# Problem parameters:
+training:
+    #Curriculum learning - optional.
+    curriculum_learning:
+        interval: 500
+        initial_max_sequence_length: 5
+
+    #Ooptimizer parameters:
+    optimizer:
+        # Exact name of the pytorch optimizer function
+        name: Adam
+        # Function arguments of the optimizer, by name
+        lr: 0.01
+
+    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
+    gradient_clipping: 10
+    length_loss: 10
+
+    # Terminal condition parameters:
+    terminal_condition:
+        loss_stop: 1.0e-5
+        max_episodes: 100000
+
+# Additional settings:
+settings:
+    seed_numpy: -1
+    seed_torch: -1
