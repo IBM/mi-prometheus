@@ -66,8 +66,6 @@ def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
     return loss_valid, False
 
 
-
-
 if __name__ == '__main__':
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
@@ -124,7 +122,7 @@ if __name__ == '__main__':
 
     # Get problem and model names.
     try:
-        task_name = param_interface['problem_train']['name']
+        task_name = param_interface['training']['problem']['name']
     except:
         print("Error: Couldn't retrieve problem name from the loaded configuration")
         exit(-1)
