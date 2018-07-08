@@ -42,14 +42,17 @@ class AttentionVQA(Model):
 
         # Instantiate class for attention
         self.apply_attention = Attention(
-            question_encoding_size=self.encoded_question_size,
+            question_encoding_size=8*8,
             image_encoding_size=self.encoded_image_features_size,
             image_text_features=self.mid_features
         )
 
+        # embedded question
+        self.ffn = nn.Linear(self.encoded_question_size, 8*8)
+
         # Instantiate classifier class
         self.classifier = Classifier(
-            in_features=8*8 + self.encoded_question_size,
+            in_features=8*8, #+ self.encoded_question_size,
             mid_features=256,
             out_features=10)
 
@@ -71,12 +74,15 @@ class AttentionVQA(Model):
             encoded_question = questions
 
         # step3 : apply attention
+        encoded_question = self.ffn(encoded_question)
+
         encoded_image_attention = self.apply_attention(encoded_images, encoded_question)
         if self.app_state.visualize:
             self.encoded_image_attention_visualize = encoded_image_attention
 
         # step 4: classifying based in the encoded questions and attention
-        combined = torch.cat([encoded_image_attention, encoded_question], dim=1)
+        #combined = torch.cat([encoded_image_attention, encoded_question], dim=1)
+        combined = encoded_image_attention + encoded_question
         answer = self.classifier(combined)
 
         return answer
