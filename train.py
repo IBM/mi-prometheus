@@ -201,6 +201,11 @@ if __name__ == '__main__':
 
     # Initialize curriculum learning.
     curric_done = problem.curriculum_learning_update_params(0)
+    # Run validation (DEFAULT: True).
+    try:
+        must_finish_curriculum = param_interface['problem_train']['curriculum_learning']['must_finish']
+    except KeyError:
+        must_finish_curriculum = True
 
     # Build problem for the validation
     problem_validation = ProblemFactory.build_problem(param_interface['problem_validation'])
@@ -224,8 +229,6 @@ if __name__ == '__main__':
     # Start Training
     episode = 0
     last_losses = collections.deque()
-    # Initialization of best loss - as INF.
-    best_loss = np.inf
 
     # Create statistics collector.
     stat_col = StatisticsCollector()
@@ -237,18 +240,19 @@ if __name__ == '__main__':
     train_file = stat_col.initialize_csv_file(log_dir, '/training.csv')
     validation_file = stat_col.initialize_csv_file(log_dir, '/validation.csv')
 
-    # Try to read validation frequency from config, else set default (100)
+    # Validation frequency (DEFAULT: 100).
     try:
         validation_frequency = param_interface['problem_validation']['frequency']
     except KeyError:
         validation_frequency = 100
 
-    #whether to do validation (default True)
+    # Run validation (DEFAULT: True).
     try:
         do_validation = param_interface['settings']['do_validation']
     except KeyError:
         do_validation = True
 
+    # Use validation loss in early stopping (DEFAULT: True).
     if do_validation:
     # Figure out if validation is defined else assume that it should be true
         try:
@@ -348,20 +352,12 @@ if __name__ == '__main__':
                 validation_loss, user_pressed_stop = validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
                         logger,   validation_file,  validation_writer)
 
-                # Check the score.
-                if (validation_loss < best_loss):
-                    best_loss = validation_loss
-                    model.save(model_dir, episode, True)
-                else:
-                    model.save(model_dir, episode, False)
+                # Save model using validation statistics.
+                model.save(model_dir, stat_col)
                               
             else: 
-                # We are not doing validation, so we rely on train loss.
-                if (max(last_losses) < best_loss):
-                    best_loss = max(last_losses)
-                    model.save(model_dir, episode, True)
-                else:
-                    model.save(model_dir, episode, False)
+                # Save model using training statistics.
+                model.save(model_dir, stat_col)
 
 
         # 6. Terminal conditions.
@@ -370,9 +366,9 @@ if __name__ == '__main__':
             break
 
         # II. & III - only when we finished curriculum. 
-        if curric_done:
+        if curric_done or not must_finish_curriculum:
             # break if conditions applied: convergence or max episodes
-            loss_stop=True
+            loss_stop=False
             if validation_stopping:
                 loss_stop = validation_loss < param_interface['settings']['loss_stop']
                 # We already saved that model.
@@ -380,25 +376,31 @@ if __name__ == '__main__':
                 loss_stop = max(last_losses) < param_interface['settings']['loss_stop']
                 # We already saved that model.
 
-            if episode == param_interface['settings']['max_episodes'] :
+            if loss_stop:
+                # Ok, we have converged.
                 terminal_condition = True
-                # If we are here then it means that we didn't converged and the model is bad for sure. 
-                model.save(model_dir, episode, False)
                 # "Finish" the training.
                 break
+
+        if episode == param_interface['settings']['max_episodes'] :
+            terminal_condition = True
+            # If we are here then it means that we didn't converged and the model is bad for sure - but try to save it anyway. 
+            model.save(model_dir, stat_col)
+            # "Finish" the training.
+            break
         # Next episode.
         episode += 1
 
     # Check whether we have finished training properly.
     if terminal_condition:
         logger.info('Learning finished!')
-        logger.info('Model saved in '+ log_dir)
         # Check visualization flag - turn on when we wanted to visualize (at least) validation.
         if FLAGS.visualize is not None and (FLAGS.visualize == 3):
             app_state.visualize = True
 
             # Perform validation.
-            _, _ = validation(model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger,
+            if do_validation:
+                _, _ = validation(model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger,
                                validation_file, validation_writer)
 
         else:

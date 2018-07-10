@@ -98,16 +98,13 @@ if __name__ == '__main__':
     # Check is CUDA is available and turn it on
     check_and_set_cuda(param_interface['problem_test'], logger)
 
-    # Build new problem
+    # Build problem.
     problem = ProblemFactory.build_problem(param_interface['problem_test'])
 
-    # Build model
+    # Create model object and load parameters from checkpoint.
     model = ModelFactory.build_model(param_interface['model'])
     model.cuda() if app_state.use_CUDA else None
-
-    model.load_state_dict(
-        torch.load(FLAGS.model, map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
-    )
+    model.load(FLAGS.model)
 
     # Create statistics collector.
     stat_col = StatisticsCollector()

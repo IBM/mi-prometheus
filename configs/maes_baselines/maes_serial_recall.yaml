@@ -13,6 +13,7 @@ problem_train:
     curriculum_learning:
         interval: 500
         initial_max_sequence_length: 5
+        #must_finish: False
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     bias: 0.5
@@ -57,8 +58,8 @@ model:
     # Pass the whole state from encoder to solver cell.
     pass_cell_state: True
     # Save/load encoder.
-    save_encoder: True
-    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180702_132024/models/encoder_episode_09400.pth.tar
+    #save_encoder: True
+    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180705_191214/models/encoder_best.pt
     #freeze_encoder: True
     # Controller parameters.
     controller:
