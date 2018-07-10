@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""problem.py: contains base class for all problems"""
+"""trainer.py: contains code of worker realising training using CPUs/GPUs"""
 __author__      = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
 
 
@@ -28,7 +28,7 @@ from misc.statistics_collector import StatisticsCollector
 # Import model factory.
 import sys, os
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
+#sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
 from models.model_factory import ModelFactory
 from misc.param_interface import ParamInterface
 
@@ -134,7 +134,7 @@ if __name__ == '__main__':
         exit(-1)
 
     try:
-        model_name = param_interface['model']['name']]
+        model_name = param_interface['model']['name']
     except:
         print("Error: Couldn't retrieve model name from the loaded configuration")
         exit(-1)
@@ -174,14 +174,13 @@ if __name__ == '__main__':
     def logfile():
         return logging.FileHandler(log_file)
 
-
-    # Log configuration to file.
+    # Load default logger configuration.
     with open('logger_config.yaml', 'rt') as f:
         config = yaml.load(f.read())
         logging.config.dictConfig(config)
 
     # Set logger label and level.
-    logger = logging.getLogger('Train')
+    logger = logging.getLogger('Trainer')
     logger.setLevel(getattr(logging, FLAGS.log.upper(), None))
 
     # Print experiment configuration
@@ -206,8 +205,8 @@ if __name__ == '__main__':
         # Initialize the application state singleton.
     app_state = AppState()
     # If we are going to use SOME visualization - set flag to True now, before creation of problem and model objects.
-    if FLAGS.visualize is not None:
-        app_state.visualize = True
+    #if FLAGS.visualize is not None:
+    #    app_state.visualize = True
 
     # check if CUDA is available turn it on
     check_and_set_cuda(param_interface['settings'], logger) 
