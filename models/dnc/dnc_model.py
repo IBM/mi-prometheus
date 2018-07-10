@@ -19,43 +19,29 @@ class DNC(SequentialModel):
     def __init__(self, params):
         """Initialize an DNC Layer.
 
-        :param in_dim: input size.
-        :param output_units: output size.
-        :param state_units: state size.
-        :param num_heads: number of heads.
-        :param is_cam: is it content_addressable.
-        :param num_shift: number of shifts of heads.
-        :param M: Number of slots per address in the memory bank.
+        :param params: dictionary of inputs.
         """
         # Call base class initialization.
         super(DNC, self).__init__(params)
 
-        self.in_dim = params["control_bits"] + params["data_bits"]
         try:
             self.output_units  = params['output_bits']
         except KeyError:
             self.output_units = params['data_bits']
 
-        self.state_units =params["hidden_state_dim"]
-        self.is_cam = params["use_content_addressing"]
-        self.num_shift = params["shift_size"]
-        self.M = params["memory_content_size"]
-        #self.batch_size = params["batch_size"]
         self.memory_addresses_size = params["memory_addresses_size"]
         self.label = params["name"]
         self.cell_state_history = None 
 
         # Create the DNC components
-        self.DNCCell = DNCCell(self.in_dim, self.output_units, self.state_units,
-                               self.is_cam, self.num_shift, self.M,params)
+        self.DNCCell = DNCCell(self.output_units,params)
 
-    def forward(self, data_tuple):       # x : batch_size, seq_len, input_size
+    def forward(self, data_tuple):       # inputs : batch_size, seq_len, input_size
         """
         Runs the DNC cell and plots if necessary
         
-        :param x: input sequence  [BATCH_SIZE x seq_len x input_size ]
-        :param state: Input hidden state  [BATCH_SIZE x state_size]
-        :return: Tuple [output, hidden_state]
+        :param data_tuple: Tuple containing inputs and targets
+        :returns: output [batch_size, seq_len, output_size]
         """
 
         (inputs, targets) = data_tuple
@@ -71,9 +57,10 @@ class DNC(SequentialModel):
         seq_length = inputs.size(1)
        
         memory_addresses_size = self.memory_addresses_size
- 
+
+        #if memory size is not fixed, set it to the total input plus output size
         if memory_addresses_size == -1:
-            memory_addresses_size = seq_length  # a hack for now
+            memory_addresses_size = seq_length  
 
         # init state
         cell_state = self.DNCCell.init_state(memory_addresses_size,batch_size)
