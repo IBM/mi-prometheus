@@ -1,8 +1,14 @@
-# Force MKL (CPU BLAS) to use one core, faster
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""problem.py: contains base class for all problems"""
+__author__      = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
+
+
 import logging
 import logging.config
 import os
 
+# Force MKL (CPU BLAS) to use one core, faster
 os.environ["OMP_NUM_THREADS"] = '1'
 
 import yaml
@@ -128,7 +134,7 @@ if __name__ == '__main__':
         exit(-1)
 
     try:
-        model_name = param_interface['model']['name']
+        model_name = param_interface['model']['name']]
     except:
         print("Error: Couldn't retrieve model name from the loaded configuration")
         exit(-1)
@@ -149,10 +155,10 @@ if __name__ == '__main__':
 
     model_dir = log_dir + 'models/'
     os.makedirs(model_dir, exist_ok=False)
-    log_file = log_dir + 'msgs.log'
+    log_file = log_dir + 'trainer.log'
 
     # Copy the training config into a yaml settings file, under log_dir
-    with open(log_dir + "/train_settings.yaml", 'w') as yaml_backup_file:
+    with open(log_dir + "/training_configuration.yaml", 'w') as yaml_backup_file:
         yaml.dump(param_interface.to_dict(), yaml_backup_file, default_flow_style=False)
 
     # Create tensorboard output - if tensorboard is supposed to be used.

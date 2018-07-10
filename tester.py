@@ -63,7 +63,7 @@ if __name__ == '__main__':
         exit(-3)
 
     # Logging - to the same dir. :]
-    log_file = abs_path + '/msgs_test.log'
+    log_file = abs_path + '/tester.log'
     def logfile():
         return logging.FileHandler(log_file)
 
