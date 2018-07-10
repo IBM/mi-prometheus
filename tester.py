@@ -1,5 +1,10 @@
-# Force MKL (CPU BLAS) to use one core, faster
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""tester.py: contains code of worker realising testing of previously trained models"""
+__author__      = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
+
 import os
+# Force MKL (CPU BLAS) to use one core, faster
 os.environ["OMP_NUM_THREADS"] = '1'
 
 import torch
@@ -10,9 +15,6 @@ from glob import glob
 
 import logging
 import logging.config
-
-# Force MKL (CPU BLAS) to use one core, faster
-os.environ["OMP_NUM_THREADS"] = '1'
 
 # Import problems and problem factory.
 import sys
@@ -57,7 +59,7 @@ if __name__ == '__main__':
     abs_path, model_dir = os.path.split(os.path.dirname(os.path.abspath(FLAGS.model)))
 
     # Check if configuration file exists
-    config_file = abs_path + '/train_settings.yaml'
+    config_file = abs_path + '/training_configuration.yaml'
     if not os.path.isfile(config_file):
         print('Config file {} does not exist'.format(config_file))
         exit(-3)
@@ -67,11 +69,12 @@ if __name__ == '__main__':
     def logfile():
         return logging.FileHandler(log_file)
 
+    # Load default logger configuration.
     with open('logger_config.yaml', 'rt') as f:
         config = yaml.load(f.read())
         logging.config.dictConfig(config)
 
-    logger = logging.getLogger('Test')
+    logger = logging.getLogger('Tester')
     logger.setLevel(getattr(logging, FLAGS.log.upper(), None))
 
     # Initialize the application state singleton.
@@ -87,7 +90,7 @@ if __name__ == '__main__':
     with open(config_file, 'r') as stream:
         param_interface.add_custom_params(yaml.load(stream))
 
-    # Set seeds.
+    # Set random seeds.
     if param_interface["settings"]["seed_torch"] != -1:
         torch.manual_seed(param_interface["settings"]["seed_torch"])
         torch.cuda.manual_seed_all(param_interface["settings"]["seed_torch"])
@@ -95,16 +98,32 @@ if __name__ == '__main__':
     if param_interface["settings"]["seed_numpy"] != -1:
         np.random.seed(param_interface["settings"]["seed_numpy"])
 
-    # Check is CUDA is available and turn it on
-    check_and_set_cuda(param_interface['problem_test'], logger)
+    # Initialize the application state singleton.
+    app_state = AppState()
 
-    # Build problem.
-    problem = ProblemFactory.build_problem(param_interface['problem_test'])
+    # check if CUDA is available turn it on
+    check_and_set_cuda(param_interface['settings'], logger) 
+
+    # Get problem and model names.
+    try:
+        task_name = param_interface['testing']['problem']['name']
+    except:
+        print("Error: Couldn't retrieve the problem name from the loaded configuration")
+        exit(-1)
+
+    try:
+        model_name = param_interface['model']['name']
+    except:
+        print("Error: Couldn't retrieve model name from the loaded configuration")
+        exit(-1)
 
     # Create model object and load parameters from checkpoint.
     model = ModelFactory.build_model(param_interface['model'])
     model.cuda() if app_state.use_CUDA else None
     model.load(FLAGS.model)
+
+    # Build problem.
+    problem = ProblemFactory.build_problem(param_interface['testing']['problem'])
 
     # Create statistics collector.
     stat_col = StatisticsCollector()
@@ -113,7 +132,7 @@ if __name__ == '__main__':
     model.add_statistics(stat_col)
 
     # Create test output csv file.
-    test_file = stat_col.initialize_csv_file(abs_path, '/test.csv')
+    test_file = stat_col.initialize_csv_file(abs_path, '/testing.csv')
 
     # Run test
     with torch.no_grad():
