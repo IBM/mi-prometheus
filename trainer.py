@@ -202,11 +202,8 @@ if __name__ == '__main__':
     if param_interface["settings"]["seed_numpy"] != -1:
         np.random.seed(param_interface["settings"]["seed_numpy"])
 
-        # Initialize the application state singleton.
+    # Initialize the application state singleton.
     app_state = AppState()
-    # If we are going to use SOME visualization - set flag to True now, before creation of problem and model objects.
-    #if FLAGS.visualize is not None:
-    #    app_state.visualize = True
 
     # check if CUDA is available turn it on
     check_and_set_cuda(param_interface['settings'], logger) 
