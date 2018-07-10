@@ -15,9 +15,8 @@ class ControlParams(nn.Module):
         """Initialize an Controller.
 
         :param output_size: output size.
-        :param tm_state_units: state size.
         :param read_size: size of data_gen read from memory
-        :param num_heads: number of heads (we will have equal numbers of read and write heads)
+        :param params: dictionary of input parameters
         """
         super(ControlParams, self).__init__()
 
@@ -27,7 +26,7 @@ class ControlParams(nn.Module):
         # Set input and hidden  dimensions.
         self.input_size = params["control_bits"] + params["data_bits"]
 
-        tm_ctrl_in_dim = self.input_size + self.read_size
+        ctrl_in_dim = self.input_size + self.read_size
 
         self.hidden_state_size = params['hidden_state_dim']
         # Get memory parameters.
@@ -39,23 +38,23 @@ class ControlParams(nn.Module):
         self.num_writes = params['num_writes']
         self.non_linearity = params['non_linearity']
 
-
+        #TODO Make Multilayered LSTM controller in the vein of the DNC paper
         # State layer
         controller_params = {
            "name": self.controller_type,
-           "input_size": tm_ctrl_in_dim,
+           "input_size": ctrl_in_dim,
            "output_size": self.hidden_state_size,
            "num_layers": 1,
            "non_linearity" : self.non_linearity
         }
 
-        self.tm_i2s = ControllerFactory.build_model(controller_params)
+        self.state_gen = ControllerFactory.build_model(controller_params)
 
         
-        self.tm_i2o = nn.Linear(self.hidden_state_size, output_size)
+        self.output_gen = nn.Linear(self.hidden_state_size, output_size)
 
         # Update layer
-        self.tm_i2u = Param_Generator(self.hidden_state_size, word_size=self.num_memory_bits,num_reads=self.num_reads,num_writes=self.num_writes,shift_size=self.shift_size)
+        self.param_gen = Param_Generator(self.hidden_state_size, word_size=self.num_memory_bits,num_reads=self.num_reads,num_writes=self.num_writes,shift_size=self.shift_size)
     
     def init_state(self,  batch_size):
         """
@@ -64,25 +63,26 @@ class ControlParams(nn.Module):
         :param batch_size: Size of the batch in given iteraction/epoch.
         :returns: Initial state tuple - object of LSTMStateTuple class.
         """
-        return self.tm_i2s.init_state(batch_size)
+        return self.state_gen.init_state(batch_size)
 
-    def forward(self, tm_input, prev_ctrl_state_tuple, read_data):
+    def forward(self, inputs, prev_ctrl_state_tuple, read_data):
         """
         Calculates the output, the hidden state and the controller parameters
         
-        :param tm_input: Current input (from time t)  [BATCH_SIZE x INPUT_SIZE]
-        :param tm_state: Previous hidden state (from time t-1)  [BATCH_SIZE x TM_STATE_UNITS]
+        :param inputs: Current input (from time t)  [BATCH_SIZE x INPUT_SIZE]
+        :param read_data: data read from memory (from time t-1)  [BATCH_SIZE x num_data_bits]
+        :param prev_ctrl_state_tuple: Tuple of states of controller (from time t-1) 
         :return: Tuple [output, hidden_state, update_data] (update_data contains all of the controller parameters)
         """
         # Concatenate the 2 inputs to controller
-        combined = torch.cat((tm_input, read_data), dim=-1)
+        combined = torch.cat((inputs, read_data), dim=-1)
 
-        tm_state, ctrl_state_tuple = self.tm_i2s(combined, prev_ctrl_state_tuple)
+        hidden_state, ctrl_state_tuple = self.state_gen(combined, prev_ctrl_state_tuple)
 
-        tm_output = self.tm_i2o(tm_state)
+        output = self.output_gen(hidden_state)
 
-        update_data = self.tm_i2u(tm_state)
+        update_data = self.param_gen(hidden_state)
 
-        return tm_output, ctrl_state_tuple, update_data
+        return output, ctrl_state_tuple, update_data
 
 
