@@ -38,7 +38,7 @@ problem_validation:
     # Size of generated input: [batch_size x sequence_length x number of control + data bits].
     control_bits: *cbits
     data_bits: *dbits
-    batch_size: 64
+    batch_size: 16
     # Parameters denoting min and max lengths.
     min_sequence_length: 20
     max_sequence_length: 20
@@ -80,5 +80,5 @@ settings:
     length_loss: 10
     loss_stop: 1.0e-5
     max_episodes: 50000
-    seed_numpy: 255
-    seed_torch: 453
+    seed_numpy: 0
+    seed_torch: 2

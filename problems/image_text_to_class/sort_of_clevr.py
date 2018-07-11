@@ -176,14 +176,14 @@ class SortOfCLEVR(ImageTextToClassProblem):
             3: 'yellow',
             4: 'magenta',
             5: 'cyan',
-        }[int(color_code)]
+        }[color_code]
 
     def shape2str(self, shape_code):
         " Decodes shape and returns it as a string. "
         return {
             0: 'rectangle',
             1: 'circle',
-        }[int(shape_code)]
+        }[shape_code]
 
     def question_type_template(self, question_code):
         """ Helper function that the string templates a question type. """
@@ -196,7 +196,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
             5: 'What is the color of the object nearest to the {} {}?',
             6: 'What is the color of the object farthest from the {} {}?',
             #7: 'How many objects have the same shape as the {} {}?,
-        }[int(question_code)]
+        }[question_code]
 
     def question2str(self, encoded_question):
         """ Decodes question, i.e. produces a human-understandable string. 
@@ -217,6 +217,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         :param encoded_answer: One-hot vector.
         """
+        print(encoded_answer)
+
         return {
             # 0-5 colors
             0: 'blue',
@@ -231,7 +233,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
             # 8-9 yes/no
             8: 'yes',
             9: 'no',
-        }[int(encoded_answer)]
+        }[np.floor(encoded_answer)]
 
     def scene2str(self, objects):
         """
@@ -342,6 +344,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
                 A[i*self.NUM_QUESTIONS, self.NUM_COLORS] = True
 
             # Q2: bottom?
+            print('obj', obj.y)
             if obj.y > int(self.img_size/2):
                 A[i*self.NUM_QUESTIONS+1, self.NUM_COLORS+2] = True
             else:
@@ -438,8 +441,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         # Get sample.
         image = images[sample_number].numpy().transpose(2, 1, 0)
-        question = questions[sample_number]
-        answer = answers[sample_number]
+        question = questions[sample_number].numpy()
+        answer = answers[sample_number].numpy()
 
         # Print scene description.
         logger.info("Scene description :\n {}".format(scene_descriptions[sample_number]))
