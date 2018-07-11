@@ -38,6 +38,8 @@ class MAES(SequentialModel):
         '''
         # Call base constructor.
         super(MAES, self).__init__(params)
+        # Model name.
+        self.name = 'MAES'
 
         # Parse parameters.
         # Indices of control bits triggering encoding/decoding. 
@@ -53,15 +55,15 @@ class MAES(SequentialModel):
         # Save/load encoder.
         self.save_encoder = params.get('save_encoder', False)
         self.load_encoder = params.get('load_encoder', '') # Path+filename to encoder.
+        self.freeze_encoder = params.get('freeze_encoder', False)
 
         # Create the Encoder cell.
         self.encoder = MAECell(params)
 
         # Load and freeze encoder - if required.
         if self.load_encoder != '':
-            self.encoder.load_state_dict(torch.load(self.load_encoder, map_location=lambda storage, loc: storage))
-            logger.info("Encoder imported from {}".format(self.load_encoder))  
-            # Freeze weights - TODO: NOT IMPLEMENTED!
+            self.encoder.load(self.load_encoder)
+        if self.freeze_encoder:
             self.encoder.freeze()  
  
         # Create the Decoder/Solver.
@@ -71,25 +73,22 @@ class MAES(SequentialModel):
         self.modes = Enum('Modes', ['Encode', 'Solve'])
 
 
-    def save(self, model_dir, episode):
+    def save(self, model_dir, stat_col):
         """
         Method saves the model and encoder to file.
 
         :param model_dir: Directory where the model will be saved.
-        :param episode: Episode number used as model identifier.
-        :returns: False if saving was successful (TODO: implement true condition if there was an error)
+        :param stat_col: Statistics collector that contain current loss and episode number (and other statistics). 
+        :return: True if this is the best model that is found till now (considering loss).
         """
-        # Save the model.
-        model_filename = 'model_episode_{:05d}.pt'.format(episode)
-        torch.save(self.state_dict(), model_dir + model_filename)
-        logger.info("Model exported to {}".format(model_dir + model_filename))
+        # Call the case method to save the whole model.
+        is_best_model = super(SequentialModel, self).save(model_dir, stat_col) 
 
         # Additionally, if flag is set to True, save the encoder.
         if self.save_encoder:
-            encoder_filename = 'encoder_episode_{:05d}.pt'.format(episode)
-            torch.save(self.encoder.state_dict(), model_dir + encoder_filename)
-            logger.info("Encoder exported to {}".format(model_dir + encoder_filename))
+            self.encoder.save(model_dir, stat_col, is_best_model, self.save_intermediate)
 
+        return is_best_model
 
     def forward(self, data_tuple):
         """
@@ -159,7 +158,6 @@ class MAES(SequentialModel):
         # Stack logits along the temporal (sequence) axis.
         logits = torch.stack(logits, 1)
         return logits
-
 
 
 

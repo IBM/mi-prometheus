@@ -15,11 +15,14 @@ import numpy as np
 from glob import glob
 import csv
 import pandas as pd
+from time import sleep
 
 def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return array[idx], idx
+
+MAX_THREADS = 6
 
 def main():
     batch_file = sys.argv[1]
@@ -49,8 +52,21 @@ def main():
 
 
     # Run in as many threads as there are CPUs available to the script
-    with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
-        pool.map(run_experiment, experiments_list)
+    with ThreadPool(processes=MAX_THREADS) as pool:
+        thread_results = []  # This contains a list of `AsyncResult` objects. To check if completed and get result.
+
+        for task in experiments_list:
+            thread_results.append(pool.apply_async(run_experiment, (task,)))
+            print("Started testing", task)
+
+            # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
+            sleep(3) 
+            while [r.ready() for r in thread_results].count(False) >= MAX_THREADS:
+                sleep(3) 
+    
+        # Equivalent of what would usually be called "join" for threads
+        for r in thread_results:
+            r.wait()
 
 def run_experiment(path: str):
 
@@ -80,7 +96,7 @@ def run_experiment(path: str):
     ### Find the best model ###
     models_list3 = glob(path + '/models/model_episode*')
     models_list2 = [os.path.basename(os.path.normpath(e)) for e in models_list3]
-    models_list = [int(e.split('_')[-1].split('.')[0]) for e in models_list2]   
+    models_list = [int(e.split('_')[-1].split('.')[0]) for e in models_list2]
 
     # check if models list is empty
     if models_list:
@@ -90,7 +106,7 @@ def run_experiment(path: str):
         last_model, idx_last = find_nearest(models_list, valid_episodes[-1]) 
              
         # Run the test
-        command_str = "cuda-gpupick -n0 python3 test.py --model {0}".format(models_list3[idx_best]).split()
+        command_str = "cuda-gpupick -n1 python3 test.py --model {0}".format(models_list3[idx_best]).split()
         with open(os.devnull, 'w') as devnull:
             result = subprocess.run(command_str, stdout=devnull)
         if result.returncode != 0:

@@ -66,35 +66,6 @@ def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
     return loss_valid, False
 
 
-def curriculum_learning_update_problem_params(problem, episode, param_interface):
-    """
-    Updates problem parameters according to curriculum learning.
-
-    :returns: Boolean informing whether curriculum learning is finished (or wasn't active at all).
-    """
-    # Curriculum learning stop condition.
-    curric_done = True
-    try:
-        # If the 'curriculum_learning' section is not present, this line will throw an exception.
-        curr_config = param_interface['problem_train']['curriculum_learning']
-
-        # Read min and max length.
-        min_length = param_interface['problem_train']['min_sequence_length']
-        max_max_length = param_interface['problem_train']['max_sequence_length']
-
-        if curr_config['interval'] > 0:
-            # Curriculum learning goes from the initial max length to the max length in steps of size 1
-            max_length = curr_config['initial_max_sequence_length'] + (episode // curr_config['interval'])
-            if max_length >= max_max_length:
-                max_length = max_max_length
-            else:
-                curric_done = False
-                # Change max length.
-            problem.set_max_length(max_length)
-    except KeyError:
-        pass
-    # Return information whether we finished CL (i.e. reached max sequence length).
-    return curric_done
 
 
 if __name__ == '__main__':
@@ -103,7 +74,7 @@ if __name__ == '__main__':
     parser.add_argument('--agree', dest='confirm', action='store_true',
                         help='Request user confirmation just after loading the settings, before starting training  (Default: False)')
     parser.add_argument('--config', dest='config', type=str, default='',
-                        help='Name of the configuration file to be loaded')
+                        help='Name of the configuration file(s) to be loaded (more than one file must be separated with coma ",")')
     parser.add_argument('--savetag', dest='savetag', type=str, default='',
                         help='Tag for the save directory')
     parser.add_argument('--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2], type=int,
@@ -128,17 +99,24 @@ if __name__ == '__main__':
 
     # Check if config file was selected.
     if FLAGS.config == '':
-        print('Please pass configuration file as --c parameter')
+        print('Please pass configuration file(s) as --c parameter')
         exit(-1)
-    # Check if file exists.
-    if not os.path.isfile(FLAGS.config):
-        print('Configuration file {} does not exists'.format(FLAGS.config))
-        exit(-2)
+    configs = FLAGS.config.split(',')
 
-    # Read the YAML file.
+    # Create parm interface object.
     param_interface = ParamInterface()
-    with open(FLAGS.config, 'r') as stream:
-        param_interface.add_custom_params(yaml.load(stream))
+
+    # Read the YAML files one by one.
+    for config in configs:
+        # Check if file exists.
+        if not os.path.isfile(config):
+            print('Configuration file {} does not exists'.format(config))
+            exit(-2)
+
+        # Open and overwrite
+        with open(config, 'r') as stream:
+            param_interface.add_custom_params(yaml.load(stream))
+    # Done. In here param interface contains configuration loaded (and overwritten) from several files. 
 
     # Get problem and model names.
     task_name = param_interface['problem_train']['name']
@@ -222,7 +200,12 @@ if __name__ == '__main__':
     problem = ProblemFactory.build_problem(param_interface['problem_train'])
 
     # Initialize curriculum learning.
-    curric_done = curriculum_learning_update_problem_params(problem, 0, param_interface)
+    curric_done = problem.curriculum_learning_update_params(0)
+    # Run validation (DEFAULT: True).
+    try:
+        must_finish_curriculum = param_interface['problem_train']['curriculum_learning']['must_finish']
+    except KeyError:
+        must_finish_curriculum = True
 
     # Build problem for the validation
     problem_validation = ProblemFactory.build_problem(param_interface['problem_validation'])
@@ -246,7 +229,6 @@ if __name__ == '__main__':
     # Start Training
     episode = 0
     last_losses = collections.deque()
-    validation_loss=.7 #default value so the loop won't terminate if the validation is not done on the first step
 
     # Create statistics collector.
     stat_col = StatisticsCollector()
@@ -258,18 +240,19 @@ if __name__ == '__main__':
     train_file = stat_col.initialize_csv_file(log_dir, '/training.csv')
     validation_file = stat_col.initialize_csv_file(log_dir, '/validation.csv')
 
-    # Try to read validation frequency from config, else set default (100)
+    # Validation frequency (DEFAULT: 100).
     try:
         validation_frequency = param_interface['problem_validation']['frequency']
     except KeyError:
         validation_frequency = 100
 
-    #whether to do validation (default True)
+    # Run validation (DEFAULT: True).
     try:
         do_validation = param_interface['settings']['do_validation']
     except KeyError:
         do_validation = True
 
+    # Use validation loss in early stopping (DEFAULT: True).
     if do_validation:
     # Figure out if validation is defined else assume that it should be true
         try:
@@ -286,7 +269,7 @@ if __name__ == '__main__':
     for data_tuple, aux_tuple in problem.return_generator():
 
         # apply curriculum learning - change problem max seq_length
-        curric_done = curriculum_learning_update_problem_params(problem, episode, param_interface)
+        curric_done = problem.curriculum_learning_update_params(episode)
 
         # reset gradients
         optimizer.zero_grad()
@@ -354,55 +337,71 @@ if __name__ == '__main__':
             if model.plot(data_tuple,  logits):
                 break
 
-        #  5. Save the model then validate
+        #  5. Validate and, save the model.
+        user_pressed_stop = False
         if (episode % validation_frequency) == 0:
-            model.save(model_dir, episode)
+        
+            if do_validation:
+
+                # Check visualization flag - turn on when we wanted to visualize (at least) validation.
+                if FLAGS.visualize is not None and (FLAGS.visualize == 1 or FLAGS.visualize == 2):
+                    app_state.visualize = True
+                else:
+                    app_state.visualize = False
+
+                # Perform validation.
+                validation_loss, user_pressed_stop = validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
+                        logger,   validation_file,  validation_writer)
+
+                # Save model using validation statistics.
+                model.save(model_dir, stat_col)
+                              
+            else: 
+                # Save model using training statistics.
+                model.save(model_dir, stat_col)
 
 
-        if (episode % validation_frequency) == 0 and do_validation:
+        # 6. Terminal conditions.
+        # I. User pressed stop during visualization.
+        if user_pressed_stop:
+            break
 
-            # Check visualization flag - turn on when we wanted to visualize (at least) validation.
-            if FLAGS.visualize is not None and (FLAGS.visualize == 1 or FLAGS.visualize == 2):
-                app_state.visualize = True
-            else:
-                app_state.visualize = False
-
-            validation_loss, stop_now = validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
-                    logger,   validation_file,  validation_writer)
-            
-            # Perform validation.
-            if stop_now:
-                break
-            # End of validation.
-
-
-        if curric_done:
+        # II. & III - only when we finished curriculum. 
+        if curric_done or not must_finish_curriculum:
             # break if conditions applied: convergence or max episodes
-            loss_stop=True
+            loss_stop=False
             if validation_stopping:
                 loss_stop = validation_loss < param_interface['settings']['loss_stop']
+                # We already saved that model.
             else:
                 loss_stop = max(last_losses) < param_interface['settings']['loss_stop']
+                # We already saved that model.
 
-            if loss_stop or episode == param_interface['settings']['max_episodes'] :
+            if loss_stop:
+                # Ok, we have converged.
                 terminal_condition = True
-                model.save(model_dir, episode)
-
+                # "Finish" the training.
                 break
-                # "Finish" episode.
 
+        if episode == param_interface['settings']['max_episodes'] :
+            terminal_condition = True
+            # If we are here then it means that we didn't converged and the model is bad for sure - but try to save it anyway. 
+            model.save(model_dir, stat_col)
+            # "Finish" the training.
+            break
+        # Next episode.
         episode += 1
 
-    # Check whether we have finished training!
+    # Check whether we have finished training properly.
     if terminal_condition:
         logger.info('Learning finished!')
-        logger.info('Model saved in '+ log_dir)
         # Check visualization flag - turn on when we wanted to visualize (at least) validation.
         if FLAGS.visualize is not None and (FLAGS.visualize == 3):
             app_state.visualize = True
 
             # Perform validation.
-            _, _ = validation(model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger,
+            if do_validation:
+                _, _ = validation(model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger,
                                validation_file, validation_writer)
 
         else:

@@ -15,7 +15,7 @@ import subprocess
 
 
 EXPERIMENT_REPETITIONS = 10
-
+MAX_PROCESSES = 1000
 
 def main():
     batch_file = sys.argv[1]
@@ -32,7 +32,8 @@ def main():
         experiments_list.extend(yaml_files)
 
     # Run in as many threads as there are CPUs available to the script
-    with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
+    max_processes = min(len(os.sched_getaffinity(0)), MAX_PROCESSES)
+    with ThreadPool(processes=max_processes) as pool:
         pool.map(run_experiment, experiments_list)
 
 
@@ -45,18 +46,19 @@ def run_experiment(yaml_file_path: str):
     params['settings']['loss_stop'] = 1.E-5
     params['settings']['max_episodes'] = 100000
     params['problem_train']['cuda'] = False
-    params['problem_train']['control_bits'] = 4
-    params['problem_validation']['control_bits'] = 4
-    params['problem_test']['control_bits'] = 4
+    params['problem_train']['control_bits'] = 3
+    params['problem_validation']['control_bits'] = 3
+    params['problem_test']['control_bits'] = 3
     params['problem_train']['min_sequence_length'] = 3
-    params['problem_train']['max_sequence_length'] = 10
-    params['problem_train']['curriculum_learning']['interval'] = 1000
-    params['problem_train']['curriculum_learning']['initial_max_sequence_length'] = 3
-    params['problem_validation']['min_sequence_length'] = 11
-    params['problem_validation']['max_sequence_length'] = 11
+    params['problem_train']['max_sequence_length'] = 20
+    params['problem_train']['curriculum_learning']['interval'] = 500
+    params['problem_train']['curriculum_learning']['initial_max_sequence_length'] = 5
+    params['problem_validation']['min_sequence_length'] = 21
+    params['problem_validation']['max_sequence_length'] = 21
     params['problem_test']['min_sequence_length'] = 1000
     params['problem_test']['max_sequence_length'] = 1000
 
+    params['problem_validation']['frequency'] = 1000
     try:
         params['model']['memory']['num_content_bits'] = 15
     except KeyError:
@@ -67,11 +69,11 @@ def run_experiment(yaml_file_path: str):
         pass
 
     try:
-        params['model']['num_control_bits'] = 4
+        params['model']['num_control_bits'] = 3
     except KeyError:
         pass
     try:
-        params['model']['control_bits'] = 4
+        params['model']['control_bits'] = 3
     except KeyError:
         pass
 
