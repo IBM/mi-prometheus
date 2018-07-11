@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""translation.py: translation problem"""
-__author__      = "Vincent Marois"
+"""translation.py: translation problem class"""
+__author__ = "Vincent Marois"
 
 import os, sys
 import random
@@ -23,7 +23,7 @@ from problems.seq_to_seq.text2text.text_to_text_problem import TextToTextProblem
 class Translation(TextToTextProblem, Lang):
     """
     Class generating sequences of indexes as inputs & targets for a English -> Other Language translation task.
-    Only supports latin alphabet for now.
+    Only supports latin alphabet for now (because of string normalization).
     """
 
     def __init__(self, params):
@@ -64,7 +64,7 @@ class Translation(TextToTextProblem, Lang):
         self.training_file = 'eng-' + self.output_lang_name + '_training_' + str(self.training_size) + '.txt'
         self.test_file = 'eng-' + self.output_lang_name + '_test_' + str(self.training_size) + '.txt'
 
-        # switch between training & inference
+        # switch between training & inference datasets
         self.use_train_data = params['use_train_data']
 
         # create corresponding Lang instances using the names
@@ -76,13 +76,12 @@ class Translation(TextToTextProblem, Lang):
         self.input_lang, self.output_lang, self.pairs = self.prepare_data()
 
         # create tensors of indexes from string pairs
-        self.tensor_pairs = self.tensors_from_pairs(self.pairs, self.input_lang,
-                                                    self.output_lang, self.max_sequence_length)
+        self.tensor_pairs = self.tensors_from_pairs(self.pairs, self.input_lang, self.output_lang,
+                                                    self.max_sequence_length)
 
     def prepare_data(self):
         """
-        Prepare the data for generating batches. Uses read_langs() & filter_pairs() to normalize, trim & filter input
-        sentences pairs.
+        Prepare the data for generating batches. Uses filter_pairs() to normalize, trim & filter input sentences pairs.
         Also fills in Lang() instances for the input & output languages.
         :return: Lang() object for input & output languages + filtered sentences pairs.
         """
@@ -220,7 +219,7 @@ class Translation(TextToTextProblem, Lang):
             return len(p[0].split(' ')) < self.max_sequence_length and \
                    len(p[1].split(' ')) < self.max_sequence_length and \
                    p[0].startswith(self.eng_prefixes)
-        else:
+        else:  # if no english prefixes have been specified, only filter based on sequence length
             return len(p[0].split(' ')) < self.max_sequence_length and \
                    len(p[1].split(' ')) < self.max_sequence_length
 
@@ -231,10 +230,10 @@ class Translation(TextToTextProblem, Lang):
 
     def generate_batch(self):
         """
-        Generates a batch  of size [BATCH_SIZE, MAX_SEQUENCE_LENGTH, 1].
+        Generates a batch  of size [BATCH_SIZE, MAX_SEQUENCE_LENGTH].
 
-        :return: Tuple consisting of: input [BATCH_SIZE, MAX_SEQUENCE_LENGTH, 1],
-                                    output [BATCH_SIZE, MAX_SEQUENCE_LENGTH, 1].
+        :return: DataTuple: inputs [BATCH_SIZE, MAX_SEQUENCE_LENGTH], targets [BATCH_SIZE, MAX_SEQUENCE_LENGTH],
+                TextAuxTuple: ('inputs_text', 'outputs_text', 'input_lang', 'output_lang')
         """
         # generate a sample of size batch_size of random indexes without replacement
         indexes = random.sample(population=range(len(self.tensor_pairs)), k=self.batch_size)
@@ -245,26 +244,26 @@ class Translation(TextToTextProblem, Lang):
 
         # for TextAuxTuple
         inputs_text = []
-        outputs_text = []
+        targets_text = []
 
         for i, index in enumerate(indexes):
             input_tensor, target_tensor = self.tensor_pairs[index]
-            input_text, output_text = self.pairs[index]
+            input_text, target_text = self.pairs[index]
 
             inputs[i] = input_tensor
             targets[i] = target_tensor
             inputs_text.append(input_text)
-            outputs_text.append(output_text)
+            targets_text.append(target_text)
 
         # Return tuples.
         data_tuple = DataTuple(inputs, targets)
-        aux_tuple = TextAuxTuple(inputs_text, outputs_text, self.input_lang, self.output_lang)
+        aux_tuple = TextAuxTuple(inputs_text, targets_text, self.input_lang, self.output_lang)
 
         return data_tuple, aux_tuple
 
     def plot_preprocessing(self, data_tuple, aux_tuple, logits):
         """
-        Does some preprocessing to logits to then plot the attention weights.
+        Does some preprocessing to logits to then plot the attention weights for the AttnEncoderDecoder model.
 
         :param data_tuple: Data tuple (inputs, targets)
         :param aux_tuple: Auxiliary tuple ('inputs_text', 'outputs_text', 'input_lang', 'output_lang')
@@ -287,7 +286,7 @@ class Translation(TextToTextProblem, Lang):
 
 
 if __name__ == "__main__":
-    """ Tests Problem class"""
+    """Problem class Unit Test"""
 
     eng_prefixes = (
         "i am ", "i m ",
@@ -298,7 +297,7 @@ if __name__ == "__main__":
         "they are", "they re "
     )
 
-    params = {'batch_size': 2, 'training_size': 0.9, 'output_lang_name': 'fra', 'max_sequence_length': 15,
+    params = {'batch_size': 5, 'training_size': 0.9, 'output_lang_name': 'fra', 'max_sequence_length': 15,
               'eng_prefixes': eng_prefixes, 'use_train_data': True, 'data_folder': '~/data/language', 'reverse': False}
 
     problem = Translation(params)

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """text_to_text_problem.py: abstract base class for text to text sequential problems, e.g. machine translation"""
-__author__      = "Vincent Marois"
+__author__ = "Vincent Marois"
 
-# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
+# Add path to main project directory
 import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..', '..'))
 
@@ -23,7 +23,7 @@ _TextAuxTuple = collections.namedtuple('TextAuxTuple', ('inputs_text', 'outputs_
 class TextAuxTuple(_TextAuxTuple):
     """
     Tuple used for storing batches of data by text to text sequential problems.
-    Contains two elements:
+    Contains four elements:
      - text input sentence (e.g. string in input language for translation)
      - text output sentence (e.g. string in output language for translation
      - Lang() instance of the input language
@@ -31,10 +31,12 @@ class TextAuxTuple(_TextAuxTuple):
     """
     __slots__ = ()
 
+
 # global tokens
 PAD_token = 0
 SOS_token = 1
 EOS_token = 2
+
 
 class TextToTextProblem(SeqToSeqProblem):
     """Base class for text to text sequential problems.
@@ -47,23 +49,22 @@ class TextToTextProblem(SeqToSeqProblem):
         """
         super(TextToTextProblem, self).__init__(params)
 
-        # set default loss function - negative log likelihood and ignores padding elements.
+        # set default loss function - negative log likelihood and ignore padding elements.
         self.loss_function = nn.NLLLoss(size_average=True, ignore_index=0)
 
     def compute_BLEU_score(self, data_tuple, logits, aux_tuple):
         """
         Compute BLEU score in order to evaluate the translation quality (equivalent of accuracy)
         Reference paper: http://www.aclweb.org/anthology/P02-1040.pdf
-
+        Implementation inspired from https://machinelearningmastery.com/calculate-bleu-score-for-text-python/
         To deal with the batch, we accumulate the individual bleu score for each pair of sentences and average over the
         batch size.
 
         :param data_tuple: DataTuple(input_tensors, target_tensors)
         :param logits: predictions of the model
-        :param aux_tuple: TextAuxTuple(mask, inputs_text, outputs_text)
-        :param output_lang: Lang() object corresponding to the output language
+        :param aux_tuple: TextAuxTuple('inputs_text', 'outputs_text', 'input_lang', 'output_lang')
 
-        :return: Average BLEU Score for the whole batch ( 0 < BLEU < 1)
+        :return: Average BLEU Score for the batch ( 0 < BLEU < 1)
         """
         # get most probable words indexes for the batch
         _, top_indexes = logits.topk(k=1, dim=-1)
@@ -84,6 +85,7 @@ class TextToTextProblem(SeqToSeqProblem):
 
         bleu_score = 0
         for i in range(batch_size):
+            # compute bleu score and use a smoothing function
             bleu_score += sentence_bleu([targets_text[i]], logits_text[i], smoothing_function=SmoothingFunction().method1)
 
         return round(bleu_score / batch_size, 4)
@@ -147,6 +149,7 @@ class TextToTextProblem(SeqToSeqProblem):
 
     def unicode_to_ascii(self, s):
         """Turn a Unicode string to plain ASCII. See: http://stackoverflow.com/a/518232/2809427.
+
         :param s: Unicode string.
         :return: plain ASCII string."""
         return ''.join(
@@ -157,6 +160,7 @@ class TextToTextProblem(SeqToSeqProblem):
     def normalize_string(self, s):
         """
         Lowercase, trim, and remove non-letter characters in string s.
+
         :param s: string.
         :return: normalized string.
         """
@@ -169,13 +173,13 @@ class TextToTextProblem(SeqToSeqProblem):
         """
         Construct a list of indexes using a 'vocabulary index' from a specified Lang instance for the specified
         sentence (see Lang class below).
-        Also pad this list of indexes so that its length will be equal to max_seq_length.
+        Also pad this list of indexes so that its length will be equal to max_seq_length (needed for batch support).
 
         :param lang: instance of the class Lang, having a word2index dict.
         :param sentence: string to convert word for word to indexes, e.g. "The black cat is eating."
-        :param max_seq_length: Maximum length for the list of indexes (will be padded accordingly).
+        :param max_seq_length: Maximum length for the list of indexes.
 
-        :return: list of indexes.
+        :return: padded list of indexes.
         """
         seq = [lang.word2index[word] for word in sentence.split(' ')] + [EOS_token]
         seq += [PAD_token for _ in range(max_seq_length - len(seq))]
@@ -192,7 +196,6 @@ class TextToTextProblem(SeqToSeqProblem):
         :return: tensor of indexes, terminated by the EOS token.
         """
         indexes = self.indexes_from_sentence(lang, sentence, max_seq_length)
-        #indexes.append(EOS_token)
 
         return torch.tensor(indexes).type(app_state.LongTensor)
 
@@ -209,6 +212,7 @@ class TextToTextProblem(SeqToSeqProblem):
         """
         input_tensor = self.tensor_from_sentence(input_lang, pair[0], max_seq_length)
         target_tensor = self.tensor_from_sentence(output_lang, pair[1], max_seq_length)
+
         return [input_tensor, target_tensor]
 
     def tensors_from_pairs(self, pairs, input_lang, output_lang, max_seq_length):

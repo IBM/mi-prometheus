@@ -37,6 +37,8 @@ class EncoderRNN(nn.Module):
         # NOTE: default number of recurrent layers is 1
         # 1st parameter: expected number of features in the input -> same as hidden_size because of embedding
         # 2nd parameter: expected number of features in hidden state -> hidden_size.
+        # batch_first=True -> input and output tensors are provided as (batch, seq, feature)
+        # batch_first=True do not affect hidden states
         self.gru = nn.GRU(input_size=hidden_size, hidden_size=hidden_size, num_layers=self.n_layers, batch_first=True,
                           bidirectional=self.bidirectional)
 
@@ -46,8 +48,8 @@ class EncoderRNN(nn.Module):
         :param input: tensor of indices, of size [batch_size x 1] (word by word looping)
         :param hidden: initial hidden state for each element in the input batch.
         Should be of size [(n_layers * n_directions) x batch_size x hidden_size]
-        :return: For every input word, the encoder outputs a vector and a hidden state,
-                and uses the hidden state for the next input word.
+        :return: For every input word, the encoder outputs a vector and a hidden state, and uses the hidden state for
+        the next input word.
                 - output should be of size [batch_size x seq_len x (hidden_size * n_directions)]: tensor containing
                 the output features h_t from the last layer of the RNN, for each t.
                 - hidden should be of size [(n_layers * n_directions) x batch_size x hidden_size]: tensor containing

@@ -42,7 +42,7 @@ class AttnDecoderRNN(nn.Module):
             self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
 
         # Apply a linear transformation to the incoming data: y=Ax+b
-        # used to combine the embedded decoder inputs & the attention-weighted encoder outputs
+        # used to combine the embedded decoder inputs & the attented encoder outputs
         if self.encoder_bidirectional:
             self.attn_combine = nn.Linear(self.hidden_size * 3, self.hidden_size)
         else:
@@ -69,7 +69,7 @@ class AttnDecoderRNN(nn.Module):
         :param input: tensor of indices, of size [batch_size x 1] (word by word looping)
         :param hidden: initial hidden state for each element in the input batch. Should be of size
         [1 x batch_size x hidden_size].
-        :param encoder_outputs: encoder
+        :param encoder_outputs: encoder outputs, of shape [batch_size x max_length x hidden_size]
 
         :return:
                 - output should be of size [batch_size x 1 x output_voc_size]: tensor containing the
@@ -83,7 +83,7 @@ class AttnDecoderRNN(nn.Module):
 
         # concatenate embedded decoder inputs & hidden states
         batch_size = input.shape[0]
-        if self.encoder_bidirectional:
+        if self.encoder_bidirectional:  # flatten out hidden states if the encoder was bidirectional
             hidden = hidden.view(1, batch_size, -1)
         embedded_hidden_concat = torch.cat((embedded, hidden.transpose(0, 1)), dim=-1)
         # embedded_hidden_concat: [batch_size x 1 x (hidden_size * (1 + encoder.n_dir)]
@@ -97,7 +97,7 @@ class AttnDecoderRNN(nn.Module):
         attn_applied = torch.bmm(attn_weights, encoder_outputs)
         # attn_applied: [batch_size x 1 x (hidden_size * (1 + encoder.n_dir)]
 
-        # combine the embedded decoder inputs & attn_applied encoder outputs
+        # combine the embedded decoder inputs & attended encoder outputs
         embedded_attn_applied_concat = torch.cat((embedded, attn_applied), dim=-1)
         gru_input = self.attn_combine(embedded_attn_applied_concat)
         gru_input = F.relu(gru_input)
@@ -106,7 +106,8 @@ class AttnDecoderRNN(nn.Module):
             hidden = hidden[:, :, :self.hidden_size]
         gru_output, hidden = self.gru(gru_input, hidden)
 
-        if self.encoder_bidirectional:
+        if self.encoder_bidirectional:  # 'hack' if the encoder is bidirectional: hidden states need to be of shape
+            # [(n_layers * n_directions) x batch_size x hidden_size]
             hidden = torch.cat((hidden, hidden), dim=0)
         output = self.out(gru_output)
         output = F.log_softmax(output, dim=-1)

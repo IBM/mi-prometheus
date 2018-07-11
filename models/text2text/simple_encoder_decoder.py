@@ -54,14 +54,14 @@ class SimpleEncoderDecoder(SequentialModel):
         # parse param to create decoder
         self.output_voc_size = params['output_voc_size']
 
-        # create decoder
+        # create base decoder
         #self.decoder = DecoderRNN(hidden_size=self.hidden_size, output_voc_size=self.output_voc_size)
 
         # create attention decoder
         self.decoder = AttnDecoderRNN(self.hidden_size, self.output_voc_size, dropout_p=0.1, max_length=self.max_length,
                                       encoder_bidirectional=self.encoder_bidirectional)
 
-        print('Simple EncoderDecoderRNN (without attention) created.\n')
+        print('EncoderDecoderRNN (with Bahdanau attention) created.\n')
 
     def plot(self, data_tuple, predictions, sample_number=0):
         """
@@ -82,7 +82,7 @@ class SimpleEncoderDecoder(SequentialModel):
             from misc.time_plot import TimePlot
             self.plotWindow = TimePlot()
 
-        # select 1 random in the batch and retrieve corresponding input_text, logit_text, attention_weight
+        # select 1 random sample in the batch and retrieve corresponding input_text, logit_text, attention_weight
         batch_size = data_tuple.targets.shape[0]
         sample = random.choice(range(batch_size))
 
@@ -152,7 +152,7 @@ class SimpleEncoderDecoder(SequentialModel):
         # reshape encoder_outputs to be batch_size first: [max_length, batch_size, *] -> [batch_size, max_length, *]
         encoder_outputs = encoder_outputs.transpose(0, 1)
 
-        # decoder input : [batch_size x 1] initialized to the value of SOS_token
+        # decoder input : [batch_size x 1] initialized to the value of Start Of String token
         decoder_input = torch.ones(batch_size, 1).type(app_state.LongTensor) * SOS_token
 
         # pass along the hidden states: shape [[(encoder.n_layers * encoder.n_directions) x batch_size x hidden_size]]
@@ -186,11 +186,13 @@ class SimpleEncoderDecoder(SequentialModel):
                 # save attention weights
                 self.decoder_attentions[:, di, :] = decoder_attention.squeeze()
 
+                # get most probable word as input of decoder for next iteration
                 topv, topi = decoder_output.topk(k=1, dim=-1)
 
                 decoder_input = topi.view(batch_size, 1).detach()  # detach from history as input
 
-                # TODO: fix this??
+                # TODO: The line below would stop inference when the next predicted word is the EOS token. This if
+                # statement works for batch_size = 1, but how to generalize it to any size?
                 #if decoder_input.item() == EOS_token:
                 #    break
 
@@ -216,7 +218,7 @@ if __name__ == '__main__':
     )
 
     params = {'batch_size': 64, 'training_size': 0.90, 'output_lang_name': 'fra', 'max_sequence_length': 15,
-              'eng_prefixes': eng_prefixes, 'use_train_data': True, 'data_folder': '~/data/language', 'reverse': True}
+              'eng_prefixes': eng_prefixes, 'use_train_data': True, 'data_folder': '~/data/language', 'reverse': False}
 
     problem = pb.Translation(params)
     print('Problem successfully created.\n')

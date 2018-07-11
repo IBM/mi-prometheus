@@ -3,7 +3,6 @@
 """Implementation of a GRU based decoder for text2text problems (e.g. translation)"""
 __author__ = "Vincent Marois "
 
-import torch
 from torch import nn
 import torch.nn.functional as F
 
@@ -17,6 +16,7 @@ class DecoderRNN(nn.Module):
         :param hidden_size: length of embedding vectors.
         :param output_voc_size: size of the vocabulary set to be embedded by the Embedding layer.
         """
+        # call base constructor.
         super(DecoderRNN, self).__init__()
         self.hidden_size = hidden_size
 

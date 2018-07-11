@@ -8,7 +8,7 @@ problem_train:
     eng_prefixes: !!python/tuple ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
     use_train_data: True
     data_folder: '~/data/language'
-    reverse: True
+    reverse: False
     cuda: True
 
 # Problem parameters:
@@ -21,7 +21,7 @@ problem_test:
     eng_prefixes: !!python/tuple ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
     use_train_data: False
     data_folder: '~/data/language'
-    reverse: True
+    reverse: False
 
 # Problem parameters:
 problem_validation:
@@ -33,7 +33,7 @@ problem_validation:
     eng_prefixes: !!python/tuple ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
     use_train_data: True
     data_folder: '~/data/language'
-    reverse: True
+    reverse: False
 
 # Model parameters:
 model:
