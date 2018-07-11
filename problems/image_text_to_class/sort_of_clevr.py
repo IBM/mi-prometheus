@@ -437,7 +437,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         scene_descriptions = aux_tuple.scene_descriptions
 
         # Get sample.
-        image = images[sample_number].numpy().transpose(1,2,0)
+        image = images[sample_number].numpy().transpose(2, 1, 0)
         question = questions[sample_number]
         answer = answers[sample_number]
 

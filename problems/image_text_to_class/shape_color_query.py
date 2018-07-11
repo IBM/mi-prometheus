@@ -90,7 +90,7 @@ if __name__ == "__main__":
         'data_folder': '~/data/shape-color-query/', 'data_filename': 'training.hy', 
         'shuffle': True,
         "regenerate": True,
-        'dataset_size': 100, 'img_size': 224
+        'dataset_size': 10, 'img_size': 224, 'use_train_data': True
         }
 
     # Configure logger.
