@@ -143,7 +143,7 @@ class Interface:
         attention = (shifted_attention + eps) ** sharp
         attention = normalize(attention)
 
-        return wt
+        return attention
 
     def update_write_weight(self, usage, memory, allocation_gate, write_gate, key, strength):
         """Update write attention with DNC's combination of content addressing and usage based allocation
