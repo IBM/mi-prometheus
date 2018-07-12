@@ -1,0 +1,13 @@
+# Model parameters:
+model:
+    name: es_lstm
+    # Input bits = [control_bits, data_bits]
+    # Output bits = [data_bits]
+    control_bits: 3 
+    data_bits: 8
+    # Indices of control bits triggering encoding/decoding.
+    encoding_bit: 0
+    solving_bit: 1 
+    # Controller hidden state.
+    hidden_state_dim: 256
+    num_layers: 1
