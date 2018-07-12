@@ -28,9 +28,9 @@ validation:
 
 
 testing:
-    # Set random seeds that will be used during testing.
-    seed_numpy: -1
-    seed_torch: -1
+    # Set random seeds that will be used during training (and validation). When not present using random values.
+    #seed_numpy: -1
+    #seed_torch: -1
     # Use cuda.
     cuda: True
     # Problem definition.
