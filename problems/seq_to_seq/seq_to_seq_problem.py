@@ -19,7 +19,10 @@ class SeqToSeqProblem(Problem):
         super(SeqToSeqProblem, self).__init__(params)
 
         # Check if predictions/targets should be masked.
-        self.use_mask = params.get("use_mask", True) # TODO: Set false as default!
+        if 'use_mask' not in params:
+            params.add_default_params({'use_mask': True})# TODO: Set false as default!
+        self.use_mask = params["use_mask"] 
+
 
     def evaluate_loss(self, data_tuple, logits, aux_tuple):
         """ Calculates accuracy equal to mean number of correct predictions in a given batch.
