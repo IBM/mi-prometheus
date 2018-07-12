@@ -40,7 +40,7 @@ def validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
     :param stat_col: Statistic collector object.
     :return: True if training loop is supposed to end.
     """
-
+    model.eval()
     # Calculate loss of the validation data.
     with torch.no_grad():
         logits_valid, loss_valid = forward_step(model, problem, episode, stat_col, data_valid, aux_valid)
@@ -280,6 +280,7 @@ if __name__ == '__main__':
         else:
             app_state.visualize = False
 
+        model.train()
         # 1. Perform forward step, calculate logits and loss.
         logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple)
 
