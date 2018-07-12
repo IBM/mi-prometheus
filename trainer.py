@@ -12,6 +12,7 @@ import os
 os.environ["OMP_NUM_THREADS"] = '1'
 
 import yaml
+from random import randrange
 
 from datetime import datetime
 from time import sleep
@@ -110,7 +111,6 @@ if __name__ == '__main__':
 
     # Get list of configs that need to be loaded.
     configs_to_load = recurrent_config_parse(FLAGS.config, [])
-
     
     # Create param interface object.
     param_interface = ParamInterface()
@@ -157,10 +157,6 @@ if __name__ == '__main__':
     os.makedirs(model_dir, exist_ok=False)
     log_file = log_dir + 'trainer.log'
 
-    # Copy the training config into a yaml settings file, under log_dir
-    with open(log_dir + "/training_configuration.yaml", 'w') as yaml_backup_file:
-        yaml.dump(param_interface.to_dict(), yaml_backup_file, default_flow_style=False)
-
     # Create tensorboard output - if tensorboard is supposed to be used.
     if FLAGS.tensorboard is not None:
         from tensorboardX import SummaryWriter
@@ -182,25 +178,21 @@ if __name__ == '__main__':
     # Set logger label and level.
     logger = logging.getLogger('Trainer')
     logger.setLevel(getattr(logging, FLAGS.log.upper(), None))
-
-    # Print experiment configuration
-    str = 'Configuration for {}:\n'.format(task_name)
-    str += yaml.safe_dump(param_interface.to_dict(), default_flow_style=False,
-                          explicit_start=True, explicit_end=True)
-    logger.info(str)
-
-    # Ask for confirmation - optional.
-    if FLAGS.confirm:
-        # Ask for confirmation
-        input('Press any key to continue')
+    
 
     # Set random seeds.
-    if param_interface["settings"]["seed_torch"] != -1:
-        torch.manual_seed(param_interface["settings"]["seed_torch"])
-        torch.cuda.manual_seed_all(param_interface["settings"]["seed_torch"])
+    if "seed_torch" not in param_interface["training"] or param_interface["training"]["seed_torch"] == -1:
+        seed = randrange(0, 2**32)
+        param_interface["training"].add_custom_params({"seed_torch": seed})
+    logger.info("Setting torch random seed to: {}".format(param_interface["training"]["seed_torch"]))
+    torch.manual_seed(param_interface["training"]["seed_torch"])
+    torch.cuda.manual_seed_all(param_interface["training"]["seed_torch"])
 
-    if param_interface["settings"]["seed_numpy"] != -1:
-        np.random.seed(param_interface["settings"]["seed_numpy"])
+    if "seed_numpy" not in param_interface["training"] or param_interface["training"]["seed_numpy"] == -1:
+        seed = randrange(0, 2**32)
+        param_interface["training"].add_custom_params({"seed_numpy": seed})
+    logger.info("Setting numpy random seed to: {}".format(param_interface["training"]["seed_numpy"]))
+    np.random.seed(param_interface["training"]["seed_numpy"])
 
     # Initialize the application state singleton.
     app_state = AppState()
@@ -280,6 +272,25 @@ if __name__ == '__main__':
     # Select for optimization only those parameters that require update!
     optimizer = getattr(torch.optim, optimizer_name)(
         filter(lambda p: p.requires_grad,model.parameters()), **optimizer_conf)
+
+
+
+    # Ok, finished loading the configuration. 
+
+    # Save the resulting configuration into a yaml settings file, under log_dir
+    with open(log_dir + "/training_configuration.yaml", 'w') as yaml_backup_file:
+        yaml.dump(param_interface.to_dict(), yaml_backup_file, default_flow_style=False)
+
+    # Print the training configuration.
+    str = 'Configuration for {}:\n'.format(task_name)
+    str += yaml.safe_dump(param_interface.to_dict(), default_flow_style=False,
+                          explicit_start=True, explicit_end=True)
+    logger.info(str)
+
+    # Ask for confirmation - optional.
+    if FLAGS.confirm:
+        # Ask for confirmation
+        input('Press any key to continue')
 
 
     # Start Training

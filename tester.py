@@ -7,9 +7,12 @@ import os
 # Force MKL (CPU BLAS) to use one core, faster
 os.environ["OMP_NUM_THREADS"] = '1'
 
+import yaml
+from random import randrange
+
 import torch
 import argparse
-import yaml
+
 import numpy as np
 from glob import glob
 
@@ -91,12 +94,18 @@ if __name__ == '__main__':
         param_interface.add_custom_params(yaml.load(stream))
 
     # Set random seeds.
-    if param_interface["settings"]["seed_torch"] != -1:
-        torch.manual_seed(param_interface["settings"]["seed_torch"])
-        torch.cuda.manual_seed_all(param_interface["settings"]["seed_torch"])
+    if "seed_torch" not in param_interface["testing"] or param_interface["testing"]["seed_torch"] == -1:
+        seed = randrange(0, 2**32)
+        param_interface["testing"].add_custom_params({"seed_torch": seed})
+    logger.info("Setting torch random seed to: {}".format(param_interface["testing"]["seed_torch"]))
+    torch.manual_seed(param_interface["testing"]["seed_torch"])
+    torch.cuda.manual_seed_all(param_interface["testing"]["seed_torch"])
 
-    if param_interface["settings"]["seed_numpy"] != -1:
-        np.random.seed(param_interface["settings"]["seed_numpy"])
+    if "seed_numpy" not in param_interface["testing"] or param_interface["testing"]["seed_numpy"] == -1:
+        seed = randrange(0, 2**32)
+        param_interface["testing"].add_custom_params({"seed_numpy": seed})
+    logger.info("Setting numpy random seed to: {}".format(param_interface["testing"]["seed_numpy"]))
+    np.random.seed(param_interface["testing"]["seed_numpy"])
 
     # Initialize the application state singleton.
     app_state = AppState()

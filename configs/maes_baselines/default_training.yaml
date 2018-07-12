@@ -27,5 +27,3 @@ training:
 # Additional settings:
 settings:
     cuda: True
-    seed_numpy: -1
-    seed_torch: -1

@@ -1,8 +1,8 @@
 
 training:
     # Set random seeds that will be used during training (and validation).
-    seed_numpy: -1
-    seed_torch: -1
+    #seed_numpy: -1
+    #seed_torch: -1
     problem:
         name: &name maes_baselines/serial_recall_cl
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
