@@ -5,7 +5,7 @@ model:
     #visualization_mode: 2
     # Input bits = [command_bits, data_bits]
     # Output bits = [data_bits]
-    num_control_bits: 4 # *cbits
+    num_control_bits: 3 # *cbits
     num_data_bits: 8 # *dbits
     # Save/load encoder.
     #save_encoder: True
