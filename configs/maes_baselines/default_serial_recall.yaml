@@ -1,5 +1,8 @@
-# Problem parameters:
+
 training:
+    # Set random seeds that will be used during training (and validation).
+    seed_numpy: -1
+    seed_torch: -1
     problem:
         name: &name maes_baselines/serial_recall_cl
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
@@ -10,8 +13,8 @@ training:
         # Parameters denoting min and max lengths.
         min_sequence_length: 3
         max_sequence_length: 20
-        bias: 0.5
 
+# This section is optional.
 validation:
     problem:
         name: *name
@@ -22,11 +25,13 @@ validation:
         # Parameters denoting min and max lengths.
         min_sequence_length: 21
         max_sequence_length: 21
-        bias: 0.5
 
 
-# Problem parameters:
 testing:
+    # Set random seeds that will be used during testing.
+    seed_numpy: -1
+    seed_torch: -1
+    # Problem definition.
     problem:
         name: *name
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
@@ -36,7 +41,6 @@ testing:
         # Parameters denoting min and max lengths.
         min_sequence_length: 100
         max_sequence_length: 100
-        bias: 0.5
 
     
 

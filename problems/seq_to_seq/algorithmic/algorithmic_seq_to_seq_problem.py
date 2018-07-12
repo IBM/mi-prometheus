@@ -39,7 +39,24 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         # Set default loss function - cross entropy.
         self.loss_function = nn.BCEWithLogitsLoss()
-        
+
+        # Extract "standard" list of parameters for algorithmic tasks.
+        self.batch_size = params['batch_size']
+        # Number of bits in one element.
+        self.control_bits = params['control_bits']
+        self.data_bits = params['data_bits']
+
+        # Min and max lengts of a single subsequence (number of elements).
+        self.min_sequence_length = params['min_sequence_length']
+        self.max_sequence_length = params['max_sequence_length']
+
+        # Add parameter denoting 0-1 distribution (DEFAULT: 0.5 i.e. equal).
+        params.add_default_params({'bias': 0.5})
+        self.bias = params['bias']
+
+        # Set initial dtype.
+        self.dtype = torch.FloatTensor     
+          
 
     def calculate_accuracy(self, data_tuple, logits, aux_tuple):
         """ Calculate accuracy equal to mean difference between outputs and targets.
