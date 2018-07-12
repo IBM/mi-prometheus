@@ -147,8 +147,13 @@ if __name__ == '__main__':
 
     # Create model object and load parameters from checkpoint.
     model = ModelFactory.build_model(param_interface['model'])
+
     model.cuda() if app_state.use_CUDA else None
-    model.load(FLAGS.model)
+    model.eval()
+
+    model.load_state_dict(
+        torch.load(FLAGS.model, map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
+    )
 
     # Build problem.
     problem = ProblemFactory.build_problem(param_interface['testing']['problem'])
