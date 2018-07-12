@@ -211,8 +211,13 @@ if __name__ == '__main__':
     if 'curriculum_learning' in param_interface['training']:
         # Initialize curriculum learning - with values from config.
         problem.curriculum_learning_initialize(param_interface['training']['curriculum_learning'])
+        # Set initial values of curriculum learning.
+        curric_done = problem.curriculum_learning_update_params(0)
+        
         # If key is not present in config then it has to be finished (DEFAULT: True)
-        must_finish_curriculum = param_interface['training']['curriculum_learning'].get('must_finish', True)
+        if 'must_finish' not in param_interface['training']['curriculum_learning']:
+            param_interface['training']['curriculum_learning'].add_default_params({'must_finish': True})
+        must_finish_curriculum = param_interface['training']['curriculum_learning']['must_finish']
         logger.info("Using curriculum learning")
     else:
         # Initialize curriculum learning - with empty dict.
