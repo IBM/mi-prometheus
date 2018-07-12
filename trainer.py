@@ -16,6 +16,7 @@ from random import randrange
 
 from datetime import datetime
 from time import sleep
+
 import argparse
 import torch
 from torch import nn
@@ -178,7 +179,7 @@ if __name__ == '__main__':
     # Set logger label and level.
     logger = logging.getLogger('Trainer')
     logger.setLevel(getattr(logging, FLAGS.log.upper(), None))
-    
+
 
     # Set random seeds.
     if "seed_torch" not in param_interface["training"] or param_interface["training"]["seed_torch"] == -1:
@@ -198,7 +199,7 @@ if __name__ == '__main__':
     app_state = AppState()
 
     # check if CUDA is available turn it on
-    check_and_set_cuda(param_interface['settings'], logger) 
+    check_and_set_cuda(param_interface['training'], logger) 
 
     # Build the model.
     model = ModelFactory.build_model(param_interface['model'])
@@ -233,7 +234,7 @@ if __name__ == '__main__':
     model.add_statistics(stat_col)
 
     # Create csv file.
-    training_file = stat_col.initialize_csv_file(log_dir, '/training.csv')
+    training_file = stat_col.initialize_csv_file(log_dir, 'training.csv')
 
     # Check if validation section is present AND problem section is also present...
     if ('validation' in param_interface) and ('problem' in param_interface['validation']):
@@ -247,7 +248,7 @@ if __name__ == '__main__':
         data_valid, aux_valid = next(generator_validation)
 
         # Create csv file.
-        validation_file = stat_col.initialize_csv_file(log_dir, '/validation.csv')
+        validation_file = stat_col.initialize_csv_file(log_dir, 'validation.csv')
 
         # Turn on validation.
         use_validation_problem = True
@@ -274,11 +275,9 @@ if __name__ == '__main__':
         filter(lambda p: p.requires_grad,model.parameters()), **optimizer_conf)
 
 
-
     # Ok, finished loading the configuration. 
-
     # Save the resulting configuration into a yaml settings file, under log_dir
-    with open(log_dir + "/training_configuration.yaml", 'w') as yaml_backup_file:
+    with open(log_dir + "training_configuration.yaml", 'w') as yaml_backup_file:
         yaml.dump(param_interface.to_dict(), yaml_backup_file, default_flow_style=False)
 
     # Print the training configuration.

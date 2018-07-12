@@ -10,6 +10,9 @@ os.environ["OMP_NUM_THREADS"] = '1'
 import yaml
 from random import randrange
 
+from datetime import datetime
+from time import sleep
+
 import torch
 import argparse
 
@@ -39,11 +42,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='', dest='model',
                         help='Path to and name of the file containing the saved parameters of the model (model checkpoint)')
-    parser.add_argument('--visualize', action='store_true', dest='visualize',
-                        help='Activate dynamic visualization')
+    parser.add_argument('--savetag', dest='savetag', type=str, default='',
+                        help='Tag for the save directory')
     parser.add_argument('--log', action='store', dest='log', type=str, default='info',
                         choices=['critical', 'error', 'warning', 'info', 'debug', 'notset'],
                         help="Log level. Default is INFO.")
+    parser.add_argument('--visualize', action='store_true', dest='visualize',
+                        help='Activate dynamic visualization')
 
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
@@ -67,8 +72,22 @@ if __name__ == '__main__':
         print('Config file {} does not exist'.format(config_file))
         exit(-3)
 
-    # Logging - to the same dir. :]
-    log_file = abs_path + '/tester.log'
+    # Prepare output paths for logging
+    while True:  
+        # Dirty fix: if log_dir already exists, wait for 1 second and try again
+        try:
+            time_str = 'test_{0:%Y%m%d_%H%M%S}'.format(datetime.now())
+            if FLAGS.savetag != '':
+                time_str = time_str + "_" + FLAGS.savetag
+            log_dir = abs_path + '/' + time_str + '/'
+            os.makedirs(log_dir, exist_ok=False)
+        except FileExistsError:
+            sleep(1)
+        else:
+            break
+
+    # Logging - to subdir
+    log_file = log_dir + 'tester.log'
     def logfile():
         return logging.FileHandler(log_file)
 
@@ -111,7 +130,7 @@ if __name__ == '__main__':
     app_state = AppState()
 
     # check if CUDA is available turn it on
-    check_and_set_cuda(param_interface['settings'], logger) 
+    check_and_set_cuda(param_interface['testing'], logger) 
 
     # Get problem and model names.
     try:
@@ -141,7 +160,12 @@ if __name__ == '__main__':
     model.add_statistics(stat_col)
 
     # Create test output csv file.
-    test_file = stat_col.initialize_csv_file(abs_path, '/testing.csv')
+    test_file = stat_col.initialize_csv_file(log_dir, 'testing.csv')
+
+    # Ok, finished loading the configuration. 
+    # Save the resulting configuration into a yaml settings file, under log_dir
+    with open(log_dir + "testing_configuration.yaml", 'w') as yaml_backup_file:
+        yaml.dump(param_interface.to_dict(), yaml_backup_file, default_flow_style=False)
 
     # Run test
     with torch.no_grad():

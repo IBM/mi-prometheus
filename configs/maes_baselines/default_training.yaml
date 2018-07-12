@@ -23,7 +23,3 @@ training:
     terminal_condition:
         loss_stop: 1.0e-5
         max_episodes: 100000
-
-# Additional settings:
-settings:
-    cuda: True

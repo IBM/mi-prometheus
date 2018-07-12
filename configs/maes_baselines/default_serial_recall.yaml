@@ -3,6 +3,8 @@ training:
     # Set random seeds that will be used during training (and validation).
     #seed_numpy: -1
     #seed_torch: -1
+    # Use cuda.
+    cuda: True
     problem:
         name: &name maes_baselines/serial_recall_cl
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
@@ -31,6 +33,8 @@ testing:
     # Set random seeds that will be used during testing.
     seed_numpy: -1
     seed_torch: -1
+    # Use cuda.
+    cuda: True
     # Problem definition.
     problem:
         name: *name
