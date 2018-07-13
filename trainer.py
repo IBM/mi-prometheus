@@ -426,6 +426,13 @@ if __name__ == '__main__':
             terminal_condition = True
             # If we are here then it means that we didn't converged and the model is bad for sure.
             # But let's try to save it anyway, maybe it is still better than the previous one. 
+
+            # Validate on the problem if required - so we can collect the statistics needed during saving of the best model.
+            if use_validation_problem:
+                # Perform validation.
+                validation_loss, user_pressed_stop = validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
+                        logger,   validation_file,  validation_writer)
+            
             model.save(model_dir, stat_col)
             # "Finish" the training.
             break
