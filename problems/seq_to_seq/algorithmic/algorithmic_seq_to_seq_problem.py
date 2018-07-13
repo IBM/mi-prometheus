@@ -51,7 +51,8 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         self.max_sequence_length = params['max_sequence_length']
 
         # Add parameter denoting 0-1 distribution (DEFAULT: 0.5 i.e. equal).
-        params.add_default_params({'bias': 0.5})
+        if 'bias' not in params:
+            params.add_default_params({'bias': 0.5})
         self.bias = params['bias']
 
         # Set initial dtype.

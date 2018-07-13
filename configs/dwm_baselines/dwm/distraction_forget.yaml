@@ -5,17 +5,8 @@ default_configs:
 
 # Then overwrite problem name(s).
 training:
-    seed_numpy: 255
-    seed_torch: 453
     problem:
         name: &name distraction_carry
-    #Curriculum learning - optional.
-    curriculum_learning:
-        interval: 20
-        initial_max_sequence_length: 5
-    terminal_condition:
-        loss_stop: 1.0e-5
-        max_episodes: 50000
 
 validation:
     problem:
@@ -24,9 +15,4 @@ validation:
 testing:
     problem:
         name: *name 
-        # Parameters denoting min and max lengths.
-        min_sequence_length: 50
-        max_sequence_length: 50
-        num_subseq_min: 10
-        num_subseq_max: 10
 
