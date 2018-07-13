@@ -91,8 +91,8 @@ def recurrent_config_parse(configs, configs_parsed):
 
         # Check if file exists.
         if not os.path.isfile(config):
-            print('Error: Configuration file {} does not exists'.format(config))
-            #raise Exception('Error: Configuration file {} does not exists'.format(config))
+            print('Error: Configuration file {} does not exist'.format(config))
+            #raise Exception('Error: Configuration file {} does not exist'.format(config))
             exit(-1)
 
         try:

@@ -29,13 +29,13 @@ def main():
 
     # Check if config file was selected.
     if FLAGS.config == '':
-        print('Please pass batch configuration file(s) as --c parameter')
+        print('Please pass batch configuration file as --c parameter')
         exit(-1)
 
     # Check if file exists.
     if not os.path.isfile(FLAGS.config):
-        print('Error: Batch configuration file {} does not exists'.format(FLAGS.config))
-        #raise Exception('Error: Configuration file {} does not exists'.format(config))
+        print('Error: Batch configuration file {} does not exist'.format(FLAGS.config))
+        #raise Exception('Error: Configuration file {} does not exist'.format(config))
         exit(-1)
 
     try:
@@ -112,9 +112,6 @@ def run_experiment(experiment_configs: str):
     
     :param experiment_configs: List of configs (separated with coma) that will be passed to trainer.
     """
-
-    #completed = subprocess.run('python3 /home/tkornuta/pytorch-env/mi-prometheus/trainer.py --c configs/maes_baselines/maes_serial_recall.yaml', shell=True)
-    #print('returncode:', completed.returncode)
 
     command_str = "python3 trainer.py --c {0}".format(experiment_configs)
 
