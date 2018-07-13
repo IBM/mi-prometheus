@@ -29,7 +29,7 @@ validation:
     problem:
         name: *name
         # batch size
-        batch_size: 64
+        batch_size: 5000
         start_index: 55000
         stop_index: 59999
         use_train_data: True
@@ -42,7 +42,7 @@ testing:
     problem:
         name: *name
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-        batch_size: 64
+        batch_size: 10000
         start_index: 0
         stop_index: 9999
         use_train_data: False
