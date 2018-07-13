@@ -1,87 +1,17 @@
-# Problem parameters:
-problem_train:
-    name: &name interruption_not
-    # Size of generated input: [batch_size x sequence_length x number of control and data bits].
-    control_bits: &cbits 4
-    data_bits: &dbits 8    
-    batch_size: 1
-    # Parameters denoting min and max lengths. 
-    min_sequence_length: 1
-    max_sequence_length: 3
-    num_subseq_min: 1
-    num_subseq_max: 3
-    #Curriculum learning - optional.
-    curriculum_learning:
-        interval: 20
-        initial_max_sequence_length: 5
-    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
-    gradient_clipping: 10
-    bias: 0.5
-    num_rotation: &nrot 0.5
+# Load the following (default) configs first.
+default_configs: 
+    configs/dwm_baselines/dwm/default_dwm.yaml,
+    configs/dwm_baselines/default_settings_dual_task.yaml
 
-# Problem parameters:
-problem_test:
-    name: *name
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: *cbits
-    data_bits: *dbits
-    batch_size: 64
-    # Parameters denoting min and max lengths.
-    min_sequence_length: 50
-    max_sequence_length: 50
-    num_subseq_min: 10
-    num_subseq_max: 10
-    bias: 0.5
-    num_rotation: *nrot
+# Then overwrite problem name(s).
+training:
+    problem:
+        name: &name interruption_not
 
-# Problem parameters:
-problem_validation:
-    name: *name
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: *cbits
-    data_bits: *dbits
-    batch_size: 10
-    # Parameters denoting min and max lengths.
-    min_sequence_length: 20
-    max_sequence_length: 20
-    num_subseq_min: 5
-    num_subseq_max: 5
-    bias: 0.5
-    num_rotation: *nrot
+validation:
+    problem:
+        name: *name 
 
-# Model parameters:
-model:
-    name: dwm   # dynamic_working_memory
-    # Input bits = [control_bits, data_bits]
-    # Output bits = [data_bits]
-    control_bits: *cbits
-    data_bits: *dbits
-    # Controller hidden state.
-    hidden_state_dim: 5
-    # Memory (?).
-    memory_content_size: 10
-    memory_addresses_size: -1
-    # Number of heads.
-    num_heads: 1
-    # Addressing parameters.
-    use_content_addressing: False
-    shift_size: 3
-    # active the plotting of the memory and attention
-    plot_memory: False
-
-# optimizer parameters:
-optimizer:
-    # Exact name of the pytorch optimizer function
-    name: Adam
-    # Function arguments of the optimizer, by name
-    lr: 0.01
-
-# settings parameters
-settings:
-    # masked output and target
-    use_mask: True
-    length_loss: 10
-    loss_stop: 0.00001
-    max_episodes: 50000
-    seed_numpy: 0
-    seed_torch: 2
+testing:
+    problem:
+        name: *name 

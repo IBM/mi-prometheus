@@ -1,8 +1,6 @@
 # Problem parameters:
 training: 
     cuda: True
-    seed_numpy: 0
-    seed_torch: 2
     problem:
         name: &name distraction_forget
         # Size of generated input: [batch_size x sequence_length x number of control and data bits].
