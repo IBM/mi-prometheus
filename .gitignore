@@ -3,13 +3,13 @@
 # But descend into directories
 !*/
 # Recursively allow files under subtree
-!train.py
-!test.py
+!trainer.py
+!tester.py
 !worker_utils.py
-!batch_train.py
-!batch_train_cuda.py
-!batch_test.py
-!batch_test_cuda.py
+!batch_trainer_cpu.py
+!batch_trainer_gpu.py
+!batch_tester_cpu.py
+!batch_tester_gpu.py
 !batch_analyze.py
 !Readme.md
 !__init__.py

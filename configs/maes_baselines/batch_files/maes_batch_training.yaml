@@ -1,22 +1,23 @@
 # Lists of tasks that will be executed in batch.
 batch_tasks:
   -
-    configs: configs/maes_baselines/maes_sequence_comparison.yaml
+    default_configs: configs/maes_baselines/maes_sequence_comparison.yaml
+    # Parameters that will be overwritten for a given task.
     overwrite:
       testing:
         problem:
-          min_sequence_length: 100
-          max_sequence_length: 100
+          min_sequence_length: 99
+          max_sequence_length: 99
   -
-    configs: configs/maes_baselines/maes_sequence_equality.yaml
+    default_configs: configs/maes_baselines/maes_sequence_equality.yaml
   - 
-    configs: configs/maes_baselines/maes_sequence_symmetry.yaml
+    default_configs: configs/maes_baselines/maes_sequence_symmetry.yaml
   - 
-    configs: configs/maes_baselines/maes_odd_recall.yaml
+    default_configs: configs/maes_baselines/maes_odd_recall.yaml
   -
-    configs: configs/maes_baselines/maes_serial_recall.yaml
+    default_configs: configs/maes_baselines/maes_serial_recall.yaml
   -
-    configs: configs/maes_baselines/maes_reverse_recall.yaml
+    default_configs: configs/maes_baselines/maes_reverse_recall.yaml
 
 # Parameters that will be overwritten for all tasks.
 batch_overwrite:
@@ -30,45 +31,40 @@ batch_overwrite:
   training:
     problem:
       min_sequence_length: 3
-      max_sequence_length: 20
+      max_sequence_length: 21
       control_bits: *cbits
-      data_bits: *dbits
-    
+      data_bits: *dbits    
     # Curriculum learning - optional.
     curriculum_learning:
-        interval: 500
-        initial_max_sequence_length: 5
-
+      interval: 500
+      initial_max_sequence_length: 5
+      must_finish: false
     # How often the model will be validated/saved.
     validation_interval: 1000
     # Terminal condition parameters:
     terminal_condition:
-        loss_stop: 1.0e-5
-        max_episodes: 100000
+      loss_stop: 1.0e-5
+      max_episodes: 100
 
   # Validation configuration.
   validation:
     problem:
       control_bits: *cbits
       data_bits: *dbits
-      min_sequence_length: 21
-      max_sequence_length: 21
+      min_sequence_length: 22
+      max_sequence_length: 22
       
   # Testing configuration.
   testing:
     problem:
-      min_sequence_length: 10000
+      min_sequence_length: 101
+      max_sequence_length: 101
       control_bits: *cbits
       data_bits: *dbits
 
-# Parameters that need to be overwritten in batch workers.
-# params['settings']['seed_numpy'] = randrange(0, 2**32)
-# params['settings']['seed_torch'] = randrange(0, 2**32)
-# params['problem_train']['cuda'] = False
-
-
+  
 batch_settings:
-      max_sequence_length: 100
-  experiment_repetitions: 10
-  # Max runs (number of available CPUs/GPUs)
-  max_concurrent_runs: 1000
+  # Number of times each task will be repeated.
+  experiment_repetitions: 2
+  # Max runs (that will be limited by the actual number of available CPUs/GPUs)
+  max_concurrent_runs: 2
