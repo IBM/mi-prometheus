@@ -25,8 +25,8 @@ class AttentionVQA(Model):
         # Retrieve attention and image/questions parameters
         self.encoded_question_size = 13
         self.num_channels_image = 3
-        self.mid_features = 512
-        self.encoded_image_features_size = 8*8
+        self.mid_features = 64
+        self.image_encoding_channels = 256
 
         # LSTM parameters
         self.hidden_size = self.encoded_question_size
@@ -40,19 +40,18 @@ class AttentionVQA(Model):
         # Instantiate class for question encoding
         self.lstm = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
 
+        #
+        self.ffn = nn.Linear(self.encoded_question_size, self.image_encoding_channels)
+
         # Instantiate class for attention
         self.apply_attention = Attention(
-            question_encoding_size=8*8,
-            image_encoding_size=self.encoded_image_features_size,
-            image_text_features=self.mid_features
+            question_image_encoding_size=self.image_encoding_channels,
+            key_query_size=self.mid_features
         )
-
-        # embedded question
-        self.ffn = nn.Linear(self.encoded_question_size, 8*8)
 
         # Instantiate classifier class
         self.classifier = Classifier(
-            in_features=8*8, #+ self.encoded_question_size,
+            in_features=256, #+ self.encoded_question_size,
             mid_features=256,
             out_features=10)
 
@@ -75,14 +74,13 @@ class AttentionVQA(Model):
 
         # step3 : apply attention
         encoded_question = self.ffn(encoded_question)
-
         encoded_image_attention = self.apply_attention(encoded_images, encoded_question)
         if self.app_state.visualize:
             self.encoded_image_attention_visualize = encoded_image_attention
 
         # step 4: classifying based in the encoded questions and attention
-        #combined = torch.cat([encoded_image_attention, encoded_question], dim=1)
         combined = encoded_image_attention + encoded_question
+
         answer = self.classifier(combined)
 
         return answer
@@ -122,7 +120,8 @@ class AttentionVQA(Model):
 
         f = plt.figure()
         plt.title('Attention')
-        attention_visualize = self.encoded_image_attention_visualize[0].view(8,8).detach().numpy()
+
+        attention_visualize = self.encoded_image_attention_visualize[0].view(16,16).detach().numpy()
         plt.imshow(attention_visualize, interpolation='nearest', aspect='auto')
 
         # Plot!
@@ -159,7 +158,7 @@ if __name__ == '__main__':
     while True:
         # Generate new sequence.
         # "Image" - batch x channels x width x height
-        input_np = np.random.binomial(1, 0.5, (2, 3, 128,  128))
+        input_np = np.random.binomial(1, 0.5, (2, 3, 75,  75))
         image = torch.from_numpy(input_np).type(torch.FloatTensor)
 
         # Question

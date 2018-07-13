@@ -5,7 +5,7 @@ problem_train:
     data_folder: '~/data/shape-color-query/'
     data_filename: 'training.hy'
     dataset_size: &ds 12000
-    img_size: 128
+    img_size: 75
     shuffle: True
     regenerate: False
     cuda: True
@@ -18,7 +18,7 @@ problem_test:
     data_folder: '~/data/shape-color-query/'
     data_filename: 'training.hy'
     dataset_size: *ds
-    img_size: 128
+    img_size: 75
     shuffle: True
     regenerate: False
     use_train_data: False
@@ -30,7 +30,7 @@ problem_validation:
     data_folder: '~/data/shape-color-query/'
     data_filename: 'training.hy'
     dataset_size: *ds
-    img_size: 128
+    img_size: 75
     shuffle: True
     regenerate: False
     use_train_data: False

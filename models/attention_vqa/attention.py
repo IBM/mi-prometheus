@@ -8,18 +8,16 @@ class StackedAttention(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, question_encoding_size, image_encoding_size, image_text_features=512):
+    def __init__(self, question_image_encoding_size, key_query_size=512):
         super(Attention, self).__init__()
         # fully connected layer to construct the key
-        self.ff_image = nn.Linear(image_encoding_size, image_text_features)
+        self.ff_image = nn.Linear(question_image_encoding_size, key_query_size)
         # fully connected layer to construct the query
-        self.ff_ques = nn.Linear(question_encoding_size, image_text_features)
+        self.ff_ques = nn.Linear(question_image_encoding_size, key_query_size)
         # fully connected layer to construct the attention from the query and key
-        self.ff_attention = nn.Linear(image_text_features, 1)
+        self.ff_attention = nn.Linear(key_query_size, 1)
 
     def forward(self, encoded_image, encoded_question):
-        # Flatten the two last dimensions of the image
-        encoded_image = encoded_image.view(encoded_image.size(0), encoded_image.size(1), encoded_image.size(2)*encoded_image.size(3))
 
         # Get the key
         key = self.ff_image(encoded_image)
