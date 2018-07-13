@@ -145,15 +145,13 @@ if __name__ == '__main__':
         print("Error: Couldn't retrieve model name from the loaded configuration")
         exit(-1)
 
-    # Create model object and load parameters from checkpoint.
+    # Create model object.
     model = ModelFactory.build_model(param_interface['model'])
-
     model.cuda() if app_state.use_CUDA else None
+    # Load parameters from checkpoint.
+    model.load(FLAGS.model)
+    # Turn on evaluation mode.
     model.eval()
-
-    model.load_state_dict(
-        torch.load(FLAGS.model, map_location=lambda storage, loc: storage)  # This is to be able to load CUDA-trained model on CPU
-    )
 
     # Build problem.
     problem = ProblemFactory.build_problem(param_interface['testing']['problem'])
