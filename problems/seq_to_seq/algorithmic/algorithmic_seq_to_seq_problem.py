@@ -40,17 +40,24 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         # Set default loss function - cross entropy.
         self.loss_function = nn.BCEWithLogitsLoss()
 
-        try:
-            # If the 'curriculum_learning' section is not present, this line will throw an exception.
-            self.curriculum_config = params['curriculum_learning'].to_dict()
-            # Copy parameters required for curriculum learning
-            self.curriculum_config['max_sequence_length'] = params['max_sequence_length']
-            #self.curriculum_config.update({'max_sequence_length': params['max_sequence_length']})
-        except KeyError:
-             # Else: set empty dictionary.
-            self.curriculum_config = {}
-            pass
-        
+        # Extract "standard" list of parameters for algorithmic tasks.
+        self.batch_size = params['batch_size']
+        # Number of bits in one element.
+        self.control_bits = params['control_bits']
+        self.data_bits = params['data_bits']
+
+        # Min and max lengts of a single subsequence (number of elements).
+        self.min_sequence_length = params['min_sequence_length']
+        self.max_sequence_length = params['max_sequence_length']
+
+        # Add parameter denoting 0-1 distribution (DEFAULT: 0.5 i.e. equal).
+        if 'bias' not in params:
+            params.add_default_params({'bias': 0.5})
+        self.bias = params['bias']
+
+        # Set initial dtype.
+        self.dtype = torch.FloatTensor     
+          
 
     def calculate_accuracy(self, data_tuple, logits, aux_tuple):
         """ Calculate accuracy equal to mean difference between outputs and targets.
@@ -200,7 +207,6 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         plt.show()
 
 
-
     def curriculum_learning_update_params(self, episode):
         """
         Updates problem parameters according to curriculum learning.
@@ -213,11 +219,11 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         curric_done = True
         try:
             # Read curriculum learning parameters.
-            max_max_length = self.curriculum_config['max_sequence_length']
-            interval = self.curriculum_config['interval']
-            initial_max_sequence_length = self.curriculum_config['initial_max_sequence_length']
+            max_max_length = self.params['max_sequence_length']
+            interval = self.curriculum_params['interval']
+            initial_max_sequence_length = self.curriculum_params['initial_max_sequence_length']
 
-            if self.curriculum_config['interval'] > 0:
+            if self.curriculum_params['interval'] > 0:
                 # Curriculum learning goes from the initial max length to the max length in steps of size 1
                 max_length = initial_max_sequence_length + (episode // interval)
                 if max_length >= max_max_length:

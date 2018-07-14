@@ -34,14 +34,19 @@ class Model(nn.Module):
         # Initialize app state.
         self.app_state = AppState()
 
+        # Store pointer to params.
+        self.params = params
+
         # Window in which the data will be ploted.
         self.plotWindow = None
 
         # Initialization of best loss - as INF.
         self.best_loss = np.inf
 
-        # Flag indicating whether intermediate checkpoints should be saved or not (DEFAULT: false).
-        self.save_intermediate = params.get("save_intermediate", False)
+        # Flag indicating whether intermediate checkpoints should be saved or not (DEFAULT: False).
+        if "save_intermediate" not in params:
+            params.add_default_params({"save_intermediate": False})
+        self.save_intermediate = params["save_intermediate"]
 
         # Model name.
         self.name = 'Model'

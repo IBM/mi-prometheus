@@ -1,93 +1,25 @@
-# Problem parameters:
-problem_train:
-    name: &name maes_baselines/reverse_recall_cl
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: &cbits 4
-    data_bits: &dbits 8
-    batch_size: &bs 64
-    # Parameters denoting min and max lengths.
-    min_sequence_length: 4
-    max_sequence_length: 10
-    #Curriculum learning - optional.
-    curriculum_learning:
-        interval: 500
-        initial_max_sequence_length: 5
-    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
-    gradient_clipping: 10
-    bias: 0.5
-    cuda: True
+# Load the following (default) configs first.
+default_configs: 
+    configs/maes_baselines/default_maes.yaml, 
+    configs/maes_baselines/default_problem.yaml, 
+    configs/maes_baselines/default_training.yaml
 
-# Problem parameters:
-problem_validation:
-    name: *name
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: *cbits
-    data_bits: *dbits
-    batch_size: 64
-    # Parameters denoting min and max lengths.
-    min_sequence_length: 11
-    max_sequence_length: 11
-    bias: 0.5
+# Then overwrite problem name(s).
+training:
+    problem:
+        name: &name maes_baselines/reverse_recall_cl
 
-# Problem parameters:
-problem_test:
-    name: *name
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: *cbits
-    data_bits: *dbits
-    batch_size: 64
-    # Parameters denoting min and max lengths.
-    min_sequence_length: 100
-    max_sequence_length: 100
-    bias: 0.5
+validation:
+    problem:
+        name: *name 
 
-# Model parameters:
-model:
-    name: maes
-    # Optional parameter: visualization.
-    #visualization_mode: 2
-    # Input bits = [command_bits, data_bits]
-    # Output bits = [data_bits]
-    num_control_bits: *cbits
-    num_data_bits: *dbits
+testing:
+    problem:
+        name: *name 
+
+# And overwrite model parameters.
+#model:
     # Save/load encoder.
     #save_encoder: True
-    #load_encoder: './experiments/maes_baselines/serial_recall_cl/maes/20180702_122815/models/encoder_episode_01400.pth.tar'
+    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180702_132024/models/encoder_episode_09400.pth.tar
     #freeze_encoder: True
-    # Indices of control bits triggering encoding/decoding.
-    encoding_bit: 0
-    solving_bit: 1
-    # Pass the whole state from encoder to solver cell.
-    pass_cell_state: True
-    # Controller parameters.
-    controller:
-        name: rnn
-        hidden_state_size: 20
-        num_layers: 1
-        non_linearity: sigmoid
-    # Interface
-    mae_interface:
-        shift_size: 3
-    mas_interface:
-        shift_size: 3
-    load_encoder: ''
-    # Memory parameters.
-    memory:
-        num_content_bits: 15
-        num_addresses: -1
-    
-# optimizer parameters:
-optimizer:
-    # Exact name of the pytorch optimizer function
-    name: Adam
-    # Function arguments of the optimizer, by name
-    lr: 0.01
-
-# settings parameters
-settings:
-    length_loss: 10
-    loss_stop: 1.0e-5
-    max_episodes: 100000
-    validation_stopping: True
-    seed_numpy: -1
-    seed_torch: -1

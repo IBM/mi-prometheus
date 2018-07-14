@@ -6,6 +6,7 @@ import torch
 import numpy as np
 from problems.problem import DataTuple
 from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem, AlgSeqAuxTuple
+from misc.param_interface import ParamInterface
 
 
 class DistractionForget(AlgorithmicSeqToSeqProblem):
@@ -19,25 +20,18 @@ class DistractionForget(AlgorithmicSeqToSeqProblem):
         
         :param params: Dictionary of parameters.
         """
-        # Call parent constructor - sets e.g. the loss function ;)
+        # Call parent constructor - sets e.g. the loss function, dtype.
+        # Additionally it extracts "standard" list of parameters for algorithmic tasks, like batch_size, numbers of bits, sequences etc.
         super(DistractionForget, self).__init__(params)
-        
-        # Retrieve parameters from the dictionary.
-        self.batch_size = params['batch_size']
-        # Number of bits in one element.
-        self.control_bits = params['control_bits']
-        self.data_bits = params['data_bits']
+
+        # Assert that numbers of bits are ok.
         assert self.control_bits >=4, "Problem requires at least 4 control bits (currently %r)" % self.control_bits
         assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
-        # Min and max lengts of a single subsequence (number of elements).
-        self.min_sequence_length = params['min_sequence_length']
-        self.max_sequence_length = params['max_sequence_length']
+
         # Number of subsequences.
         self.num_subseq_min = params["num_subseq_min"]
         self.num_subseq_max = params["num_subseq_max"]
-        # Parameter  denoting 0-1 distribution (0.5 is equal).
-        self.bias = params['bias']
-        self.dtype = torch.FloatTensor
+
 
     def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
@@ -123,9 +117,10 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 1,
+    params = ParamInterface()
+    params.add_custom_params({'control_bits': 4, 'data_bits': 8, 'batch_size': 1,
               'min_sequence_length': 1, 'max_sequence_length': 10, 
-              'bias': 0.5, 'num_subseq_min':1 ,'num_subseq_max': 4}
+              'num_subseq_min':1 ,'num_subseq_max': 4})
     # Create problem object.
     problem = DistractionForget(params)
     # Get generator

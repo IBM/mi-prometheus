@@ -6,6 +6,8 @@ import torch
 import numpy as np
 from problems.problem import DataTuple
 from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem, AlgSeqAuxTuple
+from misc.param_interface import ParamInterface
+
 
 class OperationSpan(AlgorithmicSeqToSeqProblem):
     """
@@ -30,23 +32,13 @@ class OperationSpan(AlgorithmicSeqToSeqProblem):
         # Call parent constructor - sets e.g. the loss function ;)
         super(OperationSpan, self).__init__(params)
         
-        # Retrieve parameters from the dictionary.
-        self.batch_size = params['batch_size']
-        # Number of bits in one element.
-        self.control_bits = params['control_bits']
-        self.data_bits = params['data_bits']
         assert self.control_bits >=4, "Problem requires at least 4 control bits (currently %r)" % self.control_bits
         assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
-        # Min and max lengts of a single subsequence (number of elements).
-        self.min_sequence_length = params['min_sequence_length']
-        self.max_sequence_length = params['max_sequence_length']
+
         # Number of subsequences.
         self.num_subseq_min = params["num_subseq_min"]
         self.num_subseq_max = params["num_subseq_max"]
-        # Parameter  denoting 0-1 distribution (0.5 is equal).
-        self.bias = params['bias']
         self.rotation = params['num_rotation']
-        self.dtype = torch.FloatTensor
 
     def rotate(self, seq, rotation, length):
         """ 
@@ -155,8 +147,9 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'control_bits': 4, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 2,
-            'max_sequence_length': 4, 'bias': 0.5, 'num_subseq_min':2 ,'num_subseq_max': 4, 'num_rotation':0.5}
+    params = ParamInterface()
+    params.add_custom_params({'control_bits': 4, 'data_bits': 8, 'batch_size': 1, 'min_sequence_length': 2,
+            'max_sequence_length': 4, 'num_subseq_min':2 ,'num_subseq_max': 4, 'num_rotation':0.5})
     # Create problem object.
     problem = OperationSpan(params)
     # Get generator
