@@ -34,14 +34,14 @@ class Attention(nn.Module):
 
         # Get the query, unsqueeze to be able to add the query to all channels
         query = self.ff_ques(encoded_question).unsqueeze(dim=1)
-        ha = F.tanh(key + query)
+        weighted_key_query = F.tanh(key + query)
 
         # Get attention over the different layers
-        ha = self.ff_attention(ha)
-        pi = F.softmax(ha, dim=-2)
+        weighted_key_query = self.ff_attention(weighted_key_query)
+        attention_prob = F.softmax(weighted_key_query, dim=-2)
 
         # sum the weighted channels
-        vi_attended = (pi * encoded_image).sum(dim=1)
+        vi_attended = (attention_prob * encoded_image).sum(dim=1)
         u = vi_attended + encoded_question
 
         return u

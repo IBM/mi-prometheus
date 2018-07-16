@@ -4,12 +4,12 @@ import torch.nn.functional as F
 import numpy as np
 
 
-from models.simple_vqa.image_encoding import ImageEncoding
+from models.cnn_lstm_vqa.image_encoding import ImageEncoding
 from models.model import Model
 from misc.app_state import AppState
 
 
-class SimpleVQA(Model):
+class CNNLSTMVQA(Model):
     """ Implementation of simple vqa model, it performs the following steps:
        step1: image encoding
        step2: question encoding if needed
@@ -18,7 +18,7 @@ class SimpleVQA(Model):
     """
 
     def __init__(self, params):
-        super(SimpleVQA, self).__init__(params)
+        super(CNNLSTMVQA, self).__init__(params)
 
         # Retrieve attention and image parameters
         self.question_encoding_size = 13
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     params = {'use_question_encoding': False}
 
     # model
-    model = SimpleVQA(params)
+    model = CNNLSTMVQA(params)
 
     while True:
         # Generate new sequence.

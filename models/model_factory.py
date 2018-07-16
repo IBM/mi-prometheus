@@ -85,10 +85,10 @@ class ModelFactory(object):
             from models.vision.alexnet_wrapper import AlexnetWrapper
             return AlexnetWrapper(params)
         elif name == 'simple_vqa':
-            logger.info('Loading the SimpleVQA model models.simple_vqa.simple_vqa')
-            logger.warning("Warning: SimpleVQA under development")
-            from models.simple_vqa.simple_vqa import SimpleVQA
-            return SimpleVQA(params)
+            logger.info('Loading the CNNLSTMVQA model models.cnn_lstm_vqa.cnn_lstm_vqa')
+            logger.warning("Warning: CNNLSTMVQA under development")
+            from models.cnn_lstm_vqa.cnn_lstm_vqa import CNNLSTMVQA
+            return CNNLSTMVQA(params)
         elif name == 'stacked_attention_vqa':
             logger.info('Loading the AttentionVQA model from models.stacked_attention_vqa.stacked_attention_vqa')
             logger.warning("Warning: StackedAttentionVQA under development")
