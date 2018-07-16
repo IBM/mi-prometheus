@@ -1,62 +1,62 @@
 # Problem parameters:
-problem_train:
-    name: &name translation
-    batch_size: &b 32
-    training_size: &t 0.90
-    output_lang_name: 'fra'
-    max_sequence_length: &seq 15
-    eng_prefixes: !!python/tuple ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
-    use_train_data: True
-    data_folder: '~/data/language'
-    reverse: False
-    cuda: True
+training:
+    problem:
+        name: &name translation
+        batch_size: &b 32
+        training_size: &ts 0.90
+        output_lang_name: 'fra'
+        max_sequence_length: &seq 15
+        eng_prefixes: ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
+        use_train_data: True
+        data_folder: '~/data/language'
+        reverse: False
+
+    # set optimizer
+    optimizer:
+        # Exact name of the pytorch optimizer function
+        name: SGD
+        # Function arguments of the optimizer, by name
+        lr: 0.01
+
+    terminal_condition:
+        loss_stop: 0.1
+        max_episodes: 1300
+
 
 # Problem parameters:
-problem_test:
-    name: *name
-    batch_size: *b
-    training_size: *t
-    output_lang_name: 'fra'
-    max_sequence_length: *seq
-    eng_prefixes: !!python/tuple ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
-    use_train_data: False
-    data_folder: '~/data/language'
-    reverse: False
+validation:
+    problem:
+        name: *name
+        batch_size: *b
+        training_size: *ts
+        output_lang_name: 'fra'
+        max_sequence_length: *seq
+        eng_prefixes: ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
+        use_train_data: True
+        data_folder: '~/data/language'
+        reverse: False
+
 
 # Problem parameters:
-problem_validation:
-    name: *name
-    batch_size: *b
-    training_size: *t
-    output_lang_name: 'fra'
-    max_sequence_length: *seq
-    eng_prefixes: !!python/tuple ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
-    use_train_data: True
-    data_folder: '~/data/language'
-    reverse: False
+testing:
+    problem:
+        name: *name
+        batch_size: *b
+        training_size: *ts
+        output_lang_name: 'fra'
+        max_sequence_length: *seq
+        eng_prefixes: ["i am ", "i m ", "he is", "he s ", "she is", "she s", "you are", "you re ", "we are", "we re ", "they are", "they re "]
+        use_train_data: False
+        data_folder: '~/data/language'
+        reverse: False
+
+
 
 # Model parameters:
 model:
     name: simple_encoder_decoder
-    max_length: *seq
+    max_length: 15
     input_voc_size: 3506  # this value is coming from the problem class (problem.input_lang.n_words)
     hidden_size: 256
     output_voc_size: 5231
     encoder_bidirectional: True
-
-# optimizer parameters:
-optimizer:
-    # Exact name of the pytorch optimizer function
-    name: SGD
-    # Function arguments of the optimizer, by name
-    lr: 0.01
-
-# settings parameters
-settings:
-    # masked output and target
-    use_mask: False
-    length_loss: 10
-    loss_stop: 0.1
-    max_episodes: 1300
-    seed_numpy: 4354
-    seed_torch: 2452

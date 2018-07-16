@@ -218,7 +218,7 @@ class Translation(TextToTextProblem, Lang):
 
             return len(p[0].split(' ')) < self.max_sequence_length and \
                    len(p[1].split(' ')) < self.max_sequence_length and \
-                   p[0].startswith(self.eng_prefixes)
+                   p[0].startswith(tuple(self.eng_prefixes))
         else:  # if no english prefixes have been specified, only filter based on sequence length
             return len(p[0].split(' ')) < self.max_sequence_length and \
                    len(p[1].split(' ')) < self.max_sequence_length
