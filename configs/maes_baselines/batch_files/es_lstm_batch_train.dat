@@ -1,0 +1,6 @@
+configs/maes_baselines/es_lstm_sequence_comparison.yaml
+configs/maes_baselines/es_lstm_sequence_equality.yaml
+configs/maes_baselines/es_lstm_sequence_symmetry.yaml
+configs/maes_baselines/es_lstm_odd_recall.yaml
+configs/maes_baselines/es_lstm_serial_recall.yaml
+configs/maes_baselines/es_lstm_reverse_recall.yaml

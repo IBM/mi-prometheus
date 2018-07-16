@@ -1,0 +1,15 @@
+# Model parameters:
+model:
+    name: dwm   # dynamic_working_memory
+    # Controller hidden state.
+    hidden_state_dim: 5
+    # Memory (?).
+    memory_content_size: 10
+    memory_addresses_size: -1
+    # Number of heads.
+    num_heads: 1
+    # Addressing parameters.
+    use_content_addressing: False
+    shift_size: 3
+    # active the plotting of the memory and attention
+    plot_memory: False

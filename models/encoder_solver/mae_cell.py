@@ -70,21 +70,69 @@ class MAECell(torch.nn.Module):
         # Layer that produces output on the basis of... hidden state?
         ext_hidden_size = self.controller_hidden_state_size
         self.hidden2output = torch.nn.Linear(ext_hidden_size, self.output_size)
-        for param in self.hidden2output.parameters():
-            param.requires_grad = False
+
+
+    def load(self, filename):
+        # Check filename.
+        if os.path.isfile(filename):
+            # Load checkpoint from filename.
+            chkpt = torch.load(filename, map_location=lambda storage, loc: storage)
+            # Load controller and interface
+            self.controller.load_state_dict(chkpt['ctrl_dict'])
+            self.interface.load_state_dict(chkpt['interface_dict'])
+            logger.info("Imported {} parameters from checkpoint (episode {}, loss {}) from file {}".format(chkpt['name'], chkpt['stats']['episode'], chkpt['stats']['loss'], filename))
+        else:
+            logger.error("Encoder checkpoint not found at {}".format(filename))
+
+    def save(self, model_dir, stat_col, is_best_model, save_intermediate):
+        """
+        Method saves the model and encoder to file.
+
+        :param model_dir: Directory where the model will be saved.
+        :param stat_col: Statistics collector that contain current loss and episode number (and other statistics). 
+        :param is_best_model: Flag indicating whether it is the best model or not. 
+        :parma save_intermediate: Flag indicating whether intermediate models should be saved or not.
+        """
+        episode = stat_col['episode']
+        # Checkpoint to be saved.
+        chkpt = {
+            'name': 'MAE controller and interface',
+            'ctrl_dict': self.controller.state_dict(),
+            'interface_dict': self.interface.state_dict(),
+            'stats': stat_col.statistics
+        }
+
+        # Save the intermediate checkpoint.                       
+        if save_intermediate:
+            # Generate filename pt.
+            filename = model_dir + 'encoder_episode_{:05d}.pt'.format(episode)
+            # Save dictionary to file.
+            torch.save(chkpt, filename)
+            logger.info("Encoder and statistics exported to checkpoint {}".format(filename))
+
+        # Save the best model.
+        if is_best_model:
+            # Generate filename pt.
+            filename = model_dir + 'encoder_best.pt'
+            # Save dictionary to file.
+            torch.save(chkpt, filename)
+            logger.info("Encoder and statistics exported to checkpoint {}".format(filename))
+
 
     def freeze(self):
         """ Freezes the trainable weigths """
         # Freeze controller.
         for param in self.controller.parameters():
             param.requires_grad = False
+        logger.info("Encoder controller is frozen")
 
         # Freeze interface.
         self.interface.freeze()
+        logger.info("Encoder interface is frozen")
 
         # Freeze output layer.
-        for param in self.hidden2output.parameters():
-            param.requires_grad = False
+        #for param in self.hidden2output.parameters():
+        #    param.requires_grad = False
 
     def init_state(self,  init_memory_BxAxC):
         """

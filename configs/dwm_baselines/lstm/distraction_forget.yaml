@@ -1,0 +1,17 @@
+# Load the following (default) configs first.
+default_configs: 
+    configs/dwm_baselines/lstm/default_lstm.yaml,
+    configs/dwm_baselines/default_settings_dual_task.yaml
+
+# Then overwrite problem name(s).
+training:
+    problem:
+        name: &name distraction_forget
+
+validation:
+    problem:
+        name: *name 
+
+testing:
+    problem:
+        name: *name 

@@ -40,6 +40,25 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         # Set default loss function - cross entropy.
         self.loss_function = nn.BCEWithLogitsLoss()
 
+        # Extract "standard" list of parameters for algorithmic tasks.
+        self.batch_size = params['batch_size']
+        # Number of bits in one element.
+        self.control_bits = params['control_bits']
+        self.data_bits = params['data_bits']
+
+        # Min and max lengts of a single subsequence (number of elements).
+        self.min_sequence_length = params['min_sequence_length']
+        self.max_sequence_length = params['max_sequence_length']
+
+        # Add parameter denoting 0-1 distribution (DEFAULT: 0.5 i.e. equal).
+        if 'bias' not in params:
+            params.add_default_params({'bias': 0.5})
+        self.bias = params['bias']
+
+        # Set initial dtype.
+        self.dtype = torch.FloatTensor     
+          
+
     def calculate_accuracy(self, data_tuple, logits, aux_tuple):
         """ Calculate accuracy equal to mean difference between outputs and targets.
         WARNING: Applies mask (from aux_tuple) to both logits and targets!
@@ -80,12 +99,12 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         return data_tuple, aux_tuple
 
-    def set_max_length(self, max_length):
-        """ Sets maximum sequence lenth (property).
-        
-        :param max_length: Length to be saved as max.
-        """
-        self.max_sequence_length = max_length
+    #def set_max_length(self, max_length):
+    #    """ Sets maximum sequence lenth (property).
+    #    
+    #    :param max_length: Length to be saved as max.
+    #    """
+    #    self.max_sequence_length = max_length
 
 
     def add_ctrl(self, seq, ctrl, pos): 
@@ -123,7 +142,8 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         """
         stat_col.add_statistic('acc', '{:12.10f}')
         stat_col.add_statistic('seq_length', '{:d}')
-        stat_col.add_statistic('num_subseq', '{:d}')
+        #stat_col.add_statistic('num_subseq', '{:d}')
+        stat_col.add_statistic('max_seq_length', '{:d}')
 
 
     def collect_statistics(self, stat_col, data_tuple, logits, aux_tuple):
@@ -137,7 +157,8 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         """
         stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, aux_tuple)
         stat_col['seq_length'] = aux_tuple.seq_length
-        stat_col['num_subseq'] = aux_tuple.num_subsequences
+        #stat_col['num_subseq'] = aux_tuple.num_subsequences
+        stat_col['max_seq_length'] = self.max_sequence_length
 
 
     def show_sample(self,  data_tuple, aux_tuple,  sample_number = 0):
@@ -184,3 +205,34 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         # Plot!
         plt.tight_layout()
         plt.show()
+
+
+    def curriculum_learning_update_params(self, episode):
+        """
+        Updates problem parameters according to curriculum learning.
+        In the case of algorithmic sequential problems it updates the max sequence length, depending on configuration parameters 
+
+        :param episode: Number of the current episode.
+        :returns: Boolean informing whether curriculum learning is finished (or wasn't active at all).
+        """
+        # Curriculum learning stop condition.
+        curric_done = True
+        try:
+            # Read curriculum learning parameters.
+            max_max_length = self.params['max_sequence_length']
+            interval = self.curriculum_params['interval']
+            initial_max_sequence_length = self.curriculum_params['initial_max_sequence_length']
+
+            if self.curriculum_params['interval'] > 0:
+                # Curriculum learning goes from the initial max length to the max length in steps of size 1
+                max_length = initial_max_sequence_length + (episode // interval)
+                if max_length >= max_max_length:
+                    max_length = max_max_length
+                else:
+                    curric_done = False
+                # Change max length.
+                self.max_sequence_length = max_length
+        except KeyError:
+            pass
+        # Return information whether we finished CL (i.e. reached max sequence length).
+        return curric_done

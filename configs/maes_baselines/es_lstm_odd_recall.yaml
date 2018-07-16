@@ -1,82 +1,25 @@
-# Problem parameters:
-problem_train:
-    name: &name maes_baselines/skip_recall_cl
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: &cbits 4
-    data_bits: &dbits 8
-    batch_size: &bs 64
-    # Skip params.
-    seq_start: &start 0
-    skip_step: &skip 2
-    bias: 0.5
-    # Parameters denoting min and max lengths.
-    min_sequence_length: 4
-    max_sequence_length: 10
-    #Curriculum learning - optional.
-    curriculum_learning:
-        interval: 500
-        initial_max_sequence_length: 5
-    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
-    gradient_clipping: 10
-    cuda: True
-   
-# Problem parameters:
-problem_validation:
-    name: *name
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: *cbits
-    data_bits: *dbits
-    batch_size: 64
-    seq_start: *start
-    skip_step: *skip
+# Load the following (default) configs first.
+default_configs: 
+    configs/maes_baselines/default_es_lstm.yaml, 
+    configs/maes_baselines/default_problem.yaml, 
+    configs/maes_baselines/default_training.yaml
 
-    # Parameters denoting min and max lengths.
-    min_sequence_length: 11
-    max_sequence_length: 11
-    bias: 0.5
+# Then overwrite problem name(s).
+training:
+    problem:
+        name: &name maes_baselines/skip_recall_cl
+        # Skip params.
+        seq_start: &start 0
+        skip_step: &skip 2
 
+validation:
+    problem:
+        name: *name 
+        seq_start: *start
+        skip_step: *skip
 
-# Problem parameters:
-problem_test:
-    name: *name
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: *cbits
-    data_bits: *dbits
-    seq_start: *start
-    skip_step: *skip
-    batch_size: 64
-    # Parameters denoting min and max lengths.
-    min_sequence_length: 100
-    max_sequence_length: 100
-    bias: 0.5
- 
-# Model parameters:
-model:
-    name: es_lstm
-    # Input bits = [control_bits, data_bits]
-    # Output bits = [data_bits]
-    control_bits: *cbits 
-    data_bits: *dbits
-    # Controller hidden state.
-    hidden_state_dim: 256
-    # Indices of control bits triggering encoding/decoding.
-    encoding_bit: 0
-    solving_bit: 1
-    
-# optimizer parameters:
-optimizer:
-    # Exact name of the pytorch optimizer function
-    name: Adam
-    # Function arguments of the optimizer, by name
-    lr: 0.01
-
-# settings parameters
-settings:
-    # masked output and target
-    use_mask: True
-    length_loss: 10
-    loss_stop: 1.0e-5
-    max_episodes: 100000
-    validation_stopping: True
-    seed_numpy: -1
-    seed_torch: -1
+testing:
+    problem:
+        name: *name 
+        seq_start: *start
+        skip_step: *skip

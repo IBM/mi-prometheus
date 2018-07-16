@@ -156,9 +156,9 @@ def run_experiment(path: str):
     index_val_loss = -1
      
     ### Find the best model ###
-    models_list3 = glob(path + '/models/*')
+    models_list3 = glob(path + '/models/model_episode_*')
     models_list2 = [os.path.basename(os.path.normpath(e)) for e in models_list3]
-    models_list = [int(e.split('_')[-1]) for e in models_list2]    
+    models_list = [int(e.split('_')[-1].split('.')[0]) for e in models_list2]    
    
     # Gather data at chosen stopping point
     #r['valid_loss'] = val_loss[index_val_loss]

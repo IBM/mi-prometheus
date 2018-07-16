@@ -46,7 +46,7 @@ class MASInterface(torch.nn.Module):
         self.num_memory_content_bits = params['memory']['num_content_bits']
 
         # Get interface parameters.
-        self.interface_shift_size = params['interface']['shift_size']
+        self.interface_shift_size = params['mas_interface']['shift_size']
         assert self.interface_shift_size % 2 != 0,  'Shift size must be an odd number'
         assert self.interface_shift_size >0,  'Shift size must be > 0'
 

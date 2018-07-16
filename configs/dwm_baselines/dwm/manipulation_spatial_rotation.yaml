@@ -1,0 +1,20 @@
+# Load the following (default) configs first.
+default_configs: 
+    configs/dwm_baselines/dwm/default_dwm.yaml,
+    configs/dwm_baselines/default_settings_simple_task.yaml
+
+# Then overwrite problem name(s).
+training:
+    problem:
+        name: &name manipulation_spatial_rotation
+        num_bits: &nrot 0.5
+
+validation:
+    problem:
+        name: *name 
+        num_bits: *nrot
+
+testing:
+    problem:
+        name: *name 
+        num_bits: *nrot

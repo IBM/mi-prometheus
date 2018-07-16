@@ -17,13 +17,11 @@ class MemoryUsage(object):
     to write to for a number of write heads.
     """
   
-    def __init__(self, memory_size, name='MemoryUsage'):
+    def __init__(self, name='MemoryUsage'):
         """Creates a MemoryUsages module.
-          param memory_size: Number of memory slots.
-          param name: Name of the module.
+          :param name: Name of the module.
         """
         super(MemoryUsage, self).__init__()
-        self._memory_size = memory_size
   
     def init_state(self, memory_address_size, batch_size):
         """
@@ -32,7 +30,6 @@ class MemoryUsage(object):
         :param batch_size: Size of the batch in given iteraction/epoch.
         :returns: Initial state tuple - object of InterfaceStateTuple class.
         """
-        # links NEED TO UPDATE SIZE [BATCH_SIZE x MEMORY_SIZE]
         dtype = AppState().dtype
         self._memory_size=memory_address_size
 
@@ -47,17 +44,17 @@ class MemoryUsage(object):
         increased; memory that was read from and the controller says can be "freed"
         will have its usage decreased.
         Args:
-          write_weights: tensor of shape `[batch_size, num_writes,
+          :param write_weights: tensor of shape `[batch_size, num_writes,
               memory_size]` giving write weights at previous time step.
-          free_gate: tensor of shape `[batch_size, num_reads]` which indicates
+          :param free_gate: tensor of shape `[batch_size, num_reads]` which indicates
               which read heads read memory that can now be freed.
-          read_weights: tensor of shape `[batch_size, num_reads,
+          :param read_weights: tensor of shape `[batch_size, num_reads,
               memory_size]` giving read weights at previous time step.
-          prev_usage: tensor of shape `[batch_size, memory_size]` giving
+          :param prev_usage: tensor of shape `[batch_size, memory_size]` giving
               usage u_{t - 1} at the previous time step, with entries in range
               [0, 1].
         Returns:
-          tensor of shape `[batch_size, memory_size]` representing updated memory
+          :returns: tensor of shape `[batch_size, memory_size]` representing updated memory
           usage.
         """ 
        # Calculation of usage is not differentiable with respect to write weights.
@@ -73,21 +70,18 @@ class MemoryUsage(object):
         which takes into account the fact that the previous write head will increase
         the usage in that area of the memory.)
         Args:
-          usage: A tensor of shape `[batch_size, memory_size]` representing
+          :param usage: A tensor of shape `[batch_size, memory_size]` representing
               current memory usage.
-          write_gates: A tensor of shape `[batch_size, num_writes]` with values in
+          :param write_gates: A tensor of shape `[batch_size, num_writes]` with values in
               the range [0, 1] indicating how much each write head does writing
               based on the address returned here (and hence how much usage
               increases).
-          num_writes: The number of write heads to calculate write weights for.
+          :param num_writes: The number of write heads to calculate write weights for.
         Returns:
-          tensor of shape `[batch_size, num_writes, memory_size]` containing the
+          :returns: tensor of shape `[batch_size, num_writes, memory_size]` containing the
               freeness-based write locations. Note that this isn't scaled by
               `write_gate`; this scaling must be applied externally.
         """
-        #with tf.name_scope('write_allocation_weights'):
-        # expand gatings over memory locations
-        #write_gates = tf.expand_dims(write_gates, -1)
   
         allocation_weights = []
         for i in range(num_writes):
@@ -103,12 +97,11 @@ class MemoryUsage(object):
     def _usage_after_write(self, prev_usage, write_weights):
         """Calculates the new usage after writing to memory.
         Args:
-          prev_usage: tensor of shape `[batch_size, memory_size]`.
-          write_weights: tensor of shape `[batch_size, num_writes, memory_size]`.
+          :param prev_usage: tensor of shape `[batch_size, memory_size]`.
+          :param write_weights: tensor of shape `[batch_size, num_writes, memory_size]`.
         Returns:
-          New usage, a tensor of shape `[batch_size, memory_size]`.
+          :returns: New usage, a tensor of shape `[batch_size, memory_size]`.
         """
-        #with tf.name_scope('usage_after_write'):
         # Calculate the aggregated effect of all write heads
         write_weights2 = 1 - torch.prod(1 - write_weights, 1)
         return prev_usage + (1 - prev_usage) * write_weights2
@@ -116,16 +109,14 @@ class MemoryUsage(object):
     def _usage_after_read(self, prev_usage, free_gate, read_weights):
         """Calculates the new usage after reading and freeing from memory.
         Args:
-          prev_usage: tensor of shape `[batch_size, memory_size]`.
-          free_gate: tensor of shape `[batch_size, num_reads]` with entries in the
+          :param prev_usage: tensor of shape `[batch_size, memory_size]`.
+          :param free_gate: tensor of shape `[batch_size, num_reads]` with entries in the
               range [0, 1] indicating the amount that locations read from can be
               freed.
-          read_weights: tensor of shape `[batch_size, num_reads, memory_size]`.
+          :param read_weights: tensor of shape `[batch_size, num_reads, memory_size]`.
         Returns:
-          New usage, a tensor of shape `[batch_size, memory_size]`.
+          :returns: New usage, a tensor of shape `[batch_size, memory_size]`.
         """
-        #with tf.name_scope('usage_after_read'):
-        # free_gate = tf.expand_dims(free_gate, -1)
         free_read_weights = free_gate * read_weights
         phi = torch.prod(1 - free_read_weights, 1)
         
@@ -135,13 +126,13 @@ class MemoryUsage(object):
         r"""Computes allocation by sorting `usage`.
         This corresponds to the value a = a_t[\phi_t[j]] in the paper.
         Args:
-          usage: tensor of shape `[batch_size, memory_size]` indicating current
+          :param usage: tensor of shape `[batch_size, memory_size]` indicating current
               memory usage. This is equal to u_t in the paper when we only have one
               write head, but for multiple write heads, one should update the usage
               while iterating through the write heads to take into account the
               allocation returned by this function.
         Returns:
-          Tensor of shape `[batch_size, memory_size]` corresponding to allocation.
+          :returns: Tensor of shape `[batch_size, memory_size]` corresponding to allocation.
         """
         # Ensure values are not too small prior to cumprod.
         usage = _EPSILON + (1 - _EPSILON) * usage
@@ -151,11 +142,12 @@ class MemoryUsage(object):
         sorted_nonusage=1-sorted_usage
   
         #this computes the exclusive cumulative product
-        #a=torch.ones((usage.shape[0],1))
-        #b=torch.cat((a,sorted_usage),dim=1)
-        #prod_sorted_usage = torch.cumprod(b, dim=1)[:,:-1]
         prod_sorted_usage = self.exclusive_cumprod_temp(sorted_usage)
         
+        # Weights 1-usage by the exclusive product of the sorted usage
+        # This is a trick to choose the first point
+        # as anything other than the first element of the exclusive product should be negligibly small
+        # and this operation isn't differentiable anyways due to the sorting above
         sorted_allocation = sorted_nonusage * prod_sorted_usage
   
         # This final line "unsorts" sorted_allocation, so that the indexing
@@ -164,7 +156,17 @@ class MemoryUsage(object):
         unsorted_all.scatter_(1, indices, sorted_allocation)
          
         return unsorted_all
+
     def exclusive_cumprod_temp(self, sorted_usage, dim=1):
+        """Applies the exclusive cumultative product (at the moment it assumes the shape of the input)
+        Args:
+            :param sorted_usage: tensor of shape `[batch_size, memory_size]` indicating current
+              memory usage sorted in ascending order.
+        Returns:
+            :returns: Tensor of shape `[batch_size, memory_size]` that is exclusive pruduct of the sorted usage
+                     i.e. = [1, u1, u1*u2, u1*u2*u3, ....]
+
+        """
         #TODO: expand this so it works for any dim
         dtype = AppState().dtype
         a=torch.ones((sorted_usage.shape[0],1)).type(dtype)
