@@ -10,6 +10,7 @@ training:
         use_train_data: True
         data_folder: '~/data/language'
         reverse: False
+        cuda: True
 
     # set optimizer
     optimizer:
