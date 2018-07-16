@@ -1,0 +1,23 @@
+# Load the following (default) configs first.
+default_configs: 
+    configs/dwm_baselines/dnc/default_dnc.yaml,
+    configs/dwm_baselines/dnc/dnc_default_settings_dual_task.yaml
+
+# Then overwrite problem name(s).
+training:
+    problem:
+        name: &name distraction_carry
+
+validation:
+    problem:
+        name: *name 
+
+testing:
+    problem:
+        name: *name 
+
+
+
+
+
+

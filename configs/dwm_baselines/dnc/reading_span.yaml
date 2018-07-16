@@ -1,0 +1,24 @@
+# Load the following (default) configs first.
+default_configs: 
+    configs/dwm_baselines/dnc/default_dnc.yaml,
+    configs/dwm_baselines/dnc/dnc_default_settings_dual_task.yaml
+
+# Then overwrite problem name(s).
+training:
+    problem:
+        name: &name reading_span
+        control_bits: &cbits 2
+
+validation:
+    problem:
+        name: *name 
+        control_bits: *cbits
+
+testing:
+    problem:
+        name: *name 
+        control_bits: *cbits
+
+# Model parameters:
+model:
+    control_bits: *cbits

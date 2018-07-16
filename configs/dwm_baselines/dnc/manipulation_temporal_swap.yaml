@@ -1,0 +1,20 @@
+# Load the following (default) configs first.
+default_configs: 
+    configs/dwm_baselines/dnc/default_dnc.yaml,
+    configs/dwm_baselines/dnc/dnc_default_settings_simple_task.yaml
+
+# Then overwrite problem name(s).
+training:
+    problem:
+        name: &name manipulation_temporal_swap
+        num_items: &nrot 0.5
+
+validation:
+    problem:
+        name: *name 
+        num_items: *nrot
+
+testing:
+    problem:
+        name: *name 
+        num_items: *nrot
