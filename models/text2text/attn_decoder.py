@@ -104,7 +104,7 @@ class AttnDecoderRNN(nn.Module):
 
         if self.encoder_bidirectional:  # select hidden state of forward layer of encoder only
             hidden = hidden[:, :, :self.hidden_size]
-        gru_output, hidden = self.gru(gru_input, hidden)
+        gru_output, hidden = self.gru(gru_input, hidden.contiguous())
 
         if self.encoder_bidirectional:  # 'hack' if the encoder is bidirectional: hidden states need to be of shape
             # [(n_layers * n_directions) x batch_size x hidden_size]
