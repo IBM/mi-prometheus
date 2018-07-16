@@ -57,7 +57,7 @@ testing:
 # Model parameters:
 model:
     name: simple_encoder_decoder
-    max_length: 15
+    max_length: *seq
     input_voc_size: 3506  # this value is coming from the problem class (problem.input_lang.n_words)
     hidden_size: 256
     output_voc_size: 5231
