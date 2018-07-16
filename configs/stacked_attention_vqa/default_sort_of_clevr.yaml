@@ -1,0 +1,55 @@
+training:
+    cuda: True
+    # Problem parameters:
+    problem:
+        name: &name sort_of_clevr
+        batch_size: 64
+        data_folder: '~/data/sort-of-clevr/'
+        data_filename: 'training.hy'
+        dataset_size: &ds 12000
+        img_size: 75
+        regenerate: False
+        cuda: True
+        use_train_data: True
+    # Set optimizer.
+    optimizer:
+        name: Adam
+        lr: 0.005
+    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
+    gradient_clipping: 10
+    # Terminal condition parameters:
+    terminal_condition:
+        loss_stop: 0.0001
+        max_episodes: 100000
+
+testing:
+    cuda: True
+    # Problem parameters:
+    problem:
+        name: *name
+        batch_size: 32
+        data_folder: '~/data/sort-of-clevr/'
+        data_filename: 'training.hy'
+        dataset_size: *ds
+        img_size: 75
+        regenerate: False
+        use_train_data: False
+
+validation:
+    cuda: True
+    # Problem parameters:
+    problem:
+        name: *name
+        batch_size: 32
+        data_folder: '~/data/sort-of-clevr/'
+        data_filename: 'training.hy'
+        dataset_size: *ds
+        img_size: 75
+        regenerate: False
+        use_train_data: False
+
+# Model parameters:
+model:
+    name: stacked_attention_vqa   # use attention visual question answering
+    use_question_encoding: False
+
