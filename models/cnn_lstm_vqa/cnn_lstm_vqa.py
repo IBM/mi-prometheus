@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from misc.param_interface import ParamInterface
 
 
 from models.cnn_lstm_vqa.image_encoding import ImageEncoding
@@ -127,7 +128,9 @@ if __name__ == '__main__':
     AppState().visualize = True
 
     # Test base model.
-    params = {'use_question_encoding': False}
+    # "Loaded parameters".
+    params = ParamInterface()
+    params.add_custom_params({'use_question_encoding': False})
 
     # model
     model = CNNLSTMVQA(params)

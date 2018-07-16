@@ -217,8 +217,6 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         :param encoded_answer: One-hot vector.
         """
-        print(encoded_answer)
-
         return {
             # 0-5 colors
             0: 'blue',
@@ -344,7 +342,6 @@ class SortOfCLEVR(ImageTextToClassProblem):
                 A[i*self.NUM_QUESTIONS, self.NUM_COLORS] = True
 
             # Q2: bottom?
-            print('obj', obj.y)
             if obj.y > int(self.img_size/2):
                 A[i*self.NUM_QUESTIONS+1, self.NUM_COLORS+2] = True
             else:
