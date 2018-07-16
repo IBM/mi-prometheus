@@ -4,13 +4,13 @@ import torch.nn.functional as F
 import numpy as np
 
 
-from models.attention_vqa.image_encoding import ImageEncoding
-from models.attention_vqa.attention import StackedAttention, Attention
+from models.stacked_attention_vqa.image_encoding import ImageEncoding
+from models.stacked_attention_vqa.attention import StackedAttention, Attention
 from models.model import Model
 from misc.app_state import AppState
 
 
-class AttentionVQA(Model):
+class StackedAttentionVQA(Model):
     """ Implementation of simple vqa model with attention, it performs the following steps:
        step1: image encoding
        step2: question encoding if needed
@@ -20,7 +20,7 @@ class AttentionVQA(Model):
     """
 
     def __init__(self, params):
-        super(AttentionVQA, self).__init__(params)
+        super(StackedAttentionVQA, self).__init__(params)
 
         # Retrieve attention and image/questions parameters
         self.encoded_question_size = 13
@@ -28,7 +28,7 @@ class AttentionVQA(Model):
         self.mid_features = 64
         self.image_encoding_channels = 256
 
-        # LSTM parameters
+        # LSTM parameters (if use_question_encoding is True)
         self.hidden_size = self.encoded_question_size
         self.word_embedded_size = 7
         self.num_layers = 3
@@ -40,11 +40,11 @@ class AttentionVQA(Model):
         # Instantiate class for question encoding
         self.lstm = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
 
-        #
+        # Question encoding
         self.ffn = nn.Linear(self.encoded_question_size, self.image_encoding_channels)
 
         # Instantiate class for attention
-        self.apply_attention = Attention(
+        self.apply_attention = StackedAttention(
             question_image_encoding_size=self.image_encoding_channels,
             key_query_size=self.mid_features
         )
@@ -74,14 +74,12 @@ class AttentionVQA(Model):
 
         # step3 : apply attention
         encoded_question = self.ffn(encoded_question)
-        encoded_image_attention = self.apply_attention(encoded_images, encoded_question)
+        encoded_attention = self.apply_attention(encoded_images, encoded_question)
         if self.app_state.visualize:
-            self.encoded_image_attention_visualize = encoded_image_attention
+            self.encoded_image_attention_visualize = encoded_attention
 
         # step 4: classifying based in the encoded questions and attention
-        combined = encoded_image_attention + encoded_question
-
-        answer = self.classifier(combined)
+        answer = self.classifier(encoded_attention)
 
         return answer
 
@@ -153,12 +151,12 @@ if __name__ == '__main__':
     params = {'use_question_encoding': True}
 
     # model
-    model = AttentionVQA(params)
+    model = StackedAttentionVQA(params)
 
     while True:
         # Generate new sequence.
         # "Image" - batch x channels x width x height
-        input_np = np.random.binomial(1, 0.5, (2, 3, 75,  75))
+        input_np = np.random.binomial(1, 0.5, (2, 3, 128,  128))
         image = torch.from_numpy(input_np).type(torch.FloatTensor)
 
         # Question

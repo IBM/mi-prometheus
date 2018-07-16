@@ -89,11 +89,11 @@ class ModelFactory(object):
             logger.warning("Warning: SimpleVQA under development")
             from models.simple_vqa.simple_vqa import SimpleVQA
             return SimpleVQA(params)
-        elif name == 'attention_vqa':
-            logger.info('Loading the AttentionVQA model from models.attention_vqa.attention_vqa')
-            logger.warning("Warning: AttentionVQA under development")
-            from models.attention_vqa.attention_vqa import AttentionVQA
-            return AttentionVQA(params)
+        elif name == 'stacked_attention_vqa':
+            logger.info('Loading the AttentionVQA model from models.stacked_attention_vqa.stacked_attention_vqa')
+            logger.warning("Warning: StackedAttentionVQA under development")
+            from models.stacked_attention_vqa.stacked_attention_vqa import StackedAttentionVQA
+            return StackedAttentionVQA(params)
         elif name == 'multi_hops_attention':
             logger.info('Loading the MultiHopsAttention model from models.multi_hops_attention.multi_hops_attention')
             logger.warning("Warning: MultiHopsAttention under development")

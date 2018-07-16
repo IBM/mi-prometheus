@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 
 
-from models.multi_hops_attention.image_encoding import ImageEncoding, ConvInputModel
+from models.multi_hops_attention.image_encoding import ImageEncoding
 from models.multi_hops_attention.attention import StackedAttention, Attention
 from models.model import Model
 from misc.app_state import AppState
@@ -23,33 +23,32 @@ class MultiHopsAttention(Model):
         super(MultiHopsAttention, self).__init__(params)
 
         # Retrieve attention and image/questions parameters
-        self.encoded_question_size = 13
+        self.image_encoding_channels = 256
+        self.encoded_question_size = self.image_encoding_channels
         self.num_channels_image = 3
         self.mid_features = 512
-        self.encoded_image_features_size = 8*8
         self.num_words = 3
 
         # LSTM parameters
-        self.hidden_size = self.encoded_question_size
+        self.hidden_size = self.image_encoding_channels
         self.word_embedded_size = 7
         self.num_layers = 3
 
         # Instantiate class for image encoding
-        self.image_encoding = ConvInputModel()
+        self.image_encoding = ImageEncoding()
 
         # Instantiate class for question encoding
         self.lstm = nn.LSTMCell(self.word_embedded_size, self.hidden_size)
 
         # Instantiate class for attention
-        self.apply_attention = Attention(
-            question_encoding_size=self.encoded_question_size,
-            image_encoding_size=self.encoded_image_features_size,
-            image_text_features=self.mid_features
+        self.apply_attention = StackedAttention(
+            question_image_encoding_size=self.image_encoding_channels,
+            key_query_size=self.mid_features
         )
 
         # Instantiate class for classifier
         self.classifier = Classifier(
-            in_features=self.num_words*(8*8) + self.encoded_question_size,
+            in_features=self.num_words*(self.image_encoding_channels) + self.image_encoding_channels,
             mid_features=256,
             out_features=10)
 

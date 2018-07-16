@@ -37,7 +37,7 @@ problem_validation:
 
 # Model parameters:
 model:
-    name: attention_vqa   # use attention visual question answering
+    name: stacked_attention_vqa   # use attention visual question answering
     use_question_encoding: True
 
 # optimizer parameters:

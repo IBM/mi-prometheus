@@ -3,8 +3,18 @@ import torch.nn.functional as F
 
 
 class StackedAttention(nn.Module):
-    def __init__(self, v_features, q_features, mid_features, glimpses, drop=0.0):
+    def __init__(self, question_image_encoding_size, key_query_size, num_att_layers=2):
         super(StackedAttention, self).__init__()
+
+        self.san = nn.ModuleList(
+            [Attention(question_image_encoding_size, key_query_size)] * num_att_layers)
+
+    def forward(self, encoded_image, encoded_question):
+
+        for att_layer in self.san:
+            u = att_layer(encoded_image, encoded_question)
+
+        return u
 
 
 class Attention(nn.Module):
@@ -32,5 +42,6 @@ class Attention(nn.Module):
 
         # sum the weighted channels
         vi_attended = (pi * encoded_image).sum(dim=1)
+        u = vi_attended + encoded_question
 
-        return vi_attended
+        return u
