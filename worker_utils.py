@@ -99,9 +99,9 @@ def recurrent_config_parse(configs, configs_parsed):
             # Open file and get parameter dictionary.
             with open(config, 'r') as stream:
                 param_dict = yaml.safe_load(stream)
-        except yaml.YAMLError:
-            print("Error: Coudn't properly parse the {} configuration file".format(config))
-            #raise Exception("Error: Coudn't load the {} configuration file".format(config))
+        except yaml.YAMLError as e:
+            print("Error: Couldn't properly parse the {} configuration file".format(config))
+            print('yaml.YAMLERROR:', e)
             exit(-1)
 
         # Remember that we loaded that config.
