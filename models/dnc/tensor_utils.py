@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """tensor_utils.py: Utilities for manipulating tensors"""
-__author__ = " Ryan L. McAvoy, Younes Bouhadajr"
+__author__ = " Ryan L. McAvoy, Younes Bouhadjar"
 
 import torch
 import torch.nn.functional as F
