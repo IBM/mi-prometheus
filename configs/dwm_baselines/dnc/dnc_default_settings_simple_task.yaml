@@ -1,39 +1,43 @@
-training:
-    # Set random seeds that will be used during training (and validation). When not present using random values.
-    #seed_numpy: -1
-    #seed_torch: -1
-    # Use cuda.
+# Problem parameters:
+training: 
     cuda: True
     problem:
-        # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-        control_bits: &cbits 3
+        name: &name distraction_forget
+        # Size of generated input: [batch_size x sequence_length x number of control and data bits].
+        control_bits: &cbits 2
         data_bits: &dbits 8
-        batch_size: &bs 64
-        #randomize_control_lines: True
+        batch_size: 16
         # Parameters denoting min and max lengths.
-        min_sequence_length: 3
-        max_sequence_length: 20
+        min_sequence_length: 1
+        max_sequence_length: 10
+    # Set optimizer.
+    optimizer:
+        name: Adam
+        lr: 0.0005
+    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
+    gradient_clipping: 10
+    # Terminal condition parameters:
+    terminal_condition:
+        loss_stop: 0.0001
+        max_episodes: 100000
 
-# This section is optional.
+# Problem parameters:
 validation:
     problem:
+        name: *name
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
         control_bits: *cbits
         data_bits: *dbits
         batch_size: 64
         # Parameters denoting min and max lengths.
-        min_sequence_length: 21
-        max_sequence_length: 21
+        min_sequence_length: 100
+        max_sequence_length: 100
 
-
+# Problem parameters:
 testing:
-    # Set random seeds that will be used during training (and validation). When not present using random values.
-    #seed_numpy: -1
-    #seed_torch: -1
-    # Use cuda.
     cuda: True
-    # Problem definition.
     problem:
+        name: *name
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
         control_bits: *cbits
         data_bits: *dbits
@@ -42,7 +46,7 @@ testing:
         min_sequence_length: 1000
         max_sequence_length: 1000
 
-    
+
 # Model parameters:
 model:
     # Input bits = [command_bits, data_bits]
