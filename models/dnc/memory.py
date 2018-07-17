@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """memory.py: Class for editing memory. Copy of the DWM equivalent """
-__author__ = "Younes Bouhadajr"
+__author__ = "Younes Bouhadjar"
 
 
 """DWM Memory"""
