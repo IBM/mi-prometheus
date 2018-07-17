@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """video_to_class_problem.py: abstract base class for sequential vision problems"""
-__author__      = "Tomasz Kornuta/Younes Bouhadjar"
+__author__= "Tomasz Kornuta, Younes Bouhadjar"
 
 import torch.nn as nn
 from problems.problem import Problem
@@ -10,7 +10,6 @@ from problems.problem import Problem
 class VideoToClassProblem(Problem):
     ''' Base class for vision classification problems. Provides some basic functionality usefull in all problems of such type'''
 
-    
     def __init__(self, params):
         """ Initializes problem object. Calls base constructor. Sets nn.CrossEntropyLoss() as default loss function.
         
@@ -68,7 +67,6 @@ class VideoToClassProblem(Problem):
         :param stat_col: Statistics collector.
         """
         stat_col.add_statistic('acc', '{:12.10f}')
-    
 
     def collect_statistics(self, stat_col, data_tuple, logits, aux_tuple):
         """
@@ -80,7 +78,6 @@ class VideoToClassProblem(Problem):
         :param aux_tuple: auxiliary tuple (aux_tuple) is not used in this function. 
         """
         stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, aux_tuple)
-
 
     def show_sample(self, inputs, targets):
         import matplotlib.pyplot as plt
