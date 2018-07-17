@@ -22,6 +22,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from misc.param_interface import ParamInterface
 
 
 from models.stacked_attention_vqa.image_encoding import ImageEncoding
@@ -31,15 +32,17 @@ from misc.app_state import AppState
 
 
 class StackedAttentionVQA(Model):
-    """ Implementation of simple vqa model with attention, it performs the following steps:
-       step1: image encoding
-       step2: question encoding if needed
-       step3: apply attention, the question used to create a weighting over image's channels
-       step4: classifier, create the probabilities
-
-    """
 
     def __init__(self, params):
+        """ Implementation of simple vqa model with attention, it performs the following steps:
+
+           step1: image encoding
+           step2: question encoding if needed
+           step3: apply attention, the question is used as a query and image as key
+           step4: classifier, create the probabilities
+
+        """
+
         super(StackedAttentionVQA, self).__init__(params)
 
         # Retrieve attention and image/questions parameters
@@ -78,6 +81,13 @@ class StackedAttentionVQA(Model):
         self.encoded_image_attention_visualize = []
 
     def forward(self, data_tuple):
+        """
+        Runs the stacked_attention model and plots if necessary
+
+        :param data_tuple: Tuple containing images [batch_size, num_channels, height, width] and questions [batch_size, size_question_encoding]
+        :returns: output [batch_size, output_classes]
+        """
+
         (images, questions), _ = data_tuple
 
         # step1 : encode image
@@ -104,6 +114,13 @@ class StackedAttentionVQA(Model):
         return answer
 
     def init_hidden_states(self, batch_size):
+        """
+        Initialize hidden state ans cell state of the stacked LSTM used for question encoding
+
+        :param batch_size: Size of the batch in given iteraction/epoch.
+        :return: hx, cx: hidden state and cell state of a stacked LSTM [num_layers, batch_size, hidden_size]
+        """
+
         dtype = AppState().dtype
         hx = torch.randn(self.num_layers, batch_size, self.hidden_size).type(dtype)
         cx = torch.randn(self.num_layers, batch_size, self.hidden_size).type(dtype)
@@ -146,9 +163,17 @@ class StackedAttentionVQA(Model):
         plt.show()
         exit()
 
-
 class Classifier(nn.Sequential):
     def __init__(self, in_features, mid_features, out_features):
+        """
+
+        Predicts the final answer to the question, based on the question and the attention.
+
+        :param in_features: input size of the first feed forward layer
+        :param mid_features: input size of the intermediates feed forward layers
+        :param out_features: output size
+        """
+
         super(Classifier, self).__init__()
 
         self.fc1 = nn.Linear(in_features, mid_features)
@@ -168,7 +193,8 @@ if __name__ == '__main__':
     AppState().visualize = True
 
     # Test base model.
-    params = {'use_question_encoding': True}
+    params = ParamInterface()
+    params.add_custom_params({'use_question_encoding': False})
 
     # model
     model = StackedAttentionVQA(params)

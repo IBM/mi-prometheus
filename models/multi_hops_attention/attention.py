@@ -25,6 +25,14 @@ import torch.nn.functional as F
 
 class StackedAttention(nn.Module):
     def __init__(self, question_image_encoding_size, key_query_size, num_att_layers=2):
+        """
+        Implements a stacked attention layers, this attention is designed in this paper: https://arxiv.org/abs/1511.02274
+
+        :param question_image_encoding_size: question encoding size.
+        :param key_query_size: key and query size, are the same in this implementation
+        :param num_att_layers: num of stacked attention layers
+        """
+
         super(StackedAttention, self).__init__()
 
         self.san = nn.ModuleList(
@@ -40,6 +48,13 @@ class StackedAttention(nn.Module):
 
 class Attention(nn.Module):
     def __init__(self, question_image_encoding_size, key_query_size=512):
+        """
+        Implements one layer of the stacked attention designed: https://arxiv.org/abs/1511.02274
+
+        :param question_image_encoding_size: question encoding size.
+        :param key_query_size: key and query size, are the same in this implementation
+        """
+
         super(Attention, self).__init__()
         # fully connected layer to construct the key
         self.ff_image = nn.Linear(question_image_encoding_size, key_query_size)

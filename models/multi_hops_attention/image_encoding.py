@@ -24,6 +24,10 @@ import torch.nn.functional as F
 
 class ImageEncoding(nn.Module):
     def __init__(self):
+        """
+        Image encoding using 4 convolutional layers with batch normalization, it was designed specifically for sort of clevr https://arxiv.org/abs/1706.01427
+        """
+
         super(ImageEncoding, self).__init__()
 
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3, stride=1)
