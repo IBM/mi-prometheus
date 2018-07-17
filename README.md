@@ -100,7 +100,7 @@ In order to generate a "living" documentation of the code please run Sphinx (TOD
 
 ## Maintainer
 
-Tomasz Kornuta (tkornut@us.ibm.com)
-Ryan McAvoy 
-Younes Bouhadjar (younes.bouhadjy@gmail.com, University of Grenoble INP)
-Alexis Asseman
+* Tomasz Kornuta (tkornut@us.ibm.com)
+* Ryan McAvoy 
+* Younes Bouhadjar (younes.bouhadjy@gmail.com, University of Grenoble INP)
+* Alexis Asseman
