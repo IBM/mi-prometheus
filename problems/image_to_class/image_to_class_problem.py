@@ -1,18 +1,31 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""image_to_class_problem.py: contains abstract base class for image classification problems"""
-__author__      = "Tomasz Kornuta"
+#
+# Copyright (C) IBM Corporation 2018
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""image_to_class_problem.py: contains base class for image classification problems"""
+__author__= "Younes Bouhadjar"
 
 import numpy as np
 import torch.nn as nn
 
 from problems.problem import Problem
-from problems.problem import DataTuple
 
 
 class ImageToClassProblem(Problem):
     ''' Abstract base class for image classification problems. Provides some basic functionality usefull in all problems of such type'''
-
 
     def __init__(self, params):
         """ 
@@ -51,7 +64,6 @@ class ImageToClassProblem(Problem):
         :param stat_col: Statistics collector.
         """
         stat_col.add_statistic('acc', '{:12.10f}')
-    
 
     def collect_statistics(self, stat_col, data_tuple, logits, _):
         """
@@ -63,7 +75,6 @@ class ImageToClassProblem(Problem):
         :param _: auxiliary tuple (aux_tuple) is not used in this function. 
         """
         stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, _)
-
 
     def show_sample(self, data_tuple, aux_tuple, sample_number = 0):
         """ 

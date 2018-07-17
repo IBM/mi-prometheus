@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """tester.py: contains code of worker realising testing of previously trained models"""
-__author__      = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
+__author__= "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
 
 import os
 # Force MKL (CPU BLAS) to use one core, faster
