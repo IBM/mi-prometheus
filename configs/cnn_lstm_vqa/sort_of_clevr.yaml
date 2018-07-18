@@ -1,0 +1,3 @@
+# Load the following (default) configs first.
+default_configs:
+    configs/cnn_lstm_vqa/default_sort_of_clevr.yaml

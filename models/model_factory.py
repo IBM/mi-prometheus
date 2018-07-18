@@ -28,6 +28,7 @@ class ModelFactory(object):
 
         # Try to load model
         name = params['name']
+        print(name)
         if name == 'dnc':
             logger.info('Loading the DNC model from models.dnc.dnc_model')
             sys.path.append(os.path.join(os.path.dirname(__file__),  'dnc'))
@@ -83,6 +84,21 @@ class ModelFactory(object):
             logger.info('Loading the AlexnetWrapper model from models.vision.alexnet_wrapper')
             from models.vision.alexnet_wrapper import AlexnetWrapper
             return AlexnetWrapper(params)
+        elif name == 'cnn_lstm_vqa':
+            logger.info('Loading the CNNLSTMVQA model models.cnn_lstm_vqa.cnn_lstm_vqa')
+            logger.warning("Warning: CNNLSTMVQA under development")
+            from models.cnn_lstm_vqa.cnn_lstm_vqa import CNNLSTMVQA
+            return CNNLSTMVQA(params)
+        elif name == 'stacked_attention_vqa':
+            logger.info('Loading the AttentionVQA model from models.stacked_attention_vqa.stacked_attention_vqa')
+            logger.warning("Warning: StackedAttentionVQA under development")
+            from models.stacked_attention_vqa.stacked_attention_vqa import StackedAttentionVQA
+            return StackedAttentionVQA(params)
+        elif name == 'multi_hops_attention':
+            logger.info('Loading the MultiHopsAttention model from models.multi_hops_attention.multi_hops_attention')
+            logger.warning("Warning: MultiHopsAttention under development")
+            from models.multi_hops_attention.multi_hops_attention import MultiHopsAttention
+            return MultiHopsAttention(params)
         elif name == 'simple_encoder_decoder':
             sys.path.append(os.path.join(os.path.dirname(__file__),  'simple_encoder_solver'))
             from models.text2text.simple_encoder_decoder import SimpleEncoderDecoder

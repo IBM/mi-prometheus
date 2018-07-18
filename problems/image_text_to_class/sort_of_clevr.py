@@ -23,25 +23,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..'))
 
 import torch
 from problems.problem import DataTuple
-from problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem, ImageTextTuple
-
-
-_SceneDescriptionTuple = collections.namedtuple('_SceneDescriptionTuple', ('scene_descriptions'))
-
-class SceneDescriptionTuple(_SceneDescriptionTuple):
-    """Tuple used by storing batches of scene descriptions - as strings. """
-    __slots__ = ()
-    
-
-
-
-class ObjectRepresentation:
-    """ Class storing features of the object being present in a given scene. """
-    def __init__(self, x, y, color, shape):
-        self.x = x
-        self.y = y
-        self.color = color
-        self.shape = shape
+from problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem, ImageTextTuple, SceneDescriptionTuple, ObjectRepresentation
 
 
 class SortOfCLEVR(ImageTextToClassProblem):
@@ -72,6 +54,12 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         self.img_size = params["img_size"]
         self.dataset_size = params["dataset_size"]
+        self.regenerate = params["regenerate"]
+
+        # training, testing data is 90%, 10% of the total data size respectively
+        self.use_train_data = params['use_train_data']
+        self.data_test_size = int(self.dataset_size * 0.1)
+        self.data_train_size = int(self.dataset_size * 0.9)
 
         # Shuffle indices.
         self.shuffle = params.get('shuffle', True)
@@ -97,12 +85,11 @@ class SortOfCLEVR(ImageTextToClassProblem):
         self.GRID_SIZE = 4
 
         # Get path
-        data_folder = params['data_folder']
+        data_folder = os.path.expanduser(params['data_folder'])
         data_filename = params['data_filename']
         
         # Load or generate the dataset.
         self.load_dataset(data_folder, data_filename)
-
 
     def load_dataset(self, data_folder, data_filename):
         """ Loads the dataset from the HDF5-encoded file. If file does not exists it generates new dataset and stores it in a file. """
@@ -119,13 +106,13 @@ class SortOfCLEVR(ImageTextToClassProblem):
         self.pathfilename = os.path.join(data_folder, data_filename)
 
         try:
-            if params.get("regenerate", False):
+            if self.regenerate:
                 raise Exception("Must regenerate... must regenerate...")
             self.data = h5py.File(self.pathfilename, 'r')
         except:
             logger.warning('File {} in {} not found. Generating new file... '.format(data_filename, data_folder))
             # Create folder - if required.
-            if not os.path.exists(data_folder):
+            if not os.path.exists(os.path.expanduser(data_folder)):
                 os.mkdir(data_folder)
                 
             # Generate the dataset, if not exists.
@@ -138,8 +125,10 @@ class SortOfCLEVR(ImageTextToClassProblem):
         logger.info("Loaded {} samples from file {}".format(len(self.data), self.pathfilename))
         
         # Generate list of indices (strings).
-        self.ids = ['{}'.format(i) for i in range(len(self.data))]
-
+        if self.use_train_data:
+            self.ids = ['{}'.format(i) for i in range(self.data_train_size)]
+        else:
+            self.ids = ['{}'.format(i) for i in range(self.data_train_size, self.data_train_size+self.data_test_size)]
 
     def generate_batch(self):
         """ Generates batch.
@@ -151,7 +140,6 @@ class SortOfCLEVR(ImageTextToClassProblem):
             random.shuffle(self.ids)
         # Get batch of indices.
         batch_ids = self.ids[:self.batch_size]
-        #print(batch_ids)
 
         # Get batch.
         images = []
@@ -161,22 +149,23 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         for id in batch_ids:
             group = self.data[id]
+
             # Process data
-            images.append(group['image'].value/255.) 
+            images.append((group['image'].value/255).transpose(2,1,0))
             questions.append(group['question'].value.astype(np.float32)) 
             answers.append(group['answer'].value.astype(np.float32)) 
             scenes.append(group['scene_description'].value)
 
         # Generate tuple with inputs
-        inputs = ImageTextTuple( np.stack(images, axis=0), np.stack(questions, axis=0))
+        inputs = ImageTextTuple(torch.from_numpy(np.stack(images, axis=0)).type(torch.FloatTensor), torch.from_numpy(np.stack(questions, axis=0)))
         targets = np.stack(answers, 0)
+        index_targets = torch.from_numpy(np.argmax(targets, axis=1))
 
         # Add scene decription to aux tuple.
         aux_tuple = SceneDescriptionTuple(scenes)
 
         # Return DataTuple(!) and an AuxTuple with scene description.
-        return DataTuple(inputs, targets), aux_tuple
-
+        return DataTuple(inputs, index_targets), aux_tuple
 
     def color2str(self, color_code):
         " Decodes color and returns it as a string. "
@@ -189,14 +178,12 @@ class SortOfCLEVR(ImageTextToClassProblem):
             5: 'cyan',
         }[color_code]
 
-
     def shape2str(self, shape_code):
         " Decodes shape and returns it as a string. "
         return {
             0: 'rectangle',
             1: 'circle',
         }[shape_code]
-
 
     def question_type_template(self, question_code):
         """ Helper function that the string templates a question type. """
@@ -225,7 +212,6 @@ class SortOfCLEVR(ImageTextToClassProblem):
         # Return the question as a string.
         return (self.question_type_template(question_code)).format(self.color2str(color), 'object')
 
-
     def answer2str(self, encoded_answer):
         """ Encodes answer into a string.
 
@@ -245,7 +231,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
             # 8-9 yes/no
             8: 'yes',
             9: 'no',
-        }[np.argmax(encoded_answer)]
+        }[np.floor(encoded_answer)]
 
     def scene2str(self, objects):
         """
@@ -436,7 +422,6 @@ class SortOfCLEVR(ImageTextToClassProblem):
         f.close()
         logger.info('Generated dataset with {} samples and saved to {}'.format(self.dataset_size, self.pathfilename))
 
-
     def show_sample(self, data_tuple, aux_tuple, sample_number = 0):
         """ 
         Shows a sample from the batch.
@@ -452,9 +437,9 @@ class SortOfCLEVR(ImageTextToClassProblem):
         scene_descriptions = aux_tuple.scene_descriptions
 
         # Get sample.
-        image = images[sample_number]
-        question = questions[sample_number]
-        answer = answers[sample_number]
+        image = images[sample_number].numpy().transpose(2, 1, 0)
+        question = questions[sample_number].numpy()
+        answer = answers[sample_number].numpy()
 
         # Print scene description.
         logger.info("Scene description :\n {}".format(scene_descriptions[sample_number]))
@@ -470,17 +455,16 @@ class SortOfCLEVR(ImageTextToClassProblem):
         plt.show()
 
 
-
-
 if __name__ == "__main__":
     """ Tests sort of CLEVR - generates and displays a sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 100, 
-        'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy', 
+    params = {'batch_size': 10,
+        'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy',
+        'use_train_data':False,
         #'shuffle': False,
         #"regenerate": True,
-        'dataset_size': 10000, 'img_size': 128
+        'dataset_size': 10000, 'img_size': 128, 'regenerate': False
         }
 
     # Configure logger.

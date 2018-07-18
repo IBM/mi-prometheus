@@ -70,6 +70,7 @@ class SimpleConvNet(Model):
 
         self.conv1 = nn.Conv2d(self.num_channels, self.depth_conv1, kernel_size=self.filter_size_conv1)
         self.conv2 = nn.Conv2d(self.depth_conv1, self.depth_conv2, kernel_size=self.filter_size_conv2)
+
         self.fc1 = nn.Linear(self.depth_conv2 * self.width_features_conv2 * self.height_features_conv2, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
@@ -161,7 +162,6 @@ class SimpleConvNet(Model):
         plt.show()
         exit()
 
-
 if __name__ == '__main__':
     # Set visualization.
     AppState().visualize = True
@@ -185,6 +185,6 @@ if __name__ == '__main__':
         # prediction.
         prediction = model(dt)
 
-        # Plot it and check whether window was closed or not. 
+        # Plot it and check whether window was closed or not.
         if model.plot(dt, prediction):
             break

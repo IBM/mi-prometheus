@@ -33,7 +33,6 @@ class ShapeColorQuery(SortOfCLEVR):
         # Call base class constructors.
         super(ShapeColorQuery, self).__init__(params)
 
-
     def question2str(self, encoded_question):
         """ Decodes question, i.e. produces a human-understandable string. 
         
@@ -51,7 +50,6 @@ class ShapeColorQuery(SortOfCLEVR):
         query = self.question_type_template(np.argmax(encoded_question[2, :]))
         # Return the question as a string.
         return query.format(color, shape)
-
 
     def generate_question_matrix(self, objects):
         """
@@ -84,18 +82,16 @@ class ShapeColorQuery(SortOfCLEVR):
         return Q
 
 
-
-
-
 if __name__ == "__main__":
     """ Tests Shape-Color-Query - generates and displays a sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 100, 
+    params = {'batch_size': 10,
         'data_folder': '~/data/shape-color-query/', 'data_filename': 'training.hy', 
-        'shuffle': False,
+        'shuffle': True,
         "regenerate": True,
-        'dataset_size': 100, 'img_size': 128
+        'use_train_data': True,
+        'dataset_size': 100, 'img_size': 224
         }
 
     # Configure logger.
@@ -104,10 +100,14 @@ if __name__ == "__main__":
 
     # Create problem object.
     problem = ShapeColorQuery(params)
+
     # Get generator
     generator = problem.return_generator()
+
     # Get batch.
     data_tuple, aux_tuple = next(generator)
     for i in range(params['batch_size']):
+        (images, texts), _ = data_tuple
+
         # Display single sample from batch.
         problem.show_sample(data_tuple, aux_tuple, i)

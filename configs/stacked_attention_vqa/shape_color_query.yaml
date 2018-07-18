@@ -1,0 +1,3 @@
+# Load the following (default) configs first.
+default_configs:
+    configs/stacked_attention_vqa/default_shape_color_query.yaml
