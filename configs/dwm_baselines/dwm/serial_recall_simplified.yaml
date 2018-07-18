@@ -5,16 +5,19 @@ default_configs:
 
 # Then overwrite problem name(s).
 training:
+    cuda: False
     problem:
         name: &name serial_recall_simplified
         control_bits: &cbits 1
 
 validation:
+    cuda: False
     problem:
         name: *name 
         control_bits: *cbits
 
 testing:
+    cuda: False
     problem:
         name: *name 
         control_bits: *cbits

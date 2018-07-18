@@ -6,7 +6,7 @@ default_configs:
 # Then overwrite problem name(s).
 training:
     problem:
-        name: &name distraction_carry
+        name: &name distraction_forget
 
 validation:
     problem:
