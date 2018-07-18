@@ -171,6 +171,13 @@ class Classifier(nn.Sequential):
         self.fc3 = nn.Linear(mid_features, out_features)
 
     def forward(self, x):
+        """
+        Apply a set of feed forward layers to the combined question/attention to obtain probabilities over the classes output
+
+        :param x: a combination of the attention and question
+        :return: Prediction of the answer [batch_size, num_classes]
+        """
+
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.dropout(x)

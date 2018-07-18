@@ -39,6 +39,13 @@ class StackedAttention(nn.Module):
             [Attention(question_image_encoding_size, key_query_size)] * num_att_layers)
 
     def forward(self, encoded_image, encoded_question):
+        """
+        Apply stacked attention
+
+        :param encoded_image: output of the image encoding (CNN + FC layer), [batch_size, new_width * new_height, num_channels_encoded_image]
+        :param encoded_question: last hidden layer of the LSTM, [batch_size, question_encoding_size]
+        :return u: attention [batch_size, num_channels_encoded_image]
+        """
 
         for att_layer in self.san:
             u = att_layer(encoded_image, encoded_question)
@@ -64,6 +71,13 @@ class Attention(nn.Module):
         self.ff_attention = nn.Linear(key_query_size, 1)
 
     def forward(self, encoded_image, encoded_question):
+        """
+        Apply a single attention layer
+
+        :param encoded_image: output of the image encoding (CNN + FC layer), [batch_size, new_width * new_height, num_channels_encoded_image]
+        :param encoded_question: last hidden layer of the LSTM, [batch_size, question_encoding_size]
+        :return u: attention [batch_size, num_channels_encoded_image]
+        """
 
         # Get the key
         key = self.ff_image(encoded_image)

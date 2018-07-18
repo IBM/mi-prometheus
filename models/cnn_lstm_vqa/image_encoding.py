@@ -39,7 +39,10 @@ class ImageEncoding(nn.Module):
         self.batchNorm4 = nn.BatchNorm2d(24)
 
     def forward(self, img):
-        """convolution"""
+        """apply 4 convolutional layers over the image
+        :param img: input image [batch_size, num_channels, height, width]
+        :return x: feature map [batch_size, num_channels_encoded_question, new_height, new_width]
+        """
         x = self.conv1(img)
         x = F.relu(x)
         x = self.batchNorm1(x)
