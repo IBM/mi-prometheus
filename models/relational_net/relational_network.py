@@ -77,7 +77,7 @@ class RelationalNetwork(Model):
 
         # indicate that we do not track gradient for this tensor
         ct.requires_grad = False
-        ct.type(app_state.dtype)
+        ct = ct.type(app_state.dtype)
 
         return ct
 
