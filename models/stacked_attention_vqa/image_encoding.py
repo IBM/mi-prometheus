@@ -59,6 +59,8 @@ class ImageEncoding(nn.Module):
         x = F.relu(x)
         x = self.batchNorm4(x)
 
+        # flattening the width and height dimensions to a single one and
+        # transpose it with the num_channel dimension, necessary when applying the attention
         x = x.view(x.size(0), x.size(1), -1).transpose(1, 2)
 
         return x
@@ -67,12 +69,17 @@ class ImageEncoding(nn.Module):
 class PretrainedImageEncoding(nn.Module):
     def __init__(self):
         """
-        Image encoding using pretrained image resnetXX from torchvision
+        Image encoding using pretrained resnetXX from torchvision
         """
 
         super(PretrainedImageEncoding, self).__init__()
 
+        num_blocks = 2
+
+        # Get resnet18
         cnn = getattr(torchvision.models, 'resnet18')(pretrained=True)
+
+        # First layer added with num_channel equal 3
         layers = [
             cnn.conv1,
             cnn.bn1,
@@ -80,21 +87,24 @@ class PretrainedImageEncoding(nn.Module):
             cnn.maxpool,
         ]
 
-        for i in range(2):
+        # select the resnet blocks and append them to layers
+        for i in range(num_blocks):
            name = 'layer%d' % (i + 1)
            layers.append(getattr(cnn, name))
 
         self.model = torch.nn.Sequential(*layers)
 
     def forward(self, img):
-        """apply 4 convolutional layers over the image
+        """Apply a pretrained cnn
         :param img: input image [batch_size, num_channels, height, width]
         :return x: feature map with flattening the width and height dimensions to a single one and transpose it with the num_channel dimension
           [batch_size, new_height * new_width, num_channels_encoded_question]
         """
-
+        # Apply model image encoding
         x = self.model(img)
 
+        # flattening the width and height dimensions to a single one and
+        # transpose it with the num_channel dimension, necessary when applying the attention
         x = x.view(x.size(0), x.size(1), -1).transpose(1, 2)
 
         return x

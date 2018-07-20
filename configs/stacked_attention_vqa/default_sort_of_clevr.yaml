@@ -8,7 +8,7 @@ training:
         data_filename: 'training.hy'
         dataset_size: &ds 12000
         img_size: 128
-        regenerate: False
+        regenerate: True
         cuda: True
         use_train_data: True
     # Set optimizer.
