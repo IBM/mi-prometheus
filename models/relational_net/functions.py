@@ -97,11 +97,10 @@ class f_phi(nn.Module):
         x = F.relu(x)
 
         x = self.f_fc2(x)
-        x = F.dropout(x, p=0.5)
         x = F.relu(x)
+        x = F.dropout(x, p=0.5)
 
         x = self.f_fc3(x)
-        #x = F.relu(x)
 
         return x
 
