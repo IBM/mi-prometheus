@@ -130,10 +130,11 @@ class RelationalNetwork(Model):
         # step 5: pass through g_theta
         # reshape for passing through network
         input_size = 2*k + question_size
-        x = x.view(batch_size, (d ** 4), input_size)
+        x = x.view(batch_size * (d ** 4), input_size)
         x_g = self.g_theta(x)
 
-        # element-wise sum on the second dimension
+        # reshape again & element-wise sum on the second dimension
+        x_g = x_g.view(batch_size, (d ** 4), 256)
         x_f = x_g.sum(1)
 
         # step 6: pass through f_phi
