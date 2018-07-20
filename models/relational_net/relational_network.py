@@ -114,18 +114,16 @@ class RelationalNetwork(Model):
         x_i = x_ct.unsqueeze(1)  # [batch_size x 1 x (d ** 2) x k]
         x_i = x_i.repeat(1, (d**2), 1, 1)  # [batch_size x (d ** 2) x (d ** 2) x k]
 
-        x_j = x_ct.unsqueeze(2)  # [batch_size x (d ** 2) x 1 x k]
-        x_j = x_j.repeat(1, 1, (d**2), 1)
-
-        # concatenate all together
-        x_pairs = torch.cat([x_i, x_j], -1)  # [batch_size, (d**2), (d**2), 2*k]
-
         # step 4: add the question everywhere
-        questions = questions.unsqueeze(1).repeat(1, d**2, 1)  # [batch_size, (d**2), question_size]
-        questions = questions.unsqueeze(2).repeat(1, 1, d**2, 1)  # [batch_size, (d**2), (d**2), question_size]
+        questions = questions.unsqueeze(1).repeat(1, d ** 2, 1)  # [batch_size, (d**2), question_size]
+        questions = questions.unsqueeze(2)  # [batch_size, (d**2), 1, question_size]
 
-        # add the question encoding at index 0:
-        x = torch.cat([questions, x_pairs], dim=-1)
+        x_j = x_ct.unsqueeze(2)  # [batch_size x (d ** 2) x 1 x k]
+        x_j = torch.cat([x_j, questions], dim=-1)  # [batch_size x (d ** 2) x 1 x (k+qst_size)]
+        x_j = x_j.repeat(1, 1, (d**2), 1)  # [batch_size x (d ** 2) x (d ** 2) x (k+qst_size)]
+
+        # generate all pairs
+        x = torch.cat([x_i, x_j], dim=-1)  # [batch_size, (d**2), (d**2), 2*k+qst_size]
 
         # step 5: pass through g_theta
         # reshape for passing through network
