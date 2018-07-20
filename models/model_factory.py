@@ -103,5 +103,9 @@ class ModelFactory(object):
             sys.path.append(os.path.join(os.path.dirname(__file__),  'simple_encoder_solver'))
             from models.text2text.simple_encoder_decoder import SimpleEncoderDecoder
             return SimpleEncoderDecoder(params)
+        elif name == 'relational_network':
+            logger.info('Loading the RelationalNetwork model from models.relational_net.relational_network')
+            from models.relational_net.relational_network import RelationalNetwork
+            return RelationalNetwork(params)
         else:
             raise ValueError
