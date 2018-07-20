@@ -18,9 +18,10 @@
 """image_encoding.py: image encoding for VQA problem, same as in this paper https://arxiv.org/abs/1706.01427, specifically desinged for sort of clevr """
 __author__ = "Younes Bouhadjar"
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+import torchvision
 
 class ImageEncoding(nn.Module):
     def __init__(self):
@@ -57,6 +58,42 @@ class ImageEncoding(nn.Module):
         x = self.conv4(x)
         x = F.relu(x)
         x = self.batchNorm4(x)
+
+        x = x.view(x.size(0), x.size(1), -1).transpose(1, 2)
+
+        return x
+
+
+class PretrainedImageEncoding(nn.Module):
+    def __init__(self):
+        """
+        Image encoding using pretrained image resnetXX from torchvision
+        """
+
+        super(PretrainedImageEncoding, self).__init__()
+
+        cnn = getattr(torchvision.models, 'resnet18')(pretrained=True)
+        layers = [
+            cnn.conv1,
+            cnn.bn1,
+            cnn.relu,
+            cnn.maxpool,
+        ]
+
+        for i in range(2):
+           name = 'layer%d' % (i + 1)
+           layers.append(getattr(cnn, name))
+
+        self.model = torch.nn.Sequential(*layers)
+
+    def forward(self, img):
+        """apply 4 convolutional layers over the image
+        :param img: input image [batch_size, num_channels, height, width]
+        :return x: feature map with flattening the width and height dimensions to a single one and transpose it with the num_channel dimension
+          [batch_size, new_height * new_width, num_channels_encoded_question]
+        """
+
+        x = self.model(img)
 
         x = x.view(x.size(0), x.size(1), -1).transpose(1, 2)
 

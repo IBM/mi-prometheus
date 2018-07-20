@@ -7,9 +7,9 @@ training:
         data_folder: '~/data/shape-color-query/'
         data_filename: 'training.hy'
         dataset_size: &ds 12000
-        img_size: 75
+        img_size: 128
         shuffle: True
-        regenerate: False
+        regenerate: True
         cuda: True
         use_train_data: True
     # Set optimizer.
@@ -32,7 +32,7 @@ testing:
         data_folder: '~/data/shape-color-query/'
         data_filename: 'training.hy'
         dataset_size: *ds
-        img_size: 75
+        img_size: 128
         shuffle: True
         regenerate: False
         use_train_data: False
@@ -46,7 +46,7 @@ validation:
         data_folder: '~/data/shape-color-query/'
         data_filename: 'training.hy'
         dataset_size: *ds
-        img_size: 75
+        img_size: 128
         shuffle: True
         regenerate: False
         use_train_data: False
