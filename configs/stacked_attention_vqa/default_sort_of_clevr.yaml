@@ -8,7 +8,7 @@ training:
         data_filename: 'training.hy'
         dataset_size: &ds 12000
         img_size: 128
-        regenerate: True
+        regenerate: False
         cuda: True
         use_train_data: True
     # Set optimizer.
@@ -52,4 +52,9 @@ validation:
 model:
     name: stacked_attention_vqa   # use attention visual question answering
     use_question_encoding: False
+    word_embedded_size: 7
+    use_pretrained_cnn: True
+    pretrained_cnn_model: 'resnet18'
+    num_blocks: 2
+    word_embedded_size: 7
 

@@ -67,17 +67,17 @@ class ImageEncoding(nn.Module):
 
 
 class PretrainedImageEncoding(nn.Module):
-    def __init__(self):
+    def __init__(self, cnn_model = 'resnet18', num_blocks = 2):
         """
         Image encoding using pretrained resnetXX from torchvision
         """
 
         super(PretrainedImageEncoding, self).__init__()
 
-        num_blocks = 2
+        num_blocks = num_blocks
 
         # Get resnet18
-        cnn = getattr(torchvision.models, 'resnet18')(pretrained=True)
+        cnn = getattr(torchvision.models, cnn_model)(pretrained=True)
 
         # First layer added with num_channel equal 3
         layers = [

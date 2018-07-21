@@ -49,16 +49,21 @@ class StackedAttentionVQA(Model):
         self.encoded_question_size = 13
         self.num_channels_image = 3
         self.mid_features_attention = 64
+        # TODO: use `image_encoding_channels` when calling class ImageEncoding
+        # For the pretrained cnn the `image_encoding_channels` will be fixed by the cnn_pretrained_model used
         self.image_encoding_channels = 128
 
         # LSTM parameters (if use_question_encoding is True)
         self.hidden_size = self.encoded_question_size
-        self.word_embedded_size = 7
+        self.word_embedded_size = params['word_embedded_size']
         self.num_layers = 3
         self.use_question_encoding = params['use_question_encoding']
 
         # Instantiate class for image encoding
-        self.image_encoding = PretrainedImageEncoding()
+        if params['use_pretrained_cnn']:
+            self.image_encoding = PretrainedImageEncoding(params['pretrained_cnn_model'], params['num_blocks'])
+        else:
+            self.image_encoding = ImageEncoding()
 
         # Instantiate class for question encoding
         self.lstm = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
@@ -213,7 +218,8 @@ if __name__ == '__main__':
 
     # Test base model.
     params = ParamInterface()
-    params.add_custom_params({'use_question_encoding': False})
+    params.add_custom_params({'use_question_encoding': False, 'pretrained_cnn_model': 'resnet18', 'num_blocks':2, 'use_pretrained_cnn': True,
+                              'word_embedded_size':7})
 
     # model
     model = StackedAttentionVQA(params)
