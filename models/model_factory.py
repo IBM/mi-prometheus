@@ -90,9 +90,9 @@ class ModelFactory(object):
             from models.cnn_lstm_vqa.cnn_lstm_vqa import CNNLSTMVQA
             return CNNLSTMVQA(params)
         elif name == 'stacked_attention_vqa':
-            logger.info('Loading the AttentionVQA model from models.stacked_attention_vqa.stacked_attention_vqa')
+            logger.info('Loading the AttentionVQA model from models.stacked_attention_vqa.model')
             logger.warning("Warning: StackedAttentionVQA under development")
-            from models.stacked_attention_vqa.stacked_attention_vqa import StackedAttentionVQA
+            from models.stacked_attention_vqa.model import StackedAttentionVQA
             return StackedAttentionVQA(params)
         elif name == 'multi_hops_attention':
             logger.info('Loading the MultiHopsAttention model from models.multi_hops_attention.multi_hops_attention')

@@ -464,7 +464,7 @@ if __name__ == "__main__":
         'use_train_data':False,
         #'shuffle': False,
         #"regenerate": True,
-        'dataset_size': 10000, 'img_size': 128, 'regenerate': False
+        'dataset_size': 10000, 'img_size': 128, 'regenerate': True
         }
 
     # Configure logger.

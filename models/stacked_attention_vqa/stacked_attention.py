@@ -21,6 +21,8 @@ __author__ = "Younes Bouhadjar"
 
 import torch.nn as nn
 import torch.nn.functional as F
+from misc.app_state import AppState
+import torch
 
 
 class StackedAttention(nn.Module):
@@ -35,6 +37,9 @@ class StackedAttention(nn.Module):
 
         super(StackedAttention, self).__init__()
 
+        # to visualize attention
+        self.visualize_attention = None
+
         self.san = nn.ModuleList(
             [Attention(question_image_encoding_size, key_query_size)] * num_att_layers)
 
@@ -48,7 +53,14 @@ class StackedAttention(nn.Module):
         """
 
         for att_layer in self.san:
-            u = att_layer(encoded_image, encoded_question)
+            u, attention_prob = att_layer(encoded_image, encoded_question)
+            if AppState().visualize:
+                if self.visualize_attention is None:
+                    self.visualize_attention = attention_prob
+
+                # Concatenate output
+                else:
+                    self.visualize_attention = torch.cat([self.visualize_attention, attention_prob], dim=-1)
 
         return u
 
@@ -90,8 +102,7 @@ class Attention(nn.Module):
         weighted_key_query = self.ff_attention(weighted_key_query)
         attention_prob = F.softmax(weighted_key_query, dim=-2)
 
-        # sum the weighted channels
         vi_attended = (attention_prob * encoded_image).sum(dim=1)
         u = vi_attended + encoded_question
 
-        return u
+        return u, attention_prob
