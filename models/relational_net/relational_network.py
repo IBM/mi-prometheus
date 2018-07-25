@@ -18,6 +18,10 @@
 """relational_network.py: contains the implementation of the Relational Network."""
 __author__      = "Vincent Marois"
 
+#Add path to main project directory
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
+
 from models.relational_net.conv_input_model import ConvInputModel
 from models.relational_net.functions import PairwiseRelationNetwork, SumOfPairsAnalysisNetwork
 

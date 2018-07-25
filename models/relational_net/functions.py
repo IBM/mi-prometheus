@@ -17,6 +17,9 @@
 
 """functions.py: contains implementations of g_theta & f_phi for the Relational Network."""
 __author__      = "Vincent Marois"
+#Add path to main project directory
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 import torch
 import numpy as np
@@ -113,14 +116,14 @@ if __name__ == '__main__':
     inputs = torch.from_numpy(inputs).type(app_state.dtype)
 
     params_g = {'input_size': input_size}
-    g_theta = g_theta(params_g)
+    g_theta = PairwiseRelationNetwork(params_g)
 
     g_outputs = g_theta(inputs)
     print('g_outputs:', g_outputs.shape)
 
     output_size = 29
     params_f = {'output_size': output_size}
-    f_phi = f_phi(params_f)
+    f_phi = SumOfPairsAnalysisNetwork(params_f)
 
     f_outputs = f_phi(g_outputs)
     print('f_outputs:', f_outputs.shape)
