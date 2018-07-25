@@ -19,7 +19,7 @@
 __author__      = "Vincent Marois"
 
 from models.relational_net.conv_input_model import ConvInputModel
-from models.relational_net.functions import g_theta, f_phi
+from models.relational_net.functions import PairwiseRelationNetwork, SumOfPairsAnalysisNetwork
 
 import torch
 import numpy as np
@@ -48,11 +48,11 @@ class RelationalNetwork(Model):
         # instantiate conv input model for image encoding
         self.cnn_model = ConvInputModel()
 
-        # instantiate g_theta function
-        self.g_theta = g_theta(params['g_theta'])
+        # instantiate network to compare regions pairwise
+        self.pair_network = PairwiseRelationNetwork(params['g_theta'])
 
-        # instantiate f_phi function
-        self.f_phi = f_phi(params['f_phi'])
+        # instantiate network to analyse the sum of the pairs
+        self.sum_network = SumOfPairsAnalysisNetwork(params['f_phi'])
 
         # TODO: Anything else??
 
@@ -67,7 +67,7 @@ class RelationalNetwork(Model):
 
         :return: tensor of shape [batch_size x d x d x 2]
         """
-        coords = torch.linspace(-d / 2., d / 2., d)
+        coords = torch.linspace(-1 / 2., 1 / 2., d)
         x = coords.unsqueeze(0).repeat(d, 1)
         y = coords.unsqueeze(1).repeat(1, d)
         ct = torch.stack((x, y))  # [2 x d x d]
@@ -125,18 +125,18 @@ class RelationalNetwork(Model):
         # generate all pairs
         x = torch.cat([x_i, x_j], dim=-1)  # [batch_size, (d**2), (d**2), 2*k+qst_size]
 
-        # step 5: pass through g_theta
+        # step 5: pass pairs through pair_network
         # reshape for passing through network
         input_size = 2*k + question_size
         x = x.view(batch_size * (d ** 4), input_size)
-        x_g = self.g_theta(x)
+        x_g = self.pair_network(x)
 
         # reshape again & element-wise sum on the second dimension
         x_g = x_g.view(batch_size, (d ** 4), 256)
         x_f = x_g.sum(1)
 
-        # step 6: pass through f_phi
-        x_out = self.f_phi(x_f)
+        # step 6: pass sum of pairs through sum_network
+        x_out = self.sum_network(x_f)
 
         return x_out
 

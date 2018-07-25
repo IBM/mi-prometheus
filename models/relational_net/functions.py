@@ -27,7 +27,7 @@ from misc.app_state import AppState
 app_state = AppState()
 
 
-class g_theta(nn.Module):
+class PairwiseRelationNetwork(nn.Module):
     """
     Implementation of the g_theta MLP used in the Relational Network model. For recall, the role of g_theta is to
     infer the ways in which 2 regions of the CNN feature maps are related, or if they are even related at all
@@ -35,7 +35,7 @@ class g_theta(nn.Module):
 
     def __init__(self, params):
         # call base constructor
-        super(g_theta, self).__init__()
+        super(PairwiseRelationNetwork, self).__init__()
 
         self.input_size = params['input_size']
 
@@ -68,7 +68,7 @@ class g_theta(nn.Module):
         return x
 
 
-class f_phi(nn.Module):
+class SumOfPairsAnalysisNetwork(nn.Module):
     """
         Implementation of the f_phi MLP used in the Relational Network model. For recall, the role of f_phi is to
         produce the probability distribution over all possible answers.
@@ -76,7 +76,7 @@ class f_phi(nn.Module):
 
     def __init__(self, params):
         # call base constructor
-        super(f_phi, self).__init__()
+        super(SumOfPairsAnalysisNetwork, self).__init__()
 
         self.output_size = params['output_size']
 
