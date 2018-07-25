@@ -51,7 +51,9 @@ validation:
 # Model parameters:
 model:
     name: relational_network
-    g_theta:
+    #parameters for the pairwise comparison network (g_theta in the paper)
+    pair_net:
       input_size: 65 # (24 + 2) * 2 + 13
-    f_phi:
+    #parameters for the sum analysis network (f_phi in the paper)
+    sum_net:
       output_size: 10

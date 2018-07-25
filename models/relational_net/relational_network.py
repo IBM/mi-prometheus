@@ -49,10 +49,10 @@ class RelationalNetwork(Model):
         self.cnn_model = ConvInputModel()
 
         # instantiate network to compare regions pairwise
-        self.pair_network = PairwiseRelationNetwork(params['g_theta'])
+        self.pair_network = PairwiseRelationNetwork(params['pair_net'])
 
         # instantiate network to analyse the sum of the pairs
-        self.sum_network = SumOfPairsAnalysisNetwork(params['f_phi'])
+        self.sum_network = SumOfPairsAnalysisNetwork(params['sum_net'])
 
         # TODO: Anything else??
 
