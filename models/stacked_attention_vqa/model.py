@@ -125,7 +125,7 @@ class StackedAttentionVQA(Model):
 
     def plot(self, data_tuple, predictions, sample_number=0):
         """
-        Simple plot - shows MNIST image with target and actual predicted class.
+        Simple plot - shows SortOfClevr image, question, answer and prediction
 
         :param data_tuple: Data tuple containing input and target batches.
         :param predictions: Prediction.
