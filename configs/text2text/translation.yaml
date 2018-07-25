@@ -53,12 +53,11 @@ testing:
         reverse: False
 
 
-
 # Model parameters:
 model:
     name: simple_encoder_decoder
     max_length: *seq
-    input_voc_size: 3506  # this value is coming from the problem class (problem.input_lang.n_words)
+    input_voc_size: 3534  # this value is coming from the problem class (problem.input_lang.n_words)
     hidden_size: 256
-    output_voc_size: 5231
+    output_voc_size: 5279
     encoder_bidirectional: True
