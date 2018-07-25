@@ -141,7 +141,7 @@ class StackedAttentionVQA(Model):
         (images, questions), targets = data_tuple
 
         # Get sample.
-        image = images[sample_number].cpu().numpy()
+        image = images[sample_number]
         target = targets[sample_number]
         prediction = predictions[sample_number]
         question = questions[sample_number]
