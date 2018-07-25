@@ -470,7 +470,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         batch_size = answers.size(0)
         answers = answers.cpu().numpy()
         questions = questions.cpu().numpy()
-        logits = logits.cpu().numpy()
+        logits = logits.cpu().detach().numpy()
 
         # Convert to string
         answers_string = [self.answer2str(answers[batch_num]) for batch_num in range(batch_size)]
