@@ -138,15 +138,17 @@ class StackedAttentionVQA(Model):
         import matplotlib.gridspec as gridspec
 
         # Unpack tuples.
-        (images, texts), targets = data_tuple
+        (images, questions), targets = data_tuple
 
         # Get sample.
-        image = images[sample_number].cpu().detach().numpy()
-        target = targets[sample_number].cpu().detach().numpy()
-        prediction = predictions[sample_number].cpu().detach().numpy()
+        image = images[sample_number].cpu().numpy()
+        target = targets[sample_number]
+        prediction = predictions[sample_number]
+        question = questions[sample_number]
 
         # Show data.
-        plt.title('Prediction: {} (Target: {})'.format(np.argmax(prediction), target))
+        plt.title('Prediction: {} (Target: {})'.format(prediction, target))
+        plt.xlabel('Q: {} )'.format(question))
         plt.imshow(image.transpose(1,2,0), interpolation='nearest', aspect='auto')
 
         f = plt.figure()
