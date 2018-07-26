@@ -130,7 +130,7 @@ class StackedAttentionVQA(Model):
 
     def plot(self, data_tuple, predictions, sample_number=0):
         """
-        Simple plot - shows MNIST image with target and actual predicted class.
+        Simple plot - shows SortOfClevr image, question, answer and prediction
 
         :param data_tuple: Data tuple containing input and target batches.
         :param predictions: Prediction.
@@ -143,15 +143,17 @@ class StackedAttentionVQA(Model):
         import matplotlib.gridspec as gridspec
 
         # Unpack tuples.
-        (images, texts), targets = data_tuple
+        (images, questions), targets = data_tuple
 
         # Get sample.
-        image = images[sample_number].cpu().detach().numpy()
-        target = targets[sample_number].cpu().detach().numpy()
-        prediction = predictions[sample_number].cpu().detach().numpy()
+        image = images[sample_number]
+        target = targets[sample_number]
+        prediction = predictions[sample_number]
+        question = questions[sample_number]
 
         # Show data.
-        plt.title('Prediction: {} (Target: {})'.format(np.argmax(prediction), target))
+        plt.title('Prediction: {} (Target: {})'.format(prediction, target))
+        plt.xlabel('Q: {} )'.format(question))
         plt.imshow(image.transpose(1,2,0), interpolation='nearest', aspect='auto')
 
         f = plt.figure()

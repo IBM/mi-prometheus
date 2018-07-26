@@ -454,6 +454,34 @@ class SortOfCLEVR(ImageTextToClassProblem):
         # Plot!
         plt.show()
 
+    def plot_preprocessing(self, data_tuple, aux_tuple, logits):
+        """
+        Allows for some data preprocessing before the model creates a plot for visualization during training or
+        inference.
+        To be redefined in inheriting classes.
+        :param data_tuple: Data tuple.
+        :param aux_tuple: Auxiliary tuple.
+        :param logits: Logits being output of the model.
+        :return: data_tuplem aux_tuple, logits after preprocessing.
+        """
+        # Unpack tuples.
+        (images, questions), answers = data_tuple
+
+        batch_size = answers.size(0)
+        images = images.cpu().numpy()
+        answers = answers.cpu().numpy()
+        questions = questions.cpu().numpy()
+        logits = logits.cpu().detach().numpy()
+
+        # Convert to string
+        answers_string = [self.answer2str(answers[batch_num]) for batch_num in range(batch_size)]
+        questions_string = [self.question2str(questions[batch_num]) for batch_num in range(batch_size)]
+        prediction = [self.answer2str(np.argmax(logits[batch_num])) for batch_num in range(batch_size)]
+
+        data_tuple = (images, questions_string), answers_string
+        logits = prediction
+
+        return data_tuple, aux_tuple, logits
 
 if __name__ == "__main__":
     """ Tests sort of CLEVR - generates and displays a sample"""
@@ -464,7 +492,7 @@ if __name__ == "__main__":
         'use_train_data':False,
         #'shuffle': False,
         #"regenerate": True,
-        'dataset_size': 10000, 'img_size': 128, 'regenerate': True
+        'dataset_size': 10000, 'img_size': 128, 'regenerate': False
         }
 
     # Configure logger.
@@ -477,6 +505,7 @@ if __name__ == "__main__":
     generator = problem.return_generator()
     # Get batch.
     data_tuple, aux_tuple = next(generator)
+
     for i in range(params['batch_size']):
         # Display single sample from batch.
         problem.show_sample(data_tuple, aux_tuple, i)
