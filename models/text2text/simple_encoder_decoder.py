@@ -18,7 +18,7 @@
 """simple_encoder_decoder.py: Implementation of an Encoder-Decoder network for text2text problems (e.g. translation)
     Inspiration taken from the corresponding Pytorch tutorial.
     See https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html """
-__author__ = "Vincent Marois, Ryan L. McAvoy "
+__author__ = "Vincent Marois "
 
 import torch
 import random
@@ -163,7 +163,7 @@ class SimpleEncoderDecoder(SequentialModel):
 
         # encoder manual loop
         for ei in range(self.max_length):
-            encoder_output, encoder_hidden = self.encoder(input_tensor[ei], encoder_hidden)
+            encoder_output, encoder_hidden = self.encoder(input_tensor[ei].unsqueeze(-1), encoder_hidden)
             encoder_outputs[ei] = encoder_output.squeeze()
 
         # reshape encoder_outputs to be batch_size first: [max_length, batch_size, *] -> [batch_size, max_length, *]
@@ -188,7 +188,7 @@ class SimpleEncoderDecoder(SequentialModel):
 
                 decoder_outputs[di] = decoder_output.squeeze()
 
-                decoder_input = target_tensor[di]  # Teacher forcing
+                decoder_input = target_tensor[di].unsqueeze(-1)  # Teacher forcing
 
         else:
             # Without teacher forcing: use its own predictions as the next input

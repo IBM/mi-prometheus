@@ -67,7 +67,7 @@ class TextToTextProblem(SeqToSeqProblem):
         super(TextToTextProblem, self).__init__(params)
 
         # set default loss function - negative log likelihood and ignore padding elements.
-        self.loss_function = nn.CrossEntropyLoss(size_average=True, ignore_index=0)
+        self.loss_function = nn.NLLLoss(size_average=True, ignore_index=0)
 
     def compute_BLEU_score(self, data_tuple, logits, aux_tuple):
         """
@@ -121,7 +121,7 @@ class TextToTextProblem(SeqToSeqProblem):
         :param aux_tuple: Auxiliary tuple containing mask.
         :return: loss
         """
-        loss = self.loss_function(logits.transpose(1, 2), data_tuple.targets.squeeze())
+        loss = self.loss_function(logits.transpose(1, 2), data_tuple.targets)
 
         return loss
 
@@ -245,3 +245,53 @@ class TextToTextProblem(SeqToSeqProblem):
         """
         return [self.tensors_from_pair(pair, input_lang, output_lang, max_seq_length) for pair in pairs]
 
+
+class Lang:
+    """Simple helper class allowing to represent a language in a translation task. It will contain for instance a vocabulary
+    index (word2index dict) & keep track of the number of words in the language.
+
+    This class is useful as each word in a language will be represented as a one-hot vector: a giant vector of zeros
+    except for a single one (at the index of the word). The dimension of this vector is potentially very high, hence it
+    is generally useful to trim the data to only use a few thousand words per language.
+
+    The inputs and targets of the associated sequence to sequence networks will be sequences of indexes, each item
+    representing a word. The attributes of this class (word2index, index2word, word2count) are useful to keep track of
+    this.
+    """
+
+    def __init__(self, name):
+        """
+        Constructor.
+        :param name: string to name the language (e.g. french, english)
+        """
+        self.name = name
+        self.word2index = {"PAD": 0, "SOS": 1, "EOS": 2}  # dict 'word': index
+        self.word2count = {}  # keep track of the occurrence of each word in the language. Can be used to replace
+        # rare words.
+        self.index2word = {0: "PAD", 1: "SOS", 2: "EOS"}  # dict 'index': 'word', initializes with PAD, EOS, SOS tokens
+        self.n_words = 3  # Number of words in the language. Start by counting PAD, EOS, SOS tokens.
+
+    def add_sentence(self, sentence):
+        """
+        Process a sentence using add_word().
+        :param sentence: sentence to be added to the language.
+        :return: None.
+        """
+        for word in sentence.split(' '):
+            self.add_word(word)
+
+    def add_word(self, word):
+        """
+        Add a word to the vocabulary set: update word2index, word2count, index2words & n_words.
+        :param word: word to be added.
+        :return: None.
+        """
+
+        if word not in self.word2index:  # if the current word has not been seen before
+            self.word2index[word] = self.n_words  # create a new entry in word2index
+            self.word2count[word] = 1  # count first occurrence of this word
+            self.index2word[self.n_words] = word  # create a new entry in index2word
+            self.n_words += 1  # increment total number of words in the language
+
+        else:  # this word has been seen before, simply update its occurrence
+            self.word2count[word] += 1
