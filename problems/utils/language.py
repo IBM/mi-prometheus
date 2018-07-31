@@ -101,8 +101,8 @@ class Lang:
         :param sentence: A pytorch LongTensor of word indices [max_sentence_length]
         :returns: FloatTensor of embedded vectors [max_sentence_length, embedding size]
         """
-        outsentence = torch.zeros((sentence.size()[0], self.word_embedding.size()[1]))
-        for i, word in enumerate(sentence):
+        outsentence = torch.zeros((len(sentence.split()), self.vocab.vectors.size()[1]))
+        for i, word in enumerate(sentence.split()):
             outsentence[i,:] = self.embed_word(word)
             
         return outsentence
@@ -123,12 +123,12 @@ class Lang:
             Positional arguments:          
             Remaining keyword arguments: Passed to the constructor of Vocab.
         """
-        print(data_set)
+
         counter = Counter()
         #Break list of sentences into sentences
         for data in data_set:
             counter.update(data.split())
-        print(counter)
+
         specials = list(OrderedDict.fromkeys(
             tok for tok in [self.unk_token, self.pad_token, self.init_token,
                             self.eos_token]
@@ -558,6 +558,9 @@ if __name__ == '__main__':
 
     #print(lang.embed_word('<pad>'))
 
+    def embed_sentence(sentence):
+        return lang.embed_sentence(sentence)
+
     def get_word(word):
         return lang.embed_word(word)
 
@@ -589,6 +592,8 @@ if __name__ == '__main__':
     #analogy('man', 'king', 'woman')
     analogy('king', 'man', 'queen')
     analogy('man', 'actor', 'woman')
+
+    print(embed_sentence("Big Falcon Rocket is awesome").size())
     #analogy('cat', 'kitten', 'dog')
     #analogy('dog', 'puppy', 'cat')
     #analogy('russia', 'moscow', 'france')
