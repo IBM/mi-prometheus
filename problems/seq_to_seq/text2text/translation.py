@@ -18,7 +18,7 @@
 """translation.py: translation problem class
     Inspiration taken from the corresponding Pytorch tutorial.
     See https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html """
-__author__ = "Vincent Marois, Ryan L. McAvoy"
+__author__ = "Vincent Marois"
 
 import os, sys
 import random
@@ -34,11 +34,10 @@ app_state = AppState()
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..', '..'))
 
 from problems.problem import DataTuple
-from problems.seq_to_seq.text2text.text_to_text_problem import TextToTextProblem, TextAuxTuple
-from problems.utils.language import Lang
+from problems.seq_to_seq.text2text.text_to_text_problem import TextToTextProblem, Lang, TextAuxTuple
 
 
-class Translation(TextToTextProblem):
+class Translation(TextToTextProblem, Lang):
     """
     Class generating sequences of indexes as inputs & targets for a English -> Other Language translation task.
     Only supports latin alphabet for now (because of string normalization).
@@ -257,8 +256,8 @@ class Translation(TextToTextProblem):
         indexes = random.sample(population=range(len(self.tensor_pairs)), k=self.batch_size)
 
         # create main batch inputs & outputs tensor
-        inputs = torch.zeros(self.batch_size, self.max_sequence_length, self.input_lang.embedding_size).type(app_state.LongTensor)
-        targets = torch.zeros(self.batch_size, self.max_sequence_length, self.output_lang.embedding_size).type(app_state.LongTensor)
+        inputs = torch.zeros(self.batch_size, self.max_sequence_length).type(app_state.LongTensor)
+        targets = torch.zeros(self.batch_size, self.max_sequence_length).type(app_state.LongTensor)
 
         # for TextAuxTuple
         inputs_text = []
@@ -268,8 +267,8 @@ class Translation(TextToTextProblem):
             input_tensor, target_tensor = self.tensor_pairs[index]
             input_text, target_text = self.pairs[index]
 
-            inputs[i, :, :] = self.input_lang.embed_sentence(input_tensor)
-            targets[i, :, :] = self.output_lang.embed_sentence(target_tensor)
+            inputs[i] = input_tensor
+            targets[i] = target_tensor
             inputs_text.append(input_text)
             targets_text.append(target_text)
 
