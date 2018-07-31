@@ -90,9 +90,9 @@ class ModelFactory(object):
             from models.cnn_lstm_vqa.cnn_lstm_vqa import CNNLSTMVQA
             return CNNLSTMVQA(params)
         elif name == 'stacked_attention_vqa':
-            logger.info('Loading the AttentionVQA model from models.stacked_attention_vqa.stacked_attention_vqa')
+            logger.info('Loading the AttentionVQA model from models.stacked_attention_vqa.model')
             logger.warning("Warning: StackedAttentionVQA under development")
-            from models.stacked_attention_vqa.stacked_attention_vqa import StackedAttentionVQA
+            from models.stacked_attention_vqa.model import StackedAttentionVQA
             return StackedAttentionVQA(params)
         elif name == 'multi_hops_attention':
             logger.info('Loading the MultiHopsAttention model from models.multi_hops_attention.multi_hops_attention')
@@ -103,5 +103,9 @@ class ModelFactory(object):
             sys.path.append(os.path.join(os.path.dirname(__file__),  'simple_encoder_solver'))
             from models.text2text.simple_encoder_decoder import SimpleEncoderDecoder
             return SimpleEncoderDecoder(params)
+        elif name == 'relational_network':
+            logger.info('Loading the RelationalNetwork model from models.relational_net.relational_network')
+            from models.relational_net.relational_network import RelationalNetwork
+            return RelationalNetwork(params)
         else:
             raise ValueError

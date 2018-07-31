@@ -18,9 +18,10 @@
 """image_encoding.py: image encoding for VQA problem, same as in this paper https://arxiv.org/abs/1706.01427, specifically desinged for sort of clevr """
 __author__ = "Younes Bouhadjar"
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+import torchvision
 
 class ImageEncoding(nn.Module):
     def __init__(self):
@@ -58,6 +59,52 @@ class ImageEncoding(nn.Module):
         x = F.relu(x)
         x = self.batchNorm4(x)
 
+        # flattening the width and height dimensions to a single one and
+        # transpose it with the num_channel dimension, necessary when applying the attention
+        x = x.view(x.size(0), x.size(1), -1).transpose(1, 2)
+
+        return x
+
+
+class PretrainedImageEncoding(nn.Module):
+    def __init__(self, cnn_model = 'resnet18', num_blocks = 2):
+        """
+        Image encoding using pretrained resnetXX from torchvision
+        """
+
+        super(PretrainedImageEncoding, self).__init__()
+
+        num_blocks = num_blocks
+
+        # Get resnet18
+        cnn = getattr(torchvision.models, cnn_model)(pretrained=True)
+
+        # First layer added with num_channel equal 3
+        layers = [
+            cnn.conv1,
+            cnn.bn1,
+            cnn.relu,
+            cnn.maxpool,
+        ]
+
+        # select the resnet blocks and append them to layers
+        for i in range(num_blocks):
+           name = 'layer%d' % (i + 1)
+           layers.append(getattr(cnn, name))
+
+        self.model = torch.nn.Sequential(*layers)
+
+    def forward(self, img):
+        """Apply a pretrained cnn
+        :param img: input image [batch_size, num_channels, height, width]
+        :return x: feature map with flattening the width and height dimensions to a single one and transpose it with the num_channel dimension
+          [batch_size, new_height * new_width, num_channels_encoded_question]
+        """
+        # Apply model image encoding
+        x = self.model(img)
+
+        # flattening the width and height dimensions to a single one and
+        # transpose it with the num_channel dimension, necessary when applying the attention
         x = x.view(x.size(0), x.size(1), -1).transpose(1, 2)
 
         return x

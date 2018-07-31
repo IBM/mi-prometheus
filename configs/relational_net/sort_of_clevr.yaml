@@ -2,25 +2,23 @@ training:
     cuda: True
     # Problem parameters:
     problem:
-        name: &name shape_color_query
-        batch_size: 32
-        data_folder: '~/data/shape-color-query/'
+        name: &name sort_of_clevr
+        batch_size: &b 64
+        data_folder: '~/data/sort-of-clevr/'
         data_filename: 'training.hy'
         dataset_size: &ds 12000
-        img_size: 128
-        shuffle: True
-        regenerate: False
-        cuda: True
+        img_size: &imgs 128
+        regenerate: True
         use_train_data: True
     # Set optimizer.
     optimizer:
         name: Adam
-        lr: 0.005
+        lr: 2.5e-4
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     # Terminal condition parameters:
     terminal_condition:
-        loss_stop: 0.0001
+        loss_stop: 0.1
         max_episodes: 100000
 
 testing:
@@ -28,12 +26,11 @@ testing:
     # Problem parameters:
     problem:
         name: *name
-        batch_size: 32
-        data_folder: '~/data/shape-color-query/'
+        batch_size: *b
+        data_folder: '~/data/sort-of-clevr/'
         data_filename: 'training.hy'
         dataset_size: *ds
-        img_size: 128
-        shuffle: True
+        img_size: *imgs
         regenerate: False
         use_train_data: False
 
@@ -42,22 +39,21 @@ validation:
     # Problem parameters:
     problem:
         name: *name
-        batch_size: 32
-        data_folder: '~/data/shape-color-query/'
+        batch_size: *b
+        data_folder: '~/data/sort-of-clevr/'
         data_filename: 'training.hy'
         dataset_size: *ds
-        img_size: 128
-        shuffle: True
+        img_size: *imgs
         regenerate: False
         use_train_data: False
 
+
 # Model parameters:
 model:
-    name: stacked_attention_vqa   # use attention visual question answering
-    use_question_encoding: True
-    word_embedded_size: 7
-    use_pretrained_cnn: True
-    pretrained_cnn_model: 'resnet18'
-    num_blocks: 2
-    word_embedded_size: 7
-
+    name: relational_network
+    #parameters for the pairwise comparison network (g_theta in the paper)
+    pair_net:
+      input_size: 65 # (24 + 2) * 2 + 13
+    #parameters for the sum analysis network (f_phi in the paper)
+    sum_net:
+      output_size: 10
