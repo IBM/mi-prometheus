@@ -55,19 +55,12 @@ class Lang:
         :param name: string to name the language (e.g. french, english)
         """
         self.name = name
-        #self.word2index = {"PAD": 0, "SOS": 1, "EOS": 2}  # dict 'word': index
-        #self.word2count = {}  # keep track of the occurrence of each word in the language. Can be used to replace
-        # rare words.
-        #self.index2word = {0: "PAD", 1: "SOS", 2: "EOS"}  # dict 'index': 'word', initializes with PAD, EOS, SOS tokens
         self.vocab_cls = Vocab
         self.init_token = None
         self.eos_token = None
         self.unk_token = "<unk>"
         self.pad_token = "<pad>"
-
-       #if (pretrained):
-        #self.build_vocab(data_set)
-           
+        
 
     def add_sentence(self, sentence):
         """
@@ -106,11 +99,7 @@ class Lang:
             outsentence[i,:] = self.embed_word(word)
             
         return outsentence
-
-        #return self.embedding(sentence)
-        #currently just does a dummy reshape and returns LongTensor of size [max_sentence_length, 1]
-        return torch.unsqueeze(sentence,1)
-    
+   
     def embed_word(self, word):
         index=self.vocab.stoi[word]
         return self.vocab.vectors[index]
@@ -333,7 +322,6 @@ class WordEmbedding(object):
            :param data_dir: The directory that will store the embeddings or already does
            :unknown_init: The function that initializes the out of vocab word vectors. Takes a vector returns a vector of the same size
        """
-       print(data_dir)
        data_dir = '.embedding_dir' if data_dir is None else data_dir
        self.unknown_init = torch.Tensor.zero_ if unknown_init is None else unknown_init
        self.load_wordembedding(embed_file, data_dir, url)
@@ -346,9 +334,6 @@ class WordEmbedding(object):
 
     def load_wordembedding(self, embed_file, data_dir, url):
        
-        print(embed_file)
-        print(data_dir)
-        print(url) 
         raw_dir = os.path.join(data_dir, "raw")
         processed_dir = os.path.join(data_dir, "processed")
         if not os.path.exists(data_dir):
@@ -374,13 +359,7 @@ class WordEmbedding(object):
             self.itos, self.stoi, self.vectors, self.dim = torch.load(convert_embed)
 
     def download_wordembedding(self, data_dir, url):
-        #import http.client
         from six.moves.urllib.request import Request, urlopen
-        print(data_dir)
-        print(url)
-        #c = http.client.HTTPConnection(url)
-        #c.request("HEAD", '')
-        #if c.getresponse().status == 200:
         logger.info('Downloading original source file from {}'.format(url))
         download_dest = os.path.join(data_dir, os.path.basename(url))
          
@@ -399,8 +378,6 @@ class WordEmbedding(object):
         elif ext == 'gz':
             with tarfile.open(download_dest, 'r:gz') as tar:
                 tar.extractall(path=data_dir)
-        #else:
-        #    logger.error('Website {} does not exist'.format(url))
 
     def convert_wordembedding(self, original_embed, convert_embed):
        
@@ -556,7 +533,7 @@ if __name__ == '__main__':
 
     lang.build_pretrained_vocab(text,vectors='glove.6B.100d')
 
-    #print(lang.embed_word('<pad>'))
+    print(len(lang.embed_word('<pad>')))
 
     def embed_sentence(sentence):
         return lang.embed_sentence(sentence)
