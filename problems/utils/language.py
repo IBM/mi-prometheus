@@ -25,7 +25,7 @@ from collections import Counter, OrderedDict
 import torchtext.vocab as vocab
 
 
-class Lang:
+class Language(object):
     """ Class that loads pretrained embeddings from Torchtext
     """
 
@@ -36,7 +36,6 @@ class Lang:
         """
         self.name = name
         # Choose the kind of Vocab class to call. At the moment, we are just using whole word vocab as opposed to sub word tokens
-        # TODO: experiment with just importing the Vocab class from torchtext directly
         self.vocab_cls = vocab.Vocab
         self.init_token = None
         self.eos_token = None
@@ -151,7 +150,7 @@ if __name__ == '__main__':
 
 
 
-    lang = Lang('en')
+    lang = Language('en')
     text=["google man", "man", "king", "woman", 'queen','man','actor','woman','actress','cat','kitten', 'puppy','dog','russia','moscow','france','paris','obama','president',
           'trump', 'executive', 'rich', 'mansion', 'poor', 'residence', 'elvis', 'rock', 'eminem', 'rap','paper','newspaper','screen','tv','monet','paint','michelangelo','leonardo',
           'beer', 'barley', 'wine','rye', 'earth','moon','sun', 'house', 'roof', 'castle', 'moat', 'building', 'architect','software','programmer','boston','bruins','phoenix','suns',
