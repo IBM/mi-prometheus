@@ -18,7 +18,7 @@
 """clevr.py: This file contains 2 classes :
 
           - ClevrDataset (CLEVR object class): This class creates a Dataset object to represent a CLEVR dataset.
-            CLEVR dataset build the embedding for questions and answers
+            ClevrDataset build the embedding for questions and answers
 
           - Clevr (CLEVR Problem class): This class generates batches over a CLEVRDataset object.
             It also has a show_sample() method that displays a sample (image, question, answer).
@@ -59,12 +59,14 @@ class ClevrDataset(Dataset):
         Instantiate a ClevrDataset object.
 
         :param train: Boolean to indicate whether or not the dataset is constructed for training.
-        :param data_dir: path to the downloaded data
-        :param dictionaries: (quest_to_ix, answ_to_ix, answ_ix_to_class) constructed by build_dictionaries()
+        :param clevr_dir:  clevr directory
+        :param clevrhumans_dir: clevr humans directory
+        :param clevrhumans: Boolean - is it training phase?
+        
         """
         super(ClevrDataset).__init__()
 
-        #clevr directory
+        # clevr directory
         self.clevr_dir = clevr_dir
 
         # clevr humans directory
@@ -133,13 +135,12 @@ class ClevrDataset(Dataset):
         return lower
 
     def build_dictionaries(self):
-        """Creates 3 dictionaries from the downloaded data:
-            - quest_to_ix: vocabulary set of the training questions words, formatted as {'word': idx}
-            - ans_to_ix: vocabulary set of the training answers, formatted as {'ans': idx}
-            - answ_ix_to_class: set of the training classes, formatted as {answer_idx: 'class'}
-
-         If it is the first time you run this code, it will take longer and will cache them (.pkl file) in the CLEVR dir
-         for faster reuse later on.
+        """Creates the word embeddings
+        
+        - 1. Collects all datasets word
+        - 2. Uses Language object to create the embeddings
+        
+         If it is the first time you run this code, it will take longer to load the embedding from torchtext
          """
 
         print(' ---> Constructing the dictionaries with word embedding, may take some time ')
