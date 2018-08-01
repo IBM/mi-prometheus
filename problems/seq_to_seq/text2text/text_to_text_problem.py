@@ -246,7 +246,7 @@ class TextToTextProblem(SeqToSeqProblem):
         return [self.tensors_from_pair(pair, input_lang, output_lang, max_seq_length) for pair in pairs]
 
 
-class Lang:
+class Lang(object):
     """Simple helper class allowing to represent a language in a translation task. It will contain for instance a vocabulary
     index (word2index dict) & keep track of the number of words in the language.
 

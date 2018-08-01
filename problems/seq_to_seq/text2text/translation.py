@@ -37,7 +37,7 @@ from problems.problem import DataTuple
 from problems.seq_to_seq.text2text.text_to_text_problem import TextToTextProblem, Lang, TextAuxTuple
 
 
-class Translation(TextToTextProblem, Lang):
+class Translation(TextToTextProblem):
     """
     Class generating sequences of indexes as inputs & targets for a English -> Other Language translation task.
     Only supports latin alphabet for now (because of string normalization).
@@ -48,6 +48,8 @@ class Translation(TextToTextProblem, Lang):
         Initializes the problem: stores parameters. Calls parent class initialization.
         :param params: Dictionary of parameters.
         """
+        
+        print("Translation does not support pretrained embedding")
 
         # Call parent constructor - e.g. sets the default loss function
         super(Translation, self).__init__(params)

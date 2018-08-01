@@ -27,4 +27,5 @@
 !/docs/source/index.rst
 __pycache__*
 *.swp
+*.vector_cache
 !.gitignore
