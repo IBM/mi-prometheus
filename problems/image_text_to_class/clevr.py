@@ -147,6 +147,9 @@ class ClevrDataset(Dataset):
 
         #making an empty list of words meant to store all possible datasets words
         words_list = []
+        #answer dictionnary with indices empty list
+        answ_to_ix = {}
+
 
         #loading the right json file to build embeddings from
 
@@ -178,13 +181,28 @@ class ClevrDataset(Dataset):
                     if word not in words_list:
                         words_list.append(word)
 
-                w = answer.lower()
-                if w not in words_list:
-                    words_list.append(w)
+                a = answer.lower()
+                if a not in answ_to_ix:
+                    ix = len(answ_to_ix) + 1
+                    answ_to_ix[a] = ix
+
 
         """ build embeddings from the chosen database / Example: glove.6B.100d """
 
         self.language.build_pretrained_vocab(words_list, vectors='glove.6B.100d')
+
+        ret = ( answ_to_ix)
+        return ret
+
+    def to_dictionary_indexes(self, dictionary, sentence):
+        """
+        Outputs indexes of the dictionary corresponding to the words in the sequence.
+        Case insensitive.
+        """
+        split = self.tokenize(sentence)
+
+        idxs = torch.tensor([dictionary[w] for w in split]).type(app_state.LongTensor)
+        return idxs
 
     def __len__(self):
         """Return the length of the questions set"""
@@ -215,7 +233,8 @@ class ClevrDataset(Dataset):
         question =torch.cat((question, padding), 0)
 
         # embed the answer
-        answer = self.language.embed_sentence(current_question['answer'])
+        #answer = self.language.embed_sentence(current_question['answer'])
+        answer = self.to_dictionary_indexes(self.dictionaries, current_question['answer'])
 
         #make a dictionnary with all the outputs
         sample = {'image': image, 'question': question, 'answer': answer, 'current_question': current_question}
@@ -277,7 +296,7 @@ if __name__ == "__main__":
     """Unitest that generates a batch and displays a sample """
 
     params = {'batch_size': 5, 'CLEVR_dir': 'CLEVR_v1.0', 'CLEVR_humans_dir': 'CLEVR-Humans', 'train': True,
-              'use_clevr_humans': False}
+              'use_clevr_humans': True}
     problem = Clevr(params)
     data_tuple, aux_tuple = problem.generate_batch()
     print(data_tuple)
