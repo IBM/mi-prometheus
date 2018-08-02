@@ -36,6 +36,11 @@ import matplotlib.pyplot as plt
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import RandomSampler
+
+# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
+import os,  sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..'))
+
 from problems.problem import DataTuple
 from problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem, ImageTextTuple
 from misc.app_state import AppState
