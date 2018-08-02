@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """image_text_to_class_problem.py: contains abstract base class for VQA problems"""
-__author__      = "Tomasz Kornuta"
+__author__      = "Tomasz Kornuta & Vincent Albouy"
 
 import collections
 import torch.nn as nn
@@ -47,6 +47,24 @@ class ImageTextToClassProblem(Problem):
         super(ImageTextToClassProblem, self).__init__(params)
 
         self.loss_function = nn.CrossEntropyLoss()
+
+    def evaluate_loss(self, data_tuple, logits, aux_tuple):
+        """
+        Computes loss.
+        By default, the loss function is the Negative Log Likelihood function.
+        The input given through a forward call is expected to contain log-probabilities (LogSoftmax) of each class.
+        The input has to be a Tensor of size either (batch_size, C) or (batch_size, C, d1, d2,...,dK) with K ≥ 2 for the
+        K-dimensional case.
+        The target that this loss expects is a class index (0 to C-1, where C = number of classes).
+
+        :param data_tuple: Data tuple containing inputs and targets.
+        :param logits: Logits being outputs of the model.
+        :param aux_tuple: Auxiliary tuple containing mask.
+        :return: loss
+        """
+        loss = self.loss_function(logits.transpose(1, 2), data_tuple.targets)
+
+        return loss
 
     def calculate_accuracy(self, data_tuple, logits, _):
         """ Calculates accuracy equal to mean number of correct answers in a given batch.
