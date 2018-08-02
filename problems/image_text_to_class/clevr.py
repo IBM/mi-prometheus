@@ -54,7 +54,7 @@ class ClevrDataset(Dataset):
     , and __getitem__, supporting integer indexing in range from 0 to len(self) exclusive.
     """
 
-    def __init__(self, train, clevr_dir, clevrhumans_dir, clevr_humans):
+    def __init__(self, train, clevr_dir, clevr_humans, embedding_type):
         """
         Instantiate a ClevrDataset object.
 
@@ -62,15 +62,12 @@ class ClevrDataset(Dataset):
         :param clevr_dir:  clevr directory
         :param clevrhumans_dir: clevr humans directory
         :param clevrhumans: Boolean - is it training phase?
-        
+
         """
         super(ClevrDataset).__init__()
 
         # clevr directory
         self.clevr_dir = clevr_dir
-
-        # clevr humans directory
-        self.clevrhumans_dir = clevrhumans_dir
 
         # boolean: clevr humans used?
         self.clevr_humans = clevr_humans
@@ -78,40 +75,31 @@ class ClevrDataset(Dataset):
         # boolean: is it training phase?
         self.train = train
 
-        #create an object language from Language class - This object will be used to create the words embeddings
+        # create an object language from Language class - This object will be used to create the words embeddings
         self.language = Language('lang')
 
-        #building the embeddings
-        self.dictionaries = self.build_dictionaries()
+        # define the type of embedding
+        self.embedding_type = embedding_type
 
+        # load appropriate images & questions from clevr humans or Clevr
 
-        if self.clevr_humans:
+        if train:
+            self.quest_json_filename = os.path.join(self.clevr_dir, 'questions',
 
-            # load appropriate images & questions from clevr humans
-            if train:
-                quest_json_filename = os.path.join(self.clevrhumans_dir, 'questions', 'CLEVR-Humans-train.json')
-                self.img_dir = os.path.join(self.clevr_dir, 'images', 'train')
-            else:
-                quest_json_filename = os.path.join(self.clevrhumans_dir, 'questions', 'CLEVR-Humans-val.json')
-                self.img_dir = os.path.join(self.clevr_dir, 'images', 'val')
-
-
-            with open(quest_json_filename, 'r') as json_file:
-                self.questions = json.load(json_file)['questions']
+                                                    'CLEVR-Humans-train.json' if self.clevr_humans else 'CLEVR_train_questions.json')
+            self.img_dir = os.path.join(self.clevr_dir, 'images', 'train')
 
         else:
-            # load appropriate images & questions from clevr
-            if train:
-                quest_json_filename = os.path.join(self.clevr_dir, 'questions', 'CLEVR_train_questions.json')
-                self.img_dir = os.path.join(self.clevr_dir, 'images', 'train')
-            else:
-                quest_json_filename = os.path.join(self.clevr_dir, 'questions', 'CLEVR_val_questions.json')
-                self.img_dir = os.path.join(self.clevr_dir, 'images', 'val')
+            self.quest_json_filename = os.path.join(self.clevr_dir, 'questions',
+                                                    'CLEVR-Humans-val.json' if self.clevr_humans else 'CLEVR_val_questions.json')
 
+            self.img_dir = os.path.join(self.clevr_dir, 'images', 'val')
 
-            with open(quest_json_filename, 'r') as json_file:
-                self.questions = json.load(json_file)['questions']
+        with open(self.quest_json_filename, 'r') as json_file:
+            self.questions = json.load(json_file)['questions']
 
+       # building the embeddings
+        self.dictionaries = self.build_dictionaries_embeddings()
 
     def tokenize(self, sentence):
         """
@@ -134,42 +122,25 @@ class ClevrDataset(Dataset):
 
         return lower
 
-    def build_dictionaries(self):
+    def build_dictionaries_embeddings(self):
         """Creates the word embeddings
-        
+
         - 1. Collects all datasets word
         - 2. Uses Language object to create the embeddings
-        
+
          If it is the first time you run this code, it will take longer to load the embedding from torchtext
          """
 
         print(' ---> Constructing the dictionaries with word embedding, may take some time ')
 
-        #making an empty list of words meant to store all possible datasets words
+        # making an empty list of words meant to store all possible datasets words
         words_list = []
-        #answer dictionnary with indices empty list
+        # answer dictionnary with indices empty list
         answ_to_ix = {}
-
-
-        #loading the right json file to build embeddings from
-
-        if self.clevr_humans:
-
-            if self.train:
-                json_train_filename = os.path.join(self.clevrhumans_dir, 'questions', 'CLEVR-Humans-train.json')
-            else:
-                json_train_filename = os.path.join(self.clevrhumans_dir, 'questions', 'CLEVR-Humans-val.json')
-
-        else:
-            if self.train:
-                json_train_filename = os.path.join(self.clevr_dir, 'questions', 'CLEVR_train_questions.json')
-            else:
-                json_train_filename = os.path.join(self.clevr_dir, 'questions', 'CLEVR_val_questions.json')
-
 
         # load all words from training data to a list named words_list[]
 
-        with open(json_train_filename, "r") as f:
+        with open(self.quest_json_filename, "r") as f:
             questions = json.load(f)['questions']
 
             for q in tqdm(questions):
@@ -186,13 +157,11 @@ class ClevrDataset(Dataset):
                     ix = len(answ_to_ix) + 1
                     answ_to_ix[a] = ix
 
-
         """ build embeddings from the chosen database / Example: glove.6B.100d """
 
-        self.language.build_pretrained_vocab(words_list, vectors='glove.6B.100d')
+        self.language.build_pretrained_vocab(words_list, vectors=self.embedding_type)
 
-        ret = ( answ_to_ix)
-        return ret
+        return answ_to_ix
 
     def to_dictionary_indexes(self, dictionary, sentence):
         """
@@ -200,8 +169,8 @@ class ClevrDataset(Dataset):
         Case insensitive.
         """
         split = self.tokenize(sentence)
+        idxs = torch.tensor([dictionary[w] for w in split])
 
-        idxs = torch.tensor([dictionary[w] for w in split]).type(app_state.LongTensor)
         return idxs
 
     def __len__(self):
@@ -214,29 +183,29 @@ class ClevrDataset(Dataset):
         :param idx: index of the sample to return.
         :return: {'image': image, 'question': question, 'answer': answer, 'current_question': current_question}
         """
-        #get current question with indices idx
+        # get current question with indices idx
         current_question = self.questions[idx]
 
-        #load image and convert it to RGB format
+        # load image and convert it to RGB format
         img_filename = os.path.join(self.img_dir, current_question['image_filename'])
         image = Image.open(img_filename).convert('RGB')
         image = np.array(image)
 
-        #choose padding size
+        # choose padding size
         padding_size = 50
 
-        #embed the question
+        # embed the question
         question = self.language.embed_sentence(current_question['question'])
 
-        #padding the question
+        # padding the question
         padding = torch.zeros((padding_size - question.size(0), question.size(1)))
-        question =torch.cat((question, padding), 0)
+        question = torch.cat((question, padding), 0)
 
         # embed the answer
-        #answer = self.language.embed_sentence(current_question['answer'])
+        # answer = self.language.embed_sentence(current_question['answer'])
         answer = self.to_dictionary_indexes(self.dictionaries, current_question['answer'])
 
-        #make a dictionnary with all the outputs
+        # make a dictionnary with all the outputs
         sample = {'image': image, 'question': question, 'answer': answer, 'current_question': current_question}
 
         return sample
@@ -254,15 +223,15 @@ class Clevr(ImageTextToClassProblem):
 
         # parse parameters from the params dict
         self.clevr_dir = params['CLEVR_dir']
-        self.clevrhumans_dir = params['CLEVR_humans_dir']
         self.train = params['train']
         self.batch_size = params['batch_size']
         self.clevr_humans = params['use_clevr_humans']
-        self.clevr_dataset_train = ClevrDataset(self.train, self.clevr_dir, self.clevrhumans_dir, self.clevr_humans)
+        self.embedding_type = params['embedding_type']
+        self.clevr_dataset_train = ClevrDataset(self.train, self.clevr_dir, self.clevr_humans, self.embedding_type)
 
-        # call base constructor
 
     def generate_batch(self):
+        
         """Generates a batch of size: batch_size and returns it in the tuple data_tuple=(images, questions, answers).
             auxtuple returns the questions and answers (strings) : useful for the visualization"""
 
@@ -280,6 +249,7 @@ class Clevr(ImageTextToClassProblem):
         return DataTuple(image_text_tuple, answers), aux_tuple
 
     def show_sample(self, data_tuple, aux_tuple, sample_number=0):
+
         """displays an image with the corresponding question and answer """
 
         plt.figure(1)
@@ -295,12 +265,12 @@ class Clevr(ImageTextToClassProblem):
 if __name__ == "__main__":
     """Unitest that generates a batch and displays a sample """
 
-    params = {'batch_size': 5, 'CLEVR_dir': 'CLEVR_v1.0', 'CLEVR_humans_dir': 'CLEVR-Humans', 'train': True,
-              'use_clevr_humans': True}
+    params = {'batch_size': 5, 'CLEVR_dir': 'CLEVR_v1.0', 'train': True, 'use_clevr_humans': True, 'embedding_type' :'glove.6B.100d' }
     problem = Clevr(params)
     data_tuple, aux_tuple = problem.generate_batch()
     print(data_tuple)
     print(aux_tuple)
     problem.show_sample(data_tuple, aux_tuple, sample_number=2)
+
 
 
