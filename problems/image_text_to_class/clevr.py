@@ -18,7 +18,7 @@
 """clevr.py: This file contains 2 classes :
 
           - ClevrDataset (CLEVR object class): This class creates a Dataset object to represent a CLEVR dataset.
-            ClevrDataset build the embedding for questions and answers
+            ClevrDataset builds the embedding for the questions.
 
           - Clevr (CLEVR Problem class): This class generates batches over a CLEVRDataset object.
             It also has a show_sample() method that displays a sample (image, question, answer).
@@ -27,7 +27,6 @@ __author__ = "Vincent Albouy"
 
 import json
 import numpy as np
-import os
 import re
 from PIL import Image
 import torch
@@ -37,9 +36,9 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import RandomSampler
 
-# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
-import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..'))
+# Add path to main project directory
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
 
 from problems.problem import DataTuple
 from problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem, ImageTextTuple
@@ -53,6 +52,7 @@ class ClevrDataset(Dataset):
     """
     Inherits from the Dataset class to represent the CLEVR dataset. Will be used by the Clevr class below to generate
     batches.
+
     ---------------
     class Dataset(object): An abstract class representing a Dataset.
     All other datasets should subclass it. All subclasses should override __len__, that provides the size of the dataset
@@ -64,47 +64,40 @@ class ClevrDataset(Dataset):
         Instantiate a ClevrDataset object.
 
         :param train: Boolean to indicate whether or not the dataset is constructed for training.
-        :param clevr_dir:  clevr directory
-        :param clevrhumans_dir: clevr humans directory
-        :param clevrhumans: Boolean - is it training phase?
+        :param clevr_dir: Directory path to the CLEVR dataset.
+        :param clevr_humans: Boolean to indicate whether to use the questions from CLEVR-Humans.
+        :param embedding_type: string to indicate the pretrained embedding to use.
 
         """
+        # call base constructor
         super(ClevrDataset).__init__()
 
-        # clevr directory
+        # parse params
         self.clevr_dir = clevr_dir
-
-        # boolean: clevr humans used?
         self.clevr_humans = clevr_humans
-
-        # boolean: is it training phase?
         self.train = train
-
-        # create an object language from Language class - This object will be used to create the words embeddings
-        self.language = Language('lang')
-
-        # define the type of embedding
         self.embedding_type = embedding_type
 
-        # load appropriate images & questions from clevr humans or Clevr
+        # instantiate Language class - This object will be used to create the words embeddings
+        self.language = Language('lang')
 
+        # load appropriate images & questions from CLEVR of CLEVR-Humans
         if train:
             self.quest_json_filename = os.path.join(self.clevr_dir, 'questions',
-
                                                     'CLEVR-Humans-train.json' if self.clevr_humans else 'CLEVR_train_questions.json')
             self.img_dir = os.path.join(self.clevr_dir, 'images', 'train')
 
         else:
             self.quest_json_filename = os.path.join(self.clevr_dir, 'questions',
                                                     'CLEVR-Humans-val.json' if self.clevr_humans else 'CLEVR_val_questions.json')
-
             self.img_dir = os.path.join(self.clevr_dir, 'images', 'val')
 
+        # load questions
         with open(self.quest_json_filename, 'r') as json_file:
             self.questions = json.load(json_file)['questions']
 
-       # building the embeddings
-        self.dictionaries = self.build_dictionaries_embeddings()
+        # build the embeddings
+        self.answ_to_ix = self.build_embeddings()
 
     def tokenize(self, sentence):
         """
@@ -112,6 +105,7 @@ class ClevrDataset(Dataset):
         Also lowercase the sentence.
 
         :param sentence: sentence to process
+
         :return: 'tokenized' sentence.
         """
 
@@ -127,43 +121,40 @@ class ClevrDataset(Dataset):
 
         return lower
 
-    def build_dictionaries_embeddings(self):
-        """Creates the word embeddings
+    def build_embeddings(self):
+        """Creates the word embeddings.
 
-        - 1. Collects all datasets word
+        - 1. Builds the vocabulary set of the loaded questions
         - 2. Uses Language object to create the embeddings
 
-         If it is the first time you run this code, it will take longer to load the embedding from torchtext
-         """
+         If it is the first time you run this code, it will take some time to load the embeddings.
 
+         :return the answers to index dictionary.
+         """
         print(' ---> Constructing the dictionaries with word embedding, may take some time ')
 
-        # making an empty list of words meant to store all possible datasets words
+        # making an empty list to store the vocabulary set of the dataset
         words_list = []
-        # answer dictionnary with indices empty list
+
+        # dictionary to contain the answers
         answ_to_ix = {}
 
-        # load all words from training data to a list named words_list[]
+        # load all words from the selected questions to words_list
+        for q in tqdm(self.questions):  # tqdm displays a progress bar
+            question = self.tokenize(q['question'])
+            answer = q['answer']
 
-        with open(self.quest_json_filename, "r") as f:
-            questions = json.load(f)['questions']
+            for word in question:
+                if word not in words_list:
+                    words_list.append(word)
 
-            for q in tqdm(questions):
-                # display a progress bar
-                question = self.tokenize(q['question'])
-                answer = q['answer']
+            a = answer.lower()
+            if a not in answ_to_ix:
+                ix = len(answ_to_ix) + 1
+                answ_to_ix[a] = ix
 
-                for word in question:
-                    if word not in words_list:
-                        words_list.append(word)
-
-                a = answer.lower()
-                if a not in answ_to_ix:
-                    ix = len(answ_to_ix) + 1
-                    answ_to_ix[a] = ix
-
-        """ build embeddings from the chosen database / Example: glove.6B.100d """
-
+        # use the vocabulary set to construct the embeddings vectors
+        print('Constructing the embeddings vectors for a vocabulary set of length {}'.format(len(words_list)))
         self.language.build_pretrained_vocab(words_list, vectors=self.embedding_type)
 
         return answ_to_ix
@@ -185,7 +176,9 @@ class ClevrDataset(Dataset):
     def __getitem__(self, idx):
         """
         Getter method to access the dataset and return a sample.
+
         :param idx: index of the sample to return.
+
         :return: {'image': image, 'question': question, 'answer': answer, 'current_question': current_question}
         """
         # get current question with indices idx
@@ -206,11 +199,10 @@ class ClevrDataset(Dataset):
         padding = torch.zeros((padding_size - question.size(0), question.size(1)))
         question = torch.cat((question, padding), 0)
 
-        # embed the answer
-        # answer = self.language.embed_sentence(current_question['answer'])
-        answer = self.to_dictionary_indexes(self.dictionaries, current_question['answer'])
+        # get answer index
+        answer = self.to_dictionary_indexes(self.answ_to_ix, current_question['answer'])
 
-        # make a dictionnary with all the outputs
+        # make a dictionary with all the outputs
         sample = {'image': image, 'question': question, 'answer': answer, 'current_question': current_question}
 
         return sample
@@ -223,6 +215,7 @@ class Clevr(ImageTextToClassProblem):
     def __init__(self, params):
         """
         Instantiate the Clevr class.
+
         :param params: dict of parameters.
         """
 
@@ -230,18 +223,20 @@ class Clevr(ImageTextToClassProblem):
         self.clevr_dir = params['CLEVR_dir']
         self.train = params['train']
         self.batch_size = params['batch_size']
-        self.clevr_humans = params['use_clevr_humans']
+        self.clevr_humans = params['clevr_humans']
         self.embedding_type = params['embedding_type']
-        self.clevr_dataset_train = ClevrDataset(self.train, self.clevr_dir, self.clevr_humans, self.embedding_type)
-
+        self.clevr_dataset = ClevrDataset(self.train, self.clevr_dir, self.clevr_humans, self.embedding_type)
 
     def generate_batch(self):
-        
-        """Generates a batch of size: batch_size and returns it in the tuple data_tuple=(images, questions, answers).
-            auxtuple returns the questions and answers (strings) : useful for the visualization"""
+        """
+        Generates a batch from self.clevr_dataset.
 
-        clevr_train_loader = DataLoader(self.clevr_dataset_train, batch_size=self.batch_size,
-                                        sampler=RandomSampler(self.clevr_dataset_train))
+        :return: - data_tuple: ((images, questions), answers)
+                 - aux_tuple: (questions_strings, answers_strings)
+        """
+
+        clevr_train_loader = DataLoader(self.clevr_dataset, batch_size=self.batch_size,
+                                        sampler=RandomSampler(self.clevr_dataset))
         clevr_train_loader = next(iter(clevr_train_loader))
 
         images = clevr_train_loader['image']
@@ -254,28 +249,42 @@ class Clevr(ImageTextToClassProblem):
         return DataTuple(image_text_tuple, answers), aux_tuple
 
     def show_sample(self, data_tuple, aux_tuple, sample_number=0):
+        """
 
-        """displays an image with the corresponding question and answer """
-
+        :param data_tuple: DataTuple: ((images, questions), answers)
+        :param aux_tuple: AuxTuple: (questions_strings, answers_strings)
+        :param sample_number: sample index to visualize.
+        """
+        # create plot figures
         plt.figure(1)
+
+        # unpack tuples
         ((image, question), answer) = data_tuple
         (written_question, written_answer) = aux_tuple
-        image = image[sample_number, :, :, :]
+
         plt.title(written_question[sample_number])
         plt.xlabel(written_answer[sample_number])
+
+        image = image[sample_number, :, :, :]
         plt.imshow(image)
+
+        # show visualization
         plt.show()
 
 
 if __name__ == "__main__":
-    """Unitest that generates a batch and displays a sample """
+    """Unit test that generates a batch and displays a sample."""
 
-    params = {'batch_size': 5, 'CLEVR_dir': 'CLEVR_v1.0', 'train': True, 'use_clevr_humans': True, 'embedding_type' :'glove.6B.100d' }
+    params = {'batch_size': 5, 'CLEVR_dir': 'CLEVR_v1.0', 'train': True, 'clevr_humans': False,
+              'embedding_type': 'glove.6B.100d'}
+
+    # create problem
     problem = Clevr(params)
+
+    # generate a batch
     data_tuple, aux_tuple = problem.generate_batch()
+
     print(data_tuple)
     print(aux_tuple)
+
     problem.show_sample(data_tuple, aux_tuple, sample_number=2)
-
-
-
