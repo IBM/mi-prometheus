@@ -141,7 +141,7 @@ class ClevrDataset(Dataset):
 
         # load all words from the selected questions to words_list
         print('Selecting questions & answers:')
-        for q in tqdm(self.questions):  # tqdm displays a progress bar
+        for q in tqdm(self.samples):  # tqdm displays a progress bar
             questions.append(q['question'])
             answer = q['answer']
 
