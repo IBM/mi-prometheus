@@ -92,9 +92,11 @@ class ClevrDataset(Dataset):
                                                     'CLEVR-Humans-val.json' if self.clevr_humans else 'CLEVR_val_questions.json')
             self.img_dir = os.path.join(self.clevr_dir, 'images', 'val')
 
-        # load questions
+        # load samples
         with open(self.quest_json_filename, 'r') as json_file:
-            self.questions = json.load(json_file)['questions']
+            print('Loading samples from {}'.format(self.quest_json_filename))
+            self.samples = json.load(json_file)['questions']
+            print('Loading done')
 
         # build the embeddings
         self.answ_to_ix = self.build_embeddings()
@@ -131,31 +133,26 @@ class ClevrDataset(Dataset):
 
          :return the answers to index dictionary.
          """
-        print(' ---> Constructing the dictionaries with word embedding, may take some time ')
-
-        # making an empty list to store the vocabulary set of the dataset
-        words_list = []
+        # making an empty list to store the questions
+        questions = []
 
         # dictionary to contain the answers
         answ_to_ix = {}
 
         # load all words from the selected questions to words_list
+        print('Selecting questions & answers:')
         for q in tqdm(self.questions):  # tqdm displays a progress bar
-            question = self.tokenize(q['question'])
+            questions.append(q['question'])
             answer = q['answer']
-
-            for word in question:
-                if word not in words_list:
-                    words_list.append(word)
 
             a = answer.lower()
             if a not in answ_to_ix:
                 ix = len(answ_to_ix) + 1
                 answ_to_ix[a] = ix
 
-        # use the vocabulary set to construct the embeddings vectors
-        print('Constructing the embeddings vectors for a vocabulary set of length {}'.format(len(words_list)))
-        self.language.build_pretrained_vocab(words_list, vectors=self.embedding_type)
+        # use the questions set to construct the embeddings vectors
+        print('Constructing embeddings using {}'.format(self.embedding_type))
+        self.language.build_pretrained_vocab(questions, vectors=self.embedding_type)
 
         return answ_to_ix
 
@@ -171,7 +168,7 @@ class ClevrDataset(Dataset):
 
     def __len__(self):
         """Return the length of the questions set"""
-        return len(self.questions)
+        return len(self.samples)
 
     def __getitem__(self, idx):
         """
@@ -181,8 +178,8 @@ class ClevrDataset(Dataset):
 
         :return: {'image': image, 'question': question, 'answer': answer, 'current_question': current_question}
         """
-        # get current question with indices idx
-        current_question = self.questions[idx]
+        # get current sample with indices idx
+        current_question = self.samples[idx]
 
         # load image and convert it to RGB format
         img_filename = os.path.join(self.img_dir, current_question['image_filename'])
