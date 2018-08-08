@@ -69,13 +69,15 @@ def main():
     # Create temporary file
     gpu_batch_trainer_default_params_file = NamedTemporaryFile(mode='w')
     yaml.dump(gpu_batch_trainer_default_params, gpu_batch_trainer_default_params_file, default_flow_style=False)
-     
+    
+        
+ 
     configs = []
     # Iterate through batch tasks.
     for task in batch_dict['batch_tasks']:
         try:
             # Retrieve the config(s).
-            current_configs = gpu_batch_trainer_default_params_file.name + ',' + task
+            current_configs = gpu_batch_trainer_default_params_file.name + ',' + task['default_configs']
             # Extend them by batch_overwrite.
             if batch_overwrite_filename is not None:
                 current_configs = batch_overwrite_filename + ',' + current_configs
