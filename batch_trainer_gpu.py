@@ -5,6 +5,8 @@ temporary file. The `train.py` script is then launched using the temporary yaml 
 It will run as many concurrent jobs as possible.
 """
 
+__author__= "Alexis Asseman, Younes Bouhadjar"
+
 import os
 import sys
 import yaml
