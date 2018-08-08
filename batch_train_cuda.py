@@ -14,9 +14,6 @@ import subprocess
 from time import sleep
 import argparse
 
-EXPERIMENT_REPETITIONS = 10
-MAX_THREADS = 6 
-
 def main():
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
@@ -70,15 +67,15 @@ def main():
     # Create a configuration specific to this batch trainer: set seeds to random and cuda to false.
     gpu_batch_trainer_default_params = {"training": {"seed_numpy": -1, "seed_torch": -1, "cuda": True}}
     # Create temporary file
-    cpu_batch_trainer_default_params_file = NamedTemporaryFile(mode='w')
-    yaml.dump(gpu_batch_trainer_default_params, cpu_batch_trainer_default_params_file, default_flow_style=False)
+    gpu_batch_trainer_default_params_file = NamedTemporaryFile(mode='w')
+    yaml.dump(gpu_batch_trainer_default_params, gpu_batch_trainer_default_params_file, default_flow_style=False)
 
     configs = []
     # Iterate through batch tasks.
     for task in batch_dict['batch_tasks']:
         try:
             # Retrieve the config(s).
-            current_configs = cpu_batch_trainer_default_params_file.name + ',' + task['default_configs']
+            current_configs = gpu_batch_trainer_default_params_file.name + ',' + task['default_configs']
             # Extend them by batch_overwrite.
             if batch_overwrite_filename is not None:
                 current_configs = batch_overwrite_filename + ',' + current_configs
@@ -102,7 +99,7 @@ def main():
     # Run in as many threads as there are CPUs available to the script
     # with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
     # pool.map(run_experiment, experiments_list)
-    with ThreadPool(processes=MAX_THREADS) as pool:
+    with ThreadPool(processes=max_concurrent_runs) as pool:
         thread_results = []  # This contains a list of `AsyncResult` objects. To check if completed and get result.
 
         for task in experiments_list:
@@ -111,7 +108,7 @@ def main():
 
             # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
             sleep(3)
-            while [r.ready() for r in thread_results].count(False) >= MAX_THREADS:
+            while [r.ready() for r in thread_results].count(False) >= max_concurrent_runs:
                 sleep(3)
 
         # Equivalent of what would usually be called "join" for threads
