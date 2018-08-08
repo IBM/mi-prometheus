@@ -8,32 +8,100 @@ It will run as many concurrent jobs as possible.
 import os
 import sys
 import yaml
-from random import randrange
 from tempfile import NamedTemporaryFile
 from multiprocessing.pool import ThreadPool
 import subprocess
 from time import sleep
+import argparse
 
 EXPERIMENT_REPETITIONS = 10
 MAX_THREADS = 6 
 
 def main():
-    batch_file = sys.argv[1]
-    assert os.path.isfile(batch_file)
+    # Create parser with list of  runtime arguments.
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('--config', dest='config', type=str, default='',
+                        help='Name of the batch configuration file to be loaded')
 
-    # Load the list of yaml files to run
-    with open(batch_file, 'r') as f:
-        yaml_files = [l.strip() for l in f.readlines()]
-        for filename in yaml_files:
-            assert os.path.isfile(filename), filename + " is not a file"
+    # Parse arguments.
+    FLAGS, unparsed = parser.parse_known_args()
 
+    # Check if config file was selected.
+    if FLAGS.config == '':
+        print('Please pass batch configuration file as --c parameter')
+        exit(-1)
+
+    # Check if file exists.
+    if not os.path.isfile(FLAGS.config):
+        print('Error: Batch configuration file {} does not exist'.format(FLAGS.config))
+        # raise Exception('Error: Configuration file {} does not exist'.format(config))
+        exit(-1)
+
+    try:
+        # Open file and get parameter dictionary.
+        with open(FLAGS.config, 'r') as stream:
+            batch_dict = yaml.safe_load(stream)
+    except yaml.YAMLError:
+        print("Error: Coudn't properly parse the {} batch configuration file".format(FLAGS.config))
+        exit(-1)
+
+    # Get batch settings.
+    try:
+        experiment_repetitions = batch_dict['batch_settings']['experiment_repetitions']
+        max_concurrent_runs = batch_dict['batch_settings']['max_concurrent_runs']
+    except:
+        print("Error: The 'batch_settings' section must define 'experiment_repetitions' and 'max_concurrent_runs'")
+        exit(-1)
+
+    # Check the presence of batch_overwrite section.
+    if 'batch_overwrite' not in batch_dict:
+        batch_overwrite_filename = None
+    else:
+        # Create temporary file with settings that will be overwritten for all tasks.
+        batch_overwrite_file = NamedTemporaryFile(mode='w')
+        yaml.dump(batch_dict['batch_overwrite'], batch_overwrite_file, default_flow_style=False)
+        batch_overwrite_filename = batch_overwrite_file.name
+
+    # Check the presence of tasks section.
+    if 'batch_tasks' not in batch_dict:
+        print("Error: Batch configuration is lacking the 'batch_tasks' section")
+        exit(-1)
+
+    # Create a configuration specific to this batch trainer: set seeds to random and cuda to false.
+    gpu_batch_trainer_default_params = {"training": {"seed_numpy": -1, "seed_torch": -1, "cuda": True}}
+    # Create temporary file
+    cpu_batch_trainer_default_params_file = NamedTemporaryFile(mode='w')
+    yaml.dump(gpu_batch_trainer_default_params, cpu_batch_trainer_default_params_file, default_flow_style=False)
+
+    configs = []
+    # Iterate through batch tasks.
+    for task in batch_dict['batch_tasks']:
+        try:
+            # Retrieve the config(s).
+            current_configs = cpu_batch_trainer_default_params_file.name + ',' + task['default_configs']
+            # Extend them by batch_overwrite.
+            if batch_overwrite_filename is not None:
+                current_configs = batch_overwrite_filename + ',' + current_configs
+            if 'overwrite' in task:
+                # Create temporary file with settings that will be overwritten only for that particular task.
+                overwrite_file = NamedTemporaryFile(mode='w')
+                yaml.dump(task['overwrite'], overwrite_file, default_flow_style=False)
+                current_configs = overwrite_file.name + ',' + current_configs
+
+            # Get list of configs that need to be loaded.
+            configs.append(current_configs)
+            print(current_configs)
+        except KeyError:
+            pass
+
+    # Create list of experiments by
     experiments_list = []
-    for _ in range(EXPERIMENT_REPETITIONS):
-        experiments_list.extend(yaml_files)
+    for _ in range(experiment_repetitions):
+        experiments_list.extend(configs)
 
     # Run in as many threads as there are CPUs available to the script
-#    with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
- #       pool.map(run_experiment, experiments_list)
+    # with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
+    # pool.map(run_experiment, experiments_list)
     with ThreadPool(processes=MAX_THREADS) as pool:
         thread_results = []  # This contains a list of `AsyncResult` objects. To check if completed and get result.
 
@@ -50,64 +118,22 @@ def main():
         for r in thread_results:
             r.wait()
 
-def run_experiment(yaml_file_path: str):
-    # Load template yaml file
-    with open(yaml_file_path, 'r') as yaml_file:
-        params = yaml.load(yaml_file)
 
-    # Change some params to random ones with specified ranges
-    params['settings']['loss_stop'] = 1.E-5
-    params['settings']['max_episodes'] = 100000
-    params['problem_train']['cuda'] = True
-    params['problem_test']['cuda'] = True
-    params['problem_train']['control_bits'] = 3
-    params['problem_validation']['control_bits'] = 3
-    params['problem_test']['control_bits'] = 3
-    params['problem_train']['min_sequence_length'] = 3
-    params['problem_train']['max_sequence_length'] = 20
-    params['problem_train']['curriculum_learning']['interval'] = 500
-    params['problem_train']['curriculum_learning']['initial_max_sequence_length'] = 5
-    params['problem_validation']['min_sequence_length'] = 21
-    params['problem_validation']['max_sequence_length'] = 21
-    params['problem_test']['min_sequence_length'] = 1000
-    params['problem_test']['max_sequence_length'] = 1000
-    
-    params['problem_validation']['frequency'] = 1000
-    params['model']['num_layers'] = 3
-    params['model']['hidden_state_dim'] = 512
-    try:
-        params['model']['memory']['num_content_bits'] = 15
-    except KeyError:
-        pass
-    try:
-        params['model']['memory_content_size'] = 15
-    except KeyError:
-        pass
+def run_experiment(experiment_configs: str):
+    """ Runs the experiment.
 
-    try:
-        params['model']['num_control_bits'] = 3
-    except KeyError:
-        pass
-    try:
-        params['model']['control_bits'] = 3
-    except KeyError:
-        pass
+    :param experiment_configs: List of configs (separated with coma) that will be passed to trainer.
+    """
 
+    command_str = "cuda-gpupick -n1 python3 trainer.py --c {0}".format(experiment_configs)
 
-    params['settings']['seed_numpy'] = randrange(0, 2**32)
-    params['settings']['seed_torch'] = randrange(0, 2**32)
+    print("Starting: ", command_str)
+    with open(os.devnull, 'w') as devnull:
+        result = subprocess.run(command_str, shell=True, stdout=devnull)
+    print("Finished: ", command_str)
 
-    # Create temporary file, in which we dump the modified params dict as yaml
-    with NamedTemporaryFile(mode='w') as temp_yaml:
-        yaml.dump(params, temp_yaml, default_flow_style=False)
-
-        command_str = "cuda-gpupick -n1 python3 train.py --c {0}".format(temp_yaml.name).split()
-
-        with open(os.devnull, 'w') as devnull:
-            result = subprocess.run(command_str, stdout=devnull)
-
-        if result.returncode != 0:
-            print("Training exited with code:", result.returncode)
+    if result.returncode != 0:
+        print("Training exited with code:", result.returncode)
 
 
 if __name__ == '__main__':

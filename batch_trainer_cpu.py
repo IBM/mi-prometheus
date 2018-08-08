@@ -5,7 +5,7 @@ It works by loading a template yaml file, modifying the resulting dict, and dump
 temporary file. The `train.py` script is then launched using the temporary yaml file as the task.
 It will run as many concurrent jobs as possible.
 """
-__author__      = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
+__author__= "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
 
 
 import os
