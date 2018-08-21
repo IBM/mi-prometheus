@@ -29,3 +29,7 @@ __pycache__*
 *.swp
 *.vector_cache
 !.gitignore
+problems/.DS_Store
+problems/image_text_to_class/.DS_Store
+problems/image_text_to_class/CLEVR_v1.0
+CLEVR_v1.0/

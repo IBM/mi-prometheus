@@ -28,7 +28,7 @@ class ModelFactory(object):
 
         # Try to load model
         name = params['name']
-        print(name)
+
         if name == 'dnc':
             logger.info('Loading the DNC model from models.dnc.dnc_model')
             sys.path.append(os.path.join(os.path.dirname(__file__),  'dnc'))
@@ -107,5 +107,9 @@ class ModelFactory(object):
             logger.info('Loading the RelationalNetwork model from models.relational_net.relational_network')
             from models.relational_net.relational_network import RelationalNetwork
             return RelationalNetwork(params)
+        elif name == 'mac':
+            logger.info('Loading the MAC model from models.mac.model')
+            from models.mac.model import MACNetwork
+            return MACNetwork(params)
         else:
             raise ValueError

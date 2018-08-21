@@ -187,7 +187,7 @@ if __name__ == '__main__':
 
     # Run test
     with torch.no_grad():
-        for episode, (data_tuple, aux_tuple)  in enumerate(problem.return_generator()):
+        for episode, (data_tuple, aux_tuple) in enumerate(problem.return_generator()):
 
             logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple)
 
@@ -204,5 +204,6 @@ if __name__ == '__main__':
                 is_closed = model.plot(data_tuple,  logits)
                 if is_closed:
                     break
-            else:
+            elif episode == param_interface["testing"]["problem"]["max_test_episodes"]:
                 break
+

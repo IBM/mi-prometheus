@@ -3,10 +3,20 @@
 """image_text_to_class_problem.py: contains abstract base class for VQA problems"""
 __author__      = "Tomasz Kornuta & Vincent Albouy"
 
+
+import json
+import numpy as np
+import os
+import re
+from PIL import Image
+import torch
+from tqdm import tqdm
 import collections
 import torch.nn as nn
-
+import torch.nn.functional as F
 from problems.problem import Problem, DataTuple
+from torch.utils.data import Dataset
+from problems.utils.language import Language
 
 
 _ImageTextTuple = collections.namedtuple('ImageTextTuple', ('images', 'texts'))
@@ -51,14 +61,14 @@ class ImageTextToClassProblem(Problem):
     def calculate_accuracy(self, data_tuple, logits, _):
         """ Calculates accuracy equal to mean number of correct answers in a given batch.
         WARNING: Applies mask (from aux_tuple) to logits!
-        
+
         :param logits: Logits being output of the model.
         :param data_tuple: Data tuple containing inputs and targets.
-        :param _: auxiliary tuple (aux_tuple) is not used in this function. 
+        :param _: auxiliary tuple (aux_tuple) is not used in this function.
         """
 
         # Get the index of the max log-probability.
-        pred = logits.max(1, keepdim=True)[1]  
+        pred = logits.max(1, keepdim=True)[1]
         correct = pred.eq(data_tuple.targets.view_as(pred)).sum().item()
 
         # Calculate the accuracy.
@@ -106,5 +116,3 @@ class ImageTextToClassProblem(Problem):
         data_tuple = DataTuple(gpu_inputs, gpu_targets)
 
         return data_tuple, aux_tuple
-
-

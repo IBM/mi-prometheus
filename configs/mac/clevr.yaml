@@ -1,0 +1,63 @@
+training:
+    cuda: True
+    # Problem parameters:
+    problem:
+        name: &name clevr
+        batch_size: &b 64
+        CLEVR_dir: &dir '/home/valbouy/CLEVR_v1.0' # magellan server
+        set: 'train'
+        clevr_humans: False
+        embedding_type: &emb 'random'
+        random_embedding_dim: &red 300
+
+    # Set optimizer.
+    optimizer:
+        name: Adam
+        lr: 1.0e-4
+    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
+    gradient_clipping: 10
+    # Terminal condition parameters:
+    terminal_condition:
+        loss_stop: 0.03
+        max_episodes: 220000  # approx 20 epochs with batch_size of 64
+
+    # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0
+
+testing:
+    cuda: True
+    # Problem parameters:
+    problem:
+        name: *name
+        batch_size: *b
+        CLEVR_dir: *dir
+        set: 'val'
+        clevr_humans: False
+        embedding_type: *emb
+        random_embedding_dim: *red
+        max_test_episodes: 3
+
+validation:
+    cuda: True
+    # Problem parameters:
+    problem:
+        name: *name
+        batch_size: *b
+        CLEVR_dir: *dir
+        set: 'val'
+        clevr_humans: False
+        embedding_type: *emb
+        random_embedding_dim: *red
+
+
+# Model parameters:
+model:
+    name: mac
+    dim: 512
+    embed_hidden: 300
+    max_step: 12
+    self_attention: False
+    memory_gate: False
+    nb_classes: 28
+    dropout: 0.15
