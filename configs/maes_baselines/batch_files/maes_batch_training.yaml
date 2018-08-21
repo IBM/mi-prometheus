@@ -65,6 +65,6 @@ batch_overwrite:
   
 batch_settings:
   # Number of times each task will be repeated.
-  experiment_repetitions: 2
+  experiment_repetitions: 3
   # Max runs (that will be limited by the actual number of available CPUs/GPUs)
-  max_concurrent_runs: 2
+  max_concurrent_runs: 7 
