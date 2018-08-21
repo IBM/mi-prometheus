@@ -100,7 +100,7 @@ def main():
     for _ in range(experiment_repetitions):
         experiments_list.extend(configs)
 
-    # Run in as many threads as there are CPUs available to the script
+    # Run in as many threads as there are GPUs available to the script
     # with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
     # pool.map(run_experiment, experiments_list)
     with ThreadPool(processes=max_concurrent_runs) as pool:
