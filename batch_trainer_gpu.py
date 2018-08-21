@@ -1,12 +1,11 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""batch_trainer_cpu.py: File contains implementation of a worker realising batch training using CPUs.
+"""
+This scripts does a random search on DNC's hyper parameters.
 It works by loading a template yaml file, modifying the resulting dict, and dumping that as yaml into a
 temporary file. The `train.py` script is then launched using the temporary yaml file as the task.
 It will run as many concurrent jobs as possible.
 """
-__author__= "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
 
+__author__= "Alexis Asseman, Younes Bouhadjar"
 
 import os
 import sys
@@ -14,9 +13,8 @@ import yaml
 from tempfile import NamedTemporaryFile
 from multiprocessing.pool import ThreadPool
 import subprocess
+from time import sleep
 import argparse
-
-
 
 def main():
     # Create parser with list of  runtime arguments.
@@ -35,7 +33,7 @@ def main():
     # Check if file exists.
     if not os.path.isfile(FLAGS.config):
         print('Error: Batch configuration file {} does not exist'.format(FLAGS.config))
-        #raise Exception('Error: Configuration file {} does not exist'.format(config))
+        # raise Exception('Error: Configuration file {} does not exist'.format(config))
         exit(-1)
 
     try:
@@ -53,7 +51,7 @@ def main():
     except:
         print("Error: The 'batch_settings' section must define 'experiment_repetitions' and 'max_concurrent_runs'")
         exit(-1)
-        
+
     # Check the presence of batch_overwrite section.
     if 'batch_overwrite' not in batch_dict:
         batch_overwrite_filename = None
@@ -69,20 +67,22 @@ def main():
         exit(-1)
 
     # Create a configuration specific to this batch trainer: set seeds to random and cuda to false.
-    cpu_batch_trainer_default_params = { "training": {"seed_numpy": -1, "seed_torch": -1, "cuda": False} }
+    gpu_batch_trainer_default_params = {"training": {"seed_numpy": -1, "seed_torch": -1, "cuda": True}}
     # Create temporary file
-    cpu_batch_trainer_default_params_file = NamedTemporaryFile(mode='w')
-    yaml.dump(cpu_batch_trainer_default_params, cpu_batch_trainer_default_params_file, default_flow_style=False)
-
+    gpu_batch_trainer_default_params_file = NamedTemporaryFile(mode='w')
+    yaml.dump(gpu_batch_trainer_default_params, gpu_batch_trainer_default_params_file, default_flow_style=False)
+    
+        
+ 
     configs = []
     # Iterate through batch tasks.
     for task in batch_dict['batch_tasks']:
         try:
             # Retrieve the config(s).
-            current_configs = cpu_batch_trainer_default_params_file.name + ',' + task['default_configs']
+            current_configs = gpu_batch_trainer_default_params_file.name + ',' + task['default_configs']
             # Extend them by batch_overwrite.
             if batch_overwrite_filename is not None:
-                    current_configs = batch_overwrite_filename + ',' + current_configs
+                current_configs = batch_overwrite_filename + ',' + current_configs
             if 'overwrite' in task:
                 # Create temporary file with settings that will be overwritten only for that particular task.
                 overwrite_file = NamedTemporaryFile(mode='w')
@@ -93,31 +93,44 @@ def main():
             configs.append(current_configs)
             print(current_configs)
         except KeyError:
-            pass   
+            pass
 
-    # Create list of experiments by 
+    # Create list of experiments by
     experiments_list = []
     for _ in range(experiment_repetitions):
         experiments_list.extend(configs)
 
     # Run in as many threads as there are CPUs available to the script
-    max_processes = min(len(os.sched_getaffinity(0)), max_concurrent_runs)
-    with ThreadPool(processes=max_processes) as pool:
-        #print("{}: {}".format(os.path.exists(f.name)))
-        pool.map(run_experiment, experiments_list)
+    # with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
+    # pool.map(run_experiment, experiments_list)
+    with ThreadPool(processes=max_concurrent_runs) as pool:
+        thread_results = []  # This contains a list of `AsyncResult` objects. To check if completed and get result.
+
+        for task in experiments_list:
+            thread_results.append(pool.apply_async(run_experiment, (task,)))
+            print("Started training", task)
+
+            # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
+            sleep(3)
+            while [r.ready() for r in thread_results].count(False) >= max_concurrent_runs:
+                sleep(3)
+
+        # Equivalent of what would usually be called "join" for threads
+        for r in thread_results:
+            r.wait()
 
 
 def run_experiment(experiment_configs: str):
     """ Runs the experiment.
-    
+
     :param experiment_configs: List of configs (separated with coma) that will be passed to trainer.
     """
 
-    command_str = "python3 trainer.py --c {0}".format(experiment_configs)
+    command_str = "cuda-gpupick -n1 python3 trainer.py --c {0}".format(experiment_configs)
 
     print("Starting: ", command_str)
     with open(os.devnull, 'w') as devnull:
-        result = subprocess.run(command_str, shell=True, stdout=devnull) 
+        result = subprocess.run(command_str, shell=True, stdout=devnull)
     print("Finished: ", command_str)
 
     if result.returncode != 0:
