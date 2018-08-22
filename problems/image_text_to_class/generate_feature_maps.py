@@ -59,6 +59,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
 
 from misc.app_state import AppState
 app_state = AppState()
+import logging
+logger = logging.getLogger('CLEVR')
 
 
 class GenerateFeatureMaps(Dataset):
@@ -78,7 +80,7 @@ class GenerateFeatureMaps(Dataset):
         """
         # we only authorize the images processing on GPU.
         if not torch.cuda.is_available():
-            print('\nWARNING: CUDA IS NOT AVAILABLE. NOT AUTHORIZING DO FEATURE MAPS EXTRACTION. EXITING.')
+            logger.error('WARNING: CUDA IS NOT AVAILABLE. NOT AUTHORIZING DO FEATURE MAPS EXTRACTION. EXITING.')
             exit(1)
 
         # call base constructor

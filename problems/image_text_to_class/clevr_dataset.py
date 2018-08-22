@@ -59,6 +59,9 @@ from problems.utils.language import Language
 from misc.app_state import AppState
 app_state = AppState()
 
+import logging
+logger = logging.getLogger('CLEVR')
+
 
 class CLEVRDataset(Dataset):
     """
@@ -105,25 +108,24 @@ class CLEVRDataset(Dataset):
         self.random_embedding_dim = random_embedding_dim
 
         if self.set == 'test':
-            print('Test set generation not supported for now. Exiting.')
+            logger.error('Test set generation not supported for now. Exiting.')
             exit(0)
 
-        print('\n----------------------------------------------------------------------------------------------')
-        print('Loading the {} samples from {}'.format(set, 'CLEVR-Humans' if self.clevr_humans else 'CLEVR'))
+        logger.info('Loading the {} samples from {}'.format(set, 'CLEVR-Humans' if self.clevr_humans else 'CLEVR'))
 
         # check if the folder /generated_files in self.clevr already exists, if not creates it:
         if not os.path.isdir(self.clevr_dir + '/generated_files'):
-            print('--> Folder {} not found, creating it.'.format(self.clevr_dir + '/generated_files'))
+            logger.warning('Folder {} not found, creating it.'.format(self.clevr_dir + '/generated_files'))
             os.mkdir(self.clevr_dir + '/generated_files')
 
         # checking if the file containing the images feature maps (processed by ResNet101) exists or not
         # For the same self.set, this file is the same for CLEVR & CLEVR-Humans
         feature_maps_filename = self.clevr_dir + '/generated_files/{}_CLEVR_features.hdf5'.format(self.set)
         if os.path.isfile(feature_maps_filename):
-            print('--> The file {} already exists, loading it.'.format(feature_maps_filename))
+            logger.info('The file {} already exists, loading it.'.format(feature_maps_filename))
 
         else:
-            print('--> File {} not found on disk, generating it:'.format(feature_maps_filename))
+            logger.warning('File {} not found on disk, generating it:'.format(feature_maps_filename))
             self.generate_feature_maps_file(feature_maps_filename)
 
         # actually load the file
@@ -133,7 +135,7 @@ class CLEVRDataset(Dataset):
         # checking if the file containing the tokenized questions (& answers, image filename) exists or not
         questions_filename = self.clevr_dir + '/generated_files/{}_{}_questions.pkl'.format(self.set, 'CLEVR_Humans' if self.clevr_humans else 'CLEVR')
         if os.path.isfile(questions_filename):
-            print('\n--> The file {} already exists, loading it.'.format(questions_filename))
+            logger.info('The file {} already exists, loading it.'.format(questions_filename))
 
             # load questions
             with open(questions_filename, 'rb') as questions:
@@ -146,21 +148,21 @@ class CLEVRDataset(Dataset):
                 self.word_dic = dic['word_dic']
 
         else:
-            print('\n--> File {} not found on disk, generating it.'.format(questions_filename))
+            logger.warning('File {} not found on disk, generating it.'.format(questions_filename))
 
             # WARNING: We need to ensure that we use the same words & answers dics for both train & val, otherwise we
             # do not have the same reference!
             if self.set == 'val':
                 # first generate the words dic using the training samples
-                print('INFO: We need to ensure that we use the same words-to-index & answers-to-index dictionaries for '
-                      'both the train & val samples.')
-                print('--> First, generating the words-to-index & answers-to-index dictionaries from '
-                      'the training samples :')
+                logger.warning('We need to ensure that we use the same words-to-index & answers-to-index dictionaries '
+                               'for both the train & val samples.')
+                logger.warning('First, generating the words-to-index & answers-to-index dictionaries from '
+                               'the training samples :')
                 _, self.word_dic, self.answer_dic = self.generate_questions_dics('train', word_dic=None, answer_dic=None)
 
                 # then tokenize the questions using the created dictionaries from the training samples
-                print('--> Then we can tokenize the validation questions using the dictionaries '
-                      'created from the training samples')
+                logger.warning('Then we can tokenize the validation questions using the dictionaries '
+                               'created from the training samples')
                 self.data, self.word_dic, self.answer_dic = self.generate_questions_dics('val', word_dic=self.word_dic,
                                                                                          answer_dic=self.answer_dic)
 
@@ -171,25 +173,26 @@ class CLEVRDataset(Dataset):
 
         # creates the objects for the specified embeddings
         if self.embedding_type == 'random':
-            print('\nConstructing random embeddings using a uniform distribution')
+            logger.info('Constructing random embeddings using a uniform distribution')
             # instantiate nn.Embeddings look-up-table with specified embedding_dim
             self.n_vocab = len(self.word_dic)+1
             self.embed_layer = torch.nn.Embedding(num_embeddings=self.n_vocab, embedding_dim=self.random_embedding_dim)
 
             # we have to make sure that the weights are the same during train or val!
             if os.path.isfile(self.clevr_dir + '/generated_files/random_embedding_weights.pkl'):
-                print('Found random embedding weights on file, using them.')
+                logger.info('Found random embedding weights on file, using them.')
                 with open(self.clevr_dir + '/generated_files/random_embedding_weights.pkl', 'rb') as f:
                     self.embed_layer.weight.data = pickle.load(f)
             else:
-                print('No weights found on file for random embeddings. Initializing them from a Uniform distribution'
-                      ' and saving to file in {}'.format(self.clevr_dir + '/generated_files/random_embedding_weights.pkl'))
+                logger.warning('No weights found on file for random embeddings. Initializing them from a Uniform '
+                               'distribution and saving to file in {}'.format(self.clevr_dir +
+                                                                              '/generated_files/random_embedding_weights.pkl'))
                 self.embed_layer.weight.data.uniform_(0, 1)
                 with open(self.clevr_dir + '/generated_files/random_embedding_weights.pkl', 'wb') as f:
                     pickle.dump(self.embed_layer.weight.data, f)
 
         else:
-            print('\nConstructing embeddings using {}'.format(self.embedding_type))
+            logger.info('Constructing embeddings using {}'.format(self.embedding_type))
             # instantiate Language class
             self.language = Language('lang')
             self.questions = [q['string_question'] for q in self.data]
@@ -230,9 +233,9 @@ class CLEVRDataset(Dataset):
         question_file = os.path.join(self.clevr_dir, 'questions', 'CLEVR-Humans-{}.json'.format(set) if self.clevr_humans
                                             else 'CLEVR_{}_questions.json'.format(set))
         with open(question_file) as f:
-            print('     Loading samples from {} ...'.format(question_file))
+            logger.info('Loading samples from {} ...'.format(question_file))
             data = json.load(f)
-        print('     Loaded {} samples'.format(len(data['questions'])))
+        logger.info('Loaded {} samples'.format(len(data['questions'])))
 
         # load the dictionary question_family_type -> question_type: Will allow to plot the accuracy per question category
         with open(os.path.join(self.clevr_dir, 'questions/index_to_family.json')) as f:
@@ -243,7 +246,7 @@ class CLEVRDataset(Dataset):
         word_index = 1  # 0 reserved for padding
         answer_index = 0
 
-        print('     Constructing {} words dictionary:'.format(set))
+        logger.info('Constructing {} words dictionary:'.format(set))
         for question in tqdm.tqdm(data['questions']):
             words = nltk.word_tokenize(question['question'])
             question_token = []
@@ -271,7 +274,7 @@ class CLEVRDataset(Dataset):
                            'string_question': question['question'], 'imgfile': question['image_filename'],
                            'question_type': index_to_family[str(question['question_family_index'])]})
 
-        print('     Done: constructed words dictionary of length {}, and answers dictionary of length {}'.format(len(word_dic),
+        logger.info('Done: constructed words dictionary of length {}, and answers dictionary of length {}'.format(len(word_dic),
                                                                                                             len(answer_dic)))
         # save result to file
         questions_filename = self.clevr_dir + '/generated_files/{}_{}_questions.pkl'.format(set,
@@ -279,12 +282,12 @@ class CLEVRDataset(Dataset):
         with open(questions_filename, 'wb') as f:
             pickle.dump(result, f)
 
-        print('     Saved tokenized questions to file {}.'.format(questions_filename))
+        logger.warning('Saved tokenized questions to file {}.'.format(questions_filename))
 
         # save dictionaries to file:
         with open(self.clevr_dir + '/generated_files/dics.pkl', 'wb') as f:
             pickle.dump({'word_dic': word_dic, 'answer_dic': answer_dic}, f)
-        print('     Saved dics to file {}.'.format(self.clevr_dir + '/generated_files/dics.pkl'))
+        logger.warning('Saved dics to file {}.'.format(self.clevr_dir + '/generated_files/dics.pkl'))
 
         # return everything
         return result, word_dic, answer_dic
@@ -326,7 +329,7 @@ class CLEVRDataset(Dataset):
                 dset[i * batch_size:(i + 1) * batch_size] = features
 
         f.close()
-        print('--> File {} successfully created.'.format(feature_maps_filename))
+        logger.warning('File {} successfully created.'.format(feature_maps_filename))
 
     def __getitem__(self, index):
         """
