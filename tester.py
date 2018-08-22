@@ -151,7 +151,7 @@ if __name__ == '__main__':
     if "max_test_episodes" not in param_interface["testing"]["problem"] or param_interface["testing"]["problem"]["max_test_episodes"] == -1:
         max_test_episodes = 1
         param_interface['testing']['problem'].add_custom_params({'max_test_episodes': max_test_episodes})
-        logger.info("Setting the max number of episodes to: {}".format(param_interface["testing"]["problem"]["max_test_episodes"]))
+    logger.info("Setting the max number of episodes to: {}".format(param_interface["testing"]["problem"]["max_test_episodes"]))
 
     # Get problem and model names.
     try:
@@ -195,6 +195,9 @@ if __name__ == '__main__':
     with torch.no_grad():
         for episode, (data_tuple, aux_tuple) in enumerate(problem.return_generator()):
 
+            if episode == param_interface["testing"]["problem"]["max_test_episodes"]:
+                break
+
             logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple)
 
             # Log to logger.
@@ -210,6 +213,3 @@ if __name__ == '__main__':
                 is_closed = model.plot(data_tuple,  logits)
                 if is_closed:
                     break
-            elif episode == param_interface["testing"]["problem"]["max_test_episodes"]:
-                break
-
