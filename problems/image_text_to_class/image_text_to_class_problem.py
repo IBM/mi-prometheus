@@ -85,7 +85,7 @@ class ImageTextToClassProblem(Problem):
         """
         stat_col.add_statistic('acc', '{:12.10f}')
 
-    def collect_statistics(self, stat_col, data_tuple, logits,_):
+    def collect_statistics(self, stat_col, data_tuple, logits, _):
         """
         Collects accuracy.
 
@@ -94,8 +94,7 @@ class ImageTextToClassProblem(Problem):
         :param logits: Logits being output of the model.
         :param _: auxiliary tuple (aux_tuple) is not used in this function. 
         """
-        stat_col['acc'] = self.calculate_accuracy(data_tuple, logits,_)
-
+        stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, _)
 
     def turn_on_cuda(self, data_tuple, aux_tuple):
         """ Enables computations on GPU - copies the input and target matrices (from DataTuple) to GPU.
