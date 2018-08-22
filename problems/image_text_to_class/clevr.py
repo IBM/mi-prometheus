@@ -129,7 +129,6 @@ class CLEVR(ImageTextToClassProblem):
         tuple_list_categories = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]
 
         dic_categories = dict(zip(categories_list, tuple_list_categories))
-        print(dic_categories)
         for category in categories_list:
             for family in self.family_list:
                 if self.categories_transform[family] == category:
@@ -159,7 +158,8 @@ class CLEVR(ImageTextToClassProblem):
         :param logits: Logits being output of the model.
         :param _: auxiliary tuple (aux_tuple) is not used in this function. 
         """
-        stat_col['acc'] = self.calculate_accuracy(data_tuple, logits)
+        stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, aux_tuple)
+
 
         self.get_acc_per_family(data_tuple, aux_tuple, logits)
 
