@@ -145,7 +145,13 @@ if __name__ == '__main__':
     app_state = AppState()
 
     # check if CUDA is available turn it on
-    check_and_set_cuda(param_interface['testing'], logger) 
+    check_and_set_cuda(param_interface['testing'], logger)
+
+    # check if the maximum number of episodes is specified, if not put a default of 1
+    if "max_test_episodes" not in param_interface["testing"]["problem"] or param_interface["testing"]["problem"]["max_test_episodes"] == -1:
+        max_test_episodes = 1
+        param_interface['testing']['problem'].add_custom_params({'max_test_episodes': max_test_episodes})
+        logger.info("Setting the max number of episodes to: {}".format(param_interface["testing"]["problem"]["max_test_episodes"]))
 
     # Get problem and model names.
     try:
