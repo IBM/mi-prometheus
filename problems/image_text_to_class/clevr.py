@@ -106,7 +106,7 @@ class CLEVR(ImageTextToClassProblem):
         per family in self.dic (saved to file).
 
         :param data_tuple: DataTuple ((images, questions), targets)
-        :param aux_tuple: (s_questions, indexes, imgfiles, question_types)
+        :param aux_tuple: (questions_strings, questions_indexes, images_filenames, question_types)
         :param logits: network predictions.
         """
 
@@ -143,13 +143,13 @@ class CLEVR(ImageTextToClassProblem):
                     dic_categories[category][0] += self.dic[family][0]
                     dic_categories[category][1] += self.dic[family][1]
 
+        for category in categories_list:
             if dic_categories[category][1] == 0:
-                print('Category: {} - Acc: No questions of this type'.format(category))
+                print('Category: {} - Acc: No questions!'.format(category))
 
             else:
                 category_accuracy = (dic_categories[category][0]) / (dic_categories[category][1])
-                print('Category: {} - Acc: {} - Total # of questions: {}'.format(category, category_accuracy,
-                                                                                 dic_categories[category][1]))
+                print('Category: {} - Acc: {} - Total # of questions: {}'.format(category, category_accuracy, dic_categories[category][1]))
 
         with open(self.clevr_dir + '/generated_files/families_acc.csv', 'w') as csv_file:
             writer = csv.writer(csv_file)
@@ -165,6 +165,8 @@ class CLEVR(ImageTextToClassProblem):
         :param _: auxiliary tuple (aux_tuple) is not used in this function. 
         """
         stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, aux_tuple)
+
+
         self.get_acc_per_family(data_tuple, aux_tuple, logits)
 
     def generate_batch(self):
