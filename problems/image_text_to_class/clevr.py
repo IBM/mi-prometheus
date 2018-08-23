@@ -53,6 +53,7 @@ import torch
 
 # Add path to main project directory
 import os, sys
+import csv
 sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
 
 from problems.problem import DataTuple
@@ -83,7 +84,90 @@ class CLEVR(ImageTextToClassProblem):
         self.clevr_humans = params['clevr_humans']
         self.embedding_type = params['embedding_type']
         self.random_embedding_dim = params['random_embedding_dim']
+
+        # instantiate CLEVRDataset class
         self.clevr_dataset = CLEVRDataset(self.set, self.clevr_dir, self.clevr_humans, self.embedding_type, self.random_embedding_dim)
+
+        # to compute the accuracy per family
+        self.family_list = ['query_size', 'equal_size', 'query_shape', 'query_color', 'greater_than', 'equal_material',
+                            'equal_color', 'equal_shape', 'less_than', 'count', 'exist', 'equal_integer', 'query_material']
+        self.tuple_list = [[0, 0] for _ in range(len(self.family_list))]
+        self.dic = dict(zip(self.family_list, self.tuple_list))
+        self.categories_transform = {'query_size': 'query_attribute', 'equal_size': 'compare_attribute',
+                                     'query_shape': 'query_attribute', 'query_color': 'query_attribute',
+                                     'greater_than': 'compare_integer', 'equal_material': 'compare_attribute',
+                                     'equal_color': 'compare_attribute', 'equal_shape': 'compare_attribute',
+                                     'less_than': 'compare_integer', 'count': 'count', 'exist': 'exist',
+                                     'equal_integer': 'compare_integer', 'query_material': 'query_attribute'}
+
+    def get_acc_per_family(self, data_tuple, aux_tuple, logits):
+        """
+        Compute the accuracy per family for the current batch. Also accumulates the # of correct predictions & questions
+        per family in self.dic (saved to file).
+
+        :param data_tuple: DataTuple ((images, questions), targets)
+        :param aux_tuple: (questions_strings, questions_indexes, images_filenames, question_types)
+        :param logits: network predictions.
+        """
+
+        # get correct predictions
+        pred = logits.max(1, keepdim=True)[1]
+        correct = pred.eq(data_tuple.targets.view_as(pred))
+
+        # unpack aux_tuple
+        (s_questions, indexes, imgfiles, question_types) = aux_tuple
+        print('\n')
+        for i in range(correct.size(0)):
+            # update # of questions for the corresponding family
+            self.dic[question_types[i]][1] += 1
+
+            if correct[i] == 1:
+                # update the # of correct predictions for the corresponding family
+                self.dic[question_types[i]][0] += 1
+
+        for family in self.family_list:
+            if self.dic[family][1] == 0:
+                print('Family: {} - Acc: No questions!'.format(family))
+
+            else:
+                family_accuracy = (self.dic[family][0]) / (self.dic[family][1])
+                print('Family: {} - Acc: {} - Total # of questions: {}'.format(family, family_accuracy, self.dic[family][1]))
+
+        categories_list = ['query_attribute', 'compare_integer', 'count', 'compare_attribute', 'exist']
+        tuple_list_categories = [[0, 0] for _ in range(len(categories_list))]
+        dic_categories = dict(zip(categories_list, tuple_list_categories))
+        print('\n')
+        for category in categories_list:
+            for family in self.family_list:
+                if self.categories_transform[family] == category:
+                    dic_categories[category][0] += self.dic[family][0]
+                    dic_categories[category][1] += self.dic[family][1]
+
+        for category in categories_list:
+            if dic_categories[category][1] == 0:
+                print('Category: {} - Acc: No questions!'.format(category))
+
+            else:
+                category_accuracy = (dic_categories[category][0]) / (dic_categories[category][1])
+                print('Category: {} - Acc: {} - Total # of questions: {}'.format(category, category_accuracy, dic_categories[category][1]))
+
+        with open(self.clevr_dir + '/generated_files/families_acc.csv', 'w') as csv_file:
+            writer = csv.writer(csv_file)
+            for key, value in self.dic.items():
+                writer.writerow([key, value])
+
+    def collect_statistics(self, stat_col, data_tuple, logits, aux_tuple):
+        """
+        Collects accuracy.
+        :param stat_col: Statistics collector.
+        :param data_tuple: Data tuple containing inputs and targets.
+        :param logits: Logits being output of the model.
+        :param _: auxiliary tuple (aux_tuple) is not used in this function. 
+        """
+        stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, aux_tuple)
+
+
+        self.get_acc_per_family(data_tuple, aux_tuple, logits)
 
     def generate_batch(self):
         """
@@ -92,7 +176,7 @@ class CLEVR(ImageTextToClassProblem):
         WARNING: WE PASS THE QUESTIONS LENGTH INTO THE DATATUPLE!
 
         :return: - data_tuple: (((images, questions), questions_len), answers)
-                 - aux_tuple: (questions_strings, questions_indexes, images_filenames) (visualization)
+                 - aux_tuple: (questions_strings, questions_indexes, images_filenames, question_types) (visualization)
         """
 
         clevr_loader = DataLoader(self.clevr_dataset, batch_size=self.batch_size, collate_fn=self.clevr_dataset.collate_data,
