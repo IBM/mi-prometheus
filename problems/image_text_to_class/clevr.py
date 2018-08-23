@@ -91,7 +91,7 @@ class CLEVR(ImageTextToClassProblem):
         # to compute the accuracy per family
         self.family_list = ['query_size', 'equal_size', 'query_shape', 'query_color', 'greater_than', 'equal_material',
                             'equal_color', 'equal_shape', 'less_than', 'count', 'exist', 'equal_integer', 'query_material']
-        self.tuple_list = [[0, 0]] * len(self.family_list)
+        self.tuple_list = [[0, 0] for _ in range(len(self.family_list))]
         self.dic = dict(zip(self.family_list, self.tuple_list))
         self.categories_transform = {'query_size': 'query_attribute', 'equal_size': 'query_attribute',
                                      'query_shape': 'query_attribute', 'query_color': 'query_attribute',
@@ -116,7 +116,7 @@ class CLEVR(ImageTextToClassProblem):
 
         # unpack aux_tuple
         (s_questions, indexes, imgfiles, question_types) = aux_tuple
-
+        print('\n')
         for i in range(correct.size(0)):
             # update # of questions for the corresponding family
             self.dic[question_types[i]][1] += 1
@@ -134,9 +134,9 @@ class CLEVR(ImageTextToClassProblem):
                 print('Family: {} - Acc: {} - Total # of questions: {}'.format(family, family_accuracy, self.dic[family][1]))
 
         categories_list = ['query_attribute', 'compare_integer', 'count', 'compare_attribute', 'exist']
-        tuple_list_categories = [[0, 0]] * len(categories_list)
+        tuple_list_categories = [[0, 0] for _ in range(len(categories_list))]
         dic_categories = dict(zip(categories_list, tuple_list_categories))
-
+        print('\n')
         for category in categories_list:
             for family in self.family_list:
                 if self.categories_transform[family] == category:
