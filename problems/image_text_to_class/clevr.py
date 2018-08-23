@@ -93,9 +93,9 @@ class CLEVR(ImageTextToClassProblem):
                             'equal_color', 'equal_shape', 'less_than', 'count', 'exist', 'equal_integer', 'query_material']
         self.tuple_list = [[0, 0] for _ in range(len(self.family_list))]
         self.dic = dict(zip(self.family_list, self.tuple_list))
-        self.categories_transform = {'query_size': 'query_attribute', 'equal_size': 'query_attribute',
+        self.categories_transform = {'query_size': 'query_attribute', 'equal_size': 'compare_attribute',
                                      'query_shape': 'query_attribute', 'query_color': 'query_attribute',
-                                     'greater_than': 'compare_integer', 'equal_material': 'compare_integer',
+                                     'greater_than': 'compare_integer', 'equal_material': 'compare_attribute',
                                      'equal_color': 'compare_attribute', 'equal_shape': 'compare_attribute',
                                      'less_than': 'compare_integer', 'count': 'count', 'exist': 'exist',
                                      'equal_integer': 'compare_integer', 'query_material': 'query_attribute'}
