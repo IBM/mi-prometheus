@@ -152,21 +152,22 @@ class CLEVRDataset(Dataset):
 
             # WARNING: We need to ensure that we use the same words & answers dics for both train & val, otherwise we
             # do not have the same reference!
-            if self.set == 'val':
+            if self.set == 'val' or self.set == 'valA' or self.set == 'valB':
                 # first generate the words dic using the training samples
                 logger.warning('We need to ensure that we use the same words-to-index & answers-to-index dictionaries '
                                'for both the train & val samples.')
                 logger.warning('First, generating the words-to-index & answers-to-index dictionaries from '
                                'the training samples :')
-                _, self.word_dic, self.answer_dic = self.generate_questions_dics('train', word_dic=None, answer_dic=None)
+                _, self.word_dic, self.answer_dic = self.generate_questions_dics('train' if self.set == 'val' else 'trainA',
+                                                                                 word_dic=None, answer_dic=None)
 
                 # then tokenize the questions using the created dictionaries from the training samples
                 logger.warning('Then we can tokenize the validation questions using the dictionaries '
                                'created from the training samples')
-                self.data, self.word_dic, self.answer_dic = self.generate_questions_dics('val', word_dic=self.word_dic,
+                self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set, word_dic=self.word_dic,
                                                                                          answer_dic=self.answer_dic)
 
-            else:  # self.set=='train', we can directly tokenize the questions
+            elif self.set == 'train' or self.set == 'trainA':  # self.set=='train', we can directly tokenize the questions
                 self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set, word_dic=None, answer_dic=None)
 
         # At this point, the objects self.img & self.data contains the feature maps & questions
