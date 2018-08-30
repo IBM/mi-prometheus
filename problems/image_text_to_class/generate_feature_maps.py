@@ -44,7 +44,8 @@
           - GenerateFeatureMaps: This class instantiates a specified pretrained CNN model to extract feature maps from
           images stored in the indicated directory. It also creates a DataLoader to generate batches of these images.
           This class is used in problems.image_text_to_class.new_clevr_dataset.generate_feature_maps_file.
-  """
+
+"""
 __author__ = "Vincent Marois"
 import torchvision
 from torchvision import transforms
