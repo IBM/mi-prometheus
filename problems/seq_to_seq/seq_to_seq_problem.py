@@ -41,6 +41,7 @@ class SeqToSeqProblem(Problem):
             masked_targets = data_tuple.targets            
 
         # Compute loss using the provided loss function between predictions/logits and targets!
-        loss = self.loss_function(masked_logits, masked_targets)
+        #loss = self.loss_function(masked_logits, masked_targets)
+        loss = self.loss_function(logits, data_tuple.targets, aux_tuple.mask)
 
         return loss
