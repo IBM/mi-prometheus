@@ -74,15 +74,10 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         """
 
         # Check if mask should be is used - if so, apply.
-        #if (self.use_mask):
-        #    masked_logits = logits[:, aux_tuple.mask[0], :]
-        #    masked_targets = data_tuple.targets[:, aux_tuple.mask[0], :]
-        #else:
-        #    masked_logits = logits
-        #    masked_targets = data_tuple.targets            
-
-        #return (1 - torch.abs(torch.round(F.sigmoid(masked_logits)) - masked_targets)).mean()
-        return self.loss_function.masked_accuracy(logits, data_tuple.targets, aux_tuple.mask)
+        if (self.use_mask):
+            return self.loss_function.masked_accuracy(logits, data_tuple.targets, aux_tuple.mask)
+        else: 
+            return (1 - torch.abs(torch.round(F.sigmoid(logits)) - targets)).mean()
 
     def turn_on_cuda(self, data_tuple, aux_tuple):
         """ Enables computations on GPU - copies all the matrices to GPU.
