@@ -77,7 +77,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         if (self.use_mask):
             return self.loss_function.masked_accuracy(logits, data_tuple.targets, aux_tuple.mask)
         else: 
-            return (1 - torch.abs(torch.round(F.sigmoid(logits)) - targets)).mean()
+            return (1 - torch.abs(torch.round(F.sigmoid(logits)) - data_tuple.targets)).mean()
 
     def turn_on_cuda(self, data_tuple, aux_tuple):
         """ Enables computations on GPU - copies all the matrices to GPU.
