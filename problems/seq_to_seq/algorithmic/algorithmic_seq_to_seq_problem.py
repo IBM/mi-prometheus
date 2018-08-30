@@ -40,8 +40,10 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         super(AlgorithmicSeqToSeqProblem, self).__init__(params)
 
         # Set default loss function - cross entropy.
-        #self.loss_function = nn.BCEWithLogitsLoss()
-        self.loss_function = MaskedBCEWithLogitsLoss()
+        if self.use_mask:
+            self.loss_function = MaskedBCEWithLogitsLoss()
+        else:
+            self.loss_function = nn.BCEWithLogitsLoss()
 
         # Extract "standard" list of parameters for algorithmic tasks.
         self.batch_size = params['batch_size']

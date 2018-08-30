@@ -32,16 +32,10 @@ class SeqToSeqProblem(Problem):
         :param data_tuple: Data tuple containing inputs and targets.
         :param aux_tuple: Auxiliary tuple containing mask.
         """
-        # Check if mask should be is used - if so, apply.
+        # Check if mask should be is used - if so, use the correct loss function.
         if (self.use_mask):
-            masked_logits = logits[:, aux_tuple.mask[0], :]
-            masked_targets = data_tuple.targets[:, aux_tuple.mask[0], :]
+            loss = self.loss_function(logits, data_tuple.targets, aux_tuple.mask)
         else:
-            masked_logits = logits
-            masked_targets = data_tuple.targets            
-
-        # Compute loss using the provided loss function between predictions/logits and targets!
-        #loss = self.loss_function(masked_logits, masked_targets)
-        loss = self.loss_function(logits, data_tuple.targets, aux_tuple.mask)
+            loss = self.loss_function(logits, data_tuple.targets)
 
         return loss
