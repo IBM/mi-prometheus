@@ -39,7 +39,6 @@ MI Prometheus is an open source Deep Learning Python library, built using Pytorc
 
    Code Coverage <python>
 
-.. include:: ../../README.rst
 
 Indices and tables
 ==================
