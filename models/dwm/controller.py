@@ -27,10 +27,11 @@ from controller_factory import ControllerFactory
 
 
 class Controller(nn.Module):
+    """ Implementation of the DWM controller """
     def __init__(self, in_dim, output_units, state_units,
                  read_size, update_size):
 
-        """Initialize the Controller.
+        """Constructor for the Controller.
 
         :param in_dim: input size.
         :param output_units: output size.
@@ -75,7 +76,7 @@ class Controller(nn.Module):
         """
         Returns 'zero' (initial) state tuple.
 
-        :param batch_size: Size of the batch in given iteraction/epoch.
+        :param batch_size: size of the batch in given iteraction/epoch.
         :returns: Initial state tuple - object of LSTMStateTuple class.
         """
 
@@ -83,16 +84,15 @@ class Controller(nn.Module):
 
     def forward(self, input, tuple_state_prev, read_data):
         """
-        Calculates the output, the hidden state and the controller parameters
-        
-        :param input of shape (batch_size, in_dim): Current input (from time t)
-        :param tuple_state_prev: (hidden_state) object of class RNNStateTuple.
-        hidden_state of shape (batch_size, state_units): Previous hidden state (from time t-1)
-        :param read_data of shape (batch_size, read_size): read data from memory (from time t)
+        Forward pass of the DWM controller, calculates the output, the hidden state and the interface parameters
 
-        :return: output of shape (batch_size, output_units)
-                 tuple_state: (new_hidden_state)
-                 update_data of shape (batch_size, update_size): contains all of the controller parameters
+        :param input: current input (from time t) [batch_size, in_dim]
+        :param tuple_state_prev: contains previous hidden state (from time t-1) [batch_size, state_units]
+        :param read_data: read data from memory (from time t) [batch_size, read_size]
+
+        :returns: output: logits represent the prediction [batch_size, output_units]
+                  tuple_state: contains new_hidden_state
+                  update_data: interface parameters [batch_size, update_size]
 
         """
         # Concatenate the 3 inputs to controller
@@ -109,5 +109,3 @@ class Controller(nn.Module):
         update_data = self.i2u(combined_with_state)
 
         return output, tuple_state, update_data
-
-

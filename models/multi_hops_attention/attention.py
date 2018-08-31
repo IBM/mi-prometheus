@@ -24,9 +24,12 @@ import torch.nn.functional as F
 
 
 class StackedAttention(nn.Module):
+    """
+    Implements a stacked attention layers, this attention was designed in this paper: https://arxiv.org/abs/1511.02274
+    """
     def __init__(self, question_image_encoding_size, key_query_size, num_att_layers=2):
-        """
-        Implements a stacked attention layers, this attention is designed in this paper: https://arxiv.org/abs/1511.02274
+        """"
+        Constructor for the StackedAttention model
 
         :param question_image_encoding_size: question encoding size.
         :param key_query_size: key and query size, are the same in this implementation
@@ -44,7 +47,7 @@ class StackedAttention(nn.Module):
 
         :param encoded_image: output of the image encoding (CNN + FC layer), [batch_size, new_width * new_height, num_channels_encoded_image]
         :param encoded_question: last hidden layer of the LSTM, [batch_size, question_encoding_size]
-        :return u: attention [batch_size, num_channels_encoded_image]
+        :returns: u: attention [batch_size, num_channels_encoded_image]
         """
 
         for att_layer in self.san:
@@ -54,9 +57,12 @@ class StackedAttention(nn.Module):
 
 
 class Attention(nn.Module):
+    """
+    Implements one layer of the stacked attention designed: https://arxiv.org/abs/1511.02274
+    """
     def __init__(self, question_image_encoding_size, key_query_size=512):
         """
-        Implements one layer of the stacked attention designed: https://arxiv.org/abs/1511.02274
+        Constructor of the Attention model
 
         :param question_image_encoding_size: question encoding size.
         :param key_query_size: key and query size, are the same in this implementation
@@ -76,7 +82,7 @@ class Attention(nn.Module):
 
         :param encoded_image: output of the image encoding (CNN + FC layer), [batch_size, new_width * new_height, num_channels_encoded_image]
         :param encoded_question: last hidden layer of the LSTM, [batch_size, question_encoding_size]
-        :return u: attention [batch_size, num_channels_encoded_image]
+        :returns: u: attention [batch_size, num_channels_encoded_image]
         """
 
         # Get the key

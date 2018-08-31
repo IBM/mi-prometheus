@@ -24,9 +24,12 @@ import torch.nn.functional as F
 import torchvision
 
 class ImageEncoding(nn.Module):
+    """
+    Image encoding using 4 convolutional layers with batch normalization, it was designed specifically for sort of clevr https://arxiv.org/abs/1706.01427
+    """
     def __init__(self):
         """
-        Image encoding using 4 convolutional layers with batch normalization, it was designed specifically for sort of clevr https://arxiv.org/abs/1706.01427
+        Constructor of the ImageEncoding class
         """
 
         super(ImageEncoding, self).__init__()
@@ -71,9 +74,15 @@ class ImageEncoding(nn.Module):
 
 
 class PretrainedImageEncoding(nn.Module):
+    """
+    Image encoding using pretrained resnetXX from torchvision
+    """
     def __init__(self, cnn_model = 'resnet18', num_blocks = 2):
         """
-        Image encoding using pretrained resnetXX from torchvision
+        Constructor of the PretrainedImageEncoding class
+
+        :param cnn_model: select which resnet pretrained model to load
+        :param num_blocks: num of resnet blocks to be used
         """
 
         super(PretrainedImageEncoding, self).__init__()
