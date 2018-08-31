@@ -3,6 +3,9 @@ How to keep this documentation up to date ?
 **It is of high priority that the documentation of MI Prometheus is kept up-to-date as the code base evolves.
 Good code without good documentation is not useful!**
 
+Guidelines & examples
+-------------------------------------------
+
 Here is a quick how-to guide on how to keep this documentation up-to-date.
 
 - The documentation source files are contained in `mi-prometheus/docs/source`. This directory contains:
@@ -21,31 +24,31 @@ The `.rst` files are written using the reStructuredText plaintext markup syntax.
 
 ::
 
-    Models
-    ========
+    Models  # This is a title
+    =============================
 
     .. automodule:: models
     .. currentmodule:: models
 
-    Model
-    ----------
+    Model  # this is a subtitle
+    ---------------------------------
 
     .. autoclass:: Model
         :members:
 
-    :hidden:`CNN_LSTM_VQA`
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    :hidden:`CNN_LSTM_VQA`  # this is a subsubtitle
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     .. automodule:: models.cnn_lstm_vqa
         :members:
 
-    SequentialModel
-    ----------------------
+    SequentialModel # this is a subtitle
+    ----------------------------------------
     ..  currentmodule:: models
     .. autoclass:: SequentialModel
         :members:
 
-    :hidden:`DWM`
-    ~~~~~~~~~~~~~~~~
+    :hidden:`DWM` # this is a subsubtitle
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     .. automodule:: models.dwm
         :members:
 
@@ -56,7 +59,7 @@ Do not hesitate to frequently to refer to the reStructuredText guide_ for more i
 
 When adding a new module (`.py` file), class or function in the code base, please do the following:
 
-- First, update the *closest* `__init__.py` file in the `mi-prometheus` code hierarchy to **import** the new structures you have written.
+- First, update the **closest** `__init__.py` file in the `mi-prometheus` code hierarchy to **import** the new structures you have written.
   For instance, let's assume you have written a file `master_algorithm.py` that contains a class named `MeaningOfLife`, and that this file is located in `dir1/dir2/`.
   In the `__init__.py` file of `dir2/`, add the following lines:
 
@@ -65,7 +68,7 @@ When adding a new module (`.py` file), class or function in the code base, pleas
 
   The first line imports the new class from the file you wrote. The second line adds it to the list of public objects of that module, so that in the `__init__.py` file of `dir1/`, the line:
 
-  >>> from .dir1 import *
+  >>> from .dir2 import *
 
   will properly import `MeaningOfLife`.
 
@@ -75,26 +78,43 @@ When adding a new module (`.py` file), class or function in the code base, pleas
 
 - Second, we have to update the corresponding `.rst` file to include this new module/class in the table of content.
 
-make sure `sphinx` and `sphinx_rtd_theme` are installed in your python env. Will also require packages like torch,
-torchvision, torchtext, matplotlib, pyyaml, pillow, h5py, progressbar2, nltk
+  The main markers (called directives by the reStructuredText syntax) are
 
-the source .rst files are in docs/source
-conf.py ->
-index.rst ->
-models.rst >
-problems.rst ->
-misc.rst ->
+  ::
 
-workers/ -> contains documentation of the different workers
-notes/ -> contains this file + the license
+      .. automodule:: dir1.dir2.master_algorithm
+          :members:
 
-- if adding a new module or class or function -> add import lines in the closest __init__ file
+  and
 
-- add the entry in the corresponding .rst file (pay attention to the hierarchy)
+  ::
 
--> show example
+      .. autoclass:: dir1.dir2.master_algorithm.MeaningOfLife
+          :members:
 
-make slide to present to team
+  If you are adding only functions / methods within an existing class or module and if the reference to that class or module already exists in the table of content, you should not have to edit anything.
+  Reconstructing the `.html` pages from the `.rst` files should automatically pull the corresponding docstrings.
+
+  If you are adding a new class or module, then you have to add the reference in the table of content.
+  The current (root) module in the `.rst` file should be indicated at the top of the file with the directive:
+
+  ::
+
+      .. currentmodule:: dir1
+
+  So you just have to add the above sections at the location you want in the table of content hierarchy.
+
+- Finally, we have to rebuild the `.html` pages from the `.rst` files. This is done by executing the script `docgen.sh` in `mi-prometheus/`:
+
+  >>> ./docgen.sh
+
+  Make sure the packages `sphinx` and `sphinx_rtd_theme` are installed in your `Python` environment.
+  To correctly create the documentation pages, `sphinx` will also require that packages like torch,
+  torchvision, torchtext, matplotlib (pyyaml, pillow, h5py, progressbar2, nltk...) are also present in the environment.
+  The reason is that `sphinx` actually imports the `mi-prometheus` packages to pull the docstrings. So we need to make sure
+  that all packages on top of which `mi-prometheus` is built are present in the same environment.
+
+
 
 Some quotes about Code Documentation
 -------------------------------------------
