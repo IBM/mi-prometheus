@@ -66,7 +66,7 @@ class Interface:
         Returns 'zero' (initial) state of Interface tuple.
 
         :param batch_size: Size of the batch in given iteraction/epoch.
-        :param memory_addresses_size
+        :param memory_addresses_size: size of the memory
 
         :returns: Initial state tuple - object of InterfaceStateTuple class: (head_weight_init, snapshot_weight_init)
         """
@@ -126,8 +126,8 @@ class Interface:
         :param tuple_interface_prev.snapshot_weight: snapshot(bookmark) attention [batch_size, num_heads, memory_size]
         :param mem: the memory [batch_size, content_size, memory_size]
 
-        :return: InterfaceTuple contains [head_weight, snapshot_weight]: the updated weight of head and snapshot
-        :return: mem: the new memory content
+        :returns: InterfaceTuple contains [head_weight, snapshot_weight]: the updated weight of head and snapshot
+        :returns: mem: the new memory content
         """
         wt_head_prev, wt_att_snapshot_prev = tuple_interface_prev
         assert update_data.size()[-1] == self.update_size, "Mismatch in update sizes"

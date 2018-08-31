@@ -84,29 +84,24 @@ class DWMCell(nn.Module):
         :return: output: logits [batch_size, output_size]
         :return: tuple_cell_state: contains (tuple_ctrl_state, tuple_interface, mem)
 
+
         .. math::
 
-            \begin{array}{ll}
-            # read memory
-            r_t= M_t w_t \\
-            # memory update
-            M_t = M_{t-1}\circ (E-w_t \otimes e_t)+w_t\otimes a_t \\
-            # controller
-            h_t=\sigma(W_h[x_t,h_{t-1},r_{t-1}]) \\
-            y_t=W_{y}[x_t,h_{t-1},r_{t-1}] \\
-            P_t=W_{P}[x_t,h_{t-1},r_{t-1}]  \\
-            \end{array}
+            step1: read memory
 
-            The full list of parameters is as follows:
-            \begin{itemize}
-            \item The write vector $a_t \in \mathbb{R}^{N_M} $
-            \item The erase vector $e_t=\sigma(\hat{e}_t) \in [0,1]^{N_M}$
+            r_t = M_t * w_t
 
-            \item The shift vector $s_t=\softmax(\softplus(\hat{s})) \in [0,1]^3$
-            \item The bookmark update gates $g^i_t = \sigma(\hat{g}^i_t) \in [0,1]^{N_B-1}$
-            \item The attention update gate $\delta^i_t = \softmax(\hat{\delta}^i_t)  \in [0,1]^{N_B+1}$
-            \item The sharpening parameter $\gamma = 1+\softplus(\hat{\gamma}) \in [1,\infty]$
-            \end{itemize}
+            step2: memory update
+
+            M_t = M_{t-1}\circ (E-w_t \otimes e_t)+w_t\otimes a_t
+
+            step3: controller
+
+            h_t = \sigma(W_h[x_t,h_{t-1},r_{t-1}])
+
+            y_t = W_{y}[x_t,h_{t-1},r_{t-1}]
+
+            P_t = W_{P}[x_t,h_{t-1},r_{t-1}]
 
         """
 

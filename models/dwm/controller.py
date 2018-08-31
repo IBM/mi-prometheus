@@ -91,8 +91,8 @@ class Controller(nn.Module):
         :param read_data: read data from memory (from time t) [batch_size, read_size]
 
         :returns: output: logits represent the prediction [batch_size, output_units]
-                  tuple_state: contains new_hidden_state
-                  update_data: interface parameters [batch_size, update_size]
+        :returns: tuple_state: contains new_hidden_state
+        :returns: update_data: interface parameters [batch_size, update_size]
 
         """
         # Concatenate the 3 inputs to controller
