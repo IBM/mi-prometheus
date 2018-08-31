@@ -55,10 +55,10 @@ class MaskedCrossEntropyLoss(nn.Module):
 
         """
         # Get the index of the max log-probability.
-        pred = logits.max(1, keepdim=True)[1]
+        pred = logits.max(1, keepdim=True)[1].transpose(1,-1) 
         correct_per = pred.eq(targets.view_as(pred))
 
-        if len(mask.shape) < len(targets.shape):
+        if len(mask.shape) < len(correct_per.shape):
             mask = mask.unsqueeze(-1)
 
         # set the unneeded outputs to zero
