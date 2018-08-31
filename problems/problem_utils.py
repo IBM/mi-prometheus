@@ -24,18 +24,25 @@ class MaskedCrossEntropyLoss(nn.Module):
         :param mask: ByteTensor mask [batch, sequence]
         """
 
+        # Calculate the loss per element in the sequence
         loss_per_element = self.loss_function(logits, targets)
 
         #Have to convert the mask to floats to multiply by the loss
         mask_float = mask.type(AppState().dtype)
+
+        #if the loss has one extra dimenison then you need an extra unit dimension 
+        #to multiply element by element 
         if len(mask.shape) < len(loss_per_element.shape):
             mask_float = mask_float.unsqueeze(-1)
 
+        # Set the loss per element to zero for unneeded output
         masked_loss_per = mask_float*loss_per_element
+
         #obtain the number of non-zero elements in the mask.
         # nonzero() returns the indices so you have to divide by the number of dimensions
         size= mask.nonzero().numel()/len(mask.shape)
 
+        # add up the loss scaling by only the needed outputs
         loss = torch.sum(masked_loss_per)/size
         return loss
 
@@ -54,8 +61,10 @@ class MaskedCrossEntropyLoss(nn.Module):
         if len(mask.shape) < len(targets.shape):
             mask = mask.unsqueeze(-1)
 
+        # set the unneeded outputs to zero
         masked_correct_per = correct_per*mask
 
+        #scale by only the number of needed outputs
         #the mask has the same number of elements as the target in this case
         size= mask.nonzero().numel()/len(mask.shape)
 
@@ -80,16 +89,20 @@ class MaskedBCEWithLogitsLoss(nn.Module):
         :param mask: ByteTensor mask [batch, sequence]
         """
 
-
+        # Calculate the loss per element in the sequence
         loss_per_element = self.loss_function(logits, targets)
- 
+
+        #obtain the number of non-zero elements in the mask.
         #The mask lacks the last dimension of the targets so needs to be scaled up
         size = mask.nonzero().numel()/len(mask.shape)*logits.shape[-1]
 
+        #if the loss has one extra dimenison then you need an extra unit dimension 
+        #to multiply element by element 
         mask_float = mask.type(AppState().dtype)
         if len(mask.shape) < len(loss_per_element.shape):
             mask_float = mask_float.unsqueeze(-1)
 
+        # Set the loss per element to zero for unneeded output
         masked_loss_per = mask_float*loss_per_element
         #obtain the number of non-zero elements in the mask. 
         #nonzero() returns the indices so you have to divide by the number of dimensions
@@ -109,6 +122,7 @@ class MaskedBCEWithLogitsLoss(nn.Module):
         :param mask: ByteTensor mask [batch, sequence]
         """
 
+        #calculate the accuracy per bit in the sequences
         acc_per =  1 - torch.abs(torch.round(F.sigmoid(logits)) - targets)
 
         mask_float = mask.type(AppState().dtype)
@@ -119,7 +133,7 @@ class MaskedBCEWithLogitsLoss(nn.Module):
         size = mask.nonzero().numel()/len(mask.shape)*logits.shape[-1]
 
         masked_acc_per = mask_float*acc_per
-        
+
         accuracy = masked_acc_per.sum().item()/size
 
         return accuracy
