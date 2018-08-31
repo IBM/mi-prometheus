@@ -32,15 +32,19 @@ from misc.app_state import AppState
 
 
 class StackedAttentionVQA(Model):
+    """ Implementation of simple vqa model with attention, it performs the following steps:
 
+       step1: image encoding \n
+       step2: question encoding if needed \n
+       step3: apply attention, the question is used as a query and image as key \n
+       step4: classifier, create the probabilities
+
+    """
     def __init__(self, params):
-        """ Implementation of simple vqa model with attention, it performs the following steps:
+        """
+        Constructor class of StackedAttentionVQA model
 
-           step1: image encoding
-           step2: question encoding if needed
-           step3: apply attention, the question is used as a query and image as key
-           step4: classifier, create the probabilities
-
+        :param params: Dictionary of parameters
         """
 
         super(StackedAttentionVQA, self).__init__(params)

@@ -31,17 +31,20 @@ from misc.app_state import AppState
 
 
 class MultiHopsAttention(Model):
-    """ Implementation of simple vqa model with multi attention hops over the words of the question, it performs the following steps:
-       step1: image encoding
-       step2: word encoding
-       step3: apply attention, an attention over the image is generates for every word, after that all the attentions are concatenated
+    """ Implementation of simple vqa model with multi attention hops over the words of the question, it performs the following steps: \n
+       step1: image encoding \n
+       step2: word encoding \n
+       step3: apply attention, an attention over the image is generates for every word, after that all the attentions are concatenated \n
        step4: classifier, create the probabilities
-
-       :param params dictionary of inputs
     """
 
     def __init__(self, params):
         super(MultiHopsAttention, self).__init__(params)
+
+        """
+        Constructor of MultiHopsAttention class
+        :param params dictionary of inputs
+        """
 
         # Retrieve attention and image/questions parameters
         self.image_encoding_channels = 256

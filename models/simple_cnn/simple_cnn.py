@@ -35,8 +35,17 @@ from misc.app_state import AppState
 
 
 class SimpleConvNet(Model):
+    """
+    A simple Convolutional neural network designed specifically to solve MNIST and CIFAR 10 dataset,
+    The parameters here are not hardcoded so the user can adjust them for his application
+    """
     def __init__(self, params):
         super(SimpleConvNet, self).__init__(params)
+        """
+        Constructor of the SimpleConvNet
+        
+        :param: dictionary of parameters 
+        """
 
         # retrieve parameters from the yaml file
         # cnn parameters
@@ -80,7 +89,12 @@ class SimpleConvNet(Model):
             self.output_conv2 = []
 
     def forward(self, data_tuple):
+        """
+        forward pass of SimpleConvNet model
 
+        :param data_tuple: contains (inputs [batch_size, num_channels, width, height], targets [batch_size])
+        :return: x: logits [batch_size, num_classes]
+        """
         (inputs, targets) = data_tuple
 
         # apply Convolutional layer 1

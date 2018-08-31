@@ -29,7 +29,7 @@ validation:
         batch_size: 64
         start_index: 40000
         stop_index: 49999
-        use_train_data: True
+        use_train_data: True # True because we are splitting the training set to: validation and training
         padding: *p
         folder: '~/data/cifar10'
         up_scaling: *scale
@@ -49,7 +49,7 @@ testing:
 
 # Model parameters:
 model:
-    name: simple_cnn   # dynamic_working_memory
+    name: simple_cnn   # simple convolutional neural network
     # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
     depth_conv1: 6
