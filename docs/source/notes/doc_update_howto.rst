@@ -1,5 +1,7 @@
 How to keep this documentation up to date ?
 ==================================================
+@author: Vincent Marois
+
 **It is of high priority that the documentation of MI Prometheus is kept up-to-date as the code base evolves.
 Good code without good documentation is not useful!**
 
