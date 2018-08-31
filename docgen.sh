@@ -1,9 +1,9 @@
 #/bin/bash
-cd docs
-#sphinx-apidoc -f -e -o source ../models/
-#sphinx-apidoc -f -e -o source ../problems/
-#sphinx-apidoc -f -e -o source ../misc/
+# this scripts takes .rst files and builds html documentation pages.
+# Fancy: open the web browser to the index page
 
+cd docs
 sphinx-build -b html source build
 make html
 firefox build/index.html
+chrome build/index.html
