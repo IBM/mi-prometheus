@@ -41,10 +41,14 @@ class ImageEncoding(nn.Module):
         self.batchNorm4 = nn.BatchNorm2d(256)
 
     def forward(self, img):
-        """apply 4 convolutional layers over the image
+        """
+        Apply 4 convolutional layers over the image
+
         :param img: input image [batch_size, num_channels, height, width]
+
         :return x: feature map with flattening the width and height dimensions to a single one and transpose it with the num_channel dimension
           [batch_size, new_height * new_width, num_channels_encoded_question]
+
         """
         x = self.conv1(img)
         x = F.relu(x)
@@ -95,10 +99,14 @@ class PretrainedImageEncoding(nn.Module):
         self.model = torch.nn.Sequential(*layers)
 
     def forward(self, img):
-        """Apply a pretrained cnn
+        """
+        Apply a pretrained cnn
+
         :param img: input image [batch_size, num_channels, height, width]
+
         :return x: feature map with flattening the width and height dimensions to a single one and transpose it with the num_channel dimension
           [batch_size, new_height * new_width, num_channels_encoded_question]
+
         """
         # Apply model image encoding
         x = self.model(img)

@@ -93,6 +93,7 @@ class Controller(nn.Module):
         :return: output of shape (batch_size, output_units)
                  tuple_state: (new_hidden_state)
                  update_data of shape (batch_size, update_size): contains all of the controller parameters
+
         """
         # Concatenate the 3 inputs to controller
         combined = torch.cat((input, read_data), dim=-1)

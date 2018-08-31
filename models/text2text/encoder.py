@@ -61,16 +61,19 @@ class EncoderRNN(nn.Module):
 
     def forward(self, input, hidden):
         """
+
         Runs the Encoder.
         :param input: tensor of indices, of size [batch_size x 1] (word by word looping)
         :param hidden: initial hidden state for each element in the input batch.
         Should be of size [(n_layers * n_directions) x batch_size x hidden_size]
-        :return: For every input word, the encoder outputs a vector and a hidden state, and uses the hidden state for
+
+        For every input word, the encoder outputs a vector and a hidden state, and uses the hidden state for
         the next input word.
-                - output should be of size [batch_size x seq_len x (hidden_size * n_directions)]: tensor containing
+        :return: output should be of size [batch_size x seq_len x (hidden_size * n_directions)]: tensor containing
                 the output features h_t from the last layer of the RNN, for each t.
-                - hidden should be of size [(n_layers * n_directions) x batch_size x hidden_size]: tensor containing
-                the hidden state for t = seq_length
+        :return: hidden should be of size [(n_layers * n_directions) x batch_size x hidden_size]: tensor containing
+                the hidden state for t = seq_length.
+
         """
         embedded = self.embedding(input)
         # embedded: [batch_size x 1 x hidden_size]

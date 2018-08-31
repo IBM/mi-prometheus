@@ -84,11 +84,12 @@ class SimpleEncoderDecoder(SequentialModel):
         """
         Plot function to visualize the attention weights on the input sequence as the model is generating the output
         sequence.
-        :param data_tuple: data_tuple: Data tuple containing
-           - input [BATCH_SIZE x SEQUENCE_LENGTH] and
-           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH]
+
+        :param data_tuple: data_tuple: Data tuple containing input [BATCH_SIZE x SEQUENCE_LENGTH] and
+        target sequences  [BATCH_SIZE x SEQUENCE_LENGTH]
         :param predictions: logits as dict {'inputs_text', 'logits_text'}
         :param sample_number:
+
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:

@@ -93,6 +93,7 @@ class AttnDecoderRNN(nn.Module):
                 output features h_t from the last layer of the RNN, for each t.
                 - hidden should be of size [1 x batch_size x hidden_size]: tensor containing the hidden state for
                 t = seq_length
+
         """
         embedded = self.embedding(input)
         embedded = self.dropout(embedded)

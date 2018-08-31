@@ -92,6 +92,7 @@ class ControlUnit(nn.Module):
         :param ctrl_state: previous control state, of shape [batch_size x dim]
 
         :return: new control state, [batch_size x dim]
+
         """
         self.step = step
         # select current 'position aware' linear layer & pass questions through it

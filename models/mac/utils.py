@@ -62,6 +62,7 @@ def linear(input_dim, output_dim, bias=True):
     implementation https://github.com/stanfordnlp/mac-network/blob/master/ops.py#L40)
 
     :return: Initialized Linear layer
+
     """
 
     linear_layer = nn.Linear(input_dim, output_dim, bias=bias)

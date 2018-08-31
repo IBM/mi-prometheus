@@ -74,8 +74,8 @@ class DWMCell(nn.Module):
         return DWMCellStateTuple(tuple_ctrl_init_state, tuple_interface_init_state, mem_init)
 
     def forward(self, input, tuple_cell_state_prev):
-
         """
+
         :param input of shape (batch_size, inputs_size): Current input (from time t)
         :param tuple_cell_state_prev** (tuple_ctrl_state_prev, tuple_interface_prev, mem_prev), object of class DWMCellStateTuple
                tuple_ctrl_state_prev: object of class ControllerStateTuple of previous time step, contains (hidden_state of shape (batch_size, state_units))
@@ -83,6 +83,7 @@ class DWMCell(nn.Module):
                mem_prev: memory of previous time step, of shape (batch_size, memory_size_content, memory_addresses_size)
 
         :return output** of shape `(batch_size, output_size)`:
+
         :return tuple_cell_state = (tuple_ctrl_state, tuple_interface, mem)
                 tuple_ctrl_state: new tuple ctrl_state
                 tuple_interface:  new tuple interface
