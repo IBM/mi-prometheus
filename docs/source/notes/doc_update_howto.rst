@@ -63,7 +63,17 @@ When adding a new module (`.py` file), class or function in the code base, pleas
   >>> from .master_algorithm import MeaningOfLife
   >>> __all__ = [..., 'MeaningOfLife']
 
-  The first line imports the new class from the file you wrote. The second line adds it to the list of public objects of that module., as interpreted by import *. It overrides the default of hiding everything that begins with an underscore.
+  The first line imports the new class from the file you wrote. The second line adds it to the list of public objects of that module, so that in the `__init__.py` file of `dir1/`, the line:
+
+  >>> from .dir1 import *
+
+  will properly import `MeaningOfLife`.
+
+  So, if you are adding one `.py` file (called a module) to a directory that already contains a `__init__.py` file (this dir is then called a package), you only have to edit this `__init__`.
+
+  If you are adding several directories and subdirectories, you have to update the several `__init__.py` files by traversing the hierarchy from innermost to outermost (simplest way to ensure you are not forgetting anything).
+
+- Second, we have to update the corresponding `.rst` file to include this new module/class in the table of content.
 
 make sure `sphinx` and `sphinx_rtd_theme` are installed in your python env. Will also require packages like torch,
 torchvision, torchtext, matplotlib, pyyaml, pillow, h5py, progressbar2, nltk
@@ -81,6 +91,7 @@ notes/ -> contains this file + the license
 - if adding a new module or class or function -> add import lines in the closest __init__ file
 
 - add the entry in the corresponding .rst file (pay attention to the hierarchy)
+
 -> show example
 
 make slide to present to team
