@@ -58,8 +58,7 @@ def linear(input_dim, output_dim, bias=True):
 
     :param input_dim: input dimension
     :param output_dim: output dimension
-    :param bias:  If set to True, the layer will learn an additive bias initially set to true (as original
-    implementation https://github.com/stanfordnlp/mac-network/blob/master/ops.py#L40)
+    :param bias:  If set to True, the layer will learn an additive bias initially set to true (as original implementation https://github.com/stanfordnlp/mac-network/blob/master/ops.py#L40)
 
     :return: Initialized Linear layer
 

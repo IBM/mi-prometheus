@@ -91,8 +91,7 @@ class RelationalNetwork(Model):
         """
         Runs the RelationalNetwork model.
 
-        :param data_tuple: Tuple containing images [batch_size, num_channels, height, width]
-        and questions [batch_size, question_size]
+        :param data_tuple: Tuple containing images [batch_size, num_channels, height, width] and questions [batch_size, question_size]
         :returns: output [batch_size, nb_classes]
 
         """
