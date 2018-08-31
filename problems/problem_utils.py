@@ -54,8 +54,9 @@ class MaskedCrossEntropyLoss(nn.Module):
         :param mask: ByteTensor mask [batch, sequence]
 
         """
-        # Get the index of the max log-probability.
-        pred = logits.max(1, keepdim=True)[1].transpose(1,-1) 
+        # Get the index of the max log-probability. 
+        #Max returns a tuple and we only need the second element
+        pred = logits.max(1)[1]
         correct_per = pred.eq(targets.view_as(pred))
 
         if len(mask.shape) < len(correct_per.shape):
