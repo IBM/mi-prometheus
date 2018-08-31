@@ -28,7 +28,7 @@ class MaskedCrossEntropyLoss(nn.Module):
 
         #Have to convert the mask to floats to multiply by the loss
         mask_float = mask.type(AppState().dtype)
-        if len(mask.shape) < len(loss_per_element):
+        if len(mask.shape) < len(loss_per_element.shape):
             mask_float = mask_float.unsqueeze(-1)
 
         masked_loss_per = mask_float*loss_per_element
