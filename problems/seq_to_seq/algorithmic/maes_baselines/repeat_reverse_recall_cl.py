@@ -17,11 +17,14 @@ from misc.param_interface import ParamInterface
 class RepeatReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
     """   
     Class generating sequences of random bit-patterns and targets forcing the system to learn repeated reverse recall problem.
-    1) There are 2 markers, indicatinn:
+
+    1. There are 2 markers, indicating:
     - beginning of storing/memorization,
-    - beginning of forward recalling from memory,
-    2) Additionally, there is a command line (3rd command bit) indicating whether given item is to be stored in mememory (0)
-     or recalled (1).
+    - beginning of forward recalling from memory.
+
+
+    2. Additionally, there is a command line (3rd command bit) indicating whether given item is to be stored in memory (0) or recalled (1).
+
     """
     def __init__(self,  params):
         """ 

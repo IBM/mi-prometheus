@@ -55,12 +55,13 @@ class ManipulationSpatialRotation(AlgorithmicSeqToSeqProblem):
     def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
-       
-        :returns: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS], 
-        output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],
-        mask [BATCH_SIZE, 2*SEQ_LENGTH+2]
+
+        :return: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS],
+        :return: Output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],
+        :return: Mask [BATCH_SIZE, 2*SEQ_LENGTH+2]
 
         TODO: every item in batch has now the same seq_length.
+
         """
         # Set sequence length.
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)

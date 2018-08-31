@@ -41,10 +41,12 @@ class TextAuxTuple(_TextAuxTuple):
     """
     Tuple used for storing batches of data by text to text sequential problems.
     Contains four elements:
-     - text input sentence (e.g. string in input language for translation)
-     - text output sentence (e.g. string in output language for translation
-     - Lang() instance of the input language
-     - Lang() instance of the output language
+
+    - text input sentence (e.g. string in input language for translation)
+    - text output sentence (e.g. string in output language for translation
+    - Lang() instance of the input language
+    - Lang() instance of the output language
+
     """
     __slots__ = ()
 
