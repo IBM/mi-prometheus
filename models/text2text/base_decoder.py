@@ -64,13 +64,12 @@ class DecoderRNN(nn.Module):
         Runs the Decoder.
 
         :param input: tensor of indices, of size [batch_size x 1] (word by word looping)
-        :param hidden: initial hidden state for each element in the input batch.
-        Should be of size [1 x batch_size x hidden_size]
 
-        :return: output should be of size [batch_size x 1 x output_voc_size]: tensor containing the
-                output features h_t from the last layer of the RNN, for each t.
-        :return: hidden should be of size [1 x batch_size x hidden_size]: tensor containing the hidden state for
-                t = seq_length
+        :param hidden: initial hidden state for each element in the input batch. Should be of size [1 x batch_size x hidden_size]
+
+        :return: output should be of size [batch_size x 1 x output_voc_size]: tensor containing the output features h_t from the last layer of the RNN, for each t.
+
+        :return: hidden should be of size [1 x batch_size x hidden_size]: tensor containing the hidden state for t = seq_length
 
         """
         embedded = self.embedding(input)

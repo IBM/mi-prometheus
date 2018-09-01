@@ -17,7 +17,9 @@
 
 """language.py: Class that handles embedding of language problems
                 Pretrained embedding handler based on vocab.py in torchtext
+
 __author__ = "Vincent Marois, Ryan L. McAvoy"
+
 """
 
 import torch
@@ -83,11 +85,12 @@ class Language(object):
 
 
     def build_pretrained_vocab(self, data_set, **kwargs):
-        """Construct the torchtext Vocab object from a list of sentences. This allows us to load only vectors we actually need.
+        """
+        Construct the torchtext Vocab object from a list of sentences. This allows us to load only vectors we actually need.
        
         :param data_set: A list containing strings (either sentences or just single word string work)
-        :param **kwargs: The keyword arguments for the vectors class from torch text
-                         The most important kwarg is vectors which is a string containing the embedding type to be loaded
+        :param \**kwargs: The keyword arguments for the vectors class from torch text. The most important kwarg is vectors which is a string containing the embedding type to be loaded
+
         """
 
         counter = Counter()

@@ -58,11 +58,13 @@ class SerialRecallSimplified(AlgorithmicSeqToSeqProblem):
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
        
         :param seq_length: the length of the copy sequence.
-        : returns: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH, CONTROL_BITS+DATA_BITS], 
-        output [BATCH_SIZE, 2*SEQ_LENGTH, DATA_BITS],
-        mask [BATCH_SIZE, 2*SEQ_LENGTH]
+
+        :return: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH, CONTROL_BITS+DATA_BITS],
+        :return: Output [BATCH_SIZE, 2*SEQ_LENGTH, DATA_BITS],
+        :return: Mask [BATCH_SIZE, 2*SEQ_LENGTH]
 
         TODO: every item in batch has now the same seq_length.
+
         """
         # Set sequence length.
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length+1)

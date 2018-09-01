@@ -69,10 +69,9 @@ class EncoderRNN(nn.Module):
 
         For every input word, the encoder outputs a vector and a hidden state, and uses the hidden state for
         the next input word.
-        :return: output should be of size [batch_size x seq_len x (hidden_size * n_directions)]: tensor containing
-                the output features h_t from the last layer of the RNN, for each t.
-        :return: hidden should be of size [(n_layers * n_directions) x batch_size x hidden_size]: tensor containing
-                the hidden state for t = seq_length.
+        :return: output should be of size [batch_size x seq_len x (hidden_size * n_directions)]: tensor containing the output features h_t from the last layer of the RNN, for each t.
+
+        :return: hidden should be of size [(n_layers * n_directions) x batch_size x hidden_size]: tensor containing the hidden state for t = seq_length.
 
         """
         embedded = self.embedding(input)

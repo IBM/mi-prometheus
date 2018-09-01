@@ -21,9 +21,11 @@ class AlgSeqAuxTuple(_AlgSeqAuxTuple):
     """
     Tuple used by storing batches of data by algorithmic sequential problems.
     Contains three elements:
-     - mask that might be used for evaluation of the loss function
-     - length of sequence
-     - number of subsequences
+
+    - mask that might be used for evaluation of the loss function
+    - length of sequence
+    - number of subsequences
+
     """
     __slots__ = ()
     

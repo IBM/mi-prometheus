@@ -104,12 +104,11 @@ class TemporalLinkage():
         `num_reads * num_writes` pairs of read and write heads.
 
         Args:
-          :param link: tensor of shape `[batch_size, num_writes, memory_size,
-              memory_size]` representing the link graphs L_t.
-          :param prev_read_weights: tensor of shape `[batch_size, num_reads,
-              memory_size]` containing the previous read weights w_{t-1}^r.
-          :param forward: Boolean indicating whether to follow the "future" direction in
-              the link graph (True) or the "past" direction (False).
+          :param link: tensor of shape `[batch_size, num_writes, memory_size, memory_size]` representing the link graphs L_t.
+
+          :param prev_read_weights: tensor of shape `[batch_size, num_reads, memory_size]` containing the previous read weights w_{t-1}^r.
+
+          :param forward: Boolean indicating whether to follow the "future" direction in the link graph (True) or the "past" direction (False).
 
         Returns:
           :returns: tensor of shape `[batch_size, num_reads, num_writes, memory_size]`

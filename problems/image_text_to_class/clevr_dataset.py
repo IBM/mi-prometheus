@@ -39,11 +39,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""clevr_dataset.py: This file contains 1 class:
+"""
+clevr_dataset.py: This file contains 1 class:
 
-          - ClevrDataset (CLEVR object class): This class creates a Dataset object to represent a CLEVR dataset.
-            ClevrDataset builds the embedding for the questions.
-  """
+- ClevrDataset (CLEVR object class): This class creates a Dataset object to represent a CLEVR dataset.
+  ClevrDataset builds the embedding for the questions.
+
+
+"""
 __author__ = "Vincent Albouy, Vincent Marois"
 
 import h5py

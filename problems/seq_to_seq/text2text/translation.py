@@ -155,8 +155,11 @@ class Translation(TextToTextProblem):
         Download the specified zip file from http://www.manythings.org/anki/.
         Notes: This website hosts data files for English -> other language translation: the main file is named after
         the other language.
-            Ex: for a English -> French translation, the main file is named 'fra.txt',
-                for a English -> German translation, the main file is named 'deu.txt' etc.
+
+        Ex: for a English -> French translation, the main file is named 'fra.txt',
+
+        Ex: for a English -> German translation, the main file is named 'deu.txt' etc.
+
         """
         # import lines
         from six.moves.urllib.request import Request, urlopen

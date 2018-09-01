@@ -93,7 +93,7 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    'canonical_url': 'https://github.ibm.com/ai-c-working-memory/mi-prometheus/',
+    'canonical_url': 'https://github.ibm.com/ai-c-working-memory/mi-prometheus/docs/',
     'collapse_navigation': False,
     'sticky_navigation': True,
     'navigation_depth': -1,
