@@ -87,46 +87,23 @@ class DWMCell(nn.Module):
 
         .. math::
 
-            step1 read memory
+            step1: read memory
 
             r_t &= M_t \otimes w_t
 
-            step2: memory update
-
-            M_t &= M_{t-1}\circ (E-w_t \otimes e_t)+w_t\otimes a_t
-
-            step3: controller
+            step2: controller
 
             h_t &= \sigma(W_h[x_t,h_{t-1},r_{t-1}])
 
             y_t &= W_{y}[x_t,h_{t-1},r_{t-1}]
 
             P_t &= W_{P}[x_t,h_{t-1},r_{t-1}]
-                        The full list of parameters is as follows:
 
-            The write vector
+            step3: memory update
 
-            a_t \in \mathbb{R}^{N_M}
+            M_t &= M_{t-1}\circ (E-w_t \otimes e_t)+w_t\otimes a_t
 
-            The erase vector
-
-            e_t=\sigma(\hat{e}_t) \in [0,1]^{N_M}
-
-            The shift vector
-
-            s_t=\softmax(\softplus(\hat{s})) \in [0,1]^3
-
-            The bookmark update gates
-
-            g^i_t = \sigma(\hat{g}^i_t) \in [0,1]^{N_B-1}
-
-            The attention update gate
-
-            \delta^i_t = \softmax(\hat{\delta}^i_t)  \in [0,1]^{N_B+1}
-
-            The sharpening parameter
-
-            \gamma = 1+\softplus(\hat{\gamma}) \in [1,\infty]
+            to be completed ...
 
         """
 
