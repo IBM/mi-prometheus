@@ -35,10 +35,12 @@ from models.thalnet.thalnet_cell import ThalNetCell
 
 
 class ThalNetModel(SequentialModel):
-    """ @Younes: MODEL DESCRIPTION GOES HERE! """
+    """ ThalNet model consists of recurrent neural modules that send features through
+    a routing center, it was proposed in the following paper https://arxiv.org/pdf/1706.05744.pdf """
+
     def __init__(self, params):
         """
-        @Younes: DESCRIPTION GOES HERE!
+        Constructor of the ThalNetModel
 
         :param params: Parameters read from configuration file.
         """
@@ -62,7 +64,11 @@ class ThalNetModel(SequentialModel):
 
     def forward(self, data_tuple):  # x : batch_size, seq_len, input_size
         """
-        Runs the ThalNet cell
+        Forward run of the ThalNetModel model
+
+        :param data_tuple: (inputs [batch_size, sequence_length, input_size], targets[batch_size, sequence_length, output_size])
+
+        :returns: output: prediction [batch_size, sequence_length, output_size]
 
         """
         (inputs, _) = data_tuple
@@ -93,7 +99,6 @@ class ThalNetModel(SequentialModel):
             # This is for the time plot
             if self.app_state.visualize:
                 self.cell_state_history.append([cell_state[i][0].detach().numpy() for i in range(self.num_modules)] + [cell_state[i][1].hidden_state.detach().numpy() for i in range(self.num_modules)])
-
 
         return output
 
