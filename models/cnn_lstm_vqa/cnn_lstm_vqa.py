@@ -32,13 +32,17 @@ from misc.app_state import AppState
 
 
 class CNNLSTMVQA(Model):
+    """
+    Implementation of simple vqa model, it performs the following steps:
+
+        step1: image encoding \n
+        step2: question encoding if needed \n
+        step3: classifier, create the probabilities
+    """
 
     def __init__(self, params):
-        """ Implementation of simple vqa model, it performs the following steps:
-
-        step1: image encoding
-        step2: question encoding if needed
-        step3: classifier, create the probabilities
+        """
+        Constructor of the CNNLSTMVQA model
 
         :param params dictionary of inputs
         """

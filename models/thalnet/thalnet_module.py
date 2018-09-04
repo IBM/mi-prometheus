@@ -29,7 +29,7 @@ from models.controllers.controller_factory import ControllerFactory
 
 
 class ThalnetModule(nn.Module):
-    """ @Younes: MODEL DESCRIPTION GOES HERE! """
+    """ Implements a Thalnet module """
     def __init__(self,
                  center_size,
                  context_size,
@@ -67,6 +67,12 @@ class ThalnetModule(nn.Module):
         self.controller = ControllerFactory.build_model(controller_params)
 
     def init_state(self, batch_size):
+        """
+        Initialize state of ThalNet module state
+
+        :param batch_size: batch size
+        :return: center_state_per_module, tuple_controller_states
+        """
 
         dtype = AppState().dtype
 
@@ -80,7 +86,11 @@ class ThalnetModule(nn.Module):
 
     def forward(self, inputs, prev_center_state, prev_tuple_controller_state):
         """
-        :return: output, new_center_features, new_module_state
+
+        :param inputs: inputs
+        :param prev_center_state: previous center state
+        :param prev_tuple_controller_state: previous tuple controller state
+        :return: output, center_feature_output, tuple_ctrl_state
         """
         if inputs is not None:
             if len(inputs.size()) <= 1 or len(inputs.size()) >= 4:

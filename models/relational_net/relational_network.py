@@ -44,6 +44,7 @@ class RelationalNetwork(Model):
         """
         Constructor
         :param params: dict of parameters.
+
         """
 
         # call base constructor
@@ -70,6 +71,7 @@ class RelationalNetwork(Model):
         :param d: size of 1 feature map
 
         :return: tensor of shape [batch_size x d x d x 2]
+
         """
         coords = torch.linspace(-1 / 2., 1 / 2., d)
         x = coords.unsqueeze(0).repeat(d, 1)
@@ -89,9 +91,9 @@ class RelationalNetwork(Model):
         """
         Runs the RelationalNetwork model.
 
-        :param data_tuple: Tuple containing images [batch_size, num_channels, height, width]
-        and questions [batch_size, question_size]
+        :param data_tuple: Tuple containing images [batch_size, num_channels, height, width] and questions [batch_size, question_size]
         :returns: output [batch_size, nb_classes]
+
         """
 
         # unpack datatuple

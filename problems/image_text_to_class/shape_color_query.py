@@ -34,12 +34,16 @@ class ShapeColorQuery(SortOfCLEVR):
         super(ShapeColorQuery, self).__init__(params)
 
     def question2str(self, encoded_question):
-        """ Decodes question, i.e. produces a human-understandable string. 
+        """
+        Decodes question, i.e. produces a human-understandable string.
         
         :param color_query: A 3d tensor, with 1 row and 3 columns: 
-        - first two encoding the object, identified by shape, color, and 
-        - third encoding the query.
+
+            - first two encoding the object, identified by shape, color, and
+            - third encoding the query.
+
         :return: Question in the form of a string.
+
         """
         # "Decode" the question.
         if max(encoded_question[0, :]) == 0:

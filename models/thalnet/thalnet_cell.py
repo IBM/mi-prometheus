@@ -25,15 +25,26 @@ from models.thalnet.thalnet_module import ThalnetModule
 from misc.app_state import AppState
 
 class ThalNetCell(nn.Module):
-    """ @Younes: MODEL DESCRIPTION GOES HERE! """
+    """ Implementation of the ThalNetCell, it takes one element of the input sequence at a time"""
     def __init__(self,
                  input_size,
                  output_size,
                  context_input_size,
                  center_size_per_module,
                  num_modules):
+
+        """
+        Constrcutor of ThalNetCell class
+
+        :param input_size: input size
+        :param output_size: output size
+        :param context_input_size: context input size
+        :param center_size_per_module:  center size per module
+        :param num_modules: number of modules
+        """
         # Call base class inits here.
         super(ThalNetCell, self).__init__()
+
 
         self.context_input_size = context_input_size
         self.input_size = input_size
@@ -59,7 +70,12 @@ class ThalNetCell(nn.Module):
                                  for i in range(1, self.num_modules)])
 
     def init_state(self, batch_size):
+        """
+        Initialize the state of ThalNet
 
+        :param batch_size: batch size
+        :return: states of the ThalNet cell
+        """
 
         # module and center state initialisation
         states = [self.modules_thalnet[i].init_state(batch_size) for i in range(self.num_modules)]
@@ -67,6 +83,14 @@ class ThalNetCell(nn.Module):
         return states
 
     def forward(self, inputs, prev_state):
+        """
+        forward run of the ThalNetCell
+
+        :param inputs: input at time t [batch_size, input_size]
+        :param prev_state: previous state [batch_size, state_size]
+        :return: states: states [batch_size, state_size]
+        :return: ouput: prediction [batch_size, output_size]
+        """
         prev_center_states = [prev_state[i][0] for i in range(self.num_modules)]
         prev_controller_states = [prev_state[i][1] for i in range(self.num_modules)]
 

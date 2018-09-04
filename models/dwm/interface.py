@@ -33,12 +33,13 @@ _InterfaceStateTuple = collections.namedtuple('InterfaceStateTuple', ('head_weig
 
 
 class InterfaceStateTuple(_InterfaceStateTuple):
-    """Tuple used by interface for storing current/past state information"""
+    """Tuple used by interface for storing current/past interface information: head_weight and snapshot_weight"""
     __slots__ = ()
 
 logger = logging.getLogger('DWM_interface')
 
 class Interface:
+    """ Implementation of the interface of the DWM"""
     def __init__(self, num_heads, is_cam, num_shift, M):
         """Initialize Interface.
 
@@ -65,9 +66,9 @@ class Interface:
         Returns 'zero' (initial) state of Interface tuple.
 
         :param batch_size: Size of the batch in given iteraction/epoch.
-        :param memory_addresses_size
-        :returns: Initial state tuple - object of InterfaceStateTuple class: (head_weight_init, snapshot_weight_init)
+        :param memory_addresses_size: size of the memory
 
+        :returns: Initial state tuple - object of InterfaceStateTuple class: (head_weight_init, snapshot_weight_init)
         """
         dtype = AppState().dtype
 
@@ -102,10 +103,10 @@ class Interface:
 
         """Returns the data read from memory
 
-        :param wt of shape (batch_size, num_heads, memory_addresses_size)  : head's weights
-        :param mem (batch_size, memory_content_size, memory_addresses_size)  : the memory content
+        :param wt: head's weights [batch_size, num_heads, memory_addresses_size]
+        :param mem: the memory content [batch_size, memory_content_size, memory_addresses_size]
 
-        :return: the read data of shape (batch_size, num_heads, memory_content_size)
+        :return: the read data [batch_size, num_heads, memory_content_size]
         """
 
         memory = Memory(mem)
@@ -116,16 +117,17 @@ class Interface:
 
     def update(self, update_data, tuple_interface_prev, mem):
 
-        """Erases from memory, writes to memory, updates the weights using various attention mechanisms
+        """
+        Erases from memory, writes to memory, updates the weights using various attention mechanisms
 
         :param update_data: the parameters from the controllers
-        :param tuple_interface_prev = (head_weight, snapshot_weight)
-        head_weight of shape (batch_size, num_heads, memory_size): head attention
-        snapshot_weight of shape (batch_size, num_heads, memory_size): snapshot(bookmark) attention
+        :param tuple_interface_prev: contains (head_weight, snapshot_weight)
+        :param tuple_interface_prev.head_weight: head attention [batch_size, num_heads, memory_size]
+        :param tuple_interface_prev.snapshot_weight: snapshot(bookmark) attention [batch_size, num_heads, memory_size]
+        :param mem: the memory [batch_size, content_size, memory_size]
 
-        :param mem of shape (batch_size, content_size, memory_size): the memory
-        :return: InterfaceTuple: (head_weight, snapshot_weight): the updated weight of head and snapshot
-                 mem: the new memory content
+        :returns: InterfaceTuple contains [head_weight, snapshot_weight]: the updated weight of head and snapshot
+        :returns: mem: the new memory content
         """
         wt_head_prev, wt_att_snapshot_prev = tuple_interface_prev
         assert update_data.size()[-1] == self.update_size, "Mismatch in update sizes"

@@ -86,12 +86,13 @@ class ControlUnit(nn.Module):
         Forward pass of the control unit.
 
         :param step: index of the current MAC cell.
-        :param contextual_words: tensor of shape [batch_size x maxQuestionLength x dim] containing the words encodings
-        ('representation of each word in the context of the question')
+        :param contextual_words: tensor of shape [batch_size x maxQuestionLength x dim] containing the words encodings ('representation of each word in the context of the question')
+
         :param question_encoding: question representation, of shape [batch_size x 2*dim]
         :param ctrl_state: previous control state, of shape [batch_size x dim]
 
         :return: new control state, [batch_size x dim]
+
         """
         self.step = step
         # select current 'position aware' linear layer & pass questions through it

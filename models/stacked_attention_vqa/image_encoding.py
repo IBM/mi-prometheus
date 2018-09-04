@@ -24,9 +24,12 @@ import torch.nn.functional as F
 import torchvision
 
 class ImageEncoding(nn.Module):
+    """
+    Image encoding using 4 convolutional layers with batch normalization, it was designed specifically for sort of clevr https://arxiv.org/abs/1706.01427
+    """
     def __init__(self):
         """
-        Image encoding using 4 convolutional layers with batch normalization, it was designed specifically for sort of clevr https://arxiv.org/abs/1706.01427
+        Constructor of the ImageEncoding class
         """
 
         super(ImageEncoding, self).__init__()
@@ -41,10 +44,14 @@ class ImageEncoding(nn.Module):
         self.batchNorm4 = nn.BatchNorm2d(256)
 
     def forward(self, img):
-        """apply 4 convolutional layers over the image
+        """
+        Apply 4 convolutional layers over the image
+
         :param img: input image [batch_size, num_channels, height, width]
+
         :return x: feature map with flattening the width and height dimensions to a single one and transpose it with the num_channel dimension
           [batch_size, new_height * new_width, num_channels_encoded_question]
+
         """
         x = self.conv1(img)
         x = F.relu(x)
@@ -67,9 +74,15 @@ class ImageEncoding(nn.Module):
 
 
 class PretrainedImageEncoding(nn.Module):
+    """
+    Image encoding using pretrained resnetXX from torchvision
+    """
     def __init__(self, cnn_model = 'resnet18', num_blocks = 2):
         """
-        Image encoding using pretrained resnetXX from torchvision
+        Constructor of the PretrainedImageEncoding class
+
+        :param cnn_model: select which resnet pretrained model to load
+        :param num_blocks: num of resnet blocks to be used
         """
 
         super(PretrainedImageEncoding, self).__init__()
@@ -95,10 +108,14 @@ class PretrainedImageEncoding(nn.Module):
         self.model = torch.nn.Sequential(*layers)
 
     def forward(self, img):
-        """Apply a pretrained cnn
+        """
+        Apply a pretrained cnn
+
         :param img: input image [batch_size, num_channels, height, width]
+
         :return x: feature map with flattening the width and height dimensions to a single one and transpose it with the num_channel dimension
           [batch_size, new_height * new_width, num_channels_encoded_question]
+
         """
         # Apply model image encoding
         x = self.model(img)

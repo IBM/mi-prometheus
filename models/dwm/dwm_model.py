@@ -33,13 +33,15 @@ from models.dwm.dwm_cell import DWMCell
 from misc.app_state import AppState
 
 class DWM(SequentialModel):
-    """Applies a DWM layer to an input sequences - what kind of description is that...? ;) """
-    """ @Younes: MODEL DESCRIPTION GOES HERE! really...  """
+    """ Differentiable Working Memory (DWM), is a memory augmented neural network which emulates the human working memory.
+        The DWM shows the same functional characteristics of working memory and robustly learns psychology-inspired tasks and converges
+        faster than comparable state-of-the-art models """
 
     def __init__(self, params):
 
         """"
         Constructor. Initializes parameters on the basis of dictionary of parameters passed as argument.
+
         :param params: Dictionary of parameters.
         """
         # Call base class initialization.
@@ -69,13 +71,13 @@ class DWM(SequentialModel):
 
     def forward(self, data_tuple):
         """
-        Forward function
+        Forward function of the DWM model
 
-        :param data_tuple** = (inputs, targets)
-        :param inputs of shape `(batch, sequence_length, input_size)`: tensor containing the data sequences of the batch.
-        :param targets of shape `(batch, sequence_length, output_size)`: tensor containing the target sequences of the batch.
+        :param data_tuple: contains (inputs, targets)
+        :param data_tuple.inputs: tensor containing the data sequences of the batch [batch, sequence_length, input_size]
+        :param data_tuple.targets: tensor containing the target sequences of the batch [batch, sequence_length, output_size]
 
-        :returns output of shape `(batch, sequence_length, output_size)`:
+        :returns: output: logits which represent the prediction of DWM [batch, sequence_length, output_size]
 
 
         Example:

@@ -32,7 +32,7 @@ from problems.video_to_class.video_to_class_problem import VideoToClassProblem
 
 class SequentialPixelMNIST(VideoToClassProblem):
     """
-    Class generating sequences sequential mnist
+    Class generating a sequence of pixels for sequential mnist
     """
 
     def __init__(self, params):

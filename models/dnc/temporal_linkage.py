@@ -72,7 +72,9 @@ class TemporalLinkage():
 
   
     def calc_temporal_links(self, write_weights, prev_state):
-        """Calculate the updated linkage state given the write weights.
+        """
+        Calculate the updated linkage state given the write weights.
+
         Args:
           :param write_weights: A tensor of shape `[batch_size, num_writes, memory_size]`
               containing the memory addresses of the different write heads.
@@ -80,9 +82,11 @@ class TemporalLinkage():
               shape `[batch_size, num_writes, memory_size, memory_size]`, and a
               tensor `precedence_weights` of shape `[batch_size, num_writes,
               memory_size]` containing the aggregated history of recent writes.
+
         Returns:
           :returns: A `TemporalLinkageState` tuple `next_state`, which contains the updated
           link and precedence weights.
+
         """
         link = self._link(prev_state.link, prev_state.precedence_weights,
                           write_weights)
@@ -92,19 +96,23 @@ class TemporalLinkage():
             link=link, precedence_weights=precedence_weights)
     
     def directional_read_weights(self, link, prev_read_weights, forward):
-        """Calculates the forward or the backward read weights.
+        """
+        Calculates the forward or the backward read weights.
+
         For each read head (at a given address), there are `num_writes` link graphs
         to follow. Thus this function computes a read address for each of the
         `num_reads * num_writes` pairs of read and write heads.
+
         Args:
-          :param link: tensor of shape `[batch_size, num_writes, memory_size,
-              memory_size]` representing the link graphs L_t.
-          :param prev_read_weights: tensor of shape `[batch_size, num_reads,
-              memory_size]` containing the previous read weights w_{t-1}^r.
-          :param forward: Boolean indicating whether to follow the "future" direction in
-              the link graph (True) or the "past" direction (False).
+          :param link: tensor of shape `[batch_size, num_writes, memory_size, memory_size]` representing the link graphs L_t.
+
+          :param prev_read_weights: tensor of shape `[batch_size, num_reads, memory_size]` containing the previous read weights w_{t-1}^r.
+
+          :param forward: Boolean indicating whether to follow the "future" direction in the link graph (True) or the "past" direction (False).
+
         Returns:
           :returns: tensor of shape `[batch_size, num_reads, num_writes, memory_size]`
+
         """
         # We calculate the forward and backward directions for each pair of
         # read and write heads; hence we need to tile the read weights and do a

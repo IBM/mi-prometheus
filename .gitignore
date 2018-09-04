@@ -19,12 +19,8 @@
 !/configs/**
 !/misc/**
 # You can be specific with these rules
-!/docs/conf.py
-!/docs/index.rst
-!/docs/Makefile
-!/docs/make.bat
-!/docs/source/conf.py
-!/docs/source/index.rst
+!/docs/**
+!docgen.sh
 __pycache__*
 *.swp
 *.vector_cache

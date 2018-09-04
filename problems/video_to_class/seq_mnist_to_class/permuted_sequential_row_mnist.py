@@ -32,11 +32,15 @@ from problems.video_to_class.video_to_class_problem import VideoToClassProblem
 
 class PermutedSequentialRowMnist(VideoToClassProblem):
     """
-    Class generating sequences sequential mnist
+    Class generating permuted sequences of rows for sequential mnist
     """
 
     def __init__(self, params):
-        """ Initialize. """
+        """ Constructor for  PermutedSequentialRowMnist
+
+        :param params: dictionary of parameters
+        """
+
         # Call base class constructors.
         super(PermutedSequentialRowMnist, self).__init__(params)
 

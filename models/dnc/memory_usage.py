@@ -15,9 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""memory_usage.py: Class governing the main write mechanism of the DNC.
-                    This is a Pytorch conversion of the Freeness class from Deepmind's Tensorflow implementation 
-                    of the DNC (Copyright 2017 Google Inc.) https://github.com/deepmind/dnc/blob/master/addressing.py
+"""
+
+memory_usage.py: Class governing the main write mechanism of the DNC.
+
+This is a Pytorch conversion of the Freeness class from Deepmind's Tensorflow implementation
+of the DNC (Copyright 2017 Google Inc.) https://github.com/deepmind/dnc/blob/master/addressing.py
+
+
 """
 
 __author__  = " Ryan L. McAvoy"
@@ -29,16 +34,20 @@ from misc.app_state import AppState
 _EPSILON = 1e-6
 
 class MemoryUsage(object):
-    """Memory usage that is increased by writing and decreased by reading.
-    This module has a state is a tensor with values in
-    the range [0, 1] indicating the usage of each of `memory_size` memory slots.
+    """
+    Memory usage that is increased by writing and decreased by reading.
+
+    This module has a state is a tensor with values in the range [0, 1] indicating the usage of each of `memory_size` memory slots.
+
     The usage is:
-    *   Increased by writing, where usage is increased towards 1 at the write
-        addresses.
-    *   Decreased by reading, where usage is decreased after reading from a
-        location when free_gate is close to 1.
-    The function `write_allocation_weights` can be invoked to get free locations
-    to write to for a number of write heads.
+
+    - Increased by writing, where usage is increased towards 1 at the write addresses.
+
+    - Decreased by reading, where usage is decreased after reading from a location when free_gate is close to 1.
+
+
+    The function `write_allocation_weights` can be invoked to get free locations to write to for a number of write heads.
+
     """
   
     def __init__(self, name='MemoryUsage'):
@@ -60,27 +69,27 @@ class MemoryUsage(object):
         usage = torch.zeros((batch_size,  memory_address_size)).type(dtype)
   
         return usage
-  
-  
+
     def calculate_usage(self, write_weights, free_gate, read_weights, prev_usage):
-        """Calculates the new memory usage u_t.
+        """
+        Calculates the new memory usage u_t.
+
         Memory that was written to in the previous time step will have its usage
         increased; memory that was read from and the controller says can be "freed"
         will have its usage decreased.
-        Args:
-          :param write_weights: tensor of shape `[batch_size, num_writes,
-              memory_size]` giving write weights at previous time step.
-          :param free_gate: tensor of shape `[batch_size, num_reads]` which indicates
-              which read heads read memory that can now be freed.
-          :param read_weights: tensor of shape `[batch_size, num_reads,
-              memory_size]` giving read weights at previous time step.
-          :param prev_usage: tensor of shape `[batch_size, memory_size]` giving
-              usage u_{t - 1} at the previous time step, with entries in range
-              [0, 1].
-        Returns:
-          :returns: tensor of shape `[batch_size, memory_size]` representing updated memory
-          usage.
-        """ 
+
+        :param write_weights: tensor of shape `[batch_size, num_writes, memory_size]` giving write weights at previous time step.
+
+        :param free_gate: tensor of shape `[batch_size, num_reads]` which indicates which read heads read memory that can now be freed.
+
+        :param read_weights: tensor of shape `[batch_size, num_reads, memory_size]` giving read weights at previous time step.
+
+        :param prev_usage: tensor of shape `[batch_size, memory_size]` giving usage u_{t - 1} at the previous time step, with entries in range [0, 1].
+
+
+        :returns: tensor of shape `[batch_size, memory_size]` representing updated memory usage.
+
+        """
        # Calculation of usage is not differentiable with respect to write weights.
         with torch.no_grad():
             usage = self._usage_after_write(prev_usage, write_weights)
@@ -88,23 +97,22 @@ class MemoryUsage(object):
         return usage
   
     def write_allocation_weights(self, usage, write_gates, num_writes):
-        """Calculates freeness-based locations for writing to.
+        """
+        Calculates freeness-based locations for writing to.
+
         This finds unused memory by ranking the memory locations by usage, for each
         write head. (For more than one write head, we use a "simulated new usage"
         which takes into account the fact that the previous write head will increase
         the usage in that area of the memory.)
-        Args:
-          :param usage: A tensor of shape `[batch_size, memory_size]` representing
-              current memory usage.
-          :param write_gates: A tensor of shape `[batch_size, num_writes]` with values in
-              the range [0, 1] indicating how much each write head does writing
-              based on the address returned here (and hence how much usage
-              increases).
-          :param num_writes: The number of write heads to calculate write weights for.
-        Returns:
-          :returns: tensor of shape `[batch_size, num_writes, memory_size]` containing the
-              freeness-based write locations. Note that this isn't scaled by
-              `write_gate`; this scaling must be applied externally.
+
+        :param usage: A tensor of shape `[batch_size, memory_size]` representing current memory usage.
+
+        :param write_gates: A tensor of shape `[batch_size, num_writes]` with values in the range [0, 1] indicating how much each write head does writing based on the address returned here (and hence how much usage increases).
+
+        :param num_writes: The number of write heads to calculate write weights for.
+
+        :returns: tensor of shape `[batch_size, num_writes, memory_size]` containing the freeness-based write locations. Note that this isn't scaled by `write_gate`; this scaling must be applied externally.
+
         """
   
         allocation_weights = []
@@ -182,13 +190,12 @@ class MemoryUsage(object):
         return unsorted_all
 
     def exclusive_cumprod_temp(self, sorted_usage, dim=1):
-        """Applies the exclusive cumultative product (at the moment it assumes the shape of the input)
-        Args:
-            :param sorted_usage: tensor of shape `[batch_size, memory_size]` indicating current
-              memory usage sorted in ascending order.
-        Returns:
-            :returns: Tensor of shape `[batch_size, memory_size]` that is exclusive pruduct of the sorted usage
-                     i.e. = [1, u1, u1*u2, u1*u2*u3, ....]
+        """
+        Applies the exclusive cumultative product (at the moment it assumes the shape of the input)
+
+        :param sorted_usage: tensor of shape `[batch_size, memory_size]` indicating current memory usage sorted in ascending order.
+
+        :returns: Tensor of shape `[batch_size, memory_size]` that is exclusive pruduct of the sorted usage i.e. = [1, u1, u1*u2, u1*u2*u3, ....]
 
         """
         #TODO: expand this so it works for any dim

@@ -151,10 +151,3 @@ if __name__ == "__main__":
     data_tuple,  aux_tuple = next(generator)
     # Display single sample (0) from batch.
     problem.show_sample(data_tuple, aux_tuple)
-
-
-
-
-
-
-
