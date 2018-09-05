@@ -44,10 +44,9 @@
 __author__ = "Vincent Marois , Vincent Albouy"
 
 # Add path to main project directory
-import os, sys
+import os
 import torch.nn.functional as F
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from models.model import Model
 from misc.app_state import AppState
 
@@ -58,8 +57,6 @@ from models.mac.mac_unit import MACUnit
 from models.mac.output_unit import OutputUnit
 from PIL import Image
 from torchvision import transforms
-import numpy as np
-import torch
 
 # visualization
 import nltk
