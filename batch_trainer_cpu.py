@@ -9,7 +9,6 @@ __author__= "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
 
 
 import os
-import sys
 import yaml
 from tempfile import NamedTemporaryFile
 from multiprocessing.pool import ThreadPool

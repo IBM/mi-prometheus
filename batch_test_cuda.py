@@ -13,7 +13,6 @@ from multiprocessing.pool import ThreadPool
 import subprocess
 import numpy as np
 from glob import glob
-import csv
 import pandas as pd
 from time import sleep
 

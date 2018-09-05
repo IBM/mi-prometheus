@@ -50,11 +50,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import RandomSampler
 import torch
-
-# Add path to main project directory
-import os, sys
 import csv
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
 
 from problems.problem import DataTuple
 

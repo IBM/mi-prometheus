@@ -24,11 +24,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-# Add path to main project directory - so we can test the base plot, saving images, movies etc.
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
-
 from models.model import Model
 from problems.problem import DataTuple
 from misc.app_state import AppState

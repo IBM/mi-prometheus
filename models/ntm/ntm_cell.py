@@ -5,10 +5,7 @@ __author__ = "Tomasz Kornuta"
 
 import torch 
 import collections
-import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from misc.app_state import AppState
 from models.controllers.controller_factory import ControllerFactory
 from models.ntm.ntm_interface import NTMInterface
 

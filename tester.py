@@ -30,17 +30,10 @@ from time import sleep
 
 import torch
 import argparse
-
 import numpy as np
-from glob import glob
-
 import logging
 import logging.config
 
-# Import problems and problem factory.
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), 'problems'))
-sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
 from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 

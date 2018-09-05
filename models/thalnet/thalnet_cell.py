@@ -20,9 +20,8 @@ __author__= "Younes Bouhadjar"
 
 import torch
 from torch import nn
-import collections
 from models.thalnet.thalnet_module import ThalnetModule
-from misc.app_state import AppState
+
 
 class ThalNetCell(nn.Module):
     """ Implementation of the ThalNetCell, it takes one element of the input sequence at a time"""

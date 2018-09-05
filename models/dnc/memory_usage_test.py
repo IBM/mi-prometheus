@@ -1,4 +1,3 @@
-import torch
 from memory_usage import MemoryUsage
 #Tests for MemoryUsage
 leng=10

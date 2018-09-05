@@ -3,13 +3,10 @@
 """worker_utils.py: Contains helper functions for different workers"""
 __author__      = "Ryan McAvoy, Tomasz Kornuta"
 
-import sys, os
+import os
 import yaml
 
 import torch
-from torch import nn
-import torch.nn.functional as F
-import numpy as np
 from misc.app_state import AppState
 
 def forward_step(model, problem, episode, stat_col, data_tuple,  aux_tuple):

@@ -12,14 +12,7 @@ import logging
 logger = logging.getLogger('Sort-of-CLEVR')
 
 import random
-import collections
-import matplotlib
-#matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
-# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
-import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..')) 
+import os
 
 import torch
 from problems.problem import DataTuple

@@ -20,7 +20,7 @@
     See https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html """
 __author__ = "Vincent Marois"
 
-import os, sys
+import os
 import random
 
 # fix the random seed for results repeatability
@@ -30,8 +30,6 @@ import torch
 import errno
 from misc.app_state import AppState
 app_state = AppState()
-
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..', '..'))
 
 from problems.problem import DataTuple
 from problems.seq_to_seq.text2text.text_to_text_problem import TextToTextProblem, Lang, TextAuxTuple

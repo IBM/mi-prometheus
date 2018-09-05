@@ -5,17 +5,11 @@ __author__ = "Tomasz Kornuta"
 
 from enum import Enum
 import torch
-from torch import nn
 import logging
 logger = logging.getLogger('MAE2S-Model')
 
-# Add path to main project directory.
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
-from misc.app_state import AppState
 from problems.problem import DataTuple
 from models.sequential_model import SequentialModel
-
 from models.encoder_solver.mae_cell import MAECell
 from models.encoder_solver.mas_cell import MASCell
 

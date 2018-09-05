@@ -9,10 +9,6 @@ import numpy as np
 import logging
 logger = logging.getLogger('Shape-Color-Query')
 
-# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
-import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..')) 
-
 from problems.image_text_to_class.sort_of_clevr import SortOfCLEVR
 
 

@@ -35,7 +35,6 @@ from time import sleep
 import argparse
 import torch
 from torch import nn
-import torch.nn.functional as F
 import collections
 import numpy as np
 
@@ -43,9 +42,8 @@ from misc.app_state import AppState
 from misc.statistics_collector import StatisticsCollector
 
 # Import model factory.
-import sys, os
+import os
 
-#sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
 from models.model_factory import ModelFactory
 from misc.param_interface import ParamInterface
 

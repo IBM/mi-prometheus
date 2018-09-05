@@ -3,10 +3,6 @@
 """algorithmic_seq_to_seq_problem.py: abstract base class for algorithmic, sequential problems"""
 __author__      = "Tomasz Kornuta, Younes Bouhadjar"
 
-# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
-import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
-
 import numpy as np
 import collections
 import torch
