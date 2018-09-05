@@ -64,7 +64,11 @@ class CNNLSTMVQA(Model):
         self.image_encoding = ImageEncoding()
 
         # Instantiate class for question encoding
-        self.question_encoding = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
+        self.question_encoding = nn.LSTM(
+            self.word_embedded_size,
+            self.hidden_size,
+            self.num_layers,
+            batch_first=True)
 
         # Instantiate class for classifier
         self.classifier = Classifier(
@@ -92,14 +96,16 @@ class CNNLSTMVQA(Model):
             # Initial hidden_state for question encoding
             hx, cx = self.init_hidden_states(batch_size)
             encoded_question, _ = self.question_encoding(questions, (hx, cx))
-            encoded_question = encoded_question[:, -1, :]  # take layer's last output
+            # take layer's last output
+            encoded_question = encoded_question[:, -1, :]
         else:
             encoded_question = questions
 
         # step 3: classifying based in the encoded questions and image
         encoded_image_flattened = encoded_images.view(batch_size, -1)
 
-        combined = torch.cat([encoded_image_flattened, encoded_question], dim=1)
+        combined = torch.cat(
+            [encoded_image_flattened, encoded_question], dim=1)
         answer = self.classifier(combined)
 
         return answer
@@ -113,8 +119,10 @@ class CNNLSTMVQA(Model):
         """
 
         dtype = AppState().dtype
-        hx = torch.randn(self.num_layers, batch_size, self.hidden_size).type(dtype)
-        cx = torch.randn(self.num_layers, batch_size, self.hidden_size).type(dtype)
+        hx = torch.randn(self.num_layers, batch_size,
+                         self.hidden_size).type(dtype)
+        cx = torch.randn(self.num_layers, batch_size,
+                         self.hidden_size).type(dtype)
 
         return hx, cx
 
@@ -144,7 +152,8 @@ class CNNLSTMVQA(Model):
         # Show data.
         plt.title('Prediction: {} (Target: {})'.format(prediction, target))
         plt.xlabel('Q: {} )'.format(question))
-        plt.imshow(image.transpose(1,2,0), interpolation='nearest', aspect='auto')
+        plt.imshow(image.transpose(1, 2, 0),
+                   interpolation='nearest', aspect='auto')
 
         # Plot!
         plt.show()
@@ -197,7 +206,7 @@ if __name__ == '__main__':
     while True:
         # Generate new sequence.
         # "Image" - batch x channels x width x height
-        input_np = np.random.binomial(1, 0.5, (2, 3, 128,  128))
+        input_np = np.random.binomial(1, 0.5, (2, 3, 128, 128))
         image = torch.from_numpy(input_np).type(torch.FloatTensor)
 
         # Question

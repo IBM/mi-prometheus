@@ -32,8 +32,8 @@ class Memory:
         self._memory = mem_t
 
     def attention_read(self, wt):
-        """Returns the data read from memory       
- 
+        """Returns the data read from memory
+
         :param wt: head's weights [batch_size, num_heads, memory_addresses_size]
         :return: the read data [batch_size, num_heads, memory_content_size]
         """
@@ -62,7 +62,8 @@ class Memory:
         """
 
         # memory = memory * product_{head h} (1 - weighted erase(h))
-        self._memory = self._memory * torch.prod(1 - outer_prod(erase, wt), dim=-3)
+        self._memory = self._memory * \
+            torch.prod(1 - outer_prod(erase, wt), dim=-3)
 
     def content_similarity(self, k):
         """Calculates the dot product for Content aware addressing

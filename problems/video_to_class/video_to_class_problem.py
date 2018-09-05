@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """video_to_class_problem.py: abstract base class for sequential vision problems"""
-__author__= "Tomasz Kornuta, Younes Bouhadjar"
+__author__ = "Tomasz Kornuta, Younes Bouhadjar"
 
 import torch.nn as nn
 from problems.problem import Problem
@@ -12,8 +12,8 @@ class VideoToClassProblem(Problem):
 
     def __init__(self, params):
         """ Initializes problem object. Calls base constructor. Sets nn.CrossEntropyLoss() as default loss function.
-        
-        :param params: Dictionary of parameters (read from configuration file). 
+
+        :param params: Dictionary of parameters (read from configuration file).
         """
         super(VideoToClassProblem, self).__init__(params)
 
@@ -23,7 +23,7 @@ class VideoToClassProblem(Problem):
     def calculate_accuracy(self, data_tuple, logits, aux_tuple):
         """ Calculates accuracy equal to mean number of correct predictions in a given batch.
         WARNING: Applies mask (from aux_tuple) to logits!
-        
+
         :param logits: Logits being output of the model.
         :param data_tuple: Data tuple containing inputs and targets.
         :param aux_tuple: Auxiliary tuple containing mask.
@@ -32,7 +32,7 @@ class VideoToClassProblem(Problem):
         masked_logits = logits[:, aux_tuple.mask, :][:, 0, :]
 
         # Get the index of the max log-probability.
-        pred = masked_logits.max(1, keepdim=True)[1]  
+        pred = masked_logits.max(1, keepdim=True)[1]
         correct = pred.eq(data_tuple.targets.view_as(pred)).sum().item()
 
         # Calculate the accuracy.
@@ -44,7 +44,7 @@ class VideoToClassProblem(Problem):
     def evaluate_loss(self, data_tuple, logits, aux_tuple):
         """ Calculates loss.
         WARNING: Applies mask (from aux_tuple) to logits!
-        
+
         :param logits: Logits being output of the model.
         :param data_tuple: Data tuple containing inputs and targets.
         :param aux_tuple: Auxiliary tuple containing mask.
@@ -62,7 +62,7 @@ class VideoToClassProblem(Problem):
 
     def add_statistics(self, stat_col):
         """
-        Add accuracy statistic to collector. 
+        Add accuracy statistic to collector.
 
         :param stat_col: Statistics collector.
         """
@@ -75,9 +75,10 @@ class VideoToClassProblem(Problem):
         :param stat_col: Statistics collector.
         :param data_tuple: Data tuple containing inputs and targets.
         :param logits: Logits being output of the model.
-        :param aux_tuple: auxiliary tuple (aux_tuple) is not used in this function. 
+        :param aux_tuple: auxiliary tuple (aux_tuple) is not used in this function.
         """
-        stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, aux_tuple)
+        stat_col['acc'] = self.calculate_accuracy(
+            data_tuple, logits, aux_tuple)
 
     def show_sample(self, inputs, targets):
         import matplotlib.pyplot as plt

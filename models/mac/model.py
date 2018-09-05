@@ -89,15 +89,21 @@ class MACNetwork(Model):
         self.image = []
 
         # instantiate units
-        self.input_unit = InputUnit(dim=self.dim, embedded_dim=self.embed_hidden)
+        self.input_unit = InputUnit(
+            dim=self.dim, embedded_dim=self.embed_hidden)
 
-        self.mac_unit = MACUnit(dim=self.dim, max_step=self.max_step, self_attention=self.self_attention,
-                                memory_gate=self.memory_gate, dropout=self.dropout)
+        self.mac_unit = MACUnit(
+            dim=self.dim,
+            max_step=self.max_step,
+            self_attention=self.self_attention,
+            memory_gate=self.memory_gate,
+            dropout=self.dropout)
 
         self.output_unit = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
 
         # transform for the image plotting
-        self.transform = transforms.Compose([transforms.Resize([224, 224]), transforms.ToTensor()])
+        self.transform = transforms.Compose(
+            [transforms.Resize([224, 224]), transforms.ToTensor()])
 
     def forward(self, data_tuple, dropout=0.15):
 
@@ -111,7 +117,8 @@ class MACNetwork(Model):
         images, questions = image_questions_tuple
 
         # input unit
-        img, kb_proj, lstm_out, h = self.input_unit(questions, questions_len, images)
+        img, kb_proj, lstm_out, h = self.input_unit(
+            questions, questions_len, images)
         self.image = kb_proj
 
         # recurrent MAC cells
@@ -156,11 +163,14 @@ class MACNetwork(Model):
         # Set axis ticks
         ax_image.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax_image.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_attention_image.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_attention_image.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_attention_image.xaxis.set_major_locator(
+            ticker.MaxNLocator(integer=True))
+        ax_attention_image.yaxis.set_major_locator(
+            ticker.MaxNLocator(integer=True))
 
         # question ticks
-        ax_attention_question.xaxis.set_major_locator(ticker.MaxNLocator(nbins=40))
+        ax_attention_question.xaxis.set_major_locator(
+            ticker.MaxNLocator(nbins=40))
 
         ax_step.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax_step.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
@@ -194,9 +204,11 @@ class MACNetwork(Model):
         # attention mask [batch_size x 1 x(H*W)]
 
         # unpack aux_tuple
-        (s_questions, answer_string, imgfiles, set, prediction_string, clevr_dir) = aux_tuple
+        (s_questions, answer_string, imgfiles, set,
+         prediction_string, clevr_dir) = aux_tuple
 
-        # tokenize question string using same processing as in the problem class
+        # tokenize question string using same processing as in the problem
+        # class
         words = nltk.word_tokenize(s_questions[sample_number])
 
         # Create figure template.
@@ -220,13 +232,16 @@ class MACNetwork(Model):
         height = image.size(1)
 
         frames = []
-        for step, (attention_mask, attention_question) in zip(range(self.max_step), self.mac_unit.cell_state_history):
+        for step, (attention_mask, attention_question) in zip(
+                range(self.max_step), self.mac_unit.cell_state_history):
             # preprocess attention image, reshape
             attention_size = int(np.sqrt(attention_mask.size(-1)))
-            attention_mask = attention_mask.view(-1, 1, attention_size, attention_size)
+            attention_mask = attention_mask.view(-1,
+                                                 1, attention_size, attention_size)
 
             # upsample attention mask
-            m = torch.nn.Upsample(size=[width, height], mode='bilinear', align_corners=True)
+            m = torch.nn.Upsample(
+                size=[width, height], mode='bilinear', align_corners=True)
             up_sample_attention_mask = m(attention_mask)
             attention_mask = up_sample_attention_mask[sample_number, 0]
 
@@ -238,8 +253,10 @@ class MACNetwork(Model):
             artists = [None] * num_artists
 
             # set title labels
-            ax_image.set_title('CLEVR image: {}'.format(imgfiles[sample_number]))
-            ax_attention_question.set_xticklabels(['h'] + words, rotation='vertical', fontsize=10)
+            ax_image.set_title(
+                'CLEVR image: {}'.format(imgfiles[sample_number]))
+            ax_attention_question.set_xticklabels(
+                ['h'] + words, rotation='vertical', fontsize=10)
             ax_step.axis('off')
 
             # set axis attention labels
@@ -249,13 +266,20 @@ class MACNetwork(Model):
                 answer_string[sample_number])
 
             # Tell artists what to do:
-            artists[0] = ax_image.imshow(image, interpolation='nearest', aspect='auto')
-            artists[1] = ax_attention_image.imshow(image, interpolation='nearest', aspect='auto')
-            artists[2] = ax_attention_image.imshow(attention_mask, interpolation='nearest', aspect='auto', alpha=0.5,
-                                                   cmap='Reds')
-            artists[3] = ax_attention_question.imshow(attention_question.transpose(1, 0), interpolation='nearest',
-                                                      aspect='auto', cmap='Reds')
-            artists[4] = ax_step.text(0, 0.5, 'Reasoning step index: ' + str(step), fontsize=15)
+            artists[0] = ax_image.imshow(
+                image, interpolation='nearest', aspect='auto')
+            artists[1] = ax_attention_image.imshow(
+                image, interpolation='nearest', aspect='auto')
+            artists[2] = ax_attention_image.imshow(
+                attention_mask,
+                interpolation='nearest',
+                aspect='auto',
+                alpha=0.5,
+                cmap='Reds')
+            artists[3] = ax_attention_question.imshow(attention_question.transpose(
+                1, 0), interpolation='nearest', aspect='auto', cmap='Reds')
+            artists[4] = ax_step.text(
+                0, 0.5, 'Reasoning step index: ' + str(step), fontsize=15)
 
             # Add "frame".
             frames.append(artists)
@@ -278,9 +302,13 @@ if __name__ == '__main__':
     from misc.param_interface import ParamInterface
 
     params = ParamInterface()
-    params.add_custom_params(
-        {'dim': dim, 'embed_hidden': embed_hidden, 'max_step': 12, 'self_attention': self_attention,
-         'memory_gate': memory_gate, 'nb_classes': nb_classes, 'dropout': dropout})
+    params.add_custom_params({'dim': dim,
+                              'embed_hidden': embed_hidden,
+                              'max_step': 12,
+                              'self_attention': self_attention,
+                              'memory_gate': memory_gate,
+                              'nb_classes': nb_classes,
+                              'dropout': dropout})
 
     net = MACNetwork(params)
 
@@ -290,10 +318,15 @@ if __name__ == '__main__':
 
     batch_size = 64
     embedded_dim = 300
-    images = torch.from_numpy(np.random.binomial(n=1, p=0.5, size=(batch_size, 1024, 14, 14))).type(app_state.dtype)
-    questions = torch.from_numpy(np.random.binomial(n=1, p=0.5, size=(batch_size, 15, embedded_dim))).type(
+    images = torch.from_numpy(np.random.binomial(
+        n=1, p=0.5, size=(batch_size, 1024, 14, 14))).type(app_state.dtype)
+    questions = torch.from_numpy(
+        np.random.binomial(
+            n=1, p=0.5, size=(
+                batch_size, 15, embedded_dim))).type(
         app_state.dtype)
-    answers = torch.from_numpy(np.random.randint(low=0, high=nb_classes, size=(batch_size, 1))).type(app_state.dtype)
+    answers = torch.from_numpy(np.random.randint(
+        low=0, high=nb_classes, size=(batch_size, 1))).type(app_state.dtype)
     questions_len = [15] * batch_size
 
     # construct data_tuple

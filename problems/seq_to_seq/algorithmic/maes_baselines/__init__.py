@@ -8,6 +8,13 @@ from .sequence_symmetry_cl import SequenceSymmetryCommandLines
 from .serial_recall_cl import SerialRecallCommandLines
 from .skip_recall_cl import SkipRecallCommandLines
 
-__all__ = ['DualSerialReverseRecallCommandLines', 'RepeatReverseRecallCommandLines', 'RepeatSerialRecallCommandLines',
-           'ReverseRecallCommandLines', 'SequenceComparisonCommandLines', 'SequenceEqualityCommandLines',
-           'SequenceSymmetryCommandLines', 'SerialRecallCommandLines', 'SkipRecallCommandLines']
+__all__ = [
+    'DualSerialReverseRecallCommandLines',
+    'RepeatReverseRecallCommandLines',
+    'RepeatSerialRecallCommandLines',
+    'ReverseRecallCommandLines',
+    'SequenceComparisonCommandLines',
+    'SequenceEqualityCommandLines',
+    'SequenceSymmetryCommandLines',
+    'SerialRecallCommandLines',
+    'SkipRecallCommandLines']

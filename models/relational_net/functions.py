@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """functions.py: contains implementations of g_theta & f_phi for the Relational Network."""
-__author__      = "Vincent Marois"
+__author__ = "Vincent Marois"
 
 import torch
 import numpy as np
@@ -107,7 +107,7 @@ class SumOfPairsAnalysisNetwork(nn.Module):
 
 if __name__ == '__main__':
     """Unit Tests for g_theta & f_phi."""
-    input_size = (24+2)*2+13
+    input_size = (24 + 2) * 2 + 13
     batch_size = 64
     inputs = np.random.binomial(1, 0.5, (batch_size, 3, input_size))
     inputs = torch.from_numpy(inputs).type(app_state.dtype)

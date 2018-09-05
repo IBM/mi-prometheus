@@ -21,6 +21,7 @@ class ParamRegistry(Mapping, metaclass=MetaSingletonABC):
     Parameters can be read from the registry by indexing. The returned parameters are the default ones superseded by
     all the custom ones. The merging of default and custom parameters is computed every time the parameters are read.
     """
+
     def __init__(self):
         super(ParamRegistry, self).__init__()
         self._default_params = {}

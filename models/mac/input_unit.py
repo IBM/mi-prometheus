@@ -75,10 +75,12 @@ class InputUnit(nn.Module):
         self.kb_proj_layer = linear(dim, dim, bias=True)
 
         # create bidirectional LSTM layer
-        self.lstm = nn.LSTM(input_size=embedded_dim, hidden_size=self.dim, num_layers=1, batch_first=True, bidirectional=True)
+        self.lstm = nn.LSTM(input_size=embedded_dim, hidden_size=self.dim,
+                            num_layers=1, batch_first=True, bidirectional=True)
 
         # linear layer for projecting the word encodings from 2*dim to dim
-        self.lstm_proj = nn.Linear(2*self.dim, self.dim)  # TODO: linear(2*self.dim, self.dim, bias=True) ?
+        # TODO: linear(2*self.dim, self.dim, bias=True) ?
+        self.lstm_proj = nn.Linear(2 * self.dim, self.dim)
 
     def forward(self, questions, questions_len, feature_maps):
         """
@@ -101,21 +103,25 @@ class InputUnit(nn.Module):
         feature_maps = feature_maps.view(batch_size, self.dim, -1)
 
         # pass feature maps through linear layer
-        kb_proj = self.kb_proj_layer(feature_maps.permute(0, 2, 1)).permute(0, 2, 1)
+        kb_proj = self.kb_proj_layer(
+            feature_maps.permute(0, 2, 1)).permute(0, 2, 1)
 
         # avoid useless computations on padding elements: pack sequences
-        embed = nn.utils.rnn.pack_padded_sequence(questions, questions_len, batch_first=True)
+        embed = nn.utils.rnn.pack_padded_sequence(
+            questions, questions_len, batch_first=True)
 
         # LSTM layer: words & questions encodings
         lstm_out, (h, _) = self.lstm(embed)
 
         # reshape packed sequences to a padded tensor
-        lstm_out, _ = nn.utils.rnn.pad_packed_sequence(lstm_out, batch_first=True)
+        lstm_out, _ = nn.utils.rnn.pad_packed_sequence(
+            lstm_out, batch_first=True)
 
         # get final words encodings using linear layer
         lstm_out = self.lstm_proj(lstm_out)
 
-        # reshape last hidden states for questions encodings -> [batch_size x (2*dim)]
+        # reshape last hidden states for questions encodings -> [batch_size x
+        # (2*dim)]
         h = h.permute(1, 0, 2).contiguous().view(batch_size, -1)
 
         # return everything

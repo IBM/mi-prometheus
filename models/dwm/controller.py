@@ -26,9 +26,9 @@ from models.controllers.controller_factory import ControllerFactory
 
 class Controller(nn.Module):
     """ Implementation of the DWM controller """
+
     def __init__(self, in_dim, output_units, state_units,
                  read_size, update_size):
-
         """Constructor for the Controller.
 
         :param in_dim: input size.
@@ -95,7 +95,8 @@ class Controller(nn.Module):
         """
         # Concatenate the 3 inputs to controller
         combined = torch.cat((input, read_data), dim=-1)
-        combined_with_state = torch.cat((combined, tuple_state_prev.hidden_state), dim=-1)
+        combined_with_state = torch.cat(
+            (combined, tuple_state_prev.hidden_state), dim=-1)
 
         # Get the state and update; no activation is applied
         state, tuple_state = self.i2s(combined, tuple_state_prev)

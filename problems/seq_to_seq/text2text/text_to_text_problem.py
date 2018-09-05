@@ -30,7 +30,12 @@ import torch
 import torch.nn as nn
 from problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
 
-_TextAuxTuple = collections.namedtuple('TextAuxTuple', ('inputs_text', 'outputs_text', 'input_lang', 'output_lang'))
+_TextAuxTuple = collections.namedtuple(
+    'TextAuxTuple',
+    ('inputs_text',
+     'outputs_text',
+     'input_lang',
+     'output_lang'))
 
 
 class TextAuxTuple(_TextAuxTuple):
@@ -64,7 +69,8 @@ class TextToTextProblem(SeqToSeqProblem):
         """
         super(TextToTextProblem, self).__init__(params)
 
-        # set default loss function - negative log likelihood and ignore padding elements.
+        # set default loss function - negative log likelihood and ignore
+        # padding elements.
         self.loss_function = nn.NLLLoss(size_average=True, ignore_index=0)
 
     def compute_BLEU_score(self, data_tuple, logits, aux_tuple):
@@ -93,15 +99,19 @@ class TextToTextProblem(SeqToSeqProblem):
         for sentence in aux_tuple.outputs_text:
             targets_text.append(sentence.split())
 
-        # retrieve text sentences from the logits (which should be tensors of indexes)
+        # retrieve text sentences from the logits (which should be tensors of
+        # indexes)
         logits_text = []
         for logit in logits:
-            logits_text.append([aux_tuple.output_lang.index2word[index.item()] for index in logit])
+            logits_text.append(
+                [aux_tuple.output_lang.index2word[index.item()] for index in logit])
 
         bleu_score = 0
         for i in range(batch_size):
             # compute bleu score and use a smoothing function
-            bleu_score += sentence_bleu([targets_text[i]], logits_text[i], smoothing_function=SmoothingFunction().method1)
+            bleu_score += sentence_bleu([targets_text[i]],
+                                        logits_text[i],
+                                        smoothing_function=SmoothingFunction().method1)
 
         return round(bleu_score / batch_size, 4)
 
@@ -146,7 +156,8 @@ class TextToTextProblem(SeqToSeqProblem):
         :param aux_tuple: auxiliary tuple (aux_tuple).
         """
 
-        stat_col['bleu_score'] = self.compute_BLEU_score(data_tuple, logits, aux_tuple)
+        stat_col['bleu_score'] = self.compute_BLEU_score(
+            data_tuple, logits, aux_tuple)
 
     def show_sample(self, data_tuple, aux_tuple, sample_number=0):
         """ Shows the sample (both input and target sequences) using matplotlib.
@@ -160,7 +171,8 @@ class TextToTextProblem(SeqToSeqProblem):
         pass
 
     # ----------------------
-    # The following are helper functions for data pre-processing in the case of a translation task
+    # The following are helper functions for data pre-processing in the case
+    # of a translation task
 
     def unicode_to_ascii(self, s):
         """Turn a Unicode string to plain ASCII. See: http://stackoverflow.com/a/518232/2809427.
@@ -196,7 +208,8 @@ class TextToTextProblem(SeqToSeqProblem):
 
         :return: padded list of indexes.
         """
-        seq = [lang.word2index[word] for word in sentence.split(' ')] + [EOS_token]
+        seq = [lang.word2index[word]
+               for word in sentence.split(' ')] + [EOS_token]
         seq += [PAD_token for _ in range(max_seq_length - len(seq))]
         return seq
 
@@ -225,12 +238,15 @@ class TextToTextProblem(SeqToSeqProblem):
 
         :return: tuple of tensors of indexes.
         """
-        input_tensor = self.tensor_from_sentence(input_lang, pair[0], max_seq_length)
-        target_tensor = self.tensor_from_sentence(output_lang, pair[1], max_seq_length)
+        input_tensor = self.tensor_from_sentence(
+            input_lang, pair[0], max_seq_length)
+        target_tensor = self.tensor_from_sentence(
+            output_lang, pair[1], max_seq_length)
 
         return [input_tensor, target_tensor]
 
-    def tensors_from_pairs(self, pairs, input_lang, output_lang, max_seq_length):
+    def tensors_from_pairs(self, pairs, input_lang,
+                           output_lang, max_seq_length):
         """
         Returns a list of tuples of tensors of indexes from a list of pairs of sentences. Reuses tensors_from_pair.
 
@@ -241,7 +257,8 @@ class TextToTextProblem(SeqToSeqProblem):
 
         :return: list of tensors of indexes.
         """
-        return [self.tensors_from_pair(pair, input_lang, output_lang, max_seq_length) for pair in pairs]
+        return [self.tensors_from_pair(
+            pair, input_lang, output_lang, max_seq_length) for pair in pairs]
 
 
 class Lang(object):
@@ -264,10 +281,15 @@ class Lang(object):
         """
         self.name = name
         self.word2index = {"PAD": 0, "SOS": 1, "EOS": 2}  # dict 'word': index
-        self.word2count = {}  # keep track of the occurrence of each word in the language. Can be used to replace
+        # keep track of the occurrence of each word in the language. Can be
+        # used to replace
+        self.word2count = {}
         # rare words.
-        self.index2word = {0: "PAD", 1: "SOS", 2: "EOS"}  # dict 'index': 'word', initializes with PAD, EOS, SOS tokens
-        self.n_words = 3  # Number of words in the language. Start by counting PAD, EOS, SOS tokens.
+        # dict 'index': 'word', initializes with PAD, EOS, SOS tokens
+        self.index2word = {0: "PAD", 1: "SOS", 2: "EOS"}
+        # Number of words in the language. Start by counting PAD, EOS, SOS
+        # tokens.
+        self.n_words = 3
 
     def add_sentence(self, sentence):
         """
@@ -286,9 +308,11 @@ class Lang(object):
         """
 
         if word not in self.word2index:  # if the current word has not been seen before
-            self.word2index[word] = self.n_words  # create a new entry in word2index
+            # create a new entry in word2index
+            self.word2index[word] = self.n_words
             self.word2count[word] = 1  # count first occurrence of this word
-            self.index2word[self.n_words] = word  # create a new entry in index2word
+            # create a new entry in index2word
+            self.index2word[self.n_words] = word
             self.n_words += 1  # increment total number of words in the language
 
         else:  # this word has been seen before, simply update its occurrence

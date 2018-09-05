@@ -66,7 +66,7 @@ class WriteUnit(nn.Module):
         super(WriteUnit, self).__init__()
 
         # linear layer for the concatenation of ri & mi-1
-        self.concat_layer = linear(2*dim, dim, bias=True)
+        self.concat_layer = linear(2 * dim, dim, bias=True)
 
         # self-attention & memory gating optional initializations
         self.self_attention = self_attention
@@ -98,23 +98,29 @@ class WriteUnit(nn.Module):
 
         if self.self_attention:
             # compute attention weights from the relevance of each previous step to the current one (w2.1)
-            controls_cat = torch.stack(ctrl_states[:-1], 2)  # [batch_size x dim x (i)],  i: current step index (we count the initial control state c0)
-            attn = ctrl_states[-1].unsqueeze(2) * controls_cat  # [batch_size x dim x 1] * [batch_size x dim * (i)] -> [batch_size x dim * (i)]
+            # [batch_size x dim x (i)],  i: current step index (we count the initial control state c0)
+            controls_cat = torch.stack(ctrl_states[:-1], 2)
+            # [batch_size x dim x 1] * [batch_size x dim * (i)] -> [batch_size x dim * (i)]
+            attn = ctrl_states[-1].unsqueeze(2) * controls_cat
             attn = self.attn(attn.permute(0, 2, 1))  # [batch_size x (i) x 1]
-            attn = F.softmax(attn, dim=1).permute(0, 2, 1)  # [batch_size x 1 x (i)]
+            attn = F.softmax(attn, dim=1).permute(
+                0, 2, 1)  # [batch_size x 1 x (i)]
 
             # compute weighted sum of the previous memory states (w2.2)
-            memories_cat = torch.stack(memory_states, dim=2)  # [batch_size x dim x (i)], i: current step index (we count the initial memory state m0)
+            # [batch_size x dim x (i)], i: current step index (we count the initial memory state m0)
+            memories_cat = torch.stack(memory_states, dim=2)
             mi_sa = (attn * memories_cat).sum(2)  # [batch_size x dim]
 
             # project both vector separately and element-wise sum (w2.3)
-            next_memory_state = self.mi_sa_proj(mi_sa) + self.mi_info_proj(mi_info)
+            next_memory_state = self.mi_sa_proj(
+                mi_sa) + self.mi_info_proj(mi_info)
 
         if self.memory_gate:
             # project current control state (w3.1)
             control = self.control(ctrl_states[-1])
             # gating (w3.2)
             gate = F.sigmoid(control)
-            next_memory_state = gate * memory_state + (1 - gate) * next_memory_state
+            next_memory_state = gate * memory_state + \
+                (1 - gate) * next_memory_state
 
         return next_memory_state

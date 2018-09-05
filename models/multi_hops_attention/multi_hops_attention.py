@@ -72,7 +72,8 @@ class MultiHopsAttention(Model):
 
         # Instantiate class for classifier
         self.classifier = Classifier(
-            in_features=self.num_words*(self.image_encoding_channels) + self.image_encoding_channels,
+            in_features=self.num_words *
+            (self.image_encoding_channels) + self.image_encoding_channels,
             mid_features=256,
             out_features=10)
 
@@ -102,7 +103,7 @@ class MultiHopsAttention(Model):
             v = self.apply_attention(encoded_images, hx)
 
             if v_features is None:
-                 v_features = v
+                v_features = v
             else:
                 v_features = torch.cat((v_features, v), dim=-1)
 
@@ -152,7 +153,8 @@ class MultiHopsAttention(Model):
         # Show data.
         plt.title('Prediction: {} (Target: {})'.format(prediction, target))
         plt.xlabel('Q: {} )'.format(question))
-        plt.imshow(image.transpose(1,2,0), interpolation='nearest', aspect='auto')
+        plt.imshow(image.transpose(1, 2, 0),
+                   interpolation='nearest', aspect='auto')
 
         # Plot!
         plt.show()
@@ -189,6 +191,7 @@ class Classifier(nn.Sequential):
         x = self.fc3(x)
         return F.log_softmax(x, dim=-1)
 
+
 if __name__ == '__main__':
     # Set visualization.
     AppState().visualize = True
@@ -202,10 +205,10 @@ if __name__ == '__main__':
     while True:
         # Generate new sequence.
         # "Image" - batch x channels x width x height
-        input_np = np.random.binomial(1, 0.5, (1, 3, 128,  128))
+        input_np = np.random.binomial(1, 0.5, (1, 3, 128, 128))
         image = torch.from_numpy(input_np).type(torch.FloatTensor)
 
-        #Question
+        # Question
         questions_np = np.random.binomial(1, 0.5, (1, 3, 7))
         questions = torch.from_numpy(questions_np).type(torch.FloatTensor)
 

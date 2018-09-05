@@ -28,7 +28,9 @@ import torch
 class StackedAttention(nn.Module):
     """ Implements a stacked attention layers, this attention was designed in this paper: https://arxiv.org/abs/1511.02274
     """
-    def __init__(self, question_image_encoding_size, key_query_size, num_att_layers=2):
+
+    def __init__(self, question_image_encoding_size,
+                 key_query_size, num_att_layers=2):
         """
         Constructor of the StackedAttention class
 
@@ -62,7 +64,8 @@ class StackedAttention(nn.Module):
 
                 # Concatenate output
                 else:
-                    self.visualize_attention = torch.cat([self.visualize_attention, attention_prob], dim=-1)
+                    self.visualize_attention = torch.cat(
+                        [self.visualize_attention, attention_prob], dim=-1)
 
         return u
 
@@ -71,6 +74,7 @@ class Attention(nn.Module):
     """
     Implements one layer of the stacked attention designed: https://arxiv.org/abs/1511.02274
     """
+
     def __init__(self, question_image_encoding_size, key_query_size=512):
         """
         Constructor of Attention class
@@ -84,7 +88,8 @@ class Attention(nn.Module):
         self.ff_image = nn.Linear(question_image_encoding_size, key_query_size)
         # fully connected layer to construct the query
         self.ff_ques = nn.Linear(question_image_encoding_size, key_query_size)
-        # fully connected layer to construct the attention from the query and key
+        # fully connected layer to construct the attention from the query and
+        # key
         self.ff_attention = nn.Linear(key_query_size, 1)
 
     def forward(self, encoded_image, encoded_question):

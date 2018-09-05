@@ -3,6 +3,7 @@ import torch
 
 from models.model import Model
 
+
 class AlexnetWrapper(Model):
     """ Wrapper class to Alexnet model from TorchVision """
 
@@ -32,9 +33,3 @@ class AlexnetWrapper(Model):
         outputs = self.model(inputs)
 
         return outputs
-
-
-
-
-
-

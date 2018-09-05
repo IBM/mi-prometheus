@@ -9,6 +9,7 @@ class ParamInterface(Mapping):
     Offers a read (through `collections.Mapping` interface) and write (through `add_default_params` and
     `add_custom_params` methods) view of the `ParameterRegistry`.
     """
+
     def __init__(self, *keys):
         """
 
@@ -19,7 +20,8 @@ class ParamInterface(Mapping):
         self._param_registry = ParamRegistry()
         self._keys_path = list(keys)
 
-        # Add the recursive dict structure determined by the given keys to default params
+        # Add the recursive dict structure determined by the given keys to
+        # default params
         self.add_default_params({})
 
     def _lookup(self, *keys):

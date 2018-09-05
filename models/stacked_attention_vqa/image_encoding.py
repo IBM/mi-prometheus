@@ -23,10 +23,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
+
 class ImageEncoding(nn.Module):
     """
     Image encoding using 4 convolutional layers with batch normalization, it was designed specifically for sort of clevr https://arxiv.org/abs/1706.01427
     """
+
     def __init__(self):
         """
         Constructor of the ImageEncoding class
@@ -67,7 +69,8 @@ class ImageEncoding(nn.Module):
         x = self.batchNorm4(x)
 
         # flattening the width and height dimensions to a single one and
-        # transpose it with the num_channel dimension, necessary when applying the attention
+        # transpose it with the num_channel dimension, necessary when applying
+        # the attention
         x = x.view(x.size(0), x.size(1), -1).transpose(1, 2)
 
         return x
@@ -77,7 +80,8 @@ class PretrainedImageEncoding(nn.Module):
     """
     Image encoding using pretrained resnetXX from torchvision
     """
-    def __init__(self, cnn_model = 'resnet18', num_blocks = 2):
+
+    def __init__(self, cnn_model='resnet18', num_blocks=2):
         """
         Constructor of the PretrainedImageEncoding class
 
@@ -102,8 +106,8 @@ class PretrainedImageEncoding(nn.Module):
 
         # select the resnet blocks and append them to layers
         for i in range(num_blocks):
-           name = 'layer%d' % (i + 1)
-           layers.append(getattr(cnn, name))
+            name = 'layer%d' % (i + 1)
+            layers.append(getattr(cnn, name))
 
         self.model = torch.nn.Sequential(*layers)
 
@@ -121,7 +125,8 @@ class PretrainedImageEncoding(nn.Module):
         x = self.model(img)
 
         # flattening the width and height dimensions to a single one and
-        # transpose it with the num_channel dimension, necessary when applying the attention
+        # transpose it with the num_channel dimension, necessary when applying
+        # the attention
         x = x.view(x.size(0), x.size(1), -1).transpose(1, 2)
 
         return x

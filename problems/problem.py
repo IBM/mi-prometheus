@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """problem.py: contains base class for all problems"""
-__author__      = "Tomasz Kornuta"
+__author__ = "Tomasz Kornuta"
 
 
 import collections
 from abc import ABCMeta, abstractmethod
 
 _DataTuple = collections.namedtuple('DataTuple', ('inputs', 'targets'))
+
+
 class DataTuple(_DataTuple):
     """Tuple used by storing batches of data by problems"""
     __slots__ = ()
 
 
 _MaskAuxTuple = collections.namedtuple('MaskAuxTuple', ('mask'))
+
+
 class MaskAuxTuple(_MaskAuxTuple):
     """
     Tuple used by storing batches of data by sequential problems using mask.
@@ -22,8 +26,9 @@ class MaskAuxTuple(_MaskAuxTuple):
     __slots__ = ()
 
 
-
 _LabelAuxTuple = collections.namedtuple('LabelAuxTuple', ('label'))
+
+
 class LabelAuxTuple(_LabelAuxTuple):
     """
     Tuple used by storing batches of labels in classification problems.
@@ -31,23 +36,21 @@ class LabelAuxTuple(_LabelAuxTuple):
     __slots__ = ()
 
 
-
 class Problem(metaclass=ABCMeta):
     """ Class representing base class for all Problems.
     """
 
     def __init__(self, params):
-        """ 
+        """
         Initializes problem object.
 
-        :param params: Dictionary of parameters (read from configuration file).        
+        :param params: Dictionary of parameters (read from configuration file).
         """
         # Set default loss function.
         self.loss_function = None
 
         # Store pointer to params.
         self.params = params
-
 
     def set_loss_function(self, loss_function):
         """ Sets loss function.
@@ -56,20 +59,19 @@ class Problem(metaclass=ABCMeta):
         """
         self.loss_function = loss_function
 
-
     @abstractmethod
     def generate_batch(self):
         """
-        Generates batch of sequences of given length. 
-        Abstract - to be defined in derived classes. 
+        Generates batch of sequences of given length.
+        Abstract - to be defined in derived classes.
         """
 
     def return_generator(self):
         """
         Returns a generator yielding a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
         Additional elements of sequence are  start and stop control markers, stored in additional bits.
-       
-        : returns: A tuple: input with shape [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS], output 
+
+        : returns: A tuple: input with shape [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS], output
         """
         # Create "generator".
         while True:
@@ -77,37 +79,37 @@ class Problem(metaclass=ABCMeta):
 
     def evaluate_loss(self, data_tuple, logits, _):
         """ Calculates loss between the predictions/logits and targets (from data_tuple) using the selected loss function.
-        
+
         :param logits: Logits being output of the model.
         :param data_tuple: Data tuple containing inputs and targets.
-        :param _: auxiliary tuple (aux_tuple) is not used in this function. 
+        :param _: auxiliary tuple (aux_tuple) is not used in this function.
         """
         # Unpack tuple.
         (_, targets) = data_tuple
 
-        # Compute loss using the provided loss function. 
+        # Compute loss using the provided loss function.
         loss = self.loss_function(logits, targets)
 
         return loss
 
     def add_statistics(self, stat_col):
         """
-        Add statistics to collector. 
+        Add statistics to collector.
         EMPTY - To be redefined in inheriting classes.
 
         :param stat_col: Statistics collector.
         """
         pass
-        
+
     def collect_statistics(self, stat_col, data_tuple, logits, _):
         """
-        Base statistics collection. 
+        Base statistics collection.
         EMPTY - To be redefined in inheriting classes.
 
         :param stat_col: Statistics collector.
         :param data_tuple: Data tuple containing inputs and targets.
         :param logits: Logits being output of the model.
-        :param _: auxiliary tuple (aux_tuple) is not used in this function. 
+        :param _: auxiliary tuple (aux_tuple) is not used in this function.
         """
         pass
 
@@ -140,17 +142,15 @@ class Problem(metaclass=ABCMeta):
         """
         return data_tuple, aux_tuple, logits
 
-
     def curriculum_learning_initialize(self, curriculum_params):
-        """ 
+        """
         Initializes curriculum learning - simply saves the curriculum params.
         This method can be overwriten in the derived classes.
 
-        :curriculum_params: Interface to parameters accessing curriculum learning view of the registry tree. 
+        :curriculum_params: Interface to parameters accessing curriculum learning view of the registry tree.
         """
         # Save params.
         self.curriculum_params = curriculum_params
-
 
     def curriculum_learning_update_params(self, episode):
         """

@@ -9,14 +9,17 @@ import collections
 from misc.app_state import AppState
 
 _GRUStateTuple = collections.namedtuple('GRUStateTuple', ('hidden_state'))
+
+
 class GRUStateTuple(_GRUStateTuple):
     """Tuple used by gru Cells for storing current/past state information"""
     __slots__ = ()
 
+
 class FFGRUController(nn.Module):
     def __init__(self, params):
         """ Constructor.
-        
+
         :param params: Dictionary of parameters.
         """
 
@@ -28,30 +31,32 @@ class FFGRUController(nn.Module):
         assert self.num_layers > 0, "Number of layers should be > 0"
 
         super(FFGRUController, self).__init__()
-      
+
         self.ff = nn.Linear(self.input_size, self.ff_output_size)
         self.gru = nn.GRUCell(self.ff_output_size, self.ctrl_hidden_state_size)
 
-        
     def init_state(self, batch_size):
         """
         Returns 'zero' (initial) state tuple.
-        
+
         :param batch_size: Size of the batch in given iteraction/epoch.
         :returns: Initial state tuple - object of GRUStateTuple class.
         """
         # Initialize GRU hidden state [BATCH_SIZE x CTRL_HIDDEN_SIZE].
         dtype = AppState().dtype
-        hidden_state = torch.zeros((batch_size, self.ctrl_hidden_state_size), requires_grad=False).type(dtype)
+        hidden_state = torch.zeros(
+            (batch_size,
+             self.ctrl_hidden_state_size),
+            requires_grad=False).type(dtype)
 
         return GRUStateTuple(hidden_state)
 
     def forward(self, x, prev_state_tuple):
         """
-        Controller forward function. 
-        
+        Controller forward function.
+
         :param x: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE] (generally the read data and input word concatenated)
-        :param prev_state_tuple: Tuple of the previous hidden and cell state 
+        :param prev_state_tuple: Tuple of the previous hidden and cell state
         :returns: outputs a Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and an GRU state tuple.
         """
 
@@ -59,7 +64,5 @@ class FFGRUController(nn.Module):
 
         input = self.ff(x)
         hidden_state = self.gru(input, hidden_state_prev)
-       
+
         return hidden_state, GRUStateTuple(hidden_state)
-
-

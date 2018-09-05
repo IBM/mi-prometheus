@@ -29,17 +29,21 @@ from models.dwm.memory import Memory
 from misc.app_state import AppState
 
 # Helper collection type.
-_InterfaceStateTuple = collections.namedtuple('InterfaceStateTuple', ('head_weight', 'snapshot_weight'))
+_InterfaceStateTuple = collections.namedtuple(
+    'InterfaceStateTuple', ('head_weight', 'snapshot_weight'))
 
 
 class InterfaceStateTuple(_InterfaceStateTuple):
     """Tuple used by interface for storing current/past interface information: head_weight and snapshot_weight"""
     __slots__ = ()
 
+
 logger = logging.getLogger('DWM_interface')
+
 
 class Interface:
     """ Implementation of the interface of the DWM"""
+
     def __init__(self, num_heads, is_cam, num_shift, M):
         """Initialize Interface.
 
@@ -53,13 +57,15 @@ class Interface:
 
         # Define a dictionary for attentional parameters
         self.is_cam = is_cam
-        self.param_dict = {'s': num_shift, 'jd': 1, 'j': 3, 'γ': 1, 'erase': M, 'add': M}
+        self.param_dict = {'s': num_shift, 'jd': 1,
+                           'j': 3, 'γ': 1, 'erase': M, 'add': M}
         if self.is_cam:
             self.param_dict.update({'k': M, 'β': 1, 'g': 1})
 
         # create the parameter lengths and store their cumulative sum
         lengths = np.fromiter(self.param_dict.values(), dtype=int)
-        self.cum_lengths = np.cumsum(np.insert(lengths, 0, 0), dtype=int).tolist()
+        self.cum_lengths = np.cumsum(
+            np.insert(lengths, 0, 0), dtype=int).tolist()
 
     def init_state(self, memory_addresses_size, batch_size):
         """
@@ -73,7 +79,8 @@ class Interface:
         dtype = AppState().dtype
 
         # initial attention  vector
-        head_weight_init = torch.zeros((batch_size, self.num_heads, memory_addresses_size)).type(dtype)
+        head_weight_init = torch.zeros(
+            (batch_size, self.num_heads, memory_addresses_size)).type(dtype)
         head_weight_init[:, 0:self.num_heads, 0] = 1.0
 
         # bookmark
@@ -85,7 +92,7 @@ class Interface:
     def read_size(self):
         """
         Returns the size of the data read by all heads
-        
+
         :return: (num_head*content_size)
         """
         return self.num_heads * self.M
@@ -94,13 +101,12 @@ class Interface:
     def update_size(self):
         """
         Returns the total number of parameters output by the controller
-        
+
         :return: (num_heads*parameters_per_head)
         """
         return self.num_heads * self.cum_lengths[-1]
 
     def read(self, wt, mem):
-
         """Returns the data read from memory
 
         :param wt: head's weights [batch_size, num_heads, memory_addresses_size]
@@ -116,7 +122,6 @@ class Interface:
         return read_data.view(*sz, self.read_size)
 
     def update(self, update_data, tuple_interface_prev, mem):
-
         """
         Erases from memory, writes to memory, updates the weights using various attention mechanisms
 
@@ -130,27 +135,32 @@ class Interface:
         :returns: mem: the new memory content
         """
         wt_head_prev, wt_att_snapshot_prev = tuple_interface_prev
-        assert update_data.size()[-1] == self.update_size, "Mismatch in update sizes"
+        assert update_data.size(
+        )[-1] == self.update_size, "Mismatch in update sizes"
 
         # reshape update data_gen by heads and total parameter size
         sz = update_data.size()[:-1]
-        update_data = update_data.view(*sz, self.num_heads, self.cum_lengths[-1])
+        update_data = update_data.view(
+            *sz, self.num_heads, self.cum_lengths[-1])
 
         # split the data_gen according to the different parameters
-        data_splits = [update_data[..., self.cum_lengths[i]:self.cum_lengths[i+1]]
-                       for i in range(len(self.cum_lengths)-1)]
+        data_splits = [update_data[..., self.cum_lengths[i]:self.cum_lengths[i + 1]]
+                       for i in range(len(self.cum_lengths) - 1)]
 
         # Obtain update parameters
         if self.is_cam:
             s, jd, j, γ, erase, add, k, β, g = data_splits
             # Apply Activations
-            k = F.tanh(k)                  # key vector used for content-based addressing
-            β = F.softplus(β)              # key strength used for content-based addressing
+            # key vector used for content-based addressing
+            k = F.tanh(k)
+            # key strength used for content-based addressing
+            β = F.softplus(β)
             g = F.sigmoid(g)               # interpolation gate
         else:
             s, jd, j, γ, erase, add = data_splits
 
-        s = F.softmax(F.softplus(s), dim=-1)    # shift weighting (determines how the weight is rotated)
+        # shift weighting (determines how the weight is rotated)
+        s = F.softmax(F.softplus(s), dim=-1)
         γ = 1 + F.softplus(γ)                   # used for weight sharpening
         erase = F.sigmoid(erase)                # erase memory content
 
@@ -159,7 +169,7 @@ class Interface:
         memory.erase_weighted(erase, wt_head_prev)
         memory.add_weighted(add, wt_head_prev)
 
-        ## update attention
+        # update attention
         #  Set jumping mechanisms
 
         #  fixed attention to address 0
@@ -174,24 +184,30 @@ class Interface:
         j = F.softmax(j, dim=-1)
         j = j[:, :, None, :]
 
-        wt_head =  j[..., 0] * wt_head_prev \
-                 + j[..., 1] * wt_att_snapshot \
-                 + j[..., 2] * wt_address_0
+        wt_head = j[..., 0] * wt_head_prev \
+            + j[..., 1] * wt_att_snapshot \
+            + j[..., 2] * wt_address_0
 
         # Move head according to content based addressing and shifting
         if self.is_cam:
-            wt_k = memory.content_similarity(k)               # content addressing ...
-            wt_β = F.softmax(β * wt_k, dim=-1)                # ... modulated by β
-            wt_head = g * wt_β + (1 - g) * wt_head            # scalar interpolation
+            # content addressing ...
+            wt_k = memory.content_similarity(k)
+            # ... modulated by β
+            wt_β = F.softmax(β * wt_k, dim=-1)
+            # scalar interpolation
+            wt_head = g * wt_β + (1 - g) * wt_head
 
-        wt_s = circular_conv(wt_head, s)                   # convolution with shift
+        # convolution with shift
+        wt_s = circular_conv(wt_head, s)
 
         eps = 1e-12
         wt_head = (wt_s + eps) ** γ
-        wt_head = normalize(wt_head)                    # sharpening with normalization
+        # sharpening with normalization
+        wt_head = normalize(wt_head)
 
         # check attention is invalid for head 0
-        check_wt = torch.max(torch.abs(torch.sum(wt_head[:,0,:], dim=-1) - 1.0))
+        check_wt = torch.max(
+            torch.abs(torch.sum(wt_head[:, 0, :], dim=-1) - 1.0))
         if check_wt > 1.0e-5:
             logger.warning("Warning: gamma very high, normalization problem")
 

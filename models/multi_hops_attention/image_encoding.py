@@ -27,6 +27,7 @@ class ImageEncoding(nn.Module):
     Image encoding using 4 convolutional layers with batch normalization, it was designed specifically for sort of clevr https://arxiv.org/abs/1706.01427
 
     """
+
     def __init__(self):
         """
         Constructor of ImageEncoding class

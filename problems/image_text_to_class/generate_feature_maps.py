@@ -55,8 +55,9 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 # Add path to main project directory
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from misc.app_state import AppState
 app_state = AppState()
@@ -81,7 +82,8 @@ class GenerateFeatureMaps(Dataset):
         """
         # we only authorize the images processing on GPU.
         if not torch.cuda.is_available():
-            logger.error('WARNING: CUDA IS NOT AVAILABLE. NOT AUTHORIZING DO FEATURE MAPS EXTRACTION. EXITING.')
+            logger.error(
+                'WARNING: CUDA IS NOT AVAILABLE. NOT AUTHORIZING DO FEATURE MAPS EXTRACTION. EXITING.')
             exit(1)
 
         # call base constructor
@@ -116,10 +118,11 @@ class GenerateFeatureMaps(Dataset):
         self.model.cuda()
         self.model.eval()
 
-        self.length = len(os.listdir(os.path.join(self.clevr_dir, 'images', self.set)))
+        self.length = len(os.listdir(os.path.join(
+            self.clevr_dir, 'images', self.set)))
 
-        self.transform = transforms.Compose([transforms.Resize([224, 224]), transforms.ToTensor(),
-                                            transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])])
+        self.transform = transforms.Compose([transforms.Resize([224, 224]), transforms.ToTensor(
+        ), transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
     def __getitem__(self, index):
         """
@@ -129,7 +132,13 @@ class GenerateFeatureMaps(Dataset):
         :return: transformed image as a tensor (shape should be [224, 224, 3])
         """
         # open image
-        img = os.path.join(self.clevr_dir, 'images', self.set, 'CLEVR_{}_{}.png'.format(self.set, str(index).zfill(6)))
+        img = os.path.join(
+            self.clevr_dir,
+            'images',
+            self.set,
+            'CLEVR_{}_{}.png'.format(
+                self.set,
+                str(index).zfill(6)))
         img = Image.open(img).convert('RGB')
 
         # apply transform & return it as a tensor.

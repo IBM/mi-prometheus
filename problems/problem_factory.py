@@ -3,11 +3,13 @@
 """problem_factory.py: Factory building problems"""
 __author__ = "Tomasz Kornuta"
 
-import sys, inspect
+import sys
+import inspect
 import os.path
 import glob
 import logging
 logger = logging.getLogger('ProblemFactory')
+
 
 class ProblemFactory(object):
     """
@@ -23,7 +25,8 @@ class ProblemFactory(object):
         """
         # Check name
         if 'name' not in params:
-            logger.error("Problem parameter dictionary does not contain 'name'")
+            logger.error(
+                "Problem parameter dictionary does not contain 'name'")
             raise ValueError
         # Try to load model
         name = os.path.basename(params['name'])
@@ -37,7 +40,9 @@ class ProblemFactory(object):
         # Import module
         module = __import__(name)
         # Get classes from that module.
-        is_class_member = lambda member: inspect.isclass(member) and member.__module__ == name
+
+        def is_class_member(member): return inspect.isclass(
+            member) and member.__module__ == name
         clsmembers = inspect.getmembers(sys.modules[name], is_class_member)
         # Assert there is only one class.
 
@@ -54,9 +59,16 @@ class ProblemFactory(object):
 if __name__ == "__main__":
     """ Tests problem factory"""
     # Problem name
-    params = {'name': 'serial_recall', 'control_bits': 3, 'data_bits': 8, 'batch_size': 1,
-              'min_sequence_length': 1, 'max_sequence_length': 10, 'num_subseq_min': 1, 'num_subseq_max': 5,
-              'bias': 0.5}
+    params = {
+        'name': 'serial_recall',
+        'control_bits': 3,
+        'data_bits': 8,
+        'batch_size': 1,
+        'min_sequence_length': 1,
+        'max_sequence_length': 10,
+        'num_subseq_min': 1,
+        'num_subseq_max': 5,
+        'bias': 0.5}
 
     problem = ProblemFactory.build_problem(params)
     # Get generator
@@ -65,5 +77,3 @@ if __name__ == "__main__":
     (x, y, mask) = next(generator)
     # Display single sample (0) from batch.
     problem.show_sample(x, y, mask)
-
-

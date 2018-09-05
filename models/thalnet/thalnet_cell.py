@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """thalnet_cell: The cell of the ThalNet modules. It operates on a single word"""
-__author__= "Younes Bouhadjar"
+__author__ = "Younes Bouhadjar"
 
 import torch
 from torch import nn
@@ -25,13 +25,13 @@ from models.thalnet.thalnet_module import ThalnetModule
 
 class ThalNetCell(nn.Module):
     """ Implementation of the ThalNetCell, it takes one element of the input sequence at a time"""
+
     def __init__(self,
                  input_size,
                  output_size,
                  context_input_size,
                  center_size_per_module,
                  num_modules):
-
         """
         Constrcutor of ThalNetCell class
 
@@ -44,7 +44,6 @@ class ThalNetCell(nn.Module):
         # Call base class inits here.
         super(ThalNetCell, self).__init__()
 
-
         self.context_input_size = context_input_size
         self.input_size = input_size
         self.output_size = output_size
@@ -55,18 +54,25 @@ class ThalNetCell(nn.Module):
         # init module-center cell
         self.modules_thalnet = nn.ModuleList()
 
-        self.modules_thalnet.append(ThalnetModule(center_size=self.center_size,
-                            context_size=self.context_input_size,
-                            center_size_per_module=self.center_size_per_module,
-                            input_size=self.input_size,
-                            output_size=0))
+        self.modules_thalnet.append(
+            ThalnetModule(
+                center_size=self.center_size,
+                context_size=self.context_input_size,
+                center_size_per_module=self.center_size_per_module,
+                input_size=self.input_size,
+                output_size=0))
 
-        self.modules_thalnet.extend([ThalnetModule(center_size=self.center_size,
-                            context_size=self.context_input_size,
-                            center_size_per_module=self.center_size_per_module,
-                            input_size=0,
-                            output_size=self.output_size if i == self.num_modules - 1 else 0)
-                                 for i in range(1, self.num_modules)])
+        self.modules_thalnet.extend(
+            [
+                ThalnetModule(
+                    center_size=self.center_size,
+                    context_size=self.context_input_size,
+                    center_size_per_module=self.center_size_per_module,
+                    input_size=0,
+                    output_size=self.output_size if i == self.num_modules -
+                    1 else 0) for i in range(
+                    1,
+                    self.num_modules)])
 
     def init_state(self, batch_size):
         """
@@ -77,7 +83,8 @@ class ThalNetCell(nn.Module):
         """
 
         # module and center state initialisation
-        states = [self.modules_thalnet[i].init_state(batch_size) for i in range(self.num_modules)]
+        states = [self.modules_thalnet[i].init_state(
+            batch_size) for i in range(self.num_modules)]
 
         return states
 
@@ -90,16 +97,20 @@ class ThalNetCell(nn.Module):
         :return: states: states [batch_size, state_size]
         :return: ouput: prediction [batch_size, output_size]
         """
-        prev_center_states = [prev_state[i][0] for i in range(self.num_modules)]
-        prev_controller_states = [prev_state[i][1] for i in range(self.num_modules)]
+        prev_center_states = [prev_state[i][0]
+                              for i in range(self.num_modules)]
+        prev_controller_states = [prev_state[i][1]
+                                  for i in range(self.num_modules)]
 
         # Concatenate all the centers
         prev_center_states = torch.cat(prev_center_states, dim=1)
 
         states = []
         # run the different modules, they share all the same center
-        for module, prev_controller_state in zip(self.modules_thalnet, prev_controller_states):
-            output, center_feature, module_state = module(inputs, prev_center_states, prev_controller_state)
+        for module, prev_controller_state in zip(
+                self.modules_thalnet, prev_controller_states):
+            output, center_feature, module_state = module(
+                inputs, prev_center_states, prev_controller_state)
             states.append((center_feature, module_state))
 
         return output, states

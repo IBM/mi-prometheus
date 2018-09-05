@@ -48,7 +48,8 @@ class EncoderRNN(nn.Module):
         # (size: input_voc_size -> input_language.n_words) on vectors of size hidden_size.
         # adds 1 dimension to the shape of the tensor
         # WARNING: input must be of type LongTensor
-        self.embedding = nn.Embedding(num_embeddings=input_voc_size, embedding_dim=hidden_size)
+        self.embedding = nn.Embedding(
+            num_embeddings=input_voc_size, embedding_dim=hidden_size)
 
         # Apply a multi-layer gated recurrent unit (GRU) RNN to an input sequence.
         # NOTE: default number of recurrent layers is 1
@@ -56,8 +57,12 @@ class EncoderRNN(nn.Module):
         # 2nd parameter: expected number of features in hidden state -> hidden_size.
         # batch_first=True -> input and output tensors are provided as (batch, seq, feature)
         # batch_first=True do not affect hidden states
-        self.gru = nn.GRU(input_size=hidden_size, hidden_size=hidden_size, num_layers=self.n_layers, batch_first=True,
-                          bidirectional=self.bidirectional)
+        self.gru = nn.GRU(
+            input_size=hidden_size,
+            hidden_size=hidden_size,
+            num_layers=self.n_layers,
+            batch_first=True,
+            bidirectional=self.bidirectional)
 
     def forward(self, input, hidden):
         """
@@ -89,6 +94,8 @@ class EncoderRNN(nn.Module):
         :return: initial hidden states.
         """
         if self.bidirectional:
-            return torch.zeros(self.n_layers * 2, batch_size, self.hidden_size).type(app_state.dtype)
+            return torch.zeros(self.n_layers * 2, batch_size,
+                               self.hidden_size).type(app_state.dtype)
         else:
-            return torch.zeros(self.n_layers, batch_size, self.hidden_size).type(app_state.dtype)
+            return torch.zeros(self.n_layers, batch_size,
+                               self.hidden_size).type(app_state.dtype)

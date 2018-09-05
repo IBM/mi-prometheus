@@ -40,6 +40,7 @@ class StackedAttentionVQA(Model):
        step4: classifier, create the probabilities
 
     """
+
     def __init__(self, params):
         """
         Constructor class of StackedAttentionVQA model
@@ -54,7 +55,8 @@ class StackedAttentionVQA(Model):
         self.num_channels_image = 3
         self.mid_features_attention = 64
         # TODO: use `image_encoding_channels` when calling class ImageEncoding
-        # For the pretrained cnn the `image_encoding_channels` will be fixed by the cnn_pretrained_model used
+        # For the pretrained cnn the `image_encoding_channels` will be fixed by
+        # the cnn_pretrained_model used
         self.image_encoding_channels = 128
 
         # LSTM parameters (if use_question_encoding is True)
@@ -65,15 +67,21 @@ class StackedAttentionVQA(Model):
 
         # Instantiate class for image encoding
         if params['use_pretrained_cnn']:
-            self.image_encoding = PretrainedImageEncoding(params['pretrained_cnn_model'], params['num_blocks'])
+            self.image_encoding = PretrainedImageEncoding(
+                params['pretrained_cnn_model'], params['num_blocks'])
         else:
             self.image_encoding = ImageEncoding()
 
         # Instantiate class for question encoding
-        self.lstm = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
+        self.lstm = nn.LSTM(
+            self.word_embedded_size,
+            self.hidden_size,
+            self.num_layers,
+            batch_first=True)
 
         # Question encoding
-        self.ffn = nn.Linear(self.encoded_question_size, self.image_encoding_channels)
+        self.ffn = nn.Linear(self.encoded_question_size,
+                             self.image_encoding_channels)
 
         # Instantiate class for attention
         self.apply_attention = StackedAttention(
@@ -83,7 +91,7 @@ class StackedAttentionVQA(Model):
 
         # Instantiate classifier class
         self.classifier = Classifier(
-            in_features=self.image_encoding_channels, #+ self.encoded_question_size,
+            in_features=self.image_encoding_channels,  # + self.encoded_question_size,
             mid_features=256,
             out_features=10)
 
@@ -111,7 +119,8 @@ class StackedAttentionVQA(Model):
 
         # step3 : apply attention
         encoded_question = self.ffn(encoded_question)
-        encoded_attention = self.apply_attention(encoded_images, encoded_question)
+        encoded_attention = self.apply_attention(
+            encoded_images, encoded_question)
 
         # step 4: classifying based in the encoded questions and attention
         answer = self.classifier(encoded_attention)
@@ -127,8 +136,10 @@ class StackedAttentionVQA(Model):
         """
 
         dtype = AppState().dtype
-        hx = torch.randn(self.num_layers, batch_size, self.hidden_size).type(dtype)
-        cx = torch.randn(self.num_layers, batch_size, self.hidden_size).type(dtype)
+        hx = torch.randn(self.num_layers, batch_size,
+                         self.hidden_size).type(dtype)
+        cx = torch.randn(self.num_layers, batch_size,
+                         self.hidden_size).type(dtype)
 
         return hx, cx
 
@@ -158,28 +169,36 @@ class StackedAttentionVQA(Model):
         # Show data.
         plt.title('Prediction: {} (Target: {})'.format(prediction, target))
         plt.xlabel('Q: {} )'.format(question))
-        plt.imshow(image.transpose(1,2,0), interpolation='nearest', aspect='auto')
+        plt.imshow(image.transpose(1, 2, 0),
+                   interpolation='nearest', aspect='auto')
 
         f = plt.figure()
         plt.title('Attention')
 
-        width_height_attention = int(np.sqrt(self.apply_attention.visualize_attention.size(-2)))
+        width_height_attention = int(
+            np.sqrt(self.apply_attention.visualize_attention.size(-2)))
 
         # get the attention of the 2 layers of stacked attention
-        attention_visualize_layer1 = self.apply_attention.visualize_attention[sample_number, :, 0].detach().numpy()
-        attention_visualize_layer2 = self.apply_attention.visualize_attention[sample_number, :, 1].detach().numpy()
+        attention_visualize_layer1 = self.apply_attention.visualize_attention[sample_number, :, 0].detach(
+        ).numpy()
+        attention_visualize_layer2 = self.apply_attention.visualize_attention[sample_number, :, 1].detach(
+        ).numpy()
 
         # reshape to get a 2D plot
-        attention_visualize_layer1 = attention_visualize_layer1.reshape(width_height_attention, width_height_attention)
-        attention_visualize_layer2 = attention_visualize_layer2.reshape(width_height_attention, width_height_attention)
+        attention_visualize_layer1 = attention_visualize_layer1.reshape(
+            width_height_attention, width_height_attention)
+        attention_visualize_layer2 = attention_visualize_layer2.reshape(
+            width_height_attention, width_height_attention)
 
         plt.title('1st attention layer')
-        plt.imshow(attention_visualize_layer1, interpolation='nearest', aspect='auto')
+        plt.imshow(attention_visualize_layer1,
+                   interpolation='nearest', aspect='auto')
 
         f = plt.figure()
 
         plt.title('2nd attention layer')
-        plt.imshow(attention_visualize_layer2, interpolation='nearest', aspect='auto')
+        plt.imshow(attention_visualize_layer2,
+                   interpolation='nearest', aspect='auto')
 
         # Plot!
         plt.show()
@@ -224,8 +243,11 @@ if __name__ == '__main__':
 
     # Test base model.
     params = ParamInterface()
-    params.add_custom_params({'use_question_encoding': False, 'pretrained_cnn_model': 'resnet18', 'num_blocks':2, 'use_pretrained_cnn': True,
-                              'word_embedded_size':7})
+    params.add_custom_params({'use_question_encoding': False,
+                              'pretrained_cnn_model': 'resnet18',
+                              'num_blocks': 2,
+                              'use_pretrained_cnn': True,
+                              'word_embedded_size': 7})
 
     # model
     model = StackedAttentionVQA(params)
@@ -233,7 +255,7 @@ if __name__ == '__main__':
     while True:
         # Generate new sequence.
         # "Image" - batch x channels x width x height
-        input_np = np.random.binomial(1, 0.5, (2, 3, 128,  128))
+        input_np = np.random.binomial(1, 0.5, (2, 3, 128, 128))
         image = torch.from_numpy(input_np).type(torch.FloatTensor)
 
         # Question

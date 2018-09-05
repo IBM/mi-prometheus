@@ -69,12 +69,10 @@ class ReadUnit(nn.Module):
         self.mem_proj_layer = linear(dim, dim, bias=True)
 
         # linear layer to define I'(i,h,w) elements (r2 equation)
-        self.concat_layer = linear(2*dim, dim, bias=True)
+        self.concat_layer = linear(2 * dim, dim, bias=True)
 
         # linear layer to compute attention weights
         self.attn = linear(dim, 1, bias=True)
-
-
 
     def forward(self, memory_states, knowledge_base, ctrl_states, kb_proj):
         """
@@ -98,13 +96,16 @@ class ReadUnit(nn.Module):
         # memory_state: [batch_size x dim x 1]
 
         # compute I(i,h,w) elements (r1 equation)
-        I_elements = memory_state * kb_proj  # [batch_size x dim x 1] * [batch_size x dim x (H*W)] -> [batch_size x dim x (H*W)]
+        # [batch_size x dim x 1] * [batch_size x dim x (H*W)] -> [batch_size x dim x (H*W)]
+        I_elements = memory_state * kb_proj
 
         # compute I' elements (r2 equation)
-        concat = self.concat_layer(torch.cat([I_elements, knowledge_base], dim=1).permute(0, 2, 1))  # [batch_size x (H*W) x dim]
+        concat = self.concat_layer(torch.cat([I_elements, knowledge_base], dim=1).permute(
+            0, 2, 1))  # [batch_size x (H*W) x dim]
 
         # compute attention weights
-        rai = self.attn(concat * ctrl_state.unsqueeze(1)).squeeze(2)  # [batch_size x (H*W)]
+        rai = self.attn(concat * ctrl_state.unsqueeze(1)
+                        ).squeeze(2)  # [batch_size x (H*W)]
         # This is for the time plot
         self.rvi = F.softmax(rai, 1).unsqueeze(1)  # [batch_size x 1 x (H*W)]
 

@@ -8,5 +8,13 @@ from .read_unit import ReadUnit
 from .utils import linear
 from .write_unit import WriteUnit
 
-__all__ = ['ControlUnit', 'ImageProcessing', 'InputUnit', 'MACUnit', 'MACNetwork', 'OutputUnit', 'ReadUnit', 'linear',
-           'WriteUnit']
+__all__ = [
+    'ControlUnit',
+    'ImageProcessing',
+    'InputUnit',
+    'MACUnit',
+    'MACNetwork',
+    'OutputUnit',
+    'ReadUnit',
+    'linear',
+    'WriteUnit']

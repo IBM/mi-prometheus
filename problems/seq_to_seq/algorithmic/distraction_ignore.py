@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """distraction_ignore.py: contains code of distraction ignore data generation"""
-__author__= "Younes Bouhadjar"
+__author__ = "Younes Bouhadjar"
 
 import torch
 import numpy as np
@@ -32,22 +32,22 @@ class DistractionIgnore(AlgorithmicSeqToSeqProblem):
     """
 
     def __init__(self, params):
-        """ 
+        """
         Constructor - stores parameters. Calls parent class initialization.
-        
+
         :param params: Dictionary of parameters.
         """
         # Call parent constructor - sets e.g. the loss function, dtype.
-        # Additionally it extracts "standard" list of parameters for algorithmic tasks, like batch_size, numbers of bits, sequences etc.
+        # Additionally it extracts "standard" list of parameters for
+        # algorithmic tasks, like batch_size, numbers of bits, sequences etc.
         super(DistractionIgnore, self).__init__(params)
-        
-        assert self.control_bits >=4, "Problem requires at least 4 control bits (currently %r)" % self.control_bits
-        assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+
+        assert self.control_bits >= 4, "Problem requires at least 4 control bits (currently %r)" % self.control_bits
+        assert self.data_bits >= 1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
 
         # Number of subsequences.
         self.num_subseq_min = params["num_subseq_min"]
         self.num_subseq_max = params["num_subseq_max"]
-
 
     def generate_batch(self):
         """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
@@ -69,29 +69,63 @@ class DistractionIgnore(AlgorithmicSeqToSeqProblem):
         markers = ctrl_data, ctrl_dummy, pos
 
         # number of sub_sequences
-        nb_sub_seq_a = np.random.randint(self.num_subseq_min, self.num_subseq_max + 1)
-        nb_sub_seq_b = nb_sub_seq_a              # might be different in future implementation
+        nb_sub_seq_a = np.random.randint(
+            self.num_subseq_min, self.num_subseq_max + 1)
+        # might be different in future implementation
+        nb_sub_seq_b = nb_sub_seq_a
 
         # set the sequence length of each marker
-        seq_lengths_a = np.random.randint(low=self.min_sequence_length, high=self.max_sequence_length + 1, size=nb_sub_seq_a)
-        seq_lengths_b = np.random.randint(low=self.min_sequence_length, high=self.max_sequence_length + 1, size=nb_sub_seq_b)
+        seq_lengths_a = np.random.randint(
+            low=self.min_sequence_length,
+            high=self.max_sequence_length + 1,
+            size=nb_sub_seq_a)
+        seq_lengths_b = np.random.randint(
+            low=self.min_sequence_length,
+            high=self.max_sequence_length + 1,
+            size=nb_sub_seq_b)
 
         #  generate subsequences for x and y
-        x = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_lengths_a]
-        y = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_lengths_b]
+        x = [
+            np.random.binomial(
+                1,
+                self.bias,
+                (self.batch_size,
+                 n,
+                 self.data_bits)) for n in seq_lengths_a]
+        y = [
+            np.random.binomial(
+                1,
+                self.bias,
+                (self.batch_size,
+                 n,
+                 self.data_bits)) for n in seq_lengths_b]
 
         # create the target
         target = np.concatenate(x, axis=1)
 
         # add marker at the begging of x and dummies of same length
-        xx = [self.augment(seq, markers, ctrl_start=[1,0,0,0], add_marker_data=True, add_marker_dummy=False) for seq in x]
+        xx = [
+            self.augment(
+                seq,
+                markers,
+                ctrl_start=[
+                    1,
+                    0,
+                    0,
+                    0],
+                add_marker_data=True,
+                add_marker_dummy=False) for seq in x]
 
         # add marker at the begging of y and dummies of same length,  also a marker at the begging of dummies is added
-        # TODO: as we don't need the dummies here (no y needs recalling), we should add an arguements specifying if dummies are needed or not
-        yy = [self.augment(seq, markers, ctrl_start=[0,1,0,0], add_marker_data=True) for seq in y]
+        # TODO: as we don't need the dummies here (no y needs recalling), we
+        # should add an arguements specifying if dummies are needed or not
+        yy = [self.augment(seq, markers, ctrl_start=[
+                           0, 1, 0, 0], add_marker_data=True) for seq in y]
 
-        # this is a marker to separate dummies of x and y at the end of the sequence
-        inter_seq = self.add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
+        # this is a marker to separate dummies of x and y at the end of the
+        # sequence
+        inter_seq = self.add_ctrl(
+            np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
 
         # data which contains all xs and all ys
         data_1 = [arr for a, b in zip(xx, yy) for arr in a[:-1] + b[:-1]]
@@ -116,34 +150,41 @@ class DistractionIgnore(AlgorithmicSeqToSeqProblem):
         inputs[:, mask[0], 0:self.control_bits] = 0
 
         # Create the target with the dummies
-        target_with_dummies = torch.zeros_like(inputs[:, :, self.control_bits:])
+        target_with_dummies = torch.zeros_like(
+            inputs[:, :, self.control_bits:])
         target_with_dummies[:, mask[0], :] = target
 
         # Return data tuple.
         data_tuple = DataTuple(inputs, target_with_dummies)
         # Returning maximum length of sequence a - for now.
-        aux_tuple = AlgSeqAuxTuple(mask, max(seq_lengths_a), nb_sub_seq_a+nb_sub_seq_b)
+        aux_tuple = AlgSeqAuxTuple(
+            mask, max(seq_lengths_a), nb_sub_seq_a + nb_sub_seq_b)
 
-        return data_tuple, aux_tuple 
+        return data_tuple, aux_tuple
 
-    # method for changing the maximum length, used mainly during curriculum learning
+    # method for changing the maximum length, used mainly during curriculum
+    # learning
     def set_max_length(self, max_length):
         self.max_sequence_length = max_length
+
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
     params = ParamInterface()
-    params.add_custom_params({'control_bits': 4, 'data_bits': 8, 'batch_size': 1,
-              'min_sequence_length': 1, 'max_sequence_length': 10, 
-              'num_subseq_min':1 ,'num_subseq_max': 4})
+    params.add_custom_params({'control_bits': 4,
+                              'data_bits': 8,
+                              'batch_size': 1,
+                              'min_sequence_length': 1,
+                              'max_sequence_length': 10,
+                              'num_subseq_min': 1,
+                              'num_subseq_max': 4})
     # Create problem object.
     problem = DistractionIgnore(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
-    data_tuple,  aux_tuple = next(generator)
+    data_tuple, aux_tuple = next(generator)
     # Display single sample (0) from batch.
     problem.show_sample(data_tuple, aux_tuple)
-
