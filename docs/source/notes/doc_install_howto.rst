@@ -1,5 +1,5 @@
 How to install pytorch and prometheus from scratch ?
-================================================== 
+====================================================
 @author: Ryan L. McAvoy
  
 Guidelines & examples 
@@ -11,6 +11,8 @@ Installing on an empty server (Ubuntu 16.04).
 The following are examples and should be modified to suit your preferences.
 
 In the home directory, make an executable bash script containing following and then run it.
+
+::
 
     #!/bin/bash -x
     
@@ -57,8 +59,11 @@ In the home directory, make an executable bash script containing following and t
     cd ..
     rm -rf pytorch
 
+
 In the home directory, git clone mi-prometheus from the github repository. Run the following script. 
 If you did not run the previous script then you will need to modify the echo command so that it appends to either a different activate file or the .bashrc
+
+::
 
     #!/bin/bash -x
     
@@ -78,3 +83,4 @@ If you did not run the previous script then you will need to modify the echo com
     conda install pandas
     conda install pillow
     conda install six
+
