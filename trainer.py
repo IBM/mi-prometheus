@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """trainer.py: contains code of worker realising training using CPUs/GPUs"""
-__author__      = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
+__author__      = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta, Vincent Albouy"
 
 
 import logging
@@ -224,9 +224,11 @@ if __name__ == '__main__':
     import numpy as np
 
 
-    def torch_summarize(model, show_weights=True, show_parameters=True):
+    def torch_summarize(model, show_weights=True, show_parameters=True, show_total_parameters=True):
         """Summarizes torch model by showing trainable parameters and weights."""
         tmpstr = model.__class__.__name__ + ' (\n'
+        total_params = 0
+        total_trainable_params = 0
         for key, module in model._modules.items():
             # if it contains layers let call it recursively to get params and weights
             if type(module) in [
@@ -239,6 +241,12 @@ if __name__ == '__main__':
             modstr = _addindent(modstr, 2)
 
             params = sum([np.prod(p.size()) for p in module.parameters()])
+            total_params += params
+
+            mod_parameters = filter(lambda p: p.requires_grad, module.parameters())
+            trainable_params = sum([np.prod(p.size()) for p in mod_parameters])
+            total_trainable_params += trainable_params
+
             weights = tuple([tuple(p.size()) for p in module.parameters()])
 
             tmpstr += '  (' + key + '): ' + modstr
@@ -246,13 +254,23 @@ if __name__ == '__main__':
                 tmpstr += ', weights={}'.format(weights)
             if show_parameters:
                 tmpstr += ', parameters={}'.format(params)
+                tmpstr += ', trainable_parameters={}'.format( trainable_params)
             tmpstr += '\n'
 
+
+        if show_total_parameters:
+            tmpstr += 'total_parameters={}'.format(total_params)
+            tmpstr += '\n'
+            tmpstr += 'total_trainable_parameters={}'.format(total_trainable_params)
+        tmpstr += '\n'
         tmpstr = tmpstr + ')'
+
+
         return tmpstr
 
 
     print(torch_summarize(model))
+
 
 
     # Build problem for the training
