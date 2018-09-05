@@ -252,6 +252,9 @@ if __name__ == '__main__':
         return tmpstr
 
 
+    print(torch_summarize(model))
+
+
     # Build problem for the training
     problem = ProblemFactory.build_problem(param_interface['training']['problem'])
 
