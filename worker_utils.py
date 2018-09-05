@@ -11,9 +11,11 @@ from misc.app_state import AppState
 
 
 def forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple):
-    """ Function performs a single forward step.
+    """
+    Function performs a single forward step.
 
     :returns: logits, loss and accuracy (former using provided criterion)
+
     """
     # convert to CUDA
     if AppState().use_CUDA:
@@ -38,9 +40,12 @@ def forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple):
 
 
 def check_and_set_cuda(params, logger):
-    """ Enables Cuda if available and sets the default data types
+    """
+    Enables Cuda if available and sets the default data types.
+
     :param params: paramater interface object containing either training or testing parameters
     :param logger: logger object
+
     """
     turn_on_cuda = False
     try:  # If the 'cuda' key is not present, catch the exception and do nothing
@@ -62,12 +67,15 @@ def check_and_set_cuda(params, logger):
 
 
 def recurrent_config_parse(configs, configs_parsed):
-    """ Function parses names of configuration files in a recursive mannner, i.e.
-    by looking for 'default_config' sections and trying to load and parse those files one by one.
+    """
+    Function parses names of configuration files in a recursive mannner, i.e.
+    by looking for 'default_config' sections and trying to load and parse those
+    files one by one.
 
     :param configs: String containing names of configuration files (with paths), separated by comas.
     :param configs_parsed: List of configurations that were already parsed (so we won't parse them many times).
     :returns: list of parsed configuration files.
+
     """
     # Split and remove spaces.
     configs_to_parse = configs.replace(" ", "").split(',')

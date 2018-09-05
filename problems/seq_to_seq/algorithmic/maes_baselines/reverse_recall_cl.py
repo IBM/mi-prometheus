@@ -12,11 +12,16 @@ from misc.param_interface import ParamInterface
 
 class ReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
     """
-    Class generating sequences of random bit-patterns and targets forcing the system to learn reverse recall problem.
-    1) There are two markers, indicatinn:
-    - beginning of storing/memorization and
-    - beginning of recalling from memory.
-    2) Additionally, there is a command line (3rd command bit) indicating whether given item is to be stored in mememory (0) or recalled (1).
+    Class generating sequences of random bit-patterns and targets forcing the
+    system to learn reverse recall problem.
+
+    1. There are two markers, indicating:
+        - beginning of storing/memorization and
+        - beginning of recalling from memory.
+
+    2. Additionally, there is a command line (3rd command bit) indicating whether given item is to be stored in mememory (0) or recalled (1).
+
+
     """
 
     def __init__(self, params):
@@ -37,8 +42,10 @@ class ReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
             'randomize_control_lines', False)
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
-        Additional elements of sequence are  start and stop control markers, stored in additional bits.
+        """
+        Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2,
+        CONTROL_BITS+DATA_BITS]. Additional elements of sequence are  start and
+        stop control markers, stored in additional bits.
 
         : returns: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS],
         output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],

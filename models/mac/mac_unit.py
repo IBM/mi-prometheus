@@ -63,13 +63,15 @@ class MACUnit(nn.Module):
     def __init__(self, dim, max_step=12, self_attention=False,
                  memory_gate=False, dropout=0.15):
         """
-        Constructor for the MAC Unit, which represents the recurrence over the MACCell.
+        Constructor for the MAC Unit, which represents the recurrence over the
+        MACCell.
 
         :param dim: global 'd' hidden dimension
         :param max_step: maximal number of MAC cells.
         :param self_attention: whether or not to use self-attention in the WriteUnit.
         :param memory_gate: whether or not to use memory gating in the WriteUnit.
         :param dropout: dropout probability for the variational dropout mask.
+
         """
 
         # call base constructor
@@ -100,6 +102,7 @@ class MACUnit(nn.Module):
         :param dropout: dropout rate.
 
         :return: mask.
+
         """
         # create a binary mask, where the probability of 1's is (1-dropout)
         mask = torch.empty_like(x).bernoulli_(
@@ -112,12 +115,14 @@ class MACUnit(nn.Module):
 
     def forward(self, context, question, knowledge, kb_proj):
         """
-        Forward pass of the MACUnit, which represents the recurrence over the MACCell.
+        Forward pass of the MACUnit, which represents the recurrence over the
+        MACCell.
 
         :param context: contextual words, shape [batch_size x maxQuestionLength x dim]
         :param question: questions encodings, shape [batch_size x 2*dim]
         :param knowledge: knowledge_base (feature maps extracted by a CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
         :return:
+
         """
         batch_size = question.size(0)
 

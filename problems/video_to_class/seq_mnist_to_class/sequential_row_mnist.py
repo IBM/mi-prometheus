@@ -28,7 +28,7 @@ from problems.video_to_class.video_to_class_problem import VideoToClassProblem
 
 class SequentialRowMNIST(VideoToClassProblem):
     """
-    Class generating a sequence of rows for sequential mnist
+    Class generating a sequence of rows for sequential mnist.
     """
 
     def __init__(self, params):

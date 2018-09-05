@@ -71,7 +71,9 @@ class MACNetwork(Model):
     def __init__(self, params):
         """
         Constructor for the MAC network.
+
         :param params: dict of parameters.
+
         """
 
         # call base constructor
@@ -131,9 +133,11 @@ class MACNetwork(Model):
 
     def generate_figure_layout(self):
         """
-        Generate a figure layout for the attention visualization (done in MACNetwork.plot())
+        Generate a figure layout for the attention visualization (done in
+        MACNetwork.plot())
 
         :return: figure layout.
+
         """
 
         from matplotlib.figure import Figure
@@ -181,8 +185,9 @@ class MACNetwork(Model):
 
     def plot(self, aux_tuple, logits, sample_number=0):
         """
-        Visualize the attention weights (Control Unit & Read Unit) on the question & feature maps.
-        Dynamic visualization trhoughout the reasoning steps possible.
+        Visualize the attention weights (Control Unit & Read Unit) on the
+        question & feature maps. Dynamic visualization trhoughout the reasoning
+        steps possible.
 
         :param aux_tuple: aux_tuple (), transformed by CLEVR.plot_preprocessing()
             -> (s_questions, answer_string, imgfiles, set, prediction_string, clevr_dir)
@@ -190,6 +195,7 @@ class MACNetwork(Model):
         :param sample_number: Number of sample in batch (DEFAULT: 0)
 
         :return: True when the user closes the window, False if we do not need to visualize.
+
         """
 
         # check whether the visualization is required
@@ -262,8 +268,8 @@ class MACNetwork(Model):
             # set axis attention labels
             ax_attention_image.set_title(
                 'Predicted Answer: ' + prediction_string[sample_number] +
-                ' [ proba: ' + str.format("{0:.3f}", proba_answer) + ']  ' + 'Ground Truth: ' +
-                answer_string[sample_number])
+                ' [ proba: ' + str.format("{0:.3f}", proba_answer) + ']  ' +
+                'Ground Truth: ' + answer_string[sample_number])
 
             # Tell artists what to do:
             artists[0] = ax_image.imshow(
@@ -276,8 +282,9 @@ class MACNetwork(Model):
                 aspect='auto',
                 alpha=0.5,
                 cmap='Reds')
-            artists[3] = ax_attention_question.imshow(attention_question.transpose(
-                1, 0), interpolation='nearest', aspect='auto', cmap='Reds')
+            artists[3] = ax_attention_question.imshow(
+                attention_question.transpose(1, 0),
+                interpolation='nearest', aspect='auto', cmap='Reds')
             artists[4] = ax_step.text(
                 0, 0.5, 'Reasoning step index: ' + str(step), fontsize=15)
 

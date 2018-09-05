@@ -11,18 +11,23 @@ from misc.app_state import AppState
 
 
 class EncoderSolverLSTM(SequentialModel):
-    '''  Class representing the Encoder-Solver architecture using LSTM cells as both encoder and solver modules. '''
+    """
+    Class representing the Encoder-Solver architecture using LSTM cells as both
+    encoder and solver modules.
+    """
 
     def __init__(self, params):
-        '''
-        Constructor. Initializes parameters on the basis of dictionary passed as argument.
+        """
+        Constructor. Initializes parameters on the basis of dictionary passed
+        as argument.
 
         Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences
         becoming input to encoder is of the same length (ends at the same item), the same goes to
         subsequences being input to decoder.
 
         :param params: Dictionary of parameters.
-        '''
+
+        """
         # Call base constructor.
         super(EncoderSolverLSTM, self).__init__(params)
 
@@ -56,6 +61,7 @@ class EncoderSolverLSTM(SequentialModel):
 
         :param batch_size: Size of the batch in given iteraction/epoch.
         :returns: Initial state tuple (hidden, memory cell).
+
         """
         dtype = AppState().dtype
         # Initialize the hidden state.
@@ -72,11 +78,13 @@ class EncoderSolverLSTM(SequentialModel):
     def forward(self, data_tuple):
         """
         Forward function accepts a tuple consisting of:
+
          - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and
          - a tensor of targets
 
         :param data_tuple: Tuple containing inputs and targets.
                 :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
+
         """
 
         # Unpack tuple.

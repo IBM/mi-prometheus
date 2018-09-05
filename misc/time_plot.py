@@ -113,12 +113,16 @@ class TimePlot(QtWidgets.QMainWindow):
         self.qapp.exec_()  # Resume event loop
 
     def slider_valuechanged(self):
-        """ Event handler attached to the slider. """
+        """
+        Event handler attached to the slider.
+        """
         val = self.slider.value()
         self.show_frame(val)
 
     def show_frame(self, frame_number):
-        """ Shows given frame."""
+        """
+        Shows given frame.
+        """
         # Make all the artists from the current frame visible
         for frame in self.frames:
             for artist in frame:  # self.frames[self.current_frame_number]:

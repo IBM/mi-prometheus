@@ -61,6 +61,7 @@ class InputUnit(nn.Module):
 
         :param dim: global 'd' hidden dimension
         :param embedded_dim: dimension of the word embeddings.
+
         """
 
         # call base constructor
@@ -93,6 +94,7 @@ class InputUnit(nn.Module):
         :return: question encodings: [batch_size x 2*dim],
                 word encodings: [batch_size x maxQuestionLength x dim]
                 images_encodings: [batch_size x nb_kernels x (H*W)]
+
         """
         batch_size = feature_maps.shape[0]
 

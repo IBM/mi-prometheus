@@ -9,7 +9,9 @@ from misc.app_state import AppState
 
 
 class MaskedCrossEntropyLoss(nn.Module):
-    """Calculates the cross entropy for batches with different numbers of outputs per
+    """
+    Calculates the cross entropy for batches with different numbers of outputs
+    per.
     """
 
     def __init__(self, weight=None, ignore_index=-100):
@@ -19,11 +21,13 @@ class MaskedCrossEntropyLoss(nn.Module):
         #self.loss_function = nn.CrossEntropyLoss(reduction = "none")
 
     def forward(self, logits, targets, mask):
-        """ Calculates loss accounting for different numbers of output per sample
+        """
+        Calculates loss accounting for different numbers of output per sample.
 
         :param logits: Logits being output by the model. [batch, classes, sequence]
         :param targets: LongTensor targets [batch, sequence]
         :param mask: ByteTensor mask [batch, sequence]
+
         """
 
         # Calculate the loss per element in the sequence
@@ -50,7 +54,9 @@ class MaskedCrossEntropyLoss(nn.Module):
         return loss
 
     def masked_accuracy(self, logits, targets, mask):
-        """ Calculates accuracy equal to mean number of correct predictions in a given batch.
+        """
+        Calculates accuracy equal to mean number of correct predictions in a
+        given batch.
 
         :param logits: Logits being output by the model. [batch, classes, sequence]
         :param targets: LongTensor targets [batch, sequence]
@@ -78,7 +84,9 @@ class MaskedCrossEntropyLoss(nn.Module):
 
 
 class MaskedBCEWithLogitsLoss(nn.Module):
-    """Calculates the binary cross entropy for batches with different numbers of outputs for the samples
+    """
+    Calculates the binary cross entropy for batches with different numbers of
+    outputs for the samples.
     """
 
     def __init__(self, weight=None):
@@ -88,11 +96,13 @@ class MaskedBCEWithLogitsLoss(nn.Module):
         #self.loss_function = nn.BCELossWithLogits(reduction = "none")
 
     def forward(self, logits, targets, mask):
-        """ Calculates loss accounting for different numbers of output per sample
+        """
+        Calculates loss accounting for different numbers of output per sample.
 
         :param logits: Logits being output by the model. [batch, sequence, element_size]
         :param targets: LongTensor targets [batch, sequence, element_size]
         :param mask: ByteTensor mask [batch, sequence]
+
         """
 
         # Calculate the loss per element in the sequence

@@ -12,7 +12,8 @@ from misc.param_interface import ParamInterface
 
 class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
     """
-    Class generating sequences of random bit-patterns and targets forcing the system to learn reverse recall problem.
+    Class generating sequences of random bit-patterns and targets forcing the
+    system to learn reverse recall problem.
 
     1. There are three markers, indicating:
 
@@ -40,14 +41,17 @@ class DualSerialReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         assert self.data_bits >= 1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
-        Additional elements of sequence are  start and stop control markers, stored in additional bits.
+        """
+        Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2,
+        CONTROL_BITS+DATA_BITS]. Additional elements of sequence are  start and
+        stop control markers, stored in additional bits.
 
         : returns: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS],
         output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],
         mask [BATCH_SIZE, 2*SEQ_LENGTH+2]
 
         TODO: every item in batch has now the same seq_length.
+
         """
         # Define control channel bits.
         # ctrl_main = [0, 0, 0, 0] # not really used.

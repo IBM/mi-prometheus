@@ -20,18 +20,25 @@ _MAEInterfaceStateTuple = collections.namedtuple(
 
 
 class MAEInterfaceStateTuple(_MAEInterfaceStateTuple):
-    """Tuple used by interface for storing current/past MAE interface state information"""
+    """
+    Tuple used by interface for storing current/past MAE interface state
+    information.
+    """
     __slots__ = ()
 
 
 class MAEInterface(torch.nn.Module):
-    """Class realizing interface between controller and memory in Memory Augmented Encoder cell.
+    """
+    Class realizing interface between controller and memory in Memory Augmented
+    Encoder cell.
     """
 
     def __init__(self, params):
-        """ Constructor.
+        """
+        Constructor.
 
         :param params: Dictionary of parameters.
+
         """
         # Call constructor of base class.
         super(MAEInterface, self).__init__()
@@ -54,9 +61,11 @@ class MAEInterface(torch.nn.Module):
         num_write_params = 2 * self.num_memory_content_bits + 1 + self.interface_shift_size
 
         # Write parameters - used during slicing.
-        self.write_param_locations = self.calculate_param_locations({
-            'shift': self.interface_shift_size, 'gamma': 1,
-            'erase_vector': self.num_memory_content_bits, 'add_vector': self.num_memory_content_bits}, "Write")
+        self.write_param_locations = self.calculate_param_locations(
+            {'shift': self.interface_shift_size, 'gamma': 1,
+             'erase_vector': self.num_memory_content_bits,
+             'add_vector': self.num_memory_content_bits},
+            "Write")
         assert num_write_params == self.write_param_locations[-1], "Last location must be equal to number of write params."
 
         # Forward linear layer that generates parameters of write head.
@@ -64,7 +73,9 @@ class MAEInterface(torch.nn.Module):
             self.ctrl_hidden_state_size, num_write_params)
 
     def freeze(self):
-        """ Freezes the trainable weigths """
+        """
+        Freezes the trainable weigths.
+        """
         # Freeze linear layer.
         for param in self.hidden2write_params.parameters():
             param.requires_grad = False
@@ -76,6 +87,7 @@ class MAEInterface(torch.nn.Module):
         :param batch_size: Size of the batch in given iteraction/epoch.
         :param num_memory_addresses: Number of memory addresses.
         :returns: Initial state tuple - object of InterfaceStateTuple class.
+
         """
         # Get dtype.
         dtype = AppState().dtype
@@ -101,6 +113,7 @@ class MAEInterface(torch.nn.Module):
         :param prev_memory_BxAxC: Previous state of the memory [BATCH_SIZE x  MEMORY_ADDRESSES x CONTENT_BITS]
         :param prev_interface_state_tuple: Tuple containing previous interface tuple.
         :returns: updated memory and state tuple (object of MAEInterfaceStateTuple class).
+
         """
         # Unpack previous cell state.
         (prev_write_attention_BxAx1, _) = prev_interface_state_tuple
@@ -136,10 +149,14 @@ class MAEInterface(torch.nn.Module):
         return memory_BxAxC, interface_state_tuple
 
     def calculate_param_locations(self, param_sizes_dict, head_name):
-        """ Calculates locations of parameters, that will subsequently be used during parameter splitting.
+        """
+        Calculates locations of parameters, that will subsequently be used
+        during parameter splitting.
+
         :param param_sizes_dict: Dictionary containing parameters along with their sizes (in bits/units).
         :param head_name: Name of head.
         :returns: "Locations" of parameters.
+
         """
         #logger.debug("{} param sizes dict:\n {}".format(head_name, param_sizes_dict))
         # Create the parameter lengths and store their cumulative sum
@@ -151,7 +168,9 @@ class MAEInterface(torch.nn.Module):
         return param_locations
 
     def split_params(self, params, locations):
-        """ Split parameters into list on the basis of locations."""
+        """
+        Split parameters into list on the basis of locations.
+        """
         param_splits = [params[..., locations[i]:locations[i + 1]]
                         for i in range(len(locations) - 1)]
         #logger.debug("Splitted params:\n {}".format(param_splits))
@@ -159,13 +178,15 @@ class MAEInterface(torch.nn.Module):
 
     def update_attention(self, shift_BxS, gamma_Bx1,
                          prev_memory_BxAxC, prev_attention_BxAx1):
-        """ Updates the attention weights.
+        """
+        Updates the attention weights.
 
         :param shift_BxS: Convolution shift
         :param gamma_Bx1: Sharpening factor
         :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :param prev_attention_BxAx1: previous attention vector [BATCH_SIZE x MEMORY_ADDRESSES x 1]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+
         """
         # Add 3rd dimensions where required and apply non-linear transformations.
         # Produce location-addressing params.
@@ -187,13 +208,15 @@ class MAEInterface(torch.nn.Module):
             shift_BxSx1,
             gamma_Bx1x1,
             prev_memory_BxAxC):
-        """ Computes location-based addressing, i.e. shitfts the head and sharpens.
+        """
+        Computes location-based addressing, i.e. shitfts the head and sharpens.
 
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param shift_BxSx1: soft shift maks (convolutional kernel) [BATCH_SIZE x SHIFT_SIZE x 1]
         :param gamma_Bx1x1: sharpening factor [BATCH_SIZE x 1 x 1]
         :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+
         """
 
         # 1. Perform circular convolution.
@@ -208,17 +231,24 @@ class MAEInterface(torch.nn.Module):
 
     def circular_convolution(self, attention_BxAx1,
                              shift_BxSx1, prev_memory_BxAxC):
-        """ Performs circular convoution, i.e. shitfts the attention accodring to given shift vector (convolution mask).
+        """
+        Performs circular convoution, i.e. shitfts the attention accodring to
+        given shift vector (convolution mask).
 
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param shift_BxSx1: soft shift maks (convolutional kernel) [BATCH_SIZE x SHIFT_SIZE x 1]
         :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+
         """
         def circular_index(idx, num_addr):
-            """ Calculates the index, taking into consideration the number of addresses in memory.
+            """
+            Calculates the index, taking into consideration the number of
+            addresses in memory.
+
             :param idx: index (single element)
             :param num_addr: number of addresses in memory
+
             """
             if idx < 0:
                 return num_addr + idx
@@ -264,11 +294,13 @@ class MAEInterface(torch.nn.Module):
         return shifted_attention_BxAx1
 
     def sharpening(self, attention_BxAx1, gamma_Bx1x1):
-        """ Performs attention sharpening.
+        """
+        Performs attention sharpening.
 
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param gamma_Bx1x1: sharpening factor [BATCH_SIZE x 1 x 1]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+
         """
 
         # Power.
@@ -283,13 +315,16 @@ class MAEInterface(torch.nn.Module):
 
     def update_memory(self, write_attention_BxAx1,
                       erase_vector_Bx1xC, add_vector_Bx1xC, prev_memory_BxAxC):
-        """ Returns 3D tensor of size [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS] storing new content of the memory.
+        """
+        Returns 3D tensor of size [BATCH_SIZE x MEMORY_ADDRESSES x
+        CONTENT_BITS] storing new content of the memory.
 
         :param write_attention_BxAx1: Current write attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param erase_vector_Bx1xC: Erase vector [BATCH_SIZE x  1 x CONTENT_BITS]
         :param add_vector_Bx1xC: Add vector [BATCH_SIZE x 1 x CONTENT_BITS]
         :param prev_memory_BxAxC: tensor containing previous state of the memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: vector read from the memory [BATCH_SIZE x CONTENT_BITS]
+
         """
         # 1. Calculate the preserved content.
         preserve_content_BxAxC = 1 - \

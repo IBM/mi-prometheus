@@ -11,12 +11,18 @@ from misc.param_interface import ParamInterface
 
 class SkipRecallCommandLines(AlgorithmicSeqToSeqProblem):
     """
-    Class generating sequences of random bit-patterns and targets forcing the system to learn serial recall problem (a.k.a. copy task).
-    The formulation follows the original copy task from NTM paper, where:
-    1) There are two markers, indicating
-    - beginning of storing/memorization and
-    - beginning of recalling from memory.
-    2) Additionally, there is a command line (3rd command bit) indicating whether given item is to be stored in mememory (0) or recalled (1).
+    Class generating sequences of random bit-patterns and targets forcing the
+    system to learn serial recall problem (a.k.a. copy task). The formulation
+    follows the original copy task from NTM paper, where:
+
+    1. There are two markers, indicating:
+        - beginning of storing/memorization and
+        - beginning of recalling from memory.
+
+    2. Additionally, there is a command line (3rd command bit) indicating whether given item is to be stored in
+    memory (0) or recalled (1).
+
+
     """
 
     def __init__(self, params):
@@ -37,14 +43,17 @@ class SkipRecallCommandLines(AlgorithmicSeqToSeqProblem):
         self.skip_length = params['skip_step']
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
-        Additional elements of sequence are  start and stop control markers, stored in additional bits.
+        """
+        Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2,
+        CONTROL_BITS+DATA_BITS]. Additional elements of sequence are  start and
+        stop control markers, stored in additional bits.
 
         : returns: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS],
         output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],
         mask [BATCH_SIZE, 2*SEQ_LENGTH+2]
 
         TODO: every item in batch has now the same seq_length.
+
         """
         assert(self.max_sequence_length > self.seq_start)
 
@@ -105,7 +114,8 @@ class SkipRecallCommandLines(AlgorithmicSeqToSeqProblem):
         # add dummies to target
         seq_length_tdummies = seq_length + 2
         dummies_target = np.zeros(
-            [self.batch_size, seq_length_tdummies, self.data_bits], dtype=np.float32)
+            [self.batch_size, seq_length_tdummies, self.data_bits],
+            dtype=np.float32)
         targets = np.concatenate((dummies_target, target_seq), axis=1)
 
         inputs = np.concatenate(data_1 + data_2, axis=1)

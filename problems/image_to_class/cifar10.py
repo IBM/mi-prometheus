@@ -35,9 +35,11 @@ class CIFAR10(ImageToClassProblem):
 
     def __init__(self, params):
         """
-        Initializes CIFAR problem, calls base class initialization, sets properties using the provided parameters.
+        Initializes CIFAR problem, calls base class initialization, sets
+        properties using the provided parameters.
 
         :param params: Dictionary of parameters (read from configuration file).
+
         """
 
         # Call base class constructors.

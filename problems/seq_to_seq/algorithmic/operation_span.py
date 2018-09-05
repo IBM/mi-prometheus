@@ -27,8 +27,9 @@ from misc.param_interface import ParamInterface
 
 class OperationSpan(AlgorithmicSeqToSeqProblem):
     """
-    Class generating successions of sub sequences X  and Y of random bit-patterns, the target was designed to force the system to learn
-    swap all sub sequences of Y and recall all sub sequence X.
+    Class generating successions of sub sequences X  and Y of random bit-
+    patterns, the target was designed to force the system to learn swap all sub
+    sequences of Y and recall all sub sequence X.
 
     The swap is done in the following way:
     "bitshifted" the Y by num_items to right.
@@ -38,6 +39,7 @@ class OperationSpan(AlgorithmicSeqToSeqProblem):
     Offers two modes of operation, depending on the value of num_items parameter:
     1)  -1 < num_items < 1: relative mode, where num_items represents the % of length of the sequence by which it should be shifted
     2) otherwise: absolute number of items by which the sequence will be shifted.
+
     """
 
     def __init__(self, params):
@@ -59,9 +61,11 @@ class OperationSpan(AlgorithmicSeqToSeqProblem):
 
     def rotate(self, seq, rotation, length):
         """
-        # Rotate sequence by shifting the items to right: seq >> num_items
+        # Rotate sequence by shifting the items to right: seq >> num_items.
+
         # i.e num_items = 2 -> seq_items >> 2
         # and num_items = -1 -> seq_items << 1
+
         """
         # For that reason we must change the sign of num_items
         # Check if we are using relative or absolute rotation.
@@ -78,8 +82,10 @@ class OperationSpan(AlgorithmicSeqToSeqProblem):
         return seq
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
-        SEQ_LENGTH depends on number of sub-sequences and its lengths
+        """
+        Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH,
+        CONTROL_BITS+DATA_BITS]. SEQ_LENGTH depends on number of sub-sequences
+        and its lengths.
 
         :returns: Tuple consisting of: inputs, target and mask
                   pattern of inputs: # x1 % y1 & d1 # x2 % y2 & d2 ... # xn % yn & dn $ d`
@@ -88,6 +94,7 @@ class OperationSpan(AlgorithmicSeqToSeqProblem):
                   xi, yi, and dn(d'): sub sequences x of random length, sub sequence y of random length and dummies.
 
         TODO: deal with batch_size > 1
+
         """
         # define control channel markers
         pos = [0, 0, 0, 0]

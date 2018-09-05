@@ -34,9 +34,11 @@ class MNIST(ImageToClassProblem):
 
     def __init__(self, params):
         """
-        Initializes MNIST problem, calls base class initialization, sets properties using the provided parameters.
+        Initializes MNIST problem, calls base class initialization, sets
+        properties using the provided parameters.
 
         :param params: Dictionary of parameters (read from configuration file).
+
         """
 
         # Call base class constructors.

@@ -13,20 +13,22 @@ from models.ntm.ntm_cell import NTMCell
 
 
 class EncoderSolverNTM(SequentialModel):
-    '''
+    """
     Class implementing the Encoder-Solver NTM model.
-    '''
+    """
 
     def __init__(self, params):
-        '''
-        Constructor. Initializes parameters on the basis of dictionary passed as argument.
+        """
+        Constructor. Initializes parameters on the basis of dictionary passed
+        as argument.
 
         Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences
         becoming input to encoder is of the same length (ends at the same item), the same goes to
         subsequences being input to decoder.
 
         :param params: Dictionary of parameters.
-        '''
+
+        """
         # Call base constructor.
         super(EncoderSolverNTM, self).__init__(params)
 
@@ -54,11 +56,13 @@ class EncoderSolverNTM(SequentialModel):
     def forward(self, data_tuple):
         """
         Forward function accepts a tuple consisting of:
+
          - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and
          - a tensor of targets
 
         :param data_tuple: Tuple containing inputs and targets.
                 :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
+
         """
         # Get dtype.
         dtype = AppState().dtype

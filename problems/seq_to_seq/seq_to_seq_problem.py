@@ -7,13 +7,16 @@ from problems.problem import Problem
 
 
 class SeqToSeqProblem(Problem):
-    """ Class representing base class for all sequential problems.
+    """
+    Class representing base class for all sequential problems.
     """
 
     def __init__(self, params):
-        """ Initializes problem object. Calls base constructor.
+        """
+        Initializes problem object. Calls base constructor.
 
         :param params: Dictionary of parameters (read from configuration file).
+
         """
         super(SeqToSeqProblem, self).__init__(params)
 

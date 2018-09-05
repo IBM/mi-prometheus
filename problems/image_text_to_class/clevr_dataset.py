@@ -80,6 +80,7 @@ class CLEVRDataset(Dataset):
                  embedding_type='random', random_embedding_dim=300):
         """
         Instantiate a ClevrDataset object:
+
             - Mainly check if the files containing the extracted features & tokenized questions already exist. If not,
             it generates them for the specified sub-set.
             - self.img contains then the extracted feature maps
@@ -161,7 +162,8 @@ class CLEVRDataset(Dataset):
 
         else:
             logger.warning(
-                'File {} not found on disk, generating it.'.format(questions_filename))
+                'File {} not found on disk, generating it.'.format(
+                    questions_filename))
 
             # WARNING: We need to ensure that we use the same words & answers dics for both train & val, otherwise we
             # do not have the same reference!
@@ -233,20 +235,26 @@ class CLEVRDataset(Dataset):
         # Done! The actual question embedding is handled in __getitem__.
 
     def __len__(self):
-        """Return the length of the questions set"""
+        """
+        Return the length of the questions set.
+        """
         return len(self.data)
 
     def close(self):
-        """Close hdf5 file."""
+        """
+        Close hdf5 file.
+        """
         self.h.close()
 
     def generate_questions_dics(self, set, word_dic=None, answer_dic=None):
         """
-        Loads the questions from the .json file, tokenize them, creates vocab dics and save that to files.
+        Loads the questions from the .json file, tokenize them, creates vocab
+        dics and save that to files.
 
         :param set: String to specify which dataset to use: 'train', 'val'
         :param word_dic: dict {'word': index} to be used to tokenize the questions
         :param answer_dic: dict {'answer': index} to be used to process questions
+
         """
         if word_dic is None:
             # create empty dic for the words vocab set
@@ -262,9 +270,8 @@ class CLEVRDataset(Dataset):
 
         # load questions from the .json file
         question_file = os.path.join(
-            self.clevr_dir,
-            'questions',
-            'CLEVR-Humans-{}.json'.format(set) if self.clevr_humans else 'CLEVR_{}_questions.json'.format(set))
+            self.clevr_dir, 'questions', 'CLEVR-Humans-{}.json'.format(set)
+            if self.clevr_humans else 'CLEVR_{}_questions.json'.format(set))
         with open(question_file) as f:
             logger.info('Loading samples from {} ...'.format(question_file))
             data = json.load(f)
@@ -304,9 +311,12 @@ class CLEVRDataset(Dataset):
                 answer_index += 1
 
             # save sample params as a dict.
-            result.append({'tokenized_question': question_token, 'answer': answer,
-                           'string_question': question['question'], 'imgfile': question['image_filename'],
-                           'question_type': index_to_family[str(question['question_family_index'])]})
+            result.append(
+                {'tokenized_question': question_token, 'answer': answer,
+                 'string_question': question['question'],
+                 'imgfile': question['image_filename'],
+                 'question_type':
+                 index_to_family[str(question['question_family_index'])]})
 
         logger.info(
             'Done: constructed words dictionary of length {}, and answers dictionary of length {}'.format(
@@ -331,13 +341,15 @@ class CLEVRDataset(Dataset):
 
     def generate_feature_maps_file(self, feature_maps_filename, batch_size=50):
         """
-        Uses GenerateFeatureMaps to pass the CLEVR images through a pretrained CNN model.
+        Uses GenerateFeatureMaps to pass the CLEVR images through a pretrained
+        CNN model.
 
         :param set: String to specify which dataset to use: 'train', 'val' or 'test'.
         :param feature_maps_filename: filename for saving to file.
         :param batch_size: batch size
 
         :return: feature maps
+
         """
         # import lines
         from problems.image_text_to_class.generate_feature_maps import GenerateFeatureMaps
@@ -388,6 +400,7 @@ class CLEVRDataset(Dataset):
                  string_question: original question string
                  index: index of the sample
                  imgfile: image filename
+
         """
         # load tokenized_question, answer, string_question, image_filename from
         # self.data
@@ -416,11 +429,13 @@ class CLEVRDataset(Dataset):
 
     def collate_data(self, batch):
         """
-        Combines samples (retrieved with __getitem__) into a mini-batch
+        Combines samples (retrieved with __getitem__) into a mini-batch.
+
         :param batch: list (?) of samples to combine
 
         :return: images (tensor), padded_tokenized_questions (tensor), questions_lengths (list), answers (tensor),
                 questions_strings (list), indexes (list), imgfiles (list)
+
         """
         # create list placeholders
         images, lengths, answers, s_questions, indexes, imgfiles, question_types = [
@@ -467,7 +482,9 @@ class CLEVRDataset(Dataset):
 
 
 if __name__ == '__main__':
-    """ Unit test of CLEVRDataset"""
+    """
+    Unit test of CLEVRDataset.
+    """
     set = 'train'
     clevr_dir = '/home/valbouy/CLEVR_v1.0'
     clevr_humans = False

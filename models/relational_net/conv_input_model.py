@@ -57,7 +57,9 @@ class ConvInputModel(nn.Module):
         self.batchNorm4 = nn.BatchNorm2d(24)
 
     def forward(self, img):
-        """Forward pass of the CNN"""
+        """
+        Forward pass of the CNN.
+        """
         x = self.conv1(img)
         x = self.batchNorm1(x)
         x = F.relu(x)
@@ -78,7 +80,9 @@ class ConvInputModel(nn.Module):
 
 
 if __name__ == '__main__':
-    """Unit Test for the ConvInputModel"""
+    """
+    Unit Test for the ConvInputModel.
+    """
 
     # "Image" - batch x channels x width x height
     batch_size = 64

@@ -1,5 +1,12 @@
 """
-This script post processes the output of batch_train and batch_test. It takes as input the same file as batch_test and executes on every run of the model in that directory. I.e. if you tell it to run on serial_recall/dnc, it will process every time you have ever run serial_recall with the DNC as long as test.py has been executed. This should be fixed later.
+This script post processes the output of batch_train and batch_test.
+
+It takes as input the same file as batch_test and executes on every run
+of the model in that directory. I.e. if you tell it to run on
+serial_recall/dnc, it will process every time you have ever run
+serial_recall with the DNC as long as test.py has been executed. This
+should be fixed later.
+
 """
 
 import os

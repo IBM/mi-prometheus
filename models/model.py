@@ -16,15 +16,20 @@ from misc.app_state import AppState
 
 
 class Model(nn.Module):
-    """ Class representing base class of all models.
+    """
+    Class representing base class of all models.
+
     Provides basic plotting functionality.
+
     """
 
     def __init__(self, params):
         """
-        Initializes application state and sets plot if visualization flag is turned on.
+        Initializes application state and sets plot if visualization flag is
+        turned on.
 
         :param params: Parameters read from configuration file.
+
         """
         # Call base class inits here.
         super(Model, self).__init__()
@@ -53,42 +58,50 @@ class Model(nn.Module):
     def add_statistics(self, stat_col):
         """
         Add statistics to collector.
+
         EMPTY - To be redefined in inheriting classes.
 
         :param stat_col: Statistics collector.
+
         """
         pass
 
     def collect_statistics(self, stat_col, data_tuple, logits):
         """
         Base statistics collection.
+
         EMPTY - To be redefined in inheriting classes.
 
         :param stat_col: Statistics collector.
         :param data_tuple: Data tuple containing inputs and targets.
         :param logits: Logits being output of the model.
+
         """
         pass
 
     @abstractmethod
     def plot(self, data_tuple, predictions, sample_number=0):
         """
-        Plots inputs, targets and predictions, along with model-dependent variables.
+        Plots inputs, targets and predictions, along with model-dependent
+        variables.
+
         Abstract - to be defined in derived classes.
 
         :param data_tuple: Data tuple containing input and target batches.
         :param predictions: Prediction.
         :param sample_number: Number of sample in batch (DEFAULT: 0)
+
         """
 
     def save(self, model_dir, stat_col):
         """
-        Generic method saving the model parameters to file.
-        It can be overloaded if one needs more control.
+        Generic method saving the model parameters to file. It can be
+        overloaded if one needs more control.
 
         :param model_dir: Directory where the model will be saved.
         :param stat_col: Statistics collector that contain current loss and episode number (and other statistics).
         :return: True if this is the best model that is found till now (considering loss).
+
         """
         # Get two elementary statistics.
         loss = stat_col['loss']
@@ -109,7 +122,8 @@ class Model(nn.Module):
             filename = model_dir + 'model_episode_{:05d}.pt'.format(episode)
             torch.save(chkpt, filename)
             logger.info(
-                "Model and statistics exported to checkpoint {}".format(filename))
+                "Model and statistics exported to checkpoint {}".format(
+                    filename))
 
         # Save the best model.
         if (loss < self.best_loss):
@@ -117,15 +131,18 @@ class Model(nn.Module):
             filename = model_dir + 'model_best.pt'
             torch.save(chkpt, filename)
             logger.info(
-                "Model and statistics exported to checkpoint {}".format(filename))
+                "Model and statistics exported to checkpoint {}".format(
+                    filename))
             return True
         # Else: that was not the best model.
         return False
 
     def load(self, checkpoint_file):
-        """ Loads model from the checkpoint file
+        """
+        Loads model from the checkpoint file.
 
         :param checkpoint_file: File containing dictionary with model state and statistics.
+
         """
         # Load checkpoint
         # This is to be able to load CUDA-trained model on CPU

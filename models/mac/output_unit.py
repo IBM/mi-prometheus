@@ -61,6 +61,7 @@ class OutputUnit(nn.Module):
 
         :param dim: global 'd' dimension
         :param nb_classes: number of classes to consider (classification problem)
+
         """
 
         # call base constructor
@@ -75,10 +76,12 @@ class OutputUnit(nn.Module):
     def forward(self, mem_state, question_encodings):
         """
         Forward pass of the output unit.
+
         :param mem_state: final memory state, shape [batch_size x dim]
         :param question_encodings: questions encodings, shape [batch_size x (2*dim)]
 
         :return: probability distribution over the classes, [batch_size x nb_classes]
+
         """
         # cat memory state & questions encodings
         concat = torch.cat([mem_state, question_encodings], dim=1)

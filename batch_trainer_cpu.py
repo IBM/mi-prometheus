@@ -55,8 +55,10 @@ def main():
 
     # Get batch settings.
     try:
-        experiment_repetitions = batch_dict['batch_settings']['experiment_repetitions']
-        max_concurrent_runs = batch_dict['batch_settings']['max_concurrent_runs']
+        experiment_repetitions = batch_dict['batch_settings'][
+            'experiment_repetitions']
+        max_concurrent_runs = batch_dict['batch_settings'][
+            'max_concurrent_runs']
     except BaseException:
         print("Error: The 'batch_settings' section must define 'experiment_repetitions' and 'max_concurrent_runs'")
         exit(-1)
@@ -123,9 +125,11 @@ def main():
 
 
 def run_experiment(experiment_configs: str):
-    """ Runs the experiment.
+    """
+    Runs the experiment.
 
     :param experiment_configs: List of configs (separated with coma) that will be passed to trainer.
+
     """
 
     command_str = "python3 trainer.py --c {0}".format(experiment_configs)

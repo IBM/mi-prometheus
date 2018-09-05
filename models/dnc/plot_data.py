@@ -50,8 +50,10 @@ def plot_memory_attention(prediction, memory, wt_read, wt_write, usage, label):
              'o',
              label="write head")
 
-    ax1.plot(np.arange(usage.size()[-1]), usage[0,
-                                                :].detach().numpy(), 'o', label="write head")
+    ax1.plot(
+        np.arange(usage.size()[-1]),
+        usage[0, :].detach().numpy(),
+        'o', label="write head")
 
     ax3.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
     ax3.set_ylabel("Word size", fontname='Times New Roman', fontsize=15)

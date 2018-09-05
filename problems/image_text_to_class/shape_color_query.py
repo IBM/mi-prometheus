@@ -14,16 +14,21 @@ from problems.image_text_to_class.sort_of_clevr import SortOfCLEVR
 
 class ShapeColorQuery(SortOfCLEVR):
     """
-    Shape-Color-Query is a a variation of Sort-of-CLEVR VQA problem, where question is a sequence composed of three items:
+    Shape-Color-Query is a a variation of Sort-of-CLEVR VQA problem, where
+    question is a sequence composed of three items:
+
     - first two encoding the object, identified by color & shape, and
     - third encoding the query.
+
     """
 
     def __init__(self, params):
         """
-        Initializes Shape-Color-Query problem, calls base class initialization, sets properties using the provided parameters.
+        Initializes Shape-Color-Query problem, calls base class initialization,
+        sets properties using the provided parameters.
 
         :param params: Dictionary of parameters (read from configuration file).
+
         """
 
         # Call base class constructors.

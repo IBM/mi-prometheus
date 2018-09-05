@@ -26,17 +26,20 @@ import torch
 
 
 class StackedAttention(nn.Module):
-    """ Implements a stacked attention layers, this attention was designed in this paper: https://arxiv.org/abs/1511.02274
+    """
+    Implements a stacked attention layers, this attention was designed in this
+    paper: https://arxiv.org/abs/1511.02274.
     """
 
     def __init__(self, question_image_encoding_size,
                  key_query_size, num_att_layers=2):
         """
-        Constructor of the StackedAttention class
+        Constructor of the StackedAttention class.
 
         :param question_image_encoding_size: question encoding size.
         :param key_query_size: key and query size, are the same in this implementation
         :param num_att_layers: num of stacked attention layers
+
         """
 
         super(StackedAttention, self).__init__()
@@ -45,15 +48,17 @@ class StackedAttention(nn.Module):
         self.visualize_attention = None
 
         self.san = nn.ModuleList(
-            [Attention(question_image_encoding_size, key_query_size)] * num_att_layers)
+            [Attention(question_image_encoding_size, key_query_size)] *
+            num_att_layers)
 
     def forward(self, encoded_image, encoded_question):
         """
-        Apply stacked attention
+        Apply stacked attention.
 
         :param encoded_image: output of the image encoding (CNN + FC layer), [batch_size, new_width * new_height, num_channels_encoded_image]
         :param encoded_question: last hidden layer of the LSTM, [batch_size, question_encoding_size]
         :returns: u: attention [batch_size, num_channels_encoded_image]
+
         """
 
         for att_layer in self.san:
@@ -72,15 +77,19 @@ class StackedAttention(nn.Module):
 
 class Attention(nn.Module):
     """
-    Implements one layer of the stacked attention designed: https://arxiv.org/abs/1511.02274
+    Implements one layer of the stacked attention designed:
+
+    https://arxiv.org/abs/1511.02274.
+
     """
 
     def __init__(self, question_image_encoding_size, key_query_size=512):
         """
-        Constructor of Attention class
+        Constructor of Attention class.
 
         :param question_image_encoding_size: question encoding size.
         :param key_query_size: key and query size, are the same in this implementation
+
         """
 
         super(Attention, self).__init__()
@@ -94,11 +103,12 @@ class Attention(nn.Module):
 
     def forward(self, encoded_image, encoded_question):
         """
-        Apply a single attention layer
+        Apply a single attention layer.
 
         :param encoded_image: output of the image encoding (CNN + FC layer), [batch_size, new_width * new_height, num_channels_encoded_image]
         :param encoded_question: last hidden layer of the LSTM, [batch_size, question_encoding_size]
         :returns: u: attention [batch_size, num_channels_encoded_image]
+
         """
 
         # Get the key

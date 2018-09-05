@@ -1,8 +1,11 @@
 """
 This scripts does a random search on DNC's hyper parameters.
-It works by loading a template yaml file, modifying the resulting dict, and dumping that as yaml into a
-temporary file. The `train.py` script is then launched using the temporary yaml file as the task.
-It will run as many concurrent jobs as possible.
+
+It works by loading a template yaml file, modifying the resulting dict,
+and dumping that as yaml into a temporary file. The `train.py` script is
+then launched using the temporary yaml file as the task. It will run as
+many concurrent jobs as possible.
+
 """
 
 __author__ = "Alexis Asseman, Younes Bouhadjar"
@@ -55,8 +58,10 @@ def main():
 
     # Get batch settings.
     try:
-        experiment_repetitions = batch_dict['batch_settings']['experiment_repetitions']
-        max_concurrent_runs = batch_dict['batch_settings']['max_concurrent_runs']
+        experiment_repetitions = batch_dict['batch_settings'][
+            'experiment_repetitions']
+        max_concurrent_runs = batch_dict['batch_settings'][
+            'max_concurrent_runs']
     except BaseException:
         print("Error: The 'batch_settings' section must define 'experiment_repetitions' and 'max_concurrent_runs'")
         exit(-1)
@@ -140,9 +145,11 @@ def main():
 
 
 def run_experiment(experiment_configs: str):
-    """ Runs the experiment.
+    """
+    Runs the experiment.
 
     :param experiment_configs: List of configs (separated with coma) that will be passed to trainer.
+
     """
 
     command_str = "cuda-gpupick -n1 python3 trainer.py --c {0}".format(

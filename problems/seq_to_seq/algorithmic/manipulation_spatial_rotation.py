@@ -27,10 +27,14 @@ from misc.param_interface import ParamInterface
 
 class ManipulationSpatialRotation(AlgorithmicSeqToSeqProblem):
     """
-    Creates input being a sequence of bit pattern and target being the same sequence, but with data_bits "bitshifted" by num_bits to right.
-    Offers two modes of operation, depending on the value of num_bits parameter:
-    1)  -1 < num_bits < 1: relative mode, where num_bits represents the % of data bits by which every should be shifted
-    2) otherwise: absolute number of bits by which the sequence will be shifted.
+    Creates input being a sequence of bit pattern and target being the same
+    sequence, but with data_bits "bitshifted" by num_bits to right.
+
+    Offers two modes of operation, depending on the value of num_bits
+    parameter: 1)  -1 < num_bits < 1: relative mode, where num_bits
+    represents the % of data bits by which every should be shifted 2)
+    otherwise: absolute number of bits by which the sequence will be
+    shifted.
 
     """
 
@@ -51,8 +55,10 @@ class ManipulationSpatialRotation(AlgorithmicSeqToSeqProblem):
         self.num_bits = params['num_bits']
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
-        Additional elements of sequence are  start and stop control markers, stored in additional bits.
+        """
+        Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2,
+        CONTROL_BITS+DATA_BITS]. Additional elements of sequence are  start and
+        stop control markers, stored in additional bits.
 
         :return: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS],
         :return: Output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],

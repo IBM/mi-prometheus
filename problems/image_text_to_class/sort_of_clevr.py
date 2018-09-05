@@ -21,22 +21,29 @@ from problems.image_text_to_class.image_text_to_class_problem import ImageTextTo
 
 class SortOfCLEVR(ImageTextToClassProblem):
     """
-    Sort-of-CLEVR is a simple VQA problem, where the goal is to answer the question regarding a given image.
-    Implementation of the generation is inspired by:
-    git@github.com:gitlimlab/Relation-Network-Tensorflow.git
+    Sort-of-CLEVR is a simple VQA problem, where the goal is to answer the
+    question regarding a given image. Implementation of the generation is
+    inspired by: git@github.com:gitlimlab/Relation-Network-Tensorflow.git
     Improvements:
+
     - generates scenes with dynamic varying number of objects (2-6)
     - more types of intra- and inter-relational questions
     - more natural interpretation of questions
+
+
     Additionally it generates:
     - Aux tuple containing the scene graph.
+
+
     """
 
     def __init__(self, params):
         """
-        Initializes Sort-of-CLEVR problem, calls base class initialization, sets properties using the provided parameters.
+        Initializes Sort-of-CLEVR problem, calls base class initialization,
+        sets properties using the provided parameters.
 
         :param params: Dictionary of parameters (read from configuration file).
+
         """
 
         # Call base class constructors.
@@ -87,7 +94,13 @@ class SortOfCLEVR(ImageTextToClassProblem):
         self.load_dataset(data_folder, data_filename)
 
     def load_dataset(self, data_folder, data_filename):
-        """ Loads the dataset from the HDF5-encoded file. If file does not exists it generates new dataset and stores it in a file. """
+        """
+        Loads the dataset from the HDF5-encoded file.
+
+        If file does not exists it generates new dataset and stores it
+        in a file.
+
+        """
 
         # Make path absolute.
         if (data_folder[0] == '~'):
@@ -133,9 +146,11 @@ class SortOfCLEVR(ImageTextToClassProblem):
                     self.data_test_size)]
 
     def generate_batch(self):
-        """ Generates batch.
+        """
+        Generates batch.
 
         :return: DataTuple and AuxTuple object.
+
         """
         # Shuffle indices.
         if self.shuffle:
@@ -176,7 +191,9 @@ class SortOfCLEVR(ImageTextToClassProblem):
         return DataTuple(inputs, index_targets), aux_tuple
 
     def color2str(self, color_code):
-        " Decodes color and returns it as a string. "
+        """
+        Decodes color and returns it as a string.
+        """
         return {
             0: 'blue',
             1: 'green',
@@ -187,14 +204,18 @@ class SortOfCLEVR(ImageTextToClassProblem):
         }[color_code]
 
     def shape2str(self, shape_code):
-        " Decodes shape and returns it as a string. "
+        """
+        Decodes shape and returns it as a string.
+        """
         return {
             0: 'rectangle',
             1: 'circle',
         }[shape_code]
 
     def question_type_template(self, question_code):
-        """ Helper function that the string templates a question type. """
+        """
+        Helper function that the string templates a question type.
+        """
         return {
             0: 'What is the shape of the {} object?',
             1: 'Is the {} {} closer to the bottom of the image?',
@@ -207,12 +228,14 @@ class SortOfCLEVR(ImageTextToClassProblem):
         }[question_code]
 
     def question2str(self, encoded_question):
-        """ Decodes question, i.e. produces a human-understandable string.
+        """
+        Decodes question, i.e. produces a human-understandable string.
 
         :param color_query: Concatenation of two one-hot vectors:
           - first one denoting the object of interest (its color),
           - the second one the question type.
         :return: Question in the form of a string.
+
         """
         # "Decode" the color_query vector.
         color = np.argmax(encoded_question[:self.NUM_COLORS])
@@ -222,9 +245,11 @@ class SortOfCLEVR(ImageTextToClassProblem):
                 ).format(self.color2str(color), 'object')
 
     def answer2str(self, encoded_answer):
-        """ Encodes answer into a string.
+        """
+        Encodes answer into a string.
 
         :param encoded_answer: One-hot vector.
+
         """
         return {
             # 0-5 colors
@@ -244,9 +269,11 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
     def scene2str(self, objects):
         """
-        Returns a string with shape, color and position of every object forming the scene
+        Returns a string with shape, color and position of every object forming
+        the scene.
 
         :param objects: List of objects - abstract scene representation.
+
         """
         desc = '| '
         for obj in objects:
@@ -259,10 +286,12 @@ class SortOfCLEVR(ImageTextToClassProblem):
         return desc
 
     def generate_scene_representation(self):
-        """ Generates scene representation
+        """
+        Generates scene representation.
 
         :return: List of objects - abstract scene representation.
-         """
+
+        """
         # Generate list of objects - no more then colors.
         num_objects = np.random.random_integers(2, self.MAX_NUM_OBJECTS)
 
@@ -305,9 +334,10 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
     def generate_image(self, objects):
         """
-        Generates image on the basis of a given scene representation
+        Generates image on the basis of a given scene representation.
 
         :param objects: List of objects - abstract scene representation.
+
         """
         img_size = self.img_size
         shape_size = int((img_size * 0.9 / self.GRID_SIZE) * 0.7 / 2)
@@ -378,7 +408,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
             # Calculate distances.
             distances = np.array(
-                [((obj.x - other_obj.x) ** 2 + (obj.y - other_obj.y) ** 2) for other_obj in objects])
+                [((obj.x - other_obj.x) ** 2 + (obj.y - other_obj.y) ** 2)
+                 for other_obj in objects])
             idx = distances.argsort()
             # Ids of closest and most distant objects.
             min_idx = idx[1]
@@ -400,7 +431,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
     def generate_h5py_dataset(self):
         """
-        Generates a whole new Sort-of-CLEVR dataset and saves it in the form of a HDF5 file.
+        Generates a whole new Sort-of-CLEVR dataset and saves it in the form of
+        a HDF5 file.
         """
 
         # Output file.
@@ -458,6 +490,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         :param data_tuple: Tuple containing inputs and targets.
         :param aux_tuple: Auxiliary tuple containing scene descriptions.
         :param sample_number: Number of sample in batch (DEFAULT: 0)
+
         """
         import matplotlib.pyplot as plt
 
@@ -488,13 +521,15 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
     def plot_preprocessing(self, data_tuple, aux_tuple, logits):
         """
-        Allows for some data preprocessing before the model creates a plot for visualization during training or
-        inference.
-        To be redefined in inheriting classes.
+        Allows for some data preprocessing before the model creates a plot for
+        visualization during training or inference. To be redefined in
+        inheriting classes.
+
         :param data_tuple: Data tuple.
         :param aux_tuple: Auxiliary tuple.
         :param logits: Logits being output of the model.
         :return: data_tuplem aux_tuple, logits after preprocessing.
+
         """
         # Unpack tuples.
         (images, questions), answers = data_tuple

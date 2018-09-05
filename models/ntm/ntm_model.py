@@ -13,16 +13,18 @@ from problems.problem import DataTuple
 
 
 class NTM(SequentialModel):
-    '''
+    """
     Class representing the Neural Turing Machine module.
-    '''
+    """
 
     def __init__(self, params):
-        '''
-        Constructor. Initializes parameters on the basis of dictionary of parameters passed as argument.
+        """
+        Constructor. Initializes parameters on the basis of dictionary of
+        parameters passed as argument.
 
         :param params: Dictionary of parameters.
-        '''
+
+        """
         # Call constructor of base class.
         super(NTM, self).__init__(params)
 
@@ -50,10 +52,12 @@ class NTM(SequentialModel):
     def forward(self, data_tuple):
         """
         Forward function accepts a tuple consisting of :
-         - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and
-         - a tensor of targets
 
-                :return: Predictions being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] .
+        - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and
+        - a tensor of targets
+
+               :return: Predictions being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] .
+
         """
         dtype = AppState().dtype
 
@@ -108,10 +112,12 @@ class NTM(SequentialModel):
 
     def generate_memory_attention_figure_layout(self):
         """
-        Creates a figure template for showing basic NTM attributes (write & write attentions),
-        memory and sequence (inputs, predictions and targets).
+        Creates a figure template for showing basic NTM attributes (write &
+        write attentions), memory and sequence (inputs, predictions and
+        targets).
 
         :returns: Matplot figure object.
+
         """
         from matplotlib.figure import Figure
         import matplotlib.ticker as ticker
@@ -166,15 +172,20 @@ class NTM(SequentialModel):
 
     def plot_memory_attention_sequence(
             self, data_tuple, predictions, sample_number=0):
-        """ Creates list of figures used in interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
-        The visualization presents input, output and target sequences passed as input parameters.
-        Additionally, it utilizes state tuples collected during the experiment for displaying the memory state, read and write attentions.
+        """
+        Creates list of figures used in interactive visualization, with a
+        slider enabling to move forth and back along the time axis (iteration
+        in a given episode). The visualization presents input, output and
+        target sequences passed as input parameters. Additionally, it utilizes
+        state tuples collected during the experiment for displaying the memory
+        state, read and write attentions.
 
         :param data_tuple: Data tuple containing
            - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and
            - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
         :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
         :param sample_number: Number of sample in batch (DEFAULT: 0)
+
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
@@ -285,10 +296,12 @@ class NTM(SequentialModel):
 
     def generate_memory_all_model_params_figure_layout(self):
         """
-        Creates a figure template for showing all NTM attributes (write & write attentions, gates, convolution masks),
-        along with memory and sequence (inputs, predictions and targets).
+        Creates a figure template for showing all NTM attributes (write & write
+        attentions, gates, convolution masks), along with memory and sequence
+        (inputs, predictions and targets).
 
         :returns: Matplot figure object.
+
         """
         from matplotlib.figure import Figure
         import matplotlib.ticker as ticker
@@ -371,15 +384,19 @@ class NTM(SequentialModel):
     def plot_memory_all_model_params_sequence(
             self, data_tuple, predictions, sample_number=0):
         """
-        Creates list of figures used in interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
-        The visualization presents input, output and target sequences passed as input parameters.
-        Additionally, it utilizes state tuples collected during the experiment for displaying the memory state, read and write attentions; and gating params.
+        Creates list of figures used in interactive visualization, with a
+        slider enabling to move forth and back along the time axis (iteration
+        in a given episode). The visualization presents input, output and
+        target sequences passed as input parameters. Additionally, it utilizes
+        state tuples collected during the experiment for displaying the memory
+        state, read and write attentions; and gating params.
 
         :param data_tuple: Data tuple containing
            - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and
            - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
         :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
         :param sample_number: Number of sample in batch (DEFAULT: 0)
+
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:

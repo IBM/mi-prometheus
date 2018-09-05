@@ -27,8 +27,9 @@ from misc.param_interface import ParamInterface
 
 class InterruptionSwapRecall(AlgorithmicSeqToSeqProblem):
     """
-    Class generating successions of sub sequences X  and Y of random bit-patterns, the target was designed to force the system to learn
-    swap all sub sequences of Y and recall all sub sequence X.
+    Class generating successions of sub sequences X  and Y of random bit-
+    patterns, the target was designed to force the system to learn swap all sub
+    sequences of Y and recall all sub sequence X.
 
     The swap is done in the following way:
     "bitshifted" the Y by num_items to right.
@@ -40,6 +41,7 @@ class InterruptionSwapRecall(AlgorithmicSeqToSeqProblem):
     2) otherwise: absolute number of items by which the sequence will be shifted.
 
     @Younes: IS THIS DESCRIPTION VALID?????
+
     """
 
     def __init__(self, params):
@@ -63,9 +65,11 @@ class InterruptionSwapRecall(AlgorithmicSeqToSeqProblem):
 
     def rotate(self, seq, rotation, seq_length):
         """
-        # Rotate sequence by shifting the items to right: seq >> num_items
+        # Rotate sequence by shifting the items to right: seq >> num_items.
+
         # i.e num_items = 2 -> seq_items >> 2
         # and num_items = -1 -> seq_items << 1
+
         """
         # For that reason we must change the sign of num_items
         # Check if we are using relative or absolute rotation.
@@ -81,16 +85,19 @@ class InterruptionSwapRecall(AlgorithmicSeqToSeqProblem):
         return seq
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
-         SEQ_LENGTH depends on number of sub-sequences and its lengths
+        """
+        Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH,
+        CONTROL_BITS+DATA_BITS]. SEQ_LENGTH depends on number of sub-sequences
+        and its lengths.
 
-         :returns: Tuple consisting of: inputs, target and mask
-                   pattern of inputs: # x1 % y1 & d1 # x2 % y2 & d2 ... # xn % yn & dn $ d`
-                   pattern of target:    d   d   F(y1)  d  d    F(y2)  ... d   d   F(yn) all(xi)
-                   F: swap function
-                   mask: used to mask the data part of the target.
-                   xi, yi, and dn(d'): sub sequences x of random length, sub sequence y of random length and dummies.
-         """
+        :returns: Tuple consisting of: inputs, target and mask
+                  pattern of inputs: # x1 % y1 & d1 # x2 % y2 & d2 ... # xn % yn & dn $ d`
+                  pattern of target:    d   d   F(y1)  d  d    F(y2)  ... d   d   F(yn) all(xi)
+                  F: swap function
+                  mask: used to mask the data part of the target.
+                  xi, yi, and dn(d'): sub sequences x of random length, sub sequence y of random length and dummies.
+
+        """
         # define control channel markers
         pos = [0, 0, 0, 0]
         ctrl_data = [0, 0, 0, 0]
@@ -155,11 +162,11 @@ class InterruptionSwapRecall(AlgorithmicSeqToSeqProblem):
             np.zeros((self.batch_size, 1, self.data_bits)), ctrl_xy, pos)
 
         # data which contains all xs and all rotated ys plus dummies of ys
-        data_1 = [arr for a,
-                  b in zip(xx,
-                           yy) for arr in a[:-1] + [inter_xy] + [self.rotate(b[0],
-                                                                             self.rotation,
-                                                                             b[0].shape[1])] + [b[1]]]
+        data_1 = [
+            arr for a, b in zip(xx, yy)
+            for arr in a[: -1] + [inter_xy] +
+            [self.rotate(b[0],
+                         self.rotation, b[0].shape[1])] + [b[1]]]
 
         # dummies of xs
         data_2 = [a[-1][:, 1:, :] for a in xx]

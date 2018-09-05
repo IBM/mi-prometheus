@@ -61,14 +61,21 @@ app_state = AppState()
 
 
 class CLEVR(ImageTextToClassProblem):
-    """CLEVR Problem class: This class generates batches over a CLEVRDataset object.
-        It also has a show_sample method that displays a sample (image, question, answer)"""
+    """
+    CLEVR Problem class: This class generates batches over a CLEVRDataset
+    object.
+
+    It also has a show_sample method that displays a sample (image,
+    question, answer)
+
+    """
 
     def __init__(self, params):
         """
         Instantiate the CLEVR class.
 
         :param params: dict of parameters.
+
         """
         # Call base class constructors.
         super(CLEVR, self).__init__(params)
@@ -123,12 +130,14 @@ class CLEVR(ImageTextToClassProblem):
 
     def get_acc_per_family(self, data_tuple, aux_tuple, logits):
         """
-        Compute the accuracy per family for the current batch. Also accumulates the # of correct predictions & questions
-        per family in self.dic (saved to file).
+        Compute the accuracy per family for the current batch. Also accumulates
+        the # of correct predictions & questions per family in self.dic (saved
+        to file).
 
         :param data_tuple: DataTuple ((images, questions), targets)
         :param aux_tuple: (questions_strings, questions_indexes, images_filenames, question_types)
         :param logits: network predictions.
+
         """
 
         # get correct predictions
@@ -185,10 +194,12 @@ class CLEVR(ImageTextToClassProblem):
     def collect_statistics(self, stat_col, data_tuple, logits, aux_tuple):
         """
         Collects accuracy.
+
         :param stat_col: Statistics collector.
         :param data_tuple: Data tuple containing inputs and targets.
         :param logits: Logits being output of the model.
         :param _: auxiliary tuple (aux_tuple) is not used in this function.
+
         """
         stat_col['acc'] = self.calculate_accuracy(
             data_tuple, logits, aux_tuple)
@@ -203,6 +214,7 @@ class CLEVR(ImageTextToClassProblem):
 
         :return: - data_tuple: (((images, questions), questions_len), answers)
                  - aux_tuple: (questions_strings, questions_indexes, images_filenames, question_types) (visualization)
+
         """
 
         clevr_loader = DataLoader(
@@ -285,13 +297,15 @@ class CLEVR(ImageTextToClassProblem):
 
     def plot_preprocessing(self, data_tuple, aux_tuple, logits):
         """
-        Allows for some data preprocessing before the model creates a plot for visualization during training or
-        inference.
-        To be redefined in inheriting classes.
+        Allows for some data preprocessing before the model creates a plot for
+        visualization during training or inference. To be redefined in
+        inheriting classes.
+
         :param data_tuple: Data tuple.
         :param aux_tuple: Auxiliary tuple.
         :param logits: Logits being output of the model.
         :return: data_tuplem aux_tuple, logits after preprocessing.
+
         """
 
         # unpack data_tuple
@@ -304,17 +318,15 @@ class CLEVR(ImageTextToClassProblem):
         logits_indexes = torch.argmax(logits, dim=-1)
 
         prediction_string = [
-            list(
-                self.clevr_dataset.answer_dic.keys())[
-                list(
-                    self.clevr_dataset.answer_dic.values()).index(
-                    logits_indexes[batch_num].data)] for batch_num in range(batch_size)]
+            list(self.clevr_dataset.answer_dic.keys())
+            [list(self.clevr_dataset.answer_dic.values()).index(
+                logits_indexes[batch_num].data)]
+            for batch_num in range(batch_size)]
         answer_string = [
-            list(
-                self.clevr_dataset.answer_dic.keys())[
-                list(
-                    self.clevr_dataset.answer_dic.values()).index(
-                    answer[batch_num].data)] for batch_num in range(batch_size)]
+            list(self.clevr_dataset.answer_dic.keys())
+            [list(self.clevr_dataset.answer_dic.values()).index(
+                answer[batch_num].data)]
+            for batch_num in range(batch_size)]
 
         (s_questions, indexes, imgfiles, question_types) = aux_tuple
         aux_tuple = (s_questions, answer_string, imgfiles,
@@ -324,7 +336,9 @@ class CLEVR(ImageTextToClassProblem):
 
 
 if __name__ == "__main__":
-    """Unit test that generates a batch and displays a sample."""
+    """
+    Unit test that generates a batch and displays a sample.
+    """
 
     params = {
         'batch_size': 64,

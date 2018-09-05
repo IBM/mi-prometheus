@@ -13,15 +13,19 @@ _LSTMStateTuple = collections.namedtuple(
 
 
 class LSTMStateTuple(_LSTMStateTuple):
-    """Tuple used by LSTM Cells for storing current/past state information"""
+    """
+    Tuple used by LSTM Cells for storing current/past state information.
+    """
     __slots__ = ()
 
 
 class LSTMController(nn.Module):
     def __init__(self, params):
-        """ Constructor.
+        """
+        Constructor.
 
         :param params: Dictionary of parameters.
+
         """
 
         self.input_size = params["input_size"]
@@ -40,6 +44,7 @@ class LSTMController(nn.Module):
 
         :param batch_size: Size of the batch in given iteraction/epoch.
         :returns: Initial state tuple - object of LSTMStateTuple class.
+
         """
         dtype = AppState().dtype
         # Initialize LSTM hidden state [BATCH_SIZE x CTRL_HIDDEN_SIZE].
@@ -62,6 +67,7 @@ class LSTMController(nn.Module):
         :param x: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE] (generally the read data and input word concatenated)
         :param prev_state_tuple: Tuple of the previous hidden and cell state
         :returns: outputs a Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and an LSTM state tuple.
+
         """
 
         hidden_state, cell_state = self.lstm(x, prev_state_tuple)

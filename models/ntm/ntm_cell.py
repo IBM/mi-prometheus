@@ -19,19 +19,24 @@ _NTMCellStateTuple = collections.namedtuple(
 
 
 class NTMCellStateTuple(_NTMCellStateTuple):
-    """Tuple used by NTM Cells for storing current/past state information"""
+    """
+    Tuple used by NTM Cells for storing current/past state information.
+    """
     __slots__ = ()
 
 
 class NTMCell(torch.nn.Module):
-    """ Class representing a single NTM cell. """
+    """
+    Class representing a single NTM cell.
+    """
 
     def __init__(self, params):
-        """ Cell constructor.
-        Cell creates controller and interface.
-        It also initializes memory "block" that will be passed between states.
+        """
+        Cell constructor. Cell creates controller and interface. It also
+        initializes memory "block" that will be passed between states.
 
         :param params: Dictionary of parameters.
+
         """
         # Call constructor of base class.
         super(NTMCell, self).__init__()
@@ -45,7 +50,8 @@ class NTMCell(torch.nn.Module):
             self.output_size = params['num_data_bits']
 
         # Get controller hidden state size.
-        self.controller_hidden_state_size = params['controller']['hidden_state_size']
+        self.controller_hidden_state_size = params['controller'][
+            'hidden_state_size']
 
         # Get memory parameters - required by initialization of ext_controller
         # input size.
@@ -78,11 +84,12 @@ class NTMCell(torch.nn.Module):
 
     def init_state(self, init_memory_BxAxC):
         """
-        Returns 'zero' (initial) state.
-        "Recursivelly" calls controller and interface initialization.
+        Returns 'zero' (initial) state. "Recursivelly" calls controller and
+        interface initialization.
 
         :param init_memory_BxAxC: Initial memory.
         :returns: Initial state tuple - object of NTMCellStateTuple class.
+
         """
         batch_size = init_memory_BxAxC.size(0)
         num_memory_addresses = init_memory_BxAxC.size(1)
@@ -143,6 +150,7 @@ class NTMCell(torch.nn.Module):
         :param inputs_BxI: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE]
         :param  prev_cell_state: a NTMCellStateTuple tuple, containing previous state of the cell.
         :returns: an output Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and  NTMCellStateTuple tuple containing current cell state.
+
         """
         # Unpack previous cell  state.
         (prev_ctrl_state_tuple, prev_interface_state_tuple,

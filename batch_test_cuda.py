@@ -1,8 +1,12 @@
 """
 This script runs test.py on the output of batch_train.
-The input is a list of directories for each problem/model e.g. experiments/serial_recall/dnc
- and executes on every run of the model in that directory. I.e. if you tell it to run on serial_recall/dnc,
-it will process every time you have ever run serial_recall with the DNC. This should be fixed later.
+
+The input is a list of directories for each problem/model e.g.
+experiments/serial_recall/dnc  and executes on every run of the model in
+that directory. I.e. if you tell it to run on serial_recall/dnc, it will
+process every time you have ever run serial_recall with the DNC. This
+should be fixed later.
+
 """
 
 

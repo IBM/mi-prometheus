@@ -31,14 +31,18 @@ app_state = AppState()
 
 class RelationalNetwork(Model):
     """
-    Implementation of the Relational Network model. Reference paper: https://arxiv.org/abs/1706.01427
-    The CNN model used for the image encoding is located in .conv_input_model.py
-    The MLPs (g_theta & f_phi) are in .functions.
+    Implementation of the Relational Network model.
+
+    Reference paper: https://arxiv.org/abs/1706.01427 The CNN model used
+    for the image encoding is located in .conv_input_model.py The MLPs
+    (g_theta & f_phi) are in .functions.
+
     """
 
     def __init__(self, params):
         """
-        Constructor
+        Constructor.
+
         :param params: dict of parameters.
 
         """
@@ -59,9 +63,9 @@ class RelationalNetwork(Model):
 
     def build_coord_tensor(self, batch_size, d):
         """
-        Create the tensor containing the spatial relative coordinate of each region (1 pixel) in the feature maps of the
-        ConvInputModel.
-        These spatial relative coordinates are used to 'tag' the regions.
+        Create the tensor containing the spatial relative coordinate of each
+        region (1 pixel) in the feature maps of the ConvInputModel. These
+        spatial relative coordinates are used to 'tag' the regions.
 
         :param batch_size: batch size
         :param d: size of 1 feature map

@@ -25,13 +25,21 @@ from problems.problem import Problem
 
 
 class ImageToClassProblem(Problem):
-    ''' Abstract base class for image classification problems. Provides some basic functionality usefull in all problems of such type'''
+    """
+    Abstract base class for image classification problems.
+
+    Provides some basic functionality usefull in all problems of such
+    type
+
+    """
 
     def __init__(self, params):
         """
-        Initializes problem, calls base class initialization. Set loss function to CrossEntropy.
+        Initializes problem, calls base class initialization. Set loss function
+        to CrossEntropy.
 
         :param params: Dictionary of parameters (read from configuration file).
+
         """
         # Call base class constructors.
         super(ImageToClassProblem, self).__init__(params)
@@ -62,6 +70,7 @@ class ImageToClassProblem(Problem):
         Add accuracy statistic to collector.
 
         :param stat_col: Statistics collector.
+
         """
         stat_col.add_statistic('acc', '{:12.10f}')
 
@@ -73,6 +82,7 @@ class ImageToClassProblem(Problem):
         :param data_tuple: Data tuple containing inputs and targets.
         :param logits: Logits being output of the model.
         :param _: auxiliary tuple (aux_tuple) is not used in this function.
+
         """
         stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, _)
 
@@ -83,6 +93,7 @@ class ImageToClassProblem(Problem):
         :param data_tuple: Tuple containing inputs and targets.
         :param aux_tuple: Auxiliary tuple containing scene descriptions.
         :param sample_number: Number of sample in batch (DEFAULT: 0)
+
         """
         import matplotlib.pyplot as plt
 

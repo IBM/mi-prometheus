@@ -24,19 +24,24 @@ _MAECellStateTuple = collections.namedtuple(
 
 
 class MAECellStateTuple(_MAECellStateTuple):
-    """Tuple used by MAE Cells for storing current/past state information"""
+    """
+    Tuple used by MAE Cells for storing current/past state information.
+    """
     __slots__ = ()
 
 
 class MAECell(torch.nn.Module):
-    """ Class representing a single Memory-Augmented Encoder cell. """
+    """
+    Class representing a single Memory-Augmented Encoder cell.
+    """
 
     def __init__(self, params):
-        """ Cell constructor.
-        Cell creates controller and interface.
-        It also initializes memory "block" that will be passed between states.
+        """
+        Cell constructor. Cell creates controller and interface. It also
+        initializes memory "block" that will be passed between states.
 
         :param params: Dictionary of parameters.
+
         """
         # Call constructor of base class.
         super(MAECell, self).__init__()
@@ -50,7 +55,8 @@ class MAECell(torch.nn.Module):
             self.output_size = params['num_data_bits']
 
         # Get controller hidden state size.
-        self.controller_hidden_state_size = params['controller']['hidden_state_size']
+        self.controller_hidden_state_size = params['controller'][
+            'hidden_state_size']
 
         # Controller - entity that processes input and produces hidden state of
         # the ntm cell.
@@ -99,6 +105,7 @@ class MAECell(torch.nn.Module):
         :param stat_col: Statistics collector that contain current loss and episode number (and other statistics).
         :param is_best_model: Flag indicating whether it is the best model or not.
         :parma save_intermediate: Flag indicating whether intermediate models should be saved or not.
+
         """
         episode = stat_col['episode']
         # Checkpoint to be saved.
@@ -116,7 +123,8 @@ class MAECell(torch.nn.Module):
             # Save dictionary to file.
             torch.save(chkpt, filename)
             logger.info(
-                "Encoder and statistics exported to checkpoint {}".format(filename))
+                "Encoder and statistics exported to checkpoint {}".format(
+                    filename))
 
         # Save the best model.
         if is_best_model:
@@ -125,10 +133,13 @@ class MAECell(torch.nn.Module):
             # Save dictionary to file.
             torch.save(chkpt, filename)
             logger.info(
-                "Encoder and statistics exported to checkpoint {}".format(filename))
+                "Encoder and statistics exported to checkpoint {}".format(
+                    filename))
 
     def freeze(self):
-        """ Freezes the trainable weigths """
+        """
+        Freezes the trainable weigths.
+        """
         # Freeze controller.
         for param in self.controller.parameters():
             param.requires_grad = False
@@ -144,11 +155,12 @@ class MAECell(torch.nn.Module):
 
     def init_state(self, init_memory_BxAxC):
         """
-        Initializes state of MAE cell.
-        Recursively initialization: controller, interface.
+        Initializes state of MAE cell. Recursively initialization: controller,
+        interface.
 
         :param init_memory_BxAxC: Initial memory state [BATCH_SIZE x MEMORY_ADDRESSES x MEMORY_CONTENT].
         :returns: Initial state tuple - object of NTMCellStateTuple class.
+
         """
         # Get number of memory addresses.
         batch_size = init_memory_BxAxC.size(0)
@@ -172,6 +184,7 @@ class MAECell(torch.nn.Module):
         :param inputs_BxI: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE]
         :param  prev_cell_state: a MAECellStateTuple tuple, containing previous state of the cell.
         :returns: MAECellStateTuple tuple containing current cell state.
+
         """
         # Unpack previous cell  state.
         (prev_ctrl_state_tuple, prev_interface_state_tuple,

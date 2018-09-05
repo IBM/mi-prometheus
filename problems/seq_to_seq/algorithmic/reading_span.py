@@ -84,7 +84,8 @@ class ReadingSpan(AlgorithmicSeqToSeqProblem):
         # create the target
         seq_length_tdummies = sum(seq_length) + seq_length.shape[0] + 1
         dummies_target = np.zeros(
-            [self.batch_size, seq_length_tdummies, self.data_bits], dtype=np.float32)
+            [self.batch_size, seq_length_tdummies, self.data_bits],
+            dtype=np.float32)
         targets = np.concatenate([dummies_target] + x_last, axis=1)
 
         # data of x and dummies

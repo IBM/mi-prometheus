@@ -31,24 +31,32 @@ _DWMCellStateTuple = collections.namedtuple(
 
 
 class DWMCellStateTuple(_DWMCellStateTuple):
-    """Tuple used by DWM Cells for storing current/past state information: controller state, interface state, memory state """
+    """
+    Tuple used by DWM Cells for storing current/past state information:
+
+    controller state, interface state, memory state.
+
+    """
     __slots__ = ()
 
 
 class DWMCell(nn.Module):
-    """Applies the DWM cell to an element in the input sequence """
+    """
+    Applies the DWM cell to an element in the input sequence.
+    """
 
     def __init__(self, in_dim, output_units, state_units,
                  num_heads, is_cam, num_shift, M):
-        """Builds the DWM cell
+        """
+        Builds the DWM cell.
 
-            :param in_dim: input size.
-            :param output_units: output size.
-            :param state_units: state size.
-            :param num_heads: number of heads.
-            :param is_cam: is it content_address    able.
-            :param num_shift: number of shifts of heads.
-            :param M: Number of slots per address in the memory bank.
+        :param in_dim: input size.
+        :param output_units: output size.
+        :param state_units: state size.
+        :param num_heads: number of heads.
+        :param is_cam: is it content_address    able.
+        :param num_shift: number of shifts of heads.
+        :param M: Number of slots per address in the memory bank.
 
         """
 
@@ -84,7 +92,7 @@ class DWMCell(nn.Module):
 
     def forward(self, input, tuple_cell_state_prev):
         """
-        forward pass of the DWM_Cell
+        forward pass of the DWM_Cell.
 
         :param input: current input (from time t) [batch_size, inputs_size]
         :param tuple_cell_state_prev: contains (tuple_ctrl_state_prev, tuple_interface_prev, mem_prev), object of class DWMCellStateTuple

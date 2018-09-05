@@ -36,17 +36,21 @@ _NTMCellStateTuple = collections.namedtuple(
 
 
 class NTMCellStateTuple(_NTMCellStateTuple):
-    """Tuple used by NTM Cells for storing current/past state information"""
+    """
+    Tuple used by NTM Cells for storing current/past state information.
+    """
     __slots__ = ()
 
 
 class DNCCell(nn.Module):
     def __init__(self, output_size, params):
-        """Initialize an DNC cell.
+        """
+        Initialize an DNC cell.
 
         :param output_size: output size.
         :param state_units: state size.
         :param num_heads: number of heads.
+
         """
         super(DNCCell, self).__init__()
 
@@ -62,11 +66,13 @@ class DNCCell(nn.Module):
     def init_state(self, memory_address_size, batch_size):
         """
         Returns 'zero' (initial) state:
+
         * memory  is reset to random values.
         * read & write weights (and read vector) are set to 1e-6.
 
         :param batch_size: Size of the batch in given iteraction/epoch.
         :param num_memory_adresses: Number of memory addresses.
+
         """
         dtype = AppState().dtype
 
@@ -94,11 +100,12 @@ class DNCCell(nn.Module):
 
     def forward(self, input_BxI, cell_state_prev):
         """
-        Builds the DNC cell
+        Builds the DNC cell.
 
         :param input: Current input (from time t)  [BATCH_SIZE x INPUT_SIZE]
         :param state: Previous hidden state (from time t-1)  [BATCH_SIZE x STATE_UNITS]
         :return: Tuple [output, hidden_state]
+
         """
         ctrl_state_prev_tuple, prev_interface_tuple, prev_memory_BxMxA, prev_read_vector_BxM = cell_state_prev
 

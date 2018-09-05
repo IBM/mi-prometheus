@@ -12,8 +12,9 @@ from misc.param_interface import ParamInterface
 
 class SequenceSymmetryCommandLines(AlgorithmicSeqToSeqProblem):
     """
-    Class generating sequences of random bit-patterns and targets forcing the system to learn sequence symmetry task.
-    Two sequences x1 and x2 are symmetric if reversed(x2) == x1.
+    Class generating sequences of random bit-patterns and targets forcing the
+    system to learn sequence symmetry task. Two sequences x1 and x2 are
+    symmetric if reversed(x2) == x1.
 
     Note: this is in fact anti-symmetry, i.e. it has to return 0 when first and second sequences are "symmetric".
 
@@ -38,7 +39,9 @@ class SequenceSymmetryCommandLines(AlgorithmicSeqToSeqProblem):
         self.predict_inverse = params.get('predict_inverse', True)
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
+        """
+        Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH,
+        CONTROL_BITS+DATA_BITS].
 
         :returns: Tuple consisting of: input, output and mask
                   pattern of inputs: x1, x2, d

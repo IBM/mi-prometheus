@@ -11,7 +11,9 @@ _DataTuple = collections.namedtuple('DataTuple', ('inputs', 'targets'))
 
 
 class DataTuple(_DataTuple):
-    """Tuple used by storing batches of data by problems"""
+    """
+    Tuple used by storing batches of data by problems.
+    """
     __slots__ = ()
 
 
@@ -21,7 +23,10 @@ _MaskAuxTuple = collections.namedtuple('MaskAuxTuple', ('mask'))
 class MaskAuxTuple(_MaskAuxTuple):
     """
     Tuple used by storing batches of data by sequential problems using mask.
-    Contains one element: mask that might be used for evaluation of the loss function.
+
+    Contains one element: mask that might be used for evaluation of the
+    loss function.
+
     """
     __slots__ = ()
 
@@ -37,7 +42,8 @@ class LabelAuxTuple(_LabelAuxTuple):
 
 
 class Problem(metaclass=ABCMeta):
-    """ Class representing base class for all Problems.
+    """
+    Class representing base class for all Problems.
     """
 
     def __init__(self, params):
@@ -45,6 +51,7 @@ class Problem(metaclass=ABCMeta):
         Initializes problem object.
 
         :param params: Dictionary of parameters (read from configuration file).
+
         """
         # Set default loss function.
         self.loss_function = None
@@ -53,9 +60,11 @@ class Problem(metaclass=ABCMeta):
         self.params = params
 
     def set_loss_function(self, loss_function):
-        """ Sets loss function.
+        """
+        Sets loss function.
 
         :param criterion: Loss function (e.g. nn.CrossEntropyLoss()) that will be set as optimization criterion.
+
         """
         self.loss_function = loss_function
 
@@ -63,26 +72,34 @@ class Problem(metaclass=ABCMeta):
     def generate_batch(self):
         """
         Generates batch of sequences of given length.
+
         Abstract - to be defined in derived classes.
+
         """
 
     def return_generator(self):
         """
-        Returns a generator yielding a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
-        Additional elements of sequence are  start and stop control markers, stored in additional bits.
+        Returns a generator yielding a batch  of size [BATCH_SIZE,
+        2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]. Additional elements of
+        sequence are  start and stop control markers, stored in additional
+        bits.
 
         : returns: A tuple: input with shape [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS], output
+
         """
         # Create "generator".
         while True:
             yield self.generate_batch()
 
     def evaluate_loss(self, data_tuple, logits, _):
-        """ Calculates loss between the predictions/logits and targets (from data_tuple) using the selected loss function.
+        """
+        Calculates loss between the predictions/logits and targets (from
+        data_tuple) using the selected loss function.
 
         :param logits: Logits being output of the model.
         :param data_tuple: Data tuple containing inputs and targets.
         :param _: auxiliary tuple (aux_tuple) is not used in this function.
+
         """
         # Unpack tuple.
         (_, targets) = data_tuple
@@ -95,21 +112,25 @@ class Problem(metaclass=ABCMeta):
     def add_statistics(self, stat_col):
         """
         Add statistics to collector.
+
         EMPTY - To be redefined in inheriting classes.
 
         :param stat_col: Statistics collector.
+
         """
         pass
 
     def collect_statistics(self, stat_col, data_tuple, logits, _):
         """
         Base statistics collection.
+
         EMPTY - To be redefined in inheriting classes.
 
         :param stat_col: Statistics collector.
         :param data_tuple: Data tuple containing inputs and targets.
         :param logits: Logits being output of the model.
         :param _: auxiliary tuple (aux_tuple) is not used in this function.
+
         """
         pass
 
@@ -132,13 +153,15 @@ class Problem(metaclass=ABCMeta):
 
     def plot_preprocessing(self, data_tuple, aux_tuple, logits):
         """
-        Allows for some data preprocessing before the model creates a plot for visualization during training or
-        inference.
-        To be redefined in inheriting classes.
+        Allows for some data preprocessing before the model creates a plot for
+        visualization during training or inference. To be redefined in
+        inheriting classes.
+
         :param data_tuple: Data tuple.
         :param aux_tuple: Auxiliary tuple.
         :param logits: Logits being output of the model.
         :return: data_tuplem aux_tuple, logits after preprocessing.
+
         """
         return data_tuple, aux_tuple, logits
 
@@ -154,11 +177,12 @@ class Problem(metaclass=ABCMeta):
 
     def curriculum_learning_update_params(self, episode):
         """
-        Updates problem parameters according to curriculum learning.
-        There is no general solution to curriculum learning.
-        This method should be overwriten in the derived classes.
+        Updates problem parameters according to curriculum learning. There is
+        no general solution to curriculum learning. This method should be
+        overwriten in the derived classes.
 
         :param episode: Number of the current episode.
         :returns: True informing that CL wasn't active at all (i.e. is finished).
+
         """
         return True

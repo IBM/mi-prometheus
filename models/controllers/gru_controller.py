@@ -12,15 +12,19 @@ _GRUStateTuple = collections.namedtuple('GRUStateTuple', ('hidden_state'))
 
 
 class GRUStateTuple(_GRUStateTuple):
-    """Tuple used by GRU Cells for storing current/past state information"""
+    """
+    Tuple used by GRU Cells for storing current/past state information.
+    """
     __slots__ = ()
 
 
 class GRUController(nn.Module):
     def __init__(self, params):
-        """ Constructor.
+        """
+        Constructor.
 
         :param params: Dictionary of parameters.
+
         """
 
         self.input_size = params["input_size"]
@@ -40,6 +44,7 @@ class GRUController(nn.Module):
         :param batch_size: Size of the batch in given iteraction/epoch.
         :returns: Initial state tuple - object of GRUStateTuple class.
         :returns: Initial state tuple - object of GRUStateTuple class.
+
         """
         # Initialize GRU hidden state [BATCH_SIZE x CTRL_HIDDEN_SIZE].
         dtype = AppState().dtype
@@ -57,6 +62,7 @@ class GRUController(nn.Module):
         :param x: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE] (generally the read data and input word concatenated)
         :param prev_state_tuple: Tuple of the previous hidden and cell state
         :returns: outputs a Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and an GRU state tuple.
+
         """
 
         hidden_state_prev = prev_state_tuple.hidden_state

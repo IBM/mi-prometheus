@@ -26,17 +26,21 @@ import torch.nn.functional as F
 
 
 class AttnDecoderRNN(nn.Module):
-    """GRU Attention Decoder for Encoder-Decoder"""
+    """
+    GRU Attention Decoder for Encoder-Decoder.
+    """
 
     def __init__(self, hidden_size, output_voc_size, dropout_p=0.1,
                  max_length=10, encoder_bidirectional=True):
         """
         Initializes an Decoder network based on a Gated Recurrent Unit.
+
         :param hidden_size: length of embedding vectors.
         :param output_voc_size: size of the vocabulary set to be embedded by the Embedding layer.
         :param dropout_p: probability of an element to be zeroed for the Dropout layer.
         :param max_length: maximum sequence length.
         :param encoder_bidirectional: whether the associated encoder is bidirectional or not.
+
         """
         # call base constructor
         super(AttnDecoderRNN, self).__init__()

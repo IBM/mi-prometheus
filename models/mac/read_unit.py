@@ -60,6 +60,7 @@ class ReadUnit(nn.Module):
         Constructor for the read unit.
 
         :param dim: global 'd' hidden dimension
+
         """
 
         # call base constructor
@@ -76,14 +77,15 @@ class ReadUnit(nn.Module):
 
     def forward(self, memory_states, knowledge_base, ctrl_states, kb_proj):
         """
-        Forward pass of the read unit.
-        Assuming 1 scalar attention weight per knowledge base elements.
+        Forward pass of the read unit. Assuming 1 scalar attention weight per
+        knowledge base elements.
 
         :param memory_states: list of all previous memory states, each of shape [batch_size x mem_dim]
         :param knowledge_base: image representation (output of CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
         :param ctrl_states: list of all previous control state, each of shape [batch_size x ctrl_dim]
 
         :return: current read vector, shape [batch_size x read_dim]
+
         """
         # assume mem_dim = ctrl_dim = nb_kernels = dim
 
@@ -100,8 +102,9 @@ class ReadUnit(nn.Module):
         I_elements = memory_state * kb_proj
 
         # compute I' elements (r2 equation)
-        concat = self.concat_layer(torch.cat([I_elements, knowledge_base], dim=1).permute(
-            0, 2, 1))  # [batch_size x (H*W) x dim]
+        concat = self.concat_layer(
+            torch.cat([I_elements, knowledge_base],
+                      dim=1).permute(0, 2, 1))  # [batch_size x (H*W) x dim]
 
         # compute attention weights
         rai = self.attn(concat * ctrl_state.unsqueeze(1)

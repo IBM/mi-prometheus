@@ -27,7 +27,9 @@ from models.controllers.controller_factory import ControllerFactory
 
 
 class ThalnetModule(nn.Module):
-    """ Implements a Thalnet module """
+    """
+    Implements a Thalnet module.
+    """
 
     def __init__(self,
                  center_size,
@@ -68,10 +70,11 @@ class ThalnetModule(nn.Module):
 
     def init_state(self, batch_size):
         """
-        Initialize state of ThalNet module state
+        Initialize state of ThalNet module state.
 
         :param batch_size: batch size
         :return: center_state_per_module, tuple_controller_states
+
         """
 
         dtype = AppState().dtype
@@ -113,8 +116,8 @@ class ThalnetModule(nn.Module):
             inputs, prev_tuple_controller_state)
 
         output, center_feature_output = torch.split(
-            module_state, [
-                self.output_size, self.center_size_per_module], dim=1) if self.output_size else (
+            module_state, [self.output_size, self.center_size_per_module],
+            dim=1) if self.output_size else(
             None, module_state)
 
         return output, center_feature_output, tuple_ctrl_state

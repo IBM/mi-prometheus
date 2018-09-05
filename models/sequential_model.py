@@ -13,28 +13,37 @@ from problems.problem import DataTuple
 
 
 class SequentialModel(Model):
-    """ Class representing base class for all sequential models.
+    """
+    Class representing base class for all sequential models.
+
     Provides basic plotting functionality.
+
     """
 
     def __init__(self, params):
         """
-        Initializes application state and sets plot if visualization flag is turned on.
+        Initializes application state and sets plot if visualization flag is
+        turned on.
 
         :param params: Parameters read from configuration file.
+
         """
         super(SequentialModel, self).__init__(params)
 
     def plot(self, data_tuple, predictions, sample_number=0):
-        """ Creates a default interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
+        """
+        Creates a default interactive visualization, with a slider enabling to
+        move forth and back along the time axis (iteration in a given episode).
         The default visualizatoin contains input, output and target sequences.
-        For more model/problem dependent visualization please overwrite this method in the derived model class.
+        For more model/problem dependent visualization please overwrite this
+        method in the derived model class.
 
         :param data_tuple: Data tuple containing
            - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and
            - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
         :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
         :param sample_number: Number of sample in batch (DEFAULT: 0)
+
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:

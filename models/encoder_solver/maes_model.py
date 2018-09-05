@@ -16,20 +16,23 @@ from models.encoder_solver.mas_cell import MASCell
 
 
 class MAES(SequentialModel):
-    '''
+    """
     Class implementing the Memory Augmented Encoder-Solver (MAES) model.
 
     Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences
     becoming input to encoder is of the same length (ends at the same item).
     The same goes to subsequences being input to decoder.
-    '''
+
+    """
 
     def __init__(self, params):
-        '''
-        Constructor. Initializes parameters on the basis of dictionary passed as argument.
+        """
+        Constructor. Initializes parameters on the basis of dictionary passed
+        as argument.
 
         :param params: Dictionary of parameters.
-        '''
+
+        """
         # Call base constructor.
         super(MAES, self).__init__(params)
         # Model name.
@@ -76,6 +79,7 @@ class MAES(SequentialModel):
         :param model_dir: Directory where the model will be saved.
         :param stat_col: Statistics collector that contain current loss and episode number (and other statistics).
         :return: True if this is the best model that is found till now (considering loss).
+
         """
         # Call the case method to save the whole model.
         is_best_model = super(SequentialModel, self).save(model_dir, stat_col)
@@ -90,11 +94,13 @@ class MAES(SequentialModel):
     def forward(self, data_tuple):
         """
         Forward function accepts a tuple consisting of:
+
          - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and
          - a tensor of targets
 
         :param data_tuple: Tuple containing inputs and targets.
                 :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
+
         """
         # Get dtype.
         dtype = AppState().dtype

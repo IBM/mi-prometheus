@@ -57,9 +57,11 @@ class WriteUnit(nn.Module):
     def __init__(self, dim, self_attention=False, memory_gate=False):
         """
         Constructor for the write unit.
+
         :param dim: global 'd' hidden dimension
         :param self_attention: whether or not to use self-attention on the previous control states
         :param memory_gate: whether or not to use memory gating.
+
         """
 
         # call base constructor
@@ -83,11 +85,13 @@ class WriteUnit(nn.Module):
     def forward(self, memory_states, read_vector, ctrl_states):
         """
         Forward pass of the write unit.
+
         :param memory_states: list of all previous memory states, each of shape [batch_size x dim]
         :param read_vector: current read vector (output of the read unit), shape [batch_size x dim]
         :param ctrl_states: list of all previous control states, each of shape [batch_size x dim]
 
         :return: current memory state, shape [batch_size x mem_dim]
+
         """
         # retrieve the last memory state
         memory_state = memory_states[-1]

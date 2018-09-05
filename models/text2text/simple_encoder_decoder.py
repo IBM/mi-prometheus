@@ -45,12 +45,14 @@ class SimpleEncoderDecoder(SequentialModel):
     def __init__(self, params):
         """
         Initializes the Encoder-Decoder network.
+
         :param params: dict containing the main parameters set:
             - max_length: maximal length of the input / output sequence of words: i.e, max length of the sentences
             to translate -> upper limit of seq_length
             - input_voc_size: should correspond to the length of the vocabulary set of the input language
             - hidden size: size of the embedding & hidden states vectors.
             - output_voc_size: should correspond to the length of the vocabulary set of the output language
+
         """
         # call base constructor
         super(SimpleEncoderDecoder, self).__init__(params)
@@ -87,9 +89,11 @@ class SimpleEncoderDecoder(SequentialModel):
 
     def plot(self, data_tuple, predictions, sample_number=0):
         """
-        Plot function to visualize the attention weights on the input sequence as the model is generating the output sequence.
+        Plot function to visualize the attention weights on the input sequence
+        as the model is generating the output sequence.
 
-        :param data_tuple: data_tuple: Data tuple containing input [BATCH_SIZE x SEQUENCE_LENGTH] and target sequences  [BATCH_SIZE x SEQUENCE_LENGTH]
+        :param data_tuple: data_tuple: Data tuple containing input [BATCH_SIZE x SEQUENCE_LENGTH] and target sequences
+        [BATCH_SIZE x SEQUENCE_LENGTH]
 
         :param predictions: logits as dict {'inputs_text', 'logits_text'}
 
@@ -144,9 +148,13 @@ class SimpleEncoderDecoder(SequentialModel):
     def forward(self, data_tuple):
         """
         Runs the network.
+
         :param data_tuple: (input_tensor, target_tensor) tuple
+
         :return: decoder outputs: of shape [target_length x output_voc_size] containing the probability distributions
         over the vocabulary set for each word in the target sequence.
+
+
         """
         # unpack data_tuple
         (inputs, targets) = data_tuple

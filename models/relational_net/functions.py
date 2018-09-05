@@ -29,8 +29,12 @@ app_state = AppState()
 
 class PairwiseRelationNetwork(nn.Module):
     """
-    Implementation of the g_theta MLP used in the Relational Network model. For recall, the role of g_theta is to
-    infer the ways in which 2 regions of the CNN feature maps are related, or if they are even related at all
+    Implementation of the g_theta MLP used in the Relational Network model.
+
+    For recall, the role of g_theta is to infer the ways in which 2
+    regions of the CNN feature maps are related, or if they are even
+    related at all
+
     """
 
     def __init__(self, params):
@@ -47,10 +51,12 @@ class PairwiseRelationNetwork(nn.Module):
     def forward(self, inputs):
         """
         forward pass of the g_theta MLP.
+
         :param inputs: tensor of shape [batch_size, input_size], should represent the pairs of regions (in the CNN
         feature maps) cat with the question encoding.
 
         :return: tensor of shape [batch_size, 256]
+
         """
 
         x = self.g_fc1(inputs)
@@ -70,9 +76,12 @@ class PairwiseRelationNetwork(nn.Module):
 
 class SumOfPairsAnalysisNetwork(nn.Module):
     """
-        Implementation of the f_phi MLP used in the Relational Network model. For recall, the role of f_phi is to
-        produce the probability distribution over all possible answers.
-        """
+    Implementation of the f_phi MLP used in the Relational Network model.
+
+    For recall, the role of f_phi is to produce the probability
+    distribution over all possible answers.
+
+    """
 
     def __init__(self, params):
         # call base constructor
@@ -87,10 +96,12 @@ class SumOfPairsAnalysisNetwork(nn.Module):
     def forward(self, inputs):
         """
         forward pass of the f_phi MLP.
+
         :param inputs: tensor of shape [batch_size, 256], should represent the element-wise sum of the outputs of
         g_theta.
 
         :return: tensor of shape [batch_size, 256]
+
         """
 
         x = self.f_fc1(inputs)
@@ -106,7 +117,9 @@ class SumOfPairsAnalysisNetwork(nn.Module):
 
 
 if __name__ == '__main__':
-    """Unit Tests for g_theta & f_phi."""
+    """
+    Unit Tests for g_theta & f_phi.
+    """
     input_size = (24 + 2) * 2 + 13
     batch_size = 64
     inputs = np.random.binomial(1, 0.5, (batch_size, 3, input_size))

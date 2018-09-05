@@ -8,12 +8,21 @@ from problems.problem import Problem
 
 
 class VideoToClassProblem(Problem):
-    ''' Base class for vision classification problems. Provides some basic functionality usefull in all problems of such type'''
+    """
+    Base class for vision classification problems.
+
+    Provides some basic functionality usefull in all problems of such
+    type
+
+    """
 
     def __init__(self, params):
-        """ Initializes problem object. Calls base constructor. Sets nn.CrossEntropyLoss() as default loss function.
+        """
+        Initializes problem object. Calls base constructor. Sets
+        nn.CrossEntropyLoss() as default loss function.
 
         :param params: Dictionary of parameters (read from configuration file).
+
         """
         super(VideoToClassProblem, self).__init__(params)
 
@@ -65,6 +74,7 @@ class VideoToClassProblem(Problem):
         Add accuracy statistic to collector.
 
         :param stat_col: Statistics collector.
+
         """
         stat_col.add_statistic('acc', '{:12.10f}')
 
@@ -76,6 +86,7 @@ class VideoToClassProblem(Problem):
         :param data_tuple: Data tuple containing inputs and targets.
         :param logits: Logits being output of the model.
         :param aux_tuple: auxiliary tuple (aux_tuple) is not used in this function.
+
         """
         stat_col['acc'] = self.calculate_accuracy(
             data_tuple, logits, aux_tuple)

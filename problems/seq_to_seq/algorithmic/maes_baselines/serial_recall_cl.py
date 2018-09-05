@@ -12,16 +12,23 @@ from misc.param_interface import ParamInterface
 
 class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
     """
-    Class generating sequences of random bit-patterns and targets forcing the system to learn serial recall problem (a.k.a. copy task).
-    The formulation follows the original copy task from NTM paper, where:
-    1) There are two markers, indicating
-    - beginning of storing/memorization and
-    - beginning of recalling from memory.
-    2) For other elements of the sequence the command bits are set to zero
-    3) Minor modification I: the target contains only data bits (command bits are skipped)
-    4) Minor modification II: generator returns a mask, which can be used for filtering important elements of the output.
+    Class generating sequences of random bit-patterns and targets forcing the
+    system to learn serial recall problem (a.k.a. copy task). The formulation
+    follows the original copy task from NTM paper, where:
+
+    1. There are two markers, indicating:
+        - beginning of storing/memorization and
+        - beginning of recalling from memory.
+
+    2. For other elements of the sequence the command bits are set to zero
+
+    3. Minor modification I: the target contains only data bits (command bits are skipped)
+
+    4. Minor modification II: generator returns a mask, which can be used for filtering important elements of the output.
+
 
     TODO: sequences of different lengths in batch (filling with zeros?)
+
     """
 
     def __init__(self, params):
@@ -42,8 +49,10 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
             'randomize_control_lines', True)
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
-        Additional elements of sequence are  start and stop control markers, stored in additional bits.
+        """
+        Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2,
+        CONTROL_BITS+DATA_BITS]. Additional elements of sequence are  start and
+        stop control markers, stored in additional bits.
 
         : returns: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS],
         output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],

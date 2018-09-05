@@ -24,7 +24,10 @@ from models.thalnet.thalnet_module import ThalnetModule
 
 
 class ThalNetCell(nn.Module):
-    """ Implementation of the ThalNetCell, it takes one element of the input sequence at a time"""
+    """
+    Implementation of the ThalNetCell, it takes one element of the input
+    sequence at a time.
+    """
 
     def __init__(self,
                  input_size,
@@ -33,13 +36,14 @@ class ThalNetCell(nn.Module):
                  center_size_per_module,
                  num_modules):
         """
-        Constrcutor of ThalNetCell class
+        Constrcutor of ThalNetCell class.
 
         :param input_size: input size
         :param output_size: output size
         :param context_input_size: context input size
         :param center_size_per_module:  center size per module
         :param num_modules: number of modules
+
         """
         # Call base class inits here.
         super(ThalNetCell, self).__init__()
@@ -76,10 +80,11 @@ class ThalNetCell(nn.Module):
 
     def init_state(self, batch_size):
         """
-        Initialize the state of ThalNet
+        Initialize the state of ThalNet.
 
         :param batch_size: batch size
         :return: states of the ThalNet cell
+
         """
 
         # module and center state initialisation
@@ -90,12 +95,13 @@ class ThalNetCell(nn.Module):
 
     def forward(self, inputs, prev_state):
         """
-        forward run of the ThalNetCell
+        forward run of the ThalNetCell.
 
         :param inputs: input at time t [batch_size, input_size]
         :param prev_state: previous state [batch_size, state_size]
         :return: states: states [batch_size, state_size]
         :return: ouput: prediction [batch_size, output_size]
+
         """
         prev_center_states = [prev_state[i][0]
                               for i in range(self.num_modules)]

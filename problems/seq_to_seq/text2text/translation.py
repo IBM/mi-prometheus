@@ -37,14 +37,21 @@ from problems.seq_to_seq.text2text.text_to_text_problem import TextToTextProblem
 
 class Translation(TextToTextProblem):
     """
-    Class generating sequences of indexes as inputs & targets for a English -> Other Language translation task.
-    Only supports latin alphabet for now (because of string normalization).
+    Class generating sequences of indexes as inputs & targets for a English ->
+    Other Language translation task.
+
+    Only supports latin alphabet for now (because of string
+    normalization).
+
     """
 
     def __init__(self, params):
         """
-        Initializes the problem: stores parameters. Calls parent class initialization.
+        Initializes the problem: stores parameters. Calls parent class
+        initialization.
+
         :param params: Dictionary of parameters.
+
         """
 
         print("Translation does not support pretrained embedding")
@@ -101,9 +108,12 @@ class Translation(TextToTextProblem):
 
     def prepare_data(self):
         """
-        Prepare the data for generating batches. Uses filter_pairs() to normalize, trim & filter input sentences pairs.
-        Also fills in Lang() instances for the input & output languages.
+        Prepare the data for generating batches. Uses filter_pairs() to
+        normalize, trim & filter input sentences pairs. Also fills in Lang()
+        instances for the input & output languages.
+
         :return: Lang() object for input & output languages + filtered sentences pairs.
+
         """
 
         # Read the source data file and split into lines
@@ -155,8 +165,10 @@ class Translation(TextToTextProblem):
         return self.input_lang, self.output_lang, self.pairs
 
     def _check_exists(self):
-        """Check if the training & inference datasets (of the specified training size) for the specified language
-        already exist or not."""
+        """
+        Check if the training & inference datasets (of the specified training
+        size) for the specified language already exist or not.
+        """
         return os.path.exists(
             os.path.join(
                 self.root,
@@ -257,13 +269,16 @@ class Translation(TextToTextProblem):
 
     def filter_pair(self, p):
         """
-        Indicate whether a sentence pair is compliant with some filtering criteria, such as:
+        Indicate whether a sentence pair is compliant with some filtering
+        criteria, such as:
+
          - The number of words (that includes ending punctuation) in the sentences,
          - The start of the input language sentence.
 
         :param p: [] containing a pair of sentences
 
         :return: True if the pair respects the filtering constraints else False.
+
         """
         if self.eng_prefixes is not None:
 
@@ -275,8 +290,12 @@ class Translation(TextToTextProblem):
                 len(p[1].split(' ')) < self.max_sequence_length
 
     def filter_pairs(self):
-        """Filter several pairs at once using filter_pair as a boolean mask.
-        :return list of filtered pairs"""
+        """
+        Filter several pairs at once using filter_pair as a boolean mask.
+
+        :return list of filtered pairs
+
+        """
         return [pair for pair in self.pairs if self.filter_pair(pair)]
 
     def generate_batch(self):
@@ -285,6 +304,7 @@ class Translation(TextToTextProblem):
 
         :return: DataTuple: inputs [BATCH_SIZE, MAX_SEQUENCE_LENGTH], targets [BATCH_SIZE, MAX_SEQUENCE_LENGTH],
                 TextAuxTuple: ('inputs_text', 'outputs_text', 'input_lang', 'output_lang')
+
         """
         # generate a sample of size batch_size of random indexes without
         # replacement
@@ -319,12 +339,14 @@ class Translation(TextToTextProblem):
 
     def plot_preprocessing(self, data_tuple, aux_tuple, logits):
         """
-        Does some preprocessing to logits to then plot the attention weights for the AttnEncoderDecoder model.
+        Does some preprocessing to logits to then plot the attention weights
+        for the AttnEncoderDecoder model.
 
         :param data_tuple: Data tuple (inputs, targets)
         :param aux_tuple: Auxiliary tuple ('inputs_text', 'outputs_text', 'input_lang', 'output_lang')
         :param logits: prediction, shape [batch_size x max_seq_length x output_voc_size]
         :return: data_tuple, aux_tuple untouched + logits as dict {'inputs_text', 'logits_text'}
+
         """
         # get most probable words indexes for the batch
         _, top_indexes = logits.topk(k=1, dim=-1)
@@ -335,7 +357,8 @@ class Translation(TextToTextProblem):
         logits_text = []
         for logit in top_indexes:
             logits_text.append(
-                [aux_tuple.output_lang.index2word[index.item()] for index in logit])
+                [aux_tuple.output_lang.index2word[index.item()]
+                 for index in logit])
 
         # cannot modify DataTuple so modifying logits to contain the input
         # sentences and predicted sentences
@@ -346,7 +369,9 @@ class Translation(TextToTextProblem):
 
 
 if __name__ == "__main__":
-    """Problem class Unit Test"""
+    """
+    Problem class Unit Test.
+    """
 
     eng_prefixes = (
         "i am ", "i m ",

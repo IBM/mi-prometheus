@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Simple Encoder Decoder LSTM tested on serial recall task"""
+"""
+Simple Encoder Decoder LSTM tested on serial recall task.
+"""
 __author__ = "Vincent Albouy"
 
 from enum import Enum
@@ -11,7 +13,9 @@ from misc.app_state import AppState
 
 
 class EncoderDecoderLSTM(SequentialModel):
-    """Simple Encoder Decoder LSTM """
+    """
+    Simple Encoder Decoder LSTM.
+    """
 
     def __init__(self, params):
         '''

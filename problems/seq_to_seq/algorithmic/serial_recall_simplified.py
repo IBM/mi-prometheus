@@ -27,13 +27,18 @@ from misc.param_interface import ParamInterface
 
 class SerialRecallSimplified(AlgorithmicSeqToSeqProblem):
     """
-    Class generating sequences of random bit-patterns and targets forcing the system to learn serial recall problem (a.k.a. copy task).
-    Assumes several simplifications in comparison to copy task from NTM paper, i.e.:
-    1) Major modification: there are no markers indicating beginning and of storing and recalling. Instead, is uses a single control bit to indicate whether this is item should be stored or recalled from memory.
-    2) Minor modification I: the target contains only data bits (command bits are skipped)
-    3) Minor modification II: generator returns a mask, which can be used for filtering important elements of the output.
+    Class generating sequences of random bit-patterns and targets forcing the
+    system to learn serial recall problem (a.k.a. copy task). Assumes several
+    simplifications in comparison to copy task from NTM paper, i.e.: 1) Major
+    modification: there are no markers indicating beginning and of storing and
+    recalling. Instead, is uses a single control bit to indicate whether this
+    is item should be stored or recalled from memory. 2) Minor modification I:
+    the target contains only data bits (command bits are skipped) 3) Minor
+    modification II: generator returns a mask, which can be used for filtering
+    important elements of the output.
 
     TODO: sequences of different lengths in batch (filling with zeros?)
+
     """
 
     def __init__(self, params):
@@ -51,8 +56,10 @@ class SerialRecallSimplified(AlgorithmicSeqToSeqProblem):
         assert self.data_bits >= 1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
-        Additional elements of sequence are  start and stop control markers, stored in additional bits.
+        """
+        Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH,
+        CONTROL_BITS+DATA_BITS]. Additional elements of sequence are  start and
+        stop control markers, stored in additional bits.
 
         :param seq_length: the length of the copy sequence.
 

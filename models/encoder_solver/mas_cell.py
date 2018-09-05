@@ -24,19 +24,24 @@ _MASCellStateTuple = collections.namedtuple(
 
 
 class MASCellStateTuple(_MASCellStateTuple):
-    """Tuple used by MAS Cells for storing current/past state information"""
+    """
+    Tuple used by MAS Cells for storing current/past state information.
+    """
     __slots__ = ()
 
 
 class MASCell(torch.nn.Module):
-    """ Class representing a single Memory-Augmented Decoder cell. """
+    """
+    Class representing a single Memory-Augmented Decoder cell.
+    """
 
     def __init__(self, params):
-        """ Cell constructor.
-        Cell creates controller and interface.
-        Assumes that memory will be initialized by the encoder.
+        """
+        Cell constructor. Cell creates controller and interface. Assumes that
+        memory will be initialized by the encoder.
 
         :param params: Dictionary of parameters.
+
         """
         # Call constructor of base class.
         super(MASCell, self).__init__()
@@ -50,7 +55,8 @@ class MASCell(torch.nn.Module):
             self.output_size = params['num_data_bits']
 
         # Get controller hidden state size.
-        self.controller_hidden_state_size = params['controller']['hidden_state_size']
+        self.controller_hidden_state_size = params['controller'][
+            'hidden_state_size']
 
         # Controller - entity that processes input and produces hidden state of
         # the MAS cell.
@@ -83,6 +89,7 @@ class MASCell(torch.nn.Module):
 
         :param encoder_state: Last state of MAE cell.
         :returns: Initial state tuple - object of MASCellStateTuple class.
+
         """
         # Get number of memory addresses.
         batch_size = final_enc_memory_BxAxC.size(0)
@@ -118,6 +125,7 @@ class MASCell(torch.nn.Module):
 
         :param final_enc_cell_state: Last state of MAE cell.
         :returns: Initial state tuple - object of MASCellStateTuple class.
+
         """
         #batch_size,  final_encoder_memory_BxAxC, final_encoder_attention_BxAx1
         # Unpack encoder state tuple.
@@ -158,6 +166,7 @@ class MASCell(torch.nn.Module):
         :param inputs_BxI: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE]
         :param  prev_cell_state: a MASCellStateTuple tuple, containing previous state of the cell.
         :returns: an output Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and  MASCellStateTuple tuple containing current cell state.
+
         """
         # Unpack previous cell  state.
         (prev_ctrl_state_tuple, prev_interface_state_tuple,

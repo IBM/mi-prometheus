@@ -34,15 +34,19 @@ _InterfaceStateTuple = collections.namedtuple(
 
 
 class InterfaceStateTuple(_InterfaceStateTuple):
-    """Tuple used by interface for storing current/past state information"""
+    """
+    Tuple used by interface for storing current/past state information.
+    """
     __slots__ = ()
 
 
 class Interface:
     def __init__(self, params):
-        """Initialize Interface.
+        """
+        Initialize Interface.
 
         :param params: dictionary of input parameters
+
         """
 
         # Get memory parameters.
@@ -65,17 +69,21 @@ class Interface:
     @property
     def read_size(self):
         """
-        Returns the size of the data read by all heads
+        Returns the size of the data read by all heads.
 
         :return: (num_head*content_size)
+
         """
         return self._num_reads * self.num_memory_bits
 
     def read(self, prev_interface_tuple, mem):
-        """returns the data read from memory
+        """
+        returns the data read from memory.
+
         :param prev_interface_tuple: Tuple [previous read, previous write, prev usage, prev links]
         :param mem: the memory [batch_size, content_size, memory_size]
         :return: the read data [batch_size, content_size]
+
         """
         (wt, _, _, _) = prev_interface_tuple
 
@@ -86,11 +94,14 @@ class Interface:
         return read_data.view(*sz, self.read_size)
 
     def edit_memory(self, interface_tuple, update_data, mem):
-        """Edits the external memory and then returns it
+        """
+        Edits the external memory and then returns it.
+
         :param update_data: the parameters from the controllers [dictionary]
         :param prev_interface_tuple: Tuple [previous read, previous write, prev usage, prev links]
         :param mem: the memory [batch_size, content_size, memory_size]
         :return: edited memory [batch_size, content_size, memory_size]
+
         """
 
         (_, write_attention, _, _) = interface_tuple
@@ -116,9 +127,11 @@ class Interface:
     def init_state(self, memory_address_size, batch_size):
         """
         Returns 'zero' (initial) state tuple.
+
         :param memory_address_size: The number of memory addresses
         :param batch_size: Size of the batch in given iteraction/epoch.
         :returns: Initial state tuple - object of InterfaceStateTuple class.
+
         """
         dtype = AppState().dtype
 
@@ -142,7 +155,9 @@ class Interface:
 
     def update_weight(self, prev_attention, memory,
                       strength, gate, key, shift, sharp):
-        """Update the attention with NTM's mix of content addressing and linear shifting
+        """
+        Update the attention with NTM's mix of content addressing and linear
+        shifting.
 
         :param prev_attention: tensor of shape `[batch_size, num_writes,
               memory_size]` giving the attention at the previous time step.
@@ -152,6 +167,7 @@ class Interface:
         :param key: The comparison key for the content addressing [batch, num_heads, num_memory_bits]
         :param shift: The shift vector that defines the circular convolution of the outputs [batch, num_heads, num_shifts]
         :param sharp: sharpening parameter for the attention [batch, num_heads, 1]
+
         """
         # Content addressing using weighted cosine similarity
         similarity = memory.content_similarity(key)
@@ -172,7 +188,10 @@ class Interface:
 
     def update_write_weight(self, usage, memory,
                             allocation_gate, write_gate, key, strength):
-        """Update write attention with DNC's combination of content addressing and usage based allocation
+        """
+        Update write attention with DNC's combination of content addressing and
+        usage based allocation.
+
         :param usage: A tensor of shape `[batch_size, memory_size]` representing
               current memory usage.
         :param memory: the memory of the previous step (class)
@@ -181,6 +200,7 @@ class Interface:
         :param allocation_gate:  Interpolation between writing to unallocated memory and
                                  content-based lookup, for each write head [batch, num_writes, 1]
         :param write_gate: Overall gating of write amount for each write head. [batch, num_writes, 1]
+
         """
         # Calculate which memory slots are open for allocation
         write_allocation_weights = self.mem_usage.write_allocation_weights(
@@ -200,8 +220,10 @@ class Interface:
 
     def update_read_weight(
             self, link, memory, prev_read_weights, read_mode, key, strength):
-        """Update the read attention with the DNC's combination of content addressing and
-           temporal link propagation to go forwards or backwards in time
+        """
+        Update the read attention with the DNC's combination of content
+        addressing and temporal link propagation to go forwards or backwards in
+        time.
 
         :param link: A tensor of shape `[batch_size, num_writes, memory_size,
               memory_size]` representing the previous link graphs for each write
@@ -242,11 +264,15 @@ class Interface:
         return read_weights
 
     def update_read(self, update_data, prev_interface_tuple, mem):
-        """Updates the read attention switching between the NTM and DNC mechanisms
+        """
+        Updates the read attention switching between the NTM and DNC
+        mechanisms.
+
         :param update_data: the parameters from the controllers [dictionary]
         :param prev_interface_tuple: Tuple [previous read, previous write, prev usage, prev links[
         :param prev_memory_BxMxA: the memory of the previous step (class)
         :return: The new interface tuple with an updated usage and write attention
+
         """
         (prev_read_attention, prev_write_attention,
          prev_usage, prev_links) = prev_interface_tuple
@@ -282,11 +308,15 @@ class Interface:
         return interface_state_tuple
 
     def update_write(self, update_data, prev_interface_tuple, mem):
-        """Updates the write attention switching between the NTM and DNC mechanisms
+        """
+        Updates the write attention switching between the NTM and DNC
+        mechanisms.
+
         :param update_data: the parameters from the controllers [dictionary]
         :param prev_interface_tuple: Tuple [previous read, previous write, prev usage, prev links]
         :param prev_memory_BxMxA: the memory of the previous step (class)
         :return: The new interface tuple with an updated usage and write attention
+
         """
 
         (prev_read_attention, prev_write_attention,
@@ -326,11 +356,15 @@ class Interface:
 
     def update_and_edit(self, update_data,
                         prev_interface_tuple, prev_memory_BxMxA):
-        """Erases from memory, writes to memory, updates the weights using various attention mechanisms
+        """
+        Erases from memory, writes to memory, updates the weights using various
+        attention mechanisms.
+
         :param update_data: the parameters from the controllers [update_size]
         :param prev_interface_tuple: the read weight [BATCH_SIZE, MEMORY_SIZE]
         :param prev_memory_BxMxA: the memory of the previous step (class)
         :return: the new read vector, the update memory, the new interface tuple
+
         """
 
         (prev_read_attention, prev_write_attention,

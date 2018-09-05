@@ -26,12 +26,14 @@ import torchvision
 
 class ImageEncoding(nn.Module):
     """
-    Image encoding using 4 convolutional layers with batch normalization, it was designed specifically for sort of clevr https://arxiv.org/abs/1706.01427
+    Image encoding using 4 convolutional layers with batch normalization, it
+    was designed specifically for sort of clevr
+    https://arxiv.org/abs/1706.01427.
     """
 
     def __init__(self):
         """
-        Constructor of the ImageEncoding class
+        Constructor of the ImageEncoding class.
         """
 
         super(ImageEncoding, self).__init__()
@@ -47,7 +49,7 @@ class ImageEncoding(nn.Module):
 
     def forward(self, img):
         """
-        Apply 4 convolutional layers over the image
+        Apply 4 convolutional layers over the image.
 
         :param img: input image [batch_size, num_channels, height, width]
 
@@ -78,15 +80,16 @@ class ImageEncoding(nn.Module):
 
 class PretrainedImageEncoding(nn.Module):
     """
-    Image encoding using pretrained resnetXX from torchvision
+    Image encoding using pretrained resnetXX from torchvision.
     """
 
     def __init__(self, cnn_model='resnet18', num_blocks=2):
         """
-        Constructor of the PretrainedImageEncoding class
+        Constructor of the PretrainedImageEncoding class.
 
         :param cnn_model: select which resnet pretrained model to load
         :param num_blocks: num of resnet blocks to be used
+
         """
 
         super(PretrainedImageEncoding, self).__init__()
@@ -113,7 +116,7 @@ class PretrainedImageEncoding(nn.Module):
 
     def forward(self, img):
         """
-        Apply a pretrained cnn
+        Apply a pretrained cnn.
 
         :param img: input image [batch_size, num_channels, height, width]
 

@@ -14,15 +14,19 @@ _RNNStateTuple = collections.namedtuple('RNNStateTuple', ('hidden_state'))
 
 
 class RNNStateTuple(_RNNStateTuple):
-    """Tuple used by LSTM Cells for storing current/past state information"""
+    """
+    Tuple used by LSTM Cells for storing current/past state information.
+    """
     __slots__ = ()
 
 
 class RNNController(nn.Module):
     def __init__(self, params):
-        """ Constructor for a RNN
+        """
+        Constructor for a RNN.
 
         :param params: Dictionary of parameters.
+
         """
 
         self.input_size = params["input_size"]
@@ -42,6 +46,7 @@ class RNNController(nn.Module):
 
         :param batch_size: Size of the batch in given iteraction/epoch.
         :returns: Initial state tuple - object of RNNStateTuple class.
+
         """
         # Initialize LSTM hidden state [BATCH_SIZE x CTRL_HIDDEN_SIZE].
         dtype = AppState().dtype
@@ -59,6 +64,7 @@ class RNNController(nn.Module):
         :param inputs: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE] (generally the read data and input word concatenated)
         :param prev_state_tuple: Tuple of the previous hidden state
         :returns: outputs a Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and an RNN state tuple.
+
         """
 
         h = prev_hidden_state_tuple[0]

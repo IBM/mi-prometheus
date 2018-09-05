@@ -25,13 +25,17 @@ import torch.nn.functional as F
 
 
 class DecoderRNN(nn.Module):
-    """GRU Decoder for Encoder-Decoder"""
+    """
+    GRU Decoder for Encoder-Decoder.
+    """
 
     def __init__(self, hidden_size, output_voc_size):
         """
         Initializes an Decoder network based on a Gated Recurrent Unit.
+
         :param hidden_size: length of embedding vectors.
         :param output_voc_size: size of the vocabulary set to be embedded by the Embedding layer.
+
         """
         # call base constructor.
         super(DecoderRNN, self).__init__()

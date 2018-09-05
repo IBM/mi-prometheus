@@ -31,13 +31,15 @@ class Param_Generator(nn.Module):
                  num_reads=1,
                  num_writes=1,
                  shift_size=3):
-        """Initialize all the parameters of the interface
+        """
+        Initialize all the parameters of the interface.
 
         :param param_in_dim: input size. (typically the size of the hidden state)
         :param word_size: size of the word in memory
         :param num_reads: number of read heads
         :param num_writes: number of write heads
         :param shift_size: size of the shift vector (3 means it can go forward, backward and remain in place)
+
         """
         super(Param_Generator, self).__init__()
 
@@ -97,10 +99,11 @@ class Param_Generator(nn.Module):
 
     def forward(self, vals):
         """
-        Calculates the controller parameters
+        Calculates the controller parameters.
 
         :param vals: data from the controller (from time t). Typically, the hidden state.  [BATCH_SIZE x INPUT_SIZE]
         :return update_data: dictionary (update_data contains all of the controller parameters)
+
         """
 
         update_data = {}

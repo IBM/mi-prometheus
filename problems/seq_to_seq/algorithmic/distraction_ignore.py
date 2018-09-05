@@ -27,8 +27,9 @@ from misc.param_interface import ParamInterface
 
 class DistractionIgnore(AlgorithmicSeqToSeqProblem):
     """
-    Class generating successions of sub sequences X  and Y of random bit-patterns, the target was designed to force the system to learn
-    recalling just sub sequences X and ignore Y.
+    Class generating successions of sub sequences X  and Y of random bit-
+    patterns, the target was designed to force the system to learn recalling
+    just sub sequences X and ignore Y.
     """
 
     def __init__(self, params):
@@ -50,14 +51,17 @@ class DistractionIgnore(AlgorithmicSeqToSeqProblem):
         self.num_subseq_max = params["num_subseq_max"]
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
-        SEQ_LENGTH depends on number of sub-sequences and its lengths
+        """
+        Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH,
+        CONTROL_BITS+DATA_BITS]. SEQ_LENGTH depends on number of sub-sequences
+        and its lengths.
 
         :returns: Tuple consisting of: input, output and mask
                   pattern of inputs: # x1 % y1 # x2 % y2 ... # xn % yn & d
                   pattern of target: dummies ...   ...       ...   ...   all(xi)
                   mask: used to mask the data part of the target.
                   xi, yi, and d: sub sequences x of random length, sub sequence y of random length and dummies.
+
         """
         # define control channel markers
         pos = [0, 0, 0, 0]

@@ -26,18 +26,24 @@ _MASInterfaceStateTuple = collections.namedtuple(
 
 
 class MASInterfaceStateTuple(_MASInterfaceStateTuple):
-    """Tuple used by interface for storing current/past Memory Augmented Solver interface state information"""
+    """
+    Tuple used by interface for storing current/past Memory Augmented Solver
+    interface state information.
+    """
     __slots__ = ()
 
 
 class MASInterface(torch.nn.Module):
-    """Class realizing interface between MAS controller and memory.
+    """
+    Class realizing interface between MAS controller and memory.
     """
 
     def __init__(self, params):
-        """ Constructor.
+        """
+        Constructor.
 
         :param params: Dictionary of parameters.
+
         """
         # Call constructor of base class.
         super(MASInterface, self).__init__()
@@ -75,6 +81,7 @@ class MASInterface(torch.nn.Module):
         :param num_memory_addresses: Number of memory addresses.
         :param final_encoder_attention_BxAx1: final attention of the encoder [BATCH_SIZE x MEMORY_ADDRESSES x 1]
         :returns: Initial state tuple - object of InterfaceStateTuple class.
+
         """
         # Get dtype.
         dtype = AppState().dtype
@@ -116,6 +123,7 @@ class MASInterface(torch.nn.Module):
         :param prev_memory_BxAxC: Previous state of the memory [BATCH_SIZE x  MEMORY_ADDRESSES x CONTENT_BITS]
         :param prev_interface_state_tuple: Tuple containing previous read and write attention vectors.
         :returns: List of read vectors [BATCH_SIZE x CONTENT_SIZE], updated memory and state tuple (object of LSTMStateTuple class).
+
         """
        # Unpack cell state.
         (prev_read_attention_BxAxH, _, _, _) = prev_interface_state_tuple
@@ -142,10 +150,14 @@ class MASInterface(torch.nn.Module):
         return read_vector_BxC, prev_memory_BxAxC, interface_state_tuple
 
     def calculate_param_locations(self, param_sizes_dict, head_name):
-        """ Calculates locations of parameters, that will subsequently be used during parameter splitting.
+        """
+        Calculates locations of parameters, that will subsequently be used
+        during parameter splitting.
+
         :param param_sizes_dict: Dictionary containing parameters along with their sizes (in bits/units).
         :param head_name: Name of head.
         :returns: "Locations" of parameters.
+
         """
         #logger.debug("{} param sizes dict:\n {}".format(head_name, param_sizes_dict))
         # Create the parameter lengths and store their cumulative sum
@@ -157,7 +169,9 @@ class MASInterface(torch.nn.Module):
         return param_locations
 
     def split_params(self, params, locations):
-        """ Split parameters into list on the basis of locations."""
+        """
+        Split parameters into list on the basis of locations.
+        """
         param_splits = [params[..., locations[i]:locations[i + 1]]
                         for i in range(len(locations) - 1)]
         #logger.debug("Splitted params:\n {}".format(param_splits))
@@ -165,7 +179,8 @@ class MASInterface(torch.nn.Module):
 
     def update_attention(self, gate_Bx3, shift_BxS, gamma_Bx1,
                          prev_memory_BxAxC, prev_attention_BxAx1):
-        """ Updates the attention weights.
+        """
+        Updates the attention weights.
 
         :param gate_Bx3:
         :param shift_BxS:
@@ -173,6 +188,7 @@ class MASInterface(torch.nn.Module):
         :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :param prev_attention_BxAx1: previous attention vector [BATCH_SIZE x MEMORY_ADDRESSES x 1]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+
         """
         # Add 3rd dimensions where required and apply non-linear
         # transformations.
@@ -215,13 +231,15 @@ class MASInterface(torch.nn.Module):
             shift_BxSx1,
             gamma_Bx1x1,
             prev_memory_BxAxC):
-        """ Computes location-based addressing, i.e. shitfts the head and sharpens.
+        """
+        Computes location-based addressing, i.e. shitfts the head and sharpens.
 
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param shift_BxSx1: soft shift maks (convolutional kernel) [BATCH_SIZE x SHIFT_SIZE x 1]
         :param gamma_Bx1x1: sharpening factor [BATCH_SIZE x 1 x 1]
         :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+
         """
 
         # 1. Perform circular convolution.
@@ -236,17 +254,24 @@ class MASInterface(torch.nn.Module):
 
     def circular_convolution(self, attention_BxAx1,
                              shift_BxSx1, prev_memory_BxAxC):
-        """ Performs circular convoution, i.e. shitfts the attention accodring to given shift vector (convolution mask).
+        """
+        Performs circular convoution, i.e. shitfts the attention accodring to
+        given shift vector (convolution mask).
 
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param shift_BxSx1: soft shift maks (convolutional kernel) [BATCH_SIZE x SHIFT_SIZE x 1]
         :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+
         """
         def circular_index(idx, num_addr):
-            """ Calculates the index, taking into consideration the number of addresses in memory.
+            """
+            Calculates the index, taking into consideration the number of
+            addresses in memory.
+
             :param idx: index (single element)
             :param num_addr: number of addresses in memory
+
             """
             if idx < 0:
                 return num_addr + idx
@@ -267,9 +292,10 @@ class MASInterface(torch.nn.Module):
         #logger.debug("shift_BxSx1 {}: {}".format(shift_BxSx1,  shift_BxSx1.size()))
         # Create an extended list of indices indicating what elements of the
         # sequence will be where.
-        ext_indices_tensor = torch.Tensor([circular_index(shift,
-                                                          num_addr) for shift in range(-shift_size // 2 + 1,
-                                                                                       num_addr + shift_size // 2)]).type(dtype)
+        ext_indices_tensor = torch.Tensor(
+            [circular_index(shift, num_addr)
+             for shift in range(
+                 -shift_size // 2 + 1, num_addr + shift_size // 2)]).type(dtype)
         #logger.debug("ext_indices {}:\n {}".format(ext_indices_tensor.size(),  ext_indices_tensor))
 
         # Use indices for creation of an extended attention vector.
@@ -300,11 +326,13 @@ class MASInterface(torch.nn.Module):
         return shifted_attention_BxAx1
 
     def sharpening(self, attention_BxAx1, gamma_Bx1x1):
-        """ Performs attention sharpening.
+        """
+        Performs attention sharpening.
 
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param gamma_Bx1x1: sharpening factor [BATCH_SIZE x 1 x 1]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+
         """
         # gamma_Bx1x1[0][0][0]=40
         # gamma_Bx1x1[0][0][0]=10
@@ -322,11 +350,14 @@ class MASInterface(torch.nn.Module):
         return norm_attention_BxAx1
 
     def read_from_memory(self, attention_BxAx1, memory_BxAxC):
-        """ Returns 2D tensor of size [BATCH_SIZE x CONTENT_BITS] storing vector read from memory given the attention.
+        """
+        Returns 2D tensor of size [BATCH_SIZE x CONTENT_BITS] storing vector
+        read from memory given the attention.
 
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param memory_BxAxC: tensor containing memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: vector read from the memory [BATCH_SIZE x CONTENT_BITS]
+
         """
         read_vector_Bx1xC = torch.matmul(
             torch.transpose(attention_BxAx1, 1, 2), memory_BxAxC)

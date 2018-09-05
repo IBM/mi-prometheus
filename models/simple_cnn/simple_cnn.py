@@ -31,8 +31,9 @@ from misc.app_state import AppState
 
 class SimpleConvNet(Model):
     """
-    A simple Convolutional neural network designed specifically to solve MNIST and CIFAR 10 dataset,
-    The parameters here are not hardcoded so the user can adjust them for his application
+    A simple Convolutional neural network designed specifically to solve MNIST
+    and CIFAR 10 dataset, The parameters here are not hardcoded so the user can
+    adjust them for his application.
     """
 
     def __init__(self, params):
@@ -100,10 +101,11 @@ class SimpleConvNet(Model):
 
     def forward(self, data_tuple):
         """
-        forward pass of SimpleConvNet model
+        forward pass of SimpleConvNet model.
 
         :param data_tuple: contains (inputs [batch_size, num_channels, width, height], targets [batch_size])
         :return: x: logits [batch_size, num_classes]
+
         """
         (inputs, targets) = data_tuple
 
@@ -123,7 +125,7 @@ class SimpleConvNet(Model):
         # apply max_pooling and relu
         x2_max_pool = F.relu(F.max_pool2d(x2, self.num_pooling))
 
-        x = x2_max_pool.view(-1, self.depth_conv2 * \
+        x = x2_max_pool.view(-1, self.depth_conv2 *
                              self.width_features_conv2 * self.height_features_conv2)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))

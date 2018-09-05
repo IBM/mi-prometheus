@@ -61,6 +61,7 @@ class ControlUnit(nn.Module):
 
         :param dim: global 'd' hidden dimension
         :param max_step: maximum number of steps -> number of MAC cells in the network
+
         """
 
         # call base constructor

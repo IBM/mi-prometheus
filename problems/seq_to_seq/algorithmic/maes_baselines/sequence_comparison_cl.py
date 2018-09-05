@@ -9,9 +9,11 @@ from misc.param_interface import ParamInterface
 
 class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
     """
-    Class generating sequences of random bit-patterns and targets forcing the system to learn scratch pad problem (overwrite the memory).
+    Class generating sequences of random bit-patterns and targets forcing the
+    system to learn scratch pad problem (overwrite the memory).
 
     @Ryan: ARE YOU SURE? FIX THE CLASS DESCRIPTION!
+
     """
 
     def __init__(self, params):
@@ -33,8 +35,10 @@ class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
         self.predict_inverse = params.get('predict_inverse', True)
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
-        SEQ_LENGTH depends on number of sub-sequences and its lengths
+        """
+        Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH,
+        CONTROL_BITS+DATA_BITS]. SEQ_LENGTH depends on number of sub-sequences
+        and its lengths.
 
         :returns: Tuple consisting of: input, output and mask
                   pattern of inputs: x1, x2, ...xn d

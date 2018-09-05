@@ -27,11 +27,13 @@ from models.controllers.controller_factory import ControllerFactory
 
 class ControlParams(nn.Module):
     def __init__(self, output_size, read_size, params):
-        """Initialize an Controller.
+        """
+        Initialize an Controller.
 
         :param output_size: output size.
         :param read_size: size of data_gen read from memory
         :param params: dictionary of input parameters
+
         """
         super(ControlParams, self).__init__()
 
@@ -81,17 +83,19 @@ class ControlParams(nn.Module):
 
         :param batch_size: Size of the batch in given iteraction/epoch.
         :returns: Initial state tuple - object of LSTMStateTuple class.
+
         """
         return self.state_gen.init_state(batch_size)
 
     def forward(self, inputs, prev_ctrl_state_tuple, read_data):
         """
-        Calculates the output, the hidden state and the controller parameters
+        Calculates the output, the hidden state and the controller parameters.
 
         :param inputs: Current input (from time t)  [BATCH_SIZE x INPUT_SIZE]
         :param read_data: data read from memory (from time t-1)  [BATCH_SIZE x num_data_bits]
         :param prev_ctrl_state_tuple: Tuple of states of controller (from time t-1)
         :return: Tuple [output, hidden_state, update_data] (update_data contains all of the controller parameters)
+
         """
         # Concatenate the 2 inputs to controller
         combined = torch.cat((inputs, read_data), dim=-1)

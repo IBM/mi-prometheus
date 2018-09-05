@@ -27,8 +27,9 @@ from misc.param_interface import ParamInterface
 
 class InterruptionReverseRecall(AlgorithmicSeqToSeqProblem):
     """
-    Class generating successions of sub sequences X  and Y of random bit-patterns, the target was designed to force the system to learn
-    reverse recalling all sub sequences of Y and recall all sub sequences X.
+    Class generating successions of sub sequences X  and Y of random bit-
+    patterns, the target was designed to force the system to learn reverse
+    recalling all sub sequences of Y and recall all sub sequences X.
     """
 
     def __init__(self, params):
@@ -50,8 +51,10 @@ class InterruptionReverseRecall(AlgorithmicSeqToSeqProblem):
         self.num_subseq_max = params["num_subseq_max"]
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
-        SEQ_LENGTH depends on number of sub-sequences and its lengths
+        """
+        Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH,
+        CONTROL_BITS+DATA_BITS]. SEQ_LENGTH depends on number of sub-sequences
+        and its lengths.
 
         :returns: Tuple consisting of: inputs, target and mask
                   pattern of inputs: # x1 % y1 & d1 # x2 % y2 & d2 ... # xn % yn & dn $ d`
@@ -59,6 +62,7 @@ class InterruptionReverseRecall(AlgorithmicSeqToSeqProblem):
                   F: inversion function
                   mask: used to mask the data part of the target.
                   xi, yi, and dn(d'): sub sequences x of random length, sub sequence y of random length and dummies.
+
         """
         # define control channel markers
         pos = [0, 0, 0, 0]
@@ -125,8 +129,9 @@ class InterruptionReverseRecall(AlgorithmicSeqToSeqProblem):
             np.zeros((self.batch_size, 1, self.data_bits)), ctrl_xy, pos)
 
         # data which contains all xs and all ys plus dummies of ys
-        data_1 = [arr for a, b in zip(
-            xx, yy) for arr in a[:-1] + [inter_xy] + [np.fliplr(b[0])] + [b[1]]]
+        data_1 = [
+            arr for a, b in zip(xx, yy)
+            for arr in a[: -1] + [inter_xy] + [np.fliplr(b[0])] + [b[1]]]
 
         # dummies of xs
         data_2 = [a[-1][:, 1:, :] for a in xx]

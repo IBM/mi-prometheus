@@ -20,7 +20,9 @@ _HeadStateTuple = collections.namedtuple(
 
 
 class HeadStateTuple(_HeadStateTuple):
-    """Tuple used by interface for storing current/past state information"""
+    """
+    Tuple used by interface for storing current/past state information.
+    """
     __slots__ = ()
 
 
@@ -30,18 +32,23 @@ _InterfaceStateTuple = collections.namedtuple(
 
 
 class InterfaceStateTuple(_InterfaceStateTuple):
-    """Tuple used by interface for storing current/past state information"""
+    """
+    Tuple used by interface for storing current/past state information.
+    """
     __slots__ = ()
 
 
 class NTMInterface(torch.nn.Module):
-    """Class realizing interface between controller and memory.
+    """
+    Class realizing interface between controller and memory.
     """
 
     def __init__(self, params):
-        """ Constructor.
+        """
+        Constructor.
 
         :param params: Dictionary of parameters.
+
         """
         # Call constructor of base class.
         super(NTMInterface, self).__init__()
@@ -120,9 +127,11 @@ class NTMInterface(torch.nn.Module):
             # + shift kernel size [SHIFT_SIZE] + erase vector [MEMORY_CONTENT_BITS] + write vector[MEMORY_BITS]
             num_write_params = 2 * self.num_memory_content_bits + 1 + self.interface_shift_size
             # Write parameters - used during slicing.
-            self.write_param_locations = self.calculate_param_locations({
-                'shift': self.interface_shift_size, 'gamma': 1,
-                'erase_vector': self.num_memory_content_bits, 'add_vector': self.num_memory_content_bits}, "Write")
+            self.write_param_locations = self.calculate_param_locations(
+                {'shift': self.interface_shift_size, 'gamma': 1,
+                 'erase_vector': self.num_memory_content_bits,
+                 'add_vector': self.num_memory_content_bits},
+                "Write")
             assert num_write_params == self.write_param_locations[
                 -1], "Last location must be equal to number of write params."
 
@@ -137,6 +146,7 @@ class NTMInterface(torch.nn.Module):
         :param batch_size: Size of the batch in given iteraction/epoch.
         :param num_memory_addresses: Number of memory addresses.
         :returns: Initial state tuple - object of InterfaceStateTuple class.
+
         """
         dtype = AppState().dtype
         # Add read head states - one for each read head.
@@ -183,6 +193,7 @@ class NTMInterface(torch.nn.Module):
         :param prev_memory_BxAxC: Previous state of the memory [BATCH_SIZE x  MEMORY_ADDRESSES x CONTENT_BITS]
         :param prev_interface_state_tuple: Tuple containing previous read and write attention vectors.
         :returns: List of read vectors [BATCH_SIZE x CONTENT_SIZE], updated memory and state tuple (object of LSTMStateTuple class).
+
         """
         # Unpack previous cell  state - just to make sure that everything is ok...
         #(prev_read_attentions_BxAx1_H,  prev_write_attention_BxAx1) = prev_interface_state_tuple
@@ -212,7 +223,8 @@ class NTMInterface(torch.nn.Module):
                     params_BxP, self.read_param_locations)
                 # Update the attention of a given read head.
                 read_attention_BxAx1, read_state_tuple = self.update_attention(
-                    query_vector_BxC, beta_Bx1, gate_Bx1, shift_BxS, gamma_Bx1, prev_memory_BxAxC, prev_read_attentions_BxAx1_H[i])
+                    query_vector_BxC, beta_Bx1, gate_Bx1, shift_BxS, gamma_Bx1,
+                    prev_memory_BxAxC, prev_read_attentions_BxAx1_H[i])
             else:
                 # Split the parameters.
                 shift_BxS, gamma_Bx1 = self.split_params(
@@ -242,7 +254,8 @@ class NTMInterface(torch.nn.Module):
                 params_BxP, self.write_param_locations)
             # Update the attention of the write head.
             write_attention_BxAx1, write_state_tuple = self.update_attention(
-                query_vector_BxC, beta_Bx1, gate_Bx1, shift_BxS, gamma_Bx1, prev_memory_BxAxC, prev_write_attention_BxAx1)
+                query_vector_BxC, beta_Bx1, gate_Bx1, shift_BxS, gamma_Bx1,
+                prev_memory_BxAxC, prev_write_attention_BxAx1)
         else:
             # Split the parameters.
             shift_BxS, gamma_Bx1, erase_vector_BxC, add_vector_BxC = self.split_params(
@@ -273,10 +286,14 @@ class NTMInterface(torch.nn.Module):
         return read_vectors_BxC_H, memory_BxAxC, interface_state_tuple
 
     def calculate_param_locations(self, param_sizes_dict, head_name):
-        """ Calculates locations of parameters, that will subsequently be used during parameter splitting.
+        """
+        Calculates locations of parameters, that will subsequently be used
+        during parameter splitting.
+
         :param param_sizes_dict: Dictionary containing parameters along with their sizes (in bits/units).
         :param head_name: Name of head.
         :returns: "Locations" of parameters.
+
         """
         #logger.debug("{} param sizes dict:\n {}".format(head_name, param_sizes_dict))
         # Create the parameter lengths and store their cumulative sum
@@ -288,7 +305,9 @@ class NTMInterface(torch.nn.Module):
         return param_locations
 
     def split_params(self, params, locations):
-        """ Split parameters into list on the basis of locations."""
+        """
+        Split parameters into list on the basis of locations.
+        """
         param_splits = [params[..., locations[i]:locations[i + 1]]
                         for i in range(len(locations) - 1)]
         #logger.debug("Splitted params:\n {}".format(param_splits))
@@ -303,7 +322,8 @@ class NTMInterface(torch.nn.Module):
             gamma_Bx1,
             prev_memory_BxAxC,
             prev_attention_BxAx1):
-        """ Updates the attention weights.
+        """
+        Updates the attention weights.
 
         :param query_vector_BxC: Query used for similarity calculation in content-based addressing [BATCH_SIZE x CONTENT_BITS]
         :param beta_Bx1: Strength parameter used in content-based addressing.
@@ -313,6 +333,7 @@ class NTMInterface(torch.nn.Module):
         :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :param prev_attention_BxAx1: previous attention vector [BATCH_SIZE x MEMORY_ADDRESSES x 1]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+
         """
         # Add 3rd dimensions where required and apply non-linear transformations.
         # Produce location-addressing params.
@@ -363,12 +384,15 @@ class NTMInterface(torch.nn.Module):
 
     def content_based_addressing(
             self, query_vector_Bx1xC, beta_Bx1x1, prev_memory_BxAxC):
-        """Computes content-based addressing. Uses query vectors for calculation of similarity.
+        """
+        Computes content-based addressing. Uses query vectors for calculation
+        of similarity.
 
         :param query_vector_Bx1xC: NTM "key"  [BATCH_SIZE x 1 x CONTENT_BITS]
         :param beta_Bx1x1: key strength [BATCH_SIZE x 1 x 1]
         :param prev_memory_BxAxC: tensor containing memory before update [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: attention of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+
         """
         # Normalize query batch - along content.
         norm_query_vector_Bx1xC = F.normalize(query_vector_Bx1xC, p=2, dim=2)
@@ -396,12 +420,14 @@ class NTMInterface(torch.nn.Module):
 
     def location_based_addressing(
             self, attention_BxAx1, shift_BxSx1, gamma_Bx1x1):
-        """ Computes location-based addressing, i.e. shitfts the head and sharpens.
+        """
+        Computes location-based addressing, i.e. shitfts the head and sharpens.
 
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param shift_BxSx1: soft shift maks (convolutional kernel) [BATCH_SIZE x SHIFT_SIZE x 1]
         :param gamma_Bx1x1: sharpening factor [BATCH_SIZE x 1 x 1]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+
         """
 
         # 1. Perform circular convolution.
@@ -415,16 +441,23 @@ class NTMInterface(torch.nn.Module):
         return sharpened_attention_BxAx1
 
     def circular_convolution(self, attention_BxAx1, shift_BxSx1):
-        """ Performs circular convolution, i.e. shitfts the attention accodring to given shift vector (convolution mask).
+        """
+        Performs circular convolution, i.e. shitfts the attention accodring to
+        given shift vector (convolution mask).
 
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param shift_BxSx1: soft shift maks (convolutional kernel) [BATCH_SIZE x SHIFT_SIZE x 1]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+
         """
         def circular_index(idx, num_addr):
-            """ Calculates the index, taking into consideration the number of addresses in memory.
+            """
+            Calculates the index, taking into consideration the number of
+            addresses in memory.
+
             :param idx: index (single element)
             :param num_addr: number of addresses in memory
+
             """
             if idx < 0:
                 return num_addr + idx
@@ -445,9 +478,10 @@ class NTMInterface(torch.nn.Module):
         #logger.debug("shift_BxSx1 {}: {}".format(shift_BxSx1,  shift_BxSx1.size()))
         # Create an extended list of indices indicating what elements of the
         # sequence will be where.
-        ext_indices_tensor = torch.Tensor([circular_index(shift,
-                                                          num_addr) for shift in range(-shift_size // 2 + 1,
-                                                                                       num_addr + shift_size // 2)]).type(dtype)
+        ext_indices_tensor = torch.Tensor(
+            [circular_index(shift, num_addr)
+             for shift in range(
+                 -shift_size // 2 + 1, num_addr + shift_size // 2)]).type(dtype)
         #logger.debug("ext_indices {}:\n {}".format(ext_indices_tensor.size(),  ext_indices_tensor))
 
         # Use indices for creation of an extended attention vector.
@@ -471,11 +505,13 @@ class NTMInterface(torch.nn.Module):
         return shifted_attention_BxAx1
 
     def sharpening(self, attention_BxAx1, gamma_Bx1x1):
-        """ Performs attention sharpening.
+        """
+        Performs attention sharpening.
 
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param gamma_Bx1x1: sharpening factor [BATCH_SIZE x 1 x 1]
         :returns: attention vector of size [BATCH_SIZE x ADDRESS_SIZE x 1]
+
         """
         # Power.
         pow_attention_BxAx1 = torch.pow(attention_BxAx1 + 1e-12, gamma_Bx1x1)
@@ -488,11 +524,14 @@ class NTMInterface(torch.nn.Module):
         return norm_attention_BxAx1
 
     def read_from_memory(self, attention_BxAx1, memory_BxAxC):
-        """ Returns 2D tensor of size [BATCH_SIZE x CONTENT_BITS] storing vector read from memory given the attention.
+        """
+        Returns 2D tensor of size [BATCH_SIZE x CONTENT_BITS] storing vector
+        read from memory given the attention.
 
         :param attention_BxAx1: Current attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param memory_BxAxC: tensor containing memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: vector read from the memory [BATCH_SIZE x CONTENT_BITS]
+
         """
         read_vector_Bx1xC = torch.matmul(
             torch.transpose(attention_BxAx1, 1, 2), memory_BxAxC)
@@ -503,13 +542,16 @@ class NTMInterface(torch.nn.Module):
 
     def update_memory(self, write_attention_BxAx1,
                       erase_vector_Bx1xC, add_vector_Bx1xC, prev_memory_BxAxC):
-        """ Returns 3D tensor of size [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS] storing new content of the memory.
+        """
+        Returns 3D tensor of size [BATCH_SIZE x MEMORY_ADDRESSES x
+        CONTENT_BITS] storing new content of the memory.
 
         :param write_attention_BxAx1: Current write attention [BATCH_SIZE x ADDRESS_SIZE x 1]
         :param erase_vector_Bx1xC: Erase vector [BATCH_SIZE x  1 x CONTENT_BITS]
         :param add_vector_Bx1xC: Add vector [BATCH_SIZE x 1 x CONTENT_BITS]
         :param prev_memory_BxAxC: tensor containing previous state of the memory [BATCH_SIZE x MEMORY_ADDRESSES x CONTENT_BITS]
         :returns: vector read from the memory [BATCH_SIZE x CONTENT_BITS]
+
         """
         # 1. Calculate the preserved content.
         preserve_content_BxAxC = 1 - \

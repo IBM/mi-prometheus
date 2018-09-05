@@ -13,15 +13,19 @@ logger = logging.getLogger('ProblemFactory')
 
 class ProblemFactory(object):
     """
-    Class returning concrete problem/generator depending on the name provided in the list of parameters.
+    Class returning concrete problem/generator depending on the name provided
+    in the list of parameters.
     """
 
     @staticmethod
     def build_problem(params):
-        """ Static method returning particular problem, depending on the name provided in the list of parameters.
+        """
+        Static method returning particular problem, depending on the name
+        provided in the list of parameters.
 
         :param params: Dictionary of parameters (in particular containing 'name' which is equivalend to problem name)
         :returns: Instance of a given problem.
+
         """
         # Check name
         if 'name' not in params:
@@ -57,7 +61,9 @@ class ProblemFactory(object):
 
 
 if __name__ == "__main__":
-    """ Tests problem factory"""
+    """
+    Tests problem factory.
+    """
     # Problem name
     params = {
         'name': 'serial_recall',

@@ -64,11 +64,12 @@ def validation(
         validation_file,
         validation_writer):
     """
-    Function performs validation of the model, using the provided data and criterion.
-    Additionally it logs (to files, tensorboard) and visualizes.
+    Function performs validation of the model, using the provided data and
+    criterion. Additionally it logs (to files, tensorboard) and visualizes.
 
     :param stat_col: Statistic collector object.
     :return: True if training loop is supposed to end.
+
     """
     # Turn on evaluation mode.
     model.eval()
@@ -123,23 +124,14 @@ if __name__ == '__main__':
         default="./experiments",
         help='Path to output directory where the experiments will be stored (DEFAULT: ./experiments)12')
     parser.add_argument(
-        '--tensorboard',
-        action='store',
-        dest='tensorboard',
-        choices=[
-            0,
-            1,
-            2],
+        '--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2],
         type=int,
         help="If present, log to TensorBoard. Log levels:\n"
         "0: Just log the loss, accuracy, and seq_len\n"
         "1: Add histograms of biases and weights (Warning: slow)\n"
         "2: Add histograms of biases and weights gradients (Warning: even slower)")
     parser.add_argument(
-        '--lf',
-        dest='logging_frequency',
-        default=100,
-        type=int,
+        '--lf', dest='logging_frequency', default=100, type=int,
         help='TensorBoard logging frequency (Default: 100, i.e. logs every 100 episodes)')
     parser.add_argument(
         '--log',
@@ -287,10 +279,12 @@ if __name__ == '__main__':
 
         # If key is not present in config then it has to be finished (DEFAULT:
         # True)
-        if 'must_finish' not in param_interface['training']['curriculum_learning']:
+        if 'must_finish' not in param_interface['training'][
+                'curriculum_learning']:
             param_interface['training']['curriculum_learning'].add_default_params({
                                                                                   'must_finish': True})
-        must_finish_curriculum = param_interface['training']['curriculum_learning']['must_finish']
+        must_finish_curriculum = param_interface['training'][
+            'curriculum_learning']['must_finish']
         logger.info("Using curriculum learning")
     else:
         # Initialize curriculum learning - with empty dict.
@@ -300,7 +294,8 @@ if __name__ == '__main__':
 
     # Model validation interval (DEFAULT: 100).
     try:
-        model_validation_interval = param_interface['training']['validation_interval']
+        model_validation_interval = param_interface['training'][
+            'validation_interval']
     except KeyError:
         model_validation_interval = 100
 
@@ -483,7 +478,8 @@ if __name__ == '__main__':
 
                 # Perform validation.
                 validation_loss, user_pressed_stop = validation(
-                    model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger, validation_file, validation_writer)
+                    model, problem, episode, stat_col, data_valid, aux_valid,
+                    FLAGS, logger, validation_file, validation_writer)
 
             # Save the model using latest (validation or training) statistics.
             model.save(model_dir, stat_col)
@@ -498,11 +494,12 @@ if __name__ == '__main__':
             # break if conditions applied: convergence or max episodes
             loss_stop = False
             if use_validation_problem:
-                loss_stop = validation_loss < param_interface['training']['terminal_condition']['loss_stop']
+                loss_stop = validation_loss < param_interface['training'][
+                    'terminal_condition']['loss_stop']
                 # We already saved that model.
             else:
-                loss_stop = max(
-                    last_losses) < param_interface['training']['terminal_condition']['loss_stop']
+                loss_stop = max(last_losses) < param_interface['training'][
+                    'terminal_condition']['loss_stop']
                 # We already saved that model.
 
             if loss_stop:
@@ -511,7 +508,8 @@ if __name__ == '__main__':
                 # "Finish" the training.
                 break
 
-        if episode == param_interface['training']['terminal_condition']['max_episodes']:
+        if episode == param_interface['training']['terminal_condition'][
+                'max_episodes']:
             terminal_condition = True
             # If we are here then it means that we didn't converged and the model is bad for sure.
             # But let's try to save it anyway, maybe it is still better than
@@ -522,7 +520,8 @@ if __name__ == '__main__':
             if use_validation_problem:
                 # Perform validation.
                 validation_loss, user_pressed_stop = validation(
-                    model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger, validation_file, validation_writer)
+                    model, problem, episode, stat_col, data_valid, aux_valid,
+                    FLAGS, logger, validation_file, validation_writer)
 
             model.save(model_dir, stat_col)
             # "Finish" the training.
@@ -541,8 +540,9 @@ if __name__ == '__main__':
 
             # Perform validation.
             if use_validation_problem:
-                _, _ = validation(model, problem, episode, stat_col, data_valid,
-                                  aux_valid, FLAGS, logger, validation_file, validation_writer)
+                _, _ = validation(
+                    model, problem, episode, stat_col, data_valid, aux_valid,
+                    FLAGS, logger, validation_file, validation_writer)
 
         else:
             app_state.visualize = False

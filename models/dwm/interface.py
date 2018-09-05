@@ -34,7 +34,12 @@ _InterfaceStateTuple = collections.namedtuple(
 
 
 class InterfaceStateTuple(_InterfaceStateTuple):
-    """Tuple used by interface for storing current/past interface information: head_weight and snapshot_weight"""
+    """
+    Tuple used by interface for storing current/past interface information:
+
+    head_weight and snapshot_weight.
+
+    """
     __slots__ = ()
 
 
@@ -42,15 +47,19 @@ logger = logging.getLogger('DWM_interface')
 
 
 class Interface:
-    """ Implementation of the interface of the DWM"""
+    """
+    Implementation of the interface of the DWM.
+    """
 
     def __init__(self, num_heads, is_cam, num_shift, M):
-        """Initialize Interface.
+        """
+        Initialize Interface.
 
         :param num_heads: number of heads
         :param is_cam (boolean): are the heads allowed to use content addressing
         :param num_shift: number of shifts of heads.
         :param M: Number of slots per address in the memory bank.
+
         """
         self.num_heads = num_heads
         self.M = M
@@ -75,6 +84,7 @@ class Interface:
         :param memory_addresses_size: size of the memory
 
         :returns: Initial state tuple - object of InterfaceStateTuple class: (head_weight_init, snapshot_weight_init)
+
         """
         dtype = AppState().dtype
 
@@ -91,28 +101,32 @@ class Interface:
     @property
     def read_size(self):
         """
-        Returns the size of the data read by all heads
+        Returns the size of the data read by all heads.
 
         :return: (num_head*content_size)
+
         """
         return self.num_heads * self.M
 
     @property
     def update_size(self):
         """
-        Returns the total number of parameters output by the controller
+        Returns the total number of parameters output by the controller.
 
         :return: (num_heads*parameters_per_head)
+
         """
         return self.num_heads * self.cum_lengths[-1]
 
     def read(self, wt, mem):
-        """Returns the data read from memory
+        """
+        Returns the data read from memory.
 
         :param wt: head's weights [batch_size, num_heads, memory_addresses_size]
         :param mem: the memory content [batch_size, memory_content_size, memory_addresses_size]
 
         :return: the read data [batch_size, num_heads, memory_content_size]
+
         """
 
         memory = Memory(mem)
@@ -123,7 +137,8 @@ class Interface:
 
     def update(self, update_data, tuple_interface_prev, mem):
         """
-        Erases from memory, writes to memory, updates the weights using various attention mechanisms
+        Erases from memory, writes to memory, updates the weights using various
+        attention mechanisms.
 
         :param update_data: the parameters from the controllers
         :param tuple_interface_prev: contains (head_weight, snapshot_weight)
@@ -133,6 +148,7 @@ class Interface:
 
         :returns: InterfaceTuple contains [head_weight, snapshot_weight]: the updated weight of head and snapshot
         :returns: mem: the new memory content
+
         """
         wt_head_prev, wt_att_snapshot_prev = tuple_interface_prev
         assert update_data.size(
@@ -144,8 +160,10 @@ class Interface:
             *sz, self.num_heads, self.cum_lengths[-1])
 
         # split the data_gen according to the different parameters
-        data_splits = [update_data[..., self.cum_lengths[i]:self.cum_lengths[i + 1]]
-                       for i in range(len(self.cum_lengths) - 1)]
+        data_splits = [
+            update_data
+            [..., self.cum_lengths[i]: self.cum_lengths[i + 1]]
+            for i in range(len(self.cum_lengths) - 1)]
 
         # Obtain update parameters
         if self.is_cam:

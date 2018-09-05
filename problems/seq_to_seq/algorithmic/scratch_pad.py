@@ -27,7 +27,8 @@ from misc.param_interface import ParamInterface
 
 class ScratchPad(AlgorithmicSeqToSeqProblem):
     """
-    Class generating sequences of random bit-patterns and targets forcing the system to learn scratch pad problem (overwrite the memory).
+    Class generating sequences of random bit-patterns and targets forcing the
+    system to learn scratch pad problem (overwrite the memory).
     """
 
     def __init__(self, params):
@@ -49,8 +50,10 @@ class ScratchPad(AlgorithmicSeqToSeqProblem):
         self.num_subseq_max = params["num_subseq_max"]
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH, CONTROL_BITS+DATA_BITS].
-        SEQ_LENGTH depends on number of sub-sequences and its lengths
+        """
+        Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH,
+        CONTROL_BITS+DATA_BITS]. SEQ_LENGTH depends on number of sub-sequences
+        and its lengths.
 
         :returns: Tuple consisting of: input, output and mask
                   pattern of inputs: x1, x2, ...xn d
@@ -59,6 +62,7 @@ class ScratchPad(AlgorithmicSeqToSeqProblem):
                   xi, d: sub sequences, dummies
 
         TODO: deal with batch_size > 1
+
         """
         # define control channel markers
         pos = [0, 0]
@@ -90,7 +94,8 @@ class ScratchPad(AlgorithmicSeqToSeqProblem):
         # create the target
         seq_length_tdummies = sum(seq_length) + seq_length.shape[0] + 1
         dummies_target = np.zeros(
-            [self.batch_size, seq_length_tdummies, self.data_bits], dtype=np.float32)
+            [self.batch_size, seq_length_tdummies, self.data_bits],
+            dtype=np.float32)
         targets = np.concatenate((dummies_target, x[-1]), axis=1)
 
         # data of x and dummies

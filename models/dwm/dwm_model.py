@@ -27,15 +27,23 @@ from models.dwm.dwm_cell import DWMCell
 
 
 class DWM(SequentialModel):
-    """ Differentiable Working Memory (DWM), is a memory augmented neural network which emulates the human working memory.
-        The DWM shows the same functional characteristics of working memory and robustly learns psychology-inspired tasks and converges
-        faster than comparable state-of-the-art models """
+    """
+    Differentiable Working Memory (DWM), is a memory augmented neural network
+    which emulates the human working memory.
+
+    The DWM shows the same functional characteristics of working memory
+    and robustly learns psychology-inspired tasks and converges faster
+    than comparable state-of-the-art models
+
+    """
 
     def __init__(self, params):
-        """"
-        Constructor. Initializes parameters on the basis of dictionary of parameters passed as argument.
+        """
+        " Constructor. Initializes parameters on the basis of dictionary of
+        parameters passed as argument.
 
         :param params: Dictionary of parameters.
+
         """
         # Call base class initialization.
         super(DWM, self).__init__(params)
@@ -70,7 +78,7 @@ class DWM(SequentialModel):
 
     def forward(self, data_tuple):
         """
-        Forward function of the DWM model
+        Forward function of the DWM model.
 
         :param data_tuple: contains (inputs, targets)
         :param data_tuple.inputs: tensor containing the data sequences of the batch [batch, sequence_length, input_size]
@@ -220,13 +228,15 @@ class DWM(SequentialModel):
 
     def plot(self, data_tuple, predictions, sample_number=0):
         """
-        Interactive visualization, with a slider enabling to move forth and back along the time axis (iteration in a given episode).
+        Interactive visualization, with a slider enabling to move forth and
+        back along the time axis (iteration in a given episode).
 
         :param data_tuple: Data tuple containing
            - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and
            - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
         :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
         :param sample_number: Number of sample in batch (DEFAULT: 0)
+
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:

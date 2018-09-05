@@ -214,7 +214,8 @@ if __name__ == '__main__':
         for episode, (data_tuple, aux_tuple) in enumerate(
                 problem.return_generator()):
 
-            if episode == param_interface["testing"]["problem"]["max_test_episodes"]:
+            if episode == param_interface["testing"]["problem"][
+                    "max_test_episodes"]:
                 break
 
             logits, loss = forward_step(

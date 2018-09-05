@@ -25,17 +25,21 @@ from models.controllers.controller_factory import ControllerFactory
 
 
 class Controller(nn.Module):
-    """ Implementation of the DWM controller """
+    """
+    Implementation of the DWM controller.
+    """
 
     def __init__(self, in_dim, output_units, state_units,
                  read_size, update_size):
-        """Constructor for the Controller.
+        """
+        Constructor for the Controller.
 
         :param in_dim: input size.
         :param output_units: output size.
         :param state_units: state size.
         :param read_size: size of data_gen read from memory
         :param update_size: total number of parameters for updating attention and memory
+
         """
         super(Controller, self).__init__()
 
@@ -76,13 +80,15 @@ class Controller(nn.Module):
 
         :param batch_size: size of the batch in given iteraction/epoch.
         :returns: Initial state tuple - object of LSTMStateTuple class.
+
         """
 
         return self.i2s.init_state(batch_size)
 
     def forward(self, input, tuple_state_prev, read_data):
         """
-        Forward pass of the DWM controller, calculates the output, the hidden state and the interface parameters
+        Forward pass of the DWM controller, calculates the output, the hidden
+        state and the interface parameters.
 
         :param input: current input (from time t) [batch_size, in_dim]
         :param tuple_state_prev: contains previous hidden state (from time t-1) [batch_size, state_units]

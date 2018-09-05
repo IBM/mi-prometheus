@@ -25,8 +25,9 @@ class LSTM(SequentialModel):
         self.lstm_layers = nn.ModuleList()
         self.lstm_layers.append(nn.LSTMCell(
             self.tm_in_dim, self.hidden_state_dim))
-        self.lstm_layers.extend([nn.LSTMCell(self.hidden_state_dim, self.hidden_state_dim)
-                                 for _ in range(1, self.num_layers)])
+        self.lstm_layers.extend(
+            [nn.LSTMCell(self.hidden_state_dim, self.hidden_state_dim)
+             for _ in range(1, self.num_layers)])
 
         self.linear = nn.Linear(self.hidden_state_dim, self.output_units)
 

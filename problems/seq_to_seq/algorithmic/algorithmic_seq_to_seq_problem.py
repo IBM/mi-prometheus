@@ -31,12 +31,21 @@ class AlgSeqAuxTuple(_AlgSeqAuxTuple):
 
 
 class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
-    ''' Base class for algorithmic, sequential problems. Provides some basic functionality usefull in all problems of such type'''
+    """
+    Base class for algorithmic, sequential problems.
+
+    Provides some basic functionality usefull in all problems of such
+    type
+
+    """
 
     def __init__(self, params):
-        """ Initializes problem object. Calls base constructor. Sets nn.BCEWithLogitsLoss() as default loss function.
+        """
+        Initializes problem object. Calls base constructor. Sets
+        nn.BCEWithLogitsLoss() as default loss function.
 
         :param params: Dictionary of parameters (read from configuration file).
+
         """
         super(AlgorithmicSeqToSeqProblem, self).__init__(params)
 
@@ -145,6 +154,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         Add accuracy, seq_length and num_subsequences statistics to collector.
 
         :param stat_col: Statistics collector.
+
         """
         stat_col.add_statistic('acc', '{:12.10f}')
         stat_col.add_statistic('seq_length', '{:d}')
@@ -159,6 +169,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         :param data_tuple: Data tuple containing inputs and targets.
         :param logits: Logits being output of the model.
         :param aux_tuple: auxiliary tuple (aux_tuple) is not used in this function.
+
         """
         stat_col['acc'] = self.calculate_accuracy(
             data_tuple, logits, aux_tuple)
@@ -167,12 +178,14 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         stat_col['max_seq_length'] = self.max_sequence_length
 
     def show_sample(self, data_tuple, aux_tuple, sample_number=0):
-        """ Shows the sample (both input and target sequences) using matplotlib.
-            Elementary visualization.
+        """
+        Shows the sample (both input and target sequences) using matplotlib.
+        Elementary visualization.
 
         :param data_tuple: Data tuple.
         :param aux_tuple: Auxiliary tuple.
         :param sample_number: Number of sample in a batch (DEFAULT: 0)
+
         """
 
         import matplotlib.pyplot as plt
@@ -216,11 +229,13 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
     def curriculum_learning_update_params(self, episode):
         """
-        Updates problem parameters according to curriculum learning.
-        In the case of algorithmic sequential problems it updates the max sequence length, depending on configuration parameters
+        Updates problem parameters according to curriculum learning. In the
+        case of algorithmic sequential problems it updates the max sequence
+        length, depending on configuration parameters.
 
         :param episode: Number of the current episode.
         :returns: Boolean informing whether curriculum learning is finished (or wasn't active at all).
+
         """
         # Curriculum learning stop condition.
         curric_done = True

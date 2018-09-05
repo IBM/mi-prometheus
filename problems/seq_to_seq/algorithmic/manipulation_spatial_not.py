@@ -27,8 +27,8 @@ from misc.param_interface import ParamInterface
 
 class ManipulationSpatialNot(AlgorithmicSeqToSeqProblem):
     """
-    Class generating sequences of random bit-patterns with inverted targets, so the system is supposed to learn NOT logical operation.
-
+    Class generating sequences of random bit-patterns with inverted targets, so
+    the system is supposed to learn NOT logical operation.
     """
 
     def __init__(self, params):
@@ -47,14 +47,17 @@ class ManipulationSpatialNot(AlgorithmicSeqToSeqProblem):
         assert self.data_bits >= 2, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
 
     def generate_batch(self):
-        """Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS].
-        Additional elements of sequence are  start and stop control markers, stored in additional bits.
+        """
+        Generates a batch  of size [BATCH_SIZE, 2*SEQ_LENGTH+2,
+        CONTROL_BITS+DATA_BITS]. Additional elements of sequence are  start and
+        stop control markers, stored in additional bits.
 
         : returns: Tuple consisting of: input [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS],
         output [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],
         mask [BATCH_SIZE, 2*SEQ_LENGTH+2]
 
         TODO: every item in batch has now the same seq_length.
+
         """
         # Set sequence length
         seq_length = np.random.randint(

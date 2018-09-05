@@ -7,13 +7,16 @@ import torch
 
 
 class FeedforwardController(torch.nn.Module):
-    """A wrapper class for a feedforward controller.
+    """
+    A wrapper class for a feedforward controller.
     """
 
     def __init__(self, params):
-        """ Constructor.
+        """
+        Constructor.
 
         :param params: Dictionary of parameters.
+
         """
         # Call constructor of base class.
         super(FeedforwardController, self).__init__()
@@ -42,6 +45,7 @@ class FeedforwardController(torch.nn.Module):
         :param inputs_BxI: a Tensor of input data of size [BATCH_SIZE  x INPUT_SIZE]
         :param prev_state_tuple: unused - empty tuple ()
         :returns: outputs a Tensor of size  [BATCH_SIZE x OUTPUT_SIZE] and empty tuple.
+
         """
         # Execute feedforward pass.
         hidden_state = self.ff(inputs_BxI)

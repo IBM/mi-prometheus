@@ -11,8 +11,10 @@ class AppState(metaclass=SingletonMetaClass):
 
     def set_dtype(self, flag):
         """
-        Sets a global floating point type to be used in the models
+        Sets a global floating point type to be used in the models.
+
         :param flag: string flag indicating a floating point type
+
         """
         if flag == 'float':
             self.dtype = self.FloatTensor
@@ -25,8 +27,10 @@ class AppState(metaclass=SingletonMetaClass):
 
     def set_itype(self, flag):
         """
-        Sets a global integer type to be used in the models
+        Sets a global integer type to be used in the models.
+
         :param flag: string flag indicating an integer type
+
         """
 
         if flag == 'char':
@@ -42,7 +46,7 @@ class AppState(metaclass=SingletonMetaClass):
 
     def convert_non_cuda_types(self):
         """
-        Sets all tensor types to non-cuda data types
+        Sets all tensor types to non-cuda data types.
         """
         self.use_CUDA = False
         self.FloatTensor = torch.FloatTensor
@@ -56,7 +60,7 @@ class AppState(metaclass=SingletonMetaClass):
 
     def convert_cuda_types(self):
         """
-        Sets all tensor types to cuda data types
+        Sets all tensor types to cuda data types.
         """
 
         self.use_CUDA = True

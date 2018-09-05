@@ -8,8 +8,12 @@ from collections import Mapping
 
 class StatisticsCollector(Mapping):
     """
-    Specialized class used for collection and export of statistics during training, validation and testing.
-    Inherits `collections.Mapping`, thererefor offers functionality close to a `dict`.
+    Specialized class used for collection and export of statistics during
+    training, validation and testing.
+
+    Inherits `collections.Mapping`, thererefor offers functionality
+    close to a `dict`.
+
     """
 
     def __init__(self):
@@ -25,10 +29,12 @@ class StatisticsCollector(Mapping):
         self.add_statistic('loss', '{:12.10f}')
 
     def add_statistic(self, key, formatting):
-        """ Add statistic to collector.
+        """
+        Add statistic to collector.
 
         :param key: Key of the statistic.
         :param formatting: Formatting that will be used when logging and exporting to CSV.
+
         """
         self.formatting[key] = formatting
         self.statistics[key] = -1
@@ -39,6 +45,7 @@ class StatisticsCollector(Mapping):
 
         :param key: Key to value in parameters.
         :return: Statistics value associated with given key.
+
         """
         return self.statistics[key]
 
@@ -48,26 +55,33 @@ class StatisticsCollector(Mapping):
 
         :param key: Key to value in parameters.
         :param value: Statistics value associated with given key.
+
         """
         self.statistics[key] = value
 
     # def __delitem__(self, key):
 
     def __len__(self):
-        """ Returns "length" of statistics (i.e. number of tracked values). """
+        """
+        Returns "length" of statistics (i.e. number of tracked values).
+        """
         return len(self.statistics.__len__)
 
     def __iter__(self):
-        """ Iterator. """
+        """
+        Iterator.
+        """
         return iter(self.statistics.__iter__)
 
     def initialize_csv_file(self, log_dir, filename):
         """
-        Method creates new csv file and initializes it with a header produced on the base of statistics names.
+        Method creates new csv file and initializes it with a header produced
+        on the base of statistics names.
 
         :param log_dir: Path to file.
         :param filename: Filename to be created.
         :return: File stream opened for writing.
+
         """
         # Iterate through keys and concatenate them.
         header_str = ''
@@ -87,6 +101,7 @@ class StatisticsCollector(Mapping):
         Method writes current statistics to csv using the possessed formatting.
 
         :param file: File stream opened for writing.
+
         """
         # Iterate through values and concatenate them.
         values_str = ''
@@ -101,9 +116,11 @@ class StatisticsCollector(Mapping):
 
     def export_statistics_to_string(self, additional_tag=''):
         """
-        Method returns current statistics in the form of string using the possessed formatting.
+        Method returns current statistics in the form of string using the
+        possessed formatting.
 
         :return: String being concatenation of statistics names and values.
+
         """
         # Iterate through keys and values and concatenate them.
         stat_str = ''
@@ -125,6 +142,7 @@ class StatisticsCollector(Mapping):
         Method exports current statistics to tensorboard.
 
         :param tb_writer: TensorBoard writer.
+
         """
         # Get episode number.
         episode = self.statistics['episode']

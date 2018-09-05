@@ -26,11 +26,12 @@ from misc.app_state import AppState
 
 def normalize(x):
     """
-    Normalizes the input torch tensor along the last dimension using the max of the one norm
-    The normalization is "fuzzy" to prevent divergences
+    Normalizes the input torch tensor along the last dimension using the max of
+    the one norm The normalization is "fuzzy" to prevent divergences.
 
     :param x: input of shape [batch_size, A, A1 ..An] if the input is the weight vector x'sahpe (batch_size, num_heads, memory_size)
     :return:  normalized x of shape [batch_size, A, A1 ..An]
+
     """
     dtype = AppState().dtype
     return x / torch.max(torch.sum(x, dim=-1, keepdim=True),
@@ -39,14 +40,15 @@ def normalize(x):
 
 def sim(query, data, l2_normalize=False, aligned=True):
     """
-    Batch dot-product similarity computed using matrix multiplication
-    the hidden shapes must be broadcastable (numpy style)
+    Batch dot-product similarity computed using matrix multiplication the
+    hidden shapes must be broadcastable (numpy style)
 
     :param query: the input data to be compared [batch_size, h, p] p = memory_size if aligned is True and p = content_size if aligned is False
     :param data: Input state  [batch_size, content_size, memory_size]
     :param l2_normalize: boolean, determines where to normalize the query and the data before the dot product
     :param aligned: boolean, determines whether to transpose data along the last two dimensions
     :return:  out[...,i,j] = sum_k q[...,i,k] * data_gen[...,j,k] for the default options
+
     """
 
     # data_gen.shape = hidden_shape_1 x M x N
@@ -71,12 +73,13 @@ def sim(query, data, l2_normalize=False, aligned=True):
 # the hidden shapes must be broadcastable (numpy style)
 def outer_prod(x, y):
     """
-    Batch outer product of two vectors (along the last two dimensions)
-    the hidden shapes must be broadcastable (numpy style)
+    Batch outer product of two vectors (along the last two dimensions) the
+    hidden shapes must be broadcastable (numpy style)
 
     :param x: (for the dwm model) input one [batch_size, num_heads, memory_content_size]
     :param y: (for the dwm model) Input two [batch_size, num_heads, memory_addresses_size]
     :return: Outer product [batch_size, num_heads, memory_content_size, memory_addresses_size]
+
     """
 
     return x[..., :, None] * y[..., None, :]
@@ -84,11 +87,12 @@ def outer_prod(x, y):
 
 def circular_conv(x, f):
     """
-    Batch 1D circular convolution with matching hidden shapes
+    Batch 1D circular convolution with matching hidden shapes.
 
     :param x: input [batch_size, num_head, num_addresses]
     :param f: shift array [batch_size, num_heads, shift_size]
     :return: Circular convolution [batch_size, num_head, num_addresses]
+
     """
 
     # computes y[...,i] = sum_{j=-ceil(s/2)+1}^{floor(s/2)} x[...,i-j] *
