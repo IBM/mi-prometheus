@@ -55,9 +55,8 @@ import pickle
 
 from torch.utils.data import Dataset
 
-# Add path to main project directory
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
+import os
+
 from problems.utils.language import Language
 from misc.app_state import AppState
 app_state = AppState()

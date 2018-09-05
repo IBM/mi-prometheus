@@ -7,14 +7,10 @@ import torch
 import logging
 import numpy as np
 
-# Add path to main project directory.
-import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
-
 from models.sequential_model import SequentialModel
 from models.ntm.ntm_cell import NTMCell
 from problems.problem import DataTuple
-from misc.app_state import AppState
+
 
 class NTM(SequentialModel):
     '''

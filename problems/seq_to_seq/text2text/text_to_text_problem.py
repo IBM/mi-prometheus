@@ -20,10 +20,6 @@
     See https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html """
 __author__ = "Vincent Marois"
 
-# Add path to main project directory
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..', '..'))
-
 from misc.app_state import AppState
 app_state = AppState()
 

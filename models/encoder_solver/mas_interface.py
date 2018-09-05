@@ -13,10 +13,6 @@ import logging
 logger = logging.getLogger('MAS-Interface')
 #logging.basicConfig(level=logging.DEBUG)
 
-
-# Add path to main project directory.
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
 from misc.app_state import AppState
 
 

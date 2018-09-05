@@ -25,7 +25,7 @@ import numpy as np
 from misc.param_interface import ParamInterface
 
 from models.multi_hops_attention.image_encoding import ImageEncoding
-from models.multi_hops_attention.attention import StackedAttention, Attention
+from models.multi_hops_attention.attention import StackedAttention
 from models.model import Model
 from misc.app_state import AppState
 

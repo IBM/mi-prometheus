@@ -3,8 +3,6 @@
 """problem.py: contains base class for all seq2seq problems"""
 __author__      = "Tomasz Kornuta"
 
-import collections
-import torch.nn as nn
 from problems.problem import Problem
 
 class SeqToSeqProblem(Problem):

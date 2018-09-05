@@ -3,8 +3,7 @@
 """lstm_controller.py: pytorch module implementing wrapper for feedforward controller."""
 __author__ = "Tomasz Kornuta/Ryan L. McAvoy"
 
-import torch 
-from misc.app_state import AppState
+import torch
 
 class FeedforwardController(torch.nn.Module):
     """A wrapper class for a feedforward controller.

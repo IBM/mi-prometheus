@@ -43,9 +43,6 @@
                 reference paper."""
 __author__ = "Vincent Marois"
 
-# Add path to main project directory
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..'))
 
 from models.mac.utils import linear
 import torch

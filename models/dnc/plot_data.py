@@ -21,7 +21,6 @@ __author__ = " Ryan L. McAvoy"
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-from time import sleep
 import numpy as np
 
 def plot_memory_attention(prediction, memory, wt_read, wt_write, usage, label):

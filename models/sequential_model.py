@@ -7,9 +7,6 @@ import numpy as np
 import logging
 import torch
 
-# Add path to main project directory - so we can test the base plot, saving images, movies etc.
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..')) 
 from misc.app_state import AppState
 from models.model import Model
 from problems.problem import DataTuple

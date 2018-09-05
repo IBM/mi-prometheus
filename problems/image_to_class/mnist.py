@@ -23,10 +23,6 @@ from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 import torch.nn.functional as F
 
-# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
-import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..')) 
-
 from problems.problem import DataTuple, LabelAuxTuple
 from problems.image_to_class.image_to_class_problem import ImageToClassProblem
 

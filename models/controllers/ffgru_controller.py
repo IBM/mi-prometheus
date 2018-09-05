@@ -5,7 +5,6 @@ __author__ = "Tomasz Kornuta/Ryan L. McAvoy/Younes Bouhadjar"
 
 import torch
 from torch import nn
-import torch.nn.functional as F
 import collections
 from misc.app_state import AppState
 
