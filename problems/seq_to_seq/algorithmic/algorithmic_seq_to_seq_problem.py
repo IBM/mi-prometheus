@@ -13,7 +13,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from problems.problem import DataTuple
+from problems.problem_utils import MaskedBCEWithLogitsLoss
 from problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
+
 
 _AlgSeqAuxTuple = collections.namedtuple('AlgSeqAuxTuple', ('mask','seq_length','num_subsequences'))
 
@@ -40,7 +42,10 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         super(AlgorithmicSeqToSeqProblem, self).__init__(params)
 
         # Set default loss function - cross entropy.
-        self.loss_function = nn.BCEWithLogitsLoss()
+        if self.use_mask:
+            self.loss_function = MaskedBCEWithLogitsLoss()
+        else:
+            self.loss_function = nn.BCEWithLogitsLoss()
 
         # Extract "standard" list of parameters for algorithmic tasks.
         self.batch_size = params['batch_size']
@@ -72,13 +77,9 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         # Check if mask should be is used - if so, apply.
         if (self.use_mask):
-            masked_logits = logits[:, aux_tuple.mask[0], :]
-            masked_targets = data_tuple.targets[:, aux_tuple.mask[0], :]
-        else:
-            masked_logits = logits
-            masked_targets = data_tuple.targets            
-
-        return (1 - torch.abs(torch.round(F.sigmoid(masked_logits)) - masked_targets)).mean()
+            return self.loss_function.masked_accuracy(logits, data_tuple.targets, aux_tuple.mask)
+        else: 
+            return (1 - torch.abs(torch.round(F.sigmoid(logits)) - data_tuple.targets)).mean()
 
     def turn_on_cuda(self, data_tuple, aux_tuple):
         """ Enables computations on GPU - copies all the matrices to GPU.
