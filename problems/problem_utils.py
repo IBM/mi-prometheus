@@ -93,10 +93,6 @@ class MaskedBCEWithLogitsLoss(nn.Module):
         # Calculate the loss per element in the sequence
         loss_per_element = self.loss_function(logits, targets)
 
-        #obtain the number of non-zero elements in the mask.
-        #The mask lacks the last dimension of the targets so needs to be scaled up
-        size = mask.nonzero().numel()/len(mask.shape)*logits.shape[-1]
-
         #if the loss has one extra dimenison then you need an extra unit dimension 
         #to multiply element by element 
         mask_float = mask.type(AppState().dtype)
@@ -105,6 +101,7 @@ class MaskedBCEWithLogitsLoss(nn.Module):
 
         # Set the loss per element to zero for unneeded output
         masked_loss_per = mask_float*loss_per_element
+        
         #obtain the number of non-zero elements in the mask. 
         #nonzero() returns the indices so you have to divide by the number of dimensions
         #The mask lacks the last dimension of the targets so needs to be scaled up
