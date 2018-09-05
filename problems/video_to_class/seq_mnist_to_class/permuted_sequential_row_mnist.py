@@ -18,10 +18,6 @@
 """permuted_sequential_row_mnist.py: load MNIST dataset using torchvision and apply a permutation over the rows"""
 __author__= "Younes Bouhadjar"
 
-# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
-import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..'))
-
 import torch
 from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler

@@ -3,10 +3,6 @@
 """repeat_serial_recall_cl.py: Contains definition of serial memorization and repeat recall problem with control markers and command lines"""
 __author__      = "Tomasz Kornuta"
 
-# Add path to main project directory - required for testing of the main function and see whether problem is working at all (!)
-import os,  sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..','..','..','..')) 
-
 import torch
 import numpy as np
 from problems.problem import DataTuple

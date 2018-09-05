@@ -21,7 +21,6 @@ __author__ = " Ryan L. McAvoy"
 
 import torch
 import torch.nn.functional as F
-import numpy as np
 import collections
 from models.dnc.tensor_utils import circular_conv, normalize
 from models.dnc.memory import Memory

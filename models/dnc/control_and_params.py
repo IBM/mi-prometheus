@@ -20,14 +20,9 @@ __author__ = " Ryan L. McAvoy"
 
 import torch
 from torch import nn
-import torch.nn.functional as F
-import numpy as np
-import pdb
-import collections
 from models.dnc.param_gen import Param_Generator
-import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
-from controller_factory import ControllerFactory
+
+from models.controllers.controller_factory import ControllerFactory
 
 class ControlParams(nn.Module):
     def __init__(self,  output_size, read_size, params):

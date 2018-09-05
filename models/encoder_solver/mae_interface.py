@@ -11,10 +11,7 @@ import numpy as np
 import logging
 logger = logging.getLogger('MAE-Interface')
 
-# Add path to main project directory.
-import os, sys
 from misc.app_state import AppState
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
 
 
 # Helper collection type.

@@ -26,7 +26,7 @@ from misc.param_interface import ParamInterface
 
 
 from models.stacked_attention_vqa.image_encoding import ImageEncoding, PretrainedImageEncoding
-from models.stacked_attention_vqa.stacked_attention import StackedAttention, Attention
+from models.stacked_attention_vqa.stacked_attention import StackedAttention
 from models.model import Model
 from misc.app_state import AppState
 

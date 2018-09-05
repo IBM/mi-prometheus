@@ -22,15 +22,9 @@ import torch
 import logging
 import numpy as np
 
-from torch import nn
-
-# Add path to main project directory - so we can test the base plot, saving images, movies etc.
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..', '..')) 
-
 from models.sequential_model import SequentialModel
 from models.dwm.dwm_cell import DWMCell
-from misc.app_state import AppState
+
 
 class DWM(SequentialModel):
     """ Differentiable Working Memory (DWM), is a memory augmented neural network which emulates the human working memory.

@@ -8,7 +8,6 @@ It will run as many concurrent jobs as possible.
 __author__= "Alexis Asseman, Younes Bouhadjar"
 
 import os
-import sys
 import yaml
 from tempfile import NamedTemporaryFile
 from multiprocessing.pool import ThreadPool

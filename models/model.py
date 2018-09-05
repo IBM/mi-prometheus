@@ -5,16 +5,13 @@ __author__      = "Tomasz Kornuta"
 
 import torch
 from torch import nn
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 
 import numpy as np
 
 import logging
 logger = logging.getLogger('Model')
 
-# Add path to main project directory - so we can test the base plot, saving images, movies etc.
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__),  '..')) 
 from misc.app_state import AppState
 
 

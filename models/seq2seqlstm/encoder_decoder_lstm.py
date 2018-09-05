@@ -6,7 +6,6 @@ __author__ = "Vincent Albouy"
 from enum import Enum
 import torch
 from torch import nn
-from torch.autograd import Variable
 from models.sequential_model import SequentialModel
 from misc.app_state import AppState
 

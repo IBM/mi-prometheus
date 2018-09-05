@@ -11,11 +11,7 @@ import logging
 logger = logging.getLogger('MAS-Cell')
 #logging.basicConfig(level=logging.DEBUG)
 
-import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
-from controller_factory import ControllerFactory
-from misc.app_state import AppState
-
+from models.controllers.controller_factory import ControllerFactory
 from models.encoder_solver.mas_interface import MASInterface
 
 # Helper collection type.

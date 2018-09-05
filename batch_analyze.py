@@ -6,7 +6,6 @@ import os
 import sys
 import yaml
 from multiprocessing.pool import ThreadPool
-import subprocess
 import numpy as np
 from glob import glob
 import csv

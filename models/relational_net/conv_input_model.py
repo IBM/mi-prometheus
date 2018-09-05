@@ -18,10 +18,6 @@
 """conv_input_model.py: contains CNN model for the Relational Network."""
 __author__      = "Vincent Marois"
 
-#Add path to main project directory
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-
 import torch
 import numpy as np
 import torch.nn as nn

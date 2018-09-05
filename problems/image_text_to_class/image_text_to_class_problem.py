@@ -3,20 +3,9 @@
 """image_text_to_class_problem.py: contains abstract base class for VQA problems"""
 __author__      = "Tomasz Kornuta & Vincent Albouy"
 
-
-import json
-import numpy as np
-import os
-import re
-from PIL import Image
-import torch
-from tqdm import tqdm
 import collections
 import torch.nn as nn
-import torch.nn.functional as F
 from problems.problem import Problem, DataTuple
-from torch.utils.data import Dataset
-from problems.utils.language import Language
 
 
 _ImageTextTuple = collections.namedtuple('ImageTextTuple', ('images', 'texts'))

@@ -17,9 +17,6 @@
 
 """functions.py: contains implementations of g_theta & f_phi for the Relational Network."""
 __author__      = "Vincent Marois"
-#Add path to main project directory
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 import torch
 import numpy as np

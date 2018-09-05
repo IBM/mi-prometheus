@@ -20,10 +20,8 @@ __author__ = "Younes Bouhadjar"
 
 import torch
 from torch import nn
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'controllers'))
-from controller_factory import ControllerFactory
+
+from models.controllers.controller_factory import ControllerFactory
 
 
 class Controller(nn.Module):
