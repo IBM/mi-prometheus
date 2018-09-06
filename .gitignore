@@ -18,6 +18,7 @@
 !/confgiuration/**
 !/configs/**
 !/misc/**
+!/scripts/**
 # You can be specific with these rules
 !/docs/**
 !docgen.sh
