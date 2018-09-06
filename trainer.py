@@ -37,6 +37,7 @@ import torch
 from torch import nn
 import collections
 import numpy as np
+from torch.nn.modules.module import _addindent
 
 from misc.app_state import AppState
 from misc.statistics_collector import StatisticsCollector
@@ -219,13 +220,9 @@ if __name__ == '__main__':
     model = ModelFactory.build_model(param_interface['model'])
     model.cuda() if app_state.use_CUDA else None
 
-    from torch.nn.modules.module import _addindent
-    import torch
-    import numpy as np
-
 
     def torch_summarize(model, show_weights=True, show_parameters=True, show_total_parameters=True):
-        """Summarizes torch model by showing trainable parameters and weights."""
+        """Summarizes torch model by showing trainable/non-trainable parameters and weights."""
         tmpstr = model.__class__.__name__ + ' (\n'
         total_params = 0
         total_trainable_params = 0
@@ -262,6 +259,9 @@ if __name__ == '__main__':
             tmpstr += 'total_parameters={}'.format(total_params)
             tmpstr += '\n'
             tmpstr += 'total_trainable_parameters={}'.format(total_trainable_params)
+            tmpstr += '\n'
+            tmpstr += 'non_trainable_parameters={}'.format(total_params-total_trainable_params)
+
         tmpstr += '\n'
         tmpstr = tmpstr + ')'
 
@@ -270,7 +270,6 @@ if __name__ == '__main__':
 
 
     print(torch_summarize(model))
-
 
 
     # Build problem for the training
