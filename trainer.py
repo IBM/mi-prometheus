@@ -222,10 +222,16 @@ if __name__ == '__main__':
 
 
     def torch_summarize(model, show_weights=True, show_parameters=True, show_total_parameters=True):
+
         """Summarizes torch model by showing trainable/non-trainable parameters and weights."""
+        #add name of the current module
         tmpstr = model.__class__.__name__ + ' (\n'
+
+        #initialize total number non-trainable and trainable parameters for a given module
         total_params = 0
         total_trainable_params = 0
+
+        #iterate other all modules
         for key, module in model._modules.items():
             # if it contains layers let call it recursively to get params and weights
             if type(module) in [
@@ -237,15 +243,22 @@ if __name__ == '__main__':
                 modstr = module.__repr__()
             modstr = _addindent(modstr, 2)
 
+            #get all needed parameters
+
+            #all parameters
             params = sum([np.prod(p.size()) for p in module.parameters()])
             total_params += params
 
+            #trainable parameters
             mod_parameters = filter(lambda p: p.requires_grad, module.parameters())
             trainable_params = sum([np.prod(p.size()) for p in mod_parameters])
             total_trainable_params += trainable_params
 
+            #weights
             weights = tuple([tuple(p.size()) for p in module.parameters()])
 
+
+            #build a giant string text to summarize all parmeters
             tmpstr += '  (' + key + '): ' + modstr
             if show_weights:
                 tmpstr += ', weights={}'.format(weights)
@@ -254,7 +267,7 @@ if __name__ == '__main__':
                 tmpstr += ', trainable_parameters={}'.format( trainable_params)
             tmpstr += '\n'
 
-
+        #add the total number of parameters at the end (reset at every module)
         if show_total_parameters:
             tmpstr += 'total_parameters={}'.format(total_params)
             tmpstr += '\n'
@@ -265,12 +278,11 @@ if __name__ == '__main__':
         tmpstr += '\n'
         tmpstr = tmpstr + ')'
 
-
+        #return the string
         return tmpstr
 
 
     print(torch_summarize(model))
-
 
     # Build problem for the training
     problem = ProblemFactory.build_problem(param_interface['training']['problem'])
