@@ -5,7 +5,7 @@ __author__      = "Ryan McAvoy, Tomasz Kornuta"
 
 import os
 import yaml
-
+import numpy as np
 import torch
 from misc.app_state import AppState
 from torch.nn.modules.module import _addindent
