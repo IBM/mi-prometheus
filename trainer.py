@@ -258,7 +258,7 @@ if __name__ == '__main__':
             weights = tuple([tuple(p.size()) for p in module.parameters()])
 
 
-            #build a giant string text to summarize all parmeters
+            #build a giant string text to summarize all parameters
             tmpstr += '  (' + key + '): ' + modstr
             if show_weights:
                 tmpstr += ', weights={}'.format(weights)
@@ -277,8 +277,7 @@ if __name__ == '__main__':
 
         tmpstr += '\n'
         tmpstr = tmpstr + ')'
-
-        #return the string
+        
         return tmpstr
 
 
