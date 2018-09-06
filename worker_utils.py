@@ -8,6 +8,7 @@ import yaml
 
 import torch
 from misc.app_state import AppState
+from torch.nn.modules.module import _addindent
 
 def forward_step(model, problem, episode, stat_col, data_tuple,  aux_tuple):
     """ Function performs a single forward step.
