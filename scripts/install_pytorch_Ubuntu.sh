@@ -1,4 +1,5 @@
 #!/bin/bash -x
+# this scripts install Anaconda & Pytorch 0.4.0 from source.
 
 apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -21,11 +22,12 @@ rm -rf /opt/conda
 ~/anaconda.sh -b -p /opt/conda
 rm ~/anaconda.sh
 
-
+# create a conda env.
 conda create -n mi-prometheus python=3.6
 
+# Not using virtualenv as it breaks installs of matplotlib on Mac's according to this help page
+# https://matplotlib.org/faq/osx_framework.html
 #/opt/conda/bin/python3 -m pip install --user virtualenv
-
 #/opt/conda/bin/python3 -m virtualenv env
 
 echo "export PATH=/opt/conda/bin:$PATH" >> /opt/conda/bin/activate
@@ -34,8 +36,9 @@ source activate mi-prometheus
 #source env/bin/activate
 
 #/opt/conda/bin/conda install numpy pyyaml setuptools mkl mkl-include cmake cffi typing
-conda install numpy pyyaml setuptools mkl mkl-include cmake cffi typing
 #/opt/conda/bin/conda clean -ya
+
+conda install numpy pyyaml setuptools mkl mkl-include cmake cffi typing
 conda clean -ya
 
 rm -rf pytorch
