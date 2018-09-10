@@ -558,13 +558,16 @@ if __name__ == "__main__":
     """ Tests sort of CLEVR - generates and displays a sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 10,
-              'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy',
+    from utils.param_interface import ParamInterface 
+    params = ParamInterface()
+    params.add_default_params({'batch_size': 10,
+              'data_folder': '~/data/sort-of-clevr/',
+              'data_filename': 'training.hy',
               'use_train_data': False,
-              # 'shuffle': False,
-              # "regenerate": True,
-              'dataset_size': 10000, 'img_size': 128, 'regenerate': False
-              }
+              #'shuffle': False,
+              #'regenerate': True,
+              'dataset_size': 100, 'img_size': 128
+              })
 
     # Configure logger.
     logging.basicConfig(level=logging.DEBUG)

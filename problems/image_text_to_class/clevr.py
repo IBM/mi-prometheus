@@ -338,13 +338,17 @@ if __name__ == "__main__":
     Unit test that generates a batch and displays a sample.
     """
 
-    params = {
+    # "Loaded parameters".
+    from utils.param_interface import ParamInterface 
+    params = ParamInterface()
+    params.add_default_params({
         'batch_size': 64,
+        #'data_folder': '~/data/CLEVR_v1.0/', # TODO!
         'CLEVR_dir': '/home/valbouy/CLEVR_v1.0',
         'set': 'train',
         'clevr_humans': False,
         'embedding_type': 'random',
-        'random_embedding_dim': 300}
+        'random_embedding_dim': 300})
 
     # create problem
     problem = CLEVR(params)

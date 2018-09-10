@@ -35,6 +35,7 @@ class OperationSpan(AlgorithmicSeqToSeqProblem):
     For example:
     num_items = 2 -> seq_items >> 2
     num_items = -1 -> seq_items << 1
+    
     Offers two modes of operation, depending on the value of num_items parameter:
     1)  -1 < num_items < 1: relative mode, where num_items represents the % of length of the sequence by which it should be shifted
     2) otherwise: absolute number of items by which the sequence will be shifted.
@@ -196,6 +197,7 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
+    from utils.param_interface import ParamInterface 
     params = ParamInterface()
     params.add_custom_params({'control_bits': 4,
                               'data_bits': 8,

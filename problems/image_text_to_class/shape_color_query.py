@@ -95,7 +95,9 @@ if __name__ == "__main__":
     """ Tests Shape-Color-Query - generates and displays a sample"""
 
     # "Loaded parameters".
-    params = {
+    from utils.param_interface import ParamInterface 
+    params = ParamInterface()
+    params.add_default_params({
         'batch_size': 10,
         'data_folder': '~/data/shape-color-query/',
         'data_filename': 'training.hy',
@@ -103,7 +105,7 @@ if __name__ == "__main__":
         "regenerate": True,
         'use_train_data': True,
         'dataset_size': 100,
-        'img_size': 224}
+        'img_size': 224})
 
     # Configure logger.
     logging.basicConfig(level=logging.DEBUG)

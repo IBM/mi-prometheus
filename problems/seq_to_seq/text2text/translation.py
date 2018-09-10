@@ -380,7 +380,10 @@ if __name__ == "__main__":
         "they are", "they re "
     )
 
-    params = {
+    # "Loaded parameters".
+    from utils.param_interface import ParamInterface 
+    params = ParamInterface()
+    params.add_default_params({
         'batch_size': 5,
         'training_size': 0.9,
         'output_lang_name': 'fra',
@@ -388,7 +391,7 @@ if __name__ == "__main__":
         'eng_prefixes': eng_prefixes,
         'use_train_data': True,
         'data_folder': '~/data/language',
-        'reverse': False}
+        'reverse': False})
 
     problem = Translation(params)
     print('Problem successfully created.\n')

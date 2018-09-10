@@ -174,6 +174,7 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
+    from utils.param_interface import ParamInterface 
     params = ParamInterface()
     params.add_custom_params({'control_bits': 4,
                               'data_bits': 8,
