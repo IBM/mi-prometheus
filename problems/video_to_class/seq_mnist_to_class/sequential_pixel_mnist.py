@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """sequential_pixel_mnist.py: load MNIST dataset using torchvision and transform it to a sequence of pixels"""
-__author__= "Younes Bouhadjar"
+__author__ = "Younes Bouhadjar"
 
 import torch
 from torchvision import datasets, transforms
@@ -28,11 +28,13 @@ from problems.video_to_class.video_to_class_problem import VideoToClassProblem
 
 class SequentialPixelMNIST(VideoToClassProblem):
     """
-    Class generating a sequence of pixels for sequential mnist
+    Class generating a sequence of pixels for sequential mnist.
     """
 
     def __init__(self, params):
-        """ Initialize. """         
+        """
+        Initialize.
+        """
         # Call base class constructors.
         super(SequentialPixelMNIST, self).__init__(params)
 
@@ -50,8 +52,11 @@ class SequentialPixelMNIST(VideoToClassProblem):
             transforms.ToTensor(), transforms.Lambda(lambda x: x.view(1, -1, 1))])
 
         # load the datasets
-        self.train_datasets = datasets.MNIST(self.datasets_folder, train=self.use_train_data, download=True,
-                                     transform=train_transform)
+        self.train_datasets = datasets.MNIST(
+            self.datasets_folder,
+            train=self.use_train_data,
+            download=True,
+            transform=train_transform)
         # set split
         num_train = len(self.train_datasets)
         indices = list(range(num_train))
@@ -61,8 +66,10 @@ class SequentialPixelMNIST(VideoToClassProblem):
 
     def generate_batch(self):
         # data loader
-        train_loader = torch.utils.data.DataLoader(self.train_datasets, batch_size=self.batch_size,
-                                                   sampler=self.sampler)
+        train_loader = torch.utils.data.DataLoader(
+            self.train_datasets,
+            batch_size=self.batch_size,
+            sampler=self.sampler)
         # create an iterator
         train_loader = iter(train_loader)
 
@@ -74,14 +81,15 @@ class SequentialPixelMNIST(VideoToClassProblem):
         (data, label) = next(train_loader)
 
         # Return DataTuple(!) and an empty (aux) tuple.
-        return DataTuple(data,label), MaskAuxTuple(mask.type(torch.uint8))
+        return DataTuple(data, label), MaskAuxTuple(mask.type(torch.uint8))
 
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 3, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist'}
+    params = {'batch_size': 3, 'start_index': 0, 'stop_index': 54999,
+              'use_train_data': True, 'mnist_folder': '~/data/mnist'}
 
     # Create problem object.
     problem = SequentialPixelMNIST(params)

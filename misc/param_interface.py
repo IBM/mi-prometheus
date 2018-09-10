@@ -4,11 +4,15 @@ from collections import Mapping
 
 class ParamInterface(Mapping):
     """
-    Interface to `ParameterRegistry` singleton. Inherits `collections.Mapping`, and therefore exposes functionality close
-    to a `dict`.
-    Offers a read (through `collections.Mapping` interface) and write (through `add_default_params` and
+    Interface to `ParameterRegistry` singleton.
+
+    Inherits `collections.Mapping`, and therefore exposes functionality
+    close to a `dict`. Offers a read (through `collections.Mapping`
+    interface) and write (through `add_default_params` and
     `add_custom_params` methods) view of the `ParameterRegistry`.
+
     """
+
     def __init__(self, *keys):
         """
 
@@ -19,7 +23,8 @@ class ParamInterface(Mapping):
         self._param_registry = ParamRegistry()
         self._keys_path = list(keys)
 
-        # Add the recursive dict structure determined by the given keys to default params
+        # Add the recursive dict structure determined by the given keys to
+        # default params
         self.add_default_params({})
 
     def _lookup(self, *keys):
@@ -60,11 +65,12 @@ class ParamInterface(Mapping):
 
     def __getitem__(self, key):
         """
-        Get parameter value under key. The parameter dict is derived from the default parameters updated with
-        the custom parameters.
+        Get parameter value under key. The parameter dict is derived from the
+        default parameters updated with the custom parameters.
 
         :param key: key to value in parameters
         :return: ParameterInterface(key) or value if leaf of the ParamRegistry tree.
+
         """
         v = self._lookup(key)
         if isinstance(v, dict) or isinstance(v, ParamRegistry):
@@ -80,12 +86,14 @@ class ParamInterface(Mapping):
 
     def add_default_params(self, default_params: dict):
         """
-        Appends default params dictionary to the registry. This should not be used by the user, but rather set by the
-        objects necessitating default values.
-        The dictionary will be inserted into the subtree chosen during initialization of `ParameterInterface`
+        Appends default params dictionary to the registry. This should not be
+        used by the user, but rather set by the objects necessitating default
+        values. The dictionary will be inserted into the subtree chosen during
+        initialization of `ParameterInterface`
 
         :param default_params: Dictionary containing default values.
         :return: None
+
         """
         self._param_registry.add_default_params(
             self._nest_dict(default_params)
@@ -93,12 +101,14 @@ class ParamInterface(Mapping):
 
     def add_custom_params(self, custom_params: dict):
         """
-        Appends custom parameters dictionary to the registry. This is intended for the user to customize the
-        experiments.
-        The dictionary will be inserted into the subtree chosen during initialization of `ParameterInterface`
+        Appends custom parameters dictionary to the registry. This is intended
+        for the user to customize the experiments. The dictionary will be
+        inserted into the subtree chosen during initialization of
+        `ParameterInterface`
 
         :param custom_params: Dictionary containing custom values.
         :return: None
+
         """
         self._param_registry.add_custom_params(
             self._nest_dict(custom_params)

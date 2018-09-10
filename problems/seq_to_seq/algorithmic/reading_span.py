@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """reading_span.py: contains code of reading span data generation"""
-__author__= "Younes Bouhadjar"
+__author__ = "Younes Bouhadjar"
 
 import torch
 import numpy as np
@@ -31,22 +31,22 @@ class ReadingSpan(AlgorithmicSeqToSeqProblem):
     """
 
     def __init__(self, params):
-        """ 
+        """
         Constructor - stores parameters. Calls parent class initialization.
-        
+
         :param params: Dictionary of parameters.
         """
         # Call parent constructor - sets e.g. the loss function, dtype.
-        # Additionally it extracts "standard" list of parameters for algorithmic tasks, like batch_size, numbers of bits, sequences etc.
+        # Additionally it extracts "standard" list of parameters for
+        # algorithmic tasks, like batch_size, numbers of bits, sequences etc.
         super(ReadingSpan, self).__init__(params)
-        
-        assert self.control_bits >=2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
-        assert self.data_bits >=1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+
+        assert self.control_bits >= 2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
+        assert self.data_bits >= 1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
 
         # Number of subsequences.
         self.num_subseq_min = params["num_subseq_min"]
         self.num_subseq_max = params["num_subseq_max"]
-
 
     def generate_batch(self):
         """
@@ -62,28 +62,49 @@ class ReadingSpan(AlgorithmicSeqToSeqProblem):
         markers = ctrl_data, ctrl_dummy, pos
 
         # number sub sequences
-        num_sub_seq = np.random.randint(self.num_subseq_min, self.num_subseq_max+1)
+        num_sub_seq = np.random.randint(
+            self.num_subseq_min, self.num_subseq_max + 1)
 
         # set the sequence length of each marker
-        seq_length = np.random.randint(low=self.min_sequence_length, high=self.max_sequence_length + 1, size=num_sub_seq)
+        seq_length = np.random.randint(
+            low=self.min_sequence_length,
+            high=self.max_sequence_length + 1,
+            size=num_sub_seq)
 
         #  generate subsequences for x and y
-        x = [np.random.binomial(1, self.bias, (self.batch_size, n, self.data_bits)) for n in seq_length]
+        x = [
+            np.random.binomial(
+                1,
+                self.bias,
+                (self.batch_size,
+                 n,
+                 self.data_bits)) for n in seq_length]
         x_last = [a[:, None, -1, :] for a in x]
 
         # create the target
         seq_length_tdummies = sum(seq_length) + seq_length.shape[0] + 1
-        dummies_target = np.zeros([self.batch_size, seq_length_tdummies, self.data_bits], dtype=np.float32)
+        dummies_target = np.zeros(
+            [self.batch_size, seq_length_tdummies, self.data_bits],
+            dtype=np.float32)
         targets = np.concatenate([dummies_target] + x_last, axis=1)
 
         # data of x and dummies
-        xx = [self.augment(seq, markers, ctrl_start=[1,0], add_marker_data=True, add_marker_dummy = False) for seq in x]
+        xx = [
+            self.augment(
+                seq,
+                markers,
+                ctrl_start=[
+                    1,
+                    0],
+                add_marker_data=True,
+                add_marker_dummy=False) for seq in x]
 
         # data of x
         data_1 = [arr for a in xx for arr in a[:-1]]
 
         # this is a marker between sub sequence x and dummies
-        inter_seq = self.add_ctrl(np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
+        inter_seq = self.add_ctrl(
+            np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
 
         # dummies of x
         x_dummy_last = [a[:, None, -1, :] for b in xx for a in b[-1:]]
@@ -111,8 +132,8 @@ class ReadingSpan(AlgorithmicSeqToSeqProblem):
 
         return data_tuple, aux_tuple
 
-
-    # method for changing the maximum length, used mainly during curriculum learning
+    # method for changing the maximum length, used mainly during curriculum
+    # learning
     def set_max_length(self, max_length):
         self.max_sequence_length = max_length
 
@@ -122,15 +143,18 @@ if __name__ == "__main__":
 
     # "Loaded parameters".
     params = ParamInterface()
-    params.add_custom_params({'control_bits': 2, 'data_bits': 8, 'batch_size': 2,
-              'min_sequence_length': 1, 'max_sequence_length': 10, 
-              'num_subseq_min':4 ,'num_subseq_max': 4})
+    params.add_custom_params({'control_bits': 2,
+                              'data_bits': 8,
+                              'batch_size': 2,
+                              'min_sequence_length': 1,
+                              'max_sequence_length': 10,
+                              'num_subseq_min': 4,
+                              'num_subseq_max': 4})
     # Create problem object.
     problem = ReadingSpan(params)
     # Get generator
     generator = problem.return_generator()
     # Get batch.
-    data_tuple,  aux_tuple = next(generator)
+    data_tuple, aux_tuple = next(generator)
     # Display single sample (0) from batch.
     problem.show_sample(data_tuple, aux_tuple)
-

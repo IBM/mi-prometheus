@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """tester.py: contains code of worker realising testing of previously trained models"""
-__author__= "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
+__author__ = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
 
 import os
 # Force MKL (CPU BLAS) to use one core, faster
@@ -48,19 +48,34 @@ logging.getLogger('matplotlib').setLevel(logging.WARNING)
 if __name__ == '__main__':
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='', dest='model',
-                        help='Path to and name of the file containing the saved parameters of the model (model checkpoint)')
+    parser.add_argument(
+        '--model',
+        type=str,
+        default='',
+        dest='model',
+        help='Path to and name of the file containing the saved parameters of the model (model checkpoint)')
     parser.add_argument('--savetag', dest='savetag', type=str, default='',
                         help='Tag for the save directory')
-    parser.add_argument('--log', action='store', dest='log', type=str, default='info',
-                        choices=['critical', 'error', 'warning', 'info', 'debug', 'notset'],
-                        help="Log level. Default is INFO.")
+    parser.add_argument(
+        '--log',
+        action='store',
+        dest='log',
+        type=str,
+        default='info',
+        choices=[
+            'critical',
+            'error',
+            'warning',
+            'info',
+            'debug',
+            'notset'],
+        help="Log level. Default is INFO.")
     parser.add_argument('--visualize', action='store_true', dest='visualize',
                         help='Activate dynamic visualization')
 
     # Parse arguments.
     FLAGS, unparsed = parser.parse_known_args()
-    
+
     # Check if model is present.
     if FLAGS.model == '':
         print('Please pass path to and name of the file containing model to be loaded as --m parameter')
@@ -72,7 +87,8 @@ if __name__ == '__main__':
         exit(-2)
 
     # Extract path.
-    abs_path, model_dir = os.path.split(os.path.dirname(os.path.abspath(FLAGS.model)))
+    abs_path, model_dir = os.path.split(
+        os.path.dirname(os.path.abspath(FLAGS.model)))
 
     # Check if configuration file exists
     config_file = abs_path + '/training_configuration.yaml'
@@ -81,7 +97,7 @@ if __name__ == '__main__':
         exit(-3)
 
     # Prepare output paths for logging
-    while True:  
+    while True:
         # Dirty fix: if log_dir already exists, wait for 1 second and try again
         try:
             time_str = 'test_{0:%Y%m%d_%H%M%S}'.format(datetime.now())
@@ -96,6 +112,7 @@ if __name__ == '__main__':
 
     # Logging - to subdir
     log_file = log_dir + 'tester.log'
+
     def logfile():
         return logging.FileHandler(log_file)
 
@@ -116,7 +133,7 @@ if __name__ == '__main__':
     # Initialize parameter interface.
     param_interface = ParamInterface()
 
-    # Read YAML file    
+    # Read YAML file
     with open(config_file, 'r') as stream:
         param_interface.add_custom_params(yaml.load(stream))
 
@@ -124,14 +141,16 @@ if __name__ == '__main__':
     if "seed_torch" not in param_interface["testing"] or param_interface["testing"]["seed_torch"] == -1:
         seed = randrange(0, 2**32)
         param_interface["testing"].add_custom_params({"seed_torch": seed})
-    logger.info("Setting torch random seed to: {}".format(param_interface["testing"]["seed_torch"]))
+    logger.info("Setting torch random seed to: {}".format(
+        param_interface["testing"]["seed_torch"]))
     torch.manual_seed(param_interface["testing"]["seed_torch"])
     torch.cuda.manual_seed_all(param_interface["testing"]["seed_torch"])
 
     if "seed_numpy" not in param_interface["testing"] or param_interface["testing"]["seed_numpy"] == -1:
         seed = randrange(0, 2**32)
         param_interface["testing"].add_custom_params({"seed_numpy": seed})
-    logger.info("Setting numpy random seed to: {}".format(param_interface["testing"]["seed_numpy"]))
+    logger.info("Setting numpy random seed to: {}".format(
+        param_interface["testing"]["seed_numpy"]))
     np.random.seed(param_interface["testing"]["seed_numpy"])
 
     # Initialize the application state singleton.
@@ -140,22 +159,26 @@ if __name__ == '__main__':
     # check if CUDA is available turn it on
     check_and_set_cuda(param_interface['testing'], logger)
 
-    # check if the maximum number of episodes is specified, if not put a default of 1
-    if "max_test_episodes" not in param_interface["testing"]["problem"] or param_interface["testing"]["problem"]["max_test_episodes"] == -1:
+    # check if the maximum number of episodes is specified, if not put a
+    # default of 1
+    if "max_test_episodes" not in param_interface["testing"][
+            "problem"] or param_interface["testing"]["problem"]["max_test_episodes"] == -1:
         max_test_episodes = 1
-        param_interface['testing']['problem'].add_custom_params({'max_test_episodes': max_test_episodes})
-    logger.info("Setting the max number of episodes to: {}".format(param_interface["testing"]["problem"]["max_test_episodes"]))
+        param_interface['testing']['problem'].add_custom_params(
+            {'max_test_episodes': max_test_episodes})
+    logger.info("Setting the max number of episodes to: {}".format(
+        param_interface["testing"]["problem"]["max_test_episodes"]))
 
     # Get problem and model names.
     try:
         task_name = param_interface['testing']['problem']['name']
-    except:
+    except BaseException:
         print("Error: Couldn't retrieve the problem name from the loaded configuration")
         exit(-1)
 
     try:
         model_name = param_interface['model']['name']
-    except:
+    except BaseException:
         print("Error: Couldn't retrieve model name from the loaded configuration")
         exit(-1)
 
@@ -168,7 +191,8 @@ if __name__ == '__main__':
     model.eval()
 
     # Build problem.
-    problem = ProblemFactory.build_problem(param_interface['testing']['problem'])
+    problem = ProblemFactory.build_problem(
+        param_interface['testing']['problem'])
 
     # Create statistics collector.
     stat_col = StatisticsCollector()
@@ -179,19 +203,23 @@ if __name__ == '__main__':
     # Create test output csv file.
     test_file = stat_col.initialize_csv_file(log_dir, 'testing.csv')
 
-    # Ok, finished loading the configuration. 
+    # Ok, finished loading the configuration.
     # Save the resulting configuration into a yaml settings file, under log_dir
     with open(log_dir + "testing_configuration.yaml", 'w') as yaml_backup_file:
-        yaml.dump(param_interface.to_dict(), yaml_backup_file, default_flow_style=False)
+        yaml.dump(param_interface.to_dict(),
+                  yaml_backup_file, default_flow_style=False)
 
     # Run test
     with torch.no_grad():
-        for episode, (data_tuple, aux_tuple) in enumerate(problem.return_generator()):
+        for episode, (data_tuple, aux_tuple) in enumerate(
+                problem.return_generator()):
 
-            if episode == param_interface["testing"]["problem"]["max_test_episodes"]:
+            if episode == param_interface["testing"]["problem"][
+                    "max_test_episodes"]:
                 break
 
-            logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple)
+            logits, loss = forward_step(
+                model, problem, episode, stat_col, data_tuple, aux_tuple)
 
             # Log to logger.
             logger.info(stat_col.export_statistics_to_string('[Test]'))
@@ -200,9 +228,10 @@ if __name__ == '__main__':
 
             if app_state.visualize:
                 # Allow for preprocessing
-                data_tuple, aux_tuple, logits = problem.plot_preprocessing(data_tuple, aux_tuple, logits)
+                data_tuple, aux_tuple, logits = problem.plot_preprocessing(
+                    data_tuple, aux_tuple, logits)
 
                 # Show plot, if user presses Quit - break.
-                is_closed = model.plot(data_tuple,  logits)
+                is_closed = model.plot(data_tuple, logits)
                 if is_closed:
                     break

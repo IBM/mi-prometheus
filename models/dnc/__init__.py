@@ -9,6 +9,20 @@ from .plot_data import plot_memory_attention, plot_memory
 from .temporal_linkage import TemporalLinkageState, TemporalLinkage
 from .tensor_utils import normalize, sim, outer_prod, circular_conv
 
-__all__ = ['ControlParams', 'NTMCellStateTuple', 'DNCCell', 'InterfaceStateTuple', 'Interface', 'Memory', 'MemoryUsage',
-           'Param_Generator', 'plot_memory_attention', 'plot_memory', 'TemporalLinkageState', 'TemporalLinkage',
-           'normalize', 'sim', 'outer_prod', 'circular_conv']
+__all__ = [
+    'ControlParams',
+    'NTMCellStateTuple',
+    'DNCCell',
+    'InterfaceStateTuple',
+    'Interface',
+    'Memory',
+    'MemoryUsage',
+    'Param_Generator',
+    'plot_memory_attention',
+    'plot_memory',
+    'TemporalLinkageState',
+    'TemporalLinkage',
+    'normalize',
+    'sim',
+    'outer_prod',
+    'circular_conv']

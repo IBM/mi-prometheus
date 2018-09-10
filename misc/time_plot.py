@@ -16,6 +16,7 @@ else:
 
 #Qt = QtCore.Qt
 
+
 class TimePlot(QtWidgets.QMainWindow):
     def __init__(self):
         self.qapp = QtWidgets.QApplication(sys.argv)
@@ -27,7 +28,7 @@ class TimePlot(QtWidgets.QMainWindow):
         # Empty objects that will be used during visualization.
         self.fig = None
         self.frames = None
-        
+
         # Slider stuff
         hbox_timeline = QtWidgets.QHBoxLayout()
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
@@ -40,7 +41,8 @@ class TimePlot(QtWidgets.QMainWindow):
         hbox_buttons = QtWidgets.QHBoxLayout()
         hbox_buttons.addStretch(1)
         # Button for saving movies.
-        save_movie_btn = QtWidgets.QPushButton("&Save as movie")  # Shortcut is Alt+S
+        save_movie_btn = QtWidgets.QPushButton(
+            "&Save as movie")  # Shortcut is Alt+S
         save_movie_btn.clicked.connect(self._save_movie_clicked)
         # Button for next episode.
         next_btn = QtWidgets.QPushButton("&Next episode")  # Shortcut is Alt+N
@@ -62,28 +64,29 @@ class TimePlot(QtWidgets.QMainWindow):
         logger.info("Saving movie - please wait...")
         # Generate filename.
         time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
-        name_str = 'experiment_run_'+time_str+'.mp4'
+        name_str = 'experiment_run_' + time_str + '.mp4'
 
         # Save the animation.
-        ani = animation.ArtistAnimation(self.fig, self.frames, blit=False, interval=1.0)
+        ani = animation.ArtistAnimation(
+            self.fig, self.frames, blit=False, interval=1.0)
         Writer = animation.writers['ffmpeg']
         writer = Writer(fps=1, extra_args=['-r', '25', '-probesize', '10M'])
         ani.save(name_str, writer=writer, dpi=200)
         logger.info("Saved movie to file '{}'".format(name_str))
-        
+
     def _next_clicked(self):
         self.qapp.quit()
 
     def closeEvent(self, _):
         # Set flag to True, so we could break the external loop.
         self.is_closed = True
-        self.qapp.quit()  
-        
-    def update(self, fig,  frames):
+        self.qapp.quit()
+
+    def update(self, fig, frames):
         # "Save" figure and frame objects.
         self.fig = fig
         self.frames = frames
-        
+
         # Create the widget.
         w = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(w)
@@ -104,30 +107,34 @@ class TimePlot(QtWidgets.QMainWindow):
         self.slider.setValue(len(frames) - 1)
         # But call it anyway - for the case when user pressed "next" button.
         self.show_frame(len(frames) - 1)
-    
+
         # Show.
         self.show()
         self.qapp.exec_()  # Resume event loop
 
     def slider_valuechanged(self):
-        """ Event handler attached to the slider. """
+        """
+        Event handler attached to the slider.
+        """
         val = self.slider.value()
         self.show_frame(val)
 
-    def show_frame(self,  frame_number):
-        """ Shows given frame."""
+    def show_frame(self, frame_number):
+        """
+        Shows given frame.
+        """
         # Make all the artists from the current frame visible
         for frame in self.frames:
-            for artist in frame: #self.frames[self.current_frame_number]:
-                artist.set_visible(False)       
+            for artist in frame:  # self.frames[self.current_frame_number]:
+                artist.set_visible(False)
 
         # Make all the artists from the current frame visible
         for artist in self.frames[frame_number]:
             artist.set_visible(True)
-        
+
         # Redraw the figure canvas.
         self.fig.canvas.draw_idle()
-        
+
         # Remember current frame.
         self.current_frame_number = frame_number
 
@@ -152,13 +159,14 @@ if __name__ == '__main__':
     while not plot.is_closed:
         x = np.linspace(0, 2 * np.pi, 120)
         y = np.linspace(0, 2 * np.pi, 100).reshape(-1, 1)
-        # frames is a list of lists, each row is a list of artists to draw in a given frame.
+        # frames is a list of lists, each row is a list of artists to draw in a
+        # given frame.
         frames = []
         for i in range(60):
             x += np.pi / 15.
             y += np.pi / 20.
             # Get axes
-            artists = [None] * len( fig.axes)
+            artists = [None] * len(fig.axes)
             artists[0] = axes[0].imshow(f(x, y))
             artists[1] = axes[1].imshow(f(x, y))
             artists[2] = axes[2].imshow(f(x, y))
@@ -168,4 +176,4 @@ if __name__ == '__main__':
             # Add "frame".
             frames.append(artists)
         # Plot.
-        plot.update(fig,  frames)
+        plot.update(fig, frames)

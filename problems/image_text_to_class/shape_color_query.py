@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""shape_color_query.py: ShapeColorQuery is a a variation of Sort-of-CLEVR VQA problem, where question is a sequence composed of two items: 
+"""shape_color_query.py: ShapeColorQuery is a a variation of Sort-of-CLEVR VQA problem, where question is a sequence composed of two items:
 first encoding the object type, and second encoding the query. """
 __author__ = "Tomasz Kornuta"
 
@@ -14,16 +14,21 @@ from problems.image_text_to_class.sort_of_clevr import SortOfCLEVR
 
 class ShapeColorQuery(SortOfCLEVR):
     """
-    Shape-Color-Query is a a variation of Sort-of-CLEVR VQA problem, where question is a sequence composed of three items: 
-    - first two encoding the object, identified by color & shape, and 
+    Shape-Color-Query is a a variation of Sort-of-CLEVR VQA problem, where
+    question is a sequence composed of three items:
+
+    - first two encoding the object, identified by color & shape, and
     - third encoding the query.
+
     """
 
     def __init__(self, params):
         """
-        Initializes Shape-Color-Query problem, calls base class initialization, sets properties using the provided parameters.
+        Initializes Shape-Color-Query problem, calls base class initialization,
+        sets properties using the provided parameters.
 
         :param params: Dictionary of parameters (read from configuration file).
+
         """
 
         # Call base class constructors.
@@ -32,8 +37,8 @@ class ShapeColorQuery(SortOfCLEVR):
     def question2str(self, encoded_question):
         """
         Decodes question, i.e. produces a human-understandable string.
-        
-        :param color_query: A 3d tensor, with 1 row and 3 columns: 
+
+        :param color_query: A 3d tensor, with 1 row and 3 columns:
 
             - first two encoding the object, identified by shape, color, and
             - third encoding the query.
@@ -53,14 +58,14 @@ class ShapeColorQuery(SortOfCLEVR):
 
     def generate_question_matrix(self, objects):
         """
-        Generates questions tensor: [# of objects * # of Q, 3, encoding] 
+        Generates questions tensor: [# of objects * # of Q, 3, encoding]
         where second dimension ("temporal") encodes consecutivelly: shape, color, query
 
         :param objects: List of objects - abstract scene representation.
-        :return: a 3D tensor [# of questions for the whole scene, 3, num_bits] 
+        :return: a 3D tensor [# of questions for the whole scene, 3, num_bits]
         """
         # Number of scene questions.
-        num_questions = len(objects)*self.NUM_QUESTIONS
+        num_questions = len(objects) * self.NUM_QUESTIONS
         # Number of bits in Object and Query vectors.
         num_bits = max(self.NUM_COLORS, self.NUM_SHAPES, self.NUM_QUESTIONS)
 
@@ -71,14 +76,18 @@ class ShapeColorQuery(SortOfCLEVR):
         query_matrix = np.diag(np.ones(num_bits))
 
         # For every object in the scene.
-        for i,obj in enumerate(objects):
-            # Shape - with special case: query 0 asks about shape, do not provide answer as part of the query! (+1)
-            Q[i*self.NUM_QUESTIONS + 1:(i+1)*self.NUM_QUESTIONS, 0, obj.shape] = True
+        for i, obj in enumerate(objects):
+            # Shape - with special case: query 0 asks about shape, do not
+            # provide answer as part of the query! (+1)
+            Q[i * self.NUM_QUESTIONS +
+                1:(i + 1) * self.NUM_QUESTIONS, 0, obj.shape] = True
             # Color
-            Q[i*self.NUM_QUESTIONS:(i+1)*self.NUM_QUESTIONS, 1, obj.color] = True
+            Q[i * self.NUM_QUESTIONS:(i + 1) * self.NUM_QUESTIONS,
+              1, obj.color] = True
             # Query.
-            Q[i*self.NUM_QUESTIONS:(i+1)*self.NUM_QUESTIONS, 2, :num_bits] = query_matrix[:self.NUM_QUESTIONS, :num_bits]
-        
+            Q[i * self.NUM_QUESTIONS:(i + 1) * self.NUM_QUESTIONS, 2,
+              :num_bits] = query_matrix[:self.NUM_QUESTIONS, :num_bits]
+
         return Q
 
 
@@ -86,17 +95,19 @@ if __name__ == "__main__":
     """ Tests Shape-Color-Query - generates and displays a sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 10,
-        'data_folder': '~/data/shape-color-query/', 'data_filename': 'training.hy', 
+    params = {
+        'batch_size': 10,
+        'data_folder': '~/data/shape-color-query/',
+        'data_filename': 'training.hy',
         'shuffle': True,
         "regenerate": True,
         'use_train_data': True,
-        'dataset_size': 100, 'img_size': 224
-        }
+        'dataset_size': 100,
+        'img_size': 224}
 
     # Configure logger.
     logging.basicConfig(level=logging.DEBUG)
-    logger.debug("params: {}".format(params)) 
+    logger.debug("params: {}".format(params))
 
     # Create problem object.
     problem = ShapeColorQuery(params)

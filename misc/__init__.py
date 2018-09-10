@@ -5,5 +5,11 @@ from .singleton import SingletonMetaClass
 from .statistics_collector import StatisticsCollector
 from .time_plot import TimePlot
 
-__all__ = ['AppState', 'ParamInterface', 'MetaSingletonABC', 'ParamRegistry', 'SingletonMetaClass',
-           'StatisticsCollector', 'TimePlot']
+__all__ = [
+    'AppState',
+    'ParamInterface',
+    'MetaSingletonABC',
+    'ParamRegistry',
+    'SingletonMetaClass',
+    'StatisticsCollector',
+    'TimePlot']

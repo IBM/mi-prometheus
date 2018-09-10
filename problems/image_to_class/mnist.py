@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """mnist.py: contains code of loading MNIST dataset using torchvision"""
-__author__= "Younes Bouhadjar"
+__author__ = "Younes Bouhadjar"
 
 import torch
 from torchvision import datasets, transforms
@@ -34,9 +34,11 @@ class MNIST(ImageToClassProblem):
 
     def __init__(self, params):
         """
-        Initializes MNIST problem, calls base class initialization, sets properties using the provided parameters.
+        Initializes MNIST problem, calls base class initialization, sets
+        properties using the provided parameters.
 
         :param params: Dictionary of parameters (read from configuration file).
+
         """
 
         # Call base class constructors.
@@ -53,12 +55,15 @@ class MNIST(ImageToClassProblem):
         self.up_scaling = params['up_scaling']
 
         # Define transforms
-        train_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()]) \
-        if self.up_scaling else transforms.Compose([transforms.ToTensor()])
+        train_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(
+        )]) if self.up_scaling else transforms.Compose([transforms.ToTensor()])
 
         # load the datasets
-        self.train_datasets = datasets.MNIST(self.datasets_folder, train=self.use_train_data, download=True,
-                                     transform=train_transform)
+        self.train_datasets = datasets.MNIST(
+            self.datasets_folder,
+            train=self.use_train_data,
+            download=True,
+            transform=train_transform)
 
         # set split data (for training and validation data)
         num_train = len(self.train_datasets)
@@ -67,13 +72,16 @@ class MNIST(ImageToClassProblem):
         self.sampler = SubsetRandomSampler(idx)
 
         # Class names.
-        self.mnist_class_names = 'Zero One Two Three Four Five Six Seven Eight Nine'.split(' ')
+        self.mnist_class_names = 'Zero One Two Three Four Five Six Seven Eight Nine'.split(
+            ' ')
 
     def generate_batch(self):
 
         # data loader
-        train_loader = torch.utils.data.DataLoader(self.train_datasets, batch_size=self.batch_size,
-                                                   sampler=self.sampler)
+        train_loader = torch.utils.data.DataLoader(
+            self.train_datasets,
+            batch_size=self.batch_size,
+            sampler=self.sampler)
         # create an iterator
         train_loader = iter(train_loader)
 
@@ -94,8 +102,18 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'batch_size':2, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist', 'padding': [4,4,3,3],
-              'up_scaling': False}
+    params = {
+        'batch_size': 2,
+        'start_index': 0,
+        'stop_index': 54999,
+        'use_train_data': True,
+        'mnist_folder': '~/data/mnist',
+        'padding': [
+            4,
+            4,
+            3,
+            3],
+        'up_scaling': False}
 
     # Create problem object.
     problem = MNIST(params)

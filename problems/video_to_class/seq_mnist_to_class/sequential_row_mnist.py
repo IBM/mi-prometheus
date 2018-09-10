@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """sequential_row_mnist.py: load MNIST dataset using torchvision"""
-__author__= "Younes Bouhadjar"
+__author__ = "Younes Bouhadjar"
 
 import torch
 from torchvision import datasets, transforms
@@ -25,9 +25,10 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from problems.problem import DataTuple, MaskAuxTuple
 from problems.video_to_class.video_to_class_problem import VideoToClassProblem
 
+
 class SequentialRowMNIST(VideoToClassProblem):
     """
-    Class generating a sequence of rows for sequential mnist
+    Class generating a sequence of rows for sequential mnist.
     """
 
     def __init__(self, params):
@@ -46,8 +47,11 @@ class SequentialRowMNIST(VideoToClassProblem):
             transforms.ToTensor()])
 
         # load the datasets
-        self.train_datasets = datasets.MNIST(self.datasets_folder, train=self.use_train_data, download=True,
-                                     transform=train_transform)
+        self.train_datasets = datasets.MNIST(
+            self.datasets_folder,
+            train=self.use_train_data,
+            download=True,
+            transform=train_transform)
         # set split
         num_train = len(self.train_datasets)
         indices = list(range(num_train))
@@ -58,8 +62,10 @@ class SequentialRowMNIST(VideoToClassProblem):
     def generate_batch(self):
 
         # data loader
-        train_loader = torch.utils.data.DataLoader(self.train_datasets, batch_size=self.batch_size,
-                                                   sampler=self.sampler)
+        train_loader = torch.utils.data.DataLoader(
+            self.train_datasets,
+            batch_size=self.batch_size,
+            sampler=self.sampler)
         # create an iterator
         train_loader = iter(train_loader)
 
@@ -71,13 +77,15 @@ class SequentialRowMNIST(VideoToClassProblem):
         (data, label) = next(train_loader)
 
         # Return DataTuple(!) and an empty (aux) tuple.
-        return DataTuple(data,label), MaskAuxTuple(mask.type(torch.uint8))
+        return DataTuple(data, label), MaskAuxTuple(mask.type(torch.uint8))
+
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 10, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist'}
+    params = {'batch_size': 10, 'start_index': 0, 'stop_index': 54999,
+              'use_train_data': True, 'mnist_folder': '~/data/mnist'}
 
     # Create problem object.
     problem = SequentialRowMNIST(params)

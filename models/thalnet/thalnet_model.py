@@ -17,7 +17,7 @@
 
 """thalnet_model: Main class of the ThalNet paper: https://arxiv.org/abs/1706.05744. It calls the ThalNet cell on each word of the input"""
 
-__author__= "Younes Bouhadjar"
+__author__ = "Younes Bouhadjar"
 
 import torch
 import logging
@@ -29,14 +29,18 @@ from models.thalnet.thalnet_cell import ThalNetCell
 
 
 class ThalNetModel(SequentialModel):
-    """ ThalNet model consists of recurrent neural modules that send features through
-    a routing center, it was proposed in the following paper https://arxiv.org/pdf/1706.05744.pdf """
+    """
+    ThalNet model consists of recurrent neural modules that send features
+    through a routing center, it was proposed in the following paper
+    https://arxiv.org/pdf/1706.05744.pdf.
+    """
 
     def __init__(self, params):
         """
-        Constructor of the ThalNetModel
+        Constructor of the ThalNetModel.
 
         :param params: Parameters read from configuration file.
+
         """
         # Call base class initialization.
         super(ThalNetModel, self).__init__(params)
@@ -44,7 +48,8 @@ class ThalNetModel(SequentialModel):
         self.context_input_size = params['context_input_size']
         self.input_size = params['input_size']
         self.output_size = params['output_size']
-        self.center_size = params['num_modules'] * params['center_size_per_module']
+        self.center_size = params['num_modules'] * \
+            params['center_size_per_module']
         self.center_size_per_module = params['center_size_per_module']
         self.num_modules = params['num_modules']
         self.output_center_size = self.output_size + self.center_size_per_module
@@ -53,12 +58,16 @@ class ThalNetModel(SequentialModel):
         self.cell_state_history = None
 
         # Create the DWM components
-        self.ThalnetCell = ThalNetCell(self.input_size, self.output_size, self.context_input_size,
-                                       self.center_size_per_module, self.num_modules)
+        self.ThalnetCell = ThalNetCell(
+            self.input_size,
+            self.output_size,
+            self.context_input_size,
+            self.center_size_per_module,
+            self.num_modules)
 
     def forward(self, data_tuple):  # x : batch_size, seq_len, input_size
         """
-        Forward run of the ThalNetModel model
+        Forward run of the ThalNetModel model.
 
         :param data_tuple: (inputs [batch_size, sequence_length, input_size], targets[batch_size, sequence_length, output_size])
 
@@ -77,7 +86,8 @@ class ThalNetModel(SequentialModel):
         # init state
         cell_state = self.ThalnetCell.init_state(batch_size)
         for j in range(seq_length):
-            output_cell, cell_state = self.ThalnetCell(inputs[..., j, :], cell_state)
+            output_cell, cell_state = self.ThalnetCell(
+                inputs[..., j, :], cell_state)
 
             if output_cell is None:
                 continue
@@ -92,7 +102,11 @@ class ThalNetModel(SequentialModel):
 
             # This is for the time plot
             if self.app_state.visualize:
-                self.cell_state_history.append([cell_state[i][0].detach().numpy() for i in range(self.num_modules)] + [cell_state[i][1].hidden_state.detach().numpy() for i in range(self.num_modules)])
+                self.cell_state_history.append(
+                    [cell_state[i][0].detach().numpy()
+                     for i in range(self.num_modules)] +
+                    [cell_state[i][1].hidden_state.detach().numpy()
+                     for i in range(self.num_modules)])
 
         return output
 
@@ -113,8 +127,10 @@ class ThalNetModel(SequentialModel):
         gs = gridspec.GridSpec(4, 3)
 
         # modules & centers subplots
-        ax_center = [fig.add_subplot(gs[i, 0]) for i in range(self.num_modules)]
-        ax_module = [fig.add_subplot(gs[i, 1]) for i in range(self.num_modules)]  #
+        ax_center = [fig.add_subplot(gs[i, 0])
+                     for i in range(self.num_modules)]
+        ax_module = [fig.add_subplot(gs[i, 1])
+                     for i in range(self.num_modules)]  #
 
         # inputs & prediction subplot
         ax_inputs = fig.add_subplot(gs[0, 2])
@@ -154,40 +170,50 @@ class ThalNetModel(SequentialModel):
         # Return figure.
         return fig
 
-    def plot(self, data_tuple, logits, sample_number = 0):
+    def plot(self, data_tuple, logits, sample_number=0):
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
             return False
 
         # Initialize timePlot window - if required.
-        if self.plotWindow == None:
+        if self.plotWindow is None:
             from misc.time_plot import TimePlot
             self.plotWindow = TimePlot()
-        
+
         (inputs, _) = data_tuple
         inputs = inputs.cpu().detach().numpy()
         predictions_seq = logits.cpu().detach().numpy()
 
-        input_seq = inputs[sample_number, 0] if len(inputs.shape) == 4 else inputs[sample_number]
+        input_seq = inputs[sample_number, 0] if len(
+            inputs.shape) == 4 else inputs[sample_number]
 
         # Create figure template.
         fig = self.generate_figure_layout()
         # Get axes that artists will draw on.
 
-        # Set intial values of displayed  inputs, targets and predictions - simply zeros.
+        # Set intial values of displayed  inputs, targets and predictions -
+        # simply zeros.
         inputs_displayed = np.zeros(input_seq.shape)
 
         # Define Modules
-        module_state_displayed_1 = np.zeros((self.cell_state_history[0][4].shape[-1], input_seq.shape[-2]))
-        module_state_displayed_2 = np.zeros((self.cell_state_history[0][4].shape[-1], input_seq.shape[-2]))
-        module_state_displayed_3 = np.zeros((self.cell_state_history[0][4].shape[-1], input_seq.shape[-2]))
-        module_state_displayed_4 = np.zeros((self.cell_state_history[0][-1].shape[-1], input_seq.shape[-2]))
+        module_state_displayed_1 = np.zeros(
+            (self.cell_state_history[0][4].shape[-1], input_seq.shape[-2]))
+        module_state_displayed_2 = np.zeros(
+            (self.cell_state_history[0][4].shape[-1], input_seq.shape[-2]))
+        module_state_displayed_3 = np.zeros(
+            (self.cell_state_history[0][4].shape[-1], input_seq.shape[-2]))
+        module_state_displayed_4 = np.zeros(
+            (self.cell_state_history[0][-1].shape[-1], input_seq.shape[-2]))
 
         # Define centers
-        center_state_displayed_1 = np.zeros((self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
-        center_state_displayed_2 = np.zeros((self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
-        center_state_displayed_3 = np.zeros((self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
-        center_state_displayed_4 = np.zeros((self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
+        center_state_displayed_1 = np.zeros(
+            (self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
+        center_state_displayed_2 = np.zeros(
+            (self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
+        center_state_displayed_3 = np.zeros(
+            (self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
+        center_state_displayed_4 = np.zeros(
+            (self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
 
         #modules_plot = [module_state_displayed for _ in range(self.num_modules)]
         #center_plot = [center_state_displayed for _ in range(self.num_modules)]
@@ -197,16 +223,21 @@ class ThalNetModel(SequentialModel):
 
         # Log sequence length - so the user can understand what is going on.
         logger = logging.getLogger('ModelBase')
-        logger.info("Generating dynamic visualization of {} figures, please wait...".format(input_seq.shape[0]))
+        logger.info(
+            "Generating dynamic visualization of {} figures, please wait...".format(
+                input_seq.shape[0]))
 
-        # Create frames - a list of lists, where each row is a list of artists used to draw a given frame.
+        # Create frames - a list of lists, where each row is a list of artists
+        # used to draw a given frame.
         frames = []
 
         for i, (input_element, state_tuple) in enumerate(
                 zip(input_seq, self.cell_state_history)):
             # Display information every 10% of figures.
-            if (input_seq.shape[0] > 10) and (i % (input_seq.shape[0] // 10) == 0):
-                logger.info("Generating figure {}/{}".format(i, input_seq.shape[0]))
+            if (input_seq.shape[0] > 10) and (i %
+                                              (input_seq.shape[0] // 10) == 0):
+                logger.info(
+                    "Generating figure {}/{}".format(i, input_seq.shape[0]))
 
             # Update displayed values on adequate positions.
             inputs_displayed[i, :] = input_element
@@ -217,36 +248,60 @@ class ThalNetModel(SequentialModel):
             # centers state
             center_state_displayed_1[:, i] = state_tuple[0][sample_number, :]
             entity = fig.axes[0]
-            artists[0] = entity.imshow(center_state_displayed_1, interpolation='nearest', aspect='auto')
+            artists[0] = entity.imshow(
+                center_state_displayed_1,
+                interpolation='nearest',
+                aspect='auto')
 
             center_state_displayed_2[:, i] = state_tuple[1][sample_number, :]
             entity = fig.axes[1]
-            artists[1] = entity.imshow(center_state_displayed_2, interpolation='nearest', aspect='auto')
+            artists[1] = entity.imshow(
+                center_state_displayed_2,
+                interpolation='nearest',
+                aspect='auto')
 
             center_state_displayed_3[:, i] = state_tuple[2][sample_number, :]
             entity = fig.axes[2]
-            artists[2] = entity.imshow(center_state_displayed_3, interpolation='nearest', aspect='auto')
+            artists[2] = entity.imshow(
+                center_state_displayed_3,
+                interpolation='nearest',
+                aspect='auto')
 
             center_state_displayed_4[:, i] = state_tuple[3][sample_number, :]
             entity = fig.axes[3]
-            artists[3] = entity.imshow(center_state_displayed_4, interpolation='nearest', aspect='auto')
+            artists[3] = entity.imshow(
+                center_state_displayed_4,
+                interpolation='nearest',
+                aspect='auto')
 
             # module state
             module_state_displayed_1[:, i] = state_tuple[4][sample_number, :]
             entity = fig.axes[4]
-            artists[4] = entity.imshow(module_state_displayed_1, interpolation='nearest', aspect='auto')
+            artists[4] = entity.imshow(
+                module_state_displayed_1,
+                interpolation='nearest',
+                aspect='auto')
 
             module_state_displayed_2[:, i] = state_tuple[5][sample_number, :]
             entity = fig.axes[5]
-            artists[5] = entity.imshow(module_state_displayed_2, interpolation='nearest', aspect='auto')
+            artists[5] = entity.imshow(
+                module_state_displayed_2,
+                interpolation='nearest',
+                aspect='auto')
 
             module_state_displayed_3[:, i] = state_tuple[6][sample_number, :]
             entity = fig.axes[6]
-            artists[6] = entity.imshow(module_state_displayed_3, interpolation='nearest', aspect='auto')
+            artists[6] = entity.imshow(
+                module_state_displayed_3,
+                interpolation='nearest',
+                aspect='auto')
 
             module_state_displayed_4[:, i] = state_tuple[7][sample_number, :]
             entity = fig.axes[7]
-            artists[7] = entity.imshow(module_state_displayed_4, interpolation='nearest', aspect='auto')
+            artists[7] = entity.imshow(
+                module_state_displayed_4,
+                interpolation='nearest',
+                aspect='auto')
 
             # h = 0
             # for j, state in enumerate(state_tuple):
@@ -265,24 +320,33 @@ class ThalNetModel(SequentialModel):
             #     h += 1
 
             entity = fig.axes[2 * self.num_modules]
-            artists[2 * self.num_modules] = entity.imshow(inputs_displayed, interpolation='nearest', aspect='auto')
+            artists[2 * self.num_modules] = entity.imshow(
+                inputs_displayed, interpolation='nearest', aspect='auto')
 
             entity = fig.axes[2 * self.num_modules + 1]
-            artists[2 * self.num_modules + 1] = entity.imshow(predictions_seq[0, -1, None], interpolation='nearest', aspect='auto')
+            artists[2 *
+                    self.num_modules +
+                    1] = entity.imshow(predictions_seq[0, -
+                                                       1, None], interpolation='nearest', aspect='auto')
 
             # Add "frame".
             frames.append(artists)
 
         # print("--- %s seconds ---" % (time.time() - start_time))
         # Update time plot fir generated list of figures.
-        self.plotWindow.update(fig,  frames)
+        self.plotWindow.update(fig, frames)
         return self.plotWindow.is_closed
 
 
 if __name__ == "__main__":
     input_size = 28
-    params = {'context_input_size': 32, 'input_size' : input_size, 'output_size': 10,
-              'center_size': 1, 'center_size_per_module':32 , 'num_modules':4}
+    params = {
+        'context_input_size': 32,
+        'input_size': input_size,
+        'output_size': 10,
+        'center_size': 1,
+        'center_size_per_module': 32,
+        'num_modules': 4}
 
     # Initialize the application state singleton.
     app_state = AppState()
@@ -310,6 +374,3 @@ if __name__ == "__main__":
         # Change batch size and seq_length.
         seq_length = seq_length + 1
         batch_size = batch_size + 1
-
-
-

@@ -32,19 +32,23 @@ from misc.app_state import AppState
 
 
 class StackedAttentionVQA(Model):
-    """ Implementation of simple vqa model with attention, it performs the following steps:
+    """
+    Implementation of simple vqa model with attention, it performs the
+    following steps:
 
-       step1: image encoding \n
-       step2: question encoding if needed \n
-       step3: apply attention, the question is used as a query and image as key \n
-       step4: classifier, create the probabilities
+    step1: image encoding \n
+    step2: question encoding if needed \n
+    step3: apply attention, the question is used as a query and image as key \n
+    step4: classifier, create the probabilities
 
     """
+
     def __init__(self, params):
         """
-        Constructor class of StackedAttentionVQA model
+        Constructor class of StackedAttentionVQA model.
 
         :param params: Dictionary of parameters
+
         """
 
         super(StackedAttentionVQA, self).__init__(params)
@@ -54,7 +58,8 @@ class StackedAttentionVQA(Model):
         self.num_channels_image = 3
         self.mid_features_attention = 64
         # TODO: use `image_encoding_channels` when calling class ImageEncoding
-        # For the pretrained cnn the `image_encoding_channels` will be fixed by the cnn_pretrained_model used
+        # For the pretrained cnn the `image_encoding_channels` will be fixed by
+        # the cnn_pretrained_model used
         self.image_encoding_channels = 128
 
         # LSTM parameters (if use_question_encoding is True)
@@ -65,15 +70,21 @@ class StackedAttentionVQA(Model):
 
         # Instantiate class for image encoding
         if params['use_pretrained_cnn']:
-            self.image_encoding = PretrainedImageEncoding(params['pretrained_cnn_model'], params['num_blocks'])
+            self.image_encoding = PretrainedImageEncoding(
+                params['pretrained_cnn_model'], params['num_blocks'])
         else:
             self.image_encoding = ImageEncoding()
 
         # Instantiate class for question encoding
-        self.lstm = nn.LSTM(self.word_embedded_size, self.hidden_size, self.num_layers, batch_first=True)
+        self.lstm = nn.LSTM(
+            self.word_embedded_size,
+            self.hidden_size,
+            self.num_layers,
+            batch_first=True)
 
         # Question encoding
-        self.ffn = nn.Linear(self.encoded_question_size, self.image_encoding_channels)
+        self.ffn = nn.Linear(self.encoded_question_size,
+                             self.image_encoding_channels)
 
         # Instantiate class for attention
         self.apply_attention = StackedAttention(
@@ -83,16 +94,17 @@ class StackedAttentionVQA(Model):
 
         # Instantiate classifier class
         self.classifier = Classifier(
-            in_features=self.image_encoding_channels, #+ self.encoded_question_size,
+            in_features=self.image_encoding_channels,  # + self.encoded_question_size,
             mid_features=256,
             out_features=10)
 
     def forward(self, data_tuple):
         """
-        Runs the stacked_attention model and plots if necessary
+        Runs the stacked_attention model and plots if necessary.
 
         :param data_tuple: Tuple containing images [batch_size, num_channels, height, width] and questions [batch_size, size_question_encoding]
         :returns: output [batch_size, output_classes]
+
         """
 
         (images, questions), _ = data_tuple
@@ -111,7 +123,8 @@ class StackedAttentionVQA(Model):
 
         # step3 : apply attention
         encoded_question = self.ffn(encoded_question)
-        encoded_attention = self.apply_attention(encoded_images, encoded_question)
+        encoded_attention = self.apply_attention(
+            encoded_images, encoded_question)
 
         # step 4: classifying based in the encoded questions and attention
         answer = self.classifier(encoded_attention)
@@ -120,15 +133,19 @@ class StackedAttentionVQA(Model):
 
     def init_hidden_states(self, batch_size):
         """
-        Initialize hidden state ans cell state of the stacked LSTM used for question encoding
+        Initialize hidden state ans cell state of the stacked LSTM used for
+        question encoding.
 
         :param batch_size: Size of the batch in given iteraction/epoch.
         :return: hx, cx: hidden state and cell state of a stacked LSTM [num_layers, batch_size, hidden_size]
+
         """
 
         dtype = AppState().dtype
-        hx = torch.randn(self.num_layers, batch_size, self.hidden_size).type(dtype)
-        cx = torch.randn(self.num_layers, batch_size, self.hidden_size).type(dtype)
+        hx = torch.randn(self.num_layers, batch_size,
+                         self.hidden_size).type(dtype)
+        cx = torch.randn(self.num_layers, batch_size,
+                         self.hidden_size).type(dtype)
 
         return hx, cx
 
@@ -158,28 +175,36 @@ class StackedAttentionVQA(Model):
         # Show data.
         plt.title('Prediction: {} (Target: {})'.format(prediction, target))
         plt.xlabel('Q: {} )'.format(question))
-        plt.imshow(image.transpose(1,2,0), interpolation='nearest', aspect='auto')
+        plt.imshow(image.transpose(1, 2, 0),
+                   interpolation='nearest', aspect='auto')
 
         f = plt.figure()
         plt.title('Attention')
 
-        width_height_attention = int(np.sqrt(self.apply_attention.visualize_attention.size(-2)))
+        width_height_attention = int(
+            np.sqrt(self.apply_attention.visualize_attention.size(-2)))
 
         # get the attention of the 2 layers of stacked attention
-        attention_visualize_layer1 = self.apply_attention.visualize_attention[sample_number, :, 0].detach().numpy()
-        attention_visualize_layer2 = self.apply_attention.visualize_attention[sample_number, :, 1].detach().numpy()
+        attention_visualize_layer1 = self.apply_attention.visualize_attention[sample_number, :, 0].detach(
+        ).numpy()
+        attention_visualize_layer2 = self.apply_attention.visualize_attention[sample_number, :, 1].detach(
+        ).numpy()
 
         # reshape to get a 2D plot
-        attention_visualize_layer1 = attention_visualize_layer1.reshape(width_height_attention, width_height_attention)
-        attention_visualize_layer2 = attention_visualize_layer2.reshape(width_height_attention, width_height_attention)
+        attention_visualize_layer1 = attention_visualize_layer1.reshape(
+            width_height_attention, width_height_attention)
+        attention_visualize_layer2 = attention_visualize_layer2.reshape(
+            width_height_attention, width_height_attention)
 
         plt.title('1st attention layer')
-        plt.imshow(attention_visualize_layer1, interpolation='nearest', aspect='auto')
+        plt.imshow(attention_visualize_layer1,
+                   interpolation='nearest', aspect='auto')
 
         f = plt.figure()
 
         plt.title('2nd attention layer')
-        plt.imshow(attention_visualize_layer2, interpolation='nearest', aspect='auto')
+        plt.imshow(attention_visualize_layer2,
+                   interpolation='nearest', aspect='auto')
 
         # Plot!
         plt.show()
@@ -189,12 +214,13 @@ class StackedAttentionVQA(Model):
 class Classifier(nn.Sequential):
     def __init__(self, in_features, mid_features, out_features):
         """
-
-        Predicts the final answer to the question, based on the question and the attention.
+        Predicts the final answer to the question, based on the question and
+        the attention.
 
         :param in_features: input size of the first feed forward layer
         :param mid_features: input size of the intermediates feed forward layers
         :param out_features: output size
+
         """
 
         super(Classifier, self).__init__()
@@ -205,10 +231,12 @@ class Classifier(nn.Sequential):
 
     def forward(self, x):
         """
-        Apply a set of feed forward layers to the combined question/attention to obtain probabilities over the classes output
+        Apply a set of feed forward layers to the combined question/attention
+        to obtain probabilities over the classes output.
 
         :param x: a combination of the attention and question
         :return: Prediction of the answer [batch_size, num_classes]
+
         """
 
         x = F.relu(self.fc1(x))
@@ -224,8 +252,11 @@ if __name__ == '__main__':
 
     # Test base model.
     params = ParamInterface()
-    params.add_custom_params({'use_question_encoding': False, 'pretrained_cnn_model': 'resnet18', 'num_blocks':2, 'use_pretrained_cnn': True,
-                              'word_embedded_size':7})
+    params.add_custom_params({'use_question_encoding': False,
+                              'pretrained_cnn_model': 'resnet18',
+                              'num_blocks': 2,
+                              'use_pretrained_cnn': True,
+                              'word_embedded_size': 7})
 
     # model
     model = StackedAttentionVQA(params)
@@ -233,7 +264,7 @@ if __name__ == '__main__':
     while True:
         # Generate new sequence.
         # "Image" - batch x channels x width x height
-        input_np = np.random.binomial(1, 0.5, (2, 3, 128,  128))
+        input_np = np.random.binomial(1, 0.5, (2, 3, 128, 128))
         image = torch.from_numpy(input_np).type(torch.FloatTensor)
 
         # Question

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Simple Encoder Decoder LSTM tested on serial recall task"""
+"""
+Simple Encoder Decoder LSTM tested on serial recall task.
+"""
 __author__ = "Vincent Albouy"
 
 from enum import Enum
@@ -9,14 +11,16 @@ from torch import nn
 from models.sequential_model import SequentialModel
 from misc.app_state import AppState
 
-class EncoderDecoderLSTM(SequentialModel):
-    """Simple Encoder Decoder LSTM """
-    
 
-    def  __init__(self, params):
+class EncoderDecoderLSTM(SequentialModel):
+    """
+    Simple Encoder Decoder LSTM.
+    """
+
+    def __init__(self, params):
         '''
         Constructor. Initializes parameters on the basis of dictionary passed as argument.
-        Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences 
+        Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences
         becoming input to encoder is of the same length (ends at the same item), the same goes to
         subsequences being input to decoder.
 
@@ -39,10 +43,12 @@ class EncoderDecoderLSTM(SequentialModel):
         self.decoding_bit = params['decoding_bit']  # Def: 1
 
         # Create the Encoder.
-        self.encoder = nn.LSTMCell(self.input_size_encoder, self.hidden_state_dim)
+        self.encoder = nn.LSTMCell(
+            self.input_size_encoder, self.hidden_state_dim)
 
         # Create the Decoder/Solver.
-        self.decoder = nn.LSTMCell(self.input_size_decoder, self.hidden_state_dim)
+        self.decoder = nn.LSTMCell(
+            self.input_size_decoder, self.hidden_state_dim)
 
         # Output linear layer.
         self.output = nn.Linear(self.hidden_state_dim, self.output_size)
@@ -51,14 +57,15 @@ class EncoderDecoderLSTM(SequentialModel):
 
     def init_state(self, batch_size):
 
-
         dtype = AppState().dtype
 
         # Initialize the hidden state.
-        h_init = torch.zeros(batch_size, self.hidden_state_dim, requires_grad=False).type(dtype)
+        h_init = torch.zeros(batch_size, self.hidden_state_dim,
+                             requires_grad=False).type(dtype)
 
         # Initialize the memory cell state.
-        c_init = torch.zeros(batch_size, self.hidden_state_dim, requires_grad=False).type(dtype)
+        c_init = torch.zeros(batch_size, self.hidden_state_dim,
+                             requires_grad=False).type(dtype)
 
         # Pack and return a tuple.
         return (h_init, c_init)
@@ -79,7 +86,8 @@ class EncoderDecoderLSTM(SequentialModel):
             # Squeeze x.
             x = x.squeeze(1)
 
-            # switch between the encoder and decoder modes. It will stay in this mode till it hits the opposite kind of marker
+            # switch between the encoder and decoder modes. It will stay in
+            # this mode till it hits the opposite kind of marker
             if x[0, self.decoding_bit] and not x[0, self.encoding_bit]:
                 mode = self.modes.Decode
             elif x[0, self.encoding_bit] and not x[0, self.decoding_bit]:

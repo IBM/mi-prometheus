@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """relational_network.py: contains the implementation of the Relational Network."""
-__author__      = "Vincent Marois"
+__author__ = "Vincent Marois"
 
 from models.relational_net.conv_input_model import ConvInputModel
 from models.relational_net.functions import PairwiseRelationNetwork, SumOfPairsAnalysisNetwork
@@ -31,14 +31,18 @@ app_state = AppState()
 
 class RelationalNetwork(Model):
     """
-    Implementation of the Relational Network model. Reference paper: https://arxiv.org/abs/1706.01427
-    The CNN model used for the image encoding is located in .conv_input_model.py
-    The MLPs (g_theta & f_phi) are in .functions.
+    Implementation of the Relational Network model.
+
+    Reference paper: https://arxiv.org/abs/1706.01427 The CNN model used
+    for the image encoding is located in .conv_input_model.py The MLPs
+    (g_theta & f_phi) are in .functions.
+
     """
 
     def __init__(self, params):
         """
-        Constructor
+        Constructor.
+
         :param params: dict of parameters.
 
         """
@@ -59,9 +63,9 @@ class RelationalNetwork(Model):
 
     def build_coord_tensor(self, batch_size, d):
         """
-        Create the tensor containing the spatial relative coordinate of each region (1 pixel) in the feature maps of the
-        ConvInputModel.
-        These spatial relative coordinates are used to 'tag' the regions.
+        Create the tensor containing the spatial relative coordinate of each
+        region (1 pixel) in the feature maps of the ConvInputModel. These
+        spatial relative coordinates are used to 'tag' the regions.
 
         :param batch_size: batch size
         :param d: size of 1 feature map
@@ -75,7 +79,8 @@ class RelationalNetwork(Model):
         ct = torch.stack((x, y))  # [2 x d x d]
 
         # broadcast to all batches
-        ct = ct.unsqueeze(0).repeat(batch_size, 1, 1, 1)  # [batch_size x 2 x d x d]
+        # [batch_size x 2 x d x d]
+        ct = ct.unsqueeze(0).repeat(batch_size, 1, 1, 1)
 
         # indicate that we do not track gradient for this tensor
         ct.requires_grad = False
@@ -99,37 +104,46 @@ class RelationalNetwork(Model):
         # step 1 : encode images
         feature_maps = self.cnn_model(images)
         batch_size = feature_maps.shape[0]
-        k = feature_maps.shape[1]  # number of kernels in the final convolutional layer
+        # number of kernels in the final convolutional layer
+        k = feature_maps.shape[1]
         d = feature_maps.shape[2]  # size of 1 feature map
 
-        # step 2: 'tag' all regions in feature_maps with their relative spatial coordinates
+        # step 2: 'tag' all regions in feature_maps with their relative spatial
+        # coordinates
         ct = self.build_coord_tensor(batch_size, d)  # [batch_size x 2 x d x d]
         x_ct = torch.cat([feature_maps, ct], 1)  # [batch_size x (k+2) x d x d]
         # update number of channels
         k += 2
 
         # step 3: form all possible pairs of region in feature_maps (d** 2 regions -> d ** 4 pairs!)
-        # flatten out feature_maps: [batch_size x k x d x d] -> [batch_size x k x (d ** 2)]
+        # flatten out feature_maps: [batch_size x k x d x d] -> [batch_size x k
+        # x (d ** 2)]
         x_ct = x_ct.view(batch_size, k, d**2)
         x_ct = x_ct.transpose(2, 1)  # [batch_size x (d ** 2) x k]
 
         x_i = x_ct.unsqueeze(1)  # [batch_size x 1 x (d ** 2) x k]
-        x_i = x_i.repeat(1, (d**2), 1, 1)  # [batch_size x (d ** 2) x (d ** 2) x k]
+        # [batch_size x (d ** 2) x (d ** 2) x k]
+        x_i = x_i.repeat(1, (d**2), 1, 1)
 
         # step 4: add the question everywhere
-        questions = questions.unsqueeze(1).repeat(1, d ** 2, 1)  # [batch_size, (d**2), question_size]
-        questions = questions.unsqueeze(2)  # [batch_size, (d**2), 1, question_size]
+        questions = questions.unsqueeze(1).repeat(
+            1, d ** 2, 1)  # [batch_size, (d**2), question_size]
+        # [batch_size, (d**2), 1, question_size]
+        questions = questions.unsqueeze(2)
 
         x_j = x_ct.unsqueeze(2)  # [batch_size x (d ** 2) x 1 x k]
-        x_j = torch.cat([x_j, questions], dim=-1)  # [batch_size x (d ** 2) x 1 x (k+qst_size)]
-        x_j = x_j.repeat(1, 1, (d**2), 1)  # [batch_size x (d ** 2) x (d ** 2) x (k+qst_size)]
+        # [batch_size x (d ** 2) x 1 x (k+qst_size)]
+        x_j = torch.cat([x_j, questions], dim=-1)
+        # [batch_size x (d ** 2) x (d ** 2) x (k+qst_size)]
+        x_j = x_j.repeat(1, 1, (d**2), 1)
 
         # generate all pairs
-        x = torch.cat([x_i, x_j], dim=-1)  # [batch_size, (d**2), (d**2), 2*k+qst_size]
+        # [batch_size, (d**2), (d**2), 2*k+qst_size]
+        x = torch.cat([x_i, x_j], dim=-1)
 
         # step 5: pass pairs through pair_network
         # reshape for passing through network
-        input_size = 2*k + question_size
+        input_size = 2 * k + question_size
         x = x.view(batch_size * (d ** 4), input_size)
         x_g = self.pair_network(x)
 

@@ -6,5 +6,13 @@ from .image_text_to_class_problem import ImageTextTuple, SceneDescriptionTuple, 
 from .sort_of_clevr import SortOfCLEVR
 from .shape_color_query import ShapeColorQuery
 
-__all__ = ['CLEVR', 'CLEVRDataset', 'GenerateFeatureMaps', 'ImageTextTuple', 'SceneDescriptionTuple',
-           'ObjectRepresentation', 'ImageTextToClassProblem', 'SortOfCLEVR', 'ShapeColorQuery']
+__all__ = [
+    'CLEVR',
+    'CLEVRDataset',
+    'GenerateFeatureMaps',
+    'ImageTextTuple',
+    'SceneDescriptionTuple',
+    'ObjectRepresentation',
+    'ImageTextToClassProblem',
+    'SortOfCLEVR',
+    'ShapeColorQuery']

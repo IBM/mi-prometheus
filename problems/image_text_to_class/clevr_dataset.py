@@ -76,9 +76,11 @@ class CLEVRDataset(Dataset):
     , and __getitem__, supporting integer indexing in range from 0 to len(self) exclusive.
     """
 
-    def __init__(self, set, clevr_dir, clevr_humans, embedding_type='random', random_embedding_dim=300):
+    def __init__(self, set, clevr_dir, clevr_humans,
+                 embedding_type='random', random_embedding_dim=300):
         """
         Instantiate a ClevrDataset object:
+
             - Mainly check if the files containing the extracted features & tokenized questions already exist. If not,
             it generates them for the specified sub-set.
             - self.img contains then the extracted feature maps
@@ -113,31 +115,40 @@ class CLEVRDataset(Dataset):
             logger.error('Test set generation not supported for now. Exiting.')
             exit(0)
 
-        logger.info('Loading the {} samples from {}'.format(set, 'CLEVR-Humans' if self.clevr_humans else 'CLEVR'))
+        logger.info('Loading the {} samples from {}'.format(
+            set, 'CLEVR-Humans' if self.clevr_humans else 'CLEVR'))
 
-        # check if the folder /generated_files in self.clevr already exists, if not creates it:
+        # check if the folder /generated_files in self.clevr already exists, if
+        # not creates it:
         if not os.path.isdir(self.clevr_dir + '/generated_files'):
-            logger.warning('Folder {} not found, creating it.'.format(self.clevr_dir + '/generated_files'))
+            logger.warning('Folder {} not found, creating it.'.format(
+                self.clevr_dir + '/generated_files'))
             os.mkdir(self.clevr_dir + '/generated_files')
 
         # checking if the file containing the images feature maps (processed by ResNet101) exists or not
         # For the same self.set, this file is the same for CLEVR & CLEVR-Humans
-        feature_maps_filename = self.clevr_dir + '/generated_files/{}_CLEVR_features.hdf5'.format(self.set)
+        feature_maps_filename = self.clevr_dir + \
+            '/generated_files/{}_CLEVR_features.hdf5'.format(self.set)
         if os.path.isfile(feature_maps_filename):
-            logger.info('The file {} already exists, loading it.'.format(feature_maps_filename))
+            logger.info('The file {} already exists, loading it.'.format(
+                feature_maps_filename))
 
         else:
-            logger.warning('File {} not found on disk, generating it:'.format(feature_maps_filename))
+            logger.warning('File {} not found on disk, generating it:'.format(
+                feature_maps_filename))
             self.generate_feature_maps_file(feature_maps_filename)
 
         # actually load the file
         self.h = h5py.File(feature_maps_filename, 'r')
         self.img = self.h['data']
 
-        # checking if the file containing the tokenized questions (& answers, image filename) exists or not
-        questions_filename = self.clevr_dir + '/generated_files/{}_{}_questions.pkl'.format(self.set, 'CLEVR_Humans' if self.clevr_humans else 'CLEVR')
+        # checking if the file containing the tokenized questions (& answers,
+        # image filename) exists or not
+        questions_filename = self.clevr_dir + '/generated_files/{}_{}_questions.pkl'.format(
+            self.set, 'CLEVR_Humans' if self.clevr_humans else 'CLEVR')
         if os.path.isfile(questions_filename):
-            logger.info('The file {} already exists, loading it.'.format(questions_filename))
+            logger.info('The file {} already exists, loading it.'.format(
+                questions_filename))
 
             # load questions
             with open(questions_filename, 'rb') as questions:
@@ -150,75 +161,100 @@ class CLEVRDataset(Dataset):
                 self.word_dic = dic['word_dic']
 
         else:
-            logger.warning('File {} not found on disk, generating it.'.format(questions_filename))
+            logger.warning(
+                'File {} not found on disk, generating it.'.format(
+                    questions_filename))
 
             # WARNING: We need to ensure that we use the same words & answers dics for both train & val, otherwise we
             # do not have the same reference!
             if self.set == 'val' or self.set == 'valA' or self.set == 'valB':
                 # first generate the words dic using the training samples
-                logger.warning('We need to ensure that we use the same words-to-index & answers-to-index dictionaries '
-                               'for both the train & val samples.')
-                logger.warning('First, generating the words-to-index & answers-to-index dictionaries from '
-                               'the training samples :')
-                _, self.word_dic, self.answer_dic = self.generate_questions_dics('train' if self.set == 'val' else 'trainA',
-                                                                                 word_dic=None, answer_dic=None)
+                logger.warning(
+                    'We need to ensure that we use the same words-to-index & answers-to-index dictionaries '
+                    'for both the train & val samples.')
+                logger.warning(
+                    'First, generating the words-to-index & answers-to-index dictionaries from '
+                    'the training samples :')
+                _, self.word_dic, self.answer_dic = self.generate_questions_dics(
+                    'train' if self.set == 'val' else 'trainA', word_dic=None, answer_dic=None)
 
-                # then tokenize the questions using the created dictionaries from the training samples
-                logger.warning('Then we can tokenize the validation questions using the dictionaries '
-                               'created from the training samples')
-                self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set, word_dic=self.word_dic,
-                                                                                         answer_dic=self.answer_dic)
+                # then tokenize the questions using the created dictionaries
+                # from the training samples
+                logger.warning(
+                    'Then we can tokenize the validation questions using the dictionaries '
+                    'created from the training samples')
+                self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(
+                    self.set, word_dic=self.word_dic, answer_dic=self.answer_dic)
 
-            elif self.set == 'train' or self.set == 'trainA':  # self.set=='train', we can directly tokenize the questions
-                self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set, word_dic=None, answer_dic=None)
+            # self.set=='train', we can directly tokenize the questions
+            elif self.set == 'train' or self.set == 'trainA':
+                self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(
+                    self.set, word_dic=None, answer_dic=None)
 
-        # At this point, the objects self.img & self.data contains the feature maps & questions
+        # At this point, the objects self.img & self.data contains the feature
+        # maps & questions
 
         # creates the objects for the specified embeddings
         if self.embedding_type == 'random':
-            logger.info('Constructing random embeddings using a uniform distribution')
-            # instantiate nn.Embeddings look-up-table with specified embedding_dim
-            self.n_vocab = len(self.word_dic)+1
-            self.embed_layer = torch.nn.Embedding(num_embeddings=self.n_vocab, embedding_dim=self.random_embedding_dim)
+            logger.info(
+                'Constructing random embeddings using a uniform distribution')
+            # instantiate nn.Embeddings look-up-table with specified
+            # embedding_dim
+            self.n_vocab = len(self.word_dic) + 1
+            self.embed_layer = torch.nn.Embedding(
+                num_embeddings=self.n_vocab,
+                embedding_dim=self.random_embedding_dim)
 
-            # we have to make sure that the weights are the same during train or val!
-            if os.path.isfile(self.clevr_dir + '/generated_files/random_embedding_weights.pkl'):
-                logger.info('Found random embedding weights on file, using them.')
+            # we have to make sure that the weights are the same during train
+            # or val!
+            if os.path.isfile(self.clevr_dir +
+                              '/generated_files/random_embedding_weights.pkl'):
+                logger.info(
+                    'Found random embedding weights on file, using them.')
                 with open(self.clevr_dir + '/generated_files/random_embedding_weights.pkl', 'rb') as f:
                     self.embed_layer.weight.data = pickle.load(f)
             else:
-                logger.warning('No weights found on file for random embeddings. Initializing them from a Uniform '
-                               'distribution and saving to file in {}'.format(self.clevr_dir +
-                                                                              '/generated_files/random_embedding_weights.pkl'))
+                logger.warning(
+                    'No weights found on file for random embeddings. Initializing them from a Uniform '
+                    'distribution and saving to file in {}'.format(
+                        self.clevr_dir + '/generated_files/random_embedding_weights.pkl'))
                 self.embed_layer.weight.data.uniform_(0, 1)
                 with open(self.clevr_dir + '/generated_files/random_embedding_weights.pkl', 'wb') as f:
                     pickle.dump(self.embed_layer.weight.data, f)
 
         else:
-            logger.info('Constructing embeddings using {}'.format(self.embedding_type))
+            logger.info('Constructing embeddings using {}'.format(
+                self.embedding_type))
             # instantiate Language class
             self.language = Language('lang')
             self.questions = [q['string_question'] for q in self.data]
             # use the questions set to construct the embeddings vectors
-            self.language.build_pretrained_vocab(self.questions, vectors=self.embedding_type)
+            self.language.build_pretrained_vocab(
+                self.questions, vectors=self.embedding_type)
 
         # Done! The actual question embedding is handled in __getitem__.
 
     def __len__(self):
-        """Return the length of the questions set"""
+        """
+        Return the length of the questions set.
+        """
         return len(self.data)
 
     def close(self):
-        """Close hdf5 file."""
+        """
+        Close hdf5 file.
+        """
         self.h.close()
 
     def generate_questions_dics(self, set, word_dic=None, answer_dic=None):
         """
-        Loads the questions from the .json file, tokenize them, creates vocab dics and save that to files.
+        Loads the questions from the .json file, tokenize them, creates vocab
+        dics and save that to files.
 
         :param set: String to specify which dataset to use: 'train', 'val'
         :param word_dic: dict {'word': index} to be used to tokenize the questions
         :param answer_dic: dict {'answer': index} to be used to process questions
+
         """
         if word_dic is None:
             # create empty dic for the words vocab set
@@ -233,14 +269,16 @@ class CLEVRDataset(Dataset):
         nltk.download('punkt')  # needed for nltk.word.tokenize
 
         # load questions from the .json file
-        question_file = os.path.join(self.clevr_dir, 'questions', 'CLEVR-Humans-{}.json'.format(set) if self.clevr_humans
-                                            else 'CLEVR_{}_questions.json'.format(set))
+        question_file = os.path.join(
+            self.clevr_dir, 'questions', 'CLEVR-Humans-{}.json'.format(set)
+            if self.clevr_humans else 'CLEVR_{}_questions.json'.format(set))
         with open(question_file) as f:
             logger.info('Loading samples from {} ...'.format(question_file))
             data = json.load(f)
         logger.info('Loaded {} samples'.format(len(data['questions'])))
 
-        # load the dictionary question_family_type -> question_type: Will allow to plot the accuracy per question category
+        # load the dictionary question_family_type -> question_type: Will allow
+        # to plot the accuracy per question category
         with open(os.path.join(self.clevr_dir, 'questions/index_to_family.json')) as f:
             index_to_family = json.load(f)
 
@@ -258,7 +296,7 @@ class CLEVRDataset(Dataset):
                 try:
                     question_token.append(word_dic[word])
 
-                except:
+                except BaseException:
                     question_token.append(word_index)
                     word_dic[word] = word_index
                     word_index += 1
@@ -267,43 +305,51 @@ class CLEVRDataset(Dataset):
             try:
                 answer = answer_dic[answer_word]
 
-            except:
+            except BaseException:
                 answer = answer_index
                 answer_dic[answer_word] = answer_index
                 answer_index += 1
 
             # save sample params as a dict.
-            result.append({'tokenized_question': question_token, 'answer': answer,
-                           'string_question': question['question'], 'imgfile': question['image_filename'],
-                           'question_type': index_to_family[str(question['question_family_index'])]})
+            result.append(
+                {'tokenized_question': question_token, 'answer': answer,
+                 'string_question': question['question'],
+                 'imgfile': question['image_filename'],
+                 'question_type':
+                 index_to_family[str(question['question_family_index'])]})
 
-        logger.info('Done: constructed words dictionary of length {}, and answers dictionary of length {}'.format(len(word_dic),
-                                                                                                            len(answer_dic)))
+        logger.info(
+            'Done: constructed words dictionary of length {}, and answers dictionary of length {}'.format(
+                len(word_dic), len(answer_dic)))
         # save result to file
-        questions_filename = self.clevr_dir + '/generated_files/{}_{}_questions.pkl'.format(set,
-                                                                                            'CLEVR_Humans' if self.clevr_humans else 'CLEVR')
+        questions_filename = self.clevr_dir + '/generated_files/{}_{}_questions.pkl'.format(
+            set, 'CLEVR_Humans' if self.clevr_humans else 'CLEVR')
         with open(questions_filename, 'wb') as f:
             pickle.dump(result, f)
 
-        logger.warning('Saved tokenized questions to file {}.'.format(questions_filename))
+        logger.warning(
+            'Saved tokenized questions to file {}.'.format(questions_filename))
 
         # save dictionaries to file:
         with open(self.clevr_dir + '/generated_files/dics.pkl', 'wb') as f:
             pickle.dump({'word_dic': word_dic, 'answer_dic': answer_dic}, f)
-        logger.warning('Saved dics to file {}.'.format(self.clevr_dir + '/generated_files/dics.pkl'))
+        logger.warning('Saved dics to file {}.'.format(
+            self.clevr_dir + '/generated_files/dics.pkl'))
 
         # return everything
         return result, word_dic, answer_dic
 
     def generate_feature_maps_file(self, feature_maps_filename, batch_size=50):
         """
-        Uses GenerateFeatureMaps to pass the CLEVR images through a pretrained CNN model.
+        Uses GenerateFeatureMaps to pass the CLEVR images through a pretrained
+        CNN model.
 
         :param set: String to specify which dataset to use: 'train', 'val' or 'test'.
         :param feature_maps_filename: filename for saving to file.
         :param batch_size: batch size
 
         :return: feature maps
+
         """
         # import lines
         from problems.image_text_to_class.generate_feature_maps import GenerateFeatureMaps
@@ -311,7 +357,11 @@ class CLEVRDataset(Dataset):
         import tqdm
 
         # create DataLoader of the images dataset.
-        generate_feature_maps = GenerateFeatureMaps(clevr_dir=self.clevr_dir, set=self.set, cnn_model='resnet101', num_blocks=4)
+        generate_feature_maps = GenerateFeatureMaps(
+            clevr_dir=self.clevr_dir,
+            set=self.set,
+            cnn_model='resnet101',
+            num_blocks=4)
         dataloader = DataLoader(generate_feature_maps, batch_size=batch_size)
 
         size = len(dataloader)
@@ -320,7 +370,8 @@ class CLEVRDataset(Dataset):
 
         # create file to store feature maps.
         f = h5py.File(feature_maps_filename, 'w', libver='latest')
-        dset = f.create_dataset('data', (size * batch_size, 1024, 14, 14), dtype='f4')
+        dset = f.create_dataset(
+            'data', (size * batch_size, 1024, 14, 14), dtype='f4')
 
         with torch.no_grad():
             for i, image in enumerate(pbar):
@@ -328,11 +379,13 @@ class CLEVRDataset(Dataset):
                 image = image.type(torch.cuda.FloatTensor)
 
                 # forward pass, move output to cpu and store it into the file.
-                features = generate_feature_maps.model(image).detach().cpu().numpy()
+                features = generate_feature_maps.model(
+                    image).detach().cpu().numpy()
                 dset[i * batch_size:(i + 1) * batch_size] = features
 
         f.close()
-        logger.warning('File {} successfully created.'.format(feature_maps_filename))
+        logger.warning('File {} successfully created.'.format(
+            feature_maps_filename))
 
     def __getitem__(self, index):
         """
@@ -347,9 +400,12 @@ class CLEVRDataset(Dataset):
                  string_question: original question string
                  index: index of the sample
                  imgfile: image filename
+
         """
-        # load tokenized_question, answer, string_question, image_filename from self.data
-        question, answer, string_question, imgfile, question_type = self.data[index].values()
+        # load tokenized_question, answer, string_question, image_filename from
+        # self.data
+        question, answer, string_question, imgfile, question_type = self.data[index].values(
+        )
 
         # create the image index to retrieve the feature maps in self.img
         id = int(imgfile.rsplit('_', 1)[1][:-4])
@@ -359,7 +415,8 @@ class CLEVRDataset(Dataset):
         # embed question
         if self.embedding_type == 'random':
             # embed question:
-            question = self.embed_layer(torch.LongTensor(question)).type(app_state.dtype)
+            question = self.embed_layer(
+                torch.LongTensor(question)).type(app_state.dtype)
 
         else:
             # embed question
@@ -372,14 +429,17 @@ class CLEVRDataset(Dataset):
 
     def collate_data(self, batch):
         """
-        Combines samples (retrieved with __getitem__) into a mini-batch
+        Combines samples (retrieved with __getitem__) into a mini-batch.
+
         :param batch: list (?) of samples to combine
 
         :return: images (tensor), padded_tokenized_questions (tensor), questions_lengths (list), answers (tensor),
                 questions_strings (list), indexes (list), imgfiles (list)
+
         """
         # create list placeholders
-        images, lengths, answers, s_questions, indexes, imgfiles, question_types = [], [], [], [], [], [], []
+        images, lengths, answers, s_questions, indexes, imgfiles, question_types = [
+        ], [], [], [], [], [], []
         batch_size = len(batch)
 
         # get max question length, create tensor of shape [batch_size x maxQuestionLength] & sort questions by
@@ -389,12 +449,17 @@ class CLEVRDataset(Dataset):
 
         # create tensor containing the embedded questions
         if self.embedding_type == 'random':
-            questions = torch.zeros(batch_size, max_len, self.random_embedding_dim).type(app_state.dtype)
+            questions = torch.zeros(
+                batch_size,
+                max_len,
+                self.random_embedding_dim).type(
+                app_state.dtype)
 
         else:
             # get embedding dimension from the embedding type
             embedding_dim = int(self.embedding_type[-4:-1])
-            questions = torch.zeros(batch_size, max_len, embedding_dim).type(app_state.dtype)
+            questions = torch.zeros(
+                batch_size, max_len, embedding_dim).type(app_state.dtype)
 
         # fill in the placeholders
         for i, b in enumerate(sort_by_len):
@@ -411,17 +476,21 @@ class CLEVRDataset(Dataset):
             questions[i, :length, :] = question
 
         # return all
-        return torch.stack(images).type(app_state.dtype), questions, lengths,\
-               torch.tensor(answers).type(app_state.LongTensor), s_questions, indexes, imgfiles, question_types
+        return torch.stack(images).type(
+            app_state.dtype), questions, lengths, torch.tensor(answers).type(
+            app_state.LongTensor), s_questions, indexes, imgfiles, question_types
 
 
 if __name__ == '__main__':
-    """ Unit test of CLEVRDataset"""
+    """
+    Unit test of CLEVRDataset.
+    """
     set = 'train'
     clevr_dir = '/home/valbouy/CLEVR_v1.0'
     clevr_humans = False
     embedding_type = 'random'
     random_embedding_dim = 300
 
-    clevr_dataset = CLEVRDataset(set, clevr_dir, clevr_humans, embedding_type, random_embedding_dim)
+    clevr_dataset = CLEVRDataset(
+        set, clevr_dir, clevr_humans, embedding_type, random_embedding_dim)
     print('Unit test completed.')

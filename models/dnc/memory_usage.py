@@ -25,13 +25,14 @@ of the DNC (Copyright 2017 Google Inc.) https://github.com/deepmind/dnc/blob/mas
 
 """
 
-__author__  = " Ryan L. McAvoy"
+__author__ = " Ryan L. McAvoy"
 
 import torch
 from misc.app_state import AppState
 
 # Ensure values are greater than epsilon to avoid numerical instability.
 _EPSILON = 1e-6
+
 
 class MemoryUsage(object):
     """
@@ -49,28 +50,33 @@ class MemoryUsage(object):
     The function `write_allocation_weights` can be invoked to get free locations to write to for a number of write heads.
 
     """
-  
+
     def __init__(self, name='MemoryUsage'):
-        """Creates a MemoryUsages module.
-          :param name: Name of the module.
+        """
+        Creates a MemoryUsages module.
+
+        :param name: Name of the module.
+
         """
         super(MemoryUsage, self).__init__()
-  
+
     def init_state(self, memory_address_size, batch_size):
         """
         Returns 'zero' (initial) state tuple.
-        
+
         :param batch_size: Size of the batch in given iteraction/epoch.
         :returns: Initial state tuple - object of InterfaceStateTuple class.
+
         """
         dtype = AppState().dtype
-        self._memory_size=memory_address_size
+        self._memory_size = memory_address_size
 
-        usage = torch.zeros((batch_size,  memory_address_size)).type(dtype)
-  
+        usage = torch.zeros((batch_size, memory_address_size)).type(dtype)
+
         return usage
 
-    def calculate_usage(self, write_weights, free_gate, read_weights, prev_usage):
+    def calculate_usage(self, write_weights, free_gate,
+                        read_weights, prev_usage):
         """
         Calculates the new memory usage u_t.
 
@@ -90,12 +96,13 @@ class MemoryUsage(object):
         :returns: tensor of shape `[batch_size, memory_size]` representing updated memory usage.
 
         """
-       # Calculation of usage is not differentiable with respect to write weights.
+       # Calculation of usage is not differentiable with respect to write
+       # weights.
         with torch.no_grad():
             usage = self._usage_after_write(prev_usage, write_weights)
             usage = self._usage_after_read(usage, free_gate, read_weights)
         return usage
-  
+
     def write_allocation_weights(self, usage, write_gates, num_writes):
         """
         Calculates freeness-based locations for writing to.
@@ -114,33 +121,37 @@ class MemoryUsage(object):
         :returns: tensor of shape `[batch_size, num_writes, memory_size]` containing the freeness-based write locations. Note that this isn't scaled by `write_gate`; this scaling must be applied externally.
 
         """
-  
+
         allocation_weights = []
         for i in range(num_writes):
             allocation_weights.append(self._allocation(usage))
             # update usage to take into account writing to this new allocation
-            usage = usage + ((1 - usage) * write_gates[:, i, :] * allocation_weights[i])
- 
+            usage = usage + \
+                ((1 - usage) * write_gates[:, i, :] * allocation_weights[i])
+
         # Pack the allocation weights for the write heads into one tensor.
-        full_weights=torch.stack(allocation_weights, dim=1)
+        full_weights = torch.stack(allocation_weights, dim=1)
 
         return full_weights
-  
+
     def _usage_after_write(self, prev_usage, write_weights):
-        """Calculates the new usage after writing to memory.
-        Args:
+        """
+        Calculates the new usage after writing to memory. Args:
+
           :param prev_usage: tensor of shape `[batch_size, memory_size]`.
           :param write_weights: tensor of shape `[batch_size, num_writes, memory_size]`.
         Returns:
           :returns: New usage, a tensor of shape `[batch_size, memory_size]`.
+
         """
         # Calculate the aggregated effect of all write heads
         write_weights2 = 1 - torch.prod(1 - write_weights, 1)
         return prev_usage + (1 - prev_usage) * write_weights2
-  
+
     def _usage_after_read(self, prev_usage, free_gate, read_weights):
-        """Calculates the new usage after reading and freeing from memory.
-        Args:
+        """
+        Calculates the new usage after reading and freeing from memory. Args:
+
           :param prev_usage: tensor of shape `[batch_size, memory_size]`.
           :param free_gate: tensor of shape `[batch_size, num_reads]` with entries in the
               range [0, 1] indicating the amount that locations read from can be
@@ -148,12 +159,13 @@ class MemoryUsage(object):
           :param read_weights: tensor of shape `[batch_size, num_reads, memory_size]`.
         Returns:
           :returns: New usage, a tensor of shape `[batch_size, memory_size]`.
+
         """
         free_read_weights = free_gate * read_weights
         phi = torch.prod(1 - free_read_weights, 1)
-        
+
         return prev_usage * phi
-  
+
     def _allocation(self, usage):
         r"""Computes allocation by sorting `usage`.
         This corresponds to the value a = a_t[\phi_t[j]] in the paper.
@@ -168,44 +180,48 @@ class MemoryUsage(object):
         """
         # Ensure values are not too small prior to cumprod.
         usage = _EPSILON + (1 - _EPSILON) * usage
-  
-        #sorts usage along the last index
+
+        # sorts usage along the last index
         sorted_usage, indices = torch.sort(usage, descending=False)
-        sorted_nonusage=1-sorted_usage
-  
-        #this computes the exclusive cumulative product
+        sorted_nonusage = 1 - sorted_usage
+
+        # this computes the exclusive cumulative product
         prod_sorted_usage = self.exclusive_cumprod_temp(sorted_usage)
-        
+
         # Weights 1-usage by the exclusive product of the sorted usage
         # This is a trick to choose the first point
         # as anything other than the first element of the exclusive product should be negligibly small
-        # and this operation isn't differentiable anyways due to the sorting above
+        # and this operation isn't differentiable anyways due to the sorting
+        # above
         sorted_allocation = sorted_nonusage * prod_sorted_usage
-  
+
         # This final line "unsorts" sorted_allocation, so that the indexing
-        # corresponds to the original indexing of `usage`. 
+        # corresponds to the original indexing of `usage`.
         unsorted_all = sorted_allocation.new(*sorted_allocation.size())
         unsorted_all.scatter_(1, indices, sorted_allocation)
-         
+
         return unsorted_all
 
     def exclusive_cumprod_temp(self, sorted_usage, dim=1):
         """
-        Applies the exclusive cumultative product (at the moment it assumes the shape of the input)
+        Applies the exclusive cumultative product (at the moment it assumes the
+        shape of the input)
 
         :param sorted_usage: tensor of shape `[batch_size, memory_size]` indicating current memory usage sorted in ascending order.
 
         :returns: Tensor of shape `[batch_size, memory_size]` that is exclusive pruduct of the sorted usage i.e. = [1, u1, u1*u2, u1*u2*u3, ....]
 
         """
-        #TODO: expand this so it works for any dim
+        # TODO: expand this so it works for any dim
         dtype = AppState().dtype
-        a=torch.ones((sorted_usage.shape[0],1)).type(dtype)
-        b=torch.cat((a,sorted_usage),dim=dim).type(dtype)
-        prod_sorted_usage = torch.cumprod(b, dim=dim)[:,:-1]
+        a = torch.ones((sorted_usage.shape[0], 1)).type(dtype)
+        b = torch.cat((a, sorted_usage), dim=dim).type(dtype)
+        prod_sorted_usage = torch.cumprod(b, dim=dim)[:, :-1]
         return prod_sorted_usage
 
     @property
     def state_size(self):
-        """Returns the shape of the state tensor."""
+        """
+        Returns the shape of the state tensor.
+        """
         return (self._memory_size)

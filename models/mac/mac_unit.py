@@ -60,15 +60,18 @@ class MACUnit(nn.Module):
     Implementation of the MAC Cell of the MAC network.
     """
 
-    def __init__(self, dim, max_step=12, self_attention=False, memory_gate=False, dropout=0.15):
+    def __init__(self, dim, max_step=12, self_attention=False,
+                 memory_gate=False, dropout=0.15):
         """
-        Constructor for the MAC Unit, which represents the recurrence over the MACCell.
+        Constructor for the MAC Unit, which represents the recurrence over the
+        MACCell.
 
         :param dim: global 'd' hidden dimension
         :param max_step: maximal number of MAC cells.
         :param self_attention: whether or not to use self-attention in the WriteUnit.
         :param memory_gate: whether or not to use memory gating in the WriteUnit.
         :param dropout: dropout probability for the variational dropout mask.
+
         """
 
         # call base constructor
@@ -77,11 +80,13 @@ class MACUnit(nn.Module):
         # instantiate the units
         self.control = ControlUnit(dim=dim, max_step=max_step)
         self.read = ReadUnit(dim=dim)
-        self.write = WriteUnit(dim=dim, self_attention=self_attention, memory_gate=memory_gate)
+        self.write = WriteUnit(
+            dim=dim, self_attention=self_attention, memory_gate=memory_gate)
 
         # initialize hidden states
         self.mem_0 = nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
-        self.control_0 = nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
+        self.control_0 = nn.Parameter(
+            torch.zeros(1, dim).type(app_state.dtype))
 
         self.dim = dim
         self.max_step = max_step
@@ -97,9 +102,11 @@ class MACUnit(nn.Module):
         :param dropout: dropout rate.
 
         :return: mask.
+
         """
         # create a binary mask, where the probability of 1's is (1-dropout)
-        mask = torch.empty_like(x).bernoulli_(1 - dropout).type(app_state.dtype)
+        mask = torch.empty_like(x).bernoulli_(
+            1 - dropout).type(app_state.dtype)
 
         # normalize the mask so that the average value is 1 and not (1-dropout)
         mask /= (1 - dropout)
@@ -108,12 +115,14 @@ class MACUnit(nn.Module):
 
     def forward(self, context, question, knowledge, kb_proj):
         """
-        Forward pass of the MACUnit, which represents the recurrence over the MACCell.
+        Forward pass of the MACUnit, which represents the recurrence over the
+        MACCell.
 
         :param context: contextual words, shape [batch_size x maxQuestionLength x dim]
         :param question: questions encodings, shape [batch_size x 2*dim]
         :param knowledge: knowledge_base (feature maps extracted by a CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
         :return:
+
         """
         batch_size = question.size(0)
 
@@ -136,7 +145,11 @@ class MACUnit(nn.Module):
         for i in range(self.max_step):
 
             # control unit
-            control = self.control(step=i, contextual_words=context, question_encoding=question, ctrl_state=control)
+            control = self.control(
+                step=i,
+                contextual_words=context,
+                question_encoding=question,
+                ctrl_state=control)
 
             # apply variational dropout
             if self.training:
@@ -146,10 +159,12 @@ class MACUnit(nn.Module):
             controls.append(control)
 
             # read unit
-            read = self.read(memory_states=memories, knowledge_base=knowledge, ctrl_states=controls, kb_proj=kb_proj)
+            read = self.read(memory_states=memories, knowledge_base=knowledge,
+                             ctrl_states=controls, kb_proj=kb_proj)
 
             # write unit
-            memory = self.write(memory_states=memories, read_vector=read, ctrl_states=controls)
+            memory = self.write(memory_states=memories,
+                                read_vector=read, ctrl_states=controls)
 
             # apply variational dropout
             if self.training:

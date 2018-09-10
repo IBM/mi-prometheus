@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """image_text_to_class_problem.py: contains abstract base class for VQA problems"""
-__author__      = "Tomasz Kornuta & Vincent Albouy"
+__author__ = "Tomasz Kornuta & Vincent Albouy"
 
 import collections
 import torch.nn as nn
@@ -10,12 +10,16 @@ from problems.problem import Problem, DataTuple
 
 _ImageTextTuple = collections.namedtuple('ImageTextTuple', ('images', 'texts'))
 
+
 class ImageTextTuple(_ImageTextTuple):
-    """Tuple used by storing batches of image-text pairs by e.g. VQA problems"""
+    """
+    Tuple used by storing batches of image-text pairs by e.g. VQA problems.
+    """
     __slots__ = ()
 
 
-_SceneDescriptionTuple = collections.namedtuple('_SceneDescriptionTuple', ('scene_descriptions'))
+_SceneDescriptionTuple = collections.namedtuple(
+    '_SceneDescriptionTuple', ('scene_descriptions'))
 
 
 class SceneDescriptionTuple(_SceneDescriptionTuple):
@@ -24,7 +28,10 @@ class SceneDescriptionTuple(_SceneDescriptionTuple):
 
 
 class ObjectRepresentation:
-    """ Class storing features of the object being present in a given scene. """
+    """
+    Class storing features of the object being present in a given scene.
+    """
+
     def __init__(self, x, y, color, shape):
         self.x = x
         self.y = y
@@ -33,15 +40,22 @@ class ObjectRepresentation:
 
 
 class ImageTextToClassProblem(Problem):
-    ''' Abstract base class for VQA  (Visual Question Answering) problems. Provides some basic functionality usefull in all problems of such type'''
+    """
+    Abstract base class for VQA  (Visual Question Answering) problems.
 
+    Provides some basic functionality usefull in all problems of such
+    type
+
+    """
 
     def __init__(self, params):
-        """ 
-        Initializes problem, calls base class initialization. Set loss function to CrossEntropy.
+        """
+        Initializes problem, calls base class initialization. Set loss function
+        to CrossEntropy.
 
-        :param params: Dictionary of parameters (read from configuration file).        
-        """ 
+        :param params: Dictionary of parameters (read from configuration file).
+
+        """
         # Call base class constructors.
         super(ImageTextToClassProblem, self).__init__(params)
 
@@ -68,9 +82,10 @@ class ImageTextToClassProblem(Problem):
 
     def add_statistics(self, stat_col):
         """
-        Add accuracy statistic to collector. 
+        Add accuracy statistic to collector.
 
         :param stat_col: Statistics collector.
+
         """
         stat_col.add_statistic('acc', '{:12.10f}')
 
@@ -81,7 +96,8 @@ class ImageTextToClassProblem(Problem):
         :param stat_col: Statistics collector.
         :param data_tuple: Data tuple containing inputs and targets.
         :param logits: Logits being output of the model.
-        :param _: auxiliary tuple (aux_tuple) is not used in this function. 
+        :param _: auxiliary tuple (aux_tuple) is not used in this function.
+
         """
         stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, _)
 
