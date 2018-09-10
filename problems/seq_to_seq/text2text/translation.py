@@ -28,8 +28,6 @@ import random
 
 import torch
 import errno
-from misc.app_state import AppState
-app_state = AppState()
 
 from problems.problem import DataTuple
 from problems.seq_to_seq.text2text.text_to_text_problem import TextToTextProblem, Lang, TextAuxTuple
@@ -313,9 +311,9 @@ class Translation(TextToTextProblem):
 
         # create main batch inputs & outputs tensor
         inputs = torch.zeros(self.batch_size, self.max_sequence_length).type(
-            app_state.LongTensor)
+            self.app_state.LongTensor)
         targets = torch.zeros(self.batch_size, self.max_sequence_length).type(
-            app_state.LongTensor)
+            self.app_state.LongTensor)
 
         # for TextAuxTuple
         inputs_text = []

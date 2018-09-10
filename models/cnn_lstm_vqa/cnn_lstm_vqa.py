@@ -23,12 +23,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from misc.param_interface import ParamInterface
+from utils.param_interface import ParamInterface
 
 
 from models.cnn_lstm_vqa.image_encoding import ImageEncoding
 from models.model import Model
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 
 class CNNLSTMVQA(Model):

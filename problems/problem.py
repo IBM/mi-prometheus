@@ -6,6 +6,7 @@ __author__ = "Tomasz Kornuta"
 
 import collections
 from abc import ABCMeta, abstractmethod
+from utils.app_state import AppState
 
 _DataTuple = collections.namedtuple('DataTuple', ('inputs', 'targets'))
 
@@ -59,6 +60,13 @@ class Problem(metaclass=ABCMeta):
         # Store pointer to params.
         self.params = params
 
+        # Get access to AppState.
+        self.app_state = AppState()
+
+        # "Default" problem name.
+        self.name = 'Problem'
+
+
     def set_loss_function(self, loss_function):
         """
         Sets loss function.
@@ -67,6 +75,7 @@ class Problem(metaclass=ABCMeta):
 
         """
         self.loss_function = loss_function
+
 
     @abstractmethod
     def generate_batch(self):

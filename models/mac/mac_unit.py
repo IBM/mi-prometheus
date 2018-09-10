@@ -48,9 +48,6 @@ from models.mac.control_unit import ControlUnit
 from models.mac.read_unit import ReadUnit
 from models.mac.write_unit import WriteUnit
 
-from misc.app_state import AppState
-app_state = AppState()
-
 from torch import nn
 import torch
 

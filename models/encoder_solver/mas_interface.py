@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger('MAS-Interface')
 # logging.basicConfig(level=logging.DEBUG)
 
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 
 # Helper collection type.

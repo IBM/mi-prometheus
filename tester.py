@@ -37,10 +37,10 @@ import logging.config
 from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
-from misc.app_state import AppState
-from misc.statistics_collector import StatisticsCollector
-from misc.param_interface import ParamInterface
-from worker_utils import forward_step, check_and_set_cuda
+from utils.app_state import AppState
+from utils.statistics_collector import StatisticsCollector
+from utils.param_interface import ParamInterface
+from utils.worker_utils import forward_step, check_and_set_cuda
 
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 

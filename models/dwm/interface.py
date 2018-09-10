@@ -26,7 +26,7 @@ import collections
 
 from models.dwm.tensor_utils import circular_conv, normalize
 from models.dwm.memory import Memory
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 # Helper collection type.
 _InterfaceStateTuple = collections.namedtuple(

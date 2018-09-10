@@ -30,8 +30,8 @@ class ProblemFactory(object):
         # Check name
         if 'name' not in params:
             logger.error(
-                "Problem parameter dictionary does not contain 'name'")
-            raise ValueError
+                "Problem parameter dictionary does not contain the key 'name'")
+            raise KeyError
         # Try to load model
         name = os.path.basename(params['name'])
 

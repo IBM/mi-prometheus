@@ -22,7 +22,6 @@ import torch
 import numpy as np
 from problems.problem import DataTuple
 from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem, AlgSeqAuxTuple
-from misc.param_interface import ParamInterface
 
 
 class OperationSpan(AlgorithmicSeqToSeqProblem):

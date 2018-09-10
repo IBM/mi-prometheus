@@ -16,7 +16,7 @@ Here is a quick how-to guide on how to keep this documentation up-to-date.
     - `index.rst`: master table of content document for the entire documentation.
     - `models.rst`: master table of content document for the `models/` directory.
     - `problems.rst`: master table of content document for the `problems/` directory.
-    - `misc.rst`: master table of content document for the `misc/` directory. [1]_
+    - `utils.rst`: master table of content document for the `utils/` directory.
     - `notes/`: contains global information about the documentation pages (e.g. this page and the License).
     - `workers/`: contains the workers documentation pages.
 
@@ -125,9 +125,3 @@ Some quotes about Code Documentation
     "Always code as if the guy who ends up maintaining your code will be a violent psychopath who knows where you live." - John F. Woods
     "Ink is better than the best memory." - Chinese proverb
     "The documentation needs documentation." - a Bellevue Linux Users Group member, 2005
-
-
-
-
-
-.. [1] #TODO: Rename the `misc/` directory to `utilities/`.

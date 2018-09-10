@@ -103,7 +103,7 @@ class MAES(SequentialModel):
 
         """
         # Get dtype.
-        dtype = AppState().dtype
+        dtype = self.app_state.dtype
 
         # Unpack tuple.
         (inputs_BxSxI, _) = data_tuple
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     # Set visualization.
-    from misc.app_state import AppState
+    from utils.app_state import AppState
     AppState().visualize = True
 
     # "Loaded parameters".

@@ -24,8 +24,9 @@ import logging
 import numpy as np
 
 from models.sequential_model import SequentialModel
-from misc.app_state import AppState
 from models.thalnet.thalnet_cell import ThalNetCell
+
+from utils.app_state import AppState
 
 
 class ThalNetModel(SequentialModel):
@@ -177,7 +178,7 @@ class ThalNetModel(SequentialModel):
 
         # Initialize timePlot window - if required.
         if self.plotWindow is None:
-            from misc.time_plot import TimePlot
+            from utils.time_plot import TimePlot
             self.plotWindow = TimePlot()
 
         (inputs, _) = data_tuple

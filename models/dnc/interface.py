@@ -26,7 +26,7 @@ from models.dnc.tensor_utils import circular_conv, normalize
 from models.dnc.memory import Memory
 from models.dnc.memory_usage import MemoryUsage
 from models.dnc.temporal_linkage import TemporalLinkage
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 # Helper collection type.
 _InterfaceStateTuple = collections.namedtuple(

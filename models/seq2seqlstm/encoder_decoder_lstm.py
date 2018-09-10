@@ -9,7 +9,6 @@ from enum import Enum
 import torch
 from torch import nn
 from models.sequential_model import SequentialModel
-from misc.app_state import AppState
 
 
 class EncoderDecoderLSTM(SequentialModel):
@@ -57,7 +56,7 @@ class EncoderDecoderLSTM(SequentialModel):
 
     def init_state(self, batch_size):
 
-        dtype = AppState().dtype
+        dtype = self.app_state.dtype
 
         # Initialize the hidden state.
         h_init = torch.zeros(batch_size, self.hidden_state_dim,

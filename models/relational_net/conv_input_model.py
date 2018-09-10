@@ -23,9 +23,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
-from misc.app_state import AppState
-app_state = AppState()
-
+from utils.app_state import AppState
 
 class ConvInputModel(nn.Module):
     """
@@ -89,7 +87,7 @@ if __name__ == '__main__':
     img_size = 128
 
     input_np = np.random.binomial(1, 0.5, (batch_size, 3, img_size, img_size))
-    image = torch.from_numpy(input_np).type(app_state.dtype)
+    image = torch.from_numpy(input_np).type(AppState().dtype)
 
     cnn = ConvInputModel()
 

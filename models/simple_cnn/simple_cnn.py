@@ -26,7 +26,6 @@ import torch.nn.functional as F
 
 from models.model import Model
 from problems.problem import DataTuple
-from misc.app_state import AppState
 
 
 class SimpleConvNet(Model):

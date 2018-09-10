@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
+# Copyright (C) IBM Corporation 2018
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """algorithmic_seq_to_seq_problem.py: abstract base class for algorithmic, sequential problems"""
 __author__ = "Tomasz Kornuta, Younes Bouhadjar"
 
@@ -9,8 +24,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from problems.problem import DataTuple
-from problems.problem_utils import MaskedBCEWithLogitsLoss
 from problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
+from utils.loss.masked_bce_with_logits_loss import MaskedBCEWithLogitsLoss
 
 
 _AlgSeqAuxTuple = collections.namedtuple(

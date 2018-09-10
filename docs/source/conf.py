@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 # These lines should not be needed, but keeping them around for now.
 # sys.path.insert(0, os.path.abspath('../'))
-# sys.path.insert(0, os.path.abspath('../../misc/'))
+# sys.path.insert(0, os.path.abspath('../../utils/'))
 # sys.path.insert(0, os.path.abspath('../../problems/'))
 # sys.path.insert(0, os.path.abspath('../../models/'))
 

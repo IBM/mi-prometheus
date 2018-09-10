@@ -6,7 +6,7 @@ __author__ = "Tomasz Kornuta/Ryan L. McAvoy/Younes Bouhadjar"
 import torch
 from torch import nn
 import collections
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 _GRUStateTuple = collections.namedtuple('GRUStateTuple', ('hidden_state'))
 

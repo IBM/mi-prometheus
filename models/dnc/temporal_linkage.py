@@ -24,7 +24,7 @@ __author__ = " Ryan L. McAvoy"
 
 import torch
 import collections
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 _TemporalLinkageState = collections.namedtuple('TemporalLinkageState',
                                                ('link', 'precedence_weights'))

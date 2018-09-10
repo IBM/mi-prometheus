@@ -21,7 +21,7 @@ __author__ = "Younes Bouhadjar"
 
 import torch
 from torch import nn
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 from models.controllers.controller_factory import ControllerFactory
 

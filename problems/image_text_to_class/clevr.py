@@ -56,8 +56,6 @@ from problems.problem import DataTuple
 
 from problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem, ImageTextTuple
 from problems.image_text_to_class.clevr_dataset import CLEVRDataset
-from misc.app_state import AppState
-app_state = AppState()
 
 
 class CLEVR(ImageTextToClassProblem):

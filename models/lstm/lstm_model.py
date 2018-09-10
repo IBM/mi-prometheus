@@ -2,7 +2,6 @@ import torch
 from torch import nn
 
 from models.sequential_model import SequentialModel
-from misc.app_state import AppState
 
 
 class LSTM(SequentialModel):
@@ -35,7 +34,7 @@ class LSTM(SequentialModel):
         (x, targets) = data_tuple
         # Check if the class has been converted to cuda (through .cuda()
         # method)
-        dtype = AppState().dtype
+        dtype = self.app_state.dtype
 
         # Create the hidden state tensors
         h = [

@@ -21,7 +21,6 @@ __author__ = "Younes Bouhadjar"
 
 import torch.nn as nn
 import torch.nn.functional as F
-from misc.app_state import AppState
 import torch
 
 
@@ -63,7 +62,7 @@ class StackedAttention(nn.Module):
 
         for att_layer in self.san:
             u, attention_prob = att_layer(encoded_image, encoded_question)
-            if AppState().visualize:
+            if self.app_state.visualize:
                 if self.visualize_attention is None:
                     self.visualize_attention = attention_prob
 
