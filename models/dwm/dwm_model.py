@@ -61,7 +61,7 @@ class DWM(SequentialModel):
         self.num_shift = params["shift_size"]
         self.M = params["memory_content_size"]
         self.memory_addresses_size = params["memory_addresses_size"]
-        self.label = params["name"]
+        self.name = "Differentiable Working Memory (DWM)" # params["name"]
 
         # This is for the time plot
         self.cell_state_history = None
