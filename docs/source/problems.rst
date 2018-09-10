@@ -10,7 +10,7 @@ Problems
 Base Problem
 --------------
 
-.. autoclass:: Problem
+.. automodule:: problems.problem
     :members:
 
 ImageTextToClass Problems

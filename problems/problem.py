@@ -3,37 +3,129 @@
 """problem.py: contains base class for all problems"""
 __author__      = "Tomasz Kornuta"
 
-
 import collections
 from abc import abstractmethod
 from torch.utils.data import Dataset
 import torch
 
-_DataTuple = collections.namedtuple('DataTuple', ('inputs', 'targets'))
-class DataTuple(_DataTuple):
-    """Tuple used by storing batches of data by problems"""
-    __slots__ = ()
 
+class DataDict(collections.MutableMapping):
+    """
+    Mapping: A container object that supports arbitrary key lookups and implements the methods __getitem__, __iter__ \
+    and __len__.
+    Mutable objects can change their value but keep their id() -> ease adding new fields to this DataDict.
+    DataDict: Tuple used by storing batches of data by problems.
+    """
 
-_MaskAuxTuple = collections.namedtuple('MaskAuxTuple', ('mask'))
-class MaskAuxTuple(_MaskAuxTuple):
-    """
-    Tuple used by storing batches of data by sequential problems using mask.
-    Contains one element: mask that might be used for evaluation of the loss function.
-    """
-    __slots__ = ()
+    def __init__(self, *args, **kwargs):
+        self.__dict__.update(*args, **kwargs)
 
+        # not sure if this is needed
+        self['inputs'] = None
+        self['targets'] = None
+        self['mask'] = None
+        self['labels'] = None
 
-_LabelAuxTuple = collections.namedtuple('LabelAuxTuple', ('label'))
-class LabelAuxTuple(_LabelAuxTuple):
-    """
-    Tuple used by storing batches of labels in classification problems.
-    """
-    __slots__ = ()
+    def __setitem__(self, key, value):
+        self.__dict__[key] = value
+
+    def __getitem__(self, key):
+        return self.__dict__[key]
+
+    def __delitem__(self, key):
+        del self.__dict__[key]
+
+    def __iter__(self):
+        return iter(self.__dict__)
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __str__(self):
+        """
+        :return: A simple dict representation of the mapping.
+        """
+        return str(self.__dict__)
+
+    def __repr__(self):
+        """
+        Echoes class, id, & reproducible representation in the Read–Eval–Print Loop.
+        """
+        return '{}, DataDict({})'.format(super(DataDict, self).__repr__(), self.__dict__)
+
+    def numpy(self):
+        """
+        Convert the content of the DataDict to numpy objects (if possible).
+
+        TODO: Not sure if the following is respected with this implementation here:
+            - This tensor and the returned ndarray share the same underlying storage. \
+              Changes to self tensor will be reflected in the ndarray and vice versa.
+
+        :return: Converted DataDict.
+
+        """
+        numpy_datadict = DataDict()
+        for key in self:
+            if isinstance(self[key], torch.Tensor):
+                numpy_datadict[key] = self[key].numpy()
+            else:
+                numpy_datadict[key] = self[key]
+
+        return numpy_datadict
+
+    def cpu(self):
+        """
+        Moves the DataDict to memory accessible to the CPU.
+        In-place function.
+        """
+        for key in self:
+            if isinstance(self[key], torch.Tensor):
+                self[key] = self[key].cpu()
+
+    def cuda(self, device=None, non_blocking=False):
+        """
+        Returns a copy of this object in CUDA memory.
+
+        Wraps call to torch.tensor.cuda(): If this object is already in CUDA memory and on the correct device, then no
+        copy is performed and the original object is returned.
+
+        :param device: The destination GPU device. Defaults to the current CUDA device.
+        :type device: torch.device
+
+        :param non_blocking: If True and the source is in pinned memory, the copy will be asynchronous with respect to \
+        the host. Otherwise, the argument has no effect. Default: False.
+        :type non_blocking: bool
+
+        """
+        cuda_datadict = DataDict()
+        for key in self:
+            if isinstance(self[key], torch.Tensor):
+                cuda_datadict[key] = self[key].cuda(device=device, non_blocking=non_blocking)
+            else:
+                cuda_datadict[key] = self[key]
+
+        return cuda_datadict
+
+    def detach(self):
+        """
+        Returns a new Tensor, detached from the current graph.
+        The result will never require gradient.
+
+        """
+        detached_datadict = DataDict()
+        for key in self:
+            if isinstance(self[key], torch.Tensor):
+                detached_datadict[key] = self[key].detach()
+            else:
+                detached_datadict[key] = self[key]
+
+        return detached_datadict
 
 
 class Problem(Dataset):
-    """ Class representing base class for all Problems.
+    """
+    Class representing base class for all Problems.
+    Inherits from torch.utils.data.Dataset as all subclasses will represent a problem with associated dataset.
     """
 
     def __init__(self, params):
@@ -45,14 +137,14 @@ class Problem(Dataset):
         # Set default loss function.
         self.loss_function = None
 
-        # Set default collate function
-        self.collate_fn = torch.utils.data.default_collate
+        # Set default collate function.
+        self.collate_fn = None
+
+        # Size of the dataset
+        self.length = None
 
         # Store pointer to params.
         self.params = params
-
-        # size of the dataset
-        self.length = None
 
     def set_loss_function(self, loss_function):
         """ Sets loss function.
@@ -64,20 +156,9 @@ class Problem(Dataset):
     def set_collate_function(self, collate_function):
         """ Sets collate function.
 
-        :param collate_function: Loss function that will be used to merge a list of individuals samples into a batch.
+        :param collate_function: function that will be used to merge a list of individuals samples into a batch.
         """
-        self.collate_function = collate_function
-
-    @abstractmethod
-    def __getitem__(self, item):
-        """
-        Getter that returns an invidual sample from the problem's associated dataset (that can be generated on-the-fly,
-        or retrieved from disk).
-
-        To be redefined in derived classes.
-        :param item: index of the sample to return
-        :return: sample.
-        """
+        self.collate_fn = collate_function
 
     def __len__(self):
         """
@@ -87,29 +168,44 @@ class Problem(Dataset):
         return self.length
 
     @abstractmethod
+    def __getitem__(self, item):
+        """
+        Getter that returns an individual sample from the problem's associated dataset (that can be generated \
+        on-the-fly, or retrieved from disk).
+
+        To be redefined in subclasses.
+
+        :param item: index of the sample to return.
+
+        :return: DataDict containing the sample.
+
+        """
+
+    @abstractmethod
     def collate_fn(self, batch):
         """
         Generates a batch of samples from a list of individuals samples retrieved by __getitem__.
-        The default collate_fn is torch.utils.data.default_collate.
+        The default collate_fn is torch.utils.data.default_collate. TODO: cannot import torch.utils.data.default_collate
 
         Abstract - to be defined in derived classes.
-        :param batch: iterator of samples to merge into one batch.
 
-        ;:return created batch. #TODO: Should it be a DataTuple ?
+        :param batch: iterator (tensors, numbers, dicts or lists) of samples to merge into one batch.
+
+        :return DataDict containing the created batch.
+
         """
 
-    def evaluate_loss(self, data_tuple, logits, _):
-        """ Calculates loss between the predictions/logits and targets (from data_tuple) using the selected loss function.
-        
+    def evaluate_loss(self, data_dict, logits, _):
+        """
+        Calculates loss between the predictions/logits and targets (from data_dict) using the selected loss function.
+
+        :param data_dict: DataDict containing inputs and targets.
         :param logits: Logits being output of the model.
-        :param data_tuple: Data tuple containing inputs and targets.
         :param _: auxiliary tuple (aux_tuple) is not used in this function. 
         """
-        # Unpack tuple.
-        (_, targets) = data_tuple
 
         # Compute loss using the provided loss function. 
-        loss = self.loss_function(logits, targets)
+        loss = self.loss_function(logits, data_dict['targets'])
 
         return loss
 
@@ -122,13 +218,13 @@ class Problem(Dataset):
         """
         pass
         
-    def collect_statistics(self, stat_col, data_tuple, logits, _):
+    def collect_statistics(self, stat_col, data_dict, logits, _):
         """
         Base statistics collection. 
         EMPTY - To be redefined in inheriting classes.
 
         :param stat_col: Statistics collector.
-        :param data_tuple: Data tuple containing inputs and targets.
+        :param data_dict: DataDict containing inputs and targets.
         :param logits: Logits being output of the model.
         :param _: auxiliary tuple (aux_tuple) is not used in this function. 
         """
@@ -136,23 +232,31 @@ class Problem(Dataset):
 
     def get_epoch_size(self):
         """
-        Compute the number of iterations ('episodes') to do given the size of the dataset and the batch size.
-        Note: we are compting the last batch, even though it might be smaller than the other ones if the size of the
-        dataset is not divisible by the batch size. -> Corresponds to drop_last=False in DataLoader().
+        Compute the number of iterations ('episodes') to run given the size of the dataset and the batch size to cover
+        the entire dataset once.
+
+        .. note::
+
+            We are counting the last batch, even though it might be smaller than the other ones if the size of the \
+            dataset is not divisible by the batch size. -> Corresponds to drop_last=False in DataLoader().
+
         :return: Number of iterations to perform to go though the entire dataset once.
+
         """
         return self.length // self.params['batch_size'] + 1
 
     def initialize_epoch(self):
         """
         Function called to initialize a new epoch.
+
         Used to reset statistics collector over one epoch, e.g.:
             - Average accuracy over the epoch
             - Time taken for the epoch and average per batch
             - etc...
-        """
 
-        # TODO
+        EMPTY - To be redefined in inheriting classes.
+
+        """
         pass
 
     def finalize_epoch(self):
@@ -162,62 +266,54 @@ class Problem(Dataset):
             - Get the time taken for the epoch and per batch
             - etc...
 
-        It should pass those values to the Logger
+        EMPTY - To be redefined in inheriting classes.
+
+        TODO: To display the final results for the current epoch, this function should use the Logger.
         """
         pass
 
-
-
-'''
-    def turn_on_cuda(self, data_tuple, aux_tuple):
-        """ Enables computations on GPU - copies the input and target matrices (from DataTuple) to GPU.
-        This method has to be overwritten in derived class if one decides to copy other matrices as well.
-
-        :param data_tuple: Data tuple.
-        :param aux_tuple: Auxiliary tuple (WARNING: Values stored in that variable will remain in CPU)
-        :returns: Pair of Data and Auxiliary tuples (Data on GPU, Aux on CPU).
-        """
-        # Unpack tuples and copy data to GPU.
-        gpu_inputs = data_tuple.inputs.cuda()
-        gpu_targets = data_tuple.targets.cuda()
-
-        # Pack matrices to tuples.
-        data_tuple = DataTuple(gpu_inputs, gpu_targets)
-
-        return data_tuple, aux_tuple
-
-    def plot_preprocessing(self, data_tuple, aux_tuple, logits):
+    def plot_preprocessing(self, data_dict, logits):
         """
         Allows for some data preprocessing before the model creates a plot for visualization during training or
         inference.
         To be redefined in inheriting classes.
-        :param data_tuple: Data tuple.
-        :param aux_tuple: Auxiliary tuple.
+        :param data_dict: DataDict.
         :param logits: Logits being output of the model.
-        :return: data_tuplem aux_tuple, logits after preprocessing.
+        :return: data_tuple, logits after preprocessing.
         """
-        return data_tuple, aux_tuple, logits
+        return data_dict, logits
 
 
     def curriculum_learning_initialize(self, curriculum_params):
         """ 
         Initializes curriculum learning - simply saves the curriculum params.
-        This method can be overwriten in the derived classes.
+        This method can be overwritten in the derived classes.
 
-        :curriculum_params: Interface to parameters accessing curriculum learning view of the registry tree. 
+        :param curriculum_params: Interface to parameters accessing curriculum learning view of the registry tree.
+
         """
         # Save params.
         self.curriculum_params = curriculum_params
-
 
     def curriculum_learning_update_params(self, episode):
         """
         Updates problem parameters according to curriculum learning.
         There is no general solution to curriculum learning.
-        This method should be overwriten in the derived classes.
+        This method should be overwritten in the derived classes.
 
         :param episode: Number of the current episode.
-        :returns: True informing that CL wasn't active at all (i.e. is finished).
+        :return: True informing that CL wasn't active at all (i.e. is finished).
         """
         return True
-'''
+
+
+if __name__ == '__main__':
+    """Unit test for DataDict"""
+
+    datadict = DataDict()
+    #datadict['inputs'] = torch.ones([64, 20, 512]).type(torch.FloatTensor)
+    #datadict['targets'] = torch.ones([64, 20]).type(torch.FloatTensor)
+
+    print(repr(datadict))
+
+
