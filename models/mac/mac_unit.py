@@ -51,6 +51,9 @@ from models.mac.write_unit import WriteUnit
 from torch import nn
 import torch
 
+from utils.app_state import AppState
+app_state = AppState()
+
 
 class MACUnit(nn.Module):
     """
