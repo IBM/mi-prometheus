@@ -102,7 +102,7 @@ class CLEVR(ImageTextToClassProblem):
         self.data_definition = {'img': {'size': [320, 480, 3], 'type': torch.Tensor},
                                 'question': {'size': 'var', 'type': int},
                                 'question_length': {'size': 1, 'type': int},
-                                'answer': {'size': 1, 'type': str},
+                                'targets': {'size': 1, 'type': str},
                                 'string_question': {'size': 1, 'type': str},
                                 'index': {'size': 1, 'type': str},
                                 'imgfile': {'size': 1, 'type': str},
@@ -429,7 +429,7 @@ class CLEVR(ImageTextToClassProblem):
         data_dict['img'] = img
         data_dict['question'] = question
         data_dict['question_length'] = question_length
-        data_dict['answer'] = answer
+        data_dict['targets'] = answer
         data_dict['string_question'] = string_question
         data_dict['index'] = index
         data_dict['imgfile'] = imgfile
@@ -481,7 +481,7 @@ class CLEVR(ImageTextToClassProblem):
         data_dict['img'] = torch.stack(images).type(app_state.dtype)
         data_dict['question'] = questions
         data_dict['question_length'] = lengths
-        data_dict['answer'] = torch.tensor(answers).type(app_state.LongTensor)
+        data_dict['targets'] = torch.tensor(answers).type(app_state.LongTensor)
         data_dict['string_question'] = s_questions
         data_dict['index'] = indexes
         data_dict['imgfile'] = imgfiles
@@ -489,7 +489,7 @@ class CLEVR(ImageTextToClassProblem):
 
         return data_dict
 
-    def collect_statistics(self, stat_col, data_tuple, logits, aux_tuple):
+    def collect_statistics(self, stat_col, data_tuple, logits):
         """
         Collects accuracy.
         :param stat_col: Statistics collector.
@@ -497,7 +497,7 @@ class CLEVR(ImageTextToClassProblem):
         :param logits: Logits being output of the model.
         :param _: auxiliary tuple (aux_tuple) is not used in this function. 
         """
-        stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, aux_tuple)
+        stat_col['acc'] = self.calculate_accuracy(data_tuple, logits)
 
 
         #self.get_acc_per_family(data_tuple, aux_tuple, logits)
@@ -526,7 +526,7 @@ class CLEVR(ImageTextToClassProblem):
 
         return data_tuple, aux_tuple
 
-    def turn_on_cuda(self, data_tuple, aux_tuple):
+    def turn_on_cuda(self, data_dict, aux_tuple):
         """
         Enables computations on GPU - copies the input and target matrices (from DataTuple) to GPU.
 
@@ -534,21 +534,8 @@ class CLEVR(ImageTextToClassProblem):
         :param aux_tuple: Auxiliary tuple (WARNING: Values stored in that variable will remain on CPU)
         :returns: Pair of Data and Auxiliary tuples (Data on GPU, Aux on CPU).
         """
-        # Unpack tuples and copy data to GPU.
-        inner_tuple, answers = data_tuple
-        image_questions_tuple, questions_len = inner_tuple
-        images, questions = image_questions_tuple
 
-        gpu_images = images.cuda()
-        gpu_questions = questions.cuda()
-        gpu_answers = answers.cuda()
-
-        gpu_image_text_tuple = ImageTextTuple(gpu_images, gpu_questions)
-        gpu_inner_data_tuple = (gpu_image_text_tuple, questions_len)
-
-        data_tuple = DataTuple(gpu_inner_data_tuple, gpu_answers)
-
-        return data_tuple, aux_tuple
+        return data_dict.cuda(), aux_tuple
 
     def show_sample(self, data_tuple, aux_tuple, sample_number=0):
         """

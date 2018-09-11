@@ -298,9 +298,8 @@ if __name__ == '__main__':
 
     # generate a batch
     for i_batch, sample in enumerate(problem):
-        print('Sample # {}'.format(i_batch))
+        print('Sample # {} - {}'.format(i_batch, sample['img'].shape), type(sample))
         logits = net(sample)
         print(logits.shape)
-        break
 
     print('Unit test completed.')

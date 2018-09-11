@@ -220,13 +220,19 @@ if __name__ == '__main__':
     model.cuda() if app_state.use_CUDA else None
 
     # Build problem for the training
-    problem = ProblemFactory.build_problem(param_interface['training']['problem'])
+    problem_ds = ProblemFactory.build_problem(param_interface['training']['problem'])
+
+    # build the DataLoader on top of the problem class
+    from torch.utils.data.dataloader import DataLoader
+    problem = DataLoader(problem_ds, batch_size=param_interface['training']['problem']['batch_size'],
+                                     shuffle=True, collate_fn=problem_ds.collate_data)
+
 
     if 'curriculum_learning' in param_interface['training']:
         # Initialize curriculum learning - with values from config.
-        problem.curriculum_learning_initialize(param_interface['training']['curriculum_learning'])
+        problem_ds.curriculum_learning_initialize(param_interface['training']['curriculum_learning'])
         # Set initial values of curriculum learning.
-        curric_done = problem.curriculum_learning_update_params(0)
+        curric_done = problem_ds.curriculum_learning_update_params(0)
         
         # If key is not present in config then it has to be finished (DEFAULT: True)
         if 'must_finish' not in param_interface['training']['curriculum_learning']:
@@ -235,7 +241,7 @@ if __name__ == '__main__':
         logger.info("Using curriculum learning")
     else:
         # Initialize curriculum learning - with empty dict.
-        problem.curriculum_learning_initialize({})
+        problem_ds.curriculum_learning_initialize({})
         # If not using curriculum then it does not have to be finished.
         must_finish_curriculum = False
         
@@ -249,7 +255,7 @@ if __name__ == '__main__':
     # Create statistics collector.
     stat_col = StatisticsCollector()
     # Add model/problem dependent statistics.
-    problem.add_statistics(stat_col)
+    problem_ds.add_statistics(stat_col)
     model.add_statistics(stat_col)
 
     # Create csv file.
@@ -261,10 +267,18 @@ if __name__ == '__main__':
 
         # Build problem for the validation
         problem_validation = ProblemFactory.build_problem(param_interface['validation']['problem'])
-        generator_validation = problem_validation.return_generator()
+        dataloader_validation = DataLoader(problem_validation, batch_size=param_interface['validation']['problem']['batch_size'],
+                                     shuffle=True, collate_fn=problem_ds.collate_data)
+        dataloader_validation = iter(dataloader_validation)
+        data_valid = next(dataloader_validation)
+
+
+        #problem_validation = DataLoader(problem_validation_ds, batch_size=param_interface['validation']['problem']['batch_size'],
+        #                     shuffle=False, collate_fn=problem_validation_ds.collate_data)
+        #generator_validation = problem_validation.return_generator()
 
         # Get a single batch that will be used for validation (!)
-        data_valid, aux_valid = next(generator_validation)
+        #data_valid, aux_valid = next(generator_validation)
 
         # Create csv file.
         validation_file = stat_col.initialize_csv_file(log_dir, 'validation.csv')
@@ -319,10 +333,10 @@ if __name__ == '__main__':
     terminal_condition = False
 
     # Main training and verification loop.
-    for data_tuple, aux_tuple in problem.return_generator():
+    for i_batch, data_dict in enumerate(problem):
 
         # apply curriculum learning - change problem max seq_length
-        curric_done = problem.curriculum_learning_update_params(episode)
+        curric_done = problem_ds.curriculum_learning_update_params(episode)
 
         # reset gradients
         optimizer.zero_grad()
@@ -336,7 +350,7 @@ if __name__ == '__main__':
         # Turn on training mode.
         model.train()
         # 1. Perform forward step, calculate logits and loss.
-        logits, loss = forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple)
+        logits, loss = forward_step(model, problem_ds, episode, stat_col, data_dict, None)
 
         if not use_validation_problem:
             # Store the calculated loss on a list.
@@ -406,7 +420,7 @@ if __name__ == '__main__':
                     app_state.visualize = False
 
                 # Perform validation.
-                validation_loss, user_pressed_stop = validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
+                validation_loss, user_pressed_stop = validation(model, problem_validation, episode, stat_col, data_valid, None,  FLAGS,
                         logger,   validation_file,  validation_writer)
 
             # Save the model using latest (validation or training) statistics.
@@ -443,7 +457,7 @@ if __name__ == '__main__':
             # Validate on the problem if required - so we can collect the statistics needed during saving of the best model.
             if use_validation_problem:
                 # Perform validation.
-                validation_loss, user_pressed_stop = validation(model, problem, episode, stat_col, data_valid, aux_valid,  FLAGS,
+                validation_loss, user_pressed_stop = validation(model, problem_validation, episode, stat_col, data_valid, None,  FLAGS,
                         logger,   validation_file,  validation_writer)
             
             model.save(model_dir, stat_col)
@@ -462,7 +476,7 @@ if __name__ == '__main__':
 
             # Perform validation.
             if use_validation_problem:
-                _, _ = validation(model, problem, episode, stat_col, data_valid, aux_valid, FLAGS, logger,
+                _, _ = validation(model, problem_validation, episode, stat_col, data_valid, None, FLAGS, logger,
                                validation_file, validation_writer)
 
         else:

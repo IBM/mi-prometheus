@@ -16,7 +16,7 @@ def forward_step(model, problem, episode, stat_col, data_tuple,  aux_tuple):
     """
     # convert to CUDA
     if AppState().use_CUDA:
-        data_tuple, aux_tuple = problem.turn_on_cuda(data_tuple, aux_tuple)
+        data_tuple, _ = problem.turn_on_cuda(data_tuple, aux_tuple)
 
     # Perform forward calculation.
     logits = model(data_tuple)
@@ -29,7 +29,7 @@ def forward_step(model, problem, episode, stat_col, data_tuple,  aux_tuple):
     stat_col['loss'] = loss
 
     # Collect other (potential) statistics from problem & model.
-    problem.collect_statistics(stat_col, data_tuple, logits, aux_tuple)
+    problem.collect_statistics(stat_col, data_tuple, logits)
     model.collect_statistics(stat_col, data_tuple, logits)
 
     # Return tuple: logits, loss.
