@@ -277,8 +277,10 @@ if __name__ == '__main__':
         "we are", "we re ",
         "they are", "they re "
     )
+    from utils.param_interface import ParamInterface
 
-    params = {
+    params = ParamInterface()
+    params.add_custom_params({
         'batch_size': 64,
         'training_size': 0.90,
         'output_lang_name': 'fra',
@@ -286,7 +288,7 @@ if __name__ == '__main__':
         'eng_prefixes': eng_prefixes,
         'use_train_data': True,
         'data_folder': '~/data/language',
-        'reverse': False}
+        'reverse': False})
 
     problem = pb.Translation(params)
     print('Problem successfully created.\n')
@@ -296,12 +298,15 @@ if __name__ == '__main__':
     output_voc_size = problem.output_lang.n_words
 
     # instantiate model with credible parameters
-    model_params = {
+    from utils.param_interface import ParamInterface
+
+    model_params = ParamInterface()
+    model_params.add_custom_params({
         'max_length': 15,
         'input_voc_size': input_voc_size,
         'hidden_size': 256,
         'output_voc_size': output_voc_size,
-        'encoder_bidirectional': True}
+        'encoder_bidirectional': True})
     net = SimpleEncoderDecoder(model_params)
 
     # generate a batch
