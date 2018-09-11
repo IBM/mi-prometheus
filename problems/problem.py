@@ -1,39 +1,41 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """problem.py: contains base class for all problems"""
-__author__      = "Tomasz Kornuta"
+__author__ = "Tomasz Kornuta & Vincent Marois"
 
 import collections
 from abc import abstractmethod
 from torch.utils.data import Dataset
 import torch
+from misc import AppState
+import logging
+logger = logging.Logger('DataDict')
 
 
 class DataDict(collections.MutableMapping):
     """
     Mapping: A container object that supports arbitrary key lookups and implements the methods __getitem__, __iter__ \
     and __len__.
-    Mutable objects can change their value but keep their id() -> ease adding new fields to this DataDict.
+    Mutable objects can change their value but keep their id() -> ease modifying existing keys' value.
     DataDict: Tuple used by storing batches of data by problems.
     """
 
     def __init__(self, *args, **kwargs):
         self.__dict__.update(*args, **kwargs)
 
-        # not sure if this is needed
-        self['inputs'] = None
-        self['targets'] = None
-        self['mask'] = None
-        self['labels'] = None
-
     def __setitem__(self, key, value):
-        self.__dict__[key] = value
+        if key not in self.keys():
+            logger.error('KeyError: Cannot modify a non-existing key.')
+            raise KeyError('Cannot modify a non-existing key.')
+        else:
+            self.__dict__[key] = value
 
     def __getitem__(self, key):
         return self.__dict__[key]
 
     def __delitem__(self, key):
-        del self.__dict__[key]
+        logger.error('KeyError: Not authorizing the deletion of a key.')
+        raise KeyError('Not authorizing the deletion of a key.')
 
     def __iter__(self):
         return iter(self.__dict__)
@@ -64,7 +66,8 @@ class DataDict(collections.MutableMapping):
         :return: Converted DataDict.
 
         """
-        numpy_datadict = DataDict()
+        numpy_datadict = self.__class__()
+
         for key in self:
             if isinstance(self[key], torch.Tensor):
                 numpy_datadict[key] = self[key].numpy()
@@ -97,7 +100,7 @@ class DataDict(collections.MutableMapping):
         :type non_blocking: bool
 
         """
-        cuda_datadict = DataDict()
+        cuda_datadict = self.__class__()
         for key in self:
             if isinstance(self[key], torch.Tensor):
                 cuda_datadict[key] = self[key].cuda(device=device, non_blocking=non_blocking)
@@ -112,7 +115,7 @@ class DataDict(collections.MutableMapping):
         The result will never require gradient.
 
         """
-        detached_datadict = DataDict()
+        detached_datadict = self.__class__()
         for key in self:
             if isinstance(self[key], torch.Tensor):
                 detached_datadict[key] = self[key].detach()
@@ -146,10 +149,16 @@ class Problem(Dataset):
         # Store pointer to params.
         self.params = params
 
+        # For useful flags
+        self.app_state = AppState()
+
+        # data definition: this is used for defining the DataDict keys
+        self.data_definition = {}
+
     def set_loss_function(self, loss_function):
         """ Sets loss function.
 
-        :param loss_function: Loss function (e.g. nn.CrossEntropyLoss()) that will be set as optimization criterion.
+        :param loss_function: Loss function (e.g. nn.CrossEntropyLoss()) that will be set as the optimization criterion.
         """
         self.loss_function = loss_function
 
@@ -283,7 +292,6 @@ class Problem(Dataset):
         """
         return data_dict, logits
 
-
     def curriculum_learning_initialize(self, curriculum_params):
         """ 
         Initializes curriculum learning - simply saves the curriculum params.
@@ -315,5 +323,3 @@ if __name__ == '__main__':
     #datadict['targets'] = torch.ones([64, 20]).type(torch.FloatTensor)
 
     print(repr(datadict))
-
-
