@@ -303,6 +303,9 @@ if __name__ == '__main__':
     nb_classes = 28
     dropout = 0.15
 
+    from utils.app_state import AppState
+    app_state = AppState()
+
     from utils.param_interface import ParamInterface
     params = ParamInterface()
     params.add_custom_params({'dim': dim,
@@ -322,14 +325,13 @@ if __name__ == '__main__':
     batch_size = 64
     embedded_dim = 300
     images = torch.from_numpy(np.random.binomial(
-        n=1, p=0.5, size=(batch_size, 1024, 14, 14))).type(self.app_state.dtype)
+        n=1, p=0.5, size=(batch_size, 1024, 14, 14))).type(app_state.dtype)
     questions = torch.from_numpy(
         np.random.binomial(
             n=1, p=0.5, size=(
-                batch_size, 15, embedded_dim))).type(
-        app_state.dtype)
+                batch_size, 15, embedded_dim))).type(app_state.dtype)
     answers = torch.from_numpy(np.random.randint(
-        low=0, high=nb_classes, size=(batch_size, 1))).type(self.app_state.dtype)
+        low=0, high=nb_classes, size=(batch_size, 1))).type(app_state.dtype)
     questions_len = [15] * batch_size
 
     # construct data_tuple

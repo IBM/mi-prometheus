@@ -66,10 +66,10 @@ class NTMCell(torch.nn.Module):
             self.num_memory_content_bits * self.interface_num_read_heads
         # Create dictionary wirh controller parameters.
         controller_params = params['controller']
-        controller_params = {
+        controller_params.add_default_params({
             "input_size": ext_controller_inputs_size,
             "output_size": self.controller_hidden_state_size
-        }
+        })
         # Build the controller.
         self.controller = ControllerFactory.build_model(controller_params)
         # Interface - entity responsible for accessing the memory.

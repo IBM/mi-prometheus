@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""gru_controller.py: pytorch module implementing wrapper for gru controller of NTM."""
-__author__ = "Tomasz Kornuta/Ryan L. McAvoy/Younes Bouhadjar"
+"""ffgru_controller.py: pytorch module implementing wrapper for FF-GRU controller used in ThalNet."""
+__author__ = "Younes Bouhadjar"
 
 import torch
 from torch import nn
 import collections
 from utils.app_state import AppState
 
-_GRUStateTuple = collections.namedtuple('GRUStateTuple', ('hidden_state'))
+_FFGRUStateTuple = collections.namedtuple('FFGRUStateTuple', ('hidden_state'))
 
 
-class GRUStateTuple(_GRUStateTuple):
+class FFGRUStateTuple(_FFGRUStateTuple):
     """
     Tuple used by gru Cells for storing current/past state information.
     """
@@ -54,7 +54,7 @@ class FFGRUController(nn.Module):
              self.ctrl_hidden_state_size),
             requires_grad=False).type(dtype)
 
-        return GRUStateTuple(hidden_state)
+        return FFGRUStateTuple(hidden_state)
 
     def forward(self, x, prev_state_tuple):
         """
@@ -71,4 +71,4 @@ class FFGRUController(nn.Module):
         input = self.ff(x)
         hidden_state = self.gru(input, hidden_state_prev)
 
-        return hidden_state, GRUStateTuple(hidden_state)
+        return hidden_state, FFGRUStateTuple(hidden_state)
