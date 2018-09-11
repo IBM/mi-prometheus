@@ -44,7 +44,7 @@
 __author__ = "Vincent Marois"
 
 
-from models.mac.utils import linear
+from models.mac.utils_mac import linear
 from models.mac.image_encoding import ImageProcessing
 
 from torch import nn

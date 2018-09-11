@@ -54,13 +54,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         self.img_size = params["img_size"]
         self.dataset_size = params["dataset_size"]
-        self.regenerate = params["regenerate"]
-
-        # training, testing data is 90%, 10% of the total data size
-        # respectively
-        self.use_train_data = params['use_train_data']
-        self.data_test_size = int(self.dataset_size * 0.1)
-        self.data_train_size = int(self.dataset_size * 0.9)
+        self.regenerate = params.get("regenerate", False)
 
         # Shuffle indices.
         self.shuffle = params.get('shuffle', True)
@@ -86,7 +80,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         self.MAX_NUM_OBJECTS = min(6, self.NUM_COLORS)
         self.GRID_SIZE = 4
 
-        # Get path
+        # Get absolute path.
         data_folder = os.path.expanduser(params['data_folder'])
         data_filename = params['data_filename']
 
@@ -136,14 +130,9 @@ class SortOfCLEVR(ImageTextToClassProblem):
             len(self.data), self.pathfilename))
 
         # Generate list of indices (strings).
-        if self.use_train_data:
-            self.ids = ['{}'.format(i) for i in range(self.data_train_size)]
-        else:
-            self.ids = [
-                '{}'.format(i) for i in range(
-                    self.data_train_size,
-                    self.data_train_size +
-                    self.data_test_size)]
+        self.dataset_size = len(self.data)
+        self.ids = ['{}'.format(i) for i in range(self.dataset_size)]
+
 
     def generate_batch(self):
         """
@@ -558,13 +547,15 @@ if __name__ == "__main__":
     """ Tests sort of CLEVR - generates and displays a sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 10,
-              'data_folder': '~/data/sort-of-clevr/', 'data_filename': 'training.hy',
-              'use_train_data': False,
-              # 'shuffle': False,
-              # "regenerate": True,
-              'dataset_size': 10000, 'img_size': 128, 'regenerate': False
-              }
+    from utils.param_interface import ParamInterface 
+    params = ParamInterface()
+    params.add_default_params({'batch_size': 10,
+              'data_folder': '~/data/sort-of-clevr/',
+              'data_filename': 'training.hy',
+              #'shuffle': False,
+              #'regenerate': True,
+              'dataset_size': 100, 'img_size': 128
+              })
 
     # Configure logger.
     logging.basicConfig(level=logging.DEBUG)

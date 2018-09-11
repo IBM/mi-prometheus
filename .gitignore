@@ -17,7 +17,7 @@
 !/problems/**
 !/confgiuration/**
 !/configs/**
-!/misc/**
+!/utils/**
 # You can be specific with these rules
 !/docs/**
 !docgen.sh

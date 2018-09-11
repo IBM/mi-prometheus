@@ -21,7 +21,7 @@ __author__ = " Ryan L. McAvoy, Younes Bouhadjar"
 import torch
 import torch.nn.functional as F
 import numpy as np
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 
 def normalize(x):

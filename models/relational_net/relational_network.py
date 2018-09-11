@@ -25,8 +25,8 @@ import torch
 import numpy as np
 
 from models.model import Model
-from misc.app_state import AppState
-app_state = AppState()
+from utils.app_state import AppState
+
 
 
 class RelationalNetwork(Model):
@@ -168,10 +168,10 @@ if __name__ == '__main__':
     batch_size = 128
     img_size = 128
     images = np.random.binomial(1, 0.5, (batch_size, 3, img_size, img_size))
-    images = torch.from_numpy(images).type(app_state.dtype)
+    images = torch.from_numpy(images).type(AppState().dtype)
 
     questions = np.random.binomial(1, 0.5, (batch_size, question_size))
-    questions = torch.from_numpy(questions).type(app_state.dtype)
+    questions = torch.from_numpy(questions).type(AppState().dtype)
 
     targets = None
 

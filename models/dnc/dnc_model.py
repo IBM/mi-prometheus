@@ -24,7 +24,6 @@ import torch
 import logging
 from models.sequential_model import SequentialModel
 from models.dnc.dnc_cell import DNCCell
-from misc.app_state import AppState
 
 
 class DNC(SequentialModel):
@@ -67,7 +66,7 @@ class DNC(SequentialModel):
 
         (inputs, targets) = data_tuple
 
-        dtype = AppState().dtype
+        dtype = self.app_state.dtype
 
         output = None
 
@@ -224,7 +223,7 @@ class DNC(SequentialModel):
 
         # Initialize timePlot window - if required.
         if self.plotWindow is None:
-            from misc.time_plot import TimePlot
+            from utils.time_plot import TimePlot
             self.plotWindow = TimePlot()
 
         # import time

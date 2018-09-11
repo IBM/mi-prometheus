@@ -3,12 +3,11 @@
 """rnn_controller.py: pytorch module implementing wrapper for RNN controller of NTM."""
 __author__ = "Ryan L. McAvoy"
 
-
 import torch
 from torch import nn
 import torch.nn.functional as F
 import collections
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 _RNNStateTuple = collections.namedtuple('RNNStateTuple', ('hidden_state'))
 

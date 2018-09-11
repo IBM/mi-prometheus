@@ -23,12 +23,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from misc.param_interface import ParamInterface
+from utils.param_interface import ParamInterface
 
 
 from models.cnn_lstm_vqa.image_encoding import ImageEncoding
 from models.model import Model
-from misc.app_state import AppState
 
 
 class CNNLSTMVQA(Model):
@@ -123,7 +122,7 @@ class CNNLSTMVQA(Model):
 
         """
 
-        dtype = AppState().dtype
+        dtype = self.app_state.dtype
         hx = torch.randn(self.num_layers, batch_size,
                          self.hidden_size).type(dtype)
         cx = torch.randn(self.num_layers, batch_size,
@@ -157,7 +156,7 @@ class CNNLSTMVQA(Model):
         # Show data.
         plt.title('Prediction: {} (Target: {})'.format(prediction, target))
         plt.xlabel('Q: {} )'.format(question))
-        plt.imshow(image.transpose(1, 2, 0),
+        plt.imshow(image.permute(1, 2, 0),
                    interpolation='nearest', aspect='auto')
 
         # Plot!
@@ -201,6 +200,7 @@ class Classifier(nn.Sequential):
 
 if __name__ == '__main__':
     # Set visualization.
+    from utils.app_state import AppState
     AppState().visualize = True
 
     # Test base model.

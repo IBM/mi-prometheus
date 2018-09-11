@@ -45,8 +45,6 @@
 __author__ = "Vincent Marois"
 
 
-from misc.app_state import AppState
-app_state = AppState()
 
 import torch.nn as nn
 import torch

@@ -22,13 +22,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from misc.param_interface import ParamInterface
-
 
 from models.stacked_attention_vqa.image_encoding import ImageEncoding, PretrainedImageEncoding
 from models.stacked_attention_vqa.stacked_attention import StackedAttention
 from models.model import Model
-from misc.app_state import AppState
+
+from utils.param_interface import ParamInterface
 
 
 class StackedAttentionVQA(Model):

@@ -21,8 +21,8 @@ __author__ = "Younes Bouhadjar"
 
 import torch.nn as nn
 import torch.nn.functional as F
-from misc.app_state import AppState
 import torch
+from utils.app_state import AppState
 
 
 class StackedAttention(nn.Module):

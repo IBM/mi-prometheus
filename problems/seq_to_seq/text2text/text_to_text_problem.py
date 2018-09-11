@@ -20,9 +20,6 @@
     See https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html """
 __author__ = "Vincent Marois"
 
-from misc.app_state import AppState
-app_state = AppState()
-
 import collections
 import unicodedata
 import re
@@ -253,7 +250,7 @@ class TextToTextProblem(SeqToSeqProblem):
         """
         indexes = self.indexes_from_sentence(lang, sentence, max_seq_length)
 
-        return torch.tensor(indexes).type(app_state.LongTensor)
+        return torch.tensor(indexes).type(self.app_state.LongTensor)
 
     def tensors_from_pair(self, pair, input_lang, output_lang, max_seq_length):
         """

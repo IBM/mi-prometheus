@@ -24,7 +24,7 @@ from torch import nn
 import collections
 from models.dnc.control_and_params import ControlParams
 from models.dnc.interface import Interface
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 # Helper collection type.
 _NTMCellStateTuple = collections.namedtuple(

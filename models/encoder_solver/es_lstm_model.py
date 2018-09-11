@@ -7,7 +7,6 @@ from enum import Enum
 import torch
 from torch import nn
 from models.sequential_model import SequentialModel
-from misc.app_state import AppState
 
 
 class EncoderSolverLSTM(SequentialModel):
@@ -63,7 +62,7 @@ class EncoderSolverLSTM(SequentialModel):
         :returns: Initial state tuple (hidden, memory cell).
 
         """
-        dtype = AppState().dtype
+        dtype = self.app_state.dtype
         # Initialize the hidden state.
         h_init = torch.zeros(batch_size, self.hidden_state_dim,
                              requires_grad=False).type(dtype)

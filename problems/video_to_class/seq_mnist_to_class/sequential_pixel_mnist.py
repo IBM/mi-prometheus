@@ -88,8 +88,10 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 3, 'start_index': 0, 'stop_index': 54999,
-              'use_train_data': True, 'mnist_folder': '~/data/mnist'}
+    from utils.param_interface import ParamInterface 
+    params = ParamInterface()
+    params.add_default_params({'batch_size': 3, 'start_index': 0, 'stop_index': 54999,
+              'use_train_data': True, 'mnist_folder': '~/data/mnist'})
 
     # Create problem object.
     problem = SequentialPixelMNIST(params)

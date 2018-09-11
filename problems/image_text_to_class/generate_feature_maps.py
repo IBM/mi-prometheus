@@ -59,8 +59,6 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from misc.app_state import AppState
-app_state = AppState()
 import logging
 logger = logging.getLogger('CLEVR')
 

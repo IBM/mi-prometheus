@@ -48,9 +48,6 @@ import os
 import torch.nn.functional as F
 
 from models.model import Model
-from misc.app_state import AppState
-
-app_state = AppState()
 
 from models.mac.input_unit import InputUnit
 from models.mac.mac_unit import MACUnit
@@ -58,9 +55,7 @@ from models.mac.output_unit import OutputUnit
 from PIL import Image
 from torchvision import transforms
 
-# visualization
 import nltk
-nltk.download('punkt')  # needed for nltk.word.tokenize
 
 
 class MACNetwork(Model):
@@ -204,7 +199,7 @@ class MACNetwork(Model):
 
         # Initialize timePlot window - if required.
         if self.plotWindow is None:
-            from misc.time_plot import TimePlot
+            from utils.time_plot import TimePlot
             self.plotWindow = TimePlot()
 
         # attention mask [batch_size x 1 x(H*W)]
@@ -213,6 +208,8 @@ class MACNetwork(Model):
         (s_questions, answer_string, imgfiles, set,
          prediction_string, clevr_dir) = aux_tuple
 
+        # needed for nltk.word.tokenize
+        nltk.download('punkt')
         # tokenize question string using same processing as in the problem
         # class
         words = nltk.word_tokenize(s_questions[sample_number])
@@ -306,8 +303,10 @@ if __name__ == '__main__':
     nb_classes = 28
     dropout = 0.15
 
-    from misc.param_interface import ParamInterface
+    from utils.app_state import AppState
+    app_state = AppState()
 
+    from utils.param_interface import ParamInterface
     params = ParamInterface()
     params.add_custom_params({'dim': dim,
                               'embed_hidden': embed_hidden,
@@ -330,8 +329,7 @@ if __name__ == '__main__':
     questions = torch.from_numpy(
         np.random.binomial(
             n=1, p=0.5, size=(
-                batch_size, 15, embedded_dim))).type(
-        app_state.dtype)
+                batch_size, 15, embedded_dim))).type(app_state.dtype)
     answers = torch.from_numpy(np.random.randint(
         low=0, high=nb_classes, size=(batch_size, 1))).type(app_state.dtype)
     questions_len = [15] * batch_size

@@ -102,7 +102,9 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {
+    from utils.param_interface import ParamInterface 
+    params = ParamInterface()
+    params.add_default_params({
         'batch_size': 2,
         'start_index': 0,
         'stop_index': 54999,
@@ -113,7 +115,7 @@ if __name__ == "__main__":
             4,
             3,
             3],
-        'up_scaling': False}
+        'up_scaling': False})
 
     # Create problem object.
     problem = MNIST(params)

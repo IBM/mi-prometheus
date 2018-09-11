@@ -39,7 +39,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""utils.py: Implementation of utils methods for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the
+"""utils_mac.py: Implementation of utils methods for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the
                 reference paper."""
 __author__ = "Vincent Marois"
 

@@ -22,9 +22,7 @@ __author__ = "Vincent Marois "
 
 import torch
 from torch import nn
-from misc.app_state import AppState
-app_state = AppState()
-
+from utils.app_state import AppState
 
 class EncoderRNN(nn.Module):
     """
@@ -104,7 +102,7 @@ class EncoderRNN(nn.Module):
         """
         if self.bidirectional:
             return torch.zeros(self.n_layers * 2, batch_size,
-                               self.hidden_size).type(app_state.dtype)
+                               self.hidden_size).type(AppState().dtype)
         else:
             return torch.zeros(self.n_layers, batch_size,
-                               self.hidden_size).type(app_state.dtype)
+                               self.hidden_size).type(AppState().dtype)

@@ -5,7 +5,7 @@ from .mac_unit import MACUnit
 from .model import MACNetwork
 from .output_unit import OutputUnit
 from .read_unit import ReadUnit
-from .utils import linear
+from .utils_mac import linear
 from .write_unit import WriteUnit
 
 __all__ = [
