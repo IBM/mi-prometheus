@@ -434,6 +434,7 @@ class CLEVR(ImageTextToClassProblem):
         data_dict['index'] = index
         data_dict['imgfile'] = imgfile
         data_dict['question_type'] = question_type
+
         return data_dict
 
     def collate_data(self, batch):
@@ -450,8 +451,8 @@ class CLEVR(ImageTextToClassProblem):
 
         # get max question length, create tensor of shape [batch_size x maxQuestionLength] & sort questions by
         # decreasing length
-        max_len = max(map(lambda x: len(x[1]), batch))
-        sort_by_len = sorted(batch, key=lambda x: len(x[1]), reverse=True)
+        max_len = max(map(lambda x: x['question_length'], batch))
+        sort_by_len = sorted(batch, key=lambda x: x['question_length'], reverse=True)
 
         # create tensor containing the embedded questions
         if self.embedding_type == 'random':
@@ -464,7 +465,7 @@ class CLEVR(ImageTextToClassProblem):
 
         # fill in the placeholders
         for i, b in enumerate(sort_by_len):
-            image, question, length, answer, string_question, index, imgfile, question_type = b
+            image, question, length, answer, string_question, index, imgfile, question_type = b.values()
 
             images.append(image)
             lengths.append(length)
@@ -476,9 +477,17 @@ class CLEVR(ImageTextToClassProblem):
 
             questions[i, :length, :] = question
 
-        # return all
-        return torch.stack(images).type(app_state.dtype), questions, lengths,\
-               torch.tensor(answers).type(app_state.LongTensor), s_questions, indexes, imgfiles, question_types
+        data_dict = DataDict({key: None for key in self.data_definition.keys()})
+        data_dict['img'] = torch.stack(images).type(app_state.dtype)
+        data_dict['question'] = questions
+        data_dict['question_length'] = lengths
+        data_dict['answer'] = torch.tensor(answers).type(app_state.LongTensor)
+        data_dict['string_question'] = s_questions
+        data_dict['index'] = indexes
+        data_dict['imgfile'] = imgfiles
+        data_dict['question_type'] = question_types
+
+        return data_dict
 
     def collect_statistics(self, stat_col, data_tuple, logits, aux_tuple):
         """
@@ -609,19 +618,17 @@ if __name__ == "__main__":
               'embedding_type': 'random', 'random_embedding_dim': 300}
 
     # create problem
-    problem = CLEVR(params)
-    sample = problem.__getitem__(index=0)
-    print(repr(sample))
-    print('f')
+    clevr_dataset = CLEVR(params)
+    sample = clevr_dataset[0]
+    print('__getitem__ works.')
+
+    # instantiate DataLoader object
+    problem = DataLoader(clevr_dataset, batch_size=params['batch_size'], shuffle=False,
+                         collate_fn=clevr_dataset.collate_data)
+
     # generate a batch
-    data_tuple, aux_tuple = problem.generate_batch()
-    inner_tuple, answers = data_tuple
-    image_questions_tuple, questions_len = inner_tuple
-    images, questions = image_questions_tuple
+    for i_batch, sample in enumerate(problem):
+        print('Sample # {} - {}'.format(i_batch, sample['img'].shape), type(sample))
+        break
 
-    print(questions.shape)
-    #print(aux_tuple)
-
-    # show a sample
-    problem.show_sample(data_tuple, aux_tuple, sample_number=2)
     print('Unit test completed.')
