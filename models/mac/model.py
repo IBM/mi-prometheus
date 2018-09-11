@@ -99,16 +99,14 @@ class MACNetwork(Model):
         # transform for the image plotting
         self.transform = transforms.Compose([transforms.Resize([224, 224]), transforms.ToTensor()])
 
-    def forward(self, data_tuple, dropout=0.15):
+    def forward(self, data_dict, dropout=0.15):
 
         # reset cell state history for visualization
         if self.app_state.visualize:
             self.mac_unit.cell_state_history = []
 
-        # unpack data_tuple
-        inner_tuple, _ = data_tuple
-        image_questions_tuple, questions_len = inner_tuple
-        images, questions = image_questions_tuple
+        # unpack data_dict
+        images, questions, questions_len, _, _, _, _, _ = data_dict.values()
 
         # input unit
         img, kb_proj, lstm_out, h = self.input_unit(questions, questions_len, images)
@@ -284,22 +282,25 @@ if __name__ == '__main__':
 
     net = MACNetwork(params)
 
-    import torch
-    import numpy as np
-    from problems.image_text_to_class.clevr import DataTuple, ImageTextTuple
 
-    batch_size = 64
-    embedded_dim = 300
-    images = torch.from_numpy(np.random.binomial(n=1, p=0.5, size=(batch_size, 1024, 14, 14))).type(app_state.dtype)
-    questions = torch.from_numpy(np.random.binomial(n=1, p=0.5, size=(batch_size, 15, embedded_dim))).type(
-        app_state.dtype)
-    answers = torch.from_numpy(np.random.randint(low=0, high=nb_classes, size=(batch_size, 1))).type(app_state.dtype)
-    questions_len = [15] * batch_size
+    from problems.image_text_to_class.clevr import CLEVR
 
-    # construct data_tuple
-    image_text_tuple = ImageTextTuple(images, questions)
-    inner_data_tuple = (image_text_tuple, questions_len)
-    data_tuple = DataTuple(inner_data_tuple, answers)
+    problem_params = {'batch_size': 64, 'CLEVR_dir': '/home/vmarois/Downloads/CLEVR_v1.0', 'set': 'train',
+              'clevr_humans': False, 'embedding_type': 'random', 'random_embedding_dim': 300}
 
-    # Test base model.
-    logits = net(data_tuple)
+    # create problem
+    clevr_dataset = CLEVR(problem_params)
+
+    # instantiate DataLoader object
+    from torch.utils.data.dataloader import DataLoader
+    problem = DataLoader(clevr_dataset, batch_size=problem_params['batch_size'], shuffle=False,
+                         collate_fn=clevr_dataset.collate_data)
+
+    # generate a batch
+    for i_batch, sample in enumerate(problem):
+        print('Sample # {}'.format(i_batch))
+        logits = net(sample)
+        print(logits.shape)
+        break
+
+    print('Unit test completed.')
