@@ -3,29 +3,9 @@
 """image_text_to_class_problem.py: contains abstract base class for VQA problems"""
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
+import torch
 import torch.nn as nn
 from problems.problem import Problem, DataDict
-
-
-class ImageTextDict(DataDict):
-    """
-    Dict used for storing batches of image-text pairs by e.g. VQA problems
-    """
-    def __init__(self, *args, **kwargs):
-        super(ImageTextDict, self).__init__(*args, **kwargs)
-
-        del self['inputs']
-        self['images'] = None
-        self['texts'] = None
-        self['scene_descriptions'] = None
-
-        self.__dict__.update(*args, **kwargs)
-
-    def __repr__(self):
-        """
-        Echoes class, id, & reproducible representation in the Read–Eval–Print Loop.
-        """
-        return '{}, ImageTextDict({})'.format(super(DataDict, self).__repr__(), self.__dict__)
 
 
 class ObjectRepresentation:
@@ -51,14 +31,19 @@ class ImageTextToClassProblem(Problem):
         # Call base class constructors.
         super(ImageTextToClassProblem, self).__init__(params)
 
+        # set default loss function
         self.loss_function = nn.CrossEntropyLoss()
 
-    def calculate_accuracy(self, data_dict, logits, _):
+        # set default data_definition dict
+        self.data_definition = {'text': {'type': int},
+                                'images': {'size': 224, 'type': torch.Tensor},
+                                'targets': {'size': 1, 'type': int}}
+
+    def calculate_accuracy(self, data_dict, logits):
         """ Calculates accuracy equal to mean number of correct answers in a given batch.
 
         :param data_dict: DataDict containing inputs and targets.
         :param logits: Logits being output of the model.
-        :param _: auxiliary tuple (aux_tuple) is not used in this function.
         """
 
         # Get the index of the max log-probability.
@@ -70,6 +55,20 @@ class ImageTextToClassProblem(Problem):
         accuracy = correct / batch_size
 
         return accuracy
+
+    def __getitem__(self, item):
+        """
+        Getter that returns an individual sample from the problem's associated dataset (that can be generated \
+        on-the-fly, or retrieved from disk).
+
+        To be redefined in subclasses.
+
+        :param item: index of the sample to return.
+
+        :return: DataDict containing the sample.
+        """
+
+        return DataDict({key: None for key in self.data_definition.keys()})
 
     def add_statistics(self, stat_col):
         """
@@ -93,5 +92,5 @@ class ImageTextToClassProblem(Problem):
 
 if __name__=='__main__':
 
-    imagetextdict= ImageTextDict()
-    print(imagetextdict.numpy())
+    sample = ImageTextToClassProblem(params={}).__getitem__(item=0)
+    print(repr(sample))

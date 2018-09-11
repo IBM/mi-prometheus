@@ -5,8 +5,11 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import collections
 from abc import abstractmethod
-from torch.utils.data import Dataset
+
 import torch
+from torch.utils.data import Dataset
+from torch.utils.data.dataloader import default_collate
+
 from misc import AppState
 import logging
 logger = logging.Logger('DataDict')
@@ -17,7 +20,7 @@ class DataDict(collections.MutableMapping):
     Mapping: A container object that supports arbitrary key lookups and implements the methods __getitem__, __iter__ \
     and __len__.
     Mutable objects can change their value but keep their id() -> ease modifying existing keys' value.
-    DataDict: Tuple used by storing batches of data by problems.
+    DataDict: Dict used for storing batches of data by problems.
     """
 
     def __init__(self, *args, **kwargs):
@@ -128,7 +131,7 @@ class DataDict(collections.MutableMapping):
 class Problem(Dataset):
     """
     Class representing base class for all Problems.
-    Inherits from torch.utils.data.Dataset as all subclasses will represent a problem with associated dataset.
+    Inherits from torch.utils.data.Dataset as all subclasses will represent a problem with an associated dataset.
     """
 
     def __init__(self, params):
@@ -141,7 +144,7 @@ class Problem(Dataset):
         self.loss_function = None
 
         # Set default collate function.
-        self.collate_fn = None
+        self.collate_fn = default_collate
 
         # Size of the dataset
         self.length = None
@@ -194,7 +197,7 @@ class Problem(Dataset):
     def collate_fn(self, batch):
         """
         Generates a batch of samples from a list of individuals samples retrieved by __getitem__.
-        The default collate_fn is torch.utils.data.default_collate. TODO: cannot import torch.utils.data.default_collate
+        The default collate_fn is torch.utils.data.default_collate.
 
         Abstract - to be defined in derived classes.
 
@@ -318,7 +321,10 @@ class Problem(Dataset):
 if __name__ == '__main__':
     """Unit test for DataDict"""
 
-    datadict = DataDict()
+    data_definition = {'inputs': {'size': [64, 20], 'type': int}, 'targets': {'size': [64], 'type': int}}
+
+    datadict = DataDict({key: None for key in data_definition.keys()})
+
     #datadict['inputs'] = torch.ones([64, 20, 512]).type(torch.FloatTensor)
     #datadict['targets'] = torch.ones([64, 20]).type(torch.FloatTensor)
 
