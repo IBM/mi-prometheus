@@ -22,12 +22,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from misc.param_interface import ParamInterface
 
 from models.multi_hops_attention.image_encoding import ImageEncoding
 from models.multi_hops_attention.attention import StackedAttention
 from models.model import Model
-from misc.app_state import AppState
 
 
 class MultiHopsAttention(Model):
@@ -72,16 +70,18 @@ class MultiHopsAttention(Model):
 
         # Instantiate class for classifier
         self.classifier = Classifier(
-            in_features=self.num_words*(self.image_encoding_channels) + self.image_encoding_channels,
+            in_features=self.num_words *
+            (self.image_encoding_channels) + self.image_encoding_channels,
             mid_features=256,
             out_features=10)
 
     def forward(self, data_tuple):
         """
-        Runs the multi hops attention model and plots if necessary
+        Runs the multi hops attention model and plots if necessary.
 
         :param data_tuple: Tuple containing images [batch_size, num_channels, height, width] and questions [batch_size, size_question_encoding]
         :returns: output [batch_size, output_classes]
+
         """
 
         (images, questions), _ = data_tuple
@@ -102,7 +102,7 @@ class MultiHopsAttention(Model):
             v = self.apply_attention(encoded_images, hx)
 
             if v_features is None:
-                 v_features = v
+                v_features = v
             else:
                 v_features = torch.cat((v_features, v), dim=-1)
 
@@ -114,13 +114,15 @@ class MultiHopsAttention(Model):
 
     def init_hidden_states(self, batch_size):
         """
-        Initialize hidden state ans cell state of the stacked LSTM used for question encoding
+        Initialize hidden state ans cell state of the stacked LSTM used for
+        question encoding.
 
         :param batch_size: Size of the batch in given iteraction/epoch.
         :return: hx, cx: hidden state and cell state of a stacked LSTM [num_layers, batch_size, hidden_size]
+
         """
 
-        dtype = AppState().dtype
+        dtype = self.app_state.dtype
         hx = torch.randn(batch_size, self.hidden_size).type(dtype)
         cx = torch.randn(batch_size, self.hidden_size).type(dtype)
 
@@ -152,7 +154,9 @@ class MultiHopsAttention(Model):
         # Show data.
         plt.title('Prediction: {} (Target: {})'.format(prediction, target))
         plt.xlabel('Q: {} )'.format(question))
-        plt.imshow(image.transpose(1,2,0), interpolation='nearest', aspect='auto')
+        print(type(image))
+        plt.imshow(image.permute(1, 2, 0),
+                   interpolation='nearest', aspect='auto')
 
         # Plot!
         plt.show()
@@ -162,11 +166,13 @@ class MultiHopsAttention(Model):
 class Classifier(nn.Sequential):
     def __init__(self, in_features, mid_features, out_features):
         """
-        Predicts the final answer to the question, based on the question and the attention.
+        Predicts the final answer to the question, based on the question and
+        the attention.
 
         :param in_features: input size of the first feed forward layer
         :param mid_features: input size of the intermediates feed forward layers
         :param out_features: output size
+
         """
 
         super(Classifier, self).__init__()
@@ -177,10 +183,12 @@ class Classifier(nn.Sequential):
 
     def forward(self, x):
         """
-        Apply a set of feed forward layers to the combined question/attention to obtain probabilities over the classes output
+        Apply a set of feed forward layers to the combined question/attention
+        to obtain probabilities over the classes output.
 
         :param x: a combination of the attention and question
         :return: Prediction of the answer [batch_size, num_classes]
+
         """
 
         x = F.relu(self.fc1(x))
@@ -189,12 +197,17 @@ class Classifier(nn.Sequential):
         x = self.fc3(x)
         return F.log_softmax(x, dim=-1)
 
+
 if __name__ == '__main__':
     # Set visualization.
+    from utils.app_state import AppState
     AppState().visualize = True
 
     # Test base model.
+    from utils.param_interface import ParamInterface
+
     params = ParamInterface()
+    params.add_custom_params({})
 
     # model
     model = MultiHopsAttention(params)
@@ -202,10 +215,10 @@ if __name__ == '__main__':
     while True:
         # Generate new sequence.
         # "Image" - batch x channels x width x height
-        input_np = np.random.binomial(1, 0.5, (1, 3, 128,  128))
+        input_np = np.random.binomial(1, 0.5, (1, 3, 128, 128))
         image = torch.from_numpy(input_np).type(torch.FloatTensor)
 
-        #Question
+        # Question
         questions_np = np.random.binomial(1, 0.5, (1, 3, 7))
         questions = torch.from_numpy(questions_np).type(torch.FloatTensor)
 

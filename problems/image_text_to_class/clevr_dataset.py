@@ -58,8 +58,7 @@ from torch.utils.data import Dataset
 import os
 
 from problems.utils.language import Language
-from misc.app_state import AppState
-app_state = AppState()
+from utils.app_state import AppState
 
 import logging
 logger = logging.getLogger('CLEVR')
@@ -76,9 +75,11 @@ class CLEVRDataset(Dataset):
     , and __getitem__, supporting integer indexing in range from 0 to len(self) exclusive.
     """
 
-    def __init__(self, set, clevr_dir, clevr_humans, embedding_type='random', random_embedding_dim=300):
+    def __init__(self, set, clevr_dir, clevr_humans,
+                 embedding_type='random', random_embedding_dim=300):
         """
         Instantiate a ClevrDataset object:
+
             - Mainly check if the files containing the extracted features & tokenized questions already exist. If not,
             it generates them for the specified sub-set.
             - self.img contains then the extracted feature maps
@@ -110,19 +111,16 @@ class CLEVRDataset(Dataset):
         self.random_embedding_dim = random_embedding_dim
 
 
-
-
-
-
-
-
 if __name__ == '__main__':
-    """ Unit test of CLEVRDataset"""
+    """
+    Unit test of CLEVRDataset.
+    """
     set = 'train'
     clevr_dir = '/home/valbouy/CLEVR_v1.0'
     clevr_humans = False
     embedding_type = 'random'
     random_embedding_dim = 300
 
-    clevr_dataset = CLEVRDataset(set, clevr_dir, clevr_humans, embedding_type, random_embedding_dim)
+    clevr_dataset = CLEVRDataset(
+        set, clevr_dir, clevr_humans, embedding_type, random_embedding_dim)
     print('Unit test completed.')

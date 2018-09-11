@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """cifar10.py: contains code of loading CIFAR10 dataset using torchvision"""
-__author__= "Younes Bouhadjar"
+__author__ = "Younes Bouhadjar"
 
 import numpy as np
 import torch
@@ -35,9 +35,11 @@ class CIFAR10(ImageToClassProblem):
 
     def __init__(self, params):
         """
-        Initializes CIFAR problem, calls base class initialization, sets properties using the provided parameters.
+        Initializes CIFAR problem, calls base class initialization, sets
+        properties using the provided parameters.
 
         :param params: Dictionary of parameters (read from configuration file).
+
         """
 
         # Call base class constructors.
@@ -53,12 +55,15 @@ class CIFAR10(ImageToClassProblem):
         self.up_scaling = params['up_scaling']
 
         # Define transforms
-        train_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()]) \
-        if self.up_scaling else transforms.Compose([transforms.ToTensor()])
+        train_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(
+        )]) if self.up_scaling else transforms.Compose([transforms.ToTensor()])
 
         # load the datasets
-        self.train_datasets = datasets.CIFAR10(self.datasets_folder, train=self.use_train_data, download=True,
-                                     transform=train_transform)
+        self.train_datasets = datasets.CIFAR10(
+            self.datasets_folder,
+            train=self.use_train_data,
+            download=True,
+            transform=train_transform)
 
         # set split data (for training and validation data)
         num_train = len(self.train_datasets)
@@ -68,13 +73,16 @@ class CIFAR10(ImageToClassProblem):
         self.sampler = SubsetRandomSampler(idx)
 
         # Class names.
-        self.cifar_class_names = 'Airplane Automobile Bird Cat Deer Dog Frog Horse Shipe Truck'.split(' ')
+        self.cifar_class_names = 'Airplane Automobile Bird Cat Deer Dog Frog Horse Shipe Truck'.split(
+            ' ')
 
     def generate_batch(self):
 
         # data loader
-        train_loader = torch.utils.data.DataLoader(self.train_datasets, batch_size=self.batch_size,
-                                                   sampler=self.sampler)
+        train_loader = torch.utils.data.DataLoader(
+            self.train_datasets,
+            batch_size=self.batch_size,
+            sampler=self.sampler)
 
         # create an iterator
         train_loader = iter(train_loader)
@@ -98,8 +106,20 @@ if __name__ == "__main__":
     torch.manual_seed(0)
 
     # "Loaded parameters".
-    params = {'batch_size':2, 'start_index': 0, 'stop_index': 40000, 'use_train_data': True, 'folder': '~/data/cifar10', 'padding': [0,0,0,0],
-              'up_scaling': True}
+    from utils.param_interface import ParamInterface 
+    params = ParamInterface()
+    params.add_default_params({
+        'batch_size': 2,
+        'start_index': 0,
+        'stop_index': 40000,
+        'use_train_data': True,
+        'folder': '~/data/cifar10',
+        'padding': [
+            0,
+            0,
+            0,
+            0],
+        'up_scaling': True})
 
     # Create problem object.
     problem = CIFAR10(params)

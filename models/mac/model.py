@@ -48,9 +48,6 @@ import os
 import torch.nn.functional as F
 
 from models.model import Model
-from misc.app_state import AppState
-
-app_state = AppState()
 
 from models.mac.input_unit import InputUnit
 from models.mac.mac_unit import MACUnit
@@ -58,9 +55,7 @@ from models.mac.output_unit import OutputUnit
 from PIL import Image
 from torchvision import transforms
 
-# visualization
 import nltk
-nltk.download('punkt')  # needed for nltk.word.tokenize
 
 
 class MACNetwork(Model):
@@ -71,7 +66,9 @@ class MACNetwork(Model):
     def __init__(self, params):
         """
         Constructor for the MAC network.
+
         :param params: dict of parameters.
+
         """
 
         # call base constructor
@@ -89,15 +86,21 @@ class MACNetwork(Model):
         self.image = []
 
         # instantiate units
-        self.input_unit = InputUnit(dim=self.dim, embedded_dim=self.embed_hidden)
+        self.input_unit = InputUnit(
+            dim=self.dim, embedded_dim=self.embed_hidden)
 
-        self.mac_unit = MACUnit(dim=self.dim, max_step=self.max_step, self_attention=self.self_attention,
-                                memory_gate=self.memory_gate, dropout=self.dropout)
+        self.mac_unit = MACUnit(
+            dim=self.dim,
+            max_step=self.max_step,
+            self_attention=self.self_attention,
+            memory_gate=self.memory_gate,
+            dropout=self.dropout)
 
         self.output_unit = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
 
         # transform for the image plotting
-        self.transform = transforms.Compose([transforms.Resize([224, 224]), transforms.ToTensor()])
+        self.transform = transforms.Compose(
+            [transforms.Resize([224, 224]), transforms.ToTensor()])
 
     def forward(self, data_dict, dropout=0.15):
 
@@ -109,7 +112,8 @@ class MACNetwork(Model):
         images, questions, questions_len, _, _, _, _, _ = data_dict.values()
 
         # input unit
-        img, kb_proj, lstm_out, h = self.input_unit(questions, questions_len, images)
+        img, kb_proj, lstm_out, h = self.input_unit(
+            questions, questions_len, images)
         self.image = kb_proj
 
         # recurrent MAC cells
@@ -122,9 +126,11 @@ class MACNetwork(Model):
 
     def generate_figure_layout(self):
         """
-        Generate a figure layout for the attention visualization (done in MACNetwork.plot())
+        Generate a figure layout for the attention visualization (done in
+        MACNetwork.plot())
 
         :return: figure layout.
+
         """
 
         from matplotlib.figure import Figure
@@ -154,11 +160,14 @@ class MACNetwork(Model):
         # Set axis ticks
         ax_image.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax_image.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_attention_image.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_attention_image.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_attention_image.xaxis.set_major_locator(
+            ticker.MaxNLocator(integer=True))
+        ax_attention_image.yaxis.set_major_locator(
+            ticker.MaxNLocator(integer=True))
 
         # question ticks
-        ax_attention_question.xaxis.set_major_locator(ticker.MaxNLocator(nbins=40))
+        ax_attention_question.xaxis.set_major_locator(
+            ticker.MaxNLocator(nbins=40))
 
         ax_step.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax_step.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
@@ -169,8 +178,9 @@ class MACNetwork(Model):
 
     def plot(self, aux_tuple, logits, sample_number=0):
         """
-        Visualize the attention weights (Control Unit & Read Unit) on the question & feature maps.
-        Dynamic visualization trhoughout the reasoning steps possible.
+        Visualize the attention weights (Control Unit & Read Unit) on the
+        question & feature maps. Dynamic visualization trhoughout the reasoning
+        steps possible.
 
         :param aux_tuple: aux_tuple (), transformed by CLEVR.plot_preprocessing()
             -> (s_questions, answer_string, imgfiles, set, prediction_string, clevr_dir)
@@ -178,6 +188,7 @@ class MACNetwork(Model):
         :param sample_number: Number of sample in batch (DEFAULT: 0)
 
         :return: True when the user closes the window, False if we do not need to visualize.
+
         """
 
         # check whether the visualization is required
@@ -186,15 +197,19 @@ class MACNetwork(Model):
 
         # Initialize timePlot window - if required.
         if self.plotWindow is None:
-            from misc.time_plot import TimePlot
+            from utils.time_plot import TimePlot
             self.plotWindow = TimePlot()
 
         # attention mask [batch_size x 1 x(H*W)]
 
         # unpack aux_tuple
-        (s_questions, answer_string, imgfiles, set, prediction_string, clevr_dir) = aux_tuple
+        (s_questions, answer_string, imgfiles, set,
+         prediction_string, clevr_dir) = aux_tuple
 
-        # tokenize question string using same processing as in the problem class
+        # needed for nltk.word.tokenize
+        nltk.download('punkt')
+        # tokenize question string using same processing as in the problem
+        # class
         words = nltk.word_tokenize(s_questions[sample_number])
 
         # Create figure template.
@@ -218,13 +233,16 @@ class MACNetwork(Model):
         height = image.size(1)
 
         frames = []
-        for step, (attention_mask, attention_question) in zip(range(self.max_step), self.mac_unit.cell_state_history):
+        for step, (attention_mask, attention_question) in zip(
+                range(self.max_step), self.mac_unit.cell_state_history):
             # preprocess attention image, reshape
             attention_size = int(np.sqrt(attention_mask.size(-1)))
-            attention_mask = attention_mask.view(-1, 1, attention_size, attention_size)
+            attention_mask = attention_mask.view(-1,
+                                                 1, attention_size, attention_size)
 
             # upsample attention mask
-            m = torch.nn.Upsample(size=[width, height], mode='bilinear', align_corners=True)
+            m = torch.nn.Upsample(
+                size=[width, height], mode='bilinear', align_corners=True)
             up_sample_attention_mask = m(attention_mask)
             attention_mask = up_sample_attention_mask[sample_number, 0]
 
@@ -236,24 +254,34 @@ class MACNetwork(Model):
             artists = [None] * num_artists
 
             # set title labels
-            ax_image.set_title('CLEVR image: {}'.format(imgfiles[sample_number]))
-            ax_attention_question.set_xticklabels(['h'] + words, rotation='vertical', fontsize=10)
+            ax_image.set_title(
+                'CLEVR image: {}'.format(imgfiles[sample_number]))
+            ax_attention_question.set_xticklabels(
+                ['h'] + words, rotation='vertical', fontsize=10)
             ax_step.axis('off')
 
             # set axis attention labels
             ax_attention_image.set_title(
                 'Predicted Answer: ' + prediction_string[sample_number] +
-                ' [ proba: ' + str.format("{0:.3f}", proba_answer) + ']  ' + 'Ground Truth: ' +
-                answer_string[sample_number])
+                ' [ proba: ' + str.format("{0:.3f}", proba_answer) + ']  ' +
+                'Ground Truth: ' + answer_string[sample_number])
 
             # Tell artists what to do:
-            artists[0] = ax_image.imshow(image, interpolation='nearest', aspect='auto')
-            artists[1] = ax_attention_image.imshow(image, interpolation='nearest', aspect='auto')
-            artists[2] = ax_attention_image.imshow(attention_mask, interpolation='nearest', aspect='auto', alpha=0.5,
-                                                   cmap='Reds')
-            artists[3] = ax_attention_question.imshow(attention_question.transpose(1, 0), interpolation='nearest',
-                                                      aspect='auto', cmap='Reds')
-            artists[4] = ax_step.text(0, 0.5, 'Reasoning step index: ' + str(step), fontsize=15)
+            artists[0] = ax_image.imshow(
+                image, interpolation='nearest', aspect='auto')
+            artists[1] = ax_attention_image.imshow(
+                image, interpolation='nearest', aspect='auto')
+            artists[2] = ax_attention_image.imshow(
+                attention_mask,
+                interpolation='nearest',
+                aspect='auto',
+                alpha=0.5,
+                cmap='Reds')
+            artists[3] = ax_attention_question.imshow(
+                attention_question.transpose(1, 0),
+                interpolation='nearest', aspect='auto', cmap='Reds')
+            artists[4] = ax_step.text(
+                0, 0.5, 'Reasoning step index: ' + str(step), fontsize=15)
 
             # Add "frame".
             frames.append(artists)
@@ -273,12 +301,18 @@ if __name__ == '__main__':
     nb_classes = 28
     dropout = 0.15
 
-    from misc.param_interface import ParamInterface
+    from utils.app_state import AppState
+    app_state = AppState()
 
+    from utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_custom_params(
-        {'dim': dim, 'embed_hidden': embed_hidden, 'max_step': 12, 'self_attention': self_attention,
-         'memory_gate': memory_gate, 'nb_classes': nb_classes, 'dropout': dropout})
+    params.add_custom_params({'dim': dim,
+                              'embed_hidden': embed_hidden,
+                              'max_step': 12,
+                              'self_attention': self_attention,
+                              'memory_gate': memory_gate,
+                              'nb_classes': nb_classes,
+                              'dropout': dropout})
 
     net = MACNetwork(params)
 

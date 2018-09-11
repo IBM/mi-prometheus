@@ -10,7 +10,10 @@ import torch
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import default_collate
 
-from misc import AppState
+import utils
+print(utils.__file__)
+from utils.app_state import AppState
+
 import logging
 logger = logging.Logger('DataDict')
 
@@ -135,10 +138,11 @@ class Problem(Dataset):
     """
 
     def __init__(self, params):
-        """ 
+        """
         Initializes problem object.
 
-        :param params: Dictionary of parameters (read from configuration file).        
+        :param params: Dictionary of parameters (read from configuration file).
+
         """
         # Set default loss function.
         self.loss_function = None
@@ -152,14 +156,19 @@ class Problem(Dataset):
         # Store pointer to params.
         self.params = params
 
-        # For useful flags
-        self.app_state = AppState()
-
         # data definition: this is used for defining the DataDict keys
         self.data_definition = {}
 
+        # Get access to AppState.
+        self.app_state = AppState()
+
+        # "Default" problem name.
+        self.name = 'Problem'
+
+
     def set_loss_function(self, loss_function):
-        """ Sets loss function.
+        """
+        Sets loss function.
 
         :param loss_function: Loss function (e.g. nn.CrossEntropyLoss()) that will be set as the optimization criterion.
         """
@@ -213,7 +222,7 @@ class Problem(Dataset):
 
         :param data_dict: DataDict containing inputs and targets.
         :param logits: Logits being output of the model.
-        :param _: auxiliary tuple (aux_tuple) is not used in this function. 
+        :param _: auxiliary tuple (aux_tuple) is not used in this function.
         """
 
         # Compute loss using the provided loss function. 
@@ -223,22 +232,26 @@ class Problem(Dataset):
 
     def add_statistics(self, stat_col):
         """
-        Add statistics to collector. 
+        Add statistics to collector.
+
         EMPTY - To be redefined in inheriting classes.
 
         :param stat_col: Statistics collector.
+
         """
         pass
         
     def collect_statistics(self, stat_col, data_dict, logits, _):
         """
-        Base statistics collection. 
+        Base statistics collection.
+
         EMPTY - To be redefined in inheriting classes.
 
         :param stat_col: Statistics collector.
         :param data_dict: DataDict containing inputs and targets.
         :param logits: Logits being output of the model.
-        :param _: auxiliary tuple (aux_tuple) is not used in this function. 
+        :param _: auxiliary tuple (aux_tuple) is not used in this function.
+
         """
         pass
 
@@ -296,12 +309,11 @@ class Problem(Dataset):
         return data_dict, logits
 
     def curriculum_learning_initialize(self, curriculum_params):
-        """ 
+        """
         Initializes curriculum learning - simply saves the curriculum params.
         This method can be overwritten in the derived classes.
 
         :param curriculum_params: Interface to parameters accessing curriculum learning view of the registry tree.
-
         """
         # Save params.
         self.curriculum_params = curriculum_params

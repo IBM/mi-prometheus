@@ -16,4 +16,3 @@ from .reverse_recall import ReverseRecall
 from .scratch_pad import ScratchPad
 from .serial_recall import SerialRecall
 from .serial_recall_simplified import SerialRecallSimplified
-

@@ -3,13 +3,17 @@
 """image_text_to_class_problem.py: contains abstract base class for VQA problems"""
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
+
 import torch
 import torch.nn as nn
 from problems.problem import Problem, DataDict
 
 
 class ObjectRepresentation:
-    """ Class storing features of the object being present in a given scene. """
+    """
+    Class storing features of the object being present in a given scene.
+    """
+
     def __init__(self, x, y, color, shape):
         self.x = x
         self.y = y
@@ -23,11 +27,13 @@ class ImageTextToClassProblem(Problem):
     Provides some basic functionality useful in all problems of such type.
     """
     def __init__(self, params):
-        """ 
-        Initializes problem, calls base class initialization. Set loss function to CrossEntropy.
+        """
+        Initializes problem, calls base class initialization. Set loss function
+        to CrossEntropy.
 
-        :param params: Dictionary of parameters (read from configuration file).        
-        """ 
+        :param params: Dictionary of parameters (read from configuration file).
+
+        """
         # Call base class constructors.
         super(ImageTextToClassProblem, self).__init__(params)
 
@@ -72,9 +78,10 @@ class ImageTextToClassProblem(Problem):
 
     def add_statistics(self, stat_col):
         """
-        Add accuracy statistic to collector. 
+        Add accuracy statistic to collector.
 
         :param stat_col: Statistics collector.
+
         """
         stat_col.add_statistic('acc', '{:12.10f}')
 
@@ -85,7 +92,8 @@ class ImageTextToClassProblem(Problem):
         :param stat_col: Statistics collector.
         :param data_dict: DataDict containing inputs and targets.
         :param logits: Logits being output of the model.
-        :param _: auxiliary tuple (aux_tuple) is not used in this function. 
+        :param _: auxiliary tuple (aux_tuple) is not used in this function.
+
         """
         stat_col['acc'] = self.calculate_accuracy(data_dict, logits, _)
 

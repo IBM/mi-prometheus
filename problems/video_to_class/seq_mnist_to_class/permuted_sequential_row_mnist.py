@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """permuted_sequential_row_mnist.py: load MNIST dataset using torchvision and apply a permutation over the rows"""
-__author__= "Younes Bouhadjar"
+__author__ = "Younes Bouhadjar"
 
 import torch
 from torchvision import datasets, transforms
@@ -28,13 +28,15 @@ from problems.video_to_class.video_to_class_problem import VideoToClassProblem
 
 class PermutedSequentialRowMnist(VideoToClassProblem):
     """
-    Class generating permuted sequences of rows for sequential mnist
+    Class generating permuted sequences of rows for sequential mnist.
     """
 
     def __init__(self, params):
-        """ Constructor for  PermutedSequentialRowMnist
+        """
+        Constructor for  PermutedSequentialRowMnist.
 
         :param params: dictionary of parameters
+
         """
 
         # Call base class constructors.
@@ -56,8 +58,11 @@ class PermutedSequentialRowMnist(VideoToClassProblem):
             transforms.ToTensor(), transforms.Lambda(lambda x: x[:, pixel_permutation])])
 
         # load the datasets
-        train_datasets = datasets.MNIST(self.datasets_folder, train=True, download=True,
-                                     transform=train_transform)
+        train_datasets = datasets.MNIST(
+            self.datasets_folder,
+            train=True,
+            download=True,
+            transform=train_transform)
         # set split
         num_train = len(train_datasets)
         indices = list(range(num_train))
@@ -66,8 +71,8 @@ class PermutedSequentialRowMnist(VideoToClassProblem):
         sampler = SubsetRandomSampler(idx)
 
         # loader
-        train_loader = torch.utils.data.DataLoader(train_datasets, batch_size=self.batch_size,
-                                                   sampler=sampler)
+        train_loader = torch.utils.data.DataLoader(
+            train_datasets, batch_size=self.batch_size, sampler=sampler)
         # create an iterator
         train_loader = iter(train_loader)
 
@@ -79,13 +84,17 @@ class PermutedSequentialRowMnist(VideoToClassProblem):
         (data, label) = next(train_loader)
 
         # Return DataTuple(!) and an empty (aux) tuple.
-        return DataTuple(data,label), MaskAuxTuple(mask.type(torch.uint8))
+        return DataTuple(data, label), MaskAuxTuple(mask.type(torch.uint8))
+
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
-    params = {'batch_size': 1, 'start_index': 0, 'stop_index': 54999, 'use_train_data': True, 'mnist_folder': '~/data/mnist'}
+    from utils.param_interface import ParamInterface 
+    params = ParamInterface()
+    params.add_default_params({'batch_size': 1, 'start_index': 0, 'stop_index': 54999,
+              'use_train_data': True, 'mnist_folder': '~/data/mnist'})
     # Create problem object.
     problem = PermutedSequentialRowMnist(params)
     # Get generator
