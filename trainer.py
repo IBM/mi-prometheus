@@ -361,11 +361,13 @@ if __name__ == '__main__':
         yaml.dump(param_interface.to_dict(),
                   yaml_backup_file, default_flow_style=False)
 
-    # Print the training configuration.
-    str = 'Configuration for {}:\n'.format(task_name)
-    str += yaml.safe_dump(param_interface.to_dict(), default_flow_style=False,
-                          explicit_start=True, explicit_end=True)
-    logger.info(str)
+    # Log the training configuration.
+    conf_str = '\n' + '='*80 + '\n'
+    conf_str += 'Final registry configuration for training {} on {}:\n'.format(model_name, task_name)
+    conf_str += '='*80 + '\n'
+    conf_str += yaml.safe_dump(param_interface.to_dict(), default_flow_style=False)
+    conf_str += '='*80 + '\n'
+    logger.info(conf_str)
 
     # Ask for confirmation - optional.
     if FLAGS.confirm:
