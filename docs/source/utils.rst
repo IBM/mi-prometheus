@@ -4,8 +4,8 @@
 Utilities
 ===================================
 
-.. automodule:: misc
-.. currentmodule:: misc
+.. automodule:: utils
+.. currentmodule:: utils
 
 AppState
 ----------

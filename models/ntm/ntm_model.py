@@ -11,7 +11,6 @@ from models.sequential_model import SequentialModel
 from models.ntm.ntm_cell import NTMCell
 from problems.problem import DataTuple
 
-
 class NTM(SequentialModel):
     """
     Class representing the Neural Turing Machine module.
@@ -59,7 +58,7 @@ class NTM(SequentialModel):
                :return: Predictions being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] .
 
         """
-        dtype = AppState().dtype
+        dtype = self.app_state.dtype
 
         # Unpack data tuple.
         (inputs_BxSxI, targets) = data_tuple
@@ -193,7 +192,7 @@ class NTM(SequentialModel):
 
         # Initialize timePlot window - if required.
         if self.plotWindow is None:
-            from misc.time_plot import TimePlot
+            from utils.time_plot import TimePlot
             self.plotWindow = TimePlot()
 
         # import time
@@ -404,7 +403,7 @@ class NTM(SequentialModel):
 
         # Initialize timePlot window - if required.
         if self.plotWindow is None:
-            from misc.time_plot import TimePlot
+            from utils.time_plot import TimePlot
             self.plotWindow = TimePlot()
 
         # import time
@@ -571,19 +570,21 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     # Set visualization.
-    from misc.app_state import AppState
+    from utils.app_state import AppState
     AppState().visualize = True
 
     # "Loaded parameters".
-    params = {'num_control_bits': 2, 'num_data_bits': 8,  # input and output size
+    from utils.param_interface import ParamInterface
+    params = ParamInterface()
+    params.add_default_params({'num_control_bits': 2, 'num_data_bits': 8,  # input and output size
               # controller parameters
-              'controller': {'name': 'rnn', 'hidden_state_size': 5, 'num_layers': 1, 'non_linearity': 'none'},
+              'controller': {'name': 'ffgru', 'hidden_state_size': 5, 'num_layers': 1, 'non_linearity': 'none', 'ff_output_size': 5},
               # interface parameters
               'interface': {'num_read_heads': 2, 'shift_size': 3},
               # memory parameters
               'memory': {'num_addresses': 4, 'num_content_bits': 7},
               'visualization_mode': 2
-              }
+              })
     logger.debug("params: {}".format(params))
 
     input_size = params["num_control_bits"] + params["num_data_bits"]

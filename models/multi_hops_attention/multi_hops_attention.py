@@ -22,12 +22,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from misc.param_interface import ParamInterface
 
 from models.multi_hops_attention.image_encoding import ImageEncoding
 from models.multi_hops_attention.attention import StackedAttention
 from models.model import Model
-from misc.app_state import AppState
 
 
 class MultiHopsAttention(Model):
@@ -124,7 +122,7 @@ class MultiHopsAttention(Model):
 
         """
 
-        dtype = AppState().dtype
+        dtype = self.app_state.dtype
         hx = torch.randn(batch_size, self.hidden_size).type(dtype)
         cx = torch.randn(batch_size, self.hidden_size).type(dtype)
 
@@ -156,7 +154,8 @@ class MultiHopsAttention(Model):
         # Show data.
         plt.title('Prediction: {} (Target: {})'.format(prediction, target))
         plt.xlabel('Q: {} )'.format(question))
-        plt.imshow(image.transpose(1, 2, 0),
+        print(type(image))
+        plt.imshow(image.permute(1, 2, 0),
                    interpolation='nearest', aspect='auto')
 
         # Plot!
@@ -201,10 +200,14 @@ class Classifier(nn.Sequential):
 
 if __name__ == '__main__':
     # Set visualization.
+    from utils.app_state import AppState
     AppState().visualize = True
 
     # Test base model.
+    from utils.param_interface import ParamInterface
+
     params = ParamInterface()
+    params.add_custom_params({})
 
     # model
     model = MultiHopsAttention(params)

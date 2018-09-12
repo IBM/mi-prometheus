@@ -23,8 +23,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
-from misc.app_state import AppState
-app_state = AppState()
+from utils.app_state import AppState
 
 
 class PairwiseRelationNetwork(nn.Module):
@@ -123,7 +122,7 @@ if __name__ == '__main__':
     input_size = (24 + 2) * 2 + 13
     batch_size = 64
     inputs = np.random.binomial(1, 0.5, (batch_size, 3, input_size))
-    inputs = torch.from_numpy(inputs).type(app_state.dtype)
+    inputs = torch.from_numpy(inputs).type(AppState().dtype)
 
     params_g = {'input_size': input_size}
     g_theta = PairwiseRelationNetwork(params_g)

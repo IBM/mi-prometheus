@@ -23,9 +23,6 @@ __author__ = "Vincent Marois "
 import torch
 import random
 
-from misc.app_state import AppState
-app_state = AppState()
-
 from models.text2text.encoder import EncoderRNN
 from models.text2text.base_decoder import DecoderRNN
 from models.text2text.attn_decoder import AttnDecoderRNN
@@ -107,7 +104,7 @@ class SimpleEncoderDecoder(SequentialModel):
 
         # Initialize timePlot window - if required.
         if self.plotWindow is None:
-            from misc.time_plot import TimePlot
+            from utils.time_plot import TimePlot
             self.plotWindow = TimePlot()
 
         # select 1 random sample in the batch and retrieve corresponding
@@ -178,18 +175,18 @@ class SimpleEncoderDecoder(SequentialModel):
                 batch_size,
                 (self.hidden_size *
                  2)).type(
-                app_state.dtype)
+                self.app_state.dtype)
         else:
             encoder_outputs = torch.zeros(
                 self.max_length,
                 batch_size,
                 (self.hidden_size *
                  1)).type(
-                app_state.dtype)
+                self.app_state.dtype)
 
         # create placeholder for the attention weights -> for visualization
         self.decoder_attentions = torch.zeros(
-            batch_size, self.max_length, self.max_length).type(app_state.dtype)
+            batch_size, self.max_length, self.max_length).type(self.app_state.dtype)
 
         # encoder manual loop
         for ei in range(self.max_length):
@@ -204,7 +201,7 @@ class SimpleEncoderDecoder(SequentialModel):
         # decoder input : [batch_size x 1] initialized to the value of Start Of
         # String token
         decoder_input = torch.ones(batch_size, 1).type(
-            app_state.LongTensor) * SOS_token
+            self.app_state.LongTensor) * SOS_token
 
         # pass along the hidden states: shape [[(encoder.n_layers *
         # encoder.n_directions) x batch_size x hidden_size]]
@@ -215,7 +212,7 @@ class SimpleEncoderDecoder(SequentialModel):
             self.max_length,
             batch_size,
             self.output_voc_size).type(
-            app_state.dtype)
+            self.app_state.dtype)
 
         if self.training:  # Teacher forcing: Feed the target as the next input
             for di in range(self.max_length):
@@ -264,6 +261,8 @@ if __name__ == '__main__':
     # import lines for problem class
     import sys
     import os
+    # TK: ok, what is going on in here...?
+
     # add problem folder to path for import
     sys.path.insert(0, os.path.normpath(os.path.join(
         os.getcwd(), '../../problems/seq_to_seq/text2text')))
@@ -278,8 +277,10 @@ if __name__ == '__main__':
         "we are", "we re ",
         "they are", "they re "
     )
+    from utils.param_interface import ParamInterface
 
-    params = {
+    params = ParamInterface()
+    params.add_custom_params({
         'batch_size': 64,
         'training_size': 0.90,
         'output_lang_name': 'fra',
@@ -287,7 +288,7 @@ if __name__ == '__main__':
         'eng_prefixes': eng_prefixes,
         'use_train_data': True,
         'data_folder': '~/data/language',
-        'reverse': False}
+        'reverse': False})
 
     problem = pb.Translation(params)
     print('Problem successfully created.\n')
@@ -297,12 +298,15 @@ if __name__ == '__main__':
     output_voc_size = problem.output_lang.n_words
 
     # instantiate model with credible parameters
-    model_params = {
+    from utils.param_interface import ParamInterface
+
+    model_params = ParamInterface()
+    model_params.add_custom_params({
         'max_length': 15,
         'input_voc_size': input_voc_size,
         'hidden_size': 256,
         'output_voc_size': output_voc_size,
-        'encoder_bidirectional': True}
+        'encoder_bidirectional': True})
     net = SimpleEncoderDecoder(model_params)
 
     # generate a batch

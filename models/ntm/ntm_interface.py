@@ -11,7 +11,7 @@ import numpy as np
 import logging
 logger = logging.getLogger('NTM-Interface')
 
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 
 # Helper collection type.

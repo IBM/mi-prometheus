@@ -1,14 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
+# Copyright (C) IBM Corporation 2018
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """worker_utils.py: Contains helper functions for different workers"""
-__author__ = "Ryan McAvoy, Tomasz Kornuta"
+__author__ = "Ryan McAvoy, Tomasz Kornuta, Vincent Albuoy"
 
 import os
 import yaml
 import numpy as np
+
 import torch
-from misc.app_state import AppState
 from torch.nn.modules.module import _addindent
+
+from .app_state import AppState
 
 
 def forward_step(model, problem, episode, stat_col, data_tuple, aux_tuple):
@@ -128,67 +144,50 @@ def recurrent_config_parse(configs, configs_parsed):
 
 
 
-def torch_summarize(model, show_weights=True, show_parameters=True, show_total_parameters=True):
 
+def model_summarize(model):
     """Summarizes torch model by showing trainable/non-trainable parameters and weights.
-    
-        :param show_weights: Boolean that control if weights will be shown.
-        :param show_parameters: Boolean that control if the layer parameters (trainable + non-trainable) will be shown.
-        :param show_total_parameters: Boolean that control if the total number of parameters will be shown.
-        
+        Uses recursive_summarize to interate through nested structure of the mode.
+            
     """
     #add name of the current module
-    tmpstr = model.__class__.__name__ + ' (\n'
+    summary_str = '\n' + '='*80 + '\n'
+    summary_str += 'Module name (Type) \n'
+    summary_str += '  Matrices: [(name, dims), ...]\n'
+    summary_str += '  Trainable Params: #\n  Non-trainable Params: #\n'
+    summary_str += '='*80 + '\n'
+    summary_str += '+ ' + model.name + ' ' + recursive_summarize(model, 6, len(model.name))
+    summary_str += '\n' + '='*80 + '\n'
+    # Sum the parameters.
+    num_total_params = sum([np.prod(p.size()) for p in model.parameters()])
+    mod_trainable_params = filter(lambda p: p.requires_grad, model.parameters())
+    num_trainable_params = sum([np.prod(p.size()) for p in mod_trainable_params])
+    summary_str += '  Total Trainable Params: {}\n  Total Non-trainable Params: {}\n'.format(num_trainable_params, num_total_params-num_trainable_params) 
+    return summary_str
 
-    #initialize total number non-trainable and trainable parameters
-    total_params = 0
-    total_trainable_params = 0
+def recursive_summarize(module_, indent_, name_len_):
+    # Iterate through children.
+    child_lines = []
+    for key, module in module_._modules.items():
+        child_str = '\n+ ' + key + ' '
+        child_str += recursive_summarize(module, indent_+2, len(key))
+        child_lines.append(child_str)
 
-    #iterate other all modules
-    for key, module in model._modules.items():
-        # if it contains layers let call it recursively to get params and weights
-        if type(module) in [
-            torch.nn.modules.container.Container,
-            torch.nn.modules.container.Sequential
-        ]:
-            modstr = torch_summarize(module)
-        else:
-            modstr = module.__repr__()
-        modstr = _addindent(modstr, 2)
-
-        #get all needed parameters
-
-        #all parameters
-        params = sum([np.prod(p.size()) for p in module.parameters()])
-        total_params += params
-
-        #trainable parameters
-        mod_parameters = filter(lambda p: p.requires_grad, module.parameters())
-        trainable_params = sum([np.prod(p.size()) for p in mod_parameters])
-        total_trainable_params += trainable_params
-
-        #weights
-        weights = tuple([tuple(p.size()) for p in module.parameters()])
-
-
-        #build a giant string text to summarize all parameters
-        tmpstr += '  (' + key + '): ' + modstr
-        if show_weights:
-            tmpstr += ', weights={}'.format(weights)
-        if show_parameters:
-            tmpstr += ', parameters={}'.format(params)
-            tmpstr += ', trainable_parameters={}'.format( trainable_params)
-        tmpstr += '\n'
-
-    #add the total number of parameters at the end (reset at every module)
-    if show_total_parameters:
-        tmpstr += 'total_parameters={}'.format(total_params)
-        tmpstr += '\n'
-        tmpstr += 'total_trainable_parameters={}'.format(total_trainable_params)
-        tmpstr += '\n'
-        tmpstr += 'non_trainable_parameters={}'.format(total_params-total_trainable_params)
-
-    tmpstr += '\n'
-    tmpstr = tmpstr + ')'
-
-    return tmpstr
+    # "Leaf information". 
+    mod_type_name = module_._get_name()
+    mod_str = _addindent("("+ mod_type_name + ')-',2)
+    mod_str += _addindent('-'*(80 - indent_ - name_len_ - len(mod_type_name)),2)
+    mod_str += _addindent(''.join(child_lines), 2)
+    # Get leaf weights and number of params - only for leafs!
+    if not child_lines:
+        # Collect names and dimensions of all (named) params. 
+        mod_weights = [(n,tuple(p.size())) for n,p in module_.named_parameters()]
+        mod_str += _addindent('\n  Matrices: {}\n'.format(mod_weights),2)
+        # Sum the parameters.
+        num_total_params = sum([np.prod(p.size()) for p in module_.parameters()])
+        mod_trainable_params = filter(lambda p: p.requires_grad, module_.parameters())
+        num_trainable_params = sum([np.prod(p.size()) for p in mod_trainable_params])
+        mod_str += _addindent('  Trainable Params: {}\n'.format(num_trainable_params),2)
+        mod_str += '  Non-trainable Params: {}'.format(num_total_params-num_trainable_params) 
+   
+    return mod_str

@@ -23,7 +23,7 @@ from torch import nn
 from models.dwm.controller import Controller
 from models.dwm.interface import Interface
 import collections
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 # Helper collection type.
 _DWMCellStateTuple = collections.namedtuple(

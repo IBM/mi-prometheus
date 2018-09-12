@@ -15,9 +15,10 @@
 !__init__.py
 !/models/**
 !/problems/**
-!/confgiuration/**
+!/configuration/**
 !/configs/**
-!/misc/**
+!/utils/**
+!/scripts/**
 # You can be specific with these rules
 !/docs/**
 !docgen.sh

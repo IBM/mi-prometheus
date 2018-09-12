@@ -133,8 +133,6 @@ class MASCell(torch.nn.Module):
          enc_memory_BxAxC) = final_enc_cell_state
         (enc_attention_BxAx1, _) = enc_interface_state
 
-        # Get dtype.
-        #dtype = AppState().dtype
         # Get number of memory addresses.
         batch_size = enc_memory_BxAxC.size(0)
         num_memory_addresses = enc_memory_BxAxC.size(1)

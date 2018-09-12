@@ -28,7 +28,7 @@ of the DNC (Copyright 2017 Google Inc.) https://github.com/deepmind/dnc/blob/mas
 __author__ = " Ryan L. McAvoy"
 
 import torch
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 # Ensure values are greater than epsilon to avoid numerical instability.
 _EPSILON = 1e-6

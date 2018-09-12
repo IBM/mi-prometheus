@@ -1,15 +1,16 @@
 from .controller_factory import ControllerFactory
 from .feedforward_controller import FeedforwardController
-from .ffgru_controller import GRUStateTuple, FFGRUController
-from .gru_controller import GRUController
+from .ffgru_controller import FFGRUStateTuple, FFGRUController
+from .gru_controller import GRUStateTuple, GRUController
 from .lstm_controller import LSTMStateTuple, LSTMController
 from .rnn_controller import RNNStateTuple, RNNController
 
 __all__ = [
     'ControllerFactory',
     'FeedforwardController',
-    'GRUStateTuple',
+    'FFGRUStateTuple',
     'FFGRUController',
+    'GRUStateTuple',
     'GRUController',
     'LSTMStateTuple',
     'LSTMController',

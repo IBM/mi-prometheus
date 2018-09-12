@@ -106,7 +106,9 @@ if __name__ == "__main__":
     torch.manual_seed(0)
 
     # "Loaded parameters".
-    params = {
+    from utils.param_interface import ParamInterface 
+    params = ParamInterface()
+    params.add_default_params({
         'batch_size': 2,
         'start_index': 0,
         'stop_index': 40000,
@@ -117,7 +119,7 @@ if __name__ == "__main__":
             0,
             0,
             0],
-        'up_scaling': True}
+        'up_scaling': True})
 
     # Create problem object.
     problem = CIFAR10(params)

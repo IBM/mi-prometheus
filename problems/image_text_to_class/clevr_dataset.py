@@ -58,8 +58,7 @@ from torch.utils.data import Dataset
 import os
 
 from problems.utils.language import Language
-from misc.app_state import AppState
-app_state = AppState()
+from utils.app_state import AppState
 
 import logging
 logger = logging.getLogger('CLEVR')
@@ -110,6 +109,9 @@ class CLEVRDataset(Dataset):
         self.clevr_humans = clevr_humans
         self.embedding_type = embedding_type
         self.random_embedding_dim = random_embedding_dim
+
+        # Get access to app state.
+        self.app_state = AppState()
 
         if self.set == 'test':
             logger.error('Test set generation not supported for now. Exiting.')
@@ -410,13 +412,13 @@ class CLEVRDataset(Dataset):
         # create the image index to retrieve the feature maps in self.img
         id = int(imgfile.rsplit('_', 1)[1][:-4])
 
-        img = torch.from_numpy(self.img[id]).type(app_state.dtype)
+        img = torch.from_numpy(self.img[id]).type(self.app_state.dtype)
 
         # embed question
         if self.embedding_type == 'random':
             # embed question:
             question = self.embed_layer(
-                torch.LongTensor(question)).type(app_state.dtype)
+                torch.LongTensor(question)).type(self.app_state.dtype)
 
         else:
             # embed question
@@ -453,13 +455,13 @@ class CLEVRDataset(Dataset):
                 batch_size,
                 max_len,
                 self.random_embedding_dim).type(
-                app_state.dtype)
+                self.app_state.dtype)
 
         else:
             # get embedding dimension from the embedding type
             embedding_dim = int(self.embedding_type[-4:-1])
             questions = torch.zeros(
-                batch_size, max_len, embedding_dim).type(app_state.dtype)
+                batch_size, max_len, embedding_dim).type(self.app_state.dtype)
 
         # fill in the placeholders
         for i, b in enumerate(sort_by_len):
@@ -477,8 +479,8 @@ class CLEVRDataset(Dataset):
 
         # return all
         return torch.stack(images).type(
-            app_state.dtype), questions, lengths, torch.tensor(answers).type(
-            app_state.LongTensor), s_questions, indexes, imgfiles, question_types
+            self.app_state.dtype), questions, lengths, torch.tensor(answers).type(
+            self.app_state.LongTensor), s_questions, indexes, imgfiles, question_types
 
 
 if __name__ == '__main__':

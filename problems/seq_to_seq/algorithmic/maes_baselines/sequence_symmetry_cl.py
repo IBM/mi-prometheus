@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
+# Copyright (C) IBM Corporation 2018
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """sequence_symmetry_cl.py: Contains implementation of sequence symmetry task."""
 __author__ = "Ryan McAvoy/Tomasz Kornuta"
 
@@ -7,7 +22,6 @@ import torch
 import numpy as np
 from problems.problem import DataTuple
 from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem, AlgSeqAuxTuple
-from misc.param_interface import ParamInterface
 
 
 class SequenceSymmetryCommandLines(AlgorithmicSeqToSeqProblem):
@@ -190,6 +204,7 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
+    from utils.param_interface import ParamInterface 
     params = ParamInterface()
     params.add_custom_params({'control_bits': 4, 'data_bits': 8, 'batch_size': 1,
                               # 'predict_inverse': False,

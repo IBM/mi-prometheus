@@ -24,7 +24,6 @@ import logging
 import numpy as np
 
 from models.sequential_model import SequentialModel
-from misc.app_state import AppState
 from models.thalnet.thalnet_cell import ThalNetCell
 
 
@@ -177,7 +176,7 @@ class ThalNetModel(SequentialModel):
 
         # Initialize timePlot window - if required.
         if self.plotWindow is None:
-            from misc.time_plot import TimePlot
+            from utils.time_plot import TimePlot
             self.plotWindow = TimePlot()
 
         (inputs, _) = data_tuple
@@ -340,7 +339,7 @@ class ThalNetModel(SequentialModel):
 
 if __name__ == "__main__":
     input_size = 28
-    params = {
+    params_dict = {
         'context_input_size': 32,
         'input_size': input_size,
         'output_size': 10,
@@ -349,9 +348,13 @@ if __name__ == "__main__":
         'num_modules': 4}
 
     # Initialize the application state singleton.
+    from utils.app_state import AppState
     app_state = AppState()
     app_state.visualize = True
 
+    from utils.param_interface import ParamInterface
+    params = ParamInterface()
+    params.add_custom_params(params_dict)
     model = ThalNetModel(params)
 
     seq_length = 10
@@ -361,7 +364,7 @@ if __name__ == "__main__":
     for i in range(1):
         # Create random Tensors to hold inputs and outputs
         x = torch.randn(batch_size, 1, input_size, input_size)
-        logits = torch.randn(batch_size, 1, params['output_size'])
+        logits = torch.randn(batch_size, 1, params_dict['output_size'])
         y = x
         data_tuple = (x, y)
 

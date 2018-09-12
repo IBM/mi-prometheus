@@ -12,7 +12,7 @@ import numpy as np
 import logging
 logger = logging.getLogger('Model')
 
-from misc.app_state import AppState
+from utils.app_state import AppState
 
 
 class Model(nn.Module):
@@ -52,8 +52,9 @@ class Model(nn.Module):
             params.add_default_params({"save_intermediate": False})
         self.save_intermediate = params["save_intermediate"]
 
-        # Model name.
+        # "Default" model name.
         self.name = 'Model'
+
 
     def add_statistics(self, stat_col):
         """

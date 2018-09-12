@@ -26,7 +26,6 @@ import torch.nn.functional as F
 
 from models.model import Model
 from problems.problem import DataTuple
-from misc.app_state import AppState
 
 
 class SimpleConvNet(Model):
@@ -193,23 +192,27 @@ class SimpleConvNet(Model):
 
 if __name__ == '__main__':
     # Set visualization.
+    from utils.app_state import AppState
     AppState().visualize = True
 
     # Test base model.
-    params = {
+    from utils.param_interface import ParamInterface
+    params = ParamInterface()
+    params.add_custom_params({
         'depth_conv1': 10,
         'depth_conv2': 20,
         'filter_size_conv1': 5,
         'filter_size_conv2': 5,
         'num_pooling': 2,
         'num_channels': 1,
+        'up_scaling': None,
         'height': 28,
         'width': 28,
         'padding': (
             0,
             0,
             0,
-            0)}
+            0)})
 
     # model
     model = SimpleConvNet(params)

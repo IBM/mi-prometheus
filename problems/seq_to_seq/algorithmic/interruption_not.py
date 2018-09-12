@@ -22,7 +22,6 @@ import torch
 import numpy as np
 from problems.problem import DataTuple
 from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem, AlgSeqAuxTuple
-from misc.param_interface import ParamInterface
 
 
 class InterruptionNot(AlgorithmicSeqToSeqProblem):
@@ -181,6 +180,7 @@ if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
     # "Loaded parameters".
+    from utils.param_interface import ParamInterface 
     params = ParamInterface()
     params.add_custom_params({'name': 'serial_recall_original',
                               'control_bits': 4,

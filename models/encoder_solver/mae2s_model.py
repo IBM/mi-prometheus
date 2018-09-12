@@ -106,7 +106,7 @@ class MAE2S(SequentialModel):
 
         """
         # Get dtype.
-        dtype = AppState().dtype
+        dtype = self.app_state.dtype
 
         # Unpack tuple.
         (inputs_BxSxI, _) = data_tuple
@@ -204,19 +204,22 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     # Set visualization.
-    from misc.app_state import AppState
+    from utils.app_state import AppState
     AppState().visualize = True
 
     # "Loaded parameters".
-    params = {'num_control_bits': 4, 'num_data_bits': 8,  # input and output size
+    from utils.param_interface import ParamInterface
+    params = ParamInterface()
+    params.add_default_params({'num_control_bits': 4, 'num_data_bits': 8,  # input and output size
               'encoding_bit': 0, 'solving1_bit': 1, 'solving2_bit': 2,
               # controller parameters
               'controller': {'name': 'rnn', 'hidden_state_size': 20, 'num_layers': 1, 'non_linearity': 'sigmoid'},
-              'interface': {'shift_size': 3},  # interface parameters
+              'mae_interface': {'shift_size': 3},  # encoder interface parameters
+              'mas_interface': {'shift_size': 3},  # solver interface parameters
               # memory parameters
               'memory': {'num_addresses': -1, 'num_content_bits': 11},
               'visualization_mode': 2
-              }
+              })
     logger.debug("params: {}".format(params))
 
     input_size = params["num_control_bits"] + params["num_data_bits"]
