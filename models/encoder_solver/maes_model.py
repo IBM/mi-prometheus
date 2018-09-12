@@ -103,7 +103,7 @@ class MAES(SequentialModel):
 
         """
         # Get dtype.
-        dtype = AppState().dtype
+        dtype = self.app_state.dtype
 
         # Unpack tuple.
         (inputs_BxSxI, _) = data_tuple
