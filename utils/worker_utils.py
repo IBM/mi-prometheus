@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """worker_utils.py: Contains helper functions for different workers"""
-__author__ = "Ryan McAvoy, Tomasz Kornuta, Vincent Albuoy"
+__author__ = "Ryan McAvoy, Tomasz Kornuta"
 
 import os
 import yaml
@@ -142,66 +142,3 @@ def recurrent_config_parse(configs, configs_parsed):
     # Done, return list of loaded configs.
     return configs_parsed
 
-
-
-
-def model_summarize(model):
-    """Summarizes torch model by showing trainable/non-trainable parameters and weights.
-        Uses recursive_summarize to interate through nested structure of the mode.
-
-        :param: Model object for which the summary will be created.
-            
-    """
-    #add name of the current module
-    summary_str = '\n' + '='*80 + '\n'
-    summary_str += 'Model name (Type) \n'
-    summary_str += '+ Submodule name (Type) \n'
-    summary_str += '    Matrices: [(name, dims), ...]\n'
-    summary_str += '    Trainable Params: #\n'
-    summary_str += '    Non-trainable Params: #\n'
-    summary_str += '='*80 + '\n'
-    summary_str += recursive_summarize(model, 0, model.name)
-    # Sum the model parameters.
-    num_total_params = sum([np.prod(p.size()) for p in model.parameters()])
-    mod_trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-    num_trainable_params = sum([np.prod(p.size()) for p in mod_trainable_params])
-    summary_str += '\nTotal Trainable Params: {}\n'.format(num_trainable_params)
-    summary_str += 'Total Non-trainable Params: {}\n'.format(num_total_params-num_trainable_params) 
-    summary_str += '='*80 + '\n'
-    return summary_str
-
-def recursive_summarize(module_, indent_, module_name_):
-    """
-        Function that recursively inspects the (sub)modules and records their statistics (like names, types, parameters, their numbers etc.) 
-
-        :param module_: Module to be inspected.
-        :param indent_: Current indentation level.
-        :param module_name_: Name of the module that will be displayed before its type. 
-
-    """
-    # Recursivelly inspect the children.
-    child_lines = []
-    for key, module in module_._modules.items():
-        child_lines.append(recursive_summarize(module, indent_+1, key))
-
-    # "Leaf information". 
-    mod_str = ''
-    if indent_ > 0:
-        mod_str += '  ' + '| '*(indent_-1) + '+ '
-    mod_str += module_name_ + " ("+ module_._get_name() + ')'
-    mod_str += '-'*(80 - len(mod_str))
-    mod_str += '\n'
-    mod_str += ''.join(child_lines)
-    # Get leaf weights and number of params - only for leafs!
-    if not child_lines:
-        # Collect names and dimensions of all (named) params. 
-        mod_weights = [(n,tuple(p.size())) for n,p in module_.named_parameters()]
-        mod_str += '  ' + '| '* (indent_) + '  Matrices: {}\n'.format(mod_weights)
-        # Sum the parameters.
-        num_total_params = sum([np.prod(p.size()) for p in module_.parameters()])
-        mod_trainable_params = filter(lambda p: p.requires_grad, module_.parameters())
-        num_trainable_params = sum([np.prod(p.size()) for p in mod_trainable_params])
-        mod_str += '  ' + '| '* (indent_) + '  Trainable Params: {}\n'.format(num_trainable_params)
-        mod_str += '  ' + '| '* (indent_) + '  Non-trainable Params: {}\n'.format(num_total_params-num_trainable_params) 
-   
-    return mod_str

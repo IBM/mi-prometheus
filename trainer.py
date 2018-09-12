@@ -42,7 +42,7 @@ import numpy as np
 from utils.app_state import AppState
 from utils.statistics_collector import StatisticsCollector
 from utils.param_interface import ParamInterface
-from utils.worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse, model_summarize
+from utils.worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse
 
 # Import model and problem factories.
 from problems.problem_factory import ProblemFactory
@@ -263,7 +263,7 @@ if __name__ == '__main__':
     model.cuda() if app_state.use_CUDA else None
 
     # Log the model summary.
-    logger.info(model_summarize(model))
+    logger.info(model.summarize())
 
     # Build problem for the training
     problem = ProblemFactory.build_problem(
