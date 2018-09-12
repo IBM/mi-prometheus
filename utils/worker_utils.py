@@ -152,42 +152,46 @@ def model_summarize(model):
     """
     #add name of the current module
     summary_str = '\n' + '='*80 + '\n'
-    summary_str += 'Module name (Type) \n'
-    summary_str += '  Matrices: [(name, dims), ...]\n'
-    summary_str += '  Trainable Params: #\n  Non-trainable Params: #\n'
+    summary_str += 'Model name (Type) \n'
+    summary_str += '+ Submodule name (Type) \n'
+    summary_str += '    Matrices: [(name, dims), ...]\n'
+    summary_str += '    Trainable Params: #\n'
+    summary_str += '    Non-trainable Params: #\n'
     summary_str += '='*80 + '\n'
-    summary_str += '+ ' + model.name + ' ' + recursive_summarize(model, 6, len(model.name))
-    summary_str += '\n' + '='*80 + '\n'
-    # Sum the parameters.
+    summary_str += model.name + ' ' + recursive_summarize(model, 1, len(model.name)+1)
+    # Sum the model parameters.
     num_total_params = sum([np.prod(p.size()) for p in model.parameters()])
     mod_trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     num_trainable_params = sum([np.prod(p.size()) for p in mod_trainable_params])
-    summary_str += '  Total Trainable Params: {}\n  Total Non-trainable Params: {}\n'.format(num_trainable_params, num_total_params-num_trainable_params) 
+    summary_str += '\nTotal Trainable Params: {}\n'.format(num_trainable_params)
+    summary_str += 'Total Non-trainable Params: {}\n'.format(num_total_params-num_trainable_params) 
+    summary_str += '='*80 + '\n'
     return summary_str
 
 def recursive_summarize(module_, indent_, name_len_):
     # Iterate through children.
     child_lines = []
     for key, module in module_._modules.items():
-        child_str = '\n+ ' + key + ' '
-        child_str += recursive_summarize(module, indent_+2, len(key))
+        child_str = '| '*(indent_-1) + '+ ' + key + ' '
+        child_str += recursive_summarize(module, indent_+1, len(key)+1)
         child_lines.append(child_str)
 
     # "Leaf information". 
     mod_type_name = module_._get_name()
-    mod_str = _addindent("("+ mod_type_name + ')-',2)
-    mod_str += _addindent('-'*(80 - indent_ - name_len_ - len(mod_type_name)),2)
-    mod_str += _addindent(''.join(child_lines), 2)
+    mod_str = "("+ mod_type_name + ')'
+    #mod_str += '-'*(80 - 2*indent_ - name_len_ - len(mod_type_name))
+    mod_str += '\n'
+    mod_str += ''.join(child_lines)
     # Get leaf weights and number of params - only for leafs!
     if not child_lines:
         # Collect names and dimensions of all (named) params. 
         mod_weights = [(n,tuple(p.size())) for n,p in module_.named_parameters()]
-        mod_str += _addindent('\n  Matrices: {}\n'.format(mod_weights),2)
+        mod_str += '| '* (indent_ -1) + '  Matrices: {}\n'.format(mod_weights)
         # Sum the parameters.
         num_total_params = sum([np.prod(p.size()) for p in module_.parameters()])
         mod_trainable_params = filter(lambda p: p.requires_grad, module_.parameters())
         num_trainable_params = sum([np.prod(p.size()) for p in mod_trainable_params])
-        mod_str += _addindent('  Trainable Params: {}\n'.format(num_trainable_params),2)
-        mod_str += '  Non-trainable Params: {}'.format(num_total_params-num_trainable_params) 
+        mod_str += '| '* (indent_ -1) + '  Trainable Params: {}\n'.format(num_trainable_params)
+        mod_str += '| '* (indent_ -1) + '  Non-trainable Params: {}\n'.format(num_total_params-num_trainable_params) 
    
     return mod_str
