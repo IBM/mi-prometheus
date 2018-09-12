@@ -48,20 +48,13 @@ from utils.worker_utils import forward_step, check_and_set_cuda, recurrent_confi
 from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
-def validation(
-        model,
-        problem,
-        episode,
-        stat_col,
-        data_valid,
-        aux_valid,
-        FLAGS,
-        logger,
-        validation_file,
-        validation_writer):
+
+def validation(model, problem, episode, stat_col, data_valid, FLAGS, logger, validation_file, validation_writer):
     """
     Function performs validation of the model, using the provided data and
     criterion. Additionally it logs (to files, tensorboard) and visualizes.
+
+    #TODO: DOCUMENTATION!!!
 
     :param stat_col: Statistic collector object.
     :return: True if training loop is supposed to end.
@@ -72,7 +65,7 @@ def validation(
     # Calculate loss of the validation data.
     with torch.no_grad():
         logits_valid, loss_valid = forward_step(
-            model, problem, episode, stat_col, data_valid, aux_valid)
+            model, problem, episode, stat_col, data_valid)
 
     # Log to logger.
     logger.info(stat_col.export_statistics_to_string('[Validation]'))
@@ -88,8 +81,7 @@ def validation(
         # True means that we should terminate
 
         # Allow for preprocessing
-        data_valid, aux_valid, logits_valid = problem.plot_preprocessing(
-            data_valid, aux_valid, logits_valid)
+        data_valid, aux_valid, logits_valid = problem.plot_preprocessing(data_valid, logits_valid)
 
         return loss_valid, model.plot(data_valid, logits_valid)
     # Else simply return false, i.e. continue training.
@@ -268,7 +260,7 @@ if __name__ == '__main__':
     # build the DataLoader on top of the problem class
     from torch.utils.data.dataloader import DataLoader
     problem = DataLoader(problem_ds, batch_size=param_interface['training']['problem']['batch_size'],
-                                     shuffle=True, collate_fn=problem_ds.collate_data)
+                                     shuffle=True, collate_fn=problem_ds.collate_fn)
 
 
     if 'curriculum_learning' in param_interface['training']:
@@ -313,7 +305,7 @@ if __name__ == '__main__':
         # Build problem for the validation
         problem_validation = ProblemFactory.build_problem(param_interface['validation']['problem'])
         dataloader_validation = DataLoader(problem_validation, batch_size=param_interface['validation']['problem']['batch_size'],
-                                     shuffle=True, collate_fn=problem_ds.collate_data)
+                                     shuffle=True, collate_fn=problem_ds.collate_fn)
         dataloader_validation = iter(dataloader_validation)
         data_valid = next(dataloader_validation)
 
@@ -402,7 +394,7 @@ if __name__ == '__main__':
         # Turn on training mode.
         model.train()
         # 1. Perform forward step, calculate logits and loss.
-        logits, loss = forward_step(model, problem_ds, episode, stat_col, data_dict, None)
+        logits, loss = forward_step(model, problem_ds, episode, stat_col, data_dict)
 
         if not use_validation_problem:
             # Store the calculated loss on a list.
@@ -457,8 +449,7 @@ if __name__ == '__main__':
         # Check visualization of training data.
         if app_state.visualize:
             # Allow for preprocessing
-            data_tuple, aux_tuple, logits = problem.plot_preprocessing(
-                data_tuple, aux_tuple, logits)
+            data_tuple, aux_tuple, logits = problem.plot_preprocessing(data_dict, logits)
             # Show plot, if user presses Quit - break.
             if model.plot(data_tuple, logits):
                 break
@@ -479,7 +470,7 @@ if __name__ == '__main__':
                     app_state.visualize = False
 
                 # Perform validation.
-                validation_loss, user_pressed_stop = validation(model, problem_validation, episode, stat_col, data_valid, None,  FLAGS,
+                validation_loss, user_pressed_stop = validation(model, problem_validation, episode, stat_col, data_valid,  FLAGS,
                         logger,   validation_file,  validation_writer)
 
             # Save the model using latest (validation or training) statistics.
@@ -520,7 +511,7 @@ if __name__ == '__main__':
             # statistics needed during saving of the best model.
             if use_validation_problem:
                 # Perform validation.
-                validation_loss, user_pressed_stop = validation(model, problem_validation, episode, stat_col, data_valid, None,  FLAGS,
+                validation_loss, user_pressed_stop = validation(model, problem_validation, episode, stat_col, data_valid,  FLAGS,
                         logger,   validation_file,  validation_writer)
 
             model.save(model_dir, stat_col)
@@ -540,7 +531,7 @@ if __name__ == '__main__':
 
             # Perform validation.
             if use_validation_problem:
-                _, _ = validation(model, problem_validation, episode, stat_col, data_valid, None, FLAGS, logger,
+                _, _ = validation(model, problem_validation, episode, stat_col, data_valid, FLAGS, logger,
                                validation_file, validation_writer)
 
         else:

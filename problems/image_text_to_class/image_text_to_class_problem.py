@@ -6,12 +6,16 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import torch
 import torch.nn as nn
+from torch.utils.data.dataloader import default_collate
 from problems.problem import Problem, DataDict
 
 
 class ObjectRepresentation:
     """
     Class storing features of the object being present in a given scene.
+
+    Used in ShapeColorQuery and SortOfCLEVR.
+
     """
 
     def __init__(self, x, y, color, shape):
@@ -42,14 +46,16 @@ class ImageTextToClassProblem(Problem):
 
         # set default data_definition dict
         self.data_definition = {'text': {'type': int},
-                                'images': {'size': 224, 'type': torch.Tensor},
+                                'images': {'width': 256, 'type': torch.Tensor},
                                 'targets': {'size': 1, 'type': int}}
 
     def calculate_accuracy(self, data_dict, logits):
-        """ Calculates accuracy equal to mean number of correct answers in a given batch.
+        """
+        Calculates the accuracy as the mean number of correct answers in a given batch.
 
         :param data_dict: DataDict containing inputs and targets.
-        :param logits: Logits being output of the model.
+
+        :param logits: Predictions being output of the model.
         """
 
         # Get the index of the max log-probability.
@@ -65,16 +71,51 @@ class ImageTextToClassProblem(Problem):
     def __getitem__(self, item):
         """
         Getter that returns an individual sample from the problem's associated dataset (that can be generated \
-        on-the-fly, or retrieved from disk).
+        on-the-fly, or retrieved from disk. It can also possibly be composed of several files.).
 
         To be redefined in subclasses.
 
-        :param item: index of the sample to return.
+        **The getter should return a DataDict: its keys should be defined by `self.data_definitions` keys.**
+
+        e.g.:
+            >>> data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+            >>> # you can now access each value by its key and assign the corresponding object (e.g. `torch.Tensor` etc)
+            >>> ...
+            >>> return data_dict
+
+
+
+        .. warning::
+
+            In a future version of `mi-prometheus`, multiprocessing will be supported for data loading.
+            To construct a batch (say 64 samples), the indexes will be distributed among several workers (say 4, so that
+            each worker has 16 samples to retrieve). It is best that samples can be accessed individually in the dataset
+            folder so that there is no mutual exclusion between the workers and the performance is not degraded.
+
+        :param index: index of the sample to return.
 
         :return: DataDict containing the sample.
+
         """
 
         return DataDict({key: None for key in self.data_definition.keys()})
+
+    def collate_fn(self, batch):
+        """
+        Generates a batch of samples from a list of individuals samples retrieved by `__getitem__`.
+        The default collate_fn is torch.utils.data.default_collate.
+
+        .. note::
+            **Simply returning self.collate_fn(batch) for now. It is encouraged to redefine it in the subclasses.**
+
+
+        :param batch: Should be a list of DataDict retrieved by `__getitem__`, each containing tensors, numbers,
+        dicts or lists.
+
+        :return: DataDict containing the created batch.
+
+        """
+        return default_collate
 
     def add_statistics(self, stat_col):
         """
@@ -85,20 +126,23 @@ class ImageTextToClassProblem(Problem):
         """
         stat_col.add_statistic('acc', '{:12.10f}')
 
-    def collect_statistics(self, stat_col, data_dict, logits, _):
+    def collect_statistics(self, stat_col, data_dict, logits):
         """
         Collects accuracy.
 
         :param stat_col: Statistics collector.
+
         :param data_dict: DataDict containing inputs and targets.
-        :param logits: Logits being output of the model.
-        :param _: auxiliary tuple (aux_tuple) is not used in this function.
+
+        :param logits: Predictions being output of the model.
 
         """
-        stat_col['acc'] = self.calculate_accuracy(data_dict, logits, _)
+        stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
 
-    sample = ImageTextToClassProblem(params={}).__getitem__(item=0)
+    sample = ImageTextToClassProblem(params={})[0]
+    # equivalent to ImageTextToClassProblem(params={}).__getitem__(index=0)
+
     print(repr(sample))
