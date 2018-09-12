@@ -171,10 +171,10 @@ class Model(nn.Module):
         #add name of the current module
         summary_str = '\n' + '='*80 + '\n'
         summary_str += 'Model name (Type) \n'
-        summary_str += '+ Submodule name (Type) \n'
-        summary_str += '    Matrices: [(name, dims), ...]\n'
-        summary_str += '    Trainable Params: #\n'
-        summary_str += '    Non-trainable Params: #\n'
+        summary_str += '  + Submodule name (Type) \n'
+        summary_str += '      Matrices: [(name, dims), ...]\n'
+        summary_str += '      Trainable Params: #\n'
+        summary_str += '      Non-trainable Params: #\n'
         summary_str += '='*80 + '\n'
         summary_str += self.recursive_summarize(self, 0, self.name)
         # Sum the model parameters.
@@ -205,7 +205,7 @@ class Model(nn.Module):
         if indent_ > 0:
             mod_str += '  ' + '| '*(indent_-1) + '+ '
         mod_str += module_name_ + " ("+ module_._get_name() + ')'
-        mod_str += '-'*(80 - len(mod_str))
+        #mod_str += '-'*(80 - len(mod_str))
         mod_str += '\n'
         mod_str += ''.join(child_lines)
         # Get leaf weights and number of params - only for leafs!
