@@ -17,7 +17,7 @@
 !/problems/**
 !/confgiuration/**
 !/configs/**
-!/misc/**
+!/utils/**
 !/scripts/**
 # You can be specific with these rules
 !/docs/**

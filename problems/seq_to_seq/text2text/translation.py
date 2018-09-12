@@ -24,12 +24,10 @@ import os
 import random
 
 # fix the random seed for results repeatability
-#random.seed(0)
+# random.seed(0)
 
 import torch
 import errno
-from misc.app_state import AppState
-app_state = AppState()
 
 from problems.problem import DataTuple
 from problems.seq_to_seq.text2text.text_to_text_problem import TextToTextProblem, Lang, TextAuxTuple
@@ -37,16 +35,23 @@ from problems.seq_to_seq.text2text.text_to_text_problem import TextToTextProblem
 
 class Translation(TextToTextProblem):
     """
-    Class generating sequences of indexes as inputs & targets for a English -> Other Language translation task.
-    Only supports latin alphabet for now (because of string normalization).
+    Class generating sequences of indexes as inputs & targets for a English ->
+    Other Language translation task.
+
+    Only supports latin alphabet for now (because of string
+    normalization).
+
     """
 
     def __init__(self, params):
         """
-        Initializes the problem: stores parameters. Calls parent class initialization.
+        Initializes the problem: stores parameters. Calls parent class
+        initialization.
+
         :param params: Dictionary of parameters.
+
         """
-        
+
         print("Translation does not support pretrained embedding")
 
         # Call parent constructor - e.g. sets the default loss function
@@ -58,7 +63,8 @@ class Translation(TextToTextProblem):
         # whether to reverse I/O languages or not
         self.reverse = params['reverse']
 
-        # name the output language (input language is forced to English for now because of the data source)
+        # name the output language (input language is forced to English for now
+        # because of the data source)
         self.output_lang_name = params['output_lang_name']
 
         # max sequence length -> corresponds to max number of words in sentence
@@ -78,8 +84,10 @@ class Translation(TextToTextProblem):
         self.raw_folder = 'raw'
         self.processed_folder = 'processed'
         self.training_size = params['training_size']
-        self.training_file = 'eng-' + self.output_lang_name + '_training_' + str(self.training_size) + '.txt'
-        self.test_file = 'eng-' + self.output_lang_name + '_test_' + str(self.training_size) + '.txt'
+        self.training_file = 'eng-' + self.output_lang_name + \
+            '_training_' + str(self.training_size) + '.txt'
+        self.test_file = 'eng-' + self.output_lang_name + \
+            '_test_' + str(self.training_size) + '.txt'
 
         # switch between training & inference datasets
         self.use_train_data = params['use_train_data']
@@ -93,28 +101,40 @@ class Translation(TextToTextProblem):
         self.input_lang, self.output_lang, self.pairs = self.prepare_data()
 
         # create tensors of indexes from string pairs
-        self.tensor_pairs = self.tensors_from_pairs(self.pairs, self.input_lang, self.output_lang,
-                                                    self.max_sequence_length)
+        self.tensor_pairs = self.tensors_from_pairs(
+            self.pairs, self.input_lang, self.output_lang, self.max_sequence_length)
 
     def prepare_data(self):
         """
-        Prepare the data for generating batches. Uses filter_pairs() to normalize, trim & filter input sentences pairs.
-        Also fills in Lang() instances for the input & output languages.
+        Prepare the data for generating batches. Uses filter_pairs() to
+        normalize, trim & filter input sentences pairs. Also fills in Lang()
+        instances for the input & output languages.
+
         :return: Lang() object for input & output languages + filtered sentences pairs.
+
         """
 
         # Read the source data file and split into lines
         if self.use_train_data:
             print('Using training set')
-            lines = open(os.path.join(self.root, self.processed_folder, self.training_file), encoding='utf-8').\
-                read().strip().split('\n')
+            lines = open(
+                os.path.join(
+                    self.root,
+                    self.processed_folder,
+                    self.training_file),
+                encoding='utf-8'). read().strip().split('\n')
         else:
             print('Using inference set')
-            lines = open(os.path.join(self.root, self.processed_folder, self.test_file), encoding='utf-8').\
-                read().strip().split('\n')
+            lines = open(
+                os.path.join(
+                    self.root,
+                    self.processed_folder,
+                    self.test_file),
+                encoding='utf-8'). read().strip().split('\n')
 
         # Split every line into pairs and normalize them
-        self.pairs = [[self.normalize_string(s) for s in l.split('\t')] for l in lines]
+        self.pairs = [[self.normalize_string(s)
+                       for s in l.split('\t')] for l in lines]
 
         print("Read %s sentence pairs" % len(self.pairs))
 
@@ -143,10 +163,19 @@ class Translation(TextToTextProblem):
         return self.input_lang, self.output_lang, self.pairs
 
     def _check_exists(self):
-        """Check if the training & inference datasets (of the specified training size) for the specified language
-        already exist or not."""
-        return os.path.exists(os.path.join(self.root, self.processed_folder, self.training_file)) and \
-               os.path.exists(os.path.join(self.root, self.processed_folder, self.test_file))
+        """
+        Check if the training & inference datasets (of the specified training
+        size) for the specified language already exist or not.
+        """
+        return os.path.exists(
+            os.path.join(
+                self.root,
+                self.processed_folder,
+                self.training_file)) and os.path.exists(
+            os.path.join(
+                self.root,
+                self.processed_folder,
+                self.test_file))
 
     def download(self):
         """
@@ -179,12 +208,16 @@ class Translation(TextToTextProblem):
                 raise
 
         # construct the url from self.output_lang_name
-        # Warning: The source files are named like 'eng-fra.zip' -> careful on the language abbreviation!
+        # Warning: The source files are named like 'eng-fra.zip' -> careful on
+        # the language abbreviation!
         url = 'http://www.manythings.org/anki/' + self.output_lang_name + '-eng.zip'
 
         print('Downloading original source file from', url)
-        # have to do a Request in order to pass headers to avoid server security features blocking spider/bot user agent
-        request = Request(url, headers={'User-Agent': 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'})
+        # have to do a Request in order to pass headers to avoid server
+        # security features blocking spider/bot user agent
+        request = Request(
+            url, headers={
+                'User-Agent': 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'})
         data = urlopen(request)
 
         # write raw data to file
@@ -197,9 +230,15 @@ class Translation(TextToTextProblem):
             zip_f.extractall(os.path.join(self.root, self.raw_folder))
         os.unlink(filepath)
 
-        # read raw data, split it in training & inference sets and save it to file
-        lines = open(os.path.join(self.root, self.raw_folder, self.output_lang_name + '.txt'), encoding='utf-8').\
-            read().strip().split('\n')
+        # read raw data, split it in training & inference sets and save it to
+        # file
+        lines = open(
+            os.path.join(
+                self.root,
+                self.raw_folder,
+                self.output_lang_name +
+                '.txt'),
+            encoding='utf-8'). read().strip().split('\n')
 
         # shuffle list of lines
         random.shuffle(lines)
@@ -208,8 +247,10 @@ class Translation(TextToTextProblem):
         print('Total number of samples:', nb_samples)
         nb_training_samples = round(self.training_size * nb_samples)
 
-        # choose nb_training_samples elements at random in lines to create the training set
-        training_samples_index = random.sample(range(len(lines)), nb_training_samples)
+        # choose nb_training_samples elements at random in lines to create the
+        # training set
+        training_samples_index = random.sample(
+            range(len(lines)), nb_training_samples)
         training_samples = []
         for index in sorted(training_samples_index, reverse=True):
             training_samples.append(lines.pop(index))
@@ -226,26 +267,33 @@ class Translation(TextToTextProblem):
 
     def filter_pair(self, p):
         """
-        Indicate whether a sentence pair is compliant with some filtering criteria, such as:
+        Indicate whether a sentence pair is compliant with some filtering
+        criteria, such as:
+
          - The number of words (that includes ending punctuation) in the sentences,
          - The start of the input language sentence.
 
         :param p: [] containing a pair of sentences
 
         :return: True if the pair respects the filtering constraints else False.
+
         """
         if self.eng_prefixes is not None:
 
             return len(p[0].split(' ')) < self.max_sequence_length and \
-                   len(p[1].split(' ')) < self.max_sequence_length and \
-                   p[0].startswith(tuple(self.eng_prefixes))
+                len(p[1].split(' ')) < self.max_sequence_length and \
+                p[0].startswith(tuple(self.eng_prefixes))
         else:  # if no english prefixes have been specified, only filter based on sequence length
             return len(p[0].split(' ')) < self.max_sequence_length and \
-                   len(p[1].split(' ')) < self.max_sequence_length
+                len(p[1].split(' ')) < self.max_sequence_length
 
     def filter_pairs(self):
-        """Filter several pairs at once using filter_pair as a boolean mask.
-        :return list of filtered pairs"""
+        """
+        Filter several pairs at once using filter_pair as a boolean mask.
+
+        :return list of filtered pairs
+
+        """
         return [pair for pair in self.pairs if self.filter_pair(pair)]
 
     def generate_batch(self):
@@ -254,13 +302,18 @@ class Translation(TextToTextProblem):
 
         :return: DataTuple: inputs [BATCH_SIZE, MAX_SEQUENCE_LENGTH], targets [BATCH_SIZE, MAX_SEQUENCE_LENGTH],
                 TextAuxTuple: ('inputs_text', 'outputs_text', 'input_lang', 'output_lang')
+
         """
-        # generate a sample of size batch_size of random indexes without replacement
-        indexes = random.sample(population=range(len(self.tensor_pairs)), k=self.batch_size)
+        # generate a sample of size batch_size of random indexes without
+        # replacement
+        indexes = random.sample(population=range(
+            len(self.tensor_pairs)), k=self.batch_size)
 
         # create main batch inputs & outputs tensor
-        inputs = torch.zeros(self.batch_size, self.max_sequence_length).type(app_state.LongTensor)
-        targets = torch.zeros(self.batch_size, self.max_sequence_length).type(app_state.LongTensor)
+        inputs = torch.zeros(self.batch_size, self.max_sequence_length).type(
+            self.app_state.LongTensor)
+        targets = torch.zeros(self.batch_size, self.max_sequence_length).type(
+            self.app_state.LongTensor)
 
         # for TextAuxTuple
         inputs_text = []
@@ -277,36 +330,46 @@ class Translation(TextToTextProblem):
 
         # Return tuples.
         data_tuple = DataTuple(inputs, targets)
-        aux_tuple = TextAuxTuple(inputs_text, targets_text, self.input_lang, self.output_lang)
+        aux_tuple = TextAuxTuple(
+            inputs_text, targets_text, self.input_lang, self.output_lang)
 
         return data_tuple, aux_tuple
 
     def plot_preprocessing(self, data_tuple, aux_tuple, logits):
         """
-        Does some preprocessing to logits to then plot the attention weights for the AttnEncoderDecoder model.
+        Does some preprocessing to logits to then plot the attention weights
+        for the AttnEncoderDecoder model.
 
         :param data_tuple: Data tuple (inputs, targets)
         :param aux_tuple: Auxiliary tuple ('inputs_text', 'outputs_text', 'input_lang', 'output_lang')
         :param logits: prediction, shape [batch_size x max_seq_length x output_voc_size]
         :return: data_tuple, aux_tuple untouched + logits as dict {'inputs_text', 'logits_text'}
+
         """
         # get most probable words indexes for the batch
         _, top_indexes = logits.topk(k=1, dim=-1)
         top_indexes = top_indexes.squeeze()
 
-        # retrieve text sentences from the logits (which should be tensors of indexes)
+        # retrieve text sentences from the logits (which should be tensors of
+        # indexes)
         logits_text = []
         for logit in top_indexes:
-            logits_text.append([aux_tuple.output_lang.index2word[index.item()] for index in logit])
+            logits_text.append(
+                [aux_tuple.output_lang.index2word[index.item()]
+                 for index in logit])
 
-        # cannot modify DataTuple so modifying logits to contain the input sentences and predicted sentences
-        logits = {'inputs_text': aux_tuple.inputs_text, 'logits_text': logits_text}
+        # cannot modify DataTuple so modifying logits to contain the input
+        # sentences and predicted sentences
+        logits = {'inputs_text': aux_tuple.inputs_text,
+                  'logits_text': logits_text}
 
         return data_tuple, aux_tuple, logits
 
 
 if __name__ == "__main__":
-    """Problem class Unit Test"""
+    """
+    Problem class Unit Test.
+    """
 
     eng_prefixes = (
         "i am ", "i m ",
@@ -317,8 +380,18 @@ if __name__ == "__main__":
         "they are", "they re "
     )
 
-    params = {'batch_size': 5, 'training_size': 0.9, 'output_lang_name': 'fra', 'max_sequence_length': 15,
-              'eng_prefixes': eng_prefixes, 'use_train_data': True, 'data_folder': '~/data/language', 'reverse': False}
+    # "Loaded parameters".
+    from utils.param_interface import ParamInterface 
+    params = ParamInterface()
+    params.add_default_params({
+        'batch_size': 5,
+        'training_size': 0.9,
+        'output_lang_name': 'fra',
+        'max_sequence_length': 15,
+        'eng_prefixes': eng_prefixes,
+        'use_train_data': True,
+        'data_folder': '~/data/language',
+        'reverse': False})
 
     problem = Translation(params)
     print('Problem successfully created.\n')

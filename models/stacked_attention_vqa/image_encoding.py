@@ -23,13 +23,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
+
 class ImageEncoding(nn.Module):
     """
-    Image encoding using 4 convolutional layers with batch normalization, it was designed specifically for sort of clevr https://arxiv.org/abs/1706.01427
+    Image encoding using 4 convolutional layers with batch normalization, it
+    was designed specifically for sort of clevr
+    https://arxiv.org/abs/1706.01427.
     """
+
     def __init__(self):
         """
-        Constructor of the ImageEncoding class
+        Constructor of the ImageEncoding class.
         """
 
         super(ImageEncoding, self).__init__()
@@ -45,7 +49,7 @@ class ImageEncoding(nn.Module):
 
     def forward(self, img):
         """
-        Apply 4 convolutional layers over the image
+        Apply 4 convolutional layers over the image.
 
         :param img: input image [batch_size, num_channels, height, width]
 
@@ -67,7 +71,8 @@ class ImageEncoding(nn.Module):
         x = self.batchNorm4(x)
 
         # flattening the width and height dimensions to a single one and
-        # transpose it with the num_channel dimension, necessary when applying the attention
+        # transpose it with the num_channel dimension, necessary when applying
+        # the attention
         x = x.view(x.size(0), x.size(1), -1).transpose(1, 2)
 
         return x
@@ -75,14 +80,16 @@ class ImageEncoding(nn.Module):
 
 class PretrainedImageEncoding(nn.Module):
     """
-    Image encoding using pretrained resnetXX from torchvision
+    Image encoding using pretrained resnetXX from torchvision.
     """
-    def __init__(self, cnn_model = 'resnet18', num_blocks = 2):
+
+    def __init__(self, cnn_model='resnet18', num_blocks=2):
         """
-        Constructor of the PretrainedImageEncoding class
+        Constructor of the PretrainedImageEncoding class.
 
         :param cnn_model: select which resnet pretrained model to load
         :param num_blocks: num of resnet blocks to be used
+
         """
 
         super(PretrainedImageEncoding, self).__init__()
@@ -102,14 +109,14 @@ class PretrainedImageEncoding(nn.Module):
 
         # select the resnet blocks and append them to layers
         for i in range(num_blocks):
-           name = 'layer%d' % (i + 1)
-           layers.append(getattr(cnn, name))
+            name = 'layer%d' % (i + 1)
+            layers.append(getattr(cnn, name))
 
         self.model = torch.nn.Sequential(*layers)
 
     def forward(self, img):
         """
-        Apply a pretrained cnn
+        Apply a pretrained cnn.
 
         :param img: input image [batch_size, num_channels, height, width]
 
@@ -121,7 +128,8 @@ class PretrainedImageEncoding(nn.Module):
         x = self.model(img)
 
         # flattening the width and height dimensions to a single one and
-        # transpose it with the num_channel dimension, necessary when applying the attention
+        # transpose it with the num_channel dimension, necessary when applying
+        # the attention
         x = x.view(x.size(0), x.size(1), -1).transpose(1, 2)
 
         return x

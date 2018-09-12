@@ -16,16 +16,14 @@
 # limitations under the License.
 
 """conv_input_model.py: contains CNN model for the Relational Network."""
-__author__      = "Vincent Marois"
+__author__ = "Vincent Marois"
 
 import torch
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
-from misc.app_state import AppState
-app_state = AppState()
-
+from utils.app_state import AppState
 
 class ConvInputModel(nn.Module):
     """
@@ -40,18 +38,26 @@ class ConvInputModel(nn.Module):
         # Note: formula for computing the output size is O = floor((W - K + 2P)/S + 1)
         # W is the input height/length, K is the filter size, P is the padding, and S is the stride
         # define layers
-        # input image size is indicated as 128 x 128 in the paper for this model
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=24, kernel_size=3, stride=2, padding=1)
-        self.batchNorm1 = nn.BatchNorm2d(24)  # output shape should be [24 x 64 x 64]
+        # input image size is indicated as 128 x 128 in the paper for this
+        # model
+        self.conv1 = nn.Conv2d(
+            in_channels=3, out_channels=24, kernel_size=3, stride=2, padding=1)
+        # output shape should be [24 x 64 x 64]
+        self.batchNorm1 = nn.BatchNorm2d(24)
         self.conv2 = nn.Conv2d(24, 24, 3, stride=2, padding=1)
-        self.batchNorm2 = nn.BatchNorm2d(24)  # output shape should be [24 x 32 x 32]
+        # output shape should be [24 x 32 x 32]
+        self.batchNorm2 = nn.BatchNorm2d(24)
         self.conv3 = nn.Conv2d(24, 24, 3, stride=2, padding=1)
-        self.batchNorm3 = nn.BatchNorm2d(24)  # output shape should be [24 x 16 x 16]
+        # output shape should be [24 x 16 x 16]
+        self.batchNorm3 = nn.BatchNorm2d(24)
         self.conv4 = nn.Conv2d(24, 24, 3, stride=2, padding=1)
-        self.batchNorm4 = nn.BatchNorm2d(24)  # output shape should be [24 x 8 x 8]
+        # output shape should be [24 x 8 x 8]
+        self.batchNorm4 = nn.BatchNorm2d(24)
 
     def forward(self, img):
-        """Forward pass of the CNN"""
+        """
+        Forward pass of the CNN.
+        """
         x = self.conv1(img)
         x = self.batchNorm1(x)
         x = F.relu(x)
@@ -72,14 +78,16 @@ class ConvInputModel(nn.Module):
 
 
 if __name__ == '__main__':
-    """Unit Test for the ConvInputModel"""
+    """
+    Unit Test for the ConvInputModel.
+    """
 
     # "Image" - batch x channels x width x height
     batch_size = 64
     img_size = 128
 
     input_np = np.random.binomial(1, 0.5, (batch_size, 3, img_size, img_size))
-    image = torch.from_numpy(input_np).type(app_state.dtype)
+    image = torch.from_numpy(input_np).type(AppState().dtype)
 
     cnn = ConvInputModel()
 

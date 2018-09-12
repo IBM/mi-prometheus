@@ -25,13 +25,17 @@ import torch.nn.functional as F
 
 
 class DecoderRNN(nn.Module):
-    """GRU Decoder for Encoder-Decoder"""
+    """
+    GRU Decoder for Encoder-Decoder.
+    """
 
     def __init__(self, hidden_size, output_voc_size):
         """
         Initializes an Decoder network based on a Gated Recurrent Unit.
+
         :param hidden_size: length of embedding vectors.
         :param output_voc_size: size of the vocabulary set to be embedded by the Embedding layer.
+
         """
         # call base constructor.
         super(DecoderRNN, self).__init__()
@@ -41,7 +45,8 @@ class DecoderRNN(nn.Module):
         # (size: output_voc_size -> output_language.n_words) on vectors of size hidden_size.
         # adds 1 dimension to the shape of the tensor
         # WARNING: input must be of type LongTensor
-        self.embedding = nn.Embedding(num_embeddings=output_voc_size, embedding_dim=hidden_size)
+        self.embedding = nn.Embedding(
+            num_embeddings=output_voc_size, embedding_dim=hidden_size)
 
         # Apply a multi-layer gated recurrent unit (GRU) RNN to an input sequence.
         # NOTE: default number of recurrent layers is 1
@@ -49,11 +54,16 @@ class DecoderRNN(nn.Module):
         # 2nd parameter: expected number of features in hidden state -> hidden_size.
         # batch_first=True -> input and output tensors are provided as (batch, seq, feature)
         # batch_first=True do not affect hidden states
-        self.gru = nn.GRU(input_size=hidden_size, hidden_size=hidden_size, num_layers=1, batch_first=True)
+        self.gru = nn.GRU(
+            input_size=hidden_size,
+            hidden_size=hidden_size,
+            num_layers=1,
+            batch_first=True)
 
         # Apply a linear transformation to the incoming data: y=Ax+b
         # basically project from the hidden space to the output vocabulary set
-        self.out = nn.Linear(in_features=hidden_size, out_features=output_voc_size)
+        self.out = nn.Linear(in_features=hidden_size,
+                             out_features=output_voc_size)
 
         # Apply the Log(Softmax(x)) function to an n-dimensional input Tensor along the specified dimension
         # doesn't change the shape
@@ -77,7 +87,8 @@ class DecoderRNN(nn.Module):
 
         gru_input = F.relu(embedded)  # doesn't change shape
         gru_output, hidden = self.gru(gru_input, hidden)
-        # gru_output: [batch_size x 1 x hidden_size], hidden: [1 x batch_size x hidden_size]
+        # gru_output: [batch_size x 1 x hidden_size], hidden: [1 x batch_size x
+        # hidden_size]
 
         output = self.out(gru_output)  # [batch_size x 1 x output_voc_size]
 

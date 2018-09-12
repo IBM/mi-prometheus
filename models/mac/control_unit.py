@@ -44,7 +44,7 @@
 __author__ = "Vincent Marois"
 
 
-from models.mac.utils import linear
+from models.mac.utils_mac import linear
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -61,20 +61,23 @@ class ControlUnit(nn.Module):
 
         :param dim: global 'd' hidden dimension
         :param max_step: maximum number of steps -> number of MAC cells in the network
+
         """
 
         # call base constructor
         super(ControlUnit, self).__init__()
 
-        # define the linear layers (one per step) used to make the questions encoding
+        # define the linear layers (one per step) used to make the questions
+        # encoding
         self.pos_aware_layers = nn.ModuleList()
         for _ in range(max_step):
-            self.pos_aware_layers.append(linear(2*dim, dim, bias=True))
+            self.pos_aware_layers.append(linear(2 * dim, dim, bias=True))
 
         # define the linear layer used to create the cqi values
-        self.ctrl_question = linear(2*dim, dim, bias=True)
+        self.ctrl_question = linear(2 * dim, dim, bias=True)
 
-        # define the linear layer used to create the attention weights. Should be one scalar weight per contextual word
+        # define the linear layer used to create the attention weights. Should
+        # be one scalar weight per contextual word
         self.attn = linear(dim, 1, bias=True)
         self.step = 0
 
@@ -92,14 +95,17 @@ class ControlUnit(nn.Module):
 
         """
         self.step = step
-        # select current 'position aware' linear layer & pass questions through it
-        pos_aware_question_encoding = self.pos_aware_layers[step](question_encoding)
+        # select current 'position aware' linear layer & pass questions through
+        # it
+        pos_aware_question_encoding = self.pos_aware_layers[step](
+            question_encoding)
 
         cqi = torch.cat([ctrl_state, pos_aware_question_encoding], dim=-1)
         cqi = self.ctrl_question(cqi)  # [batch_size x dim]
 
         # compute element-wise product between cqi & contextual words
-        context_ctrl = cqi.unsqueeze(1) * contextual_words  # [batch_size x maxQuestionLength x dim]
+        # [batch_size x maxQuestionLength x dim]
+        context_ctrl = cqi.unsqueeze(1) * contextual_words
 
         # compute attention weights
         cai = self.attn(context_ctrl)  # [batch_size x maxQuestionLength x 1]
@@ -107,6 +113,7 @@ class ControlUnit(nn.Module):
         self.cvi = F.softmax(cai, dim=1)
 
         # compute next control state
-        next_ctrl_state = (self.cvi * contextual_words).sum(1)  # [batch_size x dim]
+        # [batch_size x dim]
+        next_ctrl_state = (self.cvi * contextual_words).sum(1)
 
         return next_ctrl_state

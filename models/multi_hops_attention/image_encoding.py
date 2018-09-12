@@ -15,7 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""image encoding.py: image encoding for VQA problem, same as in this paper https://arxiv.org/abs/1706.01427, specifically desinged for sort of clevr"""
+"""
+image encoding.py: image encoding for VQA problem, same as in this paper
+https://arxiv.org/abs/1706.01427, specifically desinged for sort of clevr.
+"""
 __author__ = "Younes Bouhadjar"
 
 import torch.nn as nn
@@ -24,12 +27,14 @@ import torch.nn.functional as F
 
 class ImageEncoding(nn.Module):
     """
-    Image encoding using 4 convolutional layers with batch normalization, it was designed specifically for sort of clevr https://arxiv.org/abs/1706.01427
-
+    Image encoding using 4 convolutional layers with batch normalization, it
+    was designed specifically for sort of clevr
+    https://arxiv.org/abs/1706.01427.
     """
+
     def __init__(self):
         """
-        Constructor of ImageEncoding class
+        Constructor of ImageEncoding class.
         """
 
         super(ImageEncoding, self).__init__()
@@ -45,7 +50,7 @@ class ImageEncoding(nn.Module):
 
     def forward(self, img):
         """
-        Apply 4 convolutional layers over the image
+        Apply 4 convolutional layers over the image.
 
         :param img: input image [batch_size, num_channels, height, width]
 

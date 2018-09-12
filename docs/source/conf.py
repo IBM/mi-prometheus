@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 # These lines should not be needed, but keeping them around for now.
 # sys.path.insert(0, os.path.abspath('../'))
-# sys.path.insert(0, os.path.abspath('../../misc/'))
+# sys.path.insert(0, os.path.abspath('../../utils/'))
 # sys.path.insert(0, os.path.abspath('../../problems/'))
 # sys.path.insert(0, os.path.abspath('../../models/'))
 
@@ -61,7 +61,8 @@ extensions = ['sphinx.ext.autodoc',
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
-# The suffix(es) of source filenames. You can specify multiple suffix as a list of string:
+# The suffix(es) of source filenames. You can specify multiple suffix as a
+# list of string:
 source_suffix = '.rst'
 
 # The master toctree document.
@@ -85,7 +86,8 @@ pygments_style = 'sphinx'
 
 # -- Options for HTML output -------------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for a list of builtin themes.
+# The theme to use for HTML and HTML Help pages.  See the documentation
+# for a list of builtin themes.
 html_theme = 'sphinx_rtd_theme'
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
@@ -110,8 +112,10 @@ html_static_path = ['_static']
 # Custom sidebar templates, must be a dictionary that maps document names to template names.
 # The default sidebars (for documents that don't match any pattern) are
 # defined by theme itself.  Builtin themes are using these templates by
-# default: ``['localtoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html']``.
-html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'] }
+# default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
+# 'searchbox.html']``.
+html_sidebars = {'**': ['globaltoc.html',
+                        'relations.html', 'sourcelink.html', 'searchbox.html']}
 
 
 # -- Options for HTMLHelp output ---------------------------------------------
@@ -146,7 +150,8 @@ latex_documents = [
      'MI_Prometheus.tex',
      'MI Prometheus Documentation',
      'Tomasz Kornuta, Younes Bouhadjar, Ryan L. McAvoy, Vincent Marois, Alexis Asseman, Vincent Albouy, T.S. Jayram,'
-     'Mikyas T. Desta, Ahmet S. Ozcan', 'manual'),
+     'Mikyas T. Desta, Ahmet S. Ozcan',
+     'manual'),
 ]
 
 
