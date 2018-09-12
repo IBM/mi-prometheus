@@ -15,7 +15,7 @@
 !__init__.py
 !/models/**
 !/problems/**
-!/confgiuration/**
+!/configuration/**
 !/configs/**
 !/utils/**
 !/scripts/**
