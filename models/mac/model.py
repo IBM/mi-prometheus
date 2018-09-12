@@ -109,11 +109,11 @@ class MACNetwork(Model):
             self.mac_unit.cell_state_history = []
 
         # unpack data_dict
-        images, questions, questions_len, _, _, _, _, _ = data_dict.values()
+        images, questions, questions_length, _, _, _, _, _, _ = data_dict.values()
 
         # input unit
         img, kb_proj, lstm_out, h = self.input_unit(
-            questions, questions_len, images)
+            questions, questions_length, images)
         self.image = kb_proj
 
         # recurrent MAC cells
