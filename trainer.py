@@ -38,6 +38,9 @@ from torch import nn
 import collections
 import numpy as np
 
+from torch.utils.data.sampler import RandomSampler
+from torch.utils.data.dataloader import DataLoader
+
 # Import utils.
 from utils.app_state import AppState
 from utils.statistics_collector import StatisticsCollector
@@ -257,11 +260,14 @@ if __name__ == '__main__':
     # Build problem for the training
     problem_ds = ProblemFactory.build_problem(param_interface['training']['problem'])
 
-    # build the DataLoader on top of the problem class
-    from torch.utils.data.dataloader import DataLoader
-    problem = DataLoader(problem_ds, batch_size=param_interface['training']['problem']['batch_size'],
-                                     shuffle=False, sampler=problem_ds.sampler, collate_fn=problem_ds.collate_fn)
+    # Sampler: Used for the DataLoader object that will iterate over the problem class.
+    # Please see https://pytorch.org/docs/stable/data.html?highlight=dataloader#torch.utils.data.Sampler
+    # for documentation on the several samplers supported by Pytorch
+    sampler = RandomSampler(problem_ds)
 
+    # build the DataLoader on top of the problem class
+    problem = DataLoader(problem_ds, batch_size=param_interface['training']['problem']['batch_size'],
+                         shuffle=False, sampler=sampler, collate_fn=problem_ds.collate_fn)
 
     if 'curriculum_learning' in param_interface['training']:
         # Initialize curriculum learning - with values from config.
@@ -305,17 +311,11 @@ if __name__ == '__main__':
         # Build problem for the validation
         problem_validation = ProblemFactory.build_problem(param_interface['validation']['problem'])
         dataloader_validation = DataLoader(problem_validation, batch_size=param_interface['validation']['problem']['batch_size'],
-                                     shuffle=True, collate_fn=problem_ds.collate_fn)
+                                           shuffle=True, collate_fn=problem_ds.collate_fn)
         dataloader_validation = iter(dataloader_validation)
-        data_valid = next(dataloader_validation)
-
-
-        #problem_validation = DataLoader(problem_validation_ds, batch_size=param_interface['validation']['problem']['batch_size'],
-        #                     shuffle=False, collate_fn=problem_validation_ds.collate_data)
-        #generator_validation = problem_validation.return_generator()
 
         # Get a single batch that will be used for validation (!)
-        #data_valid, aux_valid = next(generator_validation)
+        data_valid = next(dataloader_validation)
 
         # Create csv file.
         validation_file = stat_col.initialize_csv_file(
@@ -376,7 +376,7 @@ if __name__ == '__main__':
     terminal_condition = False
 
     # Main training and verification loop.
-    for i_batch, data_dict in enumerate(problem):
+    for _, data_dict in enumerate(problem):
 
         # apply curriculum learning - change problem max seq_length
         curric_done = problem_ds.curriculum_learning_update_params(episode)
@@ -519,7 +519,9 @@ if __name__ == '__main__':
             break
 
         # check if we need to reset the sampler (to avoid having training finished early)
-        problem_ds.reset_sampler()
+        if ((episode+1) % problem_ds.get_epoch_size()) == 0:
+            sampler = RandomSampler(problem_ds)
+            logger.warning('The RandomSampler has been reset.')
         # Next episode.
         episode += 1
 

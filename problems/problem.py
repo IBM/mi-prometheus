@@ -32,11 +32,11 @@ class DataDict(collections.MutableMapping):
         self.__dict__.update(*args, **kwargs)
 
     def __setitem__(self, key, value):
-        if key not in self.keys():
-            logger.error('KeyError: Cannot modify a non-existing key.')
-            raise KeyError('Cannot modify a non-existing key.')
-        else:
-            self.__dict__[key] = value
+        #if key not in self.keys():
+        #    logger.error('KeyError: Cannot modify a non-existing key.')
+        #    raise KeyError('Cannot modify a non-existing key.')
+        #else:
+        self.__dict__[key] = value
 
     def __getitem__(self, key):
         return self.__dict__[key]
@@ -186,7 +186,7 @@ class Problem(Dataset):
         # Size of the dataset
         self.length = None
 
-        # data_definition: this is used for defining the DataDict keys.
+        # data_definitions: this is used for defining the DataDict keys.
         # This dict contains information about the DataDict produced by the current problem class:
         # - e.g. for images, it can be {'images': {'width': 256, 'type': numpy.ndarray}}
         # - e.g. for sequences, it can be {'sequences': {'length': 10, 'type': torch.Tensor}}
@@ -201,11 +201,6 @@ class Problem(Dataset):
 
         # "Default" problem name.
         self.name = 'Problem'
-
-        # Sampler: Used for the DataLoader object that will iterate over this problem class.
-        # Please see https://pytorch.org/docs/stable/data.html?highlight=dataloader#torch.utils.data.Sampler
-        # for documentation on the several samplers supported by Pytorch
-        self.sampler = None
 
     def __len__(self):
         """
@@ -227,9 +222,10 @@ class Problem(Dataset):
     def collate_fn(self, batch):
         """
         Generates a batch of samples from a list of individuals samples retrieved by `__getitem__`.
-        The default collate_fn is torch.utils.data.default_collate.
+        The default collate_fn is `torch.utils.data.default_collate`.
 
         .. note::
+
             **Abstract - to be defined in derived classes.**
 
 
@@ -295,17 +291,6 @@ class Problem(Dataset):
 
         return loss
 
-    def turn_on_cuda(self, data_dict):
-        """
-        Enables computations on GPU - copies the input and target matrices (from DataDict) to GPU.
-
-        :param data_dict: DataDict.
-
-        :return: DataDict.cuda()
-        """
-
-        return data_dict.cuda()
-
     def add_statistics(self, stat_col):
         """
         Adds statistics to collector.
@@ -354,6 +339,7 @@ class Problem(Dataset):
         Function called to initialize a new epoch.
 
         The primary use is to reset statistics aggregators that track statistics over one epoch, e.g.:
+
             - Average accuracy over the epoch
             - Time taken for the epoch and average per batch
             - etc...
@@ -366,10 +352,10 @@ class Problem(Dataset):
     def finalize_epoch(self):
         """
         Function called at the end of an epoch to execute a few tasks, e.g.:
+
             - Compute the mean accuracy over the epoch
             - Get the time taken for the epoch and per batch
-            - etc...
-        This function will use the statistics aggregators set up (or reset) in initialize_epoch().
+        This function will use the statistics aggregators set up (or reset) in `initialize_epoch()`.
 
         **EMPTY - To be redefined in inheriting classes.**
 
@@ -423,9 +409,9 @@ class Problem(Dataset):
 if __name__ == '__main__':
     """Unit test for DataDict"""
 
-    data_definition = {'inputs': {'size': [64, 20], 'type': int}, 'targets': {'size': [64], 'type': int}}
+    data_definitions = {'inputs': {'size': [64, 20], 'type': int}, 'targets': {'size': [64], 'type': int}}
 
-    datadict = DataDict({key: None for key in data_definition.keys()})
+    datadict = DataDict({key: None for key in data_definitions.keys()})
 
     #datadict['inputs'] = torch.ones([64, 20, 512]).type(torch.FloatTensor)
     #datadict['targets'] = torch.ones([64, 20]).type(torch.FloatTensor)

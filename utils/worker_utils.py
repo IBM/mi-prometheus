@@ -36,7 +36,7 @@ def forward_step(model, problem, episode, stat_col, data_dict):
     """
     # convert to CUDA
     if AppState().use_CUDA:
-        data_dict = problem.turn_on_cuda(data_dict)
+        data_dict = data_dict.cuda()
 
     # Perform forward calculation.
     logits = model(data_dict)

@@ -48,7 +48,7 @@ __author__ = "Vincent Marois, Vincent Albouy"
 
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from torch.utils.data.sampler import RandomSampler
+
 import torch
 import csv
 import os
@@ -65,6 +65,7 @@ app_state = AppState()
 import logging
 logger = logging.getLogger('CLEVR')
 
+import numpy as np
 
 class CLEVR(ImageTextToClassProblem):
     """
@@ -153,18 +154,38 @@ class CLEVR(ImageTextToClassProblem):
         self.embedding_type = params['embedding_type']
         self.random_embedding_dim = params['random_embedding_dim']
 
-        # initialize the sampler
-        self.sampler = RandomSampler(self)
+        # define the data_definitions dict: holds a description of the DataDict content
+        self.default_values = {'num_inputs': 8 }
 
-        # define the data_definition dict: holds a description of the DataDict content
-        self.data_definition = {'img': {'size': [320, 480, 3], 'type': 'numpy.ndarray'},
-                                'question': {'size': 'variable', 'type': int},
-                                'question_length': {'size': 1, 'type': int},
-                                'targets': {'size': 1, 'type': str},
-                                'string_question': {'size': 1, 'type': str},
-                                'index': {'size': 1, 'type': str},
-                                'imgfile': {'size': 1, 'type': str},
-                                'question_type': {'size': 1, 'type': str}}
+        # define the data_definitions dict: holds a description of the DataDict content
+        self.data_definitions = {'img': {'size': [-1, 320, 480, 3], 'type': np.ndarray},
+                                 'question': {'size': [-1, -1], 'type': torch.Tensor},
+                                 'question_length': {'size': [-1], 'type': [list, int]},
+                                 'question_string': {'size': [-1,-1], 'type': [list, str]},
+                                 'question_type': {'size': [-1,-1], 'type': [list, str]},
+                                 'targets': {'size': [-1], 'type': torch.Tensor},
+                                 'targets_string': {'size': [-1,-1], 'type': [list, str]},
+                                 'index': {'size': [-1], 'type': [list, int]},
+                                 'imgfile': {'size': [-1,-1], 'type': [list,str]}
+                                 }
+
+        '''
+        class MyModel(Model):
+            def __init__(self, params, problem_default_values_ = {}):
+
+            # Process all params from view and default_values_ here...
+
+            # define the data_definitions dict: holds a description of the DataDict content
+            self.data_definitions = {'img': {'size': [320, 480, 3], 'type': 'numpy.ndarray'} }
+
+            self.data_definitions["img"]['size'] = [self.params['width'],self.params['height'], default_values_['num_inputs']]
+
+
+            def handshake_definitions(self, data_definitions_):
+                # do the handshake
+        '''
+
+
 
         # the sub-types of question families
         self.family_list = [
@@ -503,14 +524,16 @@ class CLEVR(ImageTextToClassProblem):
 
         :param index: index of the sample to return.
 
-        :return: DataDict({'img','question', 'question_length', 'targets', 'string_question', 'index', \
-        'imgfile', 'question_type'}), with:
+        :return: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
+        'targets_string', 'index','imgfile'}), with:
 
             - img: extracted feature maps from the raw image
             - question: tensor of word indexes
             - question_length: len(question)
+            - question_string: original question string
+            - question_type: category of the question (query, count...)
             - targets: index of the answer in the answers dictionary
-            - string_question: original question string
+            - targets_string: None for now
             - index: index of the sample
             - imgfile: image filename
 
@@ -523,7 +546,7 @@ class CLEVR(ImageTextToClassProblem):
 
         """
         # load tokenized_question, answer, string_question, image_filename from self.data
-        question, answer, string_question, imgfile, question_type = self.data[index].values()
+        question, answer, question_string, imgfile, question_type = self.data[index].values()
 
         # create the image index to retrieve the feature maps in self.img
         id = int(imgfile.rsplit('_', 1)[1][:-4])
@@ -542,16 +565,17 @@ class CLEVR(ImageTextToClassProblem):
         question_length = question.shape[0]
 
         # return everything
-        data_dict = DataDict({key: None for key in self.data_definition.keys()})
+        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
 
         data_dict['img'] = img
         data_dict['question'] = question
         data_dict['question_length'] = question_length
+        data_dict['question_string'] = question_string
+        data_dict['question_type'] = question_type
         data_dict['targets'] = answer
-        data_dict['string_question'] = string_question
+
         data_dict['index'] = index
         data_dict['imgfile'] = imgfile
-        data_dict['question_type'] = question_type
 
         return data_dict
 
@@ -568,8 +592,8 @@ class CLEVR(ImageTextToClassProblem):
 
         :param batch: list of individual samples to combine
 
-        :return: DataDict({'img','question', 'question_length', 'targets', 'string_question', 'index', \
-        'imgfile', 'question_type'})
+        :return: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
+        'targets_string', 'index','imgfile'})
 
         """
         # create list placeholders
@@ -592,26 +616,26 @@ class CLEVR(ImageTextToClassProblem):
 
         # fill in the placeholders
         for i, b in enumerate(sort_by_len):
-            image, question, length, answer, string_question, index, imgfile, question_type = b.values()
+            image, question, question_length, question_string, question_type, answer, _, index, imgfile = b.values()
 
             images.append(image)
-            lengths.append(length)
+            lengths.append(question_length)
             answers.append(answer)
-            s_questions.append(string_question)
+            s_questions.append(question_string)
             indexes.append(index)
             imgfiles.append(imgfile)
             question_types.append(question_type)
 
-            questions[i, :length, :] = question
+            questions[i, :question_length, :] = question
 
         # construct the DataDict and fill it with the batch
-        data_dict = DataDict({key: None for key in self.data_definition.keys()})
+        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
 
         data_dict['img'] = torch.stack(images).type(app_state.dtype)
         data_dict['question'] = questions
         data_dict['question_length'] = lengths
         data_dict['targets'] = torch.tensor(answers).type(app_state.LongTensor)
-        data_dict['string_question'] = s_questions
+        data_dict['question_string'] = s_questions
         data_dict['index'] = indexes
         data_dict['imgfile'] = imgfiles
         data_dict['question_type'] = question_types
@@ -647,13 +671,6 @@ class CLEVR(ImageTextToClassProblem):
         """
         return self.__len__() // self.batch_size
 
-    def reset_sampler(self, episode):
-        """
-        Checks if the current episode is a multiple of self.get_epoch_size. If yes, it resets the sampler.
-        """
-        if episode % self.get_epoch_size() == 0:
-            self.sampler = RandomSampler(self)
-
     def initialize_epoch(self):
         """
         Resets the accuracy per family counters.
@@ -673,9 +690,9 @@ class CLEVR(ImageTextToClassProblem):
         plt.figure(1)
 
         # unpack data_dict
-        images, questions, questions_len, answers, string_questions, indexes, imgfiles, question_types = data_dict.values()
+        images, questions, questions_len, questions_string, question_types, answers, _, indexes, imgfiles = data_dict.values()
 
-        question = string_questions[sample_number]
+        question = questions_string[sample_number]
         answer = answers[sample_number]
         answer = list(self.answer_dic.keys())[
             list(self.answer_dic.values()).index(answer.data)]  # dirty hack to go back from the
@@ -708,7 +725,7 @@ class CLEVR(ImageTextToClassProblem):
         """
 
         # unpack data_dict
-        images, questions, questions_len, answers, string_questions, indexes, imgfiles, question_types = data_dict.values()
+        images, questions, questions_len, questions_string, question_types, answers, _, indexes, imgfiles = data_dict.values()
 
         batch_size = logits.size(0)
 

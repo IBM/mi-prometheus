@@ -44,8 +44,8 @@ class ImageTextToClassProblem(Problem):
         # set default loss function
         self.loss_function = nn.CrossEntropyLoss()
 
-        # set default data_definition dict
-        self.data_definition = {'text': {'type': int},
+        # set default data_definitions dict
+        self.data_definitions = {'text': {'type': int},
                                 'images': {'width': 256, 'type': torch.Tensor},
                                 'targets': {'size': 1, 'type': int}}
 
@@ -98,7 +98,7 @@ class ImageTextToClassProblem(Problem):
 
         """
 
-        return DataDict({key: None for key in self.data_definition.keys()})
+        return DataDict({key: None for key in self.data_definitions.keys()})
 
     def collate_fn(self, batch):
         """

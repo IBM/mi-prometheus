@@ -12,12 +12,16 @@ Base Problem
 
 .. automodule:: problems.problem
     :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
 
 ImageTextToClass Problems
 ----------------------------
 
 .. automodule:: problems.image_text_to_class.image_text_to_class_problem
     :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
 
 :hidden:`CLEVR`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
