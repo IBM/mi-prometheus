@@ -260,7 +260,7 @@ if __name__ == '__main__':
     # build the DataLoader on top of the problem class
     from torch.utils.data.dataloader import DataLoader
     problem = DataLoader(problem_ds, batch_size=param_interface['training']['problem']['batch_size'],
-                                     shuffle=True, collate_fn=problem_ds.collate_fn)
+                                     shuffle=False, sampler=problem_ds.sampler, collate_fn=problem_ds.collate_fn)
 
 
     if 'curriculum_learning' in param_interface['training']:
@@ -518,6 +518,8 @@ if __name__ == '__main__':
             # "Finish" the training.
             break
 
+        # check if we need to reset the sampler (to avoid having training finished early)
+        problem_ds.reset_sampler()
         # Next episode.
         episode += 1
 

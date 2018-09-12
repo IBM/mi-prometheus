@@ -153,6 +153,9 @@ class CLEVR(ImageTextToClassProblem):
         self.embedding_type = params['embedding_type']
         self.random_embedding_dim = params['random_embedding_dim']
 
+        # initialize the sampler
+        self.sampler = RandomSampler(self)
+
         # define the data_definition dict: holds a description of the DataDict content
         self.data_definition = {'img': {'size': [320, 480, 3], 'type': 'numpy.ndarray'},
                                 'question': {'size': 'variable', 'type': int},
@@ -638,6 +641,19 @@ class CLEVR(ImageTextToClassProblem):
         """
         #self.get_acc_per_family()
 
+    def get_epoch_size(self):
+        """
+        :return: number of episodes to run to cover the entire chosen set once.
+        """
+        return self.__len__() // self.batch_size
+
+    def reset_sampler(self, episode):
+        """
+        Checks if the current episode is a multiple of self.get_epoch_size. If yes, it resets the sampler.
+        """
+        if episode % self.get_epoch_size() == 0:
+            self.sampler = RandomSampler(self)
+
     def initialize_epoch(self):
         """
         Resets the accuracy per family counters.
@@ -727,6 +743,7 @@ if __name__ == "__main__":
 
     # create problem
     clevr_dataset = CLEVR(params)
+    print('Number of episodes to run to cover the set once: {}'.format(clevr_dataset.get_epoch_size()))
 
     sample = clevr_dataset[0]
     print('__getitem__ works.')
