@@ -50,6 +50,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 
 import torch
+import numpy as np
 import csv
 import os
 import h5py
@@ -65,7 +66,6 @@ app_state = AppState()
 import logging
 logger = logging.getLogger('CLEVR')
 
-import numpy as np
 
 class CLEVR(ImageTextToClassProblem):
     """
@@ -154,8 +154,8 @@ class CLEVR(ImageTextToClassProblem):
         self.embedding_type = params['embedding_type']
         self.random_embedding_dim = params['random_embedding_dim']
 
-        # define the data_definitions dict: holds a description of the DataDict content
-        self.default_values = {'num_inputs': 8 }
+        # define the default_values dict: holds parameters values that a model may need.
+        self.default_values = {'nb_classes': 28}
 
         # define the data_definitions dict: holds a description of the DataDict content
         self.data_definitions = {'img': {'size': [-1, 320, 480, 3], 'type': np.ndarray},
@@ -168,24 +168,6 @@ class CLEVR(ImageTextToClassProblem):
                                  'index': {'size': [-1], 'type': [list, int]},
                                  'imgfile': {'size': [-1,-1], 'type': [list,str]}
                                  }
-
-        '''
-        class MyModel(Model):
-            def __init__(self, params, problem_default_values_ = {}):
-
-            # Process all params from view and default_values_ here...
-
-            # define the data_definitions dict: holds a description of the DataDict content
-            self.data_definitions = {'img': {'size': [320, 480, 3], 'type': 'numpy.ndarray'} }
-
-            self.data_definitions["img"]['size'] = [self.params['width'],self.params['height'], default_values_['num_inputs']]
-
-
-            def handshake_definitions(self, data_definitions_):
-                # do the handshake
-        '''
-
-
 
         # the sub-types of question families
         self.family_list = [
@@ -291,6 +273,7 @@ class CLEVR(ImageTextToClassProblem):
                 self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set, word_dic=None, answer_dic=None)
 
         # --> At this point, the objects self.img & self.data contains the feature maps & questions
+        self.length = len(self.data)
 
         # create the objects for the specified embeddings
         if self.embedding_type == 'random':
@@ -387,10 +370,6 @@ class CLEVR(ImageTextToClassProblem):
             writer = csv.writer(csv_file)
             for key, value in self.dic.items():
                 writer.writerow([key, value])
-
-    def __len__(self):
-        """Return the length of the questions set"""
-        return len(self.data)
 
     def close(self):
         """Close hdf5 file."""
@@ -664,12 +643,6 @@ class CLEVR(ImageTextToClassProblem):
 
         """
         #self.get_acc_per_family()
-
-    def get_epoch_size(self):
-        """
-        :return: number of episodes to run to cover the entire chosen set once.
-        """
-        return self.__len__() // self.batch_size
 
     def initialize_epoch(self):
         """

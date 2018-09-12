@@ -182,19 +182,22 @@ class Problem(Dataset):
         # Set default loss function.
         self.loss_function = None
 
-
         # Size of the dataset
         self.length = None
 
         # data_definitions: this is used for defining the DataDict keys.
-        # This dict contains information about the DataDict produced by the current problem class:
-        # - e.g. for images, it can be {'images': {'width': 256, 'type': numpy.ndarray}}
-        # - e.g. for sequences, it can be {'sequences': {'length': 10, 'type': torch.Tensor}}
-        # etc.
-        # This object will be used during handchecking between the model and the problem class to ensure that the model
+        # This dict contains information about the DataDict produced by the current problem class.
+        # This object will be used during handshaking between the model and the problem class to ensure that the model
         # can accept the batches produced by the problem.
-        # This dict should at least contains the targets field.
-        self.data_definitions = {'targets': {}}
+        # This dict should at least contains the `targets` field.
+        self.data_definitions = {'targets': {'size': [-1, 1], 'type': torch.Tensor}}
+
+        # default_values: this is used to pass missing parameters values to the model.
+        # It is likely to encounter a case where the model needs a parameter value only known when the problem has been
+        # instantiated, like the size of a vocabulary set or the number of marker bits.
+        # The user can fill in those values in this dict, which will be passed to the model in its `__init__`. The
+        # model will then be able to fill it its missing parameters values, either from params or this dict.
+        self.default_values = {}
 
         # Get access to AppState: for dtype, visualization flag etc.
         self.app_state = AppState()
@@ -267,10 +270,11 @@ class Problem(Dataset):
         :return: DataDict containing the sample.
 
         """
+        return DataDict({key: None for key in self.data_definitions.keys()})
 
     def get_data_definitions(self):
         """
-        Getter for the data_definitions dict so that it can be accessed by a worker to establish handchecking with
+        Getter for the data_definitions dict so that it can be accessed by a worker to establish handshaking with
         the model class.
 
         :return: self.data_definitions()
@@ -332,7 +336,10 @@ class Problem(Dataset):
         :return: Number of iterations to perform to go though the entire dataset once.
 
         """
-        return self.length // self.params['batch_size'] + 1
+        if (self.length % self.params['batch_size']) == 0:
+            return self.length // self.params['batch_size']
+        else:
+            return (self.length // self.params['batch_size']) + 1
 
     def initialize_epoch(self):
         """

@@ -52,6 +52,23 @@ from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
 
 
+def cycle(iterable):
+    """
+    Simply cycle generator to continuously reuse the same DataLoader in the episodic trainer.
+    For the epoch trainer, we should not need this function anymore, as we will probably have a nested loop:
+
+        for i in range(epochs):
+            for batch in dataloader:
+                do_something(batch)
+
+    :param iterable: iterable.
+    :return:
+    """
+    while True:
+        for x in iterable:
+            yield x
+
+
 def validation(model, problem, episode, stat_col, data_valid, FLAGS, logger, validation_file, validation_writer):
     """
     Function performs validation of the model, using the provided data and
@@ -267,7 +284,10 @@ if __name__ == '__main__':
 
     # build the DataLoader on top of the problem class
     problem = DataLoader(problem_ds, batch_size=param_interface['training']['problem']['batch_size'],
-                         shuffle=False, sampler=sampler, collate_fn=problem_ds.collate_fn)
+                               sampler=sampler, collate_fn=problem_ds.collate_fn)
+
+    # cycle the DataLoader -> infinite generator
+    problem = cycle(problem)
 
     if 'curriculum_learning' in param_interface['training']:
         # Initialize curriculum learning - with values from config.
@@ -376,7 +396,7 @@ if __name__ == '__main__':
     terminal_condition = False
 
     # Main training and verification loop.
-    for _, data_dict in enumerate(problem):
+    for data_dict in problem:
 
         # apply curriculum learning - change problem max seq_length
         curric_done = problem_ds.curriculum_learning_update_params(episode)
@@ -518,10 +538,10 @@ if __name__ == '__main__':
             # "Finish" the training.
             break
 
-        # check if we need to reset the sampler (to avoid having training finished early)
+        # check if we are at the end of the epoch
         if ((episode+1) % problem_ds.get_epoch_size()) == 0:
-            sampler = RandomSampler(problem_ds)
-            logger.warning('The RandomSampler has been reset.')
+            logger.warning('The DataLoader has exhausted -> using cycle().')
+
         # Next episode.
         episode += 1
 

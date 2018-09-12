@@ -23,28 +23,25 @@ class Model(nn.Module):
 
     """
 
-    def __init__(self, params):
+    def __init__(self, params, problem_default_values_={}):
         """
         Initializes application state and sets plot if visualization flag is
         turned on.
 
         :param params: Parameters read from configuration file.
 
+        :param problem_default_values_: dict of parameters values coming from the problem class. One example of such\
+        parameter value is the size of the vocabulary set in a translation problem.
+        :type problem_default_values_: dict
+
         """
-        # Call base class inits here.
+        # Call base class constructor here.
         super(Model, self).__init__()
 
-        # Initialize app state.
-        self.app_state = AppState()
+        # process all params from configuration file and problem_default_values_ here
 
         # Store pointer to params.
         self.params = params
-
-        # Window in which the data will be ploted.
-        self.plotWindow = None
-
-        # Initialization of best loss - as INF.
-        self.best_loss = np.inf
 
         # Flag indicating whether intermediate checkpoints should be saved or
         # not (DEFAULT: False).
@@ -52,9 +49,40 @@ class Model(nn.Module):
             params.add_default_params({"save_intermediate": False})
         self.save_intermediate = params["save_intermediate"]
 
+        try:
+            for key in problem_default_values_.keys():
+                self.params.add_custom_params({key: problem_default_values_[key]})
+
+        except BaseException:
+            logger.info('No parameter value was parsed from problem_default_values_')
+
+        # --> We assume from here that the model class has all parameters values needed (either from params or
+        # problem_default_values_ to correctly be instantiated) contained in self.params.
+
+        # We can then define a dict that contains a description of the expected (and mandatory) inputs for this model.
+        # This dict should be defined using self.params.
+        self.data_definitions = ('inputs')
+
+        # --> The remaining parameters should be hardcoded values.
+
+        # Initialize app state.
+        self.app_state = AppState()
+
+        # Window in which the data will be plotted.
+        self.plotWindow = None
+
+        # Initialization of best loss - as INF.
+        self.best_loss = np.inf
+
         # "Default" model name.
         self.name = 'Model'
 
+    def handshake_definitions(self, data_definitions_):
+        """
+
+        :param data_definitions_:
+        :return:
+        """
 
     def add_statistics(self, stat_col):
         """
