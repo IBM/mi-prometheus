@@ -158,15 +158,15 @@ class CLEVR(ImageTextToClassProblem):
         self.default_values = {'nb_classes': 28}
 
         # define the data_definitions dict: holds a description of the DataDict content
-        self.data_definitions = {'img': {'size': [-1, 320, 480, 3], 'type': np.ndarray},
-                                 'question': {'size': [-1, -1], 'type': torch.Tensor},
+        self.data_definitions = {'img': {'size': [-1, 1024, 14, 14], 'type': [np.ndarray]},
+                                 'question': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
                                  'question_length': {'size': [-1], 'type': [list, int]},
-                                 'question_string': {'size': [-1,-1], 'type': [list, str]},
-                                 'question_type': {'size': [-1,-1], 'type': [list, str]},
-                                 'targets': {'size': [-1], 'type': torch.Tensor},
-                                 'targets_string': {'size': [-1,-1], 'type': [list, str]},
+                                 'question_string': {'size': [-1, -1], 'type': [list, str]},
+                                 'question_type': {'size': [-1, -1], 'type': [list, str]},
+                                 'targets': {'size': [-1], 'type': [torch.Tensor]},
+                                 'targets_string': {'size': [-1, -1], 'type': [list, str]},
                                  'index': {'size': [-1], 'type': [list, int]},
-                                 'imgfile': {'size': [-1,-1], 'type': [list,str]}
+                                 'imgfile': {'size': [-1, -1], 'type': [list,str]}
                                  }
 
         # the sub-types of question families
@@ -744,7 +744,7 @@ if __name__ == "__main__":
 
     # generate a batch
     for i_batch, sample in enumerate(problem):
-        print('Sample # {} - {}'.format(i_batch, sample['img'].shape), type(sample))
+        print('Sample # {} - {}'.format(i_batch, sample['question'].shape), type(sample))
         # try to show a sample
         clevr_dataset.show_sample(data_dict=sample)
         break

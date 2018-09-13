@@ -147,6 +147,7 @@ class Model(nn.Module):
                             key, tp, problem_data_definitions_[key]['type'][i]))
 
         # Everything matches, return true
+        print('Handshake successful.')
         return True
 
     def add_statistics(self, stat_col):

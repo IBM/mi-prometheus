@@ -45,6 +45,8 @@ __author__ = "Vincent Marois , Vincent Albouy"
 
 # Add path to main project directory
 import os
+import torch
+import numpy as np
 import torch.nn.functional as F
 
 from models.model import Model
@@ -63,7 +65,7 @@ class MACNetwork(Model):
     Implementation of the entire MAC network.
     """
 
-    def __init__(self, params):
+    def __init__(self, params, problem_default_values_={}):
         """
         Constructor for the MAC network.
 
@@ -72,7 +74,7 @@ class MACNetwork(Model):
         """
 
         # call base constructor
-        super(MACNetwork, self).__init__(params)
+        super(MACNetwork, self).__init__(params, problem_default_values_)
 
         # parse params dict
         self.dim = params['dim']
@@ -80,10 +82,11 @@ class MACNetwork(Model):
         self.max_step = params['max_step']
         self.self_attention = params['self_attention']
         self.memory_gate = params['memory_gate']
-        self.nb_classes = params['nb_classes']
         self.dropout = params['dropout']
 
-        self.image = []
+        self.nb_classes = problem_default_values_['nb_classes']
+
+        self.image = [] # TODO : is this necessary??
 
         # instantiate units
         self.input_unit = InputUnit(
@@ -101,6 +104,11 @@ class MACNetwork(Model):
         # transform for the image plotting
         self.transform = transforms.Compose(
             [transforms.Resize([224, 224]), transforms.ToTensor()])
+
+        self.data_definitions = {'img': {'size': [-1, 1024, 14, 14], 'type': [np.ndarray]},
+                                 'question': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'question_length': {'size': [-1], 'type': [list, int]}
+                                 }
 
     def forward(self, data_dict, dropout=0.15):
 
@@ -302,38 +310,40 @@ if __name__ == '__main__':
     dropout = 0.15
 
     from utils.app_state import AppState
+    from utils.param_interface import ParamInterface
+    from torch.utils.data.dataloader import DataLoader
     app_state = AppState()
 
-    from utils.param_interface import ParamInterface
-    params = ParamInterface()
-    params.add_custom_params({'dim': dim,
+    from problems.image_text_to_class.clevr import CLEVR
+    problem_params = ParamInterface()
+    problem_params.add_custom_params({'batch_size': 64, 'CLEVR_dir': '/home/vmarois/Downloads/CLEVR_v1.0', 'set': 'train',
+                      'clevr_humans': False, 'embedding_type': 'random', 'random_embedding_dim': 300})
+
+    # create problem
+    clevr_dataset = CLEVR(problem_params)
+    print('Problem instantiated.')
+
+    # instantiate DataLoader object
+    problem = DataLoader(clevr_dataset, batch_size=problem_params['batch_size'], collate_fn=clevr_dataset.collate_fn)
+
+    model_params = ParamInterface()
+    model_params.add_custom_params({'dim': dim,
                               'embed_hidden': embed_hidden,
                               'max_step': 12,
                               'self_attention': self_attention,
                               'memory_gate': memory_gate,
-                              'nb_classes': nb_classes,
                               'dropout': dropout})
 
-    net = MACNetwork(params)
+    model = MACNetwork(model_params, clevr_dataset.default_values)
+    print('Model instantiated.')
 
-
-    from problems.image_text_to_class.clevr import CLEVR
-
-    problem_params = {'batch_size': 64, 'CLEVR_dir': '/home/vmarois/Downloads/CLEVR_v1.0', 'set': 'train',
-              'clevr_humans': False, 'embedding_type': 'random', 'random_embedding_dim': 300}
-
-    # create problem
-    clevr_dataset = CLEVR(problem_params)
-
-    # instantiate DataLoader object
-    from torch.utils.data.dataloader import DataLoader
-    problem = DataLoader(clevr_dataset, batch_size=problem_params['batch_size'], shuffle=False,
-                         collate_fn=clevr_dataset.collate_data)
+    # perform handshaking between MAC & CLEVR
+    model.handshake_definitions(clevr_dataset.data_definitions)
 
     # generate a batch
     for i_batch, sample in enumerate(problem):
         print('Sample # {} - {}'.format(i_batch, sample['img'].shape), type(sample))
-        logits = net(sample)
+        logits = model(sample)
         print(logits.shape)
 
     print('Unit test completed.')
