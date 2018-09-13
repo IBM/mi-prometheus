@@ -270,12 +270,19 @@ if __name__ == '__main__':
     # check if CUDA is available turn it on
     check_and_set_cuda(param_interface['training'], logger)
 
-    # Build the model.
-    model = ModelFactory.build_model(param_interface['model'])
-    model.cuda() if app_state.use_CUDA else None
-
     # Build problem for the training
     problem_ds = ProblemFactory.build_problem(param_interface['training']['problem'])
+
+    # Build the model.
+    model = ModelFactory.build_model(param_interface['model'], problem_ds.default_values)
+    model.cuda() if app_state.use_CUDA else None
+
+    # perform handshake between Model and problem:
+    if not model.handshake_definitions(problem_ds.data_definitions):
+        logger.error('Handshake between {} and {} failed!'.format(model.name, problem_ds.name))
+        exit(-1)
+    else:
+        logger.info('Handshake between {} and {} succeeded!'.format(model.name, problem_ds.name))
 
     # Sampler: Used for the DataLoader object that will iterate over the problem class.
     # Please see https://pytorch.org/docs/stable/data.html?highlight=dataloader#torch.utils.data.Sampler

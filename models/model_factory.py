@@ -16,7 +16,7 @@ class ModelFactory(object):
     """
 
     @staticmethod
-    def build_model(params):
+    def build_model(params, problem_default_values_={}):
         """
         Static method returning particular model, depending on the name
         provided in the list of parameters.
@@ -133,6 +133,6 @@ class ModelFactory(object):
         elif name == 'mac':
             logger.info('Loading the MAC model from models.mac.model')
             from models.mac.model import MACNetwork
-            return MACNetwork(params)
+            return MACNetwork(params, problem_default_values_)
         else:
             raise ValueError

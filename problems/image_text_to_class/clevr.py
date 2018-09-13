@@ -169,6 +169,7 @@ class CLEVR(ImageTextToClassProblem):
                                  'imgfile': {'size': [-1, -1], 'type': [list,str]}
                                  }
 
+        self.name = 'CLEVR'
         # the sub-types of question families
         self.family_list = [
             'query_size',

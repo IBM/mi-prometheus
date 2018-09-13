@@ -88,6 +88,8 @@ class MACNetwork(Model):
 
         self.image = [] # TODO : is this necessary??
 
+        self.name = 'MAC'
+
         # instantiate units
         self.input_unit = InputUnit(
             dim=self.dim, embedded_dim=self.embed_hidden)
@@ -321,7 +323,7 @@ if __name__ == '__main__':
 
     # create problem
     clevr_dataset = CLEVR(problem_params)
-    print('Problem instantiated.')
+    print('Problem {} instantiated.'.format(clevr_dataset.name))
 
     # instantiate DataLoader object
     problem = DataLoader(clevr_dataset, batch_size=problem_params['batch_size'], collate_fn=clevr_dataset.collate_fn)
@@ -335,7 +337,7 @@ if __name__ == '__main__':
                               'dropout': dropout})
 
     model = MACNetwork(model_params, clevr_dataset.default_values)
-    print('Model instantiated.')
+    print('Model {} instantiated.'.format(model.name))
 
     # perform handshaking between MAC & CLEVR
     model.handshake_definitions(clevr_dataset.data_definitions)
