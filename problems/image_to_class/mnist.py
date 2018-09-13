@@ -52,7 +52,7 @@ class MNIST(ImageToClassProblem):
         self.up_scaling = params['up_scaling']
 
         # define the default_values dict: holds parameters values that a model may need.
-        self.default_values = {'nb_classes': 28}
+        self.default_values = {'nb_classes': 10}
 
         self.name = 'MNIST'
 
@@ -148,6 +148,8 @@ if __name__ == "__main__":
 
     # try to see if there is a speed up when generating batches w/ multiple workers
 
+    # HAVE TO MANAGE INDEXES FOR THE TRAINING / VALIDATION SPLIT
+
     import time
     s = time.time()
     for i, batch in enumerate(dataloader):
@@ -157,4 +159,5 @@ if __name__ == "__main__":
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(params['batch_size'], time.time()-s))
 
     # Display single sample (0) from batch.
+    #batch = next(iter(dataloader))
     #mnist.show_sample(batch, 0)
