@@ -25,7 +25,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from models.model import Model
-from problems.problem import DataTuple
+from problems.problem import DataDict
 
 
 class SimpleConvNet(Model):

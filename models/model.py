@@ -9,7 +9,6 @@ from abc import abstractmethod
 import numpy as np
 
 import logging
-logger = logging.getLogger('Model')
 
 from utils.app_state import AppState
 
@@ -37,6 +36,12 @@ class Model(nn.Module):
         # Call base class constructor here.
         super(Model, self).__init__()
 
+        # "Default" model name.
+        self.name = 'Model'
+
+        # initialize the logger
+        self.logger = logging.getLogger(self.name)
+
         # process all params from configuration file and problem_default_values_ here --
 
         # Store pointer to params.
@@ -53,7 +58,7 @@ class Model(nn.Module):
                 self.params.add_custom_params({key: problem_default_values_[key]})
 
         except BaseException:
-            logger.info('No parameter value was parsed from problem_default_values_')
+            self.logger.info('No parameter value was parsed from problem_default_values_')
 
         # --> We assume from here that the model class has all parameters values needed (either from params or
         # problem_default_values_ to correctly be instantiated) contained in self.params.
@@ -72,9 +77,6 @@ class Model(nn.Module):
 
         # Initialization of best loss - as INF.
         self.best_loss = np.inf
-
-        # "Default" model name.
-        self.name = 'Model'
 
     def handshake_definitions(self, problem_data_definitions_):
         """
@@ -147,7 +149,6 @@ class Model(nn.Module):
                             key, tp, problem_data_definitions_[key]['type'][i]))
 
         # Everything matches, return true
-        print('Handshake successful.')
         return True
 
     def add_statistics(self, stat_col):
@@ -210,13 +211,13 @@ class Model(nn.Module):
         }
 
         # for key, value in stat_col.statistics.items():
-        #    logger.warning("{}: {}".format(key, value))
+        #    self.logger.warning("{}: {}".format(key, value))
 
         # Save the intermediate checkpoint.
         if self.save_intermediate:
             filename = model_dir + 'model_episode_{:05d}.pt'.format(episode)
             torch.save(chkpt, filename)
-            logger.info(
+            self.logger.info(
                 "Model and statistics exported to checkpoint {}".format(
                     filename))
 
@@ -225,7 +226,7 @@ class Model(nn.Module):
             self.best_loss = loss
             filename = model_dir + 'model_best.pt'
             torch.save(chkpt, filename)
-            logger.info(
+            self.logger.info(
                 "Model and statistics exported to checkpoint {}".format(
                     filename))
             return True
@@ -248,7 +249,7 @@ class Model(nn.Module):
         self.load_state_dict(chkpt['state_dict'])
 
         # Print statistics.
-        logger.info(
+        self.logger.info(
             "Imported {} parameters from checkpoint (episode {}, loss {})".format(
                 chkpt['name'],
                 chkpt['stats']['episode'],

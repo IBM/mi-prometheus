@@ -185,6 +185,12 @@ class Problem(Dataset):
         # Size of the dataset
         self.length = None
 
+        # "Default" problem name.
+        self.name = 'Problem'
+
+        # initialize the logger.
+        self.logger = logging.Logger(self.name)
+
         # data_definitions: this is used for defining the DataDict keys.
         # This dict contains information about the DataDict produced by the current problem class.
         # This object will be used during handshaking between the model and the problem class to ensure that the model
@@ -202,8 +208,7 @@ class Problem(Dataset):
         # Get access to AppState: for dtype, visualization flag etc.
         self.app_state = AppState()
 
-        # "Default" problem name.
-        self.name = 'Problem'
+
 
     def __len__(self):
         """
