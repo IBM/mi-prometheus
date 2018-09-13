@@ -45,9 +45,9 @@ class ImageTextToClassProblem(Problem):
         self.loss_function = nn.CrossEntropyLoss()
 
         # set default data_definitions dict
-        self.data_definitions = {'text': {'size': [-1, -1], 'type': torch.Tensor},
-                                 'images': {'size': [-1, -1, -1, 3], 'type': torch.Tensor},
-                                 'targets': {'size': [-1, 1], 'type': torch.Tensor}
+        self.data_definitions = {'text': {'size': [-1, -1], 'type': [torch.Tensor]},
+                                 'images': {'size': [-1, -1, -1, 3], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
                                  }
 
     def calculate_accuracy(self, data_dict, logits):

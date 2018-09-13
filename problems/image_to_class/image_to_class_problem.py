@@ -16,20 +16,23 @@
 # limitations under the License.
 
 """image_to_class_problem.py: contains base class for image classification problems"""
-__author__ = "Younes Bouhadjar"
-
+__author__ = "Younes Bouhadjar, Vincent Marois"
+import torch
 import numpy as np
 import torch.nn as nn
+from torch.utils.data.dataloader import default_collate
 
-from problems.problem import Problem
+from problems.problem import Problem, DataDict
 
 
 class ImageToClassProblem(Problem):
     """
     Abstract base class for image classification problems.
 
-    Provides some basic functionality usefull in all problems of such
-    type
+    TODO: DOCUMENTATION
+
+    Provides some basic functionality useful in all problems of such
+    type.
 
     """
 
@@ -44,26 +47,85 @@ class ImageToClassProblem(Problem):
         # Call base class constructors.
         super(ImageToClassProblem, self).__init__(params)
 
+        # set default loss function
         self.loss_function = nn.CrossEntropyLoss()
 
-    def calculate_accuracy(self, data_tuple, logits, _):
-        """ Calculates accuracy equal to mean number of correct classification in a given batch.
-        WARNING: Applies mask (from aux_tuple) to logits!
+        # set default data_definitions dict
+        self.data_definitions = {'images': {'size': [-1, 3, -1, -1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'targets_label': {'size': [-1, 1], 'type': [list, str]}
+                                 }
+
+    def calculate_accuracy(self, data_dict, logits):
+        """
+        Calculates accuracy equal to mean number of correct classification in a given batch.
 
         :param logits: Logits being output of the model.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param _: auxiliary tuple (aux_tuple) is not used in this function.
+
+        :param data_dict: DataDict containing inputs and targets.
+
+        :return loss
+
         """
 
         # Get the index of the max log-probability.
         pred = logits.max(1, keepdim=True)[1]
-        correct = pred.eq(data_tuple.targets.view_as(pred)).sum().item()
+        correct = pred.eq(data_dict['targets'].view_as(pred)).sum().item()
 
         # Calculate the accuracy.
         batch_size = logits.size(0)
         accuracy = correct / batch_size
 
         return accuracy
+
+    def __getitem__(self, item):
+        """
+        Getter that returns an individual sample from the problem's associated dataset (that can be generated \
+        on-the-fly, or retrieved from disk. It can also possibly be composed of several files.).
+
+        To be redefined in subclasses.
+
+        **The getter should return a DataDict: its keys should be defined by `self.data_definitions` keys.**
+
+        e.g.:
+            >>> data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+            >>> # you can now access each value by its key and assign the corresponding object (e.g. `torch.Tensor` etc)
+            >>> ...
+            >>> return data_dict
+
+
+
+        .. warning::
+
+            In a future version of `mi-prometheus`, multiprocessing will be supported for data loading.
+            To construct a batch (say 64 samples), the indexes will be distributed among several workers (say 4, so that
+            each worker has 16 samples to retrieve). It is best that samples can be accessed individually in the dataset
+            folder so that there is no mutual exclusion between the workers and the performance is not degraded.
+
+        :param index: index of the sample to return.
+
+        :return: DataDict containing the sample.
+
+        """
+
+        return DataDict({key: None for key in self.data_definitions.keys()})
+
+    def collate_fn(self, batch):
+        """
+        Generates a batch of samples from a list of individuals samples retrieved by `__getitem__`.
+        The default collate_fn is torch.utils.data.default_collate.
+
+        .. note::
+            **Simply returning self.collate_fn(batch) for now. It is encouraged to redefine it in the subclasses.**
+
+
+        :param batch: Should be a list of DataDict retrieved by `__getitem__`, each containing tensors, numbers,
+        dicts or lists.
+
+        :return: DataDict containing the created batch.
+
+        """
+        return default_collate(batch)
 
     def add_statistics(self, stat_col):
         """
@@ -74,40 +136,39 @@ class ImageToClassProblem(Problem):
         """
         stat_col.add_statistic('acc', '{:12.10f}')
 
-    def collect_statistics(self, stat_col, data_tuple, logits, _):
+    def collect_statistics(self, stat_col, data_dict, logits):
         """
         Collects accuracy.
 
         :param stat_col: Statistics collector.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param logits: Logits being output of the model.
-        :param _: auxiliary tuple (aux_tuple) is not used in this function.
+
+        :param logits: Predictions being output of the model.
 
         """
-        stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, _)
+        stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
 
-    def show_sample(self, data_tuple, aux_tuple, sample_number=0):
+    def show_sample(self, data_dict, sample_number=0):
         """
         Shows a sample from the batch.
 
-        :param data_tuple: Tuple containing inputs and targets.
-        :param aux_tuple: Auxiliary tuple containing scene descriptions.
+        :param data_dict: Tuple containing inputs and targets.
+
         :param sample_number: Number of sample in batch (DEFAULT: 0)
 
         """
         import matplotlib.pyplot as plt
 
         # Unpack tuples.
-        images, targets = data_tuple
+        images, targets, labels = data_dict.values()
 
         # Get sample.
         image = images[sample_number].cpu().detach().numpy()
         target = targets[sample_number].cpu().detach().numpy()
-        label = aux_tuple.label[sample_number]
+        label = labels[sample_number]
 
         # Reshape image.
-        if (image.shape[0] == 1):
-            # This is single channel image - get rid of that dimension
+        if image.shape[0] == 1:
+            # This is a single channel image - get rid of that dimension
             image = np.squeeze(image, axis=0)
         else:
             # More channels - move channels to axis2, according to matplotilb doc it should be ok
@@ -120,3 +181,11 @@ class ImageToClassProblem(Problem):
 
         # Plot!
         plt.show()
+
+
+if __name__ == '__main__':
+
+    sample = ImageToClassProblem(params={})[0]
+    # equivalent to ImageToClassProblem(params={}).__getitem__(index=0)
+
+    print(repr(sample))

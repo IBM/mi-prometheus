@@ -238,7 +238,7 @@ class Problem(Dataset):
         :return: DataDict containing the created batch.
 
         """
-        return default_collate
+        return default_collate(batch)
 
     @abstractmethod
     def __getitem__(self, index):

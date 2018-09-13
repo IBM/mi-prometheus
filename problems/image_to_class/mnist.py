@@ -17,13 +17,10 @@
 
 """mnist.py: contains code of loading MNIST dataset using torchvision"""
 __author__ = "Younes Bouhadjar"
-
-import torch
 from torchvision import datasets, transforms
-from torch.utils.data.sampler import SubsetRandomSampler
 import torch.nn.functional as F
 
-from problems.problem import DataTuple, LabelAuxTuple
+from problems.problem import DataDict
 from problems.image_to_class.image_to_class_problem import ImageToClassProblem
 
 
@@ -34,8 +31,10 @@ class MNIST(ImageToClassProblem):
 
     def __init__(self, params):
         """
-        Initializes MNIST problem, calls base class initialization, sets
+        Initializes the MNIST dataset, calls base class initialization, sets
         properties using the provided parameters.
+
+        TODO: DOCUMENTATION
 
         :param params: Dictionary of parameters (read from configuration file).
 
@@ -45,57 +44,82 @@ class MNIST(ImageToClassProblem):
         super(MNIST, self).__init__(params)
 
         # Retrieve parameters from the dictionary.
-        self.batch_size = params['batch_size']
-        self.start_index = params['start_index']
-        self.stop_index = params['stop_index']
         self.use_train_data = params['use_train_data']
-        self.datasets_folder = params['mnist_folder']
+        self.root_dir = params['mnist_folder']
+
         self.padding = params['padding']
         # up scaling the image to 224, 224 if True
         self.up_scaling = params['up_scaling']
 
-        # Define transforms
-        train_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(
-        )]) if self.up_scaling else transforms.Compose([transforms.ToTensor()])
+        # define the default_values dict: holds parameters values that a model may need.
+        self.default_values = {'nb_classes': 28}
 
-        # load the datasets
-        self.train_datasets = datasets.MNIST(
-            self.datasets_folder,
-            train=self.use_train_data,
-            download=True,
-            transform=train_transform)
+        self.name = 'MNIST'
 
-        # set split data (for training and validation data)
-        num_train = len(self.train_datasets)
-        indices = list(range(num_train))
-        idx = indices[self.start_index: self.stop_index]
-        self.sampler = SubsetRandomSampler(idx)
+        # Define transforms: takes in an PIL image and returns a transformed version
+        transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()]) \
+            if self.up_scaling else transforms.Compose([transforms.ToTensor()])
+
+        # load the dataset
+        self.dataset = datasets.MNIST(root=self.root_dir, train=self.use_train_data, download=True,
+                                            transform=transform)
+        # type(self.train_dataset) = <class 'torchvision.datasets.mnist.MNIST'>
+        # -> inherits from torch.utils.data.Dataset
+
+        self.length = len(self.dataset)
 
         # Class names.
-        self.mnist_class_names = 'Zero One Two Three Four Five Six Seven Eight Nine'.split(
+        self.labels = 'Zero One Two Three Four Five Six Seven Eight Nine'.split(
             ' ')
 
-    def generate_batch(self):
+    def __getitem__(self, index):
+        """
+        Getter method to access the dataset and return a sample.
 
-        # data loader
-        train_loader = torch.utils.data.DataLoader(
-            self.train_datasets,
-            batch_size=self.batch_size,
-            sampler=self.sampler)
-        # create an iterator
-        train_loader = iter(train_loader)
+        :param index: index of the sample to return.
 
-        # train_loader a generator: (data, label)
-        (data, label) = next(train_loader)
+        :return: DataDict({'images','targets', 'targets_label'}), with:
 
-        # padding data
-        data_padded = F.pad(data, self.padding, 'constant', 0)
+            - images: Image (representation of a 0 - 9 digit), transformed if a transform is specified in ``__init__``.
+            - targets: Index of the target class
+            - targets_label: Label of the target class (cf ``self.labels``)
 
-        # Generate labels for aux tuple
-        class_names = [self.mnist_class_names[i] for i in label]
 
-        # Return DataTuple(!) and an empty (aux) tuple.
-        return DataTuple(data_padded, label), LabelAuxTuple(class_names)
+        """
+
+        img, target = self.dataset.__getitem__(index)
+
+        # pad img
+        img = F.pad(img, self.padding, 'constant', 0)
+
+        label = self.labels[target.data]
+
+        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+        data_dict['images'] = img
+        data_dict['targets'] = target
+        data_dict['targets_label'] = label
+
+        return data_dict
+
+    def collate_fn(self, batch):
+        """
+        Combines a list of DataDict (retrieved with __getitem__) into a batch.
+
+        .. note::
+
+            This function wraps a call to ``default_collate`` and simply returns the batch as a DataDict\
+            instead of a dict.
+            Multi-processing is supported as the data sources are small enough to be kept in memory\
+            (`training.pt` has a size of 47.5 MB).
+
+        :param batch: list of individual ``DataDict`` samples to combine.
+
+        :return: DataDict({'images','targets', 'targets_label'}) containing the batch.
+
+        """
+
+        return DataDict({key: value for key, value in zip(self.data_definitions.keys(),
+                                                          super(MNIST, self).collate_fn(batch).values())})
 
 
 if __name__ == "__main__":
@@ -105,24 +129,32 @@ if __name__ == "__main__":
     from utils.param_interface import ParamInterface 
     params = ParamInterface()
     params.add_default_params({
-        'batch_size': 2,
-        'start_index': 0,
-        'stop_index': 54999,
+        'batch_size': 64,
         'use_train_data': True,
         'mnist_folder': '~/data/mnist',
-        'padding': [
-            4,
-            4,
-            3,
-            3],
+        'padding': [4, 4, 3, 3],
         'up_scaling': False})
 
     # Create problem object.
-    problem = MNIST(params)
-    # Get generator
-    generator = problem.return_generator()
-    # Get batch.
-    dt, at = next(generator)
+    mnist = MNIST(params)
+    sample = mnist[10]
+    print(type(sample))
+    print('__getitem__ works.')
+
+    # wrap DataLoader on top of this Dataset subclass
+    from torch.utils.data.dataloader import DataLoader
+    dataloader = DataLoader(dataset=mnist, collate_fn=mnist.collate_fn,
+                            batch_size=params['batch_size'], shuffle=True, num_workers=8)
+
+    # try to see if there is a speed up when generating batches w/ multiple workers
+
+    import time
+    s = time.time()
+    for i, batch in enumerate(dataloader):
+        print('Batch # {} - {}'.format(i, type(batch)))
+
+    print('Number of workers: {}'.format(dataloader.num_workers))
+    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(params['batch_size'], time.time()-s))
 
     # Display single sample (0) from batch.
-    problem.show_sample(dt, at, 0)
+    #mnist.show_sample(batch, 0)
