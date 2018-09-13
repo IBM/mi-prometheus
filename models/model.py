@@ -219,5 +219,6 @@ class Model(nn.Module):
             num_trainable_params = sum([np.prod(p.size()) for p in mod_trainable_params])
             mod_str += '  ' + '| '* (indent_) + '  Trainable Params: {}\n'.format(num_trainable_params)
             mod_str += '  ' + '| '* (indent_) + '  Non-trainable Params: {}\n'.format(num_total_params-num_trainable_params) 
+            mod_str += '  ' + '| '* (indent_) + '\n'
     
         return mod_str
