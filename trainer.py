@@ -291,7 +291,7 @@ if __name__ == '__main__':
 
     # build the DataLoader on top of the problem class
     problem = DataLoader(problem_ds, batch_size=param_interface['training']['problem']['batch_size'],
-                               sampler=sampler, collate_fn=problem_ds.collate_fn)
+                               sampler=sampler, collate_fn=problem_ds.collate_fn, num_workers=0)
 
     # cycle the DataLoader -> infinite generator
     problem = cycle(problem)
@@ -338,7 +338,7 @@ if __name__ == '__main__':
         # Build problem for the validation
         problem_validation = ProblemFactory.build_problem(param_interface['validation']['problem'])
         dataloader_validation = DataLoader(problem_validation, batch_size=param_interface['validation']['problem']['batch_size'],
-                                           shuffle=True, collate_fn=problem_ds.collate_fn)
+                                           shuffle=True, collate_fn=problem_ds.collate_fn, num_workers=0)
         dataloader_validation = iter(dataloader_validation)
 
         # Get a single batch that will be used for validation (!)
