@@ -540,7 +540,7 @@ class CLEVR(ImageTextToClassProblem):
 
         else:
             # embed question
-            question = self.language.embed_sentence(string_question)
+            question = self.language.embed_sentence(question_string)
 
         question_length = question.shape[0]
 
@@ -741,13 +741,21 @@ if __name__ == "__main__":
 
     # instantiate DataLoader object
     problem = DataLoader(clevr_dataset, batch_size=params['batch_size'], shuffle=True,
-                         collate_fn=clevr_dataset.collate_fn)
+                         collate_fn=clevr_dataset.collate_fn, num_workers=4)
 
     # generate a batch
-    for i_batch, sample in enumerate(problem):
-        print('Sample # {} - {}'.format(i_batch, sample['question'].shape), type(sample))
-        # try to show a sample
-        clevr_dataset.show_sample(data_dict=sample)
-        break
+    import time
 
+    s = time.time()
+    for i, batch in enumerate(problem):
+        print('Batch # {} - {}'.format(i, type(batch)))
+        if i == 200:
+            break
+
+    print('Number of workers: {}'.format(problem.num_workers))
+    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(params['batch_size'], time.time() - s))
+
+    # Display single sample (0) from batch.
+    #batch = next(iter(problem))
+    #clevr_dataset.show_sample(batch, 0)
     print('Unit test completed.')
