@@ -1,7 +1,15 @@
 batch_settings:
-    experiment_repetitions: 2 # number of experiments 
-    max_concurrent_runs: 2   # number of gpus
+    experiment_repetitions: 1 # number of experiments 
+    max_concurrent_runs: 1   # number of gpus
 
 batch_tasks:
     -
-        default_configs: configs/stacked_attention_vqa/sort_of_clevr.yaml
+        default_configs: configs/dwm_baselines/dwm/serial_recall.yaml
+        overwrite:
+            problem:
+                cuda: True
+    -
+        default_configs: configs/dwm_baselines/dwm/reverse_recall.yaml
+        overwrite:
+            problem:
+                cuda: True
