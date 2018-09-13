@@ -92,6 +92,7 @@ def main():
               gpu_batch_trainer_default_params_file, default_flow_style=False)
 
     configs = []
+    overwrite_files = []
     # Iterate through batch tasks.
     for task in batch_dict['batch_tasks']:
         try:
@@ -104,10 +105,10 @@ def main():
             if 'overwrite' in task:
                 # Create temporary file with settings that will be overwritten
                 # only for that particular task.
-                overwrite_file = NamedTemporaryFile(mode='w')
-                yaml.dump(task['overwrite'], overwrite_file,
+                overwrite_files.append(NamedTemporaryFile(mode='w'))
+                yaml.dump(task['overwrite'], overwrite_files[-1],
                           default_flow_style=False)
-                current_configs = overwrite_file.name + ',' + current_configs
+                current_configs = overwrite_files[-1].name + ',' + current_configs
 
             # Get list of configs that need to be loaded.
             configs.append(current_configs)
