@@ -59,5 +59,4 @@ model:
     max_step: 12
     self_attention: False
     memory_gate: False
-    nb_classes: 28
     dropout: 0.15

@@ -87,7 +87,7 @@ class MACNetwork(Model):
         try:
             self.nb_classes = problem_default_values_['nb_classes']
         except BaseException:
-            self.logger.error("Couldn't retrieve one or more value(s) from problem_default_values_.")
+            self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
         self.image = [] # TODO : is this necessary??
 

@@ -17,6 +17,7 @@
 
 """mnist.py: contains code of loading MNIST dataset using torchvision"""
 __author__ = "Younes Bouhadjar"
+import torch
 from torchvision import datasets, transforms
 import torch.nn.functional as F
 
@@ -45,14 +46,28 @@ class MNIST(ImageToClassProblem):
 
         # Retrieve parameters from the dictionary.
         self.use_train_data = params['use_train_data']
-        self.root_dir = params['mnist_folder']
+        self.root_dir = params['root_dir']
 
         self.padding = params['padding']
         # up scaling the image to 224, 224 if True
         self.up_scaling = params['up_scaling']
 
         # define the default_values dict: holds parameters values that a model may need.
-        self.default_values = {'nb_classes': 10}
+        # define the default_values dict: holds parameters values that a model may need.
+        self.default_values = {'nb_classes': 10,
+                               'num_channels': 1,
+                               'width': 28,
+                               'height': 28,
+                               'up_scaling': self.up_scaling,
+                               'padding': self.padding}
+
+        self.height = 224 if self.up_scaling else self.default_values['height']
+        self.width = 224 if self.up_scaling else self.default_values['width']
+
+        self.data_definitions = {'images': {'size': [-1, 1, self.height, self.width], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'targets_label': {'size': [-1, 1], 'type': [list, str]}
+                                 }
 
         self.name = 'MNIST'
 
@@ -129,11 +144,12 @@ if __name__ == "__main__":
     from utils.param_interface import ParamInterface 
     params = ParamInterface()
     params.add_default_params({
-        'batch_size': 64,
         'use_train_data': True,
         'mnist_folder': '~/data/mnist',
         'padding': [4, 4, 3, 3],
         'up_scaling': False})
+
+    batch_size = 64
 
     # Create problem object.
     mnist = MNIST(params)
@@ -144,7 +160,7 @@ if __name__ == "__main__":
     # wrap DataLoader on top of this Dataset subclass
     from torch.utils.data.dataloader import DataLoader
     dataloader = DataLoader(dataset=mnist, collate_fn=mnist.collate_fn,
-                            batch_size=params['batch_size'], shuffle=True, num_workers=8)
+                            batch_size=batch_size, shuffle=True, num_workers=8)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
 
@@ -156,7 +172,7 @@ if __name__ == "__main__":
         print('Batch # {} - {}'.format(i, type(batch)))
 
     print('Number of workers: {}'.format(dataloader.num_workers))
-    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(params['batch_size'], time.time()-s))
+    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
 
     # Display single sample (0) from batch.
     #batch = next(iter(dataloader))

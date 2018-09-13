@@ -21,7 +21,6 @@ __author__ = "Younes Bouhadjar"
 import numpy as np
 import torch
 from torchvision import datasets, transforms
-from torch.utils.data.sampler import SubsetRandomSampler
 import torch.nn.functional as F
 
 from problems.problem import DataDict
@@ -52,14 +51,29 @@ class CIFAR10(ImageToClassProblem):
         # Retrieve parameters from the dictionary.
 
         self.use_train_data = params['use_train_data']
-        self.root_dir = params['folder']
+        self.root_dir = params['root_dir']
 
+        # possibility to pad the image
         self.padding = params['padding']
+
         # up scaling the image to 224, 224 if True
         self.up_scaling = params['up_scaling']
 
         # define the default_values dict: holds parameters values that a model may need.
-        self.default_values = {'nb_classes': 10}
+        self.default_values = {'nb_classes': 10,
+                               'num_channels': 3,
+                               'width': 32,
+                               'height': 32,
+                               'up_scaling': self.up_scaling,
+                               'padding': self.padding}
+
+        self.height = 224 if self.up_scaling else self.default_values['height']
+        self.width = 224 if self.up_scaling else self.default_values['width']
+
+        self.data_definitions = {'images': {'size': [-1, 3, self.height, self.width], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'targets_label': {'size': [-1, 1], 'type': [list, str]}
+                                 }
 
         self.name = 'CIFAR10'
 

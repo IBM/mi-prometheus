@@ -91,7 +91,7 @@ class ModelFactory(object):
             logger.info(
                 'Loading the SimpleConvNet model from models.simple_cnn.simple_cnn')
             from models.simple_cnn.simple_cnn import SimpleConvNet
-            return SimpleConvNet(params)
+            return SimpleConvNet(params, problem_default_values_)
         elif name == 'thalnet':
             logger.info(
                 'Loading the ThalNetModel model from models.thalnet.thalnet_model')
