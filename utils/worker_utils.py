@@ -19,8 +19,11 @@ __author__ = "Ryan McAvoy, Tomasz Kornuta"
 
 import os
 import yaml
+import numpy as np
 
 import torch
+from torch.nn.modules.module import _addindent
+
 from .app_state import AppState
 
 
@@ -138,3 +141,4 @@ def recurrent_config_parse(configs, configs_parsed):
 
     # Done, return list of loaded configs.
     return configs_parsed
+
