@@ -208,8 +208,6 @@ class Problem(Dataset):
         # Get access to AppState: for dtype, visualization flag etc.
         self.app_state = AppState()
 
-
-
     def __len__(self):
         """
         :return: The size of the dataset.

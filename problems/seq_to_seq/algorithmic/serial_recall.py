@@ -247,7 +247,7 @@ if __name__ == "__main__":
 
     print('Number of workers: {}'.format(problem.num_workers))
     print('time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
-          .format(problem.__len__(), params['batch_size'], time.time() - s))
+          .format(dataset.__len__(), params['batch_size'], time.time() - s))
 
     # Display single sample (0) from batch.
     #batch = next(iter(problem))

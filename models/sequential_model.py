@@ -33,8 +33,8 @@ class SequentialModel(Model):
 
         # We can then define a dict that contains a description of the expected (and mandatory) inputs for this model.
         # This dict should be defined using self.params.
-        self.data_definitions = {'inputs': {'size': [-1, -1], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
+        self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]}
                                  }
 
     def plot(self, data_dict, predictions, sample_number=0):
@@ -102,7 +102,7 @@ class SequentialModel(Model):
         fig.set_tight_layout(True)
 
         # Detach a sample from batch and copy it to CPU.
-        inputs_seq = data_dict['inputs'][sample_number].cpu().detach().numpy()
+        inputs_seq = data_dict['sequences'][sample_number].cpu().detach().numpy()
         targets_seq = data_dict['targets'][sample_number].cpu().detach().numpy()
         predictions_seq = predictions[sample_number].cpu().detach().numpy()
 
@@ -180,7 +180,7 @@ if __name__ == '__main__':
         x = torch.from_numpy(x).type(torch.FloatTensor)
         y = torch.from_numpy(y).type(torch.FloatTensor)
         z = torch.from_numpy(z).type(torch.FloatTensor)
-        dt = DataDict({'inputs': x, 'targets': y})
+        dt = DataDict({'sequences': x, 'targets': y})
 
         # Plot it and check whether window was closed or not.
         if sequential_model.plot(dt, z):
