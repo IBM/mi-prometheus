@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """model.py: contains base abstract model for all models"""
-__author__ = "Tomasz Kornuta"
+__author__ = "Tomasz Kornuta, Vincent Marois"
 
 import torch
 from torch import nn
@@ -65,7 +65,9 @@ class Model(nn.Module):
 
         # We can then define a dict that contains a description of the expected (and mandatory) inputs for this model.
         # This dict should be defined using self.params.
-        self.data_definitions = {'inputs': {'size': [], 'type': []}}
+        self.data_definitions = {'inputs': {'size': [-1, -1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
+                                }
 
         # --> The remaining parameters should be hardcoded values.
 

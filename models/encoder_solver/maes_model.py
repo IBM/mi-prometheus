@@ -8,7 +8,7 @@ import torch
 import logging
 logger = logging.getLogger('MAES-Model')
 
-from problems.problem import DataTuple
+from problems.problem import DataDict
 from models.sequential_model import SequentialModel
 
 from models.encoder_solver.mae_cell import MAECell
