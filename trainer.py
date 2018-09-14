@@ -289,9 +289,13 @@ if __name__ == '__main__':
     # for documentation on the several samplers supported by Pytorch
     sampler = RandomSampler(problem_ds)
 
+
+    def init_fn(worker_id):
+        np.random.seed(seed=worker_id)
+
     # build the DataLoader on top of the problem class
     problem = DataLoader(problem_ds, batch_size=param_interface['training']['problem']['batch_size'],
-                               sampler=sampler, collate_fn=problem_ds.collate_fn, num_workers=4)
+                               sampler=sampler, collate_fn=problem_ds.collate_fn, num_workers=2, worker_init_fn=init_fn)
 
     # cycle the DataLoader -> infinite generator
     problem = cycle(problem)
@@ -338,7 +342,7 @@ if __name__ == '__main__':
         # Build problem for the validation
         problem_validation = ProblemFactory.build_problem(param_interface['validation']['problem'])
         dataloader_validation = DataLoader(problem_validation, batch_size=param_interface['validation']['problem']['batch_size'],
-                                           shuffle=True, collate_fn=problem_ds.collate_fn, num_workers=4)
+                                           shuffle=True, collate_fn=problem_ds.collate_fn, num_workers=2, worker_init_fn=init_fn)
         dataloader_validation = iter(dataloader_validation)
 
         # Get a single batch that will be used for validation (!)

@@ -290,7 +290,7 @@ if __name__ == "__main__":
     # "Loaded parameters".
     from utils.param_interface import ParamInterface 
     params = ParamInterface()
-    params.add_custom_params({'control_bits': 4, 'data_bits': 8, 'batch_size': 1,
+    params.add_custom_params({'control_bits': 4, 'data_bits': 8,
                               # 'randomize_control_lines': False,
                               'min_sequence_length': 2, 'max_sequence_length': 5})
     batch_size = 64
@@ -306,8 +306,11 @@ if __name__ == "__main__":
     # wrap DataLoader on top
     from torch.utils.data.dataloader import DataLoader
 
+    def init_fn(worker_id):
+        np.random.seed(seed=worker_id)
+
     problem = DataLoader(dataset=dataset, batch_size=batch_size, collate_fn=dataset.collate_fn,
-                         shuffle=False, num_workers=4)
+                         shuffle=False, num_workers=4, worker_init_fn=init_fn)
 
     # generate a batch
     import time
@@ -318,7 +321,7 @@ if __name__ == "__main__":
 
     print('Number of workers: {}'.format(problem.num_workers))
     print('time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
-          .format(len(dataset), params['batch_size'], time.time() - s))
+          .format(len(dataset), batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
     # batch = next(iter(problem))
