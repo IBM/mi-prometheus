@@ -185,7 +185,9 @@ class ImageToClassProblem(Problem):
 
 if __name__ == '__main__':
 
-    sample = ImageToClassProblem(params={})[0]
+    from utils.param_interface import ParamInterface
+
+    sample = ImageToClassProblem(ParamInterface())[0]
     # equivalent to ImageToClassProblem(params={}).__getitem__(index=0)
 
     print(repr(sample))

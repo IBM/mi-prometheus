@@ -1,6 +1,6 @@
 # Problem parameters:
 training:
-    cuda: False  # The presence of the 'cuda' key is optional
+    cuda: True  # The presence of the 'cuda' key is optional
     problem:
         name: &name cifar10
         # Size of generated input: [batch_size x sequence_length x number of control and data bits].

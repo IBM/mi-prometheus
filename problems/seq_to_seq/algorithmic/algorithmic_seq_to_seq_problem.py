@@ -19,30 +19,12 @@
 __author__ = "Tomasz Kornuta, Younes Bouhadjar"
 
 import numpy as np
-import collections
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from problems.problem import DataTuple
+from problems.problem import DataDict
 from problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
 from utils.loss.masked_bce_with_logits_loss import MaskedBCEWithLogitsLoss
-
-
-_AlgSeqAuxTuple = collections.namedtuple(
-    'AlgSeqAuxTuple', ('mask', 'seq_length', 'num_subsequences'))
-
-
-class AlgSeqAuxTuple(_AlgSeqAuxTuple):
-    """
-    Tuple used by storing batches of data by algorithmic sequential problems.
-    Contains three elements:
-
-    - mask that might be used for evaluation of the loss function
-    - length of sequence
-    - number of subsequences
-
-    """
-    __slots__ = ()
 
 
 class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
@@ -71,12 +53,12 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
             self.loss_function = nn.BCEWithLogitsLoss()
 
         # Extract "standard" list of parameters for algorithmic tasks.
-        self.batch_size = params['batch_size']
+
         # Number of bits in one element.
         self.control_bits = params['control_bits']
         self.data_bits = params['data_bits']
 
-        # Min and max lengts of a single subsequence (number of elements).
+        # Min and max lengths of a single subsequence (number of elements).
         self.min_sequence_length = params['min_sequence_length']
         self.max_sequence_length = params['max_sequence_length']
 
@@ -88,45 +70,43 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         # Set initial dtype.
         self.dtype = torch.FloatTensor
 
-    def calculate_accuracy(self, data_tuple, logits, aux_tuple):
-        """ Calculate accuracy equal to mean difference between outputs and targets.
-        WARNING: Applies mask (from aux_tuple) to both logits and targets!
+        # "Default" problem name.
+        self.name = 'AlgorithmicSeqToSeqProblem'
 
-        :param logits: Logits being output of the model.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param aux_tuple: Auxiliary tuple containing mask.
+        # set default data_definitions dict
+        self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'sequences_length': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'mask': {'size': [-1, -1], 'type': [torch.Tensor]},
+                                 'num_subsequences': {'size': [-1, 1], 'type': [torch.Tensor]}, #TODO: check size & type
+                                 }
+
+        self.default_values = {'control_bits': self.control_bits,
+                               'data_bits': self.data_bits,
+                               'min_sequence_length': self.min_sequence_length,
+                               'max_sequence_length': self.max_sequence_length
+                               }
+
+        # This a safety net in case the user forgets to set it
+        # because the dataset can be gigantic!
+        self.length = 100000
+
+    def calculate_accuracy(self, data_dict, logits):
+        """ Calculate accuracy equal to mean difference between outputs and targets.
+        WARNING: Applies mask to both logits and targets!
+
+        :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}).
+
+        :param logits: Predictions being output of the model.
         """
 
         # Check if mask should be is used - if so, apply.
-        if (self.use_mask):
+        if self.use_mask:
             return self.loss_function.masked_accuracy(
-                logits, data_tuple.targets, aux_tuple.mask)
+                logits, data_dict['targets'], data_dict['mask'])
         else:
             return (1 - torch.abs(torch.round(F.sigmoid(logits)) -
-                                  data_tuple.targets)).mean()
-
-    def turn_on_cuda(self, data_tuple, aux_tuple):
-        """ Enables computations on GPU - copies all the matrices to GPU.
-        This method has to be overwritten in derived class if one decides e.g. to add additional variables/matrices to aux_tuple.
-
-        :param data_tuple: Data tuple.
-        :param aux_tuple: Auxiliary tuple.
-        :returns: Pair of Data and Auxiliary tupples with variables copied to GPU.
-        """
-        # Unpack tuples and copy data to GPU.
-        gpu_inputs = data_tuple.inputs.cuda()
-        gpu_targets = data_tuple.targets.cuda()
-        gpu_mask = aux_tuple.mask.cuda()
-
-        # Pack matrices to tuples.
-        data_tuple = DataTuple(gpu_inputs, gpu_targets)
-
-        # seq_length and num_subsequences are used only in logging, so are
-        # passed as they are i.e. stored in CPU.
-        aux_tuple = AlgSeqAuxTuple(
-            gpu_mask, aux_tuple.seq_length, aux_tuple.num_subsequences)
-
-        return data_tuple, aux_tuple
+                                  data_dict['targets'])).mean()
 
     # def set_max_length(self, max_length):
     #    """ Sets maximum sequence lenth (property).
@@ -134,6 +114,29 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
     #    :param max_length: Length to be saved as max.
     #    """
     #    self.max_sequence_length = max_length
+
+    def __getitem__(self, index):
+        """
+        Getter that returns an individual sample from the problem's associated dataset (that can be generated \
+        on-the-fly, or retrieved from disk. It can also possibly be composed of several files.).
+
+        To be redefined in subclasses.
+
+        **The getter should return a DataDict: its keys should be defined by `self.data_definitions` keys.**
+
+        e.g.:
+            >>> data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+            >>> # you can now access each value by its key and assign the corresponding object (e.g. `torch.Tensor` etc)
+            >>> ...
+            >>> return data_dict
+
+        :param index: index of the sample to return.
+
+        :return: DataDict containing the sample.
+
+        """
+
+        return DataDict({key: None for key in self.data_definitions.keys()})
 
     def add_ctrl(self, seq, ctrl, pos):
         """
@@ -176,29 +179,27 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         #stat_col.add_statistic('num_subseq', '{:d}')
         stat_col.add_statistic('max_seq_length', '{:d}')
 
-    def collect_statistics(self, stat_col, data_tuple, logits, aux_tuple):
+    def collect_statistics(self, stat_col, data_dict, logits):
         """
         Collects accuracy, seq_length and num_subsequences.
 
         :param stat_col: Statistics collector.
-        :param data_tuple: Data tuple containing inputs and targets.
+        :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}).
         :param logits: Logits being output of the model.
-        :param aux_tuple: auxiliary tuple (aux_tuple) is not used in this function.
 
         """
-        stat_col['acc'] = self.calculate_accuracy(
-            data_tuple, logits, aux_tuple)
-        stat_col['seq_length'] = aux_tuple.seq_length
-        #stat_col['num_subseq'] = aux_tuple.num_subsequences
+        stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
+        stat_col['seq_length'] = data_dict['sequences_length']
+        #stat_col['num_subseq'] = data_dict['num_subsequences']
         stat_col['max_seq_length'] = self.max_sequence_length
 
-    def show_sample(self, data_tuple, aux_tuple, sample_number=0):
+    def show_sample(self, data_dict, sample_number=0):
         """
         Shows the sample (both input and target sequences) using matplotlib.
         Elementary visualization.
 
-        :param data_tuple: Data tuple.
-        :param aux_tuple: Auxiliary tuple.
+        :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}).
+
         :param sample_number: Number of sample in a batch (DEFAULT: 0)
 
         """
@@ -208,7 +209,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         # Generate "canvas".
         fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={
-            'width_ratios': [data_tuple.inputs.shape[1]], 'height_ratios': [10, 10, 1]})
+            'width_ratios': [data_dict['sequences'].shape[1]], 'height_ratios': [10, 10, 1]})
         # Set ticks.
         ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
@@ -225,19 +226,18 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         ax3.set_xlabel('Item number', fontname='Times New Roman', fontsize=13)
 
         # print data
-        print("\ninputs:", data_tuple.inputs[sample_number, :, :])
-        print("\ntargets:", data_tuple.targets[sample_number, :, :])
-        print("\nmask:", aux_tuple.mask[sample_number:sample_number + 1, :])
-        print("\nseq_length:", aux_tuple.seq_length)
-        print("\nnum_subsequences:", aux_tuple.num_subsequences)
+        print("\ninputs:", data_dict['sequences'][sample_number, :, :])
+        print("\ntargets:", data_dict['targets'][sample_number, :, :])
+        print("\nmask:", data_dict['mask'][sample_number:sample_number + 1, :])
+        print("\nseq_length:", data_dict['sequences_length'])
+        print("\nnum_subsequences:", data_dict['num_subsequences'])
 
         # show data.
-        ax1.imshow(np.transpose(data_tuple.inputs[sample_number, :, :], [
+        ax1.imshow(np.transpose(data_dict['sequences'][sample_number, :, :], [
                    1, 0]), interpolation='nearest', aspect='auto')
-        ax2.imshow(np.transpose(data_tuple.targets[sample_number, :, :], [
+        ax2.imshow(np.transpose(data_dict['targets'][sample_number, :, :], [
                    1, 0]), interpolation='nearest', aspect='auto')
-        ax3.imshow(aux_tuple.mask[sample_number:sample_number + 1,
-                                  :], interpolation='nearest', aspect='auto')
+        ax3.imshow(data_dict['mask'][sample_number:sample_number + 1, :], interpolation='nearest', aspect='auto')
         # Plot!
         plt.tight_layout()
         plt.show()
@@ -276,3 +276,18 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         # Return information whether we finished CL (i.e. reached max sequence
         # length).
         return curric_done
+
+
+if __name__ == '__main__':
+
+    from utils.param_interface import ParamInterface
+    params = ParamInterface()
+    params.add_custom_params({'control_bits': 2,
+                              'data_bits': 8,
+                              'min_sequence_length': 1,
+                              'max_sequence_length': 10})
+
+    sample = AlgorithmicSeqToSeqProblem(params)[0]
+    # equivalent to ImageTextToClassProblem(params={}).__getitem__(index=0)
+
+    print(repr(sample))

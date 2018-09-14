@@ -196,7 +196,7 @@ class Problem(Dataset):
         # This object will be used during handshaking between the model and the problem class to ensure that the model
         # can accept the batches produced by the problem.
         # This dict should at least contains the `targets` field.
-        self.data_definitions = {'targets': {'size': [-1, 1], 'type': torch.Tensor}}
+        self.data_definitions = {'targets': {'size': [-1, 1], 'type': [torch.Tensor]}}
 
         # default_values: this is used to pass missing parameters values to the model.
         # It is likely to encounter a case where the model needs a parameter value only known when the problem has been

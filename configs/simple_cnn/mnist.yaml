@@ -1,5 +1,6 @@
 # Problem parameters:
 training:
+    cuda: True
     seed_numpy: 4354
     seed_torch: 2452
     problem:

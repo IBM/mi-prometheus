@@ -69,7 +69,7 @@ class ImageTextToClassProblem(Problem):
 
         return accuracy
 
-    def __getitem__(self, item):
+    def __getitem__(self, index):
         """
         Getter that returns an individual sample from the problem's associated dataset (that can be generated \
         on-the-fly, or retrieved from disk. It can also possibly be composed of several files.).
@@ -116,7 +116,7 @@ class ImageTextToClassProblem(Problem):
         :return: DataDict containing the created batch.
 
         """
-        return default_collate
+        return default_collate(batch)
 
     def add_statistics(self, stat_col):
         """
@@ -143,7 +143,9 @@ class ImageTextToClassProblem(Problem):
 
 if __name__ == '__main__':
 
-    sample = ImageTextToClassProblem(params={})[0]
+    from utils.param_interface import ParamInterface
+
+    sample = ImageTextToClassProblem(ParamInterface())[0]
     # equivalent to ImageTextToClassProblem(params={}).__getitem__(index=0)
 
     print(repr(sample))
