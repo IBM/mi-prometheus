@@ -22,13 +22,15 @@ import torch
 from torchvision import datasets, transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 
-from problems.problem import DataTuple, MaskAuxTuple
+from problems.problem import DataDict
 from problems.video_to_class.video_to_class_problem import VideoToClassProblem
 
 
 class SequentialRowMNIST(VideoToClassProblem):
     """
     Class generating a sequence of rows for sequential mnist.
+
+    TODO: THIS IS EXACTLY MNIST!!
     """
 
     def __init__(self, params):

@@ -1,48 +1,77 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """video_to_class_problem.py: abstract base class for sequential vision problems"""
-__author__ = "Tomasz Kornuta, Younes Bouhadjar"
-
+__author__ = "Tomasz Kornuta, Younes Bouhadjar, Vincent Marois"
+import torch
 import torch.nn as nn
-from problems.problem import Problem
+import numpy as np
+from problems.problem import Problem, DataDict
 
 
 class VideoToClassProblem(Problem):
     """
-    Base class for vision classification problems.
+    Abstract base class for sequential vision problems.
 
-    Provides some basic functionality usefull in all problems of such
-    type
+    Problem classes like Sequential MNIST inherits from it.
+
+    Provides some basic features useful in all problems of such type.
 
     """
 
     def __init__(self, params):
         """
-        Initializes problem object. Calls base constructor. Sets
-        nn.CrossEntropyLoss() as default loss function.
+        Initializes problem:
 
-        :param params: Dictionary of parameters (read from configuration file).
+            - Calls ``problems.problem.Problem`` class constructor,
+            - Sets loss function to ``CrossEntropy``,
+            - sets ``self.data_definitions`` to:
 
+                >>> self.data_definitions = {'images': {'size': [-1, 3, -1, -1], 'type': [torch.Tensor]},
+                >>>                          'mask': {'size': [-1, -1, -1, -1], 'type': [torch.Tensor]},
+                >>>                          'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
+                >>>                         }
+
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
         """
         super(VideoToClassProblem, self).__init__(params)
 
         # Set default loss function - cross entropy.
         self.loss_function = nn.CrossEntropyLoss()
 
-    def calculate_accuracy(self, data_tuple, logits, aux_tuple):
-        """ Calculates accuracy equal to mean number of correct predictions in a given batch.
-        WARNING: Applies mask (from aux_tuple) to logits!
+        # set default data_definitions dict
+        self.data_definitions = {'images': {'size': [-1, 3, -1, -1], 'type': [torch.Tensor]},
+                                 'mask': {'size': [-1, -1, -1, -1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'targets_label': {'size': [-1, 1], 'type': [list, str]}
+                                 }
 
-        :param logits: Logits being output of the model.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param aux_tuple: Auxiliary tuple containing mask.
+        # "Default" problem name.
+        self.name = 'VideoToClassProblem'
+
+    def calculate_accuracy(self, data_dict, logits):
+        """
+        Calculates accuracy equal to mean number of correct classification in a given batch.
+
+        .. warning::
+
+            Applies a mask to the logits.
+
+
+        :param logits: Predictions of the model.
+
+        :param data_dict: DataDict containing the targets and the mask.
+        :type data_dict: DataDict
+
+        :return: Accuracy.
+
         """
         # Mask logits (ONLY LOGITS!)
-        masked_logits = logits[:, aux_tuple.mask, :][:, 0, :]
+        masked_logits = logits[:, data_dict['mask'], :][:, 0, :]
 
         # Get the index of the max log-probability.
         pred = masked_logits.max(1, keepdim=True)[1]
-        correct = pred.eq(data_tuple.targets.view_as(pred)).sum().item()
+        correct = pred.eq(data_dict['targets'].view_as(pred)).sum().item()
 
         # Calculate the accuracy.
         batch_size = logits.size(0)
@@ -50,55 +79,97 @@ class VideoToClassProblem(Problem):
 
         return accuracy
 
-    def evaluate_loss(self, data_tuple, logits, aux_tuple):
-        """ Calculates loss.
-        WARNING: Applies mask (from aux_tuple) to logits!
+    def evaluate_loss(self, data_dict, logits):
+        """ Computes loss.
 
-        :param logits: Logits being output of the model.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param aux_tuple: Auxiliary tuple containing mask.
+        .. warning::
+
+            Applies a mask to the logits.
+
+
+        :param logits: Predictions of the model.
+
+        :param data_dict: DataDict containing the targets and the mask.
+        :type data_dict: DataDict
+
+        :return: Loss.
         """
         # Mask logits (ONLY LOGITS!)
-        masked_logits = logits[:, aux_tuple.mask, :][:, 0, :]
-
-        # Unpack the data tuple.
-        (_, targets) = data_tuple
+        masked_logits = logits[:, data_dict['mask'], :][:, 0, :]
 
         # Compute loss using the provided loss function.
-        loss = self.loss_function(masked_logits, targets)
+        loss = self.loss_function(masked_logits, data_dict['targets'])
 
         return loss
 
     def add_statistics(self, stat_col):
         """
-        Add accuracy statistic to collector.
+        Add accuracy statistic to ``StatisticsCollector``.
 
-        :param stat_col: Statistics collector.
+        :param stat_col: ``StatisticsCollector``.
 
         """
         stat_col.add_statistic('acc', '{:12.10f}')
 
-    def collect_statistics(self, stat_col, data_tuple, logits, aux_tuple):
+    def collect_statistics(self, stat_col, data_dict, logits):
         """
         Collects accuracy.
 
-        :param stat_col: Statistics collector.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param logits: Logits being output of the model.
-        :param aux_tuple: auxiliary tuple (aux_tuple) is not used in this function.
+        :param stat_col: ``StatisticsCollector``.
+
+        :param data_dict: DataDict containing the targets and the mask.
+        :type data_dict: DataDict
+
+        :param logits: Predictions of the model.
 
         """
-        stat_col['acc'] = self.calculate_accuracy(
-            data_tuple, logits, aux_tuple)
+        stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
 
-    def show_sample(self, inputs, targets):
+    def show_sample(self, data_dict, sample_number=0):
+        """
+        Shows a sample from the batch.
+
+        :param data_dict: ``DataDict`` containing inputs and targets.
+        :type data_dict: DataDict
+
+        :param sample_number: Number of sample in batch (default: 0)
+        :type sample_number: int
+
+        """
         import matplotlib.pyplot as plt
+
+        # Unpack dict.
+        images, masks, targets, labels = data_dict.values()
+
+        # Get sample.
+        image = images[sample_number].cpu().detach().numpy()
+        target = targets[sample_number].cpu().detach().numpy()
+        label = labels[sample_number]
+
+        # Reshape image.
+        if image.shape[0] == 1:
+            # This is a single channel image - get rid of this dimension
+            image = np.squeeze(image, axis=0)
+        else:
+            # More channels - move channels to axis2, according to matplotilb documentation.
+            # (X : array_like, shape (n, m) or (n, m, 3) or (n, m, 4))
+            image = image.transpose(1, 2, 0)
 
         # show data.
         plt.xlabel('num_columns')
         plt.ylabel('num_rows')
-        plt.title('Target class:' + str(int(targets[0])))
+        plt.title('Target class: {} ({})'.format(label, target))
+        plt.imshow(image, interpolation='nearest', aspect='auto', cmap='gray_r')
 
-        plt.imshow(inputs, interpolation='nearest', aspect='auto')
         # Plot!
         plt.show()
+
+
+if __name__ == '__main__':
+
+    from utils.param_interface import ParamInterface
+
+    sample = VideoToClassProblem(ParamInterface())[0]
+    # equivalent to ImageToClassProblem(params={}).__getitem__(index=0)
+
+    print(repr(sample))

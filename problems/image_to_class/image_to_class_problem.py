@@ -62,6 +62,9 @@ class ImageToClassProblem(Problem):
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
 
+        # "Default" problem name.
+        self.name = 'ImageToClassProblem'
+
     def calculate_accuracy(self, data_dict, logits):
         """
         Calculates accuracy equal to mean number of correct classification in a given batch.
@@ -69,8 +72,9 @@ class ImageToClassProblem(Problem):
         :param logits: Predictions of the model.
 
         :param data_dict: DataDict containing the targets.
+        :type data_dict: DataDict
 
-        :return: Loss.
+        :return: Accuracy.
 
         """
 
@@ -99,6 +103,9 @@ class ImageToClassProblem(Problem):
 
         :param stat_col: ``StatisticsCollector``.
 
+        :param data_dict: DataDict containing the targets and the mask.
+        :type data_dict: DataDict
+
         :param logits: Predictions of the model.
 
         """
@@ -117,7 +124,7 @@ class ImageToClassProblem(Problem):
         """
         import matplotlib.pyplot as plt
 
-        # Unpack tuples.
+        # Unpack dict.
         images, targets, labels = data_dict.values()
 
         # Get sample.
