@@ -143,6 +143,90 @@ class CLEVR(ImageTextToClassProblem):
         super(CLEVR, self).__init__(params)
 
         # parse parameters from the params dict
+
+        def parse_param_tree(params):
+            """
+            Parses the parameters tree passed as input to the constructor.
+
+            Due to the relative complexity inherent to the several variants of the `CLEVR` dataset (Humans, CoGenT)\
+            and the processing available to both the images (features extraction or not) and the questions\
+             (which type of embedding to use), this step is of relative importance.
+
+
+            :param params: parameters tree read from the ``.yaml`` configuration file.
+            :type params: dict
+
+
+            """
+
+            # get the data_folder
+            self.data_folder = params['settings']['data_folder']
+
+            # get the set descriptor
+            self.set = params['settings']['set']
+            assert self.set in ['train', 'val', 'test'], "self.set must be in" \
+                                                         " ['train', 'val', 'test'], got {}".format(self.set)
+
+            # We don't handle the creation of the test set for now since the ground truth answers are not distributed.
+            if self.set == 'test':
+                self.logger.error('Test set generation not supported for now since the ground truth answers '
+                                  'are not distributed. Exiting.')
+                exit(0)
+
+            # get the dataset variant
+            self.dataset = params['settings']['dataset_variant']
+            assert self.dataset in ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-Humans'], "dataset_variant.set must be " \
+                                                                   "in ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-Humans'], got {}".format(self.dataset)
+
+            if self.dataset == 'CLEVR' or self.dataset == 'CLEVR-Humans':
+                assert 'CLEVR_v1.0' in self.data_folder, "Indicated data_folder does not contains 'CLEVR_v1.0'." \
+                                                         "Please correct it. Got: {}".format(self.data_folder)
+            elif self.dataset == 'CoGenT':
+                assert 'CLEVR_CoGenT_v1.0' in self.data_folder, "Indicated data_folder does not contains " \
+                                                                  "'CLEVR_CoGenT_v1.0'.Please correct it." \
+                                                                "Got: {}".format(self.data_folder)
+
+            # get the images parameters:
+            if params['images']['raw_images']:
+                self.image_source = os.path.join(self.data_folder, 'images', self.set)
+            else:
+                assert bool(params['images']['feature_extractor']) is not False, "The images source is either the " \
+                                                                                 "original images or features extracted:" \
+                                                                                 " Cannot have 'raw_images'= False and " \
+                                                                                 "no parameters in 'feature_extractor'."
+                # passed, so can continue parsing params
+                self.image_source = os.path.join(self.data_folder, 'generated_files', self.set)
+
+                self.cnn_model = params['images']['feature_extractor']['cnn_model']
+                import torchvision as vision
+                assert self.cnn_model in dir(vision.models), "Did not find specified cnn_model in torchvision.models." \
+                                                                  " Available models: {}".format(dir(vision.models))
+                # this is too complex to check, not doing it.
+                self.num_blocks = params['images']['feature_extractor']['num_blocks']
+
+            # get the questions parameters:
+            self.embedding_type = params['questions']['embedding_type']
+            embedding_types = ["random", "charngram.100d", "fasttext.en.300d", "fasttext.simple.300d", "glove.42B.300d",
+                               "glove.840B.300d", "glove.twitter.27B.25d", "glove.twitter.27B.50d",
+                               "glove.twitter.27B.100d", "glove.twitter.27B.200d", "glove.6B.50d", "glove.6B.100d",
+                               "glove.6B.200d", "glove.6B.300d"]
+
+            assert self.embedding_type in embedding_types, "Embedding type not found, available options are {}".format(embedding_types)
+            if self.embedding_type == 'random':
+                self.embedding_dim = params['questions']['embedding_dim']
+                assert type(self.embedding_dim) is int, "The random embedding dimension should be an int, got {}".format(type(self.embedding_dim))
+
+            else:
+                self.embedding_dim = int(self.embedding_type[:-4])
+
+        parse_param_tree(params)
+        exit()
+
+
+
+
+
+
         self.data_folder = os.path.expanduser(params['data_folder'])
         self.set = params['set']
         self.batch_size = params['batch_size']
@@ -717,7 +801,7 @@ class CLEVR(ImageTextToClassProblem):
 
 if __name__ == "__main__":
     """Unit test that generates a batch and displays a sample."""
-
+    '''
     from utils.param_interface import ParamInterface
     params = ParamInterface()
     params.add_default_params({'batch_size': 64,
@@ -754,3 +838,22 @@ if __name__ == "__main__":
     #batch = next(iter(problem))
     #clevr_dataset.show_sample(batch, 0)
     print('Unit test completed.')
+    '''
+
+#########################################################################################################################
+    from utils.param_interface import ParamInterface
+    params = ParamInterface()
+    params.add_default_params({'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
+                               'set': 'train',  # ['train', 'val', 'test']
+                               'dataset_variant': 'CLEVR-Humans'},  # ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-Humans']
+
+                               'images': {'raw_images': False,
+                                          'feature_extractor': {'cnn_model': 'resnet101',  # get list from torchvision
+                                                                'num_blocks': 4}},  # how to assert ?
+
+                               'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
+
+    # create problem
+    clevr_dataset = CLEVR(params)
+
+
