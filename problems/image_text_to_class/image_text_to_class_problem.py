@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""image_text_to_class_problem.py: contains abstract base class for VQA problems"""
+"""image_text_to_class_problem.py: contains abstract base class for Visual Question Answering problems."""
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
 
@@ -10,15 +10,24 @@ from torch.utils.data.dataloader import default_collate
 from problems.problem import Problem, DataDict
 
 
-class ObjectRepresentation:
+class ObjectRepresentation(object):
     """
-    Class storing features of the object being present in a given scene.
+    Class storing some features representing an object being present in a given scene.
 
     Used in ShapeColorQuery and SortOfCLEVR.
 
     """
 
     def __init__(self, x, y, color, shape):
+        """
+        Represents an object.
+
+        :param x: x coordinate.
+        :param y: y coordinate.
+        :param color: Color of the object.
+        :param shape: Shape of the object.
+
+        """
         self.x = x
         self.y = y
         self.color = color
@@ -27,15 +36,27 @@ class ObjectRepresentation:
 
 class ImageTextToClassProblem(Problem):
     """
-    Abstract base class for VQA  (Visual Question Answering) problems.
-    Provides some basic functionality useful in all problems of such type.
+    Abstract base class for VQA (`Visual Question Answering`) problems.
+
+    Problem classes like CLEVR inherits from it.
+
+    Provides some basic features useful in all problems of such type.
+
     """
     def __init__(self, params):
         """
-        Initializes problem, calls base class initialization. Set loss function
-        to CrossEntropy.
+        Initializes problem:
 
-        :param params: Dictionary of parameters (read from configuration file).
+            - Calls ``problems.problem.Problem`` class constructor,
+            - Sets loss function to ``CrossEntropy``,
+            - sets ``self.data_definitions`` to:
+
+                >>>         self.data_definitions = {'texts': {'size': [-1, -1], 'type': [torch.Tensor]},
+                >>>                                  'images': {'size': [-1, -1, -1, 3], 'type': [torch.Tensor]},
+                >>>                                  'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
+                >>>                                 }
+
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
         """
         # Call base class constructors.
@@ -45,18 +66,25 @@ class ImageTextToClassProblem(Problem):
         self.loss_function = nn.CrossEntropyLoss()
 
         # set default data_definitions dict
-        self.data_definitions = {'text': {'size': [-1, -1], 'type': [torch.Tensor]},
+        self.data_definitions = {'texts': {'size': [-1, -1], 'type': [torch.Tensor]},
                                  'images': {'size': [-1, -1, -1, 3], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
                                  }
+
+        # "Default" problem name.
+        self.name = 'ImageTextToClassProblem'
 
     def calculate_accuracy(self, data_dict, logits):
         """
         Calculates the accuracy as the mean number of correct answers in a given batch.
 
-        :param data_dict: DataDict containing inputs and targets.
+        :param data_dict: DataDict containing the targets.
+        :type data_dict: DataDict
 
-        :param logits: Predictions being output of the model.
+        :param logits: Predictions of the model.
+
+        :return: Accuracy.
+
         """
 
         # Get the index of the max log-probability.
@@ -69,60 +97,11 @@ class ImageTextToClassProblem(Problem):
 
         return accuracy
 
-    def __getitem__(self, index):
-        """
-        Getter that returns an individual sample from the problem's associated dataset (that can be generated \
-        on-the-fly, or retrieved from disk. It can also possibly be composed of several files.).
-
-        To be redefined in subclasses.
-
-        **The getter should return a DataDict: its keys should be defined by `self.data_definitions` keys.**
-
-        e.g.:
-            >>> data_dict = DataDict({key: None for key in self.data_definitions.keys()})
-            >>> # you can now access each value by its key and assign the corresponding object (e.g. `torch.Tensor` etc)
-            >>> ...
-            >>> return data_dict
-
-
-
-        .. warning::
-
-            In a future version of `mi-prometheus`, multiprocessing will be supported for data loading.
-            To construct a batch (say 64 samples), the indexes will be distributed among several workers (say 4, so that
-            each worker has 16 samples to retrieve). It is best that samples can be accessed individually in the dataset
-            folder so that there is no mutual exclusion between the workers and the performance is not degraded.
-
-        :param index: index of the sample to return.
-
-        :return: DataDict containing the sample.
-
-        """
-
-        return DataDict({key: None for key in self.data_definitions.keys()})
-
-    def collate_fn(self, batch):
-        """
-        Generates a batch of samples from a list of individuals samples retrieved by `__getitem__`.
-        The default collate_fn is torch.utils.data.default_collate.
-
-        .. note::
-            **Simply returning self.collate_fn(batch) for now. It is encouraged to redefine it in the subclasses.**
-
-
-        :param batch: Should be a list of DataDict retrieved by `__getitem__`, each containing tensors, numbers,
-        dicts or lists.
-
-        :return: DataDict containing the created batch.
-
-        """
-        return default_collate(batch)
-
     def add_statistics(self, stat_col):
         """
-        Add accuracy statistic to collector.
+        Add accuracy statistic to ``StatisticsCollector``.
 
-        :param stat_col: Statistics collector.
+        :param stat_col: ``StatisticsCollector``.
 
         """
         stat_col.add_statistic('acc', '{:12.10f}')
@@ -131,11 +110,12 @@ class ImageTextToClassProblem(Problem):
         """
         Collects accuracy.
 
-        :param stat_col: Statistics collector.
+        :param stat_col: ``StatisticsCollector``.
 
-        :param data_dict: DataDict containing inputs and targets.
+        :param data_dict: DataDict containing the targets and the mask.
+        :type data_dict: DataDict
 
-        :param logits: Predictions being output of the model.
+        :param logits: Predictions of the model.
 
         """
         stat_col['acc'] = self.calculate_accuracy(data_dict, logits)

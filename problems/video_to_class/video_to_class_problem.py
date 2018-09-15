@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""video_to_class_problem.py: abstract base class for sequential vision problems"""
+"""video_to_class_problem.py: abstract base class for sequential vision problems."""
 __author__ = "Tomasz Kornuta, Younes Bouhadjar, Vincent Marois"
 import torch
 import torch.nn as nn

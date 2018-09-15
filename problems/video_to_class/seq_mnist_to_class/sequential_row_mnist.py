@@ -30,7 +30,7 @@ class SequentialRowMNIST(VideoToClassProblem):
     """
     Class generating a sequence of rows for sequential mnist.
 
-    TODO: THIS IS EXACTLY MNIST!!
+    TODO: THIS IS EXACTLY MNIST!! IS THIS DEAD CODE?
     """
 
     def __init__(self, params):

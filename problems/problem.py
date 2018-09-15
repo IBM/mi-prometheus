@@ -363,7 +363,7 @@ class Problem(Dataset):
     def __getitem__(self, index):
         """
         Getter that returns an individual sample from the problem's associated dataset (that can be generated \
-        on-the-fly, or retrieved from disk. It can also possibly be composed of several files.).
+        `on-the-fly`, or retrieved from disk. It can also possibly be composed of several files.).
 
         .. note::
 
@@ -372,7 +372,7 @@ class Problem(Dataset):
 
         .. note::
 
-            **The getter should return a DataDict: its keys should be defined by** ``self.data_definitions` **keys.**
+            **The getter should return a DataDict: its keys should be defined by** ``self.data_definitions`` **keys.**
 
             This ensures consistency of the content of the ``DataDict`` when processing to the ``handshake``\
             between the ``Problem`` class and the ``Model`` class. For more information, please see\
