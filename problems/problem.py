@@ -4,8 +4,6 @@
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import collections
-from abc import abstractmethod
-
 import torch
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import default_collate
@@ -18,10 +16,10 @@ logger = logging.Logger('DataDict')
 
 class DataDict(collections.MutableMapping):
     """
-    Mapping: A container object that supports arbitrary key lookups and implements the methods `__getitem__`, \
-    `__iter__` and `__len__`.
+    - Mapping: A container object that supports arbitrary key lookups and implements the methods ``__getitem__``, \
+    ``__iter__`` and ``__len__``.
 
-    Mutable objects can change their value but keep their id() -> ease modifying existing keys' value.
+    - Mutable objects can change their value but keep their id() -> ease modifying existing keys' value.
 
     DataDict: Dict used for storing batches of data by problems.
 
@@ -29,21 +27,76 @@ class DataDict(collections.MutableMapping):
     """
 
     def __init__(self, *args, **kwargs):
+        """
+        DataDict constructor. Can be initialized in different ways:
+
+            >>> data_dict = DataDict()
+            >>> data_dict = DataDict({'inputs': torch.tensor(), 'targets': numpy.ndarray()})
+            >>> # etc.
+
+        :param args: Used to pass a non-keyworded, variable-length argument list.
+
+        :param kwargs: Used to pass a keyworded, variable-length argument list.
+        """
         self.__dict__.update(*args, **kwargs)
 
-    def __setitem__(self, key, value):
-        #if key not in self.keys():
-        #    logger.error('KeyError: Cannot modify a non-existing key.')
-        #    raise KeyError('Cannot modify a non-existing key.')
-        #else:
-        self.__dict__[key] = value
+    def __setitem__(self, key, value, addkey=False):
+        """
+        key:value setter function.
+
+        :param key: Dict Key.
+
+        :param value: Associated value.
+
+        :param addkey: Indicate whether or not it is authorized to add a new key `on-the-fly`.\
+        Default: ``False``.
+        :type addkey: bool
+
+        .. warning::
+
+            `addkey` is set to ``False`` by default as setting it to ``True`` removes flexibility of the\
+            ``DataDict``. Indeed, there are some cases where adding a key `on-the-fly` to a ``DataDict`` is\
+            useful (e.g. for plotting pre-processing).
+
+
+        """
+        if addkey and key not in self.keys():
+            logger.error('KeyError: Cannot modify a non-existing key.')
+            raise KeyError('Cannot modify a non-existing key.')
+        else:
+            self.__dict__[key] = value
 
     def __getitem__(self, key):
+        """
+        Value getter function.
+
+        :param key: Dict Key.
+
+        :return: Associated Value.
+
+        """
         return self.__dict__[key]
 
-    def __delitem__(self, key):
-        logger.error('KeyError: Not authorizing the deletion of a key.')
-        raise KeyError('Not authorizing the deletion of a key.')
+    def __delitem__(self, key, override=False):
+        """
+        Delete a key:value pair.
+
+        .. warning::
+
+            By default, it is not authorized to delete an existing key. Set `override` to ``True`` to ignore this\
+            restriction.
+
+        :param key: Dict Key.
+
+        :param override: Indicate whether or not to lift the ban of non-deletion of any key.
+        :type override: bool
+
+        """
+        if not override:
+            logger.error('KeyError: Not authorizing the deletion of a key.')
+            raise KeyError('Not authorizing the deletion of a key.')
+        else:
+            del self.__dict__[key]
 
     def __iter__(self):
         return iter(self.__dict__)
@@ -53,13 +106,15 @@ class DataDict(collections.MutableMapping):
 
     def __str__(self):
         """
-        :return: A simple dict representation of the mapping.
+        :return: A simple Dict representation of ``DataDict``.
+
         """
         return str(self.__dict__)
 
     def __repr__(self):
         """
-        Echoes class, id, & reproducible representation in the Read–Eval–Print Loop.
+        :return: Echoes class, id, & reproducible representation in the Read–Eval–Print Loop.
+
         """
         return '{}, DataDict({})'.format(super(DataDict, self).__repr__(), self.__dict__)
 
@@ -69,17 +124,17 @@ class DataDict(collections.MutableMapping):
 
         .. note::
 
-            The torch.Tensor(s) contained in `self` are converted using `torch.Tensor.numpy()`: \
+            The ``torch.tensor`` (s) contained in `self` are converted using ``torch.Tensor.numpy()`` : \
             This tensor and the returned ndarray share the same underlying storage. \
-            Changes to self tensor will be reflected in the ndarray and vice versa.
+            Changes to ``self`` tensor will be reflected in the ndarray and vice versa.
 
-            If an element of `self` is not a torch.Tensor, it is returned as is.
+            If an element of ``self`` is not a ``torch.tensor``, it is returned as is.
 
 
         :return: Converted DataDict.
 
         """
-        numpy_datadict = self.__class__()
+        numpy_datadict = self.__class__({key: None for key in self.keys()})
 
         for key in self:
             if isinstance(self[key], torch.Tensor):
@@ -95,15 +150,15 @@ class DataDict(collections.MutableMapping):
 
         .. note::
 
-            The torch.Tensor(s) contained in `self` are converted using torch.Tensor.cpu().
-            If an element of `self` is not a torch.Tensor, it is returned as is, \
-            i.e. We only move the torch.Tensor(s) contained in `self`. \
+            The ``torch.tensor`` (s) contained in `self` are converted using ``torch.Tensor.cpu()`` .
+            If an element of `self` is not a ``torch.tensor``, it is returned as is, \
+            i.e. We only move the ``torch.tensor`` (s) contained in `self`.
 
 
         :return: Converted DataDict.
 
         """
-        cpu_datadict = self.__class__()
+        cpu_datadict = self.__class__({key: None for key in self.keys()})
 
         for key in self:
             if isinstance(self[key], torch.Tensor):
@@ -119,21 +174,21 @@ class DataDict(collections.MutableMapping):
 
         .. note::
 
-            Wraps call to torch.tensor.cuda(): If this object is already in CUDA memory and on the correct device, \
+            Wraps call to ``torch.Tensor.cuda()``: If this object is already in CUDA memory and on the correct device, \
             then no copy is performed and the original object is returned.
-            If an element of `self` is not a torch.Tensor, it is returned as is, \
-            i.e. We only move the torch.Tensor(s) contained in `self`. \
+            If an element of `self` is not a ``torch.tensor``, it is returned as is, \
+            i.e. We only move the ``torch.tensor`` (s) contained in `self`. \
 
 
         :param device: The destination GPU device. Defaults to the current CUDA device.
         :type device: torch.device
 
         :param non_blocking: If True and the source is in pinned memory, the copy will be asynchronous with respect to \
-        the host. Otherwise, the argument has no effect. Default: False.
+        the host. Otherwise, the argument has no effect. Default: ``False``.
         :type non_blocking: bool
 
         """
-        cuda_datadict = self.__class__()
+        cuda_datadict = self.__class__({key: None for key in self.keys()})
         for key in self:
             if isinstance(self[key], torch.Tensor):
                 cuda_datadict[key] = self[key].cuda(device=device, non_blocking=non_blocking)
@@ -148,12 +203,12 @@ class DataDict(collections.MutableMapping):
         The result will never require gradient.
 
         .. note::
-            Wraps call to `torch.Tensor.detach()`: the torch.Tensor(s) in the returned DataDict use the same
+            Wraps call to ``torch.Tensor.detach()`` : the ``torch.tensor`` (s) in the returned ``DataDict`` use the same\
             data tensor(s) as the original one(s).
             In-place modifications on either of them will be seen, and may trigger errors in correctness checks.
 
         """
-        detached_datadict = self.__class__()
+        detached_datadict = self.__class__({key: None for key in self.keys()})
         for key in self:
             if isinstance(self[key], torch.Tensor):
                 detached_datadict[key] = self[key].detach()
@@ -166,14 +221,70 @@ class DataDict(collections.MutableMapping):
 class Problem(Dataset):
     """
     Class representing base class for all Problems.
-    Inherits from torch.utils.data.Dataset as all subclasses will represent a problem with an associated dataset.
+
+    Inherits from torch.utils.data.Dataset as all subclasses will represent a problem with an associated dataset,\
+    and the `worker` will use ``torch.utils.data.dataloader.DataLoader`` to generate batches.
+
+    Implements features & attributes used by all subclasses.
+
     """
 
     def __init__(self, params):
         """
         Initializes problem object.
 
-        :param params: Dictionary of parameters (read from configuration file).
+        :param params: Dictionary of parameters (read from the configuration ``.yaml`` file).
+
+        This constructor:
+
+        - stores a pointer to ``params``:
+
+            >>> self.params = params
+
+        - sets a default loss function:
+
+            >>> self.loss_function = None
+
+        - initializes the size of the dataset:
+
+            >>> self.length = None
+
+        - sets a default problem name:
+
+            >>> self.name = 'Problem'
+
+        - initializes the logger.
+
+            >>> self.logger = logging.Logger(self.name)
+
+        - initializes the data definitions: this is used for defining the ``DataDict`` keys.
+
+        .. note::
+
+            This dict contains information about the DataDict produced by the current problem class.
+
+            This object will be used during handshaking between the model and the problem class to ensure that the model
+            can accept the batches produced by the problem.
+
+            This dict should at least contains the `targets` field:
+
+                >>> self.data_definitions = {'targets': {'size': [-1, 1], 'type': [torch.Tensor]}}
+
+        - initializes the default values: this is used to pass missing parameters values to the model.
+
+        .. note::
+
+            It is likely to encounter a case where the model needs a parameter value only known when the problem has been
+            instantiated, like the size of a vocabulary set or the number of marker bits.
+
+            The user can fill in those values in this dict, which will be passed to the model in its  `__init__`  . The
+            model will then be able to fill it its missing parameters values, either from params or this dict.
+
+                >>> self.default_values = {}
+
+        - sets the access to ``AppState``: for dtype, visualization flag etc.
+
+            >>> self.app_state = AppState()
 
         """
         # Store pointer to params.
@@ -192,6 +303,7 @@ class Problem(Dataset):
         self.logger = logging.Logger(self.name)
 
         # data_definitions: this is used for defining the DataDict keys.
+
         # This dict contains information about the DataDict produced by the current problem class.
         # This object will be used during handshaking between the model and the problem class to ensure that the model
         # can accept the batches produced by the problem.
@@ -199,9 +311,10 @@ class Problem(Dataset):
         self.data_definitions = {'targets': {'size': [-1, 1], 'type': [torch.Tensor]}}
 
         # default_values: this is used to pass missing parameters values to the model.
+
         # It is likely to encounter a case where the model needs a parameter value only known when the problem has been
         # instantiated, like the size of a vocabulary set or the number of marker bits.
-        # The user can fill in those values in this dict, which will be passed to the model in its `__init__`. The
+        # The user can fill in those values in this dict, which will be passed to the model in its  `__init__`  . The
         # model will then be able to fill it its missing parameters values, either from params or this dict.
         self.default_values = {}
 
@@ -223,19 +336,23 @@ class Problem(Dataset):
         """
         self.loss_function = loss_function
 
-
-    @abstractmethod
     def collate_fn(self, batch):
         """
-        Generates a batch of samples from a list of individuals samples retrieved by `__getitem__`.
-        The default collate_fn is `torch.utils.data.default_collate`.
+        Generates a batch of samples from a list of individuals samples retrieved by ``__getitem__``.
+
+        The default collate_fn is ``torch.utils.data.default_collate``.
 
         .. note::
 
-            **Abstract - to be defined in derived classes.**
+            This base ``collate_fn`` method only calls the default ``torch.utils.data.default_collate``\
+            , as it can handle several cases (mainly tensors, numbers, dicts and lists).
+
+            If your dataset can yield variable-length samples within a batch, or generate batches `on-the-fly`\
+            , or possesses another ''non regular'' characteristic, it is most likely that you will need to \
+            override this default ``collate_fn``.
 
 
-        :param batch: Should be a list of DataDict retrieved by `__getitem__`, each containing tensors, numbers,
+        :param batch: Should be a list of DataDict retrieved by `__getitem__`, each containing tensors, numbers,\
         dicts or lists.
 
         :return: DataDict containing the created batch.
@@ -243,42 +360,75 @@ class Problem(Dataset):
         """
         return default_collate(batch)
 
-    @abstractmethod
     def __getitem__(self, index):
         """
         Getter that returns an individual sample from the problem's associated dataset (that can be generated \
         on-the-fly, or retrieved from disk. It can also possibly be composed of several files.).
 
-        To be redefined in subclasses.
+        .. note::
 
-        **The getter should return a DataDict: its keys should be defined by `self.data_definitions` keys.**
+            **To be redefined in subclasses.**
 
-        e.g.:
-            >>> data_dict = DataDict({key: None for key in self.data_definitions.keys()})
-            >>> # you can now access each value by its key and assign the corresponding object (e.g. `torch.Tensor` etc)
-            >>> ...
-            >>> return data_dict
+
+        .. note::
+
+            **The getter should return a DataDict: its keys should be defined by** ``self.data_definitions` **keys.**
+
+            This ensures consistency of the content of the ``DataDict`` when processing to the ``handshake``\
+            between the ``Problem`` class and the ``Model`` class. For more information, please see\
+             ``models.model.Model.handshake_definitions``.
+
+            e.g.:
+
+                >>> data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+                >>> # you can now access each value by its key and assign the corresponding object (e.g. `torch.tensor` etc)
+                >>> ...
+                >>> return data_dict
 
 
 
         .. warning::
 
-            In a future version of `mi-prometheus`, multiprocessing will be supported for data loading.
-            To construct a batch (say 64 samples), the indexes will be distributed among several workers (say 4, so that
+            `Mi-Prometheus` supports multiprocessing for data loading (through the use of\
+             ``torch.utils.data.dataloader.DataLoader``).
+
+            To construct a batch (say 64 samples), the indexes are distributed among several workers (say 4, so that
             each worker has 16 samples to retrieve). It is best that samples can be accessed individually in the dataset
             folder so that there is no mutual exclusion between the workers and the performance is not degraded.
 
-        :param index: index of the sample to return.
+            If each sample is generated `on-the-fly`, this shouldn't cause a problem. There may be an issue with \
+            randomness. Please refer to the official Pytorch documentation for this.
 
-        :return: DataDict containing the sample.
+
+        :param index: index of the sample to return.
+        :type index: int
+
+        :return: Empty ``DataDict``, having the same key as ``self.data_definitions``.
 
         """
         return DataDict({key: None for key in self.data_definitions.keys()})
 
+    def worker_init_fn(self, worker_id):
+        """
+        Function to be called by ``torch.utils.data.dataloader.DataLoader`` on each worker subprocess, \
+        after seeding and before data loading. (default: ``None``).
+
+        .. note::
+
+            The user may need this function to ensure, e.g, that each worker has its own ``NumPy`` random seed.
+
+
+        :param worker_id: the worker id (in [0, ``torch.utils.data.dataloader.DataLoader.num_workers`` - 1])
+        :type worker_id: int
+
+        :return: ``None`` by default
+        """
+        return None
+
     def get_data_definitions(self):
         """
-        Getter for the data_definitions dict so that it can be accessed by a worker to establish handshaking with
-        the model class.
+        Getter for the data_definitions dict so that it can be accessed by a ``worker`` to establish handshaking with
+        the ``Model`` class.
 
         :return: self.data_definitions()
 
@@ -290,7 +440,11 @@ class Problem(Dataset):
         Calculates loss between the predictions/logits and targets (from data_dict) using the selected loss function.
 
         :param data_dict: DataDict containing (among others) inputs and targets.
-        :param logits: Predictions being output of the model.
+        :type data_dict: DataDict
+
+        :param logits: Predictions of the model.
+
+        :return: Loss.
         """
 
         # Compute loss using the provided loss function. 
@@ -300,11 +454,15 @@ class Problem(Dataset):
 
     def add_statistics(self, stat_col):
         """
-        Adds statistics to collector.
+        Adds statistics to ``StatisticsCollector``.
 
-        **EMPTY - To be redefined in inheriting classes.**
+        .. note::
 
-        :param stat_col: Statistics collector.
+
+            Empty - To be redefined in inheriting classes.
+
+
+        :param stat_col: ``StatisticsCollector``.
 
         """
         pass
@@ -313,13 +471,16 @@ class Problem(Dataset):
         """
         Base statistics collection.
 
-        **EMPTY - To be redefined in inheriting classes.**
-        The user has be ensure that the corresponding entry in the StatisticsCollector has been created in
-        `add_statistics`.
+         .. note::
 
-        :param stat_col: Statistics collector.
 
-        :param data_dict: DataDict containing inputs and targets.
+            Empty - To be redefined in inheriting classes. The user has to ensure that the corresponding entry \
+            in the ``StatisticsCollector`` has been created with ``self.add_statistics()`` beforehand.
+
+        :param stat_col: ``StatisticsCollector``.
+
+        :param data_dict: ``DataDict`` containing inputs and targets.
+        :type data_dict: DataDict
 
         :param logits: Predictions being output of the model.
 
@@ -334,7 +495,7 @@ class Problem(Dataset):
         .. note::
 
             We are counting the last batch, even though it might be smaller than the other ones if the size of the \
-            dataset is not divisible by the batch size. -> Corresponds to drop_last=False in DataLoader().
+            dataset is not divisible by the batch size. -> Corresponds to ``drop_last=False`` in ``DataLoader()``.
 
         :return: Number of iterations to perform to go though the entire dataset once.
 
@@ -348,13 +509,17 @@ class Problem(Dataset):
         """
         Function called to initialize a new epoch.
 
-        The primary use is to reset statistics aggregators that track statistics over one epoch, e.g.:
+        The primary use is to reset ``StatisticsAggregators`` that track statistics over one epoch, e.g.:
 
             - Average accuracy over the epoch
             - Time taken for the epoch and average per batch
             - etc...
 
-        **EMPTY - To be redefined in inheriting classes.**
+        .. note::
+
+
+            Empty - To be redefined in inheriting classes.
+
 
         """
         pass
@@ -363,16 +528,18 @@ class Problem(Dataset):
         """
         Function called at the end of an epoch to execute a few tasks, e.g.:
 
-            - Compute the mean accuracy over the epoch
+            - Compute the mean accuracy over the epoch,
             - Get the time taken for the epoch and per batch
-        This function will use the statistics aggregators set up (or reset) in `initialize_epoch()`.
+            - etc.
 
-        **EMPTY - To be redefined in inheriting classes.**
+        This function will use the ``StatisticsAggregators`` set up (or reset) in ``self.initialize_epoch()`.
 
         .. note::
 
-            TODO: To display the final results for the current epoch, this function should use the Logger.
 
+            Empty - To be redefined in inheriting classes.
+
+            TODO: To display the final results for the current epoch, this function should use the Logger.
 
         """
         pass
@@ -382,14 +549,18 @@ class Problem(Dataset):
         Allows for some data preprocessing before the model creates a plot for visualization during training or
         inference.
 
-        **EMPTY - To be redefined in inheriting classes.**
+        .. note::
 
 
-        :param data_dict: DataDict.
+            Empty - To be redefined in inheriting classes.
 
-        :param logits: Logits being output of the model.
 
-        :return: data_tuple, logits after preprocessing.
+        :param data_dict: ``DataDict``.
+        :type data_dict: DataDict
+
+        :param logits: Predictions of the model.
+
+        :return: data_dict, logits after preprocessing.
 
         """
         return data_dict, logits
@@ -397,7 +568,11 @@ class Problem(Dataset):
     def curriculum_learning_initialize(self, curriculum_params):
         """
         Initializes curriculum learning - simply saves the curriculum params.
-        This method can be overwritten in the derived classes.
+
+        .. note::
+
+            This method can be overwritten in the derived classes.
+
 
         :param curriculum_params: Interface to parameters accessing curriculum learning view of the registry tree.
         """
@@ -407,19 +582,27 @@ class Problem(Dataset):
     def curriculum_learning_update_params(self, episode):
         """
         Updates problem parameters according to curriculum learning.
-        There is no general solution to curriculum learning.
-        This method should be overwritten in the derived classes.
+
+        .. note::
+
+            This method can be overwritten in the derived classes.
 
         :param episode: Number of the current episode.
-        :return: True informing that CL wasn't active at all (i.e. is finished).
+        :type episode: int
+
+        :return: True informing that Curriculum Learning wasn't active at all (i.e. is finished).
+
         """
+
         return True
 
 
 if __name__ == '__main__':
     """Unit test for DataDict"""
 
-    data_definitions = {'inputs': {'size': [64, 20], 'type': int}, 'targets': {'size': [64], 'type': int}}
+    data_definitions = {'inputs': {'size': [-1, -1, -1], 'type': [int]},
+                        'targets': {'size': [-1, -1, -1], 'type': [int]}
+                        }
 
     datadict = DataDict({key: None for key in data_definitions.keys()})
 

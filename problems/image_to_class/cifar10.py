@@ -15,8 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""cifar10.py: contains code of loading CIFAR10 dataset using torchvision"""
-__author__ = "Younes Bouhadjar"
+"""cifar10.py: contains code for loading the `CIFAR10` dataset using ``torchvision``."""
+__author__ = "Younes Bouhadjar & Vincent Marois"
 
 import numpy as np
 import torch
@@ -29,19 +29,49 @@ from problems.image_to_class.image_to_class_problem import ImageToClassProblem
 
 class CIFAR10(ImageToClassProblem):
     """
-    Classic CFIAR10 classification problem.
+    Classic CIFAR10 classification problem.
 
-    TODO: DOCUMENTATION.
+    Please see reference here: https://www.cs.toronto.edu/~kriz/cifar.html
+
+    .. warning::
+
+        The dataset is not originally split into a training set, validation set and test set; only\
+        training and test set. It is recommended to use a validation set.
+
+        ``torch.utils.data.SubsetRandomSampler`` is recommended.
+
     """
 
     def __init__(self, params):
         """
-        Initializes CIFAR problem, calls base class initialization, sets
-        properties using the provided parameters.
+        Initializes CIFAR10 problem:
 
-        TODO: DOCUMENTATION.
+            - Calls ``problems.problem.ImageToClassProblem`` class constructor,
+            - Sets following attributes using the provided ``params``:
 
-        :param params: Dictionary of parameters (read from configuration file).
+                - ``self.root_dir`` (`string`) : Root directory of dataset where the directory\
+                 ``cifar-10-batches-py`` will be saved,
+                - ``self.use_train_data`` (`bool`, `optional`) : If ``True``, creates dataset from training set, \
+                    otherwise creates from test set,
+                - ``self.padding`` : possibility to pad the images. e.g. ``self.padding = [0, 0, 0, 0]``,
+                - ``self.upscale`` : upscale the images to `[224, 224]` if ``True``,
+                - ``self.defaut_values`` :
+
+                    >>> self.default_values = {'nb_classes': 10,
+                    >>>                        'num_channels': 3,
+                    >>>                        'width': 32,
+                    >>>                        'height': 32,
+                    >>>                        'up_scaling': self.up_scaling,
+                    >>>                        'padding': self.padding}
+
+                - ``self.data_definitions`` :
+
+                    >>> self.data_definitions = {'images': {'size': [-1, 3, self.height, self.width], 'type': [torch.Tensor]},
+                    >>>                          'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                    >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
+                    >>>                         }
+
+        :param params: Dictionary of parameters (read from configuration ``.yaml``file).
 
         """
 
@@ -98,10 +128,11 @@ class CIFAR10(ImageToClassProblem):
         Getter method to access the dataset and return a sample.
 
         :param index: index of the sample to return.
+        :type index: int
 
-        :return: DataDict({'images','targets', 'targets_label'}), with:
+        :return: ``DataDict({'images','targets', 'targets_label'})``, with:
 
-            - images: Image, transformed if a transform is specified in ``__init__``.
+            - images: Image, upscaled if ``self.up_scaling`` and pad if ``self.padding``,
             - targets: Index of the target class
             - targets_label: Label of the target class (cf ``self.labels``)
 
@@ -125,18 +156,19 @@ class CIFAR10(ImageToClassProblem):
 
     def collate_fn(self, batch):
         """
-        Combines a list of DataDict (retrieved with __getitem__) into a batch.
+        Combines a list of ``DataDict`` (retrieved with ``__getitem__`` ) into a batch.
 
         .. note::
 
-            This function wraps a call to ``default_collate`` and simply returns the batch as a DataDict\
+            This function wraps a call to ``default_collate`` and simply returns the batch as a ``DataDict``\
             instead of a dict.
+
             Multi-processing is supported as the data sources are small enough to be kept in memory\
-            (`training.pt` has a size of 47.5 MB).
+            (`self.root-dir/cifar-10-batches/data_batch_i` have a size of 31.0 MB).
 
         :param batch: list of individual ``DataDict`` samples to combine.
 
-        :return: DataDict({'images','targets', 'targets_label'}) containing the batch.
+        :return: ``DataDict({'images','targets', 'targets_label'})`` containing the batch.
 
         """
 
@@ -144,29 +176,31 @@ class CIFAR10(ImageToClassProblem):
                                                           super(CIFAR10, self).collate_fn(batch).values())})
 
 
-
-
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
+
+    # set the seeds
     np.random.seed(0)
     torch.manual_seed(0)
 
-    # "Loaded parameters".
+    # Load parameters.
     from utils.param_interface import ParamInterface 
     params = ParamInterface()
     params.add_default_params({
-        'batch_size': 64,
-        'use_train_data': True,
-        'folder': '~/data/cifar10',
-        'padding': [0, 0, 0, 0],
-        'up_scaling': True})
+                                'batch_size': 64,
+                                'use_train_data': True,
+                                'root_dir': '~/data/cifar10',
+                                'padding': [0, 0, 0, 0],
+                                'up_scaling': True
+                                })
 
-    # Create problem object.
+    # Create problem.
     cifar10 = CIFAR10(params)
 
+    # get a sample
     sample = cifar10[0]
     print(repr(sample))
-    print('__getitem__ works.')
+    print('__getitem__ works.\n')
 
     # wrap DataLoader on top of this Dataset subclass
     from torch.utils.data.dataloader import DataLoader
@@ -175,9 +209,6 @@ if __name__ == "__main__":
                             batch_size=params['batch_size'], shuffle=True, num_workers=4)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
-
-    # HAVE TO MANAGE INDEXES FOR THE TRAINING / VALIDATION SPLIT
-
     import time
     s = time.time()
     for i, batch in enumerate(dataloader):
@@ -187,5 +218,7 @@ if __name__ == "__main__":
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(params['batch_size'], time.time() - s))
 
     # Display single sample (0) from batch.
-    #batch = next(iter(dataloader))
-    #cifar10.show_sample(batch, 0)
+    batch = next(iter(dataloader))
+    cifar10.show_sample(batch, 0)
+
+    print('Unit test completed')

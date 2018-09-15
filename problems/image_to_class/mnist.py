@@ -15,8 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""mnist.py: contains code of loading MNIST dataset using torchvision"""
-__author__ = "Younes Bouhadjar"
+"""mnist.py: contains code for loading the `MNIST` dataset using ``torchvision``."""
+__author__ = "Younes Bouhadjar & Vincent Marois"
 import torch
 from torchvision import datasets, transforms
 import torch.nn.functional as F
@@ -28,16 +28,48 @@ from problems.image_to_class.image_to_class_problem import ImageToClassProblem
 class MNIST(ImageToClassProblem):
     """
     Classic MNIST classification problem.
+
+    Please see reference here: http://yann.lecun.com/exdb/mnist/
+
+    .. warning::
+
+        The dataset is not originally split into a training set, validation set and test set; only\
+        training and test set. It is recommended to use a validation set.
+
+        ``torch.utils.data.SubsetRandomSampler`` is recommended.
+
     """
 
     def __init__(self, params):
         """
-        Initializes the MNIST dataset, calls base class initialization, sets
-        properties using the provided parameters.
+        Initializes MNIST problem:
 
-        TODO: DOCUMENTATION
+            - Calls ``problems.problem.ImageToClassProblem`` class constructor,
+            - Sets following attributes using the provided ``params``:
 
-        :param params: Dictionary of parameters (read from configuration file).
+                - ``self.root_dir`` (`string`) : Root directory of dataset where ``processed/training.pt``\
+                    and  ``processed/test.pt`` will be saved,
+                - ``self.use_train_data`` (`bool`, `optional`) : If True, creates dataset from ``training.pt``,\
+                    otherwise from ``test.pt``
+                - ``self.padding`` : possibility to pad the images. e.g. ``self.padding = [0, 0, 0, 0]``,
+                - ``self.upscale`` : upscale the images to `[224, 224]` if ``True``,
+                - ``self.defaut_values`` :
+
+                    >>> self.default_values = {'nb_classes': 10,
+                    >>>                        'num_channels': 1,
+                    >>>                        'width': 28,
+                    >>>                        'height': 28,
+                    >>>                        'up_scaling': self.up_scaling,
+                    >>>                        'padding': self.padding}
+
+                - ``self.data_definitions`` :
+
+                    >>> self.data_definitions = {'images': {'size': [-1, 1, self.height, self.width], 'type': [torch.Tensor]},
+                    >>>                          'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                    >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
+                    >>>                         }
+
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
         """
 
@@ -52,7 +84,6 @@ class MNIST(ImageToClassProblem):
         # up scaling the image to 224, 224 if True
         self.up_scaling = params['up_scaling']
 
-        # define the default_values dict: holds parameters values that a model may need.
         # define the default_values dict: holds parameters values that a model may need.
         self.default_values = {'nb_classes': 10,
                                'num_channels': 1,
@@ -92,10 +123,11 @@ class MNIST(ImageToClassProblem):
         Getter method to access the dataset and return a sample.
 
         :param index: index of the sample to return.
+        :type index: int
 
-        :return: DataDict({'images','targets', 'targets_label'}), with:
+        :return: ``DataDict({'images','targets', 'targets_label'})``, with:
 
-            - images: Image (representation of a 0 - 9 digit), transformed if a transform is specified in ``__init__``.
+            - images: Image, upscaled if ``self.up_scaling`` and pad if ``self.padding``,
             - targets: Index of the target class
             - targets_label: Label of the target class (cf ``self.labels``)
 
@@ -118,18 +150,18 @@ class MNIST(ImageToClassProblem):
 
     def collate_fn(self, batch):
         """
-        Combines a list of DataDict (retrieved with __getitem__) into a batch.
+        Combines a list of ``DataDict`` (retrieved with ``__getitem__`` ) into a batch.
 
         .. note::
 
-            This function wraps a call to ``default_collate`` and simply returns the batch as a DataDict\
+            This function wraps a call to ``default_collate`` and simply returns the batch as a ``DataDict``\
             instead of a dict.
             Multi-processing is supported as the data sources are small enough to be kept in memory\
             (`training.pt` has a size of 47.5 MB).
 
         :param batch: list of individual ``DataDict`` samples to combine.
 
-        :return: DataDict({'images','targets', 'targets_label'}) containing the batch.
+        :return: ``DataDict({'images','targets', 'targets_label'})`` containing the batch.
 
         """
 
@@ -140,19 +172,22 @@ class MNIST(ImageToClassProblem):
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
-    # "Loaded parameters".
+    # Load parameters.
     from utils.param_interface import ParamInterface 
     params = ParamInterface()
     params.add_default_params({
-        'use_train_data': True,
-        'mnist_folder': '~/data/mnist',
-        'padding': [4, 4, 3, 3],
-        'up_scaling': False})
+                                'use_train_data': True,
+                                'root_dir': '~/data/mnist',
+                                'padding': [4, 4, 3, 3],
+                                'up_scaling': False
+                                })
 
     batch_size = 64
 
-    # Create problem object.
+    # Create problem.
     mnist = MNIST(params)
+
+    # get a sample
     sample = mnist[10]
     print(type(sample))
     print('__getitem__ works.')
@@ -163,9 +198,6 @@ if __name__ == "__main__":
                             batch_size=batch_size, shuffle=True, num_workers=8)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
-
-    # HAVE TO MANAGE INDEXES FOR THE TRAINING / VALIDATION SPLIT
-
     import time
     s = time.time()
     for i, batch in enumerate(dataloader):
@@ -175,5 +207,7 @@ if __name__ == "__main__":
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
 
     # Display single sample (0) from batch.
-    #batch = next(iter(dataloader))
-    #mnist.show_sample(batch, 0)
+    batch = next(iter(dataloader))
+    mnist.show_sample(batch, 0)
+
+    print('Unit test completed')

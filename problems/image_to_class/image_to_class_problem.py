@@ -15,12 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""image_to_class_problem.py: contains base class for image classification problems"""
-__author__ = "Younes Bouhadjar, Vincent Marois"
+"""image_to_class_problem.py: contains base class for image classification problems."""
+__author__ = "Younes Bouhadjar & Vincent Marois"
 import torch
 import numpy as np
 import torch.nn as nn
-from torch.utils.data.dataloader import default_collate
 
 from problems.problem import Problem, DataDict
 
@@ -29,19 +28,26 @@ class ImageToClassProblem(Problem):
     """
     Abstract base class for image classification problems.
 
-    TODO: DOCUMENTATION
+    Problem classes like MNIST & CIFAR10 inherits from it.
 
-    Provides some basic functionality useful in all problems of such
-    type.
+    Provides some basic features useful in all problems of such type.
 
     """
 
     def __init__(self, params):
         """
-        Initializes problem, calls base class initialization. Set loss function
-        to CrossEntropy.
+        Initializes problem:
 
-        :param params: Dictionary of parameters (read from configuration file).
+            - Calls ``problems.problem.Problem`` class constructor,
+            - Sets loss function to ``CrossEntropy``,
+            - sets ``self.data_definitions`` to:
+
+                >>> self.data_definitions = {'images': {'size': [-1, 3, -1, -1], 'type': [torch.Tensor]},
+                >>>                          'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
+                >>>                         }
+
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
         """
         # Call base class constructors.
@@ -60,11 +66,11 @@ class ImageToClassProblem(Problem):
         """
         Calculates accuracy equal to mean number of correct classification in a given batch.
 
-        :param logits: Logits being output of the model.
+        :param logits: Predictions of the model.
 
-        :param data_dict: DataDict containing inputs and targets.
+        :param data_dict: DataDict containing the targets.
 
-        :return loss
+        :return: Loss.
 
         """
 
@@ -78,60 +84,11 @@ class ImageToClassProblem(Problem):
 
         return accuracy
 
-    def __getitem__(self, item):
-        """
-        Getter that returns an individual sample from the problem's associated dataset (that can be generated \
-        on-the-fly, or retrieved from disk. It can also possibly be composed of several files.).
-
-        To be redefined in subclasses.
-
-        **The getter should return a DataDict: its keys should be defined by `self.data_definitions` keys.**
-
-        e.g.:
-            >>> data_dict = DataDict({key: None for key in self.data_definitions.keys()})
-            >>> # you can now access each value by its key and assign the corresponding object (e.g. `torch.Tensor` etc)
-            >>> ...
-            >>> return data_dict
-
-
-
-        .. warning::
-
-            In a future version of `mi-prometheus`, multiprocessing will be supported for data loading.
-            To construct a batch (say 64 samples), the indexes will be distributed among several workers (say 4, so that
-            each worker has 16 samples to retrieve). It is best that samples can be accessed individually in the dataset
-            folder so that there is no mutual exclusion between the workers and the performance is not degraded.
-
-        :param index: index of the sample to return.
-
-        :return: DataDict containing the sample.
-
-        """
-
-        return DataDict({key: None for key in self.data_definitions.keys()})
-
-    def collate_fn(self, batch):
-        """
-        Generates a batch of samples from a list of individuals samples retrieved by `__getitem__`.
-        The default collate_fn is torch.utils.data.default_collate.
-
-        .. note::
-            **Simply returning self.collate_fn(batch) for now. It is encouraged to redefine it in the subclasses.**
-
-
-        :param batch: Should be a list of DataDict retrieved by `__getitem__`, each containing tensors, numbers,
-        dicts or lists.
-
-        :return: DataDict containing the created batch.
-
-        """
-        return default_collate(batch)
-
     def add_statistics(self, stat_col):
         """
-        Add accuracy statistic to collector.
+        Add accuracy statistic to ``StatisticsCollector``.
 
-        :param stat_col: Statistics collector.
+        :param stat_col: ``StatisticsCollector``.
 
         """
         stat_col.add_statistic('acc', '{:12.10f}')
@@ -140,9 +97,9 @@ class ImageToClassProblem(Problem):
         """
         Collects accuracy.
 
-        :param stat_col: Statistics collector.
+        :param stat_col: ``StatisticsCollector``.
 
-        :param logits: Predictions being output of the model.
+        :param logits: Predictions of the model.
 
         """
         stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
@@ -151,9 +108,11 @@ class ImageToClassProblem(Problem):
         """
         Shows a sample from the batch.
 
-        :param data_dict: Tuple containing inputs and targets.
+        :param data_dict: ``DataDict`` containing inputs and targets.
+        :type data_dict: DataDict
 
-        :param sample_number: Number of sample in batch (DEFAULT: 0)
+        :param sample_number: Number of sample in batch (default: 0)
+        :type sample_number: int
 
         """
         import matplotlib.pyplot as plt
@@ -168,10 +127,10 @@ class ImageToClassProblem(Problem):
 
         # Reshape image.
         if image.shape[0] == 1:
-            # This is a single channel image - get rid of that dimension
+            # This is a single channel image - get rid of this dimension
             image = np.squeeze(image, axis=0)
         else:
-            # More channels - move channels to axis2, according to matplotilb doc it should be ok
+            # More channels - move channels to axis2, according to matplotilb documentation.
             # (X : array_like, shape (n, m) or (n, m, 3) or (n, m, 4))
             image = image.transpose(1, 2, 0)
 
