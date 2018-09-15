@@ -41,7 +41,7 @@
 
 """clevr.py: This file contains 1 class:
 
-    - CLEVR, which represents the CLEVR `Dataset()`. It inherits from `ImageTextToClassProblem`.
+    - CLEVR, which represents the CLEVR `Dataset`. It inherits from `ImageTextToClassProblem`.
 
 """
 __author__ = "Vincent Marois, Vincent Albouy"
@@ -60,11 +60,6 @@ from utils.language import Language
 from problems.problem import DataDict
 
 from problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem
-from utils.app_state import AppState
-app_state = AppState()
-
-import logging
-logger = logging.getLogger('CLEVR')
 
 
 class CLEVR(ImageTextToClassProblem):
@@ -86,14 +81,14 @@ class CLEVR(ImageTextToClassProblem):
     :param set: String to specify which dataset to use: 'train', 'val' or 'test'.
     :type set: str
 
-    :param clevr_dir: Directory path to the CLEVR_v1.0 dataset. Will also be used to store the generated files \
+    :param clevr_dir: Directory path to the `CLEVR_v1.0` dataset. Will also be used to store the generated files \
     (.hdf5, .pkl)
     :type clevr_dir: str
 
     :param clevr_humans: Boolean to indicate whether to use the questions from CLEVR-Humans.
     :type clevr_humans: bool
 
-    :param embedding_type: string to indicate the pretrained embedding to use: either 'random' to use nn.Embedding \
+    :param embedding_type: string to indicate the pretrained embedding to use: either 'random' to use ``nn.Embedding`` \
     or one of the following:
 
         - "charngram.100d",
@@ -121,7 +116,7 @@ class CLEVR(ImageTextToClassProblem):
     .. warning::
 
         As of now, this class doesn't handle downloading & decompressing the dataset to a specific folder.
-        It assumes that the entire dataset is located in `self.clevr_dir`, which is a path to a directory that
+        It assumes that the entire dataset is located in `self.data_folder`, which is a path to a directory that
         you can pass as a param.
 
 
@@ -140,14 +135,15 @@ class CLEVR(ImageTextToClassProblem):
         """
         Instantiate the CLEVR class.
 
-        :param params: dict of parameters.
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
+
 
         """
         # Call base class constructors.
         super(CLEVR, self).__init__(params)
 
         # parse parameters from the params dict
-        self.clevr_dir = params['CLEVR_dir']
+        self.data_folder = os.path.expanduser(params['data_folder'])
         self.set = params['set']
         self.batch_size = params['batch_size']
         self.clevr_humans = params['clevr_humans']
@@ -208,25 +204,25 @@ class CLEVR(ImageTextToClassProblem):
 
         # We don't handle the creation of the test set for now since the ground truth answers are not distributed.
         if self.set == 'test':
-            logger.error('Test set generation not supported for now. Exiting.')
+            self.logger.error('Test set generation not supported for now. Exiting.')
             exit(0)
 
-        logger.info('Loading the {} samples from {}'.format(set, 'CLEVR-Humans' if self.clevr_humans else 'CLEVR'))
+        self.logger.info('Loading the {} samples from {}'.format(set, 'CLEVR-Humans' if self.clevr_humans else 'CLEVR'))
 
-        # check if the folder /generated_files in self.clevr_dir already exists, if not create it:
-        if not os.path.isdir(self.clevr_dir + '/generated_files'):
-            logger.warning('Folder {} not found, creating it.'.format(self.clevr_dir + '/generated_files'))
-            os.mkdir(self.clevr_dir + '/generated_files')
+        # check if the folder /generated_files in self.data_folder already exists, if not create it:
+        if not os.path.isdir(self.data_folder + '/generated_files'):
+            self.logger.warning('Folder {} not found, creating it.'.format(self.data_folder + '/generated_files'))
+            os.mkdir(self.data_folder + '/generated_files')
 
         # check if the file containing the images feature maps (processed by ResNet101) exists or not
         # For the same self.set, this file is the same for CLEVR & CLEVR-Humans
         # TODO: We will have to separate this file into 1 file per sample to support multiprocessing!
-        feature_maps_filename = self.clevr_dir + '/generated_files/{}_CLEVR_features.hdf5'.format(self.set)
+        feature_maps_filename = self.data_folder + '/generated_files/{}_CLEVR_features.hdf5'.format(self.set)
         if os.path.isfile(feature_maps_filename):
-            logger.info('The file {} already exists, loading it.'.format(feature_maps_filename))
+            self.logger.info('The file {} already exists, loading it.'.format(feature_maps_filename))
 
         else:
-            logger.warning('File {} not found on disk, generating it:'.format(feature_maps_filename))
+            self.logger.warning('File {} not found on disk, generating it:'.format(feature_maps_filename))
             self.generate_feature_maps_file(feature_maps_filename)
 
         # load the file
@@ -234,37 +230,37 @@ class CLEVR(ImageTextToClassProblem):
         self.img = self.h['data']
 
         # check if the file containing the tokenized questions (& answers, image filename, type etc.) exists or not
-        questions_filename = self.clevr_dir + '/generated_files/{}_{}_questions.pkl'.format(self.set, 'CLEVR_Humans' if
+        questions_filename = self.data_folder + '/generated_files/{}_{}_questions.pkl'.format(self.set, 'CLEVR_Humans' if
                                                                                         self.clevr_humans else 'CLEVR')
         if os.path.isfile(questions_filename):
-            logger.info('The file {} already exists, loading it.'.format(questions_filename))
+            self.logger.info('The file {} already exists, loading it.'.format(questions_filename))
 
             # load questions
             with open(questions_filename, 'rb') as questions:
                 self.data = pickle.load(questions)
 
             # load word_dic & answer_dic
-            with open(self.clevr_dir + '/generated_files/dics.pkl', 'rb') as f:
+            with open(self.data_folder + '/generated_files/dics.pkl', 'rb') as f:
                 dic = pickle.load(f)
                 self.answer_dic = dic['answer_dic']
                 self.word_dic = dic['word_dic']
 
         else:  # The file doesn't exist: Process the questions
-            logger.warning('File {} not found on disk, generating it.'.format(questions_filename))
+            self.logger.warning('File {} not found on disk, generating it.'.format(questions_filename))
 
             # WARNING: We need to ensure that we use the same words & answers dicts for both train & val, otherwise we
             # do not have the same reference!
             if self.set == 'val' or self.set == 'valA' or self.set == 'valB':
                 # first generate the words dic using the training samples
-                logger.warning('We need to ensure that we use the same words-to-index & answers-to-index dictionaries '
+                self.logger.warning('We need to ensure that we use the same words-to-index & answers-to-index dictionaries '
                                'for both the train & val samples.')
-                logger.warning('First, generating the words-to-index & answers-to-index dictionaries from '
+                self.logger.warning('First, generating the words-to-index & answers-to-index dictionaries from '
                                'the training samples :')
                 _, self.word_dic, self.answer_dic = self.generate_questions_dics('train' if self.set == 'val' else 'trainA',
                                                                                  word_dic=None, answer_dic=None)
 
                 # then tokenize the questions using the created dictionaries from the training samples
-                logger.warning('Then we can tokenize the validation questions using the dictionaries '
+                self.logger.warning('Then we can tokenize the validation questions using the dictionaries '
                                'created from the training samples')
                 self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
                                                                                          word_dic=self.word_dic,
@@ -278,26 +274,26 @@ class CLEVR(ImageTextToClassProblem):
 
         # create the objects for the specified embeddings
         if self.embedding_type == 'random':
-            logger.info('Constructing random embeddings using a uniform distribution')
+            self.logger.info('Constructing random embeddings using a uniform distribution')
             # instantiate nn.Embeddings look-up-table with specified embedding_dim
             self.n_vocab = len(self.word_dic)+1
             self.embed_layer = torch.nn.Embedding(num_embeddings=self.n_vocab, embedding_dim=self.random_embedding_dim)
 
             # we have to make sure that the weights are the same during training and validation!
-            if os.path.isfile(self.clevr_dir + '/generated_files/random_embedding_weights.pkl'):
-                logger.info('Found random embedding weights on file, using them.')
-                with open(self.clevr_dir + '/generated_files/random_embedding_weights.pkl', 'rb') as f:
+            if os.path.isfile(self.data_folder + '/generated_files/random_embedding_weights.pkl'):
+                self.logger.info('Found random embedding weights on file, using them.')
+                with open(self.data_folder + '/generated_files/random_embedding_weights.pkl', 'rb') as f:
                     self.embed_layer.weight.data = pickle.load(f)
             else:
-                logger.warning('No weights found on file for random embeddings. Initializing them from a Uniform '
-                               'distribution and saving to file in {}'.format(self.clevr_dir +
+                self.logger.warning('No weights found on file for random embeddings. Initializing them from a Uniform '
+                               'distribution and saving to file in {}'.format(self.data_folder +
                                                                               '/generated_files/random_embedding_weights.pkl'))
                 self.embed_layer.weight.data.uniform_(0, 1)
-                with open(self.clevr_dir + '/generated_files/random_embedding_weights.pkl', 'wb') as f:
+                with open(self.data_folder + '/generated_files/random_embedding_weights.pkl', 'wb') as f:
                     pickle.dump(self.embed_layer.weight.data, f)
 
         else:
-            logger.info('Constructing embeddings using {}'.format(self.embedding_type))
+            self.logger.info('Constructing embeddings using {}'.format(self.embedding_type))
             # instantiate Language class
             self.language = Language('lang')
             self.questions = [q['string_question'] for q in self.data]
@@ -367,7 +363,7 @@ class CLEVR(ImageTextToClassProblem):
                 print('Category: {} - Acc: {} - Total # of questions: {}'.format(
                     category, category_accuracy, dic_categories[category][1]))
 
-        with open(self.clevr_dir + '/generated_files/families_acc.csv', 'w') as csv_file:
+        with open(self.data_folder + '/generated_files/families_acc.csv', 'w') as csv_file:
             writer = csv.writer(csv_file)
             for key, value in self.dic.items():
                 writer.writerow([key, value])
@@ -397,15 +393,15 @@ class CLEVR(ImageTextToClassProblem):
         nltk.download('punkt')  # needed for nltk.word.tokenize
 
         # load questions from the .json file
-        question_file = os.path.join(self.clevr_dir, 'questions', 'CLEVR-Humans-{}.json'.format(set) if self.clevr_humans
+        question_file = os.path.join(self.data_folder, 'questions', 'CLEVR-Humans-{}.json'.format(set) if self.clevr_humans
                                             else 'CLEVR_{}_questions.json'.format(set))
         with open(question_file) as f:
-            logger.info('Loading samples from {} ...'.format(question_file))
+            self.logger.info('Loading samples from {} ...'.format(question_file))
             data = json.load(f)
-        logger.info('Loaded {} samples'.format(len(data['questions'])))
+        self.logger.info('Loaded {} samples'.format(len(data['questions'])))
 
         # load the dict question_family_type -> question_type: Will allow to plot the acc per question category
-        with open(os.path.join(self.clevr_dir, 'questions/index_to_family.json')) as f:
+        with open(os.path.join(self.data_folder, 'questions/index_to_family.json')) as f:
             index_to_family = json.load(f)
 
         # start constructing vocab sets
@@ -413,7 +409,7 @@ class CLEVR(ImageTextToClassProblem):
         word_index = 1  # 0 reserved for padding
         answer_index = 0
 
-        logger.info('Constructing {} words dictionary:'.format(set))
+        self.logger.info('Constructing {} words dictionary:'.format(set))
         for question in tqdm.tqdm(data['questions']):
             words = nltk.word_tokenize(question['question'])
             question_token = []
@@ -441,20 +437,20 @@ class CLEVR(ImageTextToClassProblem):
                            'string_question': question['question'], 'imgfile': question['image_filename'],
                            'question_type': index_to_family[str(question['question_family_index'])]})
 
-        logger.info('Done: constructed words dictionary of length {}, and answers dictionary of length {}'.format(len(word_dic),
+        self.logger.info('Done: constructed words dictionary of length {}, and answers dictionary of length {}'.format(len(word_dic),
                                                                                                             len(answer_dic)))
         # save result to file
-        questions_filename = self.clevr_dir + '/generated_files/{}_{}_questions.pkl'.format(set,
+        questions_filename = self.data_folder + '/generated_files/{}_{}_questions.pkl'.format(set,
                                                                                             'CLEVR_Humans' if self.clevr_humans else 'CLEVR')
         with open(questions_filename, 'wb') as f:
             pickle.dump(result, f)
 
-        logger.warning('Saved tokenized questions to file {}.'.format(questions_filename))
+        self.logger.warning('Saved tokenized questions to file {}.'.format(questions_filename))
 
         # save dictionaries to file:
-        with open(self.clevr_dir + '/generated_files/dics.pkl', 'wb') as f:
+        with open(self.data_folder + '/generated_files/dics.pkl', 'wb') as f:
             pickle.dump({'word_dic': word_dic, 'answer_dic': answer_dic}, f)
-        logger.warning('Saved dics to file {}.'.format(self.clevr_dir + '/generated_files/dics.pkl'))
+        self.logger.warning('Saved dics to file {}.'.format(self.data_folder + '/generated_files/dics.pkl'))
 
         # return everything
         return result, word_dic, answer_dic
@@ -475,7 +471,7 @@ class CLEVR(ImageTextToClassProblem):
         import tqdm
 
         # create DataLoader of the images dataset.
-        generate_feature_maps = GenerateFeatureMaps(clevr_dir=self.clevr_dir, set=self.set, cnn_model='resnet101', num_blocks=4)
+        generate_feature_maps = GenerateFeatureMaps(clevr_dir=self.data_folder, set=self.set, cnn_model='resnet101', num_blocks=4)
         dataloader = DataLoader(generate_feature_maps, batch_size=batch_size)
 
         size = len(dataloader)
@@ -496,7 +492,7 @@ class CLEVR(ImageTextToClassProblem):
                 dset[i * batch_size:(i + 1) * batch_size] = features
 
         f.close()
-        logger.warning('File {} successfully created.'.format(feature_maps_filename))
+        self.logger.warning('File {} successfully created.'.format(feature_maps_filename))
 
     def __getitem__(self, index):
         """
@@ -531,12 +527,12 @@ class CLEVR(ImageTextToClassProblem):
         # create the image index to retrieve the feature maps in self.img
         id = int(imgfile.rsplit('_', 1)[1][:-4])
 
-        img = torch.from_numpy(self.img[id]).type(app_state.dtype)
+        img = torch.from_numpy(self.img[id]).type(self.app_state.dtype)
 
         # embed question
         if self.embedding_type == 'random':
             # embed question:
-            question = self.embed_layer(torch.LongTensor(question)).type(app_state.dtype)
+            question = self.embed_layer(torch.LongTensor(question)).type(self.app_state.dtype)
 
         else:
             # embed question
@@ -587,12 +583,12 @@ class CLEVR(ImageTextToClassProblem):
 
         # create tensor containing the embedded questions
         if self.embedding_type == 'random':
-            questions = torch.zeros(batch_size, max_len, self.random_embedding_dim).type(app_state.dtype)
+            questions = torch.zeros(batch_size, max_len, self.random_embedding_dim).type(self.app_state.dtype)
 
         else:
             # get embedding dimension from the embedding type
             embedding_dim = int(self.embedding_type[-4:-1])
-            questions = torch.zeros(batch_size, max_len, embedding_dim).type(app_state.dtype)
+            questions = torch.zeros(batch_size, max_len, embedding_dim).type(self.app_state.dtype)
 
         # fill in the placeholders
         for i, b in enumerate(sort_by_len):
@@ -611,10 +607,10 @@ class CLEVR(ImageTextToClassProblem):
         # construct the DataDict and fill it with the batch
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
 
-        data_dict['img'] = torch.stack(images).type(app_state.dtype)
+        data_dict['img'] = torch.stack(images).type(self.app_state.dtype)
         data_dict['question'] = questions
         data_dict['question_length'] = lengths
-        data_dict['targets'] = torch.tensor(answers).type(app_state.LongTensor)
+        data_dict['targets'] = torch.tensor(answers).type(self.app_state.LongTensor)
         data_dict['question_string'] = s_questions
         data_dict['index'] = indexes
         data_dict['imgfile'] = imgfiles
@@ -675,7 +671,7 @@ class CLEVR(ImageTextToClassProblem):
 
         from PIL import Image
         import numpy
-        img = Image.open(self.clevr_dir + '/images/' +
+        img = Image.open(self.data_folder + '/images/' +
                          self.set + '/' + imgfile).convert('RGB')
         img = numpy.array(img)
         plt.suptitle(question)
@@ -725,8 +721,7 @@ if __name__ == "__main__":
     from utils.param_interface import ParamInterface
     params = ParamInterface()
     params.add_default_params({'batch_size': 64,
-                               'CLEVR_dir': '/home/vmarois/Downloads/CLEVR_v1.0',
-                               # 'data_folder': '~/data/CLEVR_v1.0/', # TODO!
+                               'data_folder': '~/Downloads/CLEVR_v1.0',
                                'set': 'train',
                                'clevr_humans': False,
                                'embedding_type': 'random',
