@@ -232,14 +232,15 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         print("\nnum_subsequences:", aux_tuple.num_subsequences)
 
         # show data.
-        ax1.imshow(np.transpose(data_tuple.inputs[sample_number, :, :], [
-                   1, 0]), interpolation='nearest', aspect='auto')
-        ax2.imshow(np.transpose(data_tuple.targets[sample_number, :, :], [
-                   1, 0]), interpolation='nearest', aspect='auto')
-        ax3.imshow(aux_tuple.mask[sample_number:sample_number + 1,
-                                  :], interpolation='nearest', aspect='auto')
+        ax1.pcolormesh(np.transpose(data_tuple.inputs[sample_number, :, :],  [1, 0]),
+                       edgecolors='g', linewidths=0.005)
+        ax2.pcolormesh(np.transpose(data_tuple.targets[sample_number, :, :],  [1, 0]),
+                   edgecolors='g', linewidths=0.005)
+        ax3.pcolormesh(aux_tuple.mask[sample_number:sample_number+1, :],
+                   edgecolors='g', linewidths=0.005)
+
         # Plot!
-        plt.tight_layout()
+        fig.tight_layout()
         plt.show()
 
     def curriculum_learning_update_params(self, episode):
