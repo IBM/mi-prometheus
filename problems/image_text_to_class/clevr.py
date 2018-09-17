@@ -44,19 +44,20 @@
     - CLEVR, which represents the CLEVR `Dataset`. It inherits from `ImageTextToClassProblem`.
 
 """
-__author__ = "Vincent Marois, Vincent Albouy"
+__author__ = "Vincent Marois"
 
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 
 import torch
 import numpy as np
-import csv
 import os
-import h5py
+import csv
 import pickle
+from PIL import Image
+from torchvision.transforms import ToTensor
 
-from utils.language import Language
+from utils.problems.language import Language
 from problems.problem import DataDict
 
 from problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem
@@ -68,65 +69,90 @@ class CLEVR(ImageTextToClassProblem):
 
     See reference here: https://cs.stanford.edu/people/jcjohns/clevr/
 
-    .. note::
-
-        - This class mainly checks if the files containing the features maps extracted from the images (via a CNN) and
-          tokenized questions already exist. If not, it generates them for the specified sub-set.
-        - `self.img` contains then the extracted feature maps.
-        - `self.data` contains the tokenized questions, the associated image filenames, the answers, \
-           the question strings and the question types.
-        - The questions are then embedded based on the specified embedding. This embedding is random by default, but
-          pretrained ones are possible.
-
-    :param set: String to specify which dataset to use: 'train', 'val' or 'test'.
-    :type set: str
-
-    :param clevr_dir: Directory path to the `CLEVR_v1.0` dataset. Will also be used to store the generated files \
-    (.hdf5, .pkl)
-    :type clevr_dir: str
-
-    :param clevr_humans: Boolean to indicate whether to use the questions from CLEVR-Humans.
-    :type clevr_humans: bool
-
-    :param embedding_type: string to indicate the pretrained embedding to use: either 'random' to use ``nn.Embedding`` \
-    or one of the following:
-
-        - "charngram.100d",
-        - "fasttext.en.300d",
-        - "fasttext.simple.300d",
-        - "glove.42B.300d",
-        - "glove.840B.300d",
-        - "glove.twitter.27B.25d",
-        - "glove.twitter.27B.50d",
-        - "glove.twitter.27B.100d",
-        - "glove.twitter.27B.200d",
-        - "glove.6B.50d",
-        - "glove.6B.100d",
-        - "glove.6B.200d",
-        - "glove.6B.300d"
+    :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
 
-    :type embedding_type: str
+    Given the relative complexity of this class, ``params`` should follow a specific template. Here are 2 examples:
 
-    :param random_embedding_dim: In the case of random embedding, this is the embedding dimension to use.
-    :type random_embedding_dim: int
+        >>> params = {'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
+        >>>                        'set': 'train',
+        >>>                        'dataset_variant': 'CLEVR'},
+        >>>           'images': {'raw_images': False,
+        >>>                      'feature_extractor': {'cnn_model': 'resnet101',
+        >>>                                            'num_blocks': 4}},
+        >>>           'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
+
+        >>> params = {'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
+        >>>                        'set': 'train',
+        >>>                        'dataset_variant': 'CLEVR-Humans'},
+        >>>           'images': {'raw_images': True},
+        >>>           'questions': {'embedding_type': 'glove.6B.300d'}})
 
 
+    ``params`` is separated in 3 sections:
 
-    .. warning::
-
-        As of now, this class doesn't handle downloading & decompressing the dataset to a specific folder.
-        It assumes that the entire dataset is located in `self.data_folder`, which is a path to a directory that
-        you can pass as a param.
+        - 'settings': generic settings for the ``CLEVR`` class,
+        - 'images': specific parameters for the images,
+        - 'questions': specific parameters for the questions.
 
 
-    .. warning::
+    Here is a breakdown of the available options:
 
-        **As of now, this class doesn't handle accessing the raw images as the visual input. It defaults to
-        the file containing the extracted feature maps. The reason for that is that this class was implemented
-        mainly for the MAC network at the beginning, which doesn't use the raw images but the feature maps extracted
-        by `ResNet101.`**
-        **It is planned to add support for using the original images as the visual input in the future.**
+        -   `settings`:
+
+            - ``data_folder`: Root folder of the dataset. Will also be used to store generated files\
+               (e.g. tokenization of the questions, features extracted from the images..)
+
+               .. warning::
+
+                    As of now, this class doesn't handle downloading & decompressing the dataset if it is not\
+                     present in the ``data_folder``. Please make sure that the dataset is already present in this\
+                     ``data_folder``.
+
+                        - For CLEVR-Humans, since only the questions change (and the images remains the same),\
+                          please put the corresponding `.json` files in `~/CLEVR_v1.0/questions/`.
+                        - For CLEVR-CoGenT, this is a fairly separate dataset with different questions & images.
+                          Indicate ``data_folder`` as the root to `~/CLEVR_CoGenT_v1.0` in this case.
+
+            - ``set``: either ``train``, ``val`` in the case of `CLEVR` & `CLEVR-Humans`, and ``valA``, ``valB`` or\
+              ``trainA`` in the case of CLEVR-CoGenT. ``test`` is not supported yet since ground truth answers are\
+              not distributed by the CLEVR authors.
+            - ``dataset_variant``: either   ``CLEVR``, ``CLEVR-CoGenT`` or ``CLEVR-Humans``.
+
+        - `images`:
+
+            - ``raw_images``: whether or not to use to the original images as the visual source. If ``False``, then
+              ``feature_extractor`` cannot be empty. The visual source will then be features extracted fron the\
+               original images using a specified pretrained CNN.
+            - ``cnn_model`` : In the case of features extracted from the original images, the specific CNN model to\
+            use. Must be part of ``torchvision.models``.
+            - ``num_blocks``: In the case of features extracted from the original images, this represents the number\
+            of layers to use from ``cnn_model``.
+
+                .. warning::
+
+                    This is not verified in any way by this class.
+
+        - `questions`:
+
+            - ``embedding_type``: string to indicate the pretrained embedding to use: either "random" to use\
+             ``nn.Embedding`` or one of the following:
+
+                    - "charngram.100d",
+                    - "fasttext.en.300d",
+                    - "fasttext.simple.300d",
+                    - "glove.42B.300d",
+                    - "glove.840B.300d",
+                    - "glove.twitter.27B.25d",
+                    - "glove.twitter.27B.50d",
+                    - "glove.twitter.27B.100d",
+                    - "glove.twitter.27B.200d",
+                    - "glove.6B.50d",
+                    - "glove.6B.100d",
+                    - "glove.6B.200d",
+                    - "glove.6B.300d"
+
+            - ``embedding_dim``: In the case of a random ``embedding_type``, this is the embedding dimension to use.
 
 
     """
@@ -143,102 +169,15 @@ class CLEVR(ImageTextToClassProblem):
         super(CLEVR, self).__init__(params)
 
         # parse parameters from the params dict
-
-        def parse_param_tree(params):
-            """
-            Parses the parameters tree passed as input to the constructor.
-
-            Due to the relative complexity inherent to the several variants of the `CLEVR` dataset (Humans, CoGenT)\
-            and the processing available to both the images (features extraction or not) and the questions\
-             (which type of embedding to use), this step is of relative importance.
-
-
-            :param params: parameters tree read from the ``.yaml`` configuration file.
-            :type params: dict
-
-
-            """
-
-            # get the data_folder
-            self.data_folder = params['settings']['data_folder']
-
-            # get the set descriptor
-            self.set = params['settings']['set']
-            assert self.set in ['train', 'val', 'test'], "self.set must be in" \
-                                                         " ['train', 'val', 'test'], got {}".format(self.set)
-
-            # We don't handle the creation of the test set for now since the ground truth answers are not distributed.
-            if self.set == 'test':
-                self.logger.error('Test set generation not supported for now since the ground truth answers '
-                                  'are not distributed. Exiting.')
-                exit(0)
-
-            # get the dataset variant
-            self.dataset = params['settings']['dataset_variant']
-            assert self.dataset in ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-Humans'], "dataset_variant.set must be " \
-                                                                   "in ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-Humans'], got {}".format(self.dataset)
-
-            if self.dataset == 'CLEVR' or self.dataset == 'CLEVR-Humans':
-                assert 'CLEVR_v1.0' in self.data_folder, "Indicated data_folder does not contains 'CLEVR_v1.0'." \
-                                                         "Please correct it. Got: {}".format(self.data_folder)
-            elif self.dataset == 'CoGenT':
-                assert 'CLEVR_CoGenT_v1.0' in self.data_folder, "Indicated data_folder does not contains " \
-                                                                  "'CLEVR_CoGenT_v1.0'.Please correct it." \
-                                                                "Got: {}".format(self.data_folder)
-
-            # get the images parameters:
-            if params['images']['raw_images']:
-                self.image_source = os.path.join(self.data_folder, 'images', self.set)
-            else:
-                assert bool(params['images']['feature_extractor']) is not False, "The images source is either the " \
-                                                                                 "original images or features extracted:" \
-                                                                                 " Cannot have 'raw_images'= False and " \
-                                                                                 "no parameters in 'feature_extractor'."
-                # passed, so can continue parsing params
-                self.image_source = os.path.join(self.data_folder, 'generated_files', self.set)
-
-                self.cnn_model = params['images']['feature_extractor']['cnn_model']
-                import torchvision as vision
-                assert self.cnn_model in dir(vision.models), "Did not find specified cnn_model in torchvision.models." \
-                                                                  " Available models: {}".format(dir(vision.models))
-                # this is too complex to check, not doing it.
-                self.num_blocks = params['images']['feature_extractor']['num_blocks']
-
-            # get the questions parameters:
-            self.embedding_type = params['questions']['embedding_type']
-            embedding_types = ["random", "charngram.100d", "fasttext.en.300d", "fasttext.simple.300d", "glove.42B.300d",
-                               "glove.840B.300d", "glove.twitter.27B.25d", "glove.twitter.27B.50d",
-                               "glove.twitter.27B.100d", "glove.twitter.27B.200d", "glove.6B.50d", "glove.6B.100d",
-                               "glove.6B.200d", "glove.6B.300d"]
-
-            assert self.embedding_type in embedding_types, "Embedding type not found, available options are {}".format(embedding_types)
-            if self.embedding_type == 'random':
-                self.embedding_dim = params['questions']['embedding_dim']
-                assert type(self.embedding_dim) is int, "The random embedding dimension should be an int, got {}".format(type(self.embedding_dim))
-
-            else:
-                self.embedding_dim = int(self.embedding_type[:-4])
-
-        parse_param_tree(params)
-        exit()
-
-
-
-
-
-
-        self.data_folder = os.path.expanduser(params['data_folder'])
-        self.set = params['set']
-        self.batch_size = params['batch_size']
-        self.clevr_humans = params['clevr_humans']
-        self.embedding_type = params['embedding_type']
-        self.random_embedding_dim = params['random_embedding_dim']
+        self.parse_param_tree(params)
 
         # define the default_values dict: holds parameters values that a model may need.
         self.default_values = {'nb_classes': 28}
 
         # define the data_definitions dict: holds a description of the DataDict content
-        self.data_definitions = {'img': {'size': [-1, 1024, 14, 14], 'type': [np.ndarray]},
+        self.data_definitions = {'img': {'size': [-1, 3, 480, 320] if params['images']['raw_images']
+                                                                   else [-1, 1024, 14, 14],
+                                         'type': [np.ndarray]},
                                  'question': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
                                  'question_length': {'size': [-1], 'type': [list, int]},
                                  'question_string': {'size': [-1, -1], 'type': [list, str]},
@@ -246,32 +185,11 @@ class CLEVR(ImageTextToClassProblem):
                                  'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets_string': {'size': [-1, -1], 'type': [list, str]},
                                  'index': {'size': [-1], 'type': [list, int]},
-                                 'imgfile': {'size': [-1, -1], 'type': [list,str]}
+                                 'imgfile': {'size': [-1, -1], 'type': [list, str]}
                                  }
 
-        self.name = 'CLEVR'
-        # the sub-types of question families
-        self.family_list = [
-            'query_size',
-            'equal_size',
-            'query_shape',
-            'query_color',
-            'greater_than',
-            'equal_material',
-            'equal_color',
-            'equal_shape',
-            'less_than',
-            'count',
-            'exist',
-            'equal_integer',
-            'query_material']
-
-        # for storing the number of correct predictions & total number of questions per family
-        self.tuple_list = [[0, 0] for _ in range(len(self.family_list))]
-        self.dic = dict(zip(self.family_list, self.tuple_list))
-
-        # link a sub-family to one of the main 5 categories of questions
-        self.categories_transform = {
+        # to compute the accuracy per family
+        self.categories = {
             'query_size': 'query_attribute',
             'equal_size': 'compare_attribute',
             'query_shape': 'query_attribute',
@@ -286,36 +204,32 @@ class CLEVR(ImageTextToClassProblem):
             'equal_integer': 'compare_integer',
             'query_material': 'query_attribute'}
 
-        # We don't handle the creation of the test set for now since the ground truth answers are not distributed.
-        if self.set == 'test':
-            self.logger.error('Test set generation not supported for now. Exiting.')
-            exit(0)
+        # for storing the number of correct predictions & total number of questions per category
+        self.tuple_list = [[0, 0] for _ in range(len(self.categories .keys()))]
+        self.categories_stats = dict(zip(self.categories .keys(), self.tuple_list))
 
-        self.logger.info('Loading the {} samples from {}'.format(set, 'CLEVR-Humans' if self.clevr_humans else 'CLEVR'))
+        # problem name
+        self.name = 'CLEVR'
+
+        self.logger.info('Loading the {} samples from {}'.format(self.set, self.dataset))
 
         # check if the folder /generated_files in self.data_folder already exists, if not create it:
-        if not os.path.isdir(self.data_folder + '/generated_files'):
-            self.logger.warning('Folder {} not found, creating it.'.format(self.data_folder + '/generated_files'))
-            os.mkdir(self.data_folder + '/generated_files')
+        if not os.path.isdir(os.path.join(self.data_folder, 'generated_files')):
+            self.logger.warning('Folder {} not found, creating it.'.format(os.path.join(self.data_folder,
+                                                                                        'generated_files')))
+            os.mkdir(os.path.join(self.data_folder, 'generated_files'))
 
-        # check if the file containing the images feature maps (processed by ResNet101) exists or not
+        # check if the folder containing the images feature maps (processed by self.cnn_model) exists or not
         # For the same self.set, this file is the same for CLEVR & CLEVR-Humans
-        # TODO: We will have to separate this file into 1 file per sample to support multiprocessing!
-        feature_maps_filename = self.data_folder + '/generated_files/{}_CLEVR_features.hdf5'.format(self.set)
-        if os.path.isfile(feature_maps_filename):
-            self.logger.info('The file {} already exists, loading it.'.format(feature_maps_filename))
-
-        else:
-            self.logger.warning('File {} not found on disk, generating it:'.format(feature_maps_filename))
-            self.generate_feature_maps_file(feature_maps_filename)
-
-        # load the file
-        self.h = h5py.File(feature_maps_filename, 'r')
-        self.img = self.h['data']
+        # It will be different for CLEVR-CoGenT
+        if not params['images']['raw_images']:
+            if not os.path.isdir(os.path.join(self.data_folder, 'generated_files', self.cnn_model, self.set)):
+                self.logger.warning('Directory {} not found on disk, extracting the features for each image and storing'
+                                    ' them here.'.format(os.path.join(self.data_folder, 'generated_files', self.cnn_model, self.set)))
+                self.generate_feature_maps_file()
 
         # check if the file containing the tokenized questions (& answers, image filename, type etc.) exists or not
-        questions_filename = self.data_folder + '/generated_files/{}_{}_questions.pkl'.format(self.set, 'CLEVR_Humans' if
-                                                                                        self.clevr_humans else 'CLEVR')
+        questions_filename = os.path.join(self.data_folder, 'generated_files', '{}_{}_questions.pkl'.format(self.set, self.dataset))
         if os.path.isfile(questions_filename):
             self.logger.info('The file {} already exists, loading it.'.format(questions_filename))
 
@@ -324,17 +238,17 @@ class CLEVR(ImageTextToClassProblem):
                 self.data = pickle.load(questions)
 
             # load word_dic & answer_dic
-            with open(self.data_folder + '/generated_files/dics.pkl', 'rb') as f:
+            with open(os.path.join(self.data_folder, 'generated_files', '{}_dics.pkl'.format(self.dataset)), 'rb') as f:
                 dic = pickle.load(f)
                 self.answer_dic = dic['answer_dic']
                 self.word_dic = dic['word_dic']
 
         else:  # The file doesn't exist: Process the questions
-            self.logger.warning('File {} not found on disk, generating it.'.format(questions_filename))
+            self.logger.warning('File {} not found on disk, processing the questions.'.format(questions_filename))
 
-            # WARNING: We need to ensure that we use the same words & answers dicts for both train & val, otherwise we
-            # do not have the same reference!
-            if self.set == 'val' or self.set == 'valA' or self.set == 'valB':
+            # We need to ensure that we use the same words & answers dicts for both train & val, otherwise we do not
+            # have the same reference.
+            if self.set == 'val' or self.set == 'valA' or self.set == 'valB':  # handle CoGenT
                 # first generate the words dic using the training samples
                 self.logger.warning('We need to ensure that we use the same words-to-index & answers-to-index dictionaries '
                                'for both the train & val samples.')
@@ -344,16 +258,16 @@ class CLEVR(ImageTextToClassProblem):
                                                                                  word_dic=None, answer_dic=None)
 
                 # then tokenize the questions using the created dictionaries from the training samples
-                self.logger.warning('Then we can tokenize the validation questions using the dictionaries '
-                               'created from the training samples')
+                self.logger.warning('We can now tokenize the validation questions using the dictionaries created from '
+                                    'the training samples')
                 self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
                                                                                          word_dic=self.word_dic,
                                                                                          answer_dic=self.answer_dic)
 
-            elif self.set == 'train' or self.set == 'trainA':  # self.set=='train', we can directly tokenize the questions
+            elif self.set == 'train' or self.set == 'trainA':  # Can directly tokenize the questions
                 self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set, word_dic=None, answer_dic=None)
 
-        # --> At this point, the objects self.img & self.data contains the feature maps & questions
+        # --> At this point, self.data contains the processed questions
         self.length = len(self.data)
 
         # create the objects for the specified embeddings
@@ -361,19 +275,19 @@ class CLEVR(ImageTextToClassProblem):
             self.logger.info('Constructing random embeddings using a uniform distribution')
             # instantiate nn.Embeddings look-up-table with specified embedding_dim
             self.n_vocab = len(self.word_dic)+1
-            self.embed_layer = torch.nn.Embedding(num_embeddings=self.n_vocab, embedding_dim=self.random_embedding_dim)
+            self.embed_layer = torch.nn.Embedding(num_embeddings=self.n_vocab, embedding_dim=self.embedding_dim)
 
-            # we have to make sure that the weights are the same during training and validation!
-            if os.path.isfile(self.data_folder + '/generated_files/random_embedding_weights.pkl'):
+            # we have to make sure that the weights are the same during training and validation
+            weights_filepath = os.path.join(self.data_folder, 'generated_files', '{}_embedding_weights.pkl'.format(self.dataset))
+            if os.path.isfile(weights_filepath):
                 self.logger.info('Found random embedding weights on file, using them.')
-                with open(self.data_folder + '/generated_files/random_embedding_weights.pkl', 'rb') as f:
+                with open(weights_filepath, 'rb') as f:
                     self.embed_layer.weight.data = pickle.load(f)
             else:
                 self.logger.warning('No weights found on file for random embeddings. Initializing them from a Uniform '
-                               'distribution and saving to file in {}'.format(self.data_folder +
-                                                                              '/generated_files/random_embedding_weights.pkl'))
+                                    'distribution and saving to file in {}'.format(weights_filepath))
                 self.embed_layer.weight.data.uniform_(0, 1)
-                with open(self.data_folder + '/generated_files/random_embedding_weights.pkl', 'wb') as f:
+                with open(weights_filepath, 'wb') as f:
                     pickle.dump(self.embed_layer.weight.data, f)
 
         else:
@@ -386,83 +300,112 @@ class CLEVR(ImageTextToClassProblem):
 
         # Done! The actual question embedding is handled in __getitem__.
 
-    def get_acc_per_family(self, data_dict, logits):
+    def parse_param_tree(self, params):
         """
-        Compute the accuracy per family for the current batch. Also accumulates
-        the number of correct predictions & questions per family in self.correct_pred_families (saved
-        to file).
+        Parses the parameters tree passed as input to the constructor.
 
-        TODO: This function needs refactoring to:
-            - Only print the accuracy per family at the end of the epoch
-            - Better code design -> use statistics aggregators.
-        :param data_dict: DataDict {'img','question', 'question_length', 'targets', 'string_question', 'index', \
-        'imgfile', 'question_type'}
+        Due to the relative complexity inherent to the several variants of the `CLEVR` dataset (Humans, CoGenT)\
+        and the processing available to both the images (features extraction or not) and the questions\
+         (which type of embedding to use), this step is of relative importance.
 
-        :param logits: network predictions.
+
+        :param params: parameters tree read from the ``.yaml`` configuration file.
+        :type params: dict
+
 
         """
-        # unpack the DataDict
-        img, question, question_length, targets, string_question, index, imgfile, question_types = data_dict.values()
 
-        # get correct predictions
-        pred = logits.max(1, keepdim=True)[1]
-        correct = pred.eq(targets.view_as(pred))
+        # get the data_folder
+        self.data_folder = os.path.expanduser(params['settings']['data_folder'])
 
-        for i in range(correct.size(0)):
-            # update # of questions for the corresponding family
-            self.dic[question_types[i]][1] += 1
+        # get the set descriptor
+        self.set = params['settings']['set']
+        assert self.set in ['train', 'val', 'test'], "self.set must be in" \
+                                                     " ['train', 'val', 'test'], got {}".format(self.set)
 
-            if correct[i] == 1:
-                # update the # of correct predictions for the corresponding
-                # family
-                self.dic[question_types[i]][0] += 1
+        # We don't handle the creation of the test set for now since the ground truth answers are not distributed.
+        if self.set == 'test':
+            self.logger.error('Test set generation not supported for now since the ground truth answers '
+                              'are not distributed. Exiting.')
+            exit(0)
 
-        for family in self.family_list:
-            if self.dic[family][1] == 0:
-                print('Family: {} - Acc: No questions!'.format(family))
+        # get the dataset variant
+        self.dataset = params['settings']['dataset_variant']
+        assert self.dataset in ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-Humans'], "dataset_variant must be " \
+                                                                          "in ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-Humans'], got {}".format(
+            self.dataset)
 
-            else:
-                family_accuracy = (self.dic[family][0]) / (self.dic[family][1])
-                print('Family: {} - Acc: {} - Total # of questions: {}'.format(family,
-                                                                               family_accuracy, self.dic[family][1]))
+        if self.dataset == 'CLEVR' or self.dataset == 'CLEVR-Humans':
+            assert 'CLEVR_v1.0' in self.data_folder, "Indicated data_folder does not contains 'CLEVR_v1.0'." \
+                                                     "Please correct it. Got: {}".format(self.data_folder)
+        elif self.dataset == 'CoGenT':
+            assert 'CLEVR_CoGenT_v1.0' in self.data_folder, "Indicated data_folder does not contains " \
+                                                            "'CLEVR_CoGenT_v1.0'.Please correct it." \
+                                                            "Got: {}".format(self.data_folder)
 
-        categories_list = ['query_attribute', 'compare_integer',
-                           'count', 'compare_attribute', 'exist']
-        tuple_list_categories = [[0, 0] for _ in range(len(categories_list))]
-        dic_categories = dict(zip(categories_list, tuple_list_categories))
+        # get the images parameters:
+        if params['images']['raw_images']:
+            self.image_source = os.path.join(self.data_folder, 'images', self.set)
+        else:
+            assert bool(params['images']['feature_extractor']) is not False, "The images source is either the " \
+                                                                             "original images or features extracted:" \
+                                                                             " Cannot have 'raw_images'= False and " \
+                                                                             "no parameters in 'feature_extractor'."
+            # passed, so can continue parsing params
+            self.cnn_model = params['images']['feature_extractor']['cnn_model']
+            self.image_source = os.path.join(self.data_folder, 'generated_files', self.cnn_model, self.set)
 
-        for category in categories_list:
-            for family in self.family_list:
-                if self.categories_transform[family] == category:
-                    dic_categories[category][0] += self.dic[family][0]
-                    dic_categories[category][1] += self.dic[family][1]
+            import torchvision as vision
+            assert self.cnn_model in dir(vision.models), "Did not find specified cnn_model in torchvision.models." \
+                                                         " Available models: {}".format(dir(vision.models))
+            # this is too complex to check, not doing it.
+            self.num_blocks = params['images']['feature_extractor']['num_blocks']
 
-        for category in categories_list:
-            if dic_categories[category][1] == 0:
-                print('Category: {} - Acc: No questions!'.format(category))
+        # get the questions parameters:
+        self.embedding_type = params['questions']['embedding_type']
+        embedding_types = ["random", "charngram.100d", "fasttext.en.300d", "fasttext.simple.300d", "glove.42B.300d",
+                           "glove.840B.300d", "glove.twitter.27B.25d", "glove.twitter.27B.50d",
+                           "glove.twitter.27B.100d", "glove.twitter.27B.200d", "glove.6B.50d", "glove.6B.100d",
+                           "glove.6B.200d", "glove.6B.300d"]
 
-            else:
-                category_accuracy = (
-                    dic_categories[category][0]) / (dic_categories[category][1])
-                print('Category: {} - Acc: {} - Total # of questions: {}'.format(
-                    category, category_accuracy, dic_categories[category][1]))
+        assert self.embedding_type in embedding_types, "Embedding type not found, available options are {}".format(
+            embedding_types)
+        if self.embedding_type == 'random':
+            self.embedding_dim = params['questions']['embedding_dim']
+            assert type(self.embedding_dim) is int, "The random embedding dimension should be an int, got {}".format(
+                type(self.embedding_dim))
 
-        with open(self.data_folder + '/generated_files/families_acc.csv', 'w') as csv_file:
-            writer = csv.writer(csv_file)
-            for key, value in self.dic.items():
-                writer.writerow([key, value])
-
-    def close(self):
-        """Close hdf5 file."""
-        self.h.close()
+        else:
+            self.embedding_dim = int(self.embedding_type[:-4])
 
     def generate_questions_dics(self, set, word_dic=None, answer_dic=None):
         """
         Loads the questions from the .json file, tokenize them, creates vocab dics and save that to files.
 
-        :param set: String to specify which dataset to use: 'train', 'val'
-        :param word_dic: dict {'word': index} to be used to tokenize the questions
-        :param answer_dic: dict {'answer': index} to be used to process questions
+        :param set: String to specify which dataset to use: ``train``, ``val`` (``test`` not handled yet.)
+        :type set: str
+
+        :param word_dic: dict ``{'word': index}`` to be used to tokenize the questions. Optional. If passed, it\
+        is used and unseen words are added. It not passed, an empty one is created.
+        :type word_dic: dict
+
+        :param answer_dic: ``dict {'answer': index}`` to be used to process the answers. Optional. If passed, it\
+        is used and unseen answers are added. It not passed, an empty one is created.
+        :type answer_dic: dict
+
+        :return:
+
+            - A dict, containing for each question:
+
+                - The tokenized question,
+                - The answer,
+                - The original question string,
+                - The original path to the associated image
+                - The question type
+
+            - The word_dic
+            - The answer_dic
+
         """
         if word_dic is None:
             # create empty dic for the words vocab set
@@ -477,8 +420,8 @@ class CLEVR(ImageTextToClassProblem):
         nltk.download('punkt')  # needed for nltk.word.tokenize
 
         # load questions from the .json file
-        question_file = os.path.join(self.data_folder, 'questions', 'CLEVR-Humans-{}.json'.format(set) if self.clevr_humans
-                                            else 'CLEVR_{}_questions.json'.format(set))
+        question_file = os.path.join(self.data_folder, 'questions', 'CLEVR-Humans-{}.json'.format(set) if self.dataset=='CLEVR-Humans' else 'CLEVR_{}_questions.json'.format(set))
+
         with open(question_file) as f:
             self.logger.info('Loading samples from {} ...'.format(question_file))
             data = json.load(f)
@@ -493,7 +436,7 @@ class CLEVR(ImageTextToClassProblem):
         word_index = 1  # 0 reserved for padding
         answer_index = 0
 
-        self.logger.info('Constructing {} words dictionary:'.format(set))
+        self.logger.info('Constructing {} {} words dictionary:'.format(self.dataset, set))
         for question in tqdm.tqdm(data['questions']):
             words = nltk.word_tokenize(question['question'])
             question_token = []
@@ -501,7 +444,6 @@ class CLEVR(ImageTextToClassProblem):
             for word in words:
                 try:
                     question_token.append(word_dic[word])
-
                 except:
                     question_token.append(word_index)
                     word_dic[word] = word_index
@@ -510,7 +452,6 @@ class CLEVR(ImageTextToClassProblem):
             answer_word = question['answer']
             try:
                 answer = answer_dic[answer_word]
-
             except:
                 answer = answer_index
                 answer_dic[answer_word] = answer_index
@@ -524,59 +465,60 @@ class CLEVR(ImageTextToClassProblem):
         self.logger.info('Done: constructed words dictionary of length {}, and answers dictionary of length {}'.format(len(word_dic),
                                                                                                             len(answer_dic)))
         # save result to file
-        questions_filename = self.data_folder + '/generated_files/{}_{}_questions.pkl'.format(set,
-                                                                                            'CLEVR_Humans' if self.clevr_humans else 'CLEVR')
+        questions_filename = os.path.join(self.data_folder, 'generated_files', '{}_{}_questions.pkl'.format(self.set, self.dataset))
         with open(questions_filename, 'wb') as f:
             pickle.dump(result, f)
 
         self.logger.warning('Saved tokenized questions to file {}.'.format(questions_filename))
 
         # save dictionaries to file:
-        with open(self.data_folder + '/generated_files/dics.pkl', 'wb') as f:
+        with open(os.path.join(self.data_folder, 'generated_files', '{}_dics.pkl'.format(self.dataset)), 'wb') as f:
             pickle.dump({'word_dic': word_dic, 'answer_dic': answer_dic}, f)
-        self.logger.warning('Saved dics to file {}.'.format(self.data_folder + '/generated_files/dics.pkl'))
+        self.logger.warning('Saved dics to file {}.'.format(os.path.join(self.data_folder, 'generated_files', '{}_dics.pkl'.format(self.dataset))))
 
         # return everything
         return result, word_dic, answer_dic
 
-    def generate_feature_maps_file(self, feature_maps_filename, batch_size=50):
+    def generate_feature_maps_file(self):
         """
-        Uses GenerateFeatureMaps to pass the CLEVR images through a pretrained CNN model.
+        Uses GenerateFeatureMaps to pass the ``CLEVR`` images through a pretrained CNN model.
 
-        :param set: String to specify which dataset to use: 'train', 'val' or 'test'.
-        :param feature_maps_filename: filename for saving to file.
-        :param batch_size: batch size
-
-        :return: feature maps
         """
         # import lines
-        from problems.image_text_to_class.generate_feature_maps import GenerateFeatureMaps
+        from utils.problems.generate_feature_maps import GenerateFeatureMaps
         from torch.utils.data import DataLoader
         import tqdm
+        from torchvision import transforms
 
         # create DataLoader of the images dataset.
-        generate_feature_maps = GenerateFeatureMaps(clevr_dir=self.data_folder, set=self.set, cnn_model='resnet101', num_blocks=4)
-        dataloader = DataLoader(generate_feature_maps, batch_size=batch_size)
+        dataset = GenerateFeatureMaps(image_dir=os.path.join(self.data_folder, 'images', self.set), set=self.set,
+                                      cnn_model=self.cnn_model, num_blocks=self.num_blocks,
+                                      transform=transforms.Compose([transforms.Resize([224, 224]), transforms.ToTensor(),
+                                                                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                                                         std=[0.229, 0.224, 0.225])]),
+                                      filename_template='CLEVR_{}_{}.png'.format(self.set, '{}'))
+        dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
         size = len(dataloader)
-        dataset = iter(dataloader)
-        pbar = tqdm.tqdm(dataset, total=size, unit="batches")
+        dataloader = iter(dataloader)
+        pbar = tqdm.tqdm(dataloader, total=size, unit="images")
 
-        # create file to store feature maps.
-        f = h5py.File(feature_maps_filename, 'w', libver='latest')
-        dset = f.create_dataset('data', (size * batch_size, 1024, 14, 14), dtype='f4')
+        # create the folder where the extracted features maps will be stored
+        if not os.path.isdir(os.path.join(self.data_folder, 'generated_files', self.cnn_model, self.set)):
+            os.makedirs(os.path.join(self.data_folder, 'generated_files', self.cnn_model, self.set))
+
+        dir = os.path.join(self.data_folder, 'generated_files', self.cnn_model, self.set)
 
         with torch.no_grad():
             for i, image in enumerate(pbar):
-                # move batch to GPU
-                image = image.type(torch.cuda.FloatTensor)
+                image = image.type(self.app_state.dtype)
 
                 # forward pass, move output to cpu and store it into the file.
-                features = generate_feature_maps.model(image).detach().cpu().numpy()
-                dset[i * batch_size:(i + 1) * batch_size] = features
+                features = dataset.model(image).detach().cpu().numpy()
+                with open(os.path.join(dir, '{}_{}_{}.pt'.format(self.dataset, self.set, str(i).zfill(6))), 'wb') as f:
+                    torch.save(features, f)
 
-        f.close()
-        self.logger.warning('File {} successfully created.'.format(feature_maps_filename))
+        self.logger.warning('Features successfully extracted and stored in {}.'.format(dir))
 
     def __getitem__(self, index):
         """
@@ -597,21 +539,20 @@ class CLEVR(ImageTextToClassProblem):
             - index: index of the sample
             - imgfile: image filename
 
-
-        .. warning::
-
-            This function does not yet support multiprocessing for faster data loading as the feature maps are all
-            stored in one unique file. **It is planned to separate them into one file per image in the future.**
-
-
         """
         # load tokenized_question, answer, string_question, image_filename from self.data
         question, answer, question_string, imgfile, question_type = self.data[index].values()
 
-        # create the image index to retrieve the feature maps in self.img
-        id = int(imgfile.rsplit('_', 1)[1][:-4])
-
-        img = torch.from_numpy(self.img[id]).type(self.app_state.dtype)
+        # create the image index to retrieve the feature maps or the original image
+        index = str(imgfile.rsplit('_', 1)[1][:-4]).zfill(6)
+        extension = '.png' if params['images']['raw_images'] else '.pt'
+        with open(os.path.join(self.image_source, '{}_{}_{}{}'.format(self.dataset, self.set, index, extension)), 'rb') as f:
+            try:
+                img = torch.load(f)  # for feature maps
+                img = torch.from_numpy(img).type(self.app_state.dtype)
+            except:
+                img = Image.open(f).convert('RGB')  # for the original images
+                img = ToTensor()(img).type(self.app_state.dtype)
 
         # embed question
         if self.embedding_type == 'random':
@@ -633,7 +574,7 @@ class CLEVR(ImageTextToClassProblem):
         data_dict['question_string'] = question_string
         data_dict['question_type'] = question_type
         data_dict['targets'] = answer
-
+        # leave data_dict['target_string'] as None
         data_dict['index'] = index
         data_dict['imgfile'] = imgfile
 
@@ -641,23 +582,24 @@ class CLEVR(ImageTextToClassProblem):
 
     def collate_fn(self, batch):
         """
-        Combines a list of DataDict (retrieved with __getitem__) into a batch.
+        Combines a list of DataDict (retrieved with ``__getitem__``) into a batch.
 
         .. note::
 
-            Because each tokenized question has a variable length, padding is necessary.
-            This means that the default collate_function does not work.
+            Because each tokenized question has a variable length, padding is necessary to create batches.
 
-            **There has to be a better way to not loop over each sample in the list!!**
+            Hence, for a given batch, each question is padded to the length of the longest one.
+
+            This length changes between batches, but this shouldn't be an issue.
+
 
         :param batch: list of individual samples to combine
+        :type batch: list
 
         :return: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
         'targets_string', 'index','imgfile'})
 
         """
-        # create list placeholders
-        images, lengths, answers, s_questions, indexes, imgfiles, question_types = [], [], [], [], [], [], []
         batch_size = len(batch)
 
         # get max question length, create tensor of shape [batch_size x maxQuestionLength] & sort questions by
@@ -666,100 +608,113 @@ class CLEVR(ImageTextToClassProblem):
         sort_by_len = sorted(batch, key=lambda x: x['question_length'], reverse=True)
 
         # create tensor containing the embedded questions
-        if self.embedding_type == 'random':
-            questions = torch.zeros(batch_size, max_len, self.random_embedding_dim).type(self.app_state.dtype)
-
-        else:
-            # get embedding dimension from the embedding type
-            embedding_dim = int(self.embedding_type[-4:-1])
-            questions = torch.zeros(batch_size, max_len, embedding_dim).type(self.app_state.dtype)
-
-        # fill in the placeholders
-        for i, b in enumerate(sort_by_len):
-            image, question, question_length, question_string, question_type, answer, _, index, imgfile = b.values()
-
-            images.append(image)
-            lengths.append(question_length)
-            answers.append(answer)
-            s_questions.append(question_string)
-            indexes.append(index)
-            imgfiles.append(imgfile)
-            question_types.append(question_type)
-
-            questions[i, :question_length, :] = question
+        questions = torch.zeros(batch_size, max_len, self.embedding_dim).type(self.app_state.dtype)
 
         # construct the DataDict and fill it with the batch
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
 
-        data_dict['img'] = torch.stack(images).type(self.app_state.dtype)
+        data_dict['img'] = torch.stack([elt['img'] for elt in sort_by_len]).type(self.app_state.dtype)
+        data_dict['question_length'] = [elt['question_length'] for elt in sort_by_len]
+        data_dict['targets'] = torch.tensor([elt['targets'] for elt in sort_by_len]).type(self.app_state.LongTensor)
+        data_dict['question_string'] = [elt['question_string'] for elt in sort_by_len]
+        data_dict['index'] = [elt['index'] for elt in sort_by_len]
+        data_dict['imgfile'] = [elt['imgfile'] for elt in sort_by_len]
+        data_dict['question_type'] = [elt['question_type'] for elt in sort_by_len]
+
+        for i, length in enumerate(data_dict['question_length']):  # only way to do this?
+            questions[i, :length, :] = sort_by_len[i]['question']
+
         data_dict['question'] = questions
-        data_dict['question_length'] = lengths
-        data_dict['targets'] = torch.tensor(answers).type(self.app_state.LongTensor)
-        data_dict['question_string'] = s_questions
-        data_dict['index'] = indexes
-        data_dict['imgfile'] = imgfiles
-        data_dict['question_type'] = question_types
 
         return data_dict
 
-    # set self.collate_fn to this new function
-
-    def collect_statistics(self, stat_col, data_tuple, logits):
-        """
-        Collects accuracy.
-
-        :param stat_col: Statistics collector.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param logits: Logits being output of the model.
-
-        :param _: auxiliary tuple (aux_tuple) is not used in this function. 
-        """
-        stat_col['acc'] = self.calculate_accuracy(data_tuple, logits)
-
-        # self.get_acc_per_family(data_tuple, aux_tuple, logits)
-
     def finalize_epoch(self):
         """
-        Call `self.get_acc_per_family()` to get the accuracy per family.
+        Call ``self.get_acc_per_family()`` to get the accuracy per family.
 
         """
         #self.get_acc_per_family()
 
     def initialize_epoch(self):
         """
-        Resets the accuracy per family counters.
+        Resets the accuracy per category counters.
 
         """
-        # self.reset_acc_per_family()  # TODO: Actually implement this function...
 
-    def show_sample(self, data_dict, sample_number=0):
+        self.categories_stats = dict(zip(self.categories.keys(), self.tuple_list))
+
+    def get_acc_per_family(self, data_dict, logits):
         """
+        Compute the accuracy per family for the current batch. Also accumulates
+        the number of correct predictions & questions per family in self.correct_pred_families (saved
+        to file).
+
+        :param data_dict: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
+            'targets_string', 'index','imgfile'})
+
+        :param logits: network predictions.
+
+        """
+        # unpack the DataDict
+        _, _, _, _, question_types, targets, _, _, _ = data_dict.values()
+
+        # get correct predictions
+        pred = logits.max(1, keepdim=True)[1]
+        correct = pred.eq(targets.view_as(pred))
+
+        for i in range(correct.size(0)):
+            # update # of questions for the corresponding family
+            self.categories_stats[question_types[i]][1] += 1
+
+            # update the # of correct predictions for the corresponding family
+            if correct[i] == 1: self.categories_stats[question_types[i]][0] += 1
+
+        categories_list = ['query_attribute', 'compare_integer', 'count', 'compare_attribute', 'exist']
+        tuple_list_categories = [[0, 0] for _ in range(len(categories_list))]
+        dic_categories = dict(zip(categories_list, tuple_list_categories))
+
+        for category in categories_list:
+            for family in self.categories.keys():
+                if self.categories[family] == category:
+                    dic_categories[category][0] += self.categories_stats[family][0]
+                    dic_categories[category][1] += self.categories_stats[family][1]
+
+        with open(os.path.join(self.data_folder, 'generated_files',
+                               '{}_{}_categories_acc.csv'.format(self.dataset, self.set)), 'w') as f:
+            writer = csv.writer(f)
+        for key, value in self.categories_stats.items():
+            writer.writerow([key, value])
+
+    def show_sample(self, data_dict, sample=0):
+        """
+
         Show a sample of the current DataDict.
-        :param data_dict: DataDict({'img','question', 'question_length', 'targets', 'string_question', 'index', \
-        'imgfile', 'question_type'})
 
-        :param sample_number: sample index to visualize.
+        :param data_dict: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
+        'targets_string', 'index','imgfile'})
+        :type data_dict: DataDict
+
+        :param sample: sample index to visualize.
+        :type sample: int
         """
         # create plot figures
         plt.figure(1)
 
         # unpack data_dict
-        images, questions, questions_len, questions_string, question_types, answers, _, indexes, imgfiles = data_dict.values()
+        _, _, _, questions_string, question_types, answers, _, _, imgfiles = data_dict.values()
 
-        question = questions_string[sample_number]
-        answer = answers[sample_number]
-        answer = list(self.answer_dic.keys())[
-            list(self.answer_dic.values()).index(answer.data)]  # dirty hack to go back from the
+        question = questions_string[sample]
+        answer = answers[sample]
+        answer = list(self.answer_dic.keys())[list(self.answer_dic.values()).index(answer.data)]  # dirty hack to go back from the
         # value in a dict to the key.
-        imgfile = imgfiles[sample_number]
 
-        from PIL import Image
-        import numpy
-        img = Image.open(self.data_folder + '/images/' +
-                         self.set + '/' + imgfile).convert('RGB')
-        img = numpy.array(img)
+        # open image
+        imgfile = imgfiles[sample]
+        img = Image.open(os.path.join(self.data_folder, 'images', self.set, imgfile)).convert('RGB')
+        img = np.array(img)
+
         plt.suptitle(question)
-        plt.title('Question type: {}'.format(question_types[sample_number]))
+        plt.title('Question type: {}'.format(question_types[sample]))
         plt.xlabel('Answer: {}'.format(answer))
         plt.imshow(img)
 
@@ -768,18 +723,25 @@ class CLEVR(ImageTextToClassProblem):
 
     def plot_preprocessing(self, data_dict, logits):
         """
-        Recover the predicted answer (as a string) from the logits.
+        Recover the predicted answer (as a string) from the logits and adds it to the current DataDict.
         Will be used in model.plot()
 
-        :param data_tuple: Data tuple.
-        :param logits: Logits being output of the model.
+        :param data_dict: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
+        'targets_string', 'index','imgfile'})
 
-        :return: data_tuple, aux_tuple, logits after preprocessing.
+        :param logits: Logits being output of the model.
+        :type logits: Tensor
+
+        :return:
+
+            - data_dict with one added `predicted answer` key,
+            - logits
+
 
         """
 
         # unpack data_dict
-        images, questions, questions_len, questions_string, question_types, answers, _, indexes, imgfiles = data_dict.values()
+        _, _, _, _, _, answers, _, _, _ = data_dict.values()
 
         batch_size = logits.size(0)
 
@@ -789,63 +751,24 @@ class CLEVR(ImageTextToClassProblem):
         prediction_string = [list(self.answer_dic.keys())[list(self.answer_dic.values()).index(
                 logits_indexes[batch_num].data)] for batch_num in range(batch_size)]
 
-        answer_string = [list(self.clevr_dataset.answer_dic.keys())[list(self.clevr_dataset.answer_dic.values()).index(
+        answer_string = [list(self.answer_dic.keys())[list(self.answer_dic.values()).index(
                 answers[batch_num].data)] for batch_num in range(batch_size)]
 
-        # TODO: Here, we should be able to add these 2 new lists to DataDict so that they can be used in model.plot().
-
-        new_data_dict = dict(data_dict.items() + {'prediction_string': prediction_string, 'answer_string':answer_string})
+        data_dict['targets_string'] = answer_string
+        data_dict['prediction_string'] = prediction_string
+        data_dict['clevr_dir'] = self.data_folder
 
         return data_dict, logits
 
 
 if __name__ == "__main__":
     """Unit test that generates a batch and displays a sample."""
-    '''
-    from utils.param_interface import ParamInterface
-    params = ParamInterface()
-    params.add_default_params({'batch_size': 64,
-                               'data_folder': '~/Downloads/CLEVR_v1.0',
-                               'set': 'train',
-                               'clevr_humans': False,
-                               'embedding_type': 'random',
-                               'random_embedding_dim': 300})
 
-    # create problem
-    clevr_dataset = CLEVR(params)
-    print('Number of episodes to run to cover the set once: {}'.format(clevr_dataset.get_epoch_size()))
-
-    sample = clevr_dataset[0]
-    print('__getitem__ works.')
-
-    # instantiate DataLoader object
-    problem = DataLoader(clevr_dataset, batch_size=params['batch_size'], shuffle=True,
-                         collate_fn=clevr_dataset.collate_fn, num_workers=4)
-
-    # generate a batch
-    import time
-
-    s = time.time()
-    for i, batch in enumerate(problem):
-        print('Batch # {} - {}'.format(i, type(batch)))
-        if i == 200:
-            break
-
-    print('Number of workers: {}'.format(problem.num_workers))
-    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(params['batch_size'], time.time() - s))
-
-    # Display single sample (0) from batch.
-    #batch = next(iter(problem))
-    #clevr_dataset.show_sample(batch, 0)
-    print('Unit test completed.')
-    '''
-
-#########################################################################################################################
     from utils.param_interface import ParamInterface
     params = ParamInterface()
     params.add_default_params({'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
                                'set': 'train',  # ['train', 'val', 'test']
-                               'dataset_variant': 'CLEVR-Humans'},  # ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-Humans']
+                               'dataset_variant': 'CLEVR'},  # ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-Humans']
 
                                'images': {'raw_images': False,
                                           'feature_extractor': {'cnn_model': 'resnet101',  # get list from torchvision
@@ -856,4 +779,28 @@ if __name__ == "__main__":
     # create problem
     clevr_dataset = CLEVR(params)
 
+    batch_size = 64
+    print('Number of episodes to run to cover the set once: {}'.format(clevr_dataset.get_epoch_size(batch_size)))
 
+    sample = clevr_dataset[0]
+    print(repr(sample))
+    print('__getitem__ works.')
+
+    # instantiate DataLoader object
+    problem = DataLoader(clevr_dataset, batch_size=batch_size, shuffle=True, collate_fn=clevr_dataset.collate_fn, num_workers=8)
+
+    import time
+    s = time.time()
+    for i, batch in enumerate(problem):
+        print('Batch # {} - {}'.format(i, type(batch)))
+        if i == 200:
+            break
+
+    print('Number of workers: {}'.format(problem.num_workers))
+    print('time taken to generate 200 batches of size {}: {}s'.format(batch_size, time.time() - s))
+
+    # Display single sample (0) from batch.
+    batch = next(iter(problem))
+    clevr_dataset.show_sample(batch, 0)
+
+    print('Unit test completed.')

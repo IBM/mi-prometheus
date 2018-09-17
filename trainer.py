@@ -550,7 +550,7 @@ if __name__ == '__main__':
             break
 
         # check if we are at the end of the epoch
-        if ((episode+1) % problem_ds.get_epoch_size()) == 0:
+        if ((episode+1) % problem_ds.get_epoch_size(param_interface['training']['problem']['batch_size'])) == 0:
             logger.warning('The DataLoader has exhausted -> using cycle().')
 
         # Next episode.

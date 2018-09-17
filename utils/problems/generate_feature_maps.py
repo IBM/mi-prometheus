@@ -40,13 +40,16 @@
 # limitations under the License.
 
 """
-generate-feature_maps.py: This file contains 1 class:
+generate_feature_maps.py: This file contains 1 class:
 
-- GenerateFeatureMaps: This class instantiates a specified pretrained CNN model to extract feature maps from images stored in the indicated directory. It also creates a DataLoader to generate batches of these images.
-  This class is used in problems.image_text_to_class.new_clevr_dataset.generate_feature_maps_file.
+    - GenerateFeatureMaps: This class instantiates a specified pretrained CNN model to extract feature maps from\
+     images stored in the indicated directory. It also creates a DataLoader to generate batches of these images.
+
+This class is used in problems.image_text_to_class.CLEVR.generate_feature_maps_file.
 
 """
 __author__ = "Vincent Marois"
+import os
 import torchvision
 from torchvision import transforms
 import torch
@@ -54,45 +57,53 @@ from PIL import Image
 
 from torch.utils.data import Dataset
 
-# Add path to main project directory
-import os
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-
-import logging
-logger = logging.getLogger('CLEVR')
-
 
 class GenerateFeatureMaps(Dataset):
     """
-    Class handling the generation of feature using a pretrained CNN for the
-    images of the CLEVR dataset.
+    Class handling the generation of feature using a pretrained CNN for specified images.
     """
 
-    def __init__(self, clevr_dir, set, cnn_model='resnet101', num_blocks=4):
+    def __init__(self, image_dir, cnn_model, num_blocks, filename_template, set='train', transform=transforms.ToTensor):
         """
-        Creates the pretrained CNN model & move it to CUDA.
-        WARNING: WE ONLY AUTHORIZE USING THIS CLASS ON GPU, TO SPEED UP THE FORWARD PASSES OF THE PRETRAINED CNN.
+        Creates the pretrained CNN model & move it to CUDA if available.
 
-        :param clevr_dir: Directory path to the CLEVR dataset.
-        :param set: String to specify which dataset to use: 'train', 'val' or 'test'.
-        :param cnn_model: pretrained CNN model to use
-        :param num_blocks: number of layers to use from the cnn_model.
+        :param image_dir: Directory path to the images to extract features from.
+        :type image_dir: str
+
+        :param cnn_model: Name of the pretrained CNN model to use. Must be in ``torchvision.models.``
+        :type cnn_model: str
+
+        :param num_blocks: number of layers to use from the cnn_model. **This is dependent on the specified\
+        cnn_model, please check this value beforehand.**
+
+        :param filename_template: The template followed by the filenames in ``image_dir``. It should indicate with\
+         brackets where the index is located, e.g.
+
+            >>> filename_template = 'CLEVR_train_{}.png'
+
+        The index will be filled up on 6 characters.
+
+        :param set: The dataset split to use. e.g. ``train``, ``val`` etc.
+        :type set: str, optional.
+
+        :param transform: ``torchvision.transform`` to apply on the images before passing them to the CNN model.\
+        default:
+
+            >>> transform = transforms.ToTensor
+
+        :type transform: transforms, optional.
+
         """
-        # we only authorize the images processing on GPU.
-        if not torch.cuda.is_available():
-            logger.error(
-                'WARNING: CUDA IS NOT AVAILABLE. NOT AUTHORIZING DO FEATURE MAPS EXTRACTION. EXITING.')
-            exit(1)
-
         # call base constructor
         super(GenerateFeatureMaps, self).__init__()
 
         # parse params
-        self.clevr_dir = clevr_dir
+        self.image_dir = image_dir
         self.set = set
         self.cnn_model = cnn_model
         self.num_blocks = num_blocks
+        self.transform = transform
+        self.filename_template = filename_template
 
         # Get specified pretrained cnn model
         cnn = getattr(torchvision.models, self.cnn_model)(pretrained=True)
@@ -105,7 +116,7 @@ class GenerateFeatureMaps(Dataset):
             cnn.maxpool,
         ]
 
-        # get subsequent layers
+        # get subsequent layers: May not work for all torchvision.models!
         for i in range(1, self.num_blocks):
             name = 'layer%d' % i
             layers.append(getattr(cnn, name))
@@ -114,22 +125,15 @@ class GenerateFeatureMaps(Dataset):
         self.model = torch.nn.Sequential(*layers)
 
         # move it to CUDA & specify evaluation behavior
-        self.model.cuda()
+        self.model.cuda() if torch.cuda.is_available() else None
         self.model.eval()
 
-        self.length = len(os.listdir(os.path.join(
-            self.clevr_dir, 'images', self.set)))
-
-        self.transform = transforms.Compose(
-            [transforms.Resize([224, 224]),
-             transforms.ToTensor(),
-             transforms.Normalize(
-                 mean=[0.485, 0.456, 0.406],
-                 std=[0.229, 0.224, 0.225])])
+        # set the dataset size as the numbers of images in the folder
+        self.length = len(os.listdir(os.path.expanduser(self.image_dir)))
 
     def __getitem__(self, index):
         """
-        Gets a image from the CLEVR directory and apply a transform on it.
+        Gets a image from the ``image_dir`` and apply a transform on it if specified.
 
         :param index: index of the sample to get.
 
@@ -137,13 +141,7 @@ class GenerateFeatureMaps(Dataset):
 
         """
         # open image
-        img = os.path.join(
-            self.clevr_dir,
-            'images',
-            self.set,
-            'CLEVR_{}_{}.png'.format(
-                self.set,
-                str(index).zfill(6)))
+        img = os.path.join(self.image_dir, self.filename_template.format(str(index).zfill(6)))
         img = Image.open(img).convert('RGB')
 
         # apply transform & return it as a tensor.

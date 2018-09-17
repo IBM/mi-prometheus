@@ -189,16 +189,20 @@ class MACNetwork(Model):
 
         return fig
 
-    def plot(self, aux_tuple, logits, sample_number=0):
+    def plot(self, data_dict, logits, sample=0):
         """
         Visualize the attention weights (Control Unit & Read Unit) on the
-        question & feature maps. Dynamic visualization trhoughout the reasoning
-        steps possible.
+        question & feature maps. Dynamic visualization throughout the reasoning
+        steps is possible.
 
-        :param aux_tuple: aux_tuple (), transformed by CLEVR.plot_preprocessing()
-            -> (s_questions, answer_string, imgfiles, set, prediction_string, clevr_dir)
+        :param data_dict: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
+        'targets_string', 'index','imgfile', 'prediction_string'})
+
         :param logits: prediction of the network
-        :param sample_number: Number of sample in batch (DEFAULT: 0)
+        :type logits: tensor
+
+        :param sample: Number of sample in batch (Default: 0)
+        :type sample: int
 
         :return: True when the user closes the window, False if we do not need to visualize.
 
@@ -215,15 +219,14 @@ class MACNetwork(Model):
 
         # attention mask [batch_size x 1 x(H*W)]
 
-        # unpack aux_tuple
-        (s_questions, answer_string, imgfiles, set,
-         prediction_string, clevr_dir) = aux_tuple
+        # unpack data_dict
+        _, _, _, s_questions, question_type, _, answer_string, index, imgfiles, prediction_string, clevr_dir = data_dict.values()
 
         # needed for nltk.word.tokenize
         nltk.download('punkt')
         # tokenize question string using same processing as in the problem
         # class
-        words = nltk.word_tokenize(s_questions[sample_number])
+        words = nltk.word_tokenize(s_questions[sample])
 
         # Create figure template.
         fig = self.generate_figure_layout()
@@ -231,14 +234,15 @@ class MACNetwork(Model):
         (ax_image, ax_attention_image, ax_attention_question, ax_step) = fig.axes
 
         # get the image
-        image = os.path.join(clevr_dir, 'images', set, imgfiles[sample_number])
+        set = imgfiles[sample].split('_')[1]
+        image = os.path.join(clevr_dir, 'images', set, imgfiles[sample])
         image = Image.open(image).convert('RGB')
         image = self.transform(image)
         image = image.permute(1, 2, 0)  # [300, 300, 3]
 
         # get most probable answer -> prediction of the network
         proba_answers = F.softmax(logits, -1)
-        proba_answer = proba_answers[sample_number].detach().cpu()
+        proba_answer = proba_answers[sample].detach().cpu()
         proba_answer = proba_answer.max().numpy()
 
         # image & attention sizes
@@ -257,10 +261,10 @@ class MACNetwork(Model):
             m = torch.nn.Upsample(
                 size=[width, height], mode='bilinear', align_corners=True)
             up_sample_attention_mask = m(attention_mask)
-            attention_mask = up_sample_attention_mask[sample_number, 0]
+            attention_mask = up_sample_attention_mask[sample, 0]
 
             # preprocess question, pick one sample number
-            attention_question = attention_question[sample_number]
+            attention_question = attention_question[sample]
 
             # Create "Artists" drawing data on "ImageAxes".
             num_artists = len(fig.axes) + 1
@@ -268,16 +272,16 @@ class MACNetwork(Model):
 
             # set title labels
             ax_image.set_title(
-                'CLEVR image: {}'.format(imgfiles[sample_number]))
+                'CLEVR image: {}'.format(imgfiles[sample]))
             ax_attention_question.set_xticklabels(
                 ['h'] + words, rotation='vertical', fontsize=10)
             ax_step.axis('off')
 
             # set axis attention labels
             ax_attention_image.set_title(
-                'Predicted Answer: ' + prediction_string[sample_number] +
+                'Predicted Answer: ' + prediction_string[sample] +
                 ' [ proba: ' + str.format("{0:.3f}", proba_answer) + ']  ' +
-                'Ground Truth: ' + answer_string[sample_number])
+                'Ground Truth: ' + answer_string[sample])
 
             # Tell artists what to do:
             artists[0] = ax_image.imshow(
