@@ -62,10 +62,6 @@ from problems.problem import DataDict
 
 from problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem
 
-# temporary
-import logging
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger('temp')
 
 class CLEVR(ImageTextToClassProblem):
     """
@@ -171,7 +167,6 @@ class CLEVR(ImageTextToClassProblem):
         """
         # Call base class constructors.
         super(CLEVR, self).__init__(params)
-        self.logger = logger
 
         # parse parameters from the params dict
         self.parse_param_tree(params)
@@ -436,17 +431,13 @@ class CLEVR(ImageTextToClassProblem):
         with open(os.path.join(self.data_folder, 'questions/index_to_family.json')) as f:
             index_to_family = json.load(f)
 
-            {"split": "train", "image_filename": "CLEVR_train_002595.png", "answer": "purple",
-             "question": "What color is the big shiny thing that has the same color as the big shiny cylinder?",
-             "image_index": 2595}
-
         # start constructing vocab sets
         result = []
         word_index = 1  # 0 reserved for padding
         answer_index = 0
 
         self.logger.info('Constructing {} {} words dictionary:'.format(self.dataset, set))
-        for question in tqdm.tqdm(data['questions']):
+        for question in tqdm.tqdm(data['questions'], size=len(data['questions'], unit='questions')):
             words = nltk.word_tokenize(question['question'])
             question_token = []
 
