@@ -62,6 +62,10 @@ from problems.problem import DataDict
 
 from problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem
 
+# temporary
+import logging
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger('temp')
 
 class CLEVR(ImageTextToClassProblem):
     """
@@ -112,7 +116,7 @@ class CLEVR(ImageTextToClassProblem):
                         - For CLEVR-Humans, since only the questions change (and the images remains the same),\
                           please put the corresponding `.json` files in `~/CLEVR_v1.0/questions/`.
                         - For CLEVR-CoGenT, this is a fairly separate dataset with different questions & images.
-                          Indicate ``data_folder`` as the root to `~/CLEVR_CoGenT_v1.0` in this case.
+                          Indicate ``data_folder`` as the root to `~/CLEVR_CoGenT_v1.0/` in this case.
 
             - ``set``: either ``train``, ``val`` in the case of `CLEVR` & `CLEVR-Humans`, and ``valA``, ``valB`` or\
               ``trainA`` in the case of CLEVR-CoGenT. ``test`` is not supported yet since ground truth answers are\
@@ -167,6 +171,7 @@ class CLEVR(ImageTextToClassProblem):
         """
         # Call base class constructors.
         super(CLEVR, self).__init__(params)
+        self.logger = logger
 
         # parse parameters from the params dict
         self.parse_param_tree(params)
@@ -431,6 +436,10 @@ class CLEVR(ImageTextToClassProblem):
         with open(os.path.join(self.data_folder, 'questions/index_to_family.json')) as f:
             index_to_family = json.load(f)
 
+            {"split": "train", "image_filename": "CLEVR_train_002595.png", "answer": "purple",
+             "question": "What color is the big shiny thing that has the same color as the big shiny cylinder?",
+             "image_index": 2595}
+
         # start constructing vocab sets
         result = []
         word_index = 1  # 0 reserved for padding
@@ -458,9 +467,14 @@ class CLEVR(ImageTextToClassProblem):
                 answer_index += 1
 
             # save sample params as a dict.
+            try:
+                question_type = index_to_family[str(question['question_family_index'])]
+            except:
+                question_type = None
+
             result.append({'tokenized_question': question_token, 'answer': answer,
                            'string_question': question['question'], 'imgfile': question['image_filename'],
-                           'question_type': index_to_family[str(question['question_family_index'])]})
+                           'question_type': question_type})
 
         self.logger.info('Done: constructed words dictionary of length {}, and answers dictionary of length {}'.format(len(word_dic),
                                                                                                             len(answer_dic)))
@@ -515,7 +529,7 @@ class CLEVR(ImageTextToClassProblem):
 
                 # forward pass, move output to cpu and store it into the file.
                 features = dataset.model(image).detach().cpu().numpy()
-                with open(os.path.join(dir, '{}_{}_{}.pt'.format(self.dataset, self.set, str(i).zfill(6))), 'wb') as f:
+                with open(os.path.join(dir, '{}_{}_{}.pt'.format('CLEVR-CoGenT' if self.dataset=='CLEVR-CoGenT' else 'CLEVR', self.set, str(i).zfill(6))), 'wb') as f:
                     torch.save(features, f)
 
         self.logger.warning('Features successfully extracted and stored in {}.'.format(dir))
@@ -546,7 +560,8 @@ class CLEVR(ImageTextToClassProblem):
         # create the image index to retrieve the feature maps or the original image
         index = str(imgfile.rsplit('_', 1)[1][:-4]).zfill(6)
         extension = '.png' if params['images']['raw_images'] else '.pt'
-        with open(os.path.join(self.image_source, '{}_{}_{}{}'.format(self.dataset, self.set, index, extension)), 'rb') as f:
+        with open(os.path.join(self.image_source, '{}_{}_{}{}'.format('CLEVR-CoGenT' if self.dataset=='CLEVR-CoGenT' else 'CLEVR',
+                                                                      self.set, index, extension)), 'rb') as f:
             try:
                 img = torch.load(f)  # for feature maps
                 img = torch.from_numpy(img).type(self.app_state.dtype)
@@ -767,12 +782,12 @@ if __name__ == "__main__":
     from utils.param_interface import ParamInterface
     params = ParamInterface()
     params.add_default_params({'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
-                               'set': 'train',  # ['train', 'val', 'test']
-                               'dataset_variant': 'CLEVR'},  # ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-Humans']
+                               'set': 'val',
+                               'dataset_variant': 'CLEVR-Humans'},
 
                                'images': {'raw_images': False,
-                                          'feature_extractor': {'cnn_model': 'resnet101',  # get list from torchvision
-                                                                'num_blocks': 4}},  # how to assert ?
+                                          'feature_extractor': {'cnn_model': 'resnet101',
+                                                                'num_blocks': 4}},
 
                                'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
 
@@ -787,7 +802,8 @@ if __name__ == "__main__":
     print('__getitem__ works.')
 
     # instantiate DataLoader object
-    problem = DataLoader(clevr_dataset, batch_size=batch_size, shuffle=True, collate_fn=clevr_dataset.collate_fn, num_workers=8)
+    problem = DataLoader(clevr_dataset, batch_size=batch_size, shuffle=False, collate_fn=clevr_dataset.collate_fn,
+                         num_workers=8)
 
     import time
     s = time.time()
