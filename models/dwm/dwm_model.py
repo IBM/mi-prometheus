@@ -176,16 +176,17 @@ class DWM(SequentialModel):
         fig = Figure()
 
         # Create a specific grid for DWM .
-        gs = gridspec.GridSpec(3, 7)
+        gs1 = gridspec.GridSpec(9, 10)
+        ax_memory = fig.add_subplot(gs1[:, :2])  # all rows, col 0
+        ax_attention = fig.add_subplot(gs1[:, 2:6])  # all rows, col 2-3
+        ax_snapshot = fig.add_subplot(gs1[:, 6:])  # all rows, col 4-5
+        gs1.tight_layout(fig, rect=[0, 0, 0.65, 1])
 
-        # Memory
-        ax_memory = fig.add_subplot(gs[:, 0])  # all rows, col 0
-        ax_attention = fig.add_subplot(gs[:, 1:3])  # all rows, col 2-3
-        ax_snapshot = fig.add_subplot(gs[:, 3:5])  # all rows, col 4-5
-
-        ax_inputs = fig.add_subplot(gs[0, 5:])  # row 0, span 2 columns
-        ax_targets = fig.add_subplot(gs[1, 5:])  # row 0, span 2 columns
-        ax_predictions = fig.add_subplot(gs[2, 5:])  # row 0, span 2 columns
+        gs2 = gridspec.GridSpec(9, 5)
+        ax_inputs = fig.add_subplot(gs2[0:3, :])  # row 0, span 2 columns
+        ax_targets = fig.add_subplot(gs2[3:6, :])  # row 0, span 2 columns
+        ax_predictions = fig.add_subplot(gs2[6:9, :])  # row 0, span 2 columns
+        gs2.tight_layout(fig, rect=[0.6, 0, 1, 1])
 
         # Set ticks - for bit axes only (for now).
         ax_inputs.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
@@ -215,9 +216,9 @@ class DWM(SequentialModel):
         ax_memory.set_title('Memory')
         ax_memory.set_ylabel('Memory Addresses')
         ax_memory.set_xlabel('Content bits')
-        ax_attention.set_title('Head attention')
+        ax_attention.set_title('Head Attention')
         ax_attention.set_xlabel('Iteration')
-        ax_snapshot.set_title('Snapshot/Bookmark Attention')
+        ax_snapshot.set_title('Bookmark Attention')
         ax_snapshot.set_xlabel('Iteration')
 
         fig.set_tight_layout(True)
@@ -251,7 +252,8 @@ class DWM(SequentialModel):
         # start_time = time.time()
         inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
         targets_seq = data_tuple.targets[0].cpu().detach().numpy()
-        predictions_seq = predictions[0].cpu().detach().numpy()
+        predictions_seq = predictions[0].cpu().detach()
+        predictions_seq = torch.sigmoid(predictions_seq).numpy()
 
         # temporary for data with additional channel
         if len(inputs_seq.shape) == 3:
@@ -297,8 +299,7 @@ class DWM(SequentialModel):
             targets_displayed[:, i] = target_element
             predictions_displayed[:, i] = prediction_element
 
-            memory_displayed = memory[0]
-            # Get attention of head 0.
+            memory_displayed = np.clip(memory[0], -3.0, 3.0)
             head_attention_displayed[:, i] = wt[0, 0, :]
             snapshot_attention_displayed[:, i] = wt_d[0, 0, :]
 
@@ -306,22 +307,24 @@ class DWM(SequentialModel):
             artists = [None] * len(fig.axes)
 
             # Tell artists what to do;)
-            artists[0] = ax_memory.imshow(np.transpose(
-                memory_displayed), interpolation='nearest', aspect='auto')
-            artists[1] = ax_attention.imshow(
-                head_attention_displayed,
-                interpolation='nearest',
-                aspect='auto')
-            artists[2] = ax_snapshot.imshow(
-                snapshot_attention_displayed,
-                interpolation='nearest',
-                aspect='auto')
-            artists[3] = ax_inputs.imshow(
-                inputs_displayed, interpolation='nearest', aspect='auto')
-            artists[4] = ax_targets.imshow(
-                targets_displayed, interpolation='nearest', aspect='auto')
-            artists[5] = ax_predictions.imshow(
-                predictions_displayed, interpolation='nearest', aspect='auto')
+            artists[0] = ax_memory.pcolormesh(np.transpose(memory_displayed),
+                                              edgecolors='g', linewidths=0.005,
+                                          vmin=-3.0, vmax=3.0)
+            artists[1] = ax_attention.pcolormesh(np.copy(head_attention_displayed),
+                                             edgecolors='g', linewidths=0.005,
+                                             vmin=0.0, vmax=1.0)
+            artists[2] = ax_snapshot.pcolormesh(np.copy(snapshot_attention_displayed),
+                                            edgecolors='g', linewidths=0.005,
+                                            vmin=0.0, vmax=1.0)
+            artists[3] = ax_inputs.pcolormesh(np.copy(inputs_displayed),
+                                              edgecolors='g', linewidths=0.005,
+                                              vmin=0.0, vmax=1.0)
+            artists[4] = ax_targets.pcolormesh(np.copy(targets_displayed),
+                                               edgecolors='g', linewidths=0.005,
+                                               vmin=0.0, vmax=1.0)
+            artists[5] = ax_predictions.pcolormesh(np.copy(predictions_displayed),
+                                                   edgecolors='g', linewidths=0.005,
+                                                   vmin=0.0, vmax=1.0)
 
             # Add "frame".
             frames.append(artists)
