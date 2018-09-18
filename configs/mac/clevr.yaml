@@ -59,7 +59,7 @@ validation:
         batch_size: *b
         settings:
             data_folder: *dir
-            set: 'train'
+            set: 'val'
             dataset_variant: *var
         images:
             raw_images: False
