@@ -325,15 +325,23 @@ if __name__ == '__main__':
 
     from problems.image_text_to_class.clevr import CLEVR
     problem_params = ParamInterface()
-    problem_params.add_custom_params({'batch_size': 64, 'CLEVR_dir': '/home/vmarois/Downloads/CLEVR_v1.0', 'set': 'train',
-                      'clevr_humans': False, 'embedding_type': 'random', 'random_embedding_dim': 300})
+    problem_params.add_custom_params({'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
+                               'set': 'train',
+                               'dataset_variant': 'CLEVR'},
+
+                               'images': {'raw_images': False,
+                                          'feature_extractor': {'cnn_model': 'resnet101',
+                                                                'num_blocks': 4}},
+
+                               'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
 
     # create problem
     clevr_dataset = CLEVR(problem_params)
     print('Problem {} instantiated.'.format(clevr_dataset.name))
 
     # instantiate DataLoader object
-    problem = DataLoader(clevr_dataset, batch_size=problem_params['batch_size'], collate_fn=clevr_dataset.collate_fn)
+    batch_size=64
+    problem = DataLoader(clevr_dataset, batch_size=batch_size, collate_fn=clevr_dataset.collate_fn)
 
     model_params = ParamInterface()
     model_params.add_custom_params({'dim': dim,

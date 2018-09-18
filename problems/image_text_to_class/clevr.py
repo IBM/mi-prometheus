@@ -344,6 +344,7 @@ class CLEVR(ImageTextToClassProblem):
                                                             "Got: {}".format(self.data_folder)
 
         # get the images parameters:
+        self.raw_image = params['images']['raw_images']
         if params['images']['raw_images']:
             self.image_source = os.path.join(self.data_folder, 'images', self.set)
         else:
@@ -550,15 +551,15 @@ class CLEVR(ImageTextToClassProblem):
 
         # create the image index to retrieve the feature maps or the original image
         index = str(imgfile.rsplit('_', 1)[1][:-4]).zfill(6)
-        extension = '.png' if params['images']['raw_images'] else '.pt'
+        extension = '.png' if self.raw_image else '.pt'
         with open(os.path.join(self.image_source, '{}_{}_{}{}'.format('CLEVR-CoGenT' if self.dataset=='CLEVR-CoGenT' else 'CLEVR',
                                                                       self.set, index, extension)), 'rb') as f:
             try:
                 img = torch.load(f)  # for feature maps
-                img = torch.from_numpy(img).type(self.app_state.dtype)
+                img = torch.from_numpy(img).type(self.app_state.dtype).squeeze()
             except:
                 img = Image.open(f).convert('RGB')  # for the original images
-                img = ToTensor()(img).type(self.app_state.dtype)
+                img = ToTensor()(img).type(self.app_state.dtype).squeeze()
 
         # embed question
         if self.embedding_type == 'random':
@@ -773,8 +774,8 @@ if __name__ == "__main__":
     from utils.param_interface import ParamInterface
     params = ParamInterface()
     params.add_default_params({'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
-                               'set': 'val',
-                               'dataset_variant': 'CLEVR-Humans'},
+                               'set': 'train',
+                               'dataset_variant': 'CLEVR'},
 
                                'images': {'raw_images': False,
                                           'feature_extractor': {'cnn_model': 'resnet101',
