@@ -556,15 +556,15 @@ class CLEVR(ImageTextToClassProblem):
                                                                       self.set, index, extension)), 'rb') as f:
             try:
                 img = torch.load(f)  # for feature maps
-                img = torch.from_numpy(img).type(self.app_state.dtype).squeeze()
+                img = torch.from_numpy(img).type(torch.FloatTensor).squeeze()
             except:
                 img = Image.open(f).convert('RGB')  # for the original images
-                img = ToTensor()(img).type(self.app_state.dtype).squeeze()
+                img = ToTensor()(img).type(torch.FloatTensor).squeeze()
 
         # embed question
         if self.embedding_type == 'random':
             # embed question:
-            question = self.embed_layer(torch.LongTensor(question)).type(self.app_state.dtype)
+            question = self.embed_layer(torch.LongTensor(question)).type(torch.FloatTensor)
 
         else:
             # embed question
@@ -615,14 +615,14 @@ class CLEVR(ImageTextToClassProblem):
         sort_by_len = sorted(batch, key=lambda x: x['question_length'], reverse=True)
 
         # create tensor containing the embedded questions
-        questions = torch.zeros(batch_size, max_len, self.embedding_dim).type(self.app_state.dtype)
+        questions = torch.zeros(batch_size, max_len, self.embedding_dim).type(torch.FloatTensor)
 
         # construct the DataDict and fill it with the batch
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
 
-        data_dict['img'] = torch.stack([elt['img'] for elt in sort_by_len]).type(self.app_state.dtype)
+        data_dict['img'] = torch.stack([elt['img'] for elt in sort_by_len]).type(torch.FloatTensor)
         data_dict['question_length'] = [elt['question_length'] for elt in sort_by_len]
-        data_dict['targets'] = torch.tensor([elt['targets'] for elt in sort_by_len]).type(self.app_state.LongTensor)
+        data_dict['targets'] = torch.tensor([elt['targets'] for elt in sort_by_len]).type(torch.LongTensor)
         data_dict['question_string'] = [elt['question_string'] for elt in sort_by_len]
         data_dict['index'] = [elt['index'] for elt in sort_by_len]
         data_dict['imgfile'] = [elt['imgfile'] for elt in sort_by_len]
