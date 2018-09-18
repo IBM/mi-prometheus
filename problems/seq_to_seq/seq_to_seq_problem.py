@@ -16,7 +16,7 @@ class SeqToSeqProblem(Problem):
         """
         Initializes problem object. Calls base constructor.
 
-        :param params: Dictionary of parameters (read from configuration file).
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
         """
         super(SeqToSeqProblem, self).__init__(params)

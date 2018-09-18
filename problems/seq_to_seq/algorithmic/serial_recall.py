@@ -15,8 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""serial_recall_original.py: Original serial recall problem (a.k.a. copy task)"""
-__author__ = "Tomasz Kornuta, Younes Bouhadjar"
+"""
+serial_recall_original.py: Original serial recall problem (a.k.a. copy task)
+
+"""
+__author__ = "Tomasz Kornuta, Younes Bouhadjar, Vincent Marois"
 
 import torch
 import numpy as np
@@ -48,9 +51,10 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
 
     def __init__(self, params):
         """
-        Constructor - stores parameters. Calls parent class initialization.
+        Constructor - stores parameters. Calls parent class ``AlgorithmicSeqToSeqProblem``\
+         initialization.
 
-        :param params: Dictionary of parameters.
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
         """
         # Call parent constructor - sets e.g. the loss function, dtype.
         # Additionally it extracts "standard" list of parameters for
@@ -68,7 +72,7 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
 
         .. note::
 
-            The sequence length is drawn randomly between ``selg.min_sequence_length`` and \
+            The sequence length is drawn randomly between ``self.min_sequence_length`` and \
             ``self.max_sequence_length``.
 
 
@@ -109,12 +113,12 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
         targets[seq_length + 2:, :] = bit_seq
 
         # Generate target mask: [2*SEQ_LENGTH+2]
-        mask = torch.zeros([2 * seq_length + 2]).type(torch.ByteTensor)
+        mask = torch.zeros([2 * seq_length + 2]).type(self.app_state.ByteTensor)
         mask[seq_length + 2:] = 1
 
         # PyTorch variables.
-        ptinputs = torch.from_numpy(inputs).type(self.dtype)
-        pttargets = torch.from_numpy(targets).type(self.dtype)
+        ptinputs = torch.from_numpy(inputs).type(self.app_state.dtype)
+        pttargets = torch.from_numpy(targets).type(self.app_state.dtype)
 
         # Return data_dict.
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
@@ -139,7 +143,7 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
             without padding).
             Hence, ``collate_fn`` generates on-the-fly a batch of samples, all having the same length (initially\
             randomly selected).
-            The samples created by ``__getitem__`` are simply not used.
+            The samples created by ``__getitem__`` are simply not used in this function.
 
 
         :param batch: Should be a list of DataDict retrieved by `__getitem__`, each containing tensors, numbers,\
@@ -192,8 +196,8 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
         mask[:, seq_length + 2:] = 1
 
         # PyTorch variables.
-        ptinputs = torch.from_numpy(inputs).type(self.dtype)
-        pttargets = torch.from_numpy(targets).type(self.dtype)
+        ptinputs = torch.from_numpy(inputs).type(self.app_state.dtype)
+        pttargets = torch.from_numpy(targets).type(self.app_state.dtype)
 
         # Return data_dict.
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
@@ -231,7 +235,6 @@ if __name__ == "__main__":
     sample = dataset[0]
     print(repr(sample))
     print('__getitem__ works.')
-
 
     # wrap DataLoader on top
     from torch.utils.data.dataloader import DataLoader
