@@ -223,22 +223,21 @@ if __name__ == "__main__":
     params = ParamInterface()
     params.add_custom_params({'control_bits': 2,
                               'data_bits': 8,
-                              'batch_size': 1,
                               'min_sequence_length': 1,
                               'max_sequence_length': 10})
     batch_size = 64
 
     # Create problem object.
-    dataset = SerialRecall(params)
+    serialrecall = SerialRecall(params)
 
     # get a sample
-    sample = dataset[0]
+    sample = serialrecall[0]
     print(repr(sample))
     print('__getitem__ works.')
 
     # wrap DataLoader on top
     from torch.utils.data.dataloader import DataLoader
-    problem = DataLoader(dataset=dataset, batch_size=batch_size, collate_fn=dataset.collate_fn,
+    problem = DataLoader(dataset=serialrecall, batch_size=batch_size, collate_fn=serialrecall.collate_fn,
                          shuffle=False, num_workers=4)
 
     # generate a batch
@@ -250,9 +249,9 @@ if __name__ == "__main__":
 
     print('Number of workers: {}'.format(problem.num_workers))
     print('time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
-          .format(dataset.__len__(), params['batch_size'], time.time() - s))
+          .format(serialrecall.__len__(), params['batch_size'], time.time() - s))
 
     # Display single sample (0) from batch.
     #batch = next(iter(problem))
-    #dataset.show_sample(batch, 0)
+    #serialrecall.show_sample(batch, 0)
     print('Unit test completed.')
