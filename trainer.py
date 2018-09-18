@@ -19,37 +19,7 @@
 __author__ = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
 
 
-import logging
-import logging.config
-import os
 
-# Force MKL (CPU BLAS) to use one core, faster
-os.environ["OMP_NUM_THREADS"] = '1'
-
-import yaml
-from random import randrange
-
-from datetime import datetime
-from time import sleep
-
-import argparse
-import torch
-from torch import nn
-import collections
-import numpy as np
-
-from torch.utils.data.sampler import RandomSampler
-from torch.utils.data.dataloader import DataLoader
-
-# Import utils.
-from utils.app_state import AppState
-from utils.statistics_collector import StatisticsCollector
-from utils.param_interface import ParamInterface
-from utils.worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse
-
-# Import model and problem factories.
-from problems.problem_factory import ProblemFactory
-from models.model_factory import ModelFactory
 
 
 def cycle(iterable):
@@ -109,6 +79,38 @@ def validation(model, problem, episode, stat_col, data_valid, FLAGS, logger, val
 
 
 if __name__ == '__main__':
+    import logging
+    import logging.config
+    import os
+
+    # Force MKL (CPU BLAS) to use one core, faster
+    os.environ["OMP_NUM_THREADS"] = '1'
+
+    import yaml
+    from random import randrange
+
+    from datetime import datetime
+    from time import sleep
+
+    import argparse
+    import torch
+    from torch import nn
+    import collections
+    import numpy as np
+
+    from torch.utils.data.sampler import RandomSampler
+    from torch.utils.data.dataloader import DataLoader
+
+    # Import utils.
+    from utils.app_state import AppState
+    from utils.statistics_collector import StatisticsCollector
+    from utils.param_interface import ParamInterface
+    from utils.worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse
+
+    # Import model and problem factories.
+    from problems.problem_factory import ProblemFactory
+    from models.model_factory import ModelFactory
+    
     # Create parser with list of  runtime arguments.
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter)
