@@ -21,7 +21,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
     """
     ``Sort-of-CLEVR`` is a simple VQA problem, where the goal is to answer the\
     question regarding a given image. Implementation of the generation is\
-    inspired by: git@github.com:gitlimlab/Relation-Network-Tensorflow.git
+    inspired by: https://github.com/gitlimlab/Relation-Network-Tensorflow
 
     Improvements:
 
@@ -621,7 +621,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
 
 if __name__ == "__main__":
-    """ Tests sort of CLEVR - generates and displays a sample"""
+    """ Tests SortOfCLEVR - generates and displays a sample"""
 
     # "Loaded parameters".
     from utils.param_interface import ParamInterface 
