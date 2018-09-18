@@ -118,7 +118,7 @@ if __name__ == '__main__':
         dest='outdir',
         type=str,
         default="./experiments",
-        help='Path to output directory where the experiments will be stored (DEFAULT: ./experiments)12')
+        help='Path to output directory where the experiments will be stored (DEFAULT: ./experiments)')
     parser.add_argument(
         '--tensorboard', action='store', dest='tensorboard', choices=[0, 1, 2],
         type=int,
