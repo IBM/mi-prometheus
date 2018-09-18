@@ -736,7 +736,7 @@ class CLEVR(ImageTextToClassProblem):
         :param data_dict: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
         'targets_string', 'index','imgfile'})
 
-        :param logits: Logits being output of the model.
+        :param logits: Predictions of the model.
         :type logits: Tensor
 
         :return:

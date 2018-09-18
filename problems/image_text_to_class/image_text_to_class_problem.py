@@ -6,7 +6,6 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import torch
 import torch.nn as nn
-from torch.utils.data.dataloader import default_collate
 from problems.problem import Problem, DataDict
 
 
