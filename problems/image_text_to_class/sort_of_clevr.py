@@ -639,9 +639,9 @@ if __name__ == "__main__":
     print('Number of episodes to run to cover the set once: {}'.format(sortofclevr.get_epoch_size(batch_size)))
 
     # get a sample
-    #sample = sortofclevr[0]
-    #print(repr(sample))
-    #print('__getitem__ works.')
+    sample = sortofclevr[0]
+    print(repr(sample))
+    print('__getitem__ works.')
 
     # wrap DataLoader on top of this Dataset subclass
     from torch.utils.data.dataloader import DataLoader
@@ -660,7 +660,7 @@ if __name__ == "__main__":
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
-    #batch = next(iter(dataloader))
-    #sortofclevr.show_sample(batch, 0)
+    batch = next(iter(dataloader))
+    sortofclevr.show_sample(batch, 0)
 
     print('Unit test completed')

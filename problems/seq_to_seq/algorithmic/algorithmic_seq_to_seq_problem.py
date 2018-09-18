@@ -15,8 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""algorithmic_seq_to_seq_problem.py: abstract base class for algorithmic, sequential problems"""
-__author__ = "Tomasz Kornuta, Younes Bouhadjar"
+"""
+algorithmic_seq_to_seq_problem.py: abstract base class for algorithmic sequential problems.
+
+"""
+__author__ = "Tomasz Kornuta, Younes Bouhadjar, Vincent Marois"
 
 import numpy as np
 import torch
@@ -29,21 +32,22 @@ from utils.loss.masked_bce_with_logits_loss import MaskedBCEWithLogitsLoss
 
 class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
     """
-    Base class for algorithmic, sequential problems.
+    Base class for algorithmic sequential problems.
 
-    Provides some basic functionality usefull in all problems of such
-    type
+    Provides some basic features useful in all problems of such nature.
 
     """
 
     def __init__(self, params):
         """
-        Initializes problem object. Calls base constructor. Sets
-        nn.BCEWithLogitsLoss() as default loss function.
+        Initializes problem object. Calls base ``SeqToSeqProblem`` constructor.
 
-        :param params: Dictionary of parameters (read from configuration file).
+        Sets ``nn.BCEWithLogitsLoss()`` as the default loss function.
+
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
         """
+        # call base constructor
         super(AlgorithmicSeqToSeqProblem, self).__init__(params)
 
         # Set default loss function - cross entropy.
@@ -67,18 +71,15 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
             params.add_default_params({'bias': 0.5})
         self.bias = params['bias']
 
-        # Set initial dtype.
-        self.dtype = torch.FloatTensor
-
         # "Default" problem name.
         self.name = 'AlgorithmicSeqToSeqProblem'
 
         # set default data_definitions dict
         self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'sequences_length': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'sequences_length': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
                                  'mask': {'size': [-1, -1], 'type': [torch.Tensor]},
-                                 'num_subsequences': {'size': [-1, 1], 'type': [torch.Tensor]}, #TODO: check size & type
+                                 'num_subsequences': {'size': [-1], 'type': [torch.Tensor]},
                                  }
 
         self.default_values = {'control_bits': self.control_bits,
@@ -87,17 +88,25 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
                                'max_sequence_length': self.max_sequence_length
                                }
 
-        # This a safety net in case the user forgets to set it
-        # because the dataset can be gigantic!
+        # TODO: Should derive the actual theoretical limit instead of a arbitrary limit.
         self.length = 100000
 
     def calculate_accuracy(self, data_dict, logits):
-        """ Calculate accuracy equal to mean difference between outputs and targets.
-        WARNING: Applies mask to both logits and targets!
+        """
+        Calculate accuracy equal to mean difference between outputs and targets.
+
+        .. warning::
+
+            Applies mask to both logits and targets.
+
 
         :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}).
 
-        :param logits: Predictions being output of the model.
+        :param logits: Predictions of the model.
+        :type logits: tensor
+
+        :return: Accuracy.
+
         """
 
         # Check if mask should be is used - if so, apply.
@@ -122,15 +131,17 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         To be redefined in subclasses.
 
-        **The getter should return a DataDict: its keys should be defined by `self.data_definitions` keys.**
+        **The getter should return a DataDict: its keys should be defined by ``self.data_definitions`` keys.**
 
         e.g.:
+
             >>> data_dict = DataDict({key: None for key in self.data_definitions.keys()})
             >>> # you can now access each value by its key and assign the corresponding object (e.g. `torch.Tensor` etc)
             >>> ...
             >>> return data_dict
 
         :param index: index of the sample to return.
+        :type index: int
 
         :return: DataDict containing the sample.
 
@@ -141,6 +152,19 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
     def add_ctrl(self, seq, ctrl, pos):
         """
         Adds control channels to a sequence.
+
+        :param seq: Sequence to which controls channel are added.
+        :type seq: array_like
+
+        :param ctrl: Elements to add
+        :type ctrl: array_like
+
+        :param: pos: Object that defines the index or indices before which ctrl is inserted.
+        :type pos: int, slice or sequence of ints
+
+        :return: updated sequence.
+
+
         """
         return np.insert(seq, pos, ctrl, axis=-1)
 
@@ -148,6 +172,24 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
                 add_marker_data=False, add_marker_dummy=True):
         """
         Creates augmented sequence as well as end marker and a dummy sequence.
+
+        :param seq: Sequence
+        :type seq: array_like
+
+        :param markers: (ctrl_data, ctrl_dummy, pos)
+        :type markers: tuple
+
+        :param ctrl_start:
+        :type ctrl_start:
+
+        :param add_marker_data: Whether to add a marker before the data
+        :type add_marker_data: bool
+
+        :param add_marker_dummy: Whether to add a marker before the dummy
+        :type add_marker_dummy: bool
+
+        :return: [augmented_sequence, dummy]
+
         """
         ctrl_data, ctrl_dummy, pos = markers
 
@@ -169,9 +211,10 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
     def add_statistics(self, stat_col):
         """
-        Add accuracy, seq_length and num_subsequences statistics to collector.
+        Add accuracy, seq_length and max_seq_length statistics to a ``StatisticsCollector``.
 
         :param stat_col: Statistics collector.
+        :type stat_col: ``StatisticsCollector``
 
         """
         stat_col.add_statistic('acc', '{:12.10f}')
@@ -181,11 +224,16 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
     def collect_statistics(self, stat_col, data_dict, logits):
         """
-        Collects accuracy, seq_length and num_subsequences.
+        Collects accuracy, seq_length and max_seq_length.
 
         :param stat_col: Statistics collector.
+        :type stat_col: ``StatisticsCollector``
+
         :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}).
-        :param logits: Logits being output of the model.
+        :type data_dict: DataDict
+
+        :param logits: Predictions of the model.
+        :type logits: tensor
 
         """
         stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
@@ -193,14 +241,16 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         #stat_col['num_subseq'] = data_dict['num_subsequences']
         stat_col['max_seq_length'] = self.max_sequence_length
 
-    def show_sample(self, data_dict, sample_number=0):
+    def show_sample(self, data_dict, sample=0):
         """
-        Shows the sample (both input and target sequences) using matplotlib.
+        Shows the sample (both input and target sequences) using ``matplotlib``.
         Elementary visualization.
 
         :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}).
+        :type data_dict: DataDict
 
-        :param sample_number: Number of sample in a batch (DEFAULT: 0)
+        :param sample: Number of sample in a batch (Default: 0)
+        :type sample: int
 
         """
 
@@ -226,18 +276,18 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         ax3.set_xlabel('Item number', fontname='Times New Roman', fontsize=13)
 
         # print data
-        print("\ninputs:", data_dict['sequences'][sample_number, :, :])
-        print("\ntargets:", data_dict['targets'][sample_number, :, :])
-        print("\nmask:", data_dict['mask'][sample_number:sample_number + 1, :])
+        print("\ninputs:", data_dict['sequences'][sample, :, :])
+        print("\ntargets:", data_dict['targets'][sample, :, :])
+        print("\nmask:", data_dict['mask'][sample:sample + 1, :])
         print("\nseq_length:", data_dict['sequences_length'])
         print("\nnum_subsequences:", data_dict['num_subsequences'])
 
         # show data.
-        ax1.imshow(np.transpose(data_dict['sequences'][sample_number, :, :], [
+        ax1.imshow(np.transpose(data_dict['sequences'][sample, :, :], [
                    1, 0]), interpolation='nearest', aspect='auto')
-        ax2.imshow(np.transpose(data_dict['targets'][sample_number, :, :], [
+        ax2.imshow(np.transpose(data_dict['targets'][sample, :, :], [
                    1, 0]), interpolation='nearest', aspect='auto')
-        ax3.imshow(data_dict['mask'][sample_number:sample_number + 1, :], interpolation='nearest', aspect='auto')
+        ax3.imshow(data_dict['mask'][sample:sample + 1, :], interpolation='nearest', aspect='auto')
         # Plot!
         plt.tight_layout()
         plt.show()
@@ -245,11 +295,13 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
     def curriculum_learning_update_params(self, episode):
         """
         Updates problem parameters according to curriculum learning. In the
-        case of algorithmic sequential problems it updates the max sequence
+        case of algorithmic sequential problems, it updates the max sequence
         length, depending on configuration parameters.
 
         :param episode: Number of the current episode.
-        :returns: Boolean informing whether curriculum learning is finished (or wasn't active at all).
+        :type episode: int
+
+        :return: Boolean informing whether curriculum learning is finished (or wasn't active at all).
 
         """
         # Curriculum learning stop condition.

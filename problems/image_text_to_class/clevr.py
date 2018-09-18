@@ -100,7 +100,7 @@ class CLEVR(ImageTextToClassProblem):
 
         -   `settings`:
 
-            - ``data_folder`: Root folder of the dataset. Will also be used to store generated files\
+            - ``data_folder``: Root folder of the dataset. Will also be used to store generated files\
                (e.g. tokenization of the questions, features extracted from the images..)
 
                .. warning::
@@ -390,7 +390,7 @@ class CLEVR(ImageTextToClassProblem):
         is used and unseen words are added. It not passed, an empty one is created.
         :type word_dic: dict
 
-        :param answer_dic: ``dict {'answer': index}`` to be used to process the answers. Optional. If passed, it\
+        :param answer_dic: dict ``{'answer': index}`` to be used to process the answers. Optional. If passed, it\
         is used and unseen answers are added. It not passed, an empty one is created.
         :type answer_dic: dict
 
@@ -731,7 +731,7 @@ class CLEVR(ImageTextToClassProblem):
     def plot_preprocessing(self, data_dict, logits):
         """
         Recover the predicted answer (as a string) from the logits and adds it to the current DataDict.
-        Will be used in model.plot()
+        Will be used in ``models.model.Model.plot()``.
 
         :param data_dict: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
         'targets_string', 'index','imgfile'})
