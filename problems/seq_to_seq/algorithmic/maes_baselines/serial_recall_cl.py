@@ -15,8 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""reverse_recall_cl.py: Contains definition of serial recall problem with control markers and command lines"""
-__author__ = "Ryan McAvoy/Tomasz Kornuta"
+"""
+serial_recall_cl.py: Contains definition of serial recall problem with control markers and command lines
+
+"""
+__author__ = "Ryan McAvoy, Tomasz Kornuta, Vincent Marois"
 
 import torch
 import numpy as np
@@ -48,9 +51,10 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
 
     def __init__(self, params):
         """
-        Constructor - stores parameters. Calls parent class initialization.
+        Constructor - stores parameters. Calls parent class ``AlgorithmicSeqToSeqProblem``\
+         initialization.
 
-        :param params: Dictionary of parameters.
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
         """
         # Call parent constructor - sets e.g. the loss function, dtype.
         # Additionally it extracts "standard" list of parameters for
@@ -67,7 +71,7 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
 
     def __getitem__(self, index):
         """
-        Getter that returns one individual sample generated on-the-fly
+        Getter that returns one individual sample generated on-the-fly.
 
         .. note::
 
@@ -147,12 +151,12 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
 
         # 3. Generate mask.
         # Generate target mask: [2*SEQ_LENGTH+2]
-        mask = torch.zeros([2 * seq_length + 2]).type(torch.ByteTensor)
+        mask = torch.zeros([2 * seq_length + 2]).type(self.app_state.ByteTensor)
         mask[seq_length + 2:] = 1
 
         # PyTorch variables.
-        ptinputs = torch.from_numpy(inputs).type(self.dtype)
-        pttargets = torch.from_numpy(targets).type(self.dtype)
+        ptinputs = torch.from_numpy(inputs).type(self.app_state.dtype)
+        pttargets = torch.from_numpy(targets).type(self.app_state.dtype)
 
         # Return data_dict.
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
@@ -261,12 +265,12 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         # 3. Generate mask.
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
         mask = torch.zeros([batch_size, 2 * seq_length + 2]
-                           ).type(torch.ByteTensor)
+                           ).type(self.app_state.ByteTensor)
         mask[:, seq_length + 2:] = 1
 
         # PyTorch variables.
-        ptinputs = torch.from_numpy(inputs).type(self.dtype)
-        pttargets = torch.from_numpy(targets).type(self.dtype)
+        ptinputs = torch.from_numpy(inputs).type(self.app_state.dtype)
+        pttargets = torch.from_numpy(targets).type(self.app_state.dtype)
 
         # Return data_dict.
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
@@ -290,9 +294,11 @@ if __name__ == "__main__":
     # "Loaded parameters".
     from utils.param_interface import ParamInterface 
     params = ParamInterface()
-    params.add_custom_params({'control_bits': 4, 'data_bits': 8,
+    params.add_custom_params({'control_bits': 4,
+                              'data_bits': 8,
                               # 'randomize_control_lines': False,
-                              'min_sequence_length': 2, 'max_sequence_length': 5})
+                              'min_sequence_length': 2,
+                              'max_sequence_length': 5})
     batch_size = 64
 
     # Create problem object.
@@ -324,6 +330,6 @@ if __name__ == "__main__":
           .format(len(dataset), batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
-    # batch = next(iter(problem))
-    # dataset.show_sample(batch, 0)
+    batch = next(iter(problem))
+    dataset.show_sample(batch, 0)
     print('Unit test completed.')
