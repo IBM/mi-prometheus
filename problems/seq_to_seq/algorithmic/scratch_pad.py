@@ -77,7 +77,8 @@ class ScratchPad(AlgorithmicSeqToSeqProblem):
 
 
         """
-
+        # TODO: This is commented for now to avoid the issue with `add_ctrl` and `augment` in AlgorithmicSeqToSeqProblem
+        '''
         # define control channel markers
         pos = [0, 0]
         ctrl_data = [0, 0]
@@ -143,8 +144,8 @@ class ScratchPad(AlgorithmicSeqToSeqProblem):
         data_dict['targets'] = targets
         data_dict['mask'] = mask
         data_dict['num_subsequences'] = num_sub_seq
-
-        return data_dict
+        '''
+        return DataDict({key: None for key in self.data_definitions.keys()}) #data_dict
 
     def collate_fn(self, batch):
         """
@@ -219,8 +220,8 @@ class ScratchPad(AlgorithmicSeqToSeqProblem):
         inputs = np.concatenate(data_1 + [inter_seq] + data_2, axis=1)
 
         # PyTorch variables
-        inputs = torch.from_numpy(inputs).type(self.dtype)
-        targets = torch.from_numpy(targets).type(self.dtype)
+        inputs = torch.from_numpy(inputs).type(self.app_state.dtype)
+        targets = torch.from_numpy(targets).type(self.app_state.dtype)
 
         # TODO: batch might have different sequence lengths
         mask_all = inputs[..., 0:self.control_bits] == 1
@@ -242,99 +243,6 @@ class ScratchPad(AlgorithmicSeqToSeqProblem):
 
         return data_dict
 
-    def generate_batch(self):
-        """
-        Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH,
-        CONTROL_BITS+DATA_BITS]. SEQ_LENGTH depends on number of sub-sequences
-        and its lengths.
-
-        :returns: Tuple consisting of: input, output and mask
-                  pattern of inputs: x1, x2, ...xn d
-                  pattern of target: d, d,   ...d xn
-                  mask: used to mask the data part of the target
-                  xi, d: sub sequences, dummies
-
-        TODO: deal with batch_size > 1
-
-        """
-        # define control channel markers
-        pos = [0, 0]
-        ctrl_data = [0, 0]
-        ctrl_dummy = [0, 1]
-        ctrl_inter = [0, 1]
-        # assign markers
-        markers = ctrl_data, ctrl_dummy, pos
-
-        # number sub sequences
-        num_sub_seq = np.random.randint(
-            self.num_subseq_min, self.num_subseq_max + 1)
-
-        # set the sequence length of each marker
-        seq_length = np.random.randint(
-            low=self.min_sequence_length,
-            high=self.max_sequence_length + 1,
-            size=num_sub_seq)
-
-        #  generate subsequences for x and y
-        x = [
-            np.random.binomial(
-                1,
-                self.bias,
-                (self.batch_size,
-                 n,
-                 self.data_bits)) for n in seq_length]
-
-        # create the target
-        seq_length_tdummies = sum(seq_length) + seq_length.shape[0] + 1
-        dummies_target = np.zeros(
-            [self.batch_size, seq_length_tdummies, self.data_bits],
-            dtype=np.float32)
-        targets = np.concatenate((dummies_target, x[-1]), axis=1)
-
-        # data of x and dummies
-        xx = [
-            self.augment(
-                seq,
-                markers,
-                ctrl_start=[
-                    1,
-                    0],
-                add_marker_data=True,
-                add_marker_dummy=False) for seq in x]
-
-        # data of x
-        data_1 = [arr for a in xx for arr in a[:-1]]
-
-        # this is a marker between sub sequence x and dummies
-        inter_seq = self.add_ctrl(
-            np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)
-
-        # dummies of x
-        data_2 = [xx[-1][-1]]
-
-        # concatenate all parts of the inputs
-        inputs = np.concatenate(data_1 + [inter_seq] + data_2, axis=1)
-
-        # PyTorch variables
-        inputs = torch.from_numpy(inputs).type(self.dtype)
-        targets = torch.from_numpy(targets).type(self.dtype)
-        # TODO: batch might have different sequence lengths
-        mask_all = inputs[..., 0:self.control_bits] == 1
-        mask = mask_all[..., 0]
-        for i in range(self.control_bits):
-            mask = mask_all[..., i] * mask
-
-        # TODO: fix the batch indexing
-        # rest channel values of data dummies
-        inputs[:, mask[0], 0:self.control_bits] = 0
-
-        # Return tuples.
-        data_tuple = DataTuple(inputs, targets)
-        # Returning maximum sequence length - for now.
-        aux_tuple = AlgSeqAuxTuple(mask, max(seq_length), num_sub_seq)
-
-        return data_tuple, aux_tuple
-
     # method for changing the maximum length, used mainly during curriculum
     # learning
     def set_max_length(self, max_length):
@@ -354,12 +262,12 @@ if __name__ == "__main__":
                               'max_sequence_length': 10,
                               'num_subseq_min': 2,
                               'num_subseq_max': 4})
-    batch_size = 1
+    batch_size = 64
 
     # Create problem object.
     scratchpad = ScratchPad(params)
 
-    # get a sample
+    # get a sample: THIS IS NOT WORKING FOR NOW
     #sample = scratchpad[0]
     #print(repr(sample))
     #print('__getitem__ works.')
@@ -380,7 +288,7 @@ if __name__ == "__main__":
 
     print('Number of workers: {}'.format(problem.num_workers))
     print('time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
-          .format(scratchpad.__len__(), params['batch_size'], time.time() - s))
+          .format(scratchpad.__len__(), batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
     batch = next(iter(problem))

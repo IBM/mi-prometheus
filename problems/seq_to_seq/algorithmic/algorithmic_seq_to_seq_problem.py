@@ -192,7 +192,6 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         """
         ctrl_data, ctrl_dummy, pos = markers
-        print(seq.shape)
 
         w = self.add_ctrl(seq, ctrl_data, pos)
         start = self.add_ctrl(
