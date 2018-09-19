@@ -10,9 +10,9 @@ from .algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem
 #from .manipulation_spatial_not import ManipulationSpatialNot
 #from .manipulation_spatial_rotation import ManipulationSpatialRotation
 #from .manipulation_temporal_swap import ManipulationTemporalSwap
-#from .operation_span import OperationSpan
-#from .reading_span import ReadingSpan
-#from .reverse_recall import ReverseRecall
-#from .scratch_pad import ScratchPad
+from .operation_span import OperationSpan
+from .reading_span import ReadingSpan
+from .reverse_recall import ReverseRecall
+from .scratch_pad import ScratchPad
 from .serial_recall import SerialRecall
-#from .serial_recall_simplified import SerialRecallSimplified
+from .serial_recall_simplified import SerialRecallSimplified

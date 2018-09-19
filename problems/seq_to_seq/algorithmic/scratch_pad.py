@@ -267,11 +267,10 @@ if __name__ == "__main__":
     # Create problem object.
     scratchpad = ScratchPad(params)
 
-    # get a sample: THIS IS NOT WORKING FOR NOW
-    #sample = scratchpad[0]
-    #print(repr(sample))
-    #print('__getitem__ works.')
-    #exit()
+    # get a sample
+    sample = scratchpad[0]
+    print(repr(sample))
+    print('__getitem__ works.')
 
     # wrap DataLoader on top
     from torch.utils.data.dataloader import DataLoader
