@@ -149,6 +149,18 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         return DataDict({key: None for key in self.data_definitions.keys()})
 
+    def worker_init_fn(self, worker_id):
+        """
+        Set the ``NumPy`` random seed of the worker equal to its ``worker_id`` to avoid having all workers returning
+        the same random numbers.
+
+        :param worker_id: the worker id (in [0, ``torch.utils.data.dataloader.DataLoader.num_workers`` - 1])
+        :type worker_id: int
+
+        :return: ``None`` by default
+        """
+        np.random.seed(seed=worker_id)
+
     def add_ctrl(self, seq, ctrl, pos):
         """
         Adds control channels to a sequence.

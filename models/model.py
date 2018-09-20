@@ -178,14 +178,14 @@ class Model(nn.Module):
         pass
 
     @abstractmethod
-    def plot(self, data_tuple, predictions, sample_number=0):
+    def plot(self, data_dict, predictions, sample_number=0):
         """
         Plots inputs, targets and predictions, along with model-dependent
         variables.
 
         Abstract - to be defined in derived classes.
 
-        :param data_tuple: Data tuple containing input and target batches.
+        :param data_dict: DataDict containing input and target batches.
         :param predictions: Prediction.
         :param sample_number: Number of sample in batch (DEFAULT: 0)
 

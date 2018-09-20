@@ -15,8 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""trainer.py: contains code of worker realising training using CPUs/GPUs"""
-__author__ = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta"
+"""
+trainer.py: Contains the code implementation of the main worker of mi-prometheus.
+This worker in particular is called the `episodic trainer` and will take care of training
+a specified model on a specified problem for a given number of episodes (among other adjustable
+parameters).
+
+#TODO: Enhance this description and documentation.
+
+"""
+__author__ = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta, Vincent Marois"
 
 import logging
 import logging.config
@@ -44,67 +52,11 @@ from torch.utils.data.dataloader import DataLoader
 from utils.app_state import AppState
 from utils.statistics_collector import StatisticsCollector
 from utils.param_interface import ParamInterface
-from utils.worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse
+from utils.worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse, validation, cycle
 
 # Import model and problem factories.
 from problems.problem_factory import ProblemFactory
 from models.model_factory import ModelFactory
-
-
-def cycle(iterable):
-    """
-    Simply cycle generator to continuously reuse the same DataLoader in the episodic trainer.
-    For the epoch trainer, we should not need this function anymore, as we will probably have a nested loop:
-
-        for i in range(epochs):
-            for batch in dataloader:
-                do_something(batch)
-
-    :param iterable: iterable.
-    :return:
-    """
-    while True:
-        for x in iterable:
-            yield x
-
-
-def validation(model, problem, episode, stat_col, data_valid, FLAGS, logger, validation_file, validation_writer):
-    """
-    Function performs validation of the model, using the provided data and
-    criterion. Additionally it logs (to files, tensorboard) and visualizes.
-
-    #TODO: DOCUMENTATION!!!
-
-    :param stat_col: Statistic collector object.
-    :return: True if training loop is supposed to end.
-
-    """
-    # Turn on evaluation mode.
-    model.eval()
-    # Calculate loss of the validation data.
-    with torch.no_grad():
-        logits_valid, loss_valid = forward_step(
-            model, problem, episode, stat_col, data_valid)
-
-    # Log to logger.
-    logger.info(stat_col.export_statistics_to_string('[Validation]'))
-    # Export to csv.
-    stat_col.export_statistics_to_csv(validation_file)
-
-    if (FLAGS.tensorboard is not None):
-        # Save loss + accuracy to tensorboard.
-        stat_col.export_statistics_to_tensorboard(validation_writer)
-
-    # Visualization of validation.
-    if AppState().visualize:
-        # True means that we should terminate
-
-        # Allow for preprocessing
-        data_valid, aux_valid, logits_valid = problem.plot_preprocessing(data_valid, logits_valid)
-
-        return loss_valid, model.plot(data_valid, logits_valid)
-    # Else simply return false, i.e. continue training.
-    return loss_valid, False
 
 
 if __name__ == '__main__':
@@ -185,23 +137,27 @@ if __name__ == '__main__':
 
     # Read the YAML files one by one - but in reverse order!
     for config in reversed(configs_to_load):
+
         # Open file and try to add that to list of parameter dictionaries.
         with open(config, 'r') as stream:
             # Load param dictionaries in reverse order.
             param_interface.add_custom_params(yaml.load(stream))
+
         print('Loaded configuration from file {}'.format(config))
         # Add to list of loaded configs.
-        configs_to_load.append(config)
-    # Done. In here Param Registry contains configuration loaded (and
-    # overwritten) from several files.
 
-    # Get problem and model names.
+        configs_to_load.append(config)
+
+    # -> At this point, the Param Registry contains the configuration loaded (and overwritten) from several files.
+
+    # Get problem name.
     try:
         task_name = param_interface['training']['problem']['name']
     except BaseException:
         print("Error: Couldn't retrieve problem name from the loaded configuration")
         exit(-1)
 
+    # Get model name.
     try:
         model_name = param_interface['model']['name']
     except BaseException:
@@ -238,21 +194,20 @@ if __name__ == '__main__':
     def logfile():
         return logging.FileHandler(log_file)
 
-    # Load default logger configuration.
+    # Load the default logger configuration.
     with open('logger_config.yaml', 'rt') as f:
         config = yaml.load(f.read())
         logging.config.dictConfig(config)
 
-    # Set logger label and level.
+    # Create the Logger, set its label and logging level.
     logger = logging.getLogger('Trainer')
     logger.setLevel(getattr(logging, FLAGS.log.upper(), None))
 
-    # Set random seeds.
+    # Set the random seeds: either from the loaded configuration or a default randomly selected one.
     if "seed_torch" not in param_interface["training"] or param_interface["training"]["seed_torch"] == -1:
         seed = randrange(0, 2**32)
         param_interface["training"].add_custom_params({"seed_torch": seed})
-    logger.info("Setting torch random seed to: {}".format(
-        param_interface["training"]["seed_torch"]))
+    logger.info("Setting torch random seed to: {}".format(param_interface["training"]["seed_torch"]))
     torch.manual_seed(param_interface["training"]["seed_torch"])
     torch.cuda.manual_seed_all(param_interface["training"]["seed_torch"])
 
@@ -270,122 +225,140 @@ if __name__ == '__main__':
     check_and_set_cuda(param_interface['training'], logger)
 
     # Build problem for the training
-    problem_ds = ProblemFactory.build_problem(param_interface['training']['problem'])
+    dataset = ProblemFactory.build_problem(param_interface['training']['problem'])
 
-    # Build the model.
-    model = ModelFactory.build_model(param_interface['model'], problem_ds.default_values)
+    # Build the model using the loaded configuration and default values of the problem.
+    model = ModelFactory.build_model(param_interface['model'], dataset.default_values)
+
+    # move model to CUDA if applicable
     model.cuda() if app_state.use_CUDA else None
 
-    # perform handshake between Model and problem:
-    if not model.handshake_definitions(problem_ds.data_definitions):
-        logger.error('Handshake between {} and {} failed!'.format(model.name, problem_ds.name))
+    # perform the handshake between Model and Problem class: Ensures that the Model can accept as inputs
+    # the batches generated by the Problem.
+    if not model.handshake_definitions(dataset.data_definitions):
+        logger.error('Handshake between {} and {} failed!'.format(model.name, dataset.name))
         exit(-1)
     else:
-        logger.info('Handshake between {} and {} succeeded!'.format(model.name, problem_ds.name))
+        logger.info('Handshake between {} and {} succeeded.'.format(model.name, dataset.name))
 
-    # Sampler: Used for the DataLoader object that will iterate over the problem class.
+    # handshake succeeded, so we can continue.
+
+    # Sampler: Used for the DataLoader object that will iterate over the Problem class.
     # Please see https://pytorch.org/docs/stable/data.html?highlight=dataloader#torch.utils.data.Sampler
     # for documentation on the several samplers supported by Pytorch
-    sampler = RandomSampler(problem_ds)
 
+    # TODO: create a SamplerFactory and enable a sampler configuration section in the .yaml files.
+    sampler = RandomSampler(dataset)
 
-    def init_fn(worker_id):
-        np.random.seed(seed=worker_id)
+    # build the DataLoader on top of the Problem class
+    # Set a default number of workers to 4
 
-    # build the DataLoader on top of the problem class
-    problem = DataLoader(problem_ds, batch_size=param_interface['training']['problem']['batch_size'],
-                               sampler=sampler, collate_fn=problem_ds.collate_fn, num_workers=4, worker_init_fn=init_fn)
+    # TODO: allow the user to change the num_workers and other attributes value of the DataLoader.
+    problem = DataLoader(dataset=dataset,
+                         batch_size=param_interface['training']['problem']['batch_size'],
+                         sampler=sampler,
+                         collate_fn=dataset.collate_fn,
+                         num_workers=4,
+                         worker_init_fn=dataset.worker_init_fn)
 
-    # cycle the DataLoader -> infinite generator
+    # cycle the DataLoader -> infinite iterator
     problem = cycle(problem)
 
+    # parse the curriculum learning section in the loaded configuration.
     if 'curriculum_learning' in param_interface['training']:
-        # Initialize curriculum learning - with values from config.
-        problem_ds.curriculum_learning_initialize(param_interface['training']['curriculum_learning'])
+
+        # Initialize curriculum learning - with values from loaded configuration.
+        dataset.curriculum_learning_initialize(param_interface['training']['curriculum_learning'])
+
         # Set initial values of curriculum learning.
-        curric_done = problem_ds.curriculum_learning_update_params(0)
+        curric_done = dataset.curriculum_learning_update_params(0)
         
         # If key is not present in config then it has to be finished (DEFAULT: True)
         if 'must_finish' not in param_interface['training']['curriculum_learning']:
             param_interface['training']['curriculum_learning'].add_default_params({'must_finish': True})
+
         must_finish_curriculum = param_interface['training']['curriculum_learning']['must_finish']
         logger.info("Using curriculum learning")
+
     else:
         # Initialize curriculum learning - with empty dict.
-        problem_ds.curriculum_learning_initialize({})
-        # If not using curriculum then it does not have to be finished.
+        dataset.curriculum_learning_initialize({})
+
+        # If not using curriculum learning then it does not have to be finished.
         must_finish_curriculum = False
 
-    # Model validation interval (DEFAULT: 100).
+    # Set the Model validation frequency (DEFAULT: 100 episodes).
     try:
-        model_validation_interval = param_interface['training'][
-            'validation_interval']
+        model_validation_interval = param_interface['training']['validation_interval']
     except KeyError:
         model_validation_interval = 100
 
-    # Create statistics collector.
+    # Create the statistics collector.
     stat_col = StatisticsCollector()
+
     # Add model/problem dependent statistics.
-    problem_ds.add_statistics(stat_col)
+    dataset.add_statistics(stat_col)
     model.add_statistics(stat_col)
 
-    # Create csv file.
+    # Create the csv file to store the training statistics.
     training_file = stat_col.initialize_csv_file(log_dir, 'training.csv')
 
-    # Check if validation section is present AND problem section is also
-    # present...
-    if ('validation' in param_interface) and (
-            'problem' in param_interface['validation']):
+    # Check if the validation section is present AND problem section is also present...
+    if ('validation' in param_interface) and ('problem' in param_interface['validation']):
         # ... then load problem, set variables etc.
 
-        # Build problem for the validation
+        # Build the validation problem
         problem_validation = ProblemFactory.build_problem(param_interface['validation']['problem'])
-        dataloader_validation = DataLoader(problem_validation, batch_size=param_interface['validation']['problem']['batch_size'],
-                                           shuffle=True, collate_fn=problem_ds.collate_fn, num_workers=4, worker_init_fn=init_fn)
+
+        # build the DataLoader on top of the validation problem
+        # Set a default number of workers to 4
+        # For now, it doesn't use a Sampler: only shuffling the data.
+        dataloader_validation = DataLoader(problem_validation,
+                                           batch_size=param_interface['validation']['problem']['batch_size'],
+                                           shuffle=True,
+                                           collate_fn=problem_validation.collate_fn,
+                                           num_workers=4,
+                                           worker_init_fn=problem_validation.worker_init_fn)
+        # create an iterator
         dataloader_validation = iter(dataloader_validation)
 
         # Get a single batch that will be used for validation (!)
+        # TODO: move this step in validation() and handle using more than 1 batch for validation.
         data_valid = next(dataloader_validation)
 
-        # Create csv file.
-        validation_file = stat_col.initialize_csv_file(
-            log_dir, 'validation.csv')
+        # Create the csv file to store the validation statistics.
+        validation_file = stat_col.initialize_csv_file(log_dir, 'validation.csv')
 
         # Turn on validation.
         use_validation_problem = True
-        logger.info(
-            "Using validation problem for calculation of loss and model validation")
+        logger.info("Using validation problem for calculation of loss and model validation")
 
     else:
-        # We do not have validation problem - so turn it off.
+        # We do not have a validation problem - so turn it off.
         use_validation_problem = False
-        logger.info(
-            "Using training problem for calculation of loss and model validation")
+        logger.info("Using training problem for calculation of loss and model validation")
 
-        # Use loss length (DEFAULT: 10).
+        # Use the training loss instead as a convergence criterion: If the loss is < threshold for a given\
+        # number of episodes (default: 10), assume the model has converged.
         try:
             loss_length = param_interface['training']['length_loss']
         except KeyError:
             loss_length = 10
 
-    # Set optimizer.
+    # Set the optimizer.
     optimizer_conf = dict(param_interface['training']['optimizer'])
     optimizer_name = optimizer_conf['name']
     del optimizer_conf['name']
-    # Select for optimization only those parameters that require update!
-    optimizer = getattr(
-        torch.optim,
-        optimizer_name)(
-        filter(
-            lambda p: p.requires_grad,
-            model.parameters()),
-        **optimizer_conf)
 
-    # Ok, finished loading the configuration.
-    # Save the resulting configuration into a yaml settings file, under log_dir
+    # Select for optimization only the parameters that require update!
+    optimizer = getattr(torch.optim, optimizer_name)(filter(lambda p: p.requires_grad,
+                                                            model.parameters()),
+                                                     **optimizer_conf)
+
+    # -> At this point, all configuration is complete.
+    # Save the resulting configuration into a .yaml settings file, under log_dir
     with open(log_dir + "training_configuration.yaml", 'w') as yaml_backup_file:
-        yaml.dump(param_interface.to_dict(),
-                  yaml_backup_file, default_flow_style=False)
+        yaml.dump(param_interface.to_dict(), yaml_backup_file, default_flow_style=False)
 
     # Print the training configuration.
     str = 'Configuration for {}:\n'.format(task_name)
@@ -395,7 +368,6 @@ if __name__ == '__main__':
 
     # Ask for confirmation - optional.
     if FLAGS.confirm:
-        # Ask for confirmation
         input('Press any key to continue')
 
     # Start Training
@@ -405,42 +377,47 @@ if __name__ == '__main__':
     # Flag denoting whether we converged (or reached last episode).
     terminal_condition = False
 
-    # Main training and verification loop.
+    '''
+    Main training and validation loop.
+    '''
     for data_dict in problem:
 
-        # apply curriculum learning - change problem max seq_length
-        curric_done = problem_ds.curriculum_learning_update_params(episode)
+        # apply curriculum learning - change some of the Problem parameters (e.g. max seq_length for algorithmic tasks.)
+        curric_done = dataset.curriculum_learning_update_params(episode)
 
-        # reset gradients
+        # reset all gradients
         optimizer.zero_grad()
 
-        # Check visualization flag - turn on when we wanted to visualize (at
-        # least) validation.
+        # Check the visualization flag - Set it if visualization is wanted during training & validation episodes.
         if FLAGS.visualize is not None and FLAGS.visualize <= 1:
             AppState().visualize = True
         else:
             app_state.visualize = False
 
-        # Turn on training mode.
+        # Turn on training mode for the model.
         model.train()
-        # 1. Perform forward step, calculate logits and loss.
-        logits, loss = forward_step(model, problem_ds, episode, stat_col, data_dict)
+
+        # 1. Perform forward step, get predictions and compute loss.
+        logits, loss = forward_step(model, dataset, episode, stat_col, data_dict)
 
         if not use_validation_problem:
+
             # Store the calculated loss on a list.
             last_losses.append(loss)
+
             # Truncate list length.
             if len(last_losses) > loss_length:
                 last_losses.popleft()
 
         # 2. Backward gradient flow.
         loss.backward()
-        # Check the presence of parameter 'gradient_clipping'.
+
+        # Check the presence of the 'gradient_clipping'  parameter.
         try:
-            # if present - clip gradients to a range (-gradient_clipping,
-            # gradient_clipping)
+            # if present - clip gradients to a range (-gradient_clipping, gradient_clipping)
             val = param_interface['training']['gradient_clipping']
             nn.utils.clip_grad_value_(model.parameters(), val)
+
         except KeyError:
             # Else - do nothing.
             pass
@@ -449,50 +426,54 @@ if __name__ == '__main__':
         optimizer.step()
 
         # 4. Log statistics.
+
         # Log to logger.
         logger.info(stat_col.export_statistics_to_string())
+
         # Export to csv.
         stat_col.export_statistics_to_csv(training_file)
 
         # Export data to tensorboard.
-        if (FLAGS.tensorboard is not None) and (
-                episode % FLAGS.logging_frequency == 0):
+        if (FLAGS.tensorboard is not None) and (episode % FLAGS.logging_frequency == 0):
             stat_col.export_statistics_to_tensorboard(training_writer)
 
             # Export histograms.
             if FLAGS.tensorboard >= 1:
                 for name, param in model.named_parameters():
                     try:
-                        training_writer.add_histogram(
-                            name, param.data.cpu().numpy(), episode, bins='doane')
+                        training_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
+
                     except Exception as e:
                         logger.error("  {} :: data :: {}".format(name, e))
+
             # Export gradients.
             if FLAGS.tensorboard >= 2:
                 for name, param in model.named_parameters():
                     try:
-                        training_writer.add_histogram(
-                            name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
+                        training_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode, bins='doane')
+
                     except Exception as e:
                         logger.error("  {} :: grad :: {}".format(name, e))
 
         # Check visualization of training data.
         if app_state.visualize:
+
             # Allow for preprocessing
-            data_tuple, aux_tuple, logits = problem.plot_preprocessing(data_dict, logits)
+            data_dict, logits = problem.plot_preprocessing(data_dict, logits)
+
             # Show plot, if user presses Quit - break.
-            if model.plot(data_tuple, logits):
+            if model.plot(data_dict, logits):
                 break
 
         #  5. Validate and (optionally) save the model.
         user_pressed_stop = False
+
         if (episode % model_validation_interval) == 0:
 
             # Validate on the problem if required.
             if use_validation_problem:
 
-                # Check visualization flag - turn on when we wanted to
-                # visualize (at least) validation.
+                # Check visualization flag
                 if FLAGS.visualize is not None and (
                         FLAGS.visualize == 1 or FLAGS.visualize == 2):
                     app_state.visualize = True
@@ -500,28 +481,29 @@ if __name__ == '__main__':
                     app_state.visualize = False
 
                 # Perform validation.
-                validation_loss, user_pressed_stop = validation(model, problem_validation, episode, stat_col, data_valid,  FLAGS,
-                        logger,   validation_file,  validation_writer)
+                validation_loss, user_pressed_stop = validation(model, problem_validation, episode, stat_col,
+                                                                data_valid, FLAGS, logger, validation_file,
+                                                                validation_writer)
 
-            # Save the model using latest (validation or training) statistics.
+            # Save the model using the latest (validation or training) statistics.
             model.save(model_dir, stat_col)
 
         # 6. Terminal conditions.
-        # I. User pressed stop during visualization.
+
+        # I. The User pressed stop during visualization.
         if user_pressed_stop:
             break
 
-        # II. & III - only when we finished curriculum.
+        # II. & III - the loss is < threshold - only when we finished curriculum (# TODO: ?).
         if curric_done or not must_finish_curriculum:
+
             # break if conditions applied: convergence or max episodes
             loss_stop = False
             if use_validation_problem:
-                loss_stop = validation_loss < param_interface['training'][
-                    'terminal_condition']['loss_stop']
+                loss_stop = validation_loss < param_interface['training']['terminal_condition']['loss_stop']
                 # We already saved that model.
             else:
-                loss_stop = max(last_losses) < param_interface['training'][
-                    'terminal_condition']['loss_stop']
+                loss_stop = max(last_losses) < param_interface['training']['terminal_condition']['loss_stop']
                 # We already saved that model.
 
             if loss_stop:
@@ -530,54 +512,63 @@ if __name__ == '__main__':
                 # "Finish" the training.
                 break
 
-        if episode == param_interface['training']['terminal_condition'][
-                'max_episodes']:
+        # IV - The episodes number limit has been reached.
+        if episode == param_interface['training']['terminal_condition']['max_episodes']:
             terminal_condition = True
-            # If we are here then it means that we didn't converged and the model is bad for sure.
-            # But let's try to save it anyway, maybe it is still better than
-            # the previous one.
+            # If we reach this condition, then it is possible that the model didn't converge correctly
+            # and present poorer performance.
+
+            # We still save the model as it may perform better during this episode (as opposed to the previous episode)
 
             # Validate on the problem if required - so we can collect the
             # statistics needed during saving of the best model.
             if use_validation_problem:
-                # Perform validation.
-                validation_loss, user_pressed_stop = validation(model, problem_validation, episode, stat_col, data_valid,  FLAGS,
-                        logger,   validation_file,  validation_writer)
 
+                validation_loss, user_pressed_stop = validation(model, problem_validation, episode, stat_col,
+                                                                data_valid, FLAGS, logger, validation_file,
+                                                                validation_writer)
+            # save the model
             model.save(model_dir, stat_col)
+
             # "Finish" the training.
             break
 
-        # check if we are at the end of the epoch
-        if ((episode+1) % problem_ds.get_epoch_size(param_interface['training']['problem']['batch_size'])) == 0:
-            logger.warning('The DataLoader has exhausted -> using cycle().')
+        # check if we are at the end of the 'epoch': Indicate that the DataLoader is now cycling.
+        if ((episode+1) % dataset.get_epoch_size(param_interface['training']['problem']['batch_size'])) == 0:
+            logger.warning('The DataLoader has exhausted -> using cycle(iterable).')
 
-        # Next episode.
+        # Move on to next episode.
         episode += 1
+
+    '''
+    End of main training and validation loop.
+    '''
 
     # Check whether we have finished training properly.
     if terminal_condition:
+
         logger.info('Learning finished!')
-        # Check visualization flag - turn on when we wanted to visualize (at
-        # least) validation.
+        # Check visualization flag - turn on visualization for last validation if needed.
         if FLAGS.visualize is not None and (FLAGS.visualize == 3):
             app_state.visualize = True
 
             # Perform validation.
             if use_validation_problem:
                 _, _ = validation(model, problem_validation, episode, stat_col, data_valid, FLAGS, logger,
-                               validation_file, validation_writer)
+                                  validation_file, validation_writer)
 
         else:
             app_state.visualize = False
 
-    else:
+    else:  # the training did not end properly
         logger.warning('Learning interrupted!')
 
-    # Close files.
+    # Close all files.
     training_file.close()
     validation_file.close()
-    if (FLAGS.tensorboard is not None):
-        # Close TB writers.
+
+    if FLAGS.tensorboard is not None:
+
+        # Close the TensorBoard writers.
         training_writer.close()
         validation_writer.close()
