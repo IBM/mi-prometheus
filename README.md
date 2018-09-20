@@ -1,7 +1,7 @@
 
 # Machine Intelligence: Prometheus
 
-#### Bringing Torch To Mankind
+#### Bringing (Py)Torch To Mankind
 
 ## Description
 
