@@ -207,8 +207,10 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         import matplotlib.ticker as ticker
 
         # Generate "canvas".
-        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={
-            'width_ratios': [data_tuple.inputs.shape[1]], 'height_ratios': [10, 10, 1]})
+        idim = data_tuple.inputs.shape[-1]
+        odim = data_tuple.targets.shape[-1]
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(8, 4.5), sharex=True, sharey=False,
+                                            gridspec_kw={'height_ratios': [idim, odim, 1]})
         # Set ticks.
         ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
@@ -232,12 +234,13 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         print("\nnum_subsequences:", aux_tuple.num_subsequences)
 
         # show data.
+        params = {'edgecolor': 'black', 'cmap': 'inferno', 'linewidths': 1.4e-3}
         ax1.pcolormesh(np.transpose(data_tuple.inputs[sample_number, :, :],  [1, 0]),
-                       edgecolors='g', linewidths=0.005)
+                       **params)
         ax2.pcolormesh(np.transpose(data_tuple.targets[sample_number, :, :],  [1, 0]),
-                   edgecolors='g', linewidths=0.005)
+                       **params)
         ax3.pcolormesh(aux_tuple.mask[sample_number:sample_number+1, :],
-                   edgecolors='g', linewidths=0.005)
+                       **params)
 
         # Plot!
         fig.tight_layout()
