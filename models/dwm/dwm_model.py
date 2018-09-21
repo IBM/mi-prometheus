@@ -296,26 +296,21 @@ class DWM(SequentialModel):
 
             # Create "Artists" drawing data on "ImageAxes".
             artists = [None] * len(fig.axes)
+            params = {'edgecolor': 'black', 'cmap':'inferno', 'linewidths': 1.4e-3}
 
             # Tell artists what to do;)
             artists[0] = ax_memory.pcolormesh(np.transpose(memory_displayed),
-                                              edgecolors='g', linewidths=0.005,
-                                              vmin=-3.0, vmax=3.0)
+                                              vmin=-3.0, vmax=3.0, **params)
             artists[1] = ax_attention.pcolormesh(np.copy(head_attention_displayed),
-                                                 edgecolors='g', linewidths=0.005,
-                                                 vmin=0.0, vmax=1.0)
+                                                 vmin=0.0, vmax=1.0, **params)
             artists[2] = ax_bookmark.pcolormesh(np.copy(bookmark_attention_displayed),
-                                                edgecolors='g', linewidths=0.005,
-                                                vmin=0.0, vmax=1.0)
+                                                vmin=0.0, vmax=1.0, **params)
             artists[3] = ax_inputs.pcolormesh(np.copy(inputs_displayed),
-                                              edgecolors='g', linewidths=0.005,
-                                              vmin=0.0, vmax=1.0)
+                                              vmin=0.0, vmax=1.0, **params)
             artists[4] = ax_targets.pcolormesh(np.copy(targets_displayed),
-                                               edgecolors='g', linewidths=0.005,
-                                               vmin=0.0, vmax=1.0)
+                                               vmin=0.0, vmax=1.0, **params)
             artists[5] = ax_predictions.pcolormesh(np.copy(predictions_displayed),
-                                                   edgecolors='g', linewidths=0.005,
-                                                   vmin=0.0, vmax=1.0)
+                                                   vmin=0.0, vmax=1.0, **params)
 
             # Add "frame".
             frames.append(artists)
