@@ -88,6 +88,7 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
 
 
         """
+        '''
         # Set sequence length
         seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length + 1)
 
@@ -127,8 +128,9 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
         data_dict['targets'] = pttargets
         data_dict['mask'] = mask
         data_dict['num_subsequences'] = 1
+        '''
 
-        return data_dict
+        return {} #data_dict
 
     def collate_fn(self, batch):
         """
@@ -238,7 +240,7 @@ if __name__ == "__main__":
     # wrap DataLoader on top
     from torch.utils.data.dataloader import DataLoader
     problem = DataLoader(dataset=serialrecall, batch_size=batch_size, collate_fn=serialrecall.collate_fn,
-                         shuffle=False, num_workers=4)
+                         shuffle=False, num_workers=4, worker_init_fn=serialrecall.worker_init_fn)
 
     # generate a batch
     import time
@@ -255,3 +257,4 @@ if __name__ == "__main__":
     #batch = next(iter(problem))
     #serialrecall.show_sample(batch, 0)
     print('Unit test completed.')
+

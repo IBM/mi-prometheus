@@ -159,7 +159,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         :return: ``None`` by default
         """
-        np.random.seed(seed=worker_id)
+        np.random.seed(seed=np.random.get_state()[1][0]+worker_id-1)
 
     def add_ctrl(self, seq, ctrl, pos):
         """
