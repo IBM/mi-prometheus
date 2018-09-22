@@ -70,8 +70,10 @@ class TimePlot(QtWidgets.QMainWindow):
         ani = animation.ArtistAnimation(
             self.fig, self.frames, blit=False, interval=1.0)
         Writer = animation.writers['ffmpeg']
-        writer = Writer(fps=1, extra_args=['-r', '25', '-probesize', '10M'])
-        ani.save(name_str, writer=writer, dpi=200)
+        # writer = Writer(fps=1, extra_args=['-r', '25', '-probesize', '10M'])
+        # ani.save(name_str, writer=writer, dpi=200)
+        writer = Writer(fps=1, bitrate=5000)
+        ani.save(name_str, writer=writer)
         logger.info("Saved movie to file '{}'".format(name_str))
 
     def _next_clicked(self):
