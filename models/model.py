@@ -15,16 +15,19 @@ from utils.app_state import AppState
 
 class Model(nn.Module):
     """
-    Class representing base class of all models.
+    Class representing base class for all Models.
 
-    Provides basic plotting functionality.
+    Inherits from torch.nn.Module as all subclasses will represent a trainable model.
+
+    Hence, all subclasses should override the ``forward`` function.
+
+    Implements features & attributes used by all subclasses.
 
     """
 
     def __init__(self, params, problem_default_values_={}):
         """
-        Initializes application state and sets plot if visualization flag is
-        turned on.
+        Initializes a Model object.
 
         :param params: Parameters read from configuration file.
 
@@ -32,9 +35,61 @@ class Model(nn.Module):
         parameter value is the size of the vocabulary set in a translation problem.
         :type problem_default_values_: dict
 
+        This constructor:
+
+        - stores a pointer to ``params``:
+
+            >>> self.params = params
+
+        - sets a default problem name:
+
+            >>> self.name = 'Model'
+
+        - initializes the logger.
+
+            >>> self.logger = logging.Logger(self.name)
+
+        - tries to parse the values coming from ``problem_default_values_``:
+
+            >>>         try:
+            >>>             for key in problem_default_values_.keys():
+            >>>                 self.params.add_custom_params({key: problem_default_values_[key]})
+            >>>         except BaseException:
+            >>>             self.logger.info('No parameter value was parsed from problem_default_values_')
+
+        - initializes the data definitions:
+
+        .. note::
+
+            This dict contains information about the expected inputs and produced outputs of the current model class.
+
+            This object will be used during handshaking between the model and the problem class to ensure that the model
+            can accept the batches produced by the problem and that the problem can accept the predictions of the model
+            to compute the loss and accuracy.
+
+            This dict should be defined using self.params.
+
+            This dict should at least contains the `targets` field:
+
+                >>>     self.data_definitions = {'inputs': {'size': [-1, -1], 'type': [torch.Tensor]},
+                >>>                              'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
+                >>>                             }
+
+
+        - sets the access to ``AppState``: for dtype, visualization flag etc.
+
+            >>> self.app_state = AppState()
+
+        - initialize the best model loss (to select which model to save) to ``np.inf``:
+
+            >>> self.best_loss = np.inf
+
         """
         # Call base class constructor here.
         super(Model, self).__init__()
+
+        # Store pointer to params.
+        self.params = params
 
         # "Default" model name.
         self.name = 'Model'
@@ -42,17 +97,13 @@ class Model(nn.Module):
         # initialize the logger
         self.logger = logging.getLogger(self.name)
 
-        # process all params from configuration file and problem_default_values_ here --
-
-        # Store pointer to params.
-        self.params = params
-
         # Flag indicating whether intermediate checkpoints should be saved or
         # not (DEFAULT: False).
         if "save_intermediate" not in params:
             params.add_default_params({"save_intermediate": False})
         self.save_intermediate = params["save_intermediate"]
 
+        # process all params from configuration file and problem_default_values_ here
         try:
             for key in problem_default_values_.keys():
                 self.params.add_custom_params({key: problem_default_values_[key]})
@@ -61,7 +112,7 @@ class Model(nn.Module):
             self.logger.info('No parameter value was parsed from problem_default_values_')
 
         # --> We assume from here that the model class has all parameters values needed (either from params or
-        # problem_default_values_ to correctly be instantiated) contained in self.params.
+        # problem_default_values_) to be correctly instantiated and contained in self.params.
 
         # We can then define a dict that contains a description of the expected (and mandatory) inputs for this model.
         # This dict should be defined using self.params.
@@ -95,8 +146,12 @@ class Model(nn.Module):
 
             This functions proceeds to the handshaking as:
 
-                - Verifying that all key existing in ``Model.data_definitions`` are also existing in \
+                - Verifying that all keys existing in ``Model.data_definitions`` are also existing in \
                   ``Problem.data_definitions``. If a key is missing, an exception is thrown.
+
+                  This function does not verify the key ``targets`` as this will be done by\
+                   ``problems.problem.Problem.handshake_definitions``.
+
                 - If all keys are present, than this function checks that for each (``Model.data_definitions``) key,\
                  the shape and type of the corresponding value matches what is indicated for the corresponding key\
                  in ``Problem.data_definitions``. If not, an exception is thrown.
@@ -118,7 +173,7 @@ class Model(nn.Module):
                     unimportant or unknown (e.g. the batch size or variable-length sequences), then please indicate \
                     ``-1`` at the correct location.
                     - If an object is a composition of several Python objects (``list``, ``dict``,...), then please \
-                    include all objects type, matching the dimensions order: e.g. ``[list, str]``.
+                    include all objects type, matching the dimensions order: e.g. ``[list, dict]``.
 
 
         :param problem_data_definitions_: Contains the definition of a sample generated by the ``Problem`` class.
@@ -127,7 +182,7 @@ class Model(nn.Module):
         :return: True if the ``Model`` accepts what the ``Problem`` generates, otherwise throws an exception.
         """
 
-        for key in self.data_definitions.keys():
+        for key in [k for k in self.data_definitions.keys() if k != 'targets']:
 
             if key not in problem_data_definitions_.keys():
                 raise KeyError('The key {} is missing in the Problem.data_definitions. Handshake failed.'.format(key))
@@ -155,39 +210,57 @@ class Model(nn.Module):
 
     def add_statistics(self, stat_col):
         """
-        Add statistics to collector.
+        Adds statistics to ``StatisticsCollector``.
 
-        EMPTY - To be redefined in inheriting classes.
+        .. note::
 
-        :param stat_col: Statistics collector.
+
+            Empty - To be redefined in inheriting classes.
+
+
+        :param stat_col: ``StatisticsCollector``.
 
         """
         pass
 
-    def collect_statistics(self, stat_col, data_tuple, logits):
+    def collect_statistics(self, stat_col, data_dict, logits):
         """
         Base statistics collection.
 
-        EMPTY - To be redefined in inheriting classes.
+         .. note::
 
-        :param stat_col: Statistics collector.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param logits: Logits being output of the model.
+
+            Empty - To be redefined in inheriting classes. The user has to ensure that the corresponding entry \
+            in the ``StatisticsCollector`` has been created with ``self.add_statistics()`` beforehand.
+
+        :param stat_col: ``StatisticsCollector``.
+
+        :param data_dict: ``DataDict`` containing inputs and targets.
+        :type data_dict: DataDict
+
+        :param logits: Predictions being output of the model.
 
         """
         pass
 
     @abstractmethod
-    def plot(self, data_dict, predictions, sample_number=0):
+    def plot(self, data_dict, predictions, sample=0):
         """
         Plots inputs, targets and predictions, along with model-dependent
         variables.
 
-        Abstract - to be defined in derived classes.
+        . note::
+
+             Abstract - to be defined in derived classes.
 
         :param data_dict: DataDict containing input and target batches.
+        :type data_dict: DataDict
+
         :param predictions: Prediction.
-        :param sample_number: Number of sample in batch (DEFAULT: 0)
+        :type predictions: torch.tensor
+
+        :param sample: Number of sample in batch (default: 0)
+        :type sample: int
 
         """
 
@@ -197,11 +270,15 @@ class Model(nn.Module):
         overloaded if one needs more control.
 
         :param model_dir: Directory where the model will be saved.
-        :param stat_col: Statistics collector that contain current loss and episode number (and other statistics).
-        :return: True if this is the best model that is found till now (considering loss).
+        :type model_dir: str
+
+        :param stat_col: Statistics collector containing the current loss and episode number (among other statistics).
+        :type stat_col: StatisticsCollector
+
+        :return: True if this is currently the best model (until the current episode, considering the loss).
 
         """
-        # Get two elementary statistics.
+        # Get the two elementary statistics.
         loss = stat_col['loss']
         episode = stat_col['episode']
 
@@ -224,7 +301,7 @@ class Model(nn.Module):
                     filename))
 
         # Save the best model.
-        if (loss < self.best_loss):
+        if loss < self.best_loss:
             self.best_loss = loss
             filename = model_dir + 'model_best.pt'
             torch.save(chkpt, filename)
@@ -232,18 +309,19 @@ class Model(nn.Module):
                 "Model and statistics exported to checkpoint {}".format(
                     filename))
             return True
+
         # Else: that was not the best model.
         return False
 
     def load(self, checkpoint_file):
         """
-        Loads model from the checkpoint file.
+        Loads a model from the specified checkpoint file.
 
         :param checkpoint_file: File containing dictionary with model state and statistics.
 
         """
         # Load checkpoint
-        # This is to be able to load CUDA-trained model on CPU
+        # This is to be able to load a CUDA-trained model on CPU
         chkpt = torch.load(
             checkpoint_file, map_location=lambda storage, loc: storage)
 

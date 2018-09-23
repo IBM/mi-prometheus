@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""sequential_model.py: contains base model for all sequential models"""
+"""
+sequential_model.py: contains base model for all sequential models.
+
+"""
 __author__ = "Tomasz Kornuta, Vincent Marois"
 
 import numpy as np
@@ -12,18 +15,25 @@ from problems.problem import DataDict
 
 class SequentialModel(Model):
     """
-    Class representing base class for all sequential models.
+    Class representing base class for all Sequential Models.
 
-    Provides basic plotting functionality.
+    Inherits from models.model.Model as most functionalities are the same.
+
+    Should be derived by all sequential models.
 
     """
 
     def __init__(self, params, problem_default_values_={}):
         """
-        Initializes application state and sets plot if visualization flag is
-        turned on.
+        Mostly calls the base ``models.model.Model`` constructor.
 
-        :param params: Parameters read from configuration file.
+        Specifies a better structure for ``self.data_definitions``.
+
+        :param params: Parameters read from configuration ``.yaml`` file.
+
+        :param problem_default_values_: dict of parameters values coming from the problem class. One example of such\
+        parameter value is the size of the vocabulary set in a translation problem.
+        :type problem_default_values_: dict
 
         """
         super(SequentialModel, self).__init__(params, problem_default_values_={})
@@ -37,23 +47,26 @@ class SequentialModel(Model):
                                  'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]}
                                  }
 
-    def plot(self, data_dict, predictions, sample_number=0):
+    def plot(self, data_dict, predictions, sample=0):
         """
         Creates a default interactive visualization, with a slider enabling to
-        move forth and back along the time axis (iteration in a given episode).
-        The default visualization contains input, output and target sequences.
-        For more model/problem dependent visualization please overwrite this
+        move forth and back along the time axis (iteration over the sequence elements in a given episode).
+        The default visualization contains the input, output and target sequences.
+
+        For a more model/problem - dependent visualization, please overwrite this
         method in the derived model class.
 
         :param data_dict: DataDict containing
 
-           - input sequences: [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE],
-           - target sequences:  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+           - input sequences: [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_SIZE],
+           - target sequences:  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_SIZE]
 
 
-        :param predictions: Predicted sequences [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param predictions: Predicted sequences [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_SIZE]
+        :type predictions: torch.tensor
 
-        :param sample_number: Number of sample in batch (DEFAULT: 0)
+        :param sample: Number of sample in batch (default: 0)
+        :type sample: int
 
         """
         # Check if we are supposed to visualize at all.
@@ -102,9 +115,9 @@ class SequentialModel(Model):
         fig.set_tight_layout(True)
 
         # Detach a sample from batch and copy it to CPU.
-        inputs_seq = data_dict['sequences'][sample_number].cpu().detach().numpy()
-        targets_seq = data_dict['targets'][sample_number].cpu().detach().numpy()
-        predictions_seq = predictions[sample_number].cpu().detach().numpy()
+        inputs_seq = data_dict['sequences'][sample].cpu().detach().numpy()
+        targets_seq = data_dict['targets'][sample].cpu().detach().numpy()
+        predictions_seq = predictions[sample].cpu().detach().numpy()
 
         # Create empty matrices.
         x = np.transpose(np.zeros(inputs_seq.shape))
@@ -136,7 +149,7 @@ class SequentialModel(Model):
             # Create "Artists" drawing data on "ImageAxes".
             artists = [None] * len(fig.axes)
 
-            # Tell artists what to do;)
+            # Tell artists what to do
             artists[0] = axes[0].imshow(
                 x, interpolation='nearest', aspect='auto')
             artists[1] = axes[1].imshow(
