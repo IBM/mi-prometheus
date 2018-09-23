@@ -112,7 +112,8 @@ class MACNetwork(Model):
 
         self.data_definitions = {'img': {'size': [-1, 1024, 14, 14], 'type': [np.ndarray]},
                                  'question': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'question_length': {'size': [-1], 'type': [list, int]}
+                                 'question_length': {'size': [-1], 'type': [list, int]},
+                                 'targets': {'size': [-1, self.nb_classes], 'type': [torch.Tensor]}
                                  }
 
     def forward(self, data_dict, dropout=0.15):
