@@ -110,7 +110,8 @@ class TextToTextProblem(SeqToSeqProblem):
 
             Reference paper: http://www.aclweb.org/anthology/P02-1040.pdf
 
-            Implementation inspired from https://machinelearningmastery.com/calculate-bleu-score-for-text-python/ \
+            Implementation inspired from https://machinelearningmastery.com/calculate-bleu-score-for-text-python/
+
 
             To handle all samples within a batch, we accumulate the individual BLEU score for each pair\
              of sentences and average over the batch size.

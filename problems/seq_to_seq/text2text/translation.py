@@ -377,7 +377,7 @@ class TranslationAnki(TextToTextProblem):
         """
         Filter several pairs at once using filter_pair as a boolean mask.
 
-        :return list of filtered pairs.
+        :return: list of filtered pairs.
 
         """
         return [pair for pair in self.pairs if self.filter_pair(pair)]
