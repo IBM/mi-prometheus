@@ -124,43 +124,6 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
     #    """
     #    self.max_sequence_length = max_length
 
-    def __getitem__(self, index):
-        """
-        Getter that returns an individual sample from the problem's associated dataset (that can be generated \
-        on-the-fly, or retrieved from disk. It can also possibly be composed of several files.).
-
-        To be redefined in subclasses.
-
-        **The getter should return a DataDict: its keys should be defined by ``self.data_definitions`` keys.**
-
-        e.g.:
-
-            >>> data_dict = DataDict({key: None for key in self.data_definitions.keys()})
-            >>> # you can now access each value by its key and assign the corresponding object (e.g. `torch.Tensor` etc)
-            >>> ...
-            >>> return data_dict
-
-        :param index: index of the sample to return.
-        :type index: int
-
-        :return: DataDict containing the sample.
-
-        """
-
-        return DataDict({key: None for key in self.data_definitions.keys()})
-
-    def worker_init_fn(self, worker_id):
-        """
-        Set the ``NumPy`` random seed of the worker equal to its ``worker_id`` to avoid having all workers returning
-        the same random numbers.
-
-        :param worker_id: the worker id (in [0, ``torch.utils.data.dataloader.DataLoader.num_workers`` - 1])
-        :type worker_id: int
-
-        :return: ``None`` by default
-        """
-        np.random.seed(seed=np.random.get_state()[1][0]+worker_id-1)
-
     def add_ctrl(self, seq, ctrl, pos):
         """
         Adds control channels to a sequence.

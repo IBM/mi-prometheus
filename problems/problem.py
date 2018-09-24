@@ -5,6 +5,7 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import collections
 import torch
+import numpy as np
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import default_collate
 
@@ -521,7 +522,8 @@ class Problem(Dataset):
 
         .. note::
 
-            The user may need this function to ensure, e.g, that each worker has its own ``NumPy`` random seed.
+            Set the ``NumPy`` random seed of the worker equal to the previous NumPy seed + its ``worker_id`` (-1)\
+             to avoid having all workers returning the same random numbers.
 
 
         :param worker_id: the worker id (in [0, ``torch.utils.data.dataloader.DataLoader.num_workers`` - 1])
@@ -529,7 +531,7 @@ class Problem(Dataset):
 
         :return: ``None`` by default
         """
-        return None
+        np.random.seed(seed=np.random.get_state()[1][0] + worker_id - 1)
 
     def get_data_definitions(self):
         """

@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""problem.py: contains base class for all seq2seq problems"""
-__author__ = "Tomasz Kornuta"
+"""
+seq_to_seq_problem.py: contains base class for all sequence to sequence problems.
+
+"""
+
+__author__ = "Tomasz Kornuta & Vincent Marois"
 
 from problems.problem import Problem, DataDict
 import torch
@@ -55,29 +59,6 @@ class SeqToSeqProblem(Problem):
             loss = self.loss_function(logits, data_dict['targets'])
 
         return loss
-
-    def __getitem__(self, index):
-        """
-        Getter that returns an individual sample from the problem's associated dataset (that can be generated \
-        on-the-fly, or retrieved from disk. It can also possibly be composed of several files.).
-
-        To be redefined in subclasses.
-
-        **The getter should return a DataDict: its keys should be defined by `self.data_definitions` keys.**
-
-        e.g.:
-            >>> data_dict = DataDict({key: None for key in self.data_definitions.keys()})
-            >>> # you can now access each value by its key and assign the corresponding object (e.g. `torch.Tensor` etc)
-            >>> ...
-            >>> return data_dict
-
-        :param index: index of the sample to return.
-
-        :return: DataDict containing the sample.
-
-        """
-
-        return DataDict({key: None for key in self.data_definitions.keys()})
 
 
 if __name__ == '__main__':

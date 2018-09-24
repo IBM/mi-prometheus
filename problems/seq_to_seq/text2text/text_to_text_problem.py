@@ -1,6 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
+# The MIT License (MIT)
+#
+# Copyright (c) 2017 Sean Robertson
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
+# ------------------------------------------------------------------------------
+#
 # Copyright (C) IBM Corporation 2018
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,39 +39,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""text_to_text_problem.py: abstract base class for text to text sequential problems, e.g. machine translation
-    Inspiration taken from the corresponding Pytorch tutorial.
-    See https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html """
+"""
+text_to_text_problem.py: abstract base class for text to text sequential problems, e.g. machine translation.
+
+"""
+
 __author__ = "Vincent Marois"
 
-import collections
 import unicodedata
 import re
 import torch
 import torch.nn as nn
 from problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
-
-_TextAuxTuple = collections.namedtuple(
-    'TextAuxTuple',
-    ('inputs_text',
-     'outputs_text',
-     'input_lang',
-     'output_lang'))
-
-
-class TextAuxTuple(_TextAuxTuple):
-    """
-    Tuple used for storing batches of data by text to text sequential problems.
-    Contains four elements:
-
-    - text input sentence (e.g. string in input language for translation)
-    - text output sentence (e.g. string in output language for translation
-    - Lang() instance of the input language
-    - Lang() instance of the output language
-
-    """
-    __slots__ = ()
-
 
 # global tokens
 PAD_token = 0
@@ -59,17 +62,18 @@ class TextToTextProblem(SeqToSeqProblem):
     """
     Base class for text to text sequential problems.
 
-    Provides some basic functionality useful in all problems of such
-    type
+    Provides some basic features useful in all problems of such
+    type.
 
     """
 
     def __init__(self, params):
         """
-        Initializes problem object. Calls base constructor. Sets nn.NLLLoss()
-        as default loss function.
+        Initializes problem object. Calls base ``SeqToSeqProblem`` constructor.
 
-        :param params: Dictionary of parameters (read from configuration file).
+        Sets nn.NLLLoss() as default loss function.
+
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
         """
         super(TextToTextProblem, self).__init__(params)
@@ -78,18 +82,43 @@ class TextToTextProblem(SeqToSeqProblem):
         # padding elements.
         self.loss_function = nn.NLLLoss(size_average=True, ignore_index=0)
 
-    def compute_BLEU_score(self, data_tuple, logits, aux_tuple):
-        """
-        Compute BLEU score in order to evaluate the translation quality
-        (equivalent of accuracy) Reference paper:
-        http://www.aclweb.org/anthology/P02-1040.pdf Implementation inspired
-        from https://machinelearningmastery.com/calculate-bleu-score-for-text-
-        python/ To deal with the batch, we accumulate the individual bleu score
-        for each pair of sentences and average over the batch size.
+        # set default data_definitions dict
+        self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'sequences_length': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'mask': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'inputs_text': {'size': [-1, 1], 'type': [list, str]},
+                                 'outputs_text': {'size': [-1, 1], 'type': [list, str]},
+                                 }
 
-        :param data_tuple: DataTuple(input_tensors, target_tensors)
-        :param logits: predictions of the model
-        :param aux_tuple: TextAuxTuple('inputs_text', 'outputs_text', 'input_lang', 'output_lang')
+        # default values likely to be useful to a model.
+        # setting the fields for the vocabulary sets sizes to None for now.
+        # TODO: other fields to consider?
+        self.default_values = {'input_voc_size': None,
+                               'output_voc_size': None,
+                               }
+
+        self.input_lang = None
+        self.output_lang = None
+
+    def compute_BLEU_score(self, data_dict, logits):
+        """
+        Compute the BLEU score in order to evaluate the translation quality
+        (equivalent of accuracy).
+
+        .. note::
+
+            Reference paper: http://www.aclweb.org/anthology/P02-1040.pdf
+
+            Implementation inspired from https://machinelearningmastery.com/calculate-bleu-score-for-text-python/ \
+
+            To handle all samples within a batch, we accumulate the individual BLEU score for each pair\
+             of sentences and average over the batch size.
+
+
+        :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'inputs_text', 'outputs_text'}).
+
+        :param logits: Predictions of the model
 
         :return: Average BLEU Score for the batch ( 0 < BLEU < 1)
 
@@ -103,7 +132,7 @@ class TextToTextProblem(SeqToSeqProblem):
 
         # retrieve target sentences from TextAuxTuple
         targets_text = []
-        for sentence in aux_tuple.outputs_text:
+        for sentence in data_dict['outputs_text']:
             targets_text.append(sentence.split())
 
         # retrieve text sentences from the logits (which should be tensors of
@@ -111,8 +140,7 @@ class TextToTextProblem(SeqToSeqProblem):
         logits_text = []
         for logit in logits:
             logits_text.append(
-                [aux_tuple.output_lang.index2word[index.item()]
-                 for index in logit])
+                [self.output_lang.index2word[index.item()] for index in logit])
 
         bleu_score = 0
         for i in range(batch_size):
@@ -123,67 +151,68 @@ class TextToTextProblem(SeqToSeqProblem):
 
         return round(bleu_score / batch_size, 4)
 
-    def evaluate_loss(self, data_tuple, logits, aux_tuple):
+    def evaluate_loss(self, data_dict, logits):
         """
         Computes loss.
+
         By default, the loss function is the Negative Log Likelihood function.
+
         The input given through a forward call is expected to contain log-probabilities (LogSoftmax) of each class.
+
         The input has to be a Tensor of size either (batch_size, C) or (batch_size, C, d1, d2,...,dK) with K ≥ 2 for the
         K-dimensional case.
+
         The target that this loss expects is a class index (0 to C-1, where C = number of classes).
 
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param logits: Logits being outputs of the model.
-        :param aux_tuple: Auxiliary tuple containing mask.
+        :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'inputs_text', 'outputs_text'}).
+
+        :param logits: Predictions of the model.
+
         :return: loss
         """
-        loss = self.loss_function(logits.transpose(1, 2), data_tuple.targets)
+        loss = self.loss_function(logits.transpose(1, 2), data_dict['targets'])
 
         return loss
 
-    def set_max_length(self, max_length):
-        """
-        Sets maximum sequence lenth (property).
-
-        :param max_length: Length to be saved as max.
-
-        """
-        self.max_sequence_length = max_length
-
     def add_statistics(self, stat_col):
         """
-        Add BLEU score to collector.
+        Add BLEU score to a ``StatisticsCollector``.
 
         :param stat_col: Statistics collector.
+        :type stat_col: ``StatisticsCollector``
 
         """
         stat_col.add_statistic('bleu_score', '{:4.5f}')
 
-    def collect_statistics(self, stat_col, data_tuple, logits, aux_tuple):
+    def collect_statistics(self, stat_col, data_dict, logits):
         """
         Collects BLEU score.
 
-        :param stat_col: Statistics collector.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param logits: Logits being output of the model.
-        :param aux_tuple: auxiliary tuple (aux_tuple).
+        :param stat_col: ``StatisticsCollector``
+
+        :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'inputs_text', 'outputs_text'}).
+
+        :param logits: Predictions of the model.
 
         """
 
-        stat_col['bleu_score'] = self.compute_BLEU_score(
-            data_tuple, logits, aux_tuple)
+        stat_col['bleu_score'] = self.compute_BLEU_score(data_dict, logits)
 
-    def show_sample(self, data_tuple, aux_tuple, sample_number=0):
+    def show_sample(self, data_dict, sample=0):
         """
         Shows the sample (both input and target sequences) using matplotlib.
         Elementary visualization.
 
-        :param data_tuple: Data tuple.
-        :param aux_tuple: Auxiliary tuple.
-        :param sample_number: Number of sample in a batch (DEFAULT: 0)
+        :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'inputs_text', 'outputs_text'}).
+
+        :param sample: Number of sample in a batch (default: 0)
+
+        .. note::
+
+            TODO
+
 
         """
-        # TODO
         pass
 
     # ----------------------
@@ -192,10 +221,12 @@ class TextToTextProblem(SeqToSeqProblem):
 
     def unicode_to_ascii(self, s):
         """
-        Turn a Unicode string to plain ASCII. See:
-        http://stackoverflow.com/a/518232/2809427.
+        Turn a Unicode string to plain ASCII.
+
+        See: http://stackoverflow.com/a/518232/2809427.
 
         :param s: Unicode string.
+
         :return: plain ASCII string.
 
         """
@@ -209,6 +240,7 @@ class TextToTextProblem(SeqToSeqProblem):
         Lowercase, trim, and remove non-letter characters in string s.
 
         :param s: string.
+
         :return: normalized string.
 
         """
@@ -220,13 +252,19 @@ class TextToTextProblem(SeqToSeqProblem):
     def indexes_from_sentence(self, lang, sentence, max_seq_length):
         """
         Construct a list of indexes using a 'vocabulary index' from a specified
-        Lang instance for the specified sentence (see Lang class below). Also
-        pad this list of indexes so that its length will be equal to
-        max_seq_length (needed for batch support).
+        Lang class instance for the specified sentence (see Lang class below).
+
+        Also pad this list of indexes so that its length will be equal to
+        ``max_seq_length`` (needed for batch support).
 
         :param lang: instance of the class Lang, having a word2index dict.
+        :type lang: Lang
+
         :param sentence: string to convert word for word to indexes, e.g. "The black cat is eating."
+        :type sentence: str
+
         :param max_seq_length: Maximum length for the list of indexes.
+        :type max_seq_length: int
 
         :return: padded list of indexes.
 
@@ -234,16 +272,22 @@ class TextToTextProblem(SeqToSeqProblem):
         seq = [lang.word2index[word]
                for word in sentence.split(' ')] + [EOS_token]
         seq += [PAD_token for _ in range(max_seq_length - len(seq))]
+
         return seq
 
     def tensor_from_sentence(self, lang, sentence, max_seq_length):
         """
-        Reuses indexes_from_sentence() to create a tensor of indexes with the
+        Uses ``indexes_from_sentence()`` to create a tensor of indexes with the
         EOS token.
 
         :param lang: instance of the Lang class, having a word2index dict.
+        :type lang: Lang
+
         :param sentence: string to convert word for word to indexes, e.g. "The black cat is eating."
+        :type sentence: str
+
         :param max_seq_length: Maximum length for the list of indexes (passed to indexes_from_sentence())
+        :type max_seq_length: int
 
         :return: tensor of indexes, terminated by the EOS token.
 
@@ -256,10 +300,17 @@ class TextToTextProblem(SeqToSeqProblem):
         """
         Creates a tuple of tensors of indexes from a pair of sentences.
 
-        :param pair: tuple of input & output languages sentences
+        :param pair: input & output languages sentences
+        :type pair: tuple
+
         :param input_lang: instance of the class Lang, having a word2index dict, representing the input language.
+        :type lang: Lang
+
         :param output_lang: instance of the class Lang, having a word2index dict, representing the output language.
-        :param max_seq_length: Maximum length for the list of indexes (passed to indexes_from_sentence())
+        :type lang: Lang
+
+        :param max_seq_length: Maximum length for the list of indexes (passed to ``indexes_from_sentence()``)
+        :type max_seq_length: int
 
         :return: tuple of tensors of indexes.
 
@@ -275,12 +326,19 @@ class TextToTextProblem(SeqToSeqProblem):
                            output_lang, max_seq_length):
         """
         Returns a list of tuples of tensors of indexes from a list of pairs of
-        sentences. Reuses tensors_from_pair.
+        sentences. Uses ``tensors_from_pair()``.
 
-        :param pairs: list of sentences pairs
+        :param pairs: sentences pairs
+        :type pairs: list
+
         :param input_lang: instance of the class Lang, having a word2index dict, representing the input language.
+        :type lang: Lang
+
         :param output_lang: instance of the class Lang, having a word2index dict, representing the output language.
+        :type lang: Lang
+
         :param max_seq_length: Maximum length for the list of indexes (passed to indexes_from_sentence())
+        :type max_seq_length: int
 
         :return: list of tensors of indexes.
 
@@ -292,7 +350,7 @@ class TextToTextProblem(SeqToSeqProblem):
 class Lang(object):
     """
     Simple helper class allowing to represent a language in a translation task.
-    It will contain for instance a vocabulary index (word2index dict) & keep
+    It will contain for instance a vocabulary index (``word2index`` dict) & keep
     track of the number of words in the language.
 
     This class is useful as each word in a language will be represented as a one-hot vector: a giant vector of zeros
@@ -300,8 +358,8 @@ class Lang(object):
     is generally useful to trim the data to only use a few thousand words per language.
 
     The inputs and targets of the associated sequence to sequence networks will be sequences of indexes, each item
-    representing a word. The attributes of this class (word2index, index2word, word2count) are useful to keep track of
-    this.
+    representing a word. The attributes of this class (``word2index``, ``index2word``, ``word2count``) are useful to\
+     keep track of this.
 
     """
 
@@ -313,23 +371,25 @@ class Lang(object):
 
         """
         self.name = name
+
         self.word2index = {"PAD": 0, "SOS": 1, "EOS": 2}  # dict 'word': index
         # keep track of the occurrence of each word in the language. Can be
-        # used to replace
+        # used to replace rare words.
         self.word2count = {}
-        # rare words.
+
         # dict 'index': 'word', initializes with PAD, EOS, SOS tokens
         self.index2word = {0: "PAD", 1: "SOS", 2: "EOS"}
+
         # Number of words in the language. Start by counting PAD, EOS, SOS
         # tokens.
         self.n_words = 3
 
     def add_sentence(self, sentence):
         """
-        Process a sentence using add_word().
+        Process a sentence using ``add_word()``.
 
         :param sentence: sentence to be added to the language.
-        :return: None.
+        :type sentence: str
 
         """
         for word in sentence.split(' '):
@@ -341,7 +401,7 @@ class Lang(object):
         index2words & n_words.
 
         :param word: word to be added.
-        :return: None.
+        :type word: str
 
         """
 
