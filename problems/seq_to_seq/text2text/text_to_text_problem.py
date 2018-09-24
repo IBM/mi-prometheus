@@ -249,13 +249,10 @@ class TextToTextProblem(SeqToSeqProblem):
         s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
         return s
 
-    def indexes_from_sentence(self, lang, sentence, max_seq_length):
+    def indexes_from_sentence(self, lang, sentence):
         """
         Construct a list of indexes using a 'vocabulary index' from a specified
         Lang class instance for the specified sentence (see Lang class below).
-
-        Also pad this list of indexes so that its length will be equal to
-        ``max_seq_length`` (needed for batch support).
 
         :param lang: instance of the class Lang, having a word2index dict.
         :type lang: Lang
@@ -263,19 +260,15 @@ class TextToTextProblem(SeqToSeqProblem):
         :param sentence: string to convert word for word to indexes, e.g. "The black cat is eating."
         :type sentence: str
 
-        :param max_seq_length: Maximum length for the list of indexes.
-        :type max_seq_length: int
-
-        :return: padded list of indexes.
+        :return: list of indexes.
 
         """
         seq = [lang.word2index[word]
                for word in sentence.split(' ')] + [EOS_token]
-        seq += [PAD_token for _ in range(max_seq_length - len(seq))]
 
         return seq
 
-    def tensor_from_sentence(self, lang, sentence, max_seq_length):
+    def tensor_from_sentence(self, lang, sentence):
         """
         Uses ``indexes_from_sentence()`` to create a tensor of indexes with the
         EOS token.
@@ -286,17 +279,14 @@ class TextToTextProblem(SeqToSeqProblem):
         :param sentence: string to convert word for word to indexes, e.g. "The black cat is eating."
         :type sentence: str
 
-        :param max_seq_length: Maximum length for the list of indexes (passed to indexes_from_sentence())
-        :type max_seq_length: int
-
         :return: tensor of indexes, terminated by the EOS token.
 
         """
-        indexes = self.indexes_from_sentence(lang, sentence, max_seq_length)
+        indexes = self.indexes_from_sentence(lang, sentence)
 
         return torch.tensor(indexes).type(self.app_state.LongTensor)
 
-    def tensors_from_pair(self, pair, input_lang, output_lang, max_seq_length):
+    def tensors_from_pair(self, pair, input_lang, output_lang):
         """
         Creates a tuple of tensors of indexes from a pair of sentences.
 
@@ -309,21 +299,15 @@ class TextToTextProblem(SeqToSeqProblem):
         :param output_lang: instance of the class Lang, having a word2index dict, representing the output language.
         :type lang: Lang
 
-        :param max_seq_length: Maximum length for the list of indexes (passed to ``indexes_from_sentence()``)
-        :type max_seq_length: int
-
         :return: tuple of tensors of indexes.
 
         """
-        input_tensor = self.tensor_from_sentence(
-            input_lang, pair[0], max_seq_length)
-        target_tensor = self.tensor_from_sentence(
-            output_lang, pair[1], max_seq_length)
+        input_tensor = self.tensor_from_sentence(input_lang, pair[0])
+        target_tensor = self.tensor_from_sentence(output_lang, pair[1])
 
         return [input_tensor, target_tensor]
 
-    def tensors_from_pairs(self, pairs, input_lang,
-                           output_lang, max_seq_length):
+    def tensors_from_pairs(self, pairs, input_lang, output_lang):
         """
         Returns a list of tuples of tensors of indexes from a list of pairs of
         sentences. Uses ``tensors_from_pair()``.
@@ -337,14 +321,10 @@ class TextToTextProblem(SeqToSeqProblem):
         :param output_lang: instance of the class Lang, having a word2index dict, representing the output language.
         :type lang: Lang
 
-        :param max_seq_length: Maximum length for the list of indexes (passed to indexes_from_sentence())
-        :type max_seq_length: int
-
         :return: list of tensors of indexes.
 
         """
-        return [self.tensors_from_pair(
-            pair, input_lang, output_lang, max_seq_length) for pair in pairs]
+        return [self.tensors_from_pair(pair, input_lang, output_lang) for pair in pairs]
 
 
 class Lang(object):

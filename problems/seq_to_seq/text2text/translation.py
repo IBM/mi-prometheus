@@ -47,6 +47,7 @@ __author__ = "Vincent Marois"
 
 import os
 import random
+import pickle
 
 import torch
 import errno
@@ -97,6 +98,9 @@ class TranslationAnki(TextToTextProblem):
         # to filter the English sentences based on their structure.
         self.eng_prefixes = params['eng_prefixes']
 
+        # for the embedding of the vocabulary sets
+        self.embedding_dim = params['embedding_dim']
+
         # other attributes
         self.input_lang = None  # will be a Lang instance
         self.output_lang = None  # will be a Lang instance
@@ -124,10 +128,64 @@ class TranslationAnki(TextToTextProblem):
         self.input_lang, self.output_lang, self.pairs = self.prepare_data()
 
         # create tensors of indexes from string pairs
-        self.tensor_pairs = self.tensors_from_pairs(
-            self.pairs, self.input_lang, self.output_lang, self.max_sequence_length)
+        self.tensor_pairs = self.tensors_from_pairs(self.pairs, self.input_lang, self.output_lang)
 
+        # get the dataset size
         self.length = len(self.tensor_pairs)
+
+        # create the nn.Embedding layer for the input vocabulary set
+        self.logger.info('Constructing random embeddings for the input vocabulary set')
+        self.input_embed_layer = torch.nn.Embedding(num_embeddings=self.input_lang.n_words, embedding_dim=self.embedding_dim)
+
+        # we have to make sure that the weights are the same during training and validation
+        weights_filepath = os.path.join(self.root, 'input_{}_{}_embed_weights.pkl'.format(self.input_lang.n_words,
+                                                                                          self.embedding_dim))
+
+        if os.path.isfile(weights_filepath):
+            self.logger.info('Found random embedding weights on file for the input vocabulary, using them.')
+            with open(weights_filepath, 'rb') as f:
+                self.input_embed_layer.weight.data = pickle.load(f)
+        else:
+            self.logger.warning('No weights found on file for the random embedding of the input vocabulary. '
+                                'Initializing them and saving to file in {}'.format(weights_filepath))
+            with open(weights_filepath, 'wb') as f:
+                pickle.dump(self.input_embed_layer.weight.data, f)
+
+        # create the nn.Embedding layer for the output vocabulary set
+        self.logger.info('Constructing random embeddings for the output vocabulary set')
+        self.output_embed_layer = torch.nn.Embedding(num_embeddings=self.output_lang.n_words,
+                                                     embedding_dim=self.embedding_dim)
+
+        # we have to make sure that the weights are the same during training and validation
+        weights_filepath = os.path.join(self.root, 'output_{}_{}_embed_weights.pkl'.format(self.output_lang.n_words,
+                                                                                           self.embedding_dim))
+
+        if os.path.isfile(weights_filepath):
+            self.logger.info('Found random embedding weights on file for the output vocabulary, using them.')
+            with open(weights_filepath, 'rb') as f:
+                self.output_embed_layer.weight.data = pickle.load(f)
+        else:
+            self.logger.warning('No weights found on file for the random embedding of the output vocabulary. '
+                                'Initializing them and saving to file in {}'.format(weights_filepath))
+            with open(weights_filepath, 'wb') as f:
+                pickle.dump(self.output_embed_layer.weight.data, f)
+
+        # the actual embedding is handled in __getitem__.
+
+        # define the default_values dict: holds parameters values that a model may need.
+        self.default_values = {'input_vocab_length': self.input_lang.n_words,
+                               'output_vocab_length': self.output_lang.n_words,
+                               'embedding_dim': self.embedding_dim,
+                               'max_sequence_length': self.max_sequence_length}
+
+        # define the data_definitions dict: holds a description of the DataDict content
+        self.data_definitions = {'inputs': {'size': [-1, -1, self.embedding_dim], 'type': [torch.Tensor]},
+                                 'inputs_length': {'size': [-1], 'type': [list, int]},
+                                 'inputs_text': {'size': [-1, -1], 'type': [list, str]},
+                                 'targets': {'size': [-1, -1, self.embedding_dim], 'type': [torch.Tensor]},
+                                 'targets_length': {'size': [-1], 'type': [list, int]},
+                                 'targets_text': {'size': [-1, -1], 'type': [list, str]}
+                                 }
 
     def prepare_data(self):
         """
@@ -332,40 +390,85 @@ class TranslationAnki(TextToTextProblem):
         :param index: index of the sample to return.
         :type index: int
 
-        :return: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'inputs_text', 'outputs_text'}).
+        :return: DataDict({'inputs', 'inputs_length', 'inputs_text' 'targets', 'targets_length', 'targets_text'}).
 
         """
         # get tensors and strings
         input_tensor, target_tensor = self.tensor_pairs[index]
         input_text, target_text = self.pairs[index]
 
+        # embed the input sentence:
+        input_tensor = self.input_embed_layer(torch.LongTensor(input_tensor)).type(torch.FloatTensor)
+
+        # embed the output sentence:
+        target_tensor = self.output_embed_layer(torch.LongTensor(target_tensor)).type(torch.FloatTensor)
+
         # return data_dict
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
-        data_dict['sequences'] = input_tensor
-        data_dict['sequences_length'] = len(input_tensor)
-        data_dict['mask'] = 0
-        data_dict['targets'] = target_tensor
+        data_dict['inputs'] = input_tensor
+        data_dict['inputs_length'] = len(input_tensor)
         data_dict['inputs_text'] = input_text
-        data_dict['outputs_text'] = target_text
+
+        data_dict['targets'] = target_tensor
+        data_dict['targets_length'] = len(target_tensor)
+        data_dict['targets_text'] = target_text
 
         return data_dict
 
     def collate_fn(self, batch):
         """
-        Combines a list of ``DataDict`` (retrieved with ``__getitem__`` ) into a batch.
+        Combines a list of DataDict (retrieved with ``__getitem__``) into a batch.
 
         .. note::
 
-            This function wraps a call to ``default_collate`` and simply returns the batch as a ``DataDict``\
-            instead of a dict.
+            Because each tokenized sentence has a variable length, padding is necessary to create batches.
 
-        :param batch: list of individual ``DataDict`` samples to combine.
+            Hence, for a given batch, each sentence is padded to the length of the longest one.
 
-        :return: ``DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'inputs_text', 'outputs_text'}).`` containing the batch.
+            **The batch is sorted decreasingly as a function of the input sentences length.**
+
+            This length changes between batches, but this shouldn't be an issue.
+
+
+        :param batch: list of individual samples to combine
+        :type batch: list
+
+        :return: ``DataDict({'inputs', 'inputs_length', 'inputs_text' 'targets', 'targets_length', 'targets_text'})``\
+        containing the batch.
 
         """
-        return DataDict({key: value for key, value in zip(self.data_definitions.keys(),
-                                                          super(TranslationAnki, self).collate_fn(batch).values())})c
+        batch_size = len(batch)
+
+        # get max input sentence length, create tensor of shape [batch_size x max_input_length] & sort inputs by
+        # decreasing length
+        max_input_len = max(map(lambda x: x['inputs_length'], batch))
+        sort_by_len = sorted(batch, key=lambda x: x['inputs_length'], reverse=True)
+
+        # create tensor containing the embedded input sentences
+        inputs = torch.zeros(batch_size, max_input_len, self.embedding_dim).type(torch.FloatTensor)
+
+        # get max output sentence length
+        max_output_len = max(map(lambda x: x['targets_length'], batch))
+        # create tensor containing the embedded output sentences
+        outputs = torch.zeros(batch_size, max_output_len, self.embedding_dim).type(torch.FloatTensor)
+
+        # construct the DataDict and fill it with the batch
+        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+
+        data_dict['inputs_length'] = [elt['inputs_length'] for elt in sort_by_len]
+        data_dict['inputs_text'] = [elt['inputs_text'] for elt in sort_by_len]
+
+        data_dict['targets_length'] = [elt['targets_length'] for elt in sort_by_len]
+        data_dict['targets_text'] = [elt['targets_text'] for elt in sort_by_len]
+
+        for i, length in enumerate(data_dict['inputs_length']):  # only way to do this?
+            inputs[i, :length, :] = sort_by_len[i]['inputs']
+            outputs[i, :data_dict['targets_length'][i], :] = sort_by_len[i]['targets']
+
+        data_dict['inputs'] = inputs
+        data_dict['targets'] = outputs
+
+        return data_dict
 
     def plot_preprocessing(self, data_dict, logits):
         """
@@ -394,7 +497,7 @@ class TranslationAnki(TextToTextProblem):
         # sentences and predicted sentences
         logits = {'inputs_text': data_dict['inputs_text'],
                   'logits_text': logits_text}
-o
+
         return data_dict, logits
 
 
@@ -418,6 +521,7 @@ if __name__ == "__main__":
     params.add_default_params({'training_size': 0.9,
                                'output_lang_name': 'fra',
                                'max_sequence_length': 15,
+                               'embedding_dim': 256,
                                'eng_prefixes': eng_prefixes,
                                'use_train_data': True,
                                'data_folder': '~/data/language',
@@ -436,14 +540,13 @@ if __name__ == "__main__":
     # wrap DataLoader on top of this Dataset subclass
     from torch.utils.data.dataloader import DataLoader
     dataloader = DataLoader(dataset=translation, collate_fn=translation.collate_fn,
-                            batch_size=batch_size, shuffle=True, num_workers=0)
+                            batch_size=batch_size, shuffle=True, num_workers=8)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
     import time
     s = time.time()
     for i, batch in enumerate(dataloader):
-        print('Batch # {} - {}'.format(i, repr(batch)))
-        break
+        print('Batch # {} - {}'.format(i, type(batch)))
 
     print('Number of workers: {}'.format(dataloader.num_workers))
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
