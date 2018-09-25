@@ -1,0 +1,2 @@
+# mi-prometheus
+MI-Prometheus (Machine Intelligence – Prometheus), an open-source framework built on top of PyTorch, enabling rapid development and comparison of diverse neural network-based models. In MI-Prometheus training and testing mechanisms are no longer pinned to a specific model or problem, whereas build-in mechanisms for configuration management and handshaking of data definitions facilitate running experiments combining different models with problems.
