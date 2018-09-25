@@ -71,7 +71,7 @@ class TextToTextProblem(SeqToSeqProblem):
         """
         Initializes problem object. Calls base ``SeqToSeqProblem`` constructor.
 
-        Sets nn.NLLLoss() as default loss function.
+        Sets ``nn.NLLLoss()`` as default loss function.
 
         :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
@@ -83,11 +83,11 @@ class TextToTextProblem(SeqToSeqProblem):
         self.loss_function = nn.NLLLoss(size_average=True, ignore_index=0)
 
         # set default data_definitions dict
-        self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'sequences_length': {'size': [-1, 1], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'mask': {'size': [-1, 1], 'type': [torch.Tensor]},
+        self.data_definitions = {'inputs': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'inputs_length': {'size': [-1, 1], 'type': [list, int]},
                                  'inputs_text': {'size': [-1, 1], 'type': [list, str]},
+                                 'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'targets_length': {'size': [-1, 1], 'type': [list, int]},
                                  'outputs_text': {'size': [-1, 1], 'type': [list, str]},
                                  }
 
@@ -96,7 +96,7 @@ class TextToTextProblem(SeqToSeqProblem):
         # TODO: other fields to consider?
         self.default_values = {'input_voc_size': None,
                                'output_voc_size': None,
-                               }
+                               'embedding_dim': None}
 
         self.input_lang = None
         self.output_lang = None
@@ -117,11 +117,11 @@ class TextToTextProblem(SeqToSeqProblem):
              of sentences and average over the batch size.
 
 
-        :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'inputs_text', 'outputs_text'}).
+        :param data_dict: DataDict({'inputs', 'inputs_length', 'inputs_text', 'targets', 'targets_length', 'outputs_text'}).
 
-        :param logits: Predictions of the model
+        :param logits: Predictions of the model.
 
-        :return: Average BLEU Score for the batch ( 0 < BLEU < 1)
+        :return: Average BLEU Score for the batch ( 0 < BLEU < 1).
 
         """
         # get most probable words indexes for the batch
@@ -133,7 +133,7 @@ class TextToTextProblem(SeqToSeqProblem):
 
         # retrieve target sentences from TextAuxTuple
         targets_text = []
-        for sentence in data_dict['outputs_text']:
+        for sentence in data_dict['targets_text']:
             targets_text.append(sentence.split())
 
         # retrieve text sentences from the logits (which should be tensors of
@@ -165,7 +165,7 @@ class TextToTextProblem(SeqToSeqProblem):
 
         The target that this loss expects is a class index (0 to C-1, where C = number of classes).
 
-        :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'inputs_text', 'outputs_text'}).
+        :param data_dict: DataDict({'inputs', 'inputs_length', 'inputs_text', 'targets', 'targets_length', 'outputs_text'}).
 
         :param logits: Predictions of the model.
 
@@ -191,7 +191,7 @@ class TextToTextProblem(SeqToSeqProblem):
 
         :param stat_col: ``StatisticsCollector``
 
-        :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'inputs_text', 'outputs_text'}).
+        :param data_dict: DataDict({'inputs', 'inputs_length', 'inputs_text', 'targets', 'targets_length', 'outputs_text'}).
 
         :param logits: Predictions of the model.
 
@@ -204,7 +204,7 @@ class TextToTextProblem(SeqToSeqProblem):
         Shows the sample (both input and target sequences) using matplotlib.
         Elementary visualization.
 
-        :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'inputs_text', 'outputs_text'}).
+        :param data_dict: DataDict({'inputs', 'inputs_length', 'inputs_text', 'targets', 'targets_length', 'outputs_text'}).
 
         :param sample: Number of sample in a batch (default: 0)
 
@@ -253,9 +253,9 @@ class TextToTextProblem(SeqToSeqProblem):
     def indexes_from_sentence(self, lang, sentence):
         """
         Construct a list of indexes using a 'vocabulary index' from a specified
-        Lang class instance for the specified sentence (see Lang class below).
+        Lang class instance for the specified sentence (see ``Lang`` class below).
 
-        :param lang: instance of the class Lang, having a word2index dict.
+        :param lang: instance of the ``Lang`` class, having a ``word2index`` dict.
         :type lang: Lang
 
         :param sentence: string to convert word for word to indexes, e.g. "The black cat is eating."
@@ -264,8 +264,7 @@ class TextToTextProblem(SeqToSeqProblem):
         :return: list of indexes.
 
         """
-        seq = [lang.word2index[word]
-               for word in sentence.split(' ')] + [EOS_token]
+        seq = [lang.word2index[word] for word in sentence.split(' ')] + [EOS_token]
 
         return seq
 
@@ -274,7 +273,7 @@ class TextToTextProblem(SeqToSeqProblem):
         Uses ``indexes_from_sentence()`` to create a tensor of indexes with the
         EOS token.
 
-        :param lang: instance of the Lang class, having a word2index dict.
+        :param lang: instance of the ``Lang`` class, having a ``word2index`` dict.
         :type lang: Lang
 
         :param sentence: string to convert word for word to indexes, e.g. "The black cat is eating."
@@ -294,10 +293,10 @@ class TextToTextProblem(SeqToSeqProblem):
         :param pair: input & output languages sentences
         :type pair: tuple
 
-        :param input_lang: instance of the class Lang, having a word2index dict, representing the input language.
+        :param input_lang: instance of the ``Lang`` class, having a ``word2index`` dict, representing the input language.
         :type lang: Lang
 
-        :param output_lang: instance of the class Lang, having a word2index dict, representing the output language.
+        :param output_lang: instance of the ``Lang`` class, having a ``word2index`` dict, representing the output language.
         :type lang: Lang
 
         :return: tuple of tensors of indexes.

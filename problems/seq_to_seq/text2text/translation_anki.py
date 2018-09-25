@@ -40,7 +40,7 @@
 # limitations under the License.
 
 """
-translation.py: 'toy' translation problem class
+translation_anki.py: 'toy' translation problem class
 
 """
 __author__ = "Vincent Marois"
@@ -65,7 +65,7 @@ class TranslationAnki(TextToTextProblem):
 
         The inspiration for this class being an existing PyTorch tutorial, this class is limited.
 
-        It currently only supports the files located here: http://www.manythings.org/anki/
+        It currently only supports the files located at http://www.manythings.org/anki/
 
         It currently only supports latin alphabet for now (because of string normalization) and does not
         include advanced features like beam search or pretrained embeddings.
@@ -104,8 +104,8 @@ class TranslationAnki(TextToTextProblem):
         # other attributes
         self.input_lang = None  # will be a Lang instance
         self.output_lang = None  # will be a Lang instance
-        self.pairs = []  # will be used to constitute TextAuxTuple
-        self.tensor_pairs = []  # will be used to constitute DataTuple
+        self.pairs = []  # will contain original string sentences
+        self.tensor_pairs = []  # will contain the tensors of indexes
 
         # for datasets storage & handling
         self.root = os.path.expanduser(params['data_folder'])
@@ -173,17 +173,17 @@ class TranslationAnki(TextToTextProblem):
         # the actual embedding is handled in __getitem__.
 
         # define the default_values dict: holds parameters values that a model may need.
-        self.default_values = {'input_vocab_length': self.input_lang.n_words,
-                               'output_vocab_length': self.output_lang.n_words,
+        self.default_values = {'input_vocab_size': self.input_lang.n_words,
+                               'output_vocab_size': self.output_lang.n_words,
                                'embedding_dim': self.embedding_dim,
                                'max_sequence_length': self.max_sequence_length}
 
         # define the data_definitions dict: holds a description of the DataDict content
         self.data_definitions = {'inputs': {'size': [-1, -1, self.embedding_dim], 'type': [torch.Tensor]},
-                                 'inputs_length': {'size': [-1], 'type': [list, int]},
+                                 'inputs_length': {'size': [-1, 1], 'type': [list, int]},
                                  'inputs_text': {'size': [-1, -1], 'type': [list, str]},
                                  'targets': {'size': [-1, -1, self.embedding_dim], 'type': [torch.Tensor]},
-                                 'targets_length': {'size': [-1], 'type': [list, int]},
+                                 'targets_length': {'size': [-1, 1], 'type': [list, int]},
                                  'targets_text': {'size': [-1, -1], 'type': [list, str]}
                                  }
 
@@ -430,7 +430,7 @@ class TranslationAnki(TextToTextProblem):
             This length changes between batches, but this shouldn't be an issue.
 
 
-        :param batch: list of individual samples to combine
+        :param batch: Individual samples to combine
         :type batch: list
 
         :return: ``DataDict({'inputs', 'inputs_length', 'inputs_text' 'targets', 'targets_length', 'targets_text'})``\
@@ -474,6 +474,11 @@ class TranslationAnki(TextToTextProblem):
         """
         Does some preprocessing to logits to then plot the attention weights
         for the AttnEncoderDecoder model.
+
+        .. warning::
+
+            This function hasn't been reviewed yet
+
 
         :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'inputs_text', 'outputs_text'}).
 

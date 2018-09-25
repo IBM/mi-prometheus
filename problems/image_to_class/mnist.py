@@ -96,7 +96,7 @@ class MNIST(ImageToClassProblem):
         self.width = 224 if self.up_scaling else self.default_values['width']
 
         self.data_definitions = {'images': {'size': [-1, 1, self.height, self.width], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
 
