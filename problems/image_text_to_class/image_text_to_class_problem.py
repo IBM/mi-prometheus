@@ -62,7 +62,7 @@ class ImageTextToClassProblem(Problem):
         super(ImageTextToClassProblem, self).__init__(params)
 
         # set default loss function
-        self.loss_function = nn.CrossEntropyLoss
+        self.loss_function = nn.CrossEntropyLoss()
 
         # set default data_definitions dict
         self.data_definitions = {'texts': {'size': [-1, -1], 'type': [torch.Tensor]},

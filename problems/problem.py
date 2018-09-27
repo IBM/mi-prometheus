@@ -382,10 +382,10 @@ class Problem(Dataset):
             if self.data_definitions['targets']['type'] == [torch.Tensor]\
                     and model_data_definitions_['targets']['type'] == [torch.Tensor]:
 
-                if self.loss_function in [torch.nn.L1Loss, torch.nn.MSELoss, torch.nn.PoissonNLLLoss, torch.nn.KLDivLoss,
-                                          torch.nn.BCELoss, torch.nn.BCEWithLogitsLoss, torch.nn.HingeEmbeddingLoss,
-                                          torch.nn.MultiLabelMarginLoss, torch.nn.SmoothL1Loss, torch.nn.SoftMarginLoss,
-                                          torch.nn.MultiLabelSoftMarginLoss]:
+                if type(self.loss_function).__name__ in ['L1Loss', 'MSELoss', 'PoissonNLLLoss', 'KLDivLoss', 'BCELoss',
+                                                         'BCEWithLogitsLoss', 'HingeEmbeddingLoss',
+                                                         'MultiLabelMarginLoss', 'SmoothL1Loss', 'SoftMarginLoss',
+                                                         'MultiLabelSoftMarginLoss']:
 
                     # these loss functions require the same shape for both the logits and ground truth labels
                     if len(self.data_definitions['targets']['size']) != len(model_data_definitions_['targets']['size']):
@@ -403,8 +403,8 @@ class Problem(Dataset):
                                                                                                   model_data_definitions_['targets']['size'],
                                                                                                   self.data_definitions['targets']['size']))
                 # these loss functions require that the ground truth labels have 1 less dimension
-                elif self.loss_function in [torch.nn.CrossEntropyLoss, torch.nn.NLLLoss, torch.nn.MarginRankingLoss,
-                                            torch.nn.MultiMarginLoss]:
+                elif type(self.loss_function).__name__ in ['CrossEntropyLoss', 'NLLLoss', 'MarginRankingLoss',
+                                                           'MultiMarginLoss']:
 
                     if len(self.data_definitions['targets']['size']) != len(model_data_definitions_['targets']['size'])-1:
                         # the ground truth labels and the logits don't have the same number of dimensions
@@ -522,7 +522,7 @@ class Problem(Dataset):
 
         .. note::
 
-            Set the ``NumPy`` random seed of the worker equal to the previous NumPy seed + its ``worker_id`` (-1)\
+            Set the ``NumPy`` random seed of the worker equal to the previous NumPy seed + its ``worker_id``\
              to avoid having all workers returning the same random numbers.
 
 
@@ -531,7 +531,7 @@ class Problem(Dataset):
 
         :return: ``None`` by default
         """
-        np.random.seed(seed=np.random.get_state()[1][0] + worker_id - 1)
+        np.random.seed(seed=np.random.get_state()[1][0] + worker_id)
 
     def get_data_definitions(self):
         """
