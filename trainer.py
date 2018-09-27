@@ -473,7 +473,7 @@ if __name__ == '__main__':
         if app_state.visualize:
 
             # Allow for preprocessing
-            data_dict, logits = problem.plot_preprocessing(data_dict, logits)
+            data_dict, logits = dataset.plot_preprocessing(data_dict, logits)
 
             # Show plot, if user presses Quit - break.
             if model.plot(data_dict, logits):

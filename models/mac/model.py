@@ -39,11 +39,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""model.py: Implementation of the MAC network, reusing the different units implemented in separated files.
-            Cf https://arxiv.org/abs/1803.03067 for the reference paper."""
+"""
+model.py:
+
+    - Implementation of the MAC network, reusing the different units implemented in separated files.
+    - Cf https://arxiv.org/abs/1803.03067 for the reference paper.
+
+
+"""
 __author__ = "Vincent Marois , Vincent Albouy"
 
-# Add path to main project directory
 import os
 import torch
 import numpy as np
@@ -69,7 +74,7 @@ class MACNetwork(Model):
         """
         Constructor for the MAC network.
 
-        :param params: dict of parameters.
+        :param params: dict of parameters (read from configuration ``.yaml`` file).
 
         """
 
@@ -78,7 +83,7 @@ class MACNetwork(Model):
 
         # parse params dict
         self.dim = params['dim']
-        self.embed_hidden = params['embed_hidden']
+        self.embed_hidden = params['embed_hidden']  # embedding dimension
         self.max_step = params['max_step']
         self.self_attention = params['self_attention']
         self.memory_gate = params['memory_gate']
@@ -88,8 +93,6 @@ class MACNetwork(Model):
             self.nb_classes = problem_default_values_['nb_classes']
         except BaseException:
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
-
-        self.image = [] # TODO : is this necessary??
 
         self.name = 'MAC'
 
@@ -106,15 +109,15 @@ class MACNetwork(Model):
 
         self.output_unit = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
 
-        # transform for the image plotting
-        self.transform = transforms.Compose(
-            [transforms.Resize([224, 224]), transforms.ToTensor()])
-
         self.data_definitions = {'img': {'size': [-1, 1024, 14, 14], 'type': [np.ndarray]},
                                  'question': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
                                  'question_length': {'size': [-1], 'type': [list, int]},
                                  'targets': {'size': [-1, self.nb_classes], 'type': [torch.Tensor]}
                                  }
+
+        # transform for the image plotting
+        self.transform = transforms.Compose(
+            [transforms.Resize([224, 224]), transforms.ToTensor()])
 
     def forward(self, data_dict, dropout=0.15):
 
@@ -128,7 +131,6 @@ class MACNetwork(Model):
         # input unit
         img, kb_proj, lstm_out, h = self.input_unit(
             questions, questions_length, images)
-        self.image = kb_proj
 
         # recurrent MAC cells
         memory = self.mac_unit(lstm_out, h, img, kb_proj)
@@ -138,10 +140,11 @@ class MACNetwork(Model):
 
         return logits
 
-    def generate_figure_layout(self):
+    @staticmethod
+    def generate_figure_layout():
         """
         Generate a figure layout for the attention visualization (done in
-        MACNetwork.plot())
+        ``MACNetwork.plot()``)
 
         :return: figure layout.
 
@@ -199,10 +202,10 @@ class MACNetwork(Model):
         :param data_dict: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
         'targets_string', 'index','imgfile', 'prediction_string'})
 
-        :param logits: prediction of the network
+        :param logits: Prediction of the model
         :type logits: tensor
 
-        :param sample: Number of sample in batch (Default: 0)
+        :param sample: Index of sample in batch (Default: 0)
         :type sample: int
 
         :return: True when the user closes the window, False if we do not need to visualize.
@@ -217,8 +220,6 @@ class MACNetwork(Model):
         if self.plotWindow is None:
             from utils.time_plot import TimePlot
             self.plotWindow = TimePlot()
-
-        # attention mask [batch_size x 1 x(H*W)]
 
         # unpack data_dict
         _, _, _, s_questions, question_type, _, answer_string, index, imgfiles, prediction_string, clevr_dir = data_dict.values()
@@ -255,8 +256,8 @@ class MACNetwork(Model):
                 range(self.max_step), self.mac_unit.cell_state_history):
             # preprocess attention image, reshape
             attention_size = int(np.sqrt(attention_mask.size(-1)))
-            attention_mask = attention_mask.view(-1,
-                                                 1, attention_size, attention_size)
+            # attention mask has size [batch_size x 1 x(H*W)]
+            attention_mask = attention_mask.view(-1, 1, attention_size, attention_size)
 
             # upsample attention mask
             m = torch.nn.Upsample(
