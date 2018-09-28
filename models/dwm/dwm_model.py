@@ -154,38 +154,34 @@ class DWM(SequentialModel):
     def set_memory_size(self, mem_size):
         self.memory_addresses_size = mem_size
 
-    def generate_figure_layout(self):
-        from matplotlib.figure import Figure
+    @staticmethod
+    def generate_figure_layout():
+        import matplotlib.pyplot as plt
         import matplotlib.ticker as ticker
         import matplotlib.gridspec as gridspec
 
-        # Change fonts globally - for all figures/subsplots at once.
-        #from matplotlib import rc
-        #rc('font', **{'family': 'Times New Roman'})
-        import matplotlib.pylab as pylab
-        params = {
-            # 'legend.fontsize': '28',
-            'axes.titlesize': 'large',
-            'axes.labelsize': 'large',
-            'xtick.labelsize': 'medium',
-            'ytick.labelsize': 'medium'}
-        pylab.rcParams.update(params)
-
         # Prepare "generic figure template".
         # Create figure object.
-        fig = Figure()
+        fig = plt.figure(figsize=(16, 9))
+        # fig.tight_layout()
+        fig.subplots_adjust(left=0.07, right=0.96, top=0.88, bottom=0.15)
+        
+        gs0 = gridspec.GridSpec(1, 2, figure=fig, width_ratios=[5.0, 3.0])
 
         # Create a specific grid for DWM .
-        gs = gridspec.GridSpec(3, 7)
+        gs00 = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs0[0],
+                                                width_ratios=[3.0, 4.0, 4.0])
 
-        # Memory
-        ax_memory = fig.add_subplot(gs[:, 0])  # all rows, col 0
-        ax_attention = fig.add_subplot(gs[:, 1:3])  # all rows, col 2-3
-        ax_snapshot = fig.add_subplot(gs[:, 3:5])  # all rows, col 4-5
+        ax_memory = fig.add_subplot(gs00[:, 0])  # all rows, col 0
+        ax_attention = fig.add_subplot(gs00[:, 1])  # all rows, col 2-3
+        ax_bookmark = fig.add_subplot(gs00[:, 2])  # all rows, col 4-5
 
-        ax_inputs = fig.add_subplot(gs[0, 5:])  # row 0, span 2 columns
-        ax_targets = fig.add_subplot(gs[1, 5:])  # row 0, span 2 columns
-        ax_predictions = fig.add_subplot(gs[2, 5:])  # row 0, span 2 columns
+        gs01 = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=gs0[1],
+                                                hspace=0.5,
+                                                height_ratios=[1.0, 0.8, 0.8])
+        ax_inputs = fig.add_subplot(gs01[0, :])  # row 0, span 2 columns
+        ax_targets = fig.add_subplot(gs01[1, :])  # row 0, span 2 columns
+        ax_predictions = fig.add_subplot(gs01[2, :])  # row 0, span 2 columns
 
         # Set ticks - for bit axes only (for now).
         ax_inputs.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
@@ -198,8 +194,8 @@ class DWM(SequentialModel):
             ticker.MaxNLocator(integer=True))
         ax_memory.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax_memory.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_snapshot.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_snapshot.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_bookmark.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_bookmark.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax_attention.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax_attention.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
@@ -215,15 +211,11 @@ class DWM(SequentialModel):
         ax_memory.set_title('Memory')
         ax_memory.set_ylabel('Memory Addresses')
         ax_memory.set_xlabel('Content bits')
-        ax_attention.set_title('Head attention')
+        ax_attention.set_title('Head Attention')
         ax_attention.set_xlabel('Iteration')
-        ax_snapshot.set_title('Snapshot/Bookmark Attention')
-        ax_snapshot.set_xlabel('Iteration')
+        ax_bookmark.set_title('Bookmark Attention')
+        ax_bookmark.set_xlabel('Iteration')
 
-        fig.set_tight_layout(True)
-        # gs.tight_layout(fig)
-        # plt.tight_layout()
-        #fig.subplots_adjust(left = 0)
         return fig
 
     def plot(self, data_tuple, predictions, sample_number=0):
@@ -251,7 +243,8 @@ class DWM(SequentialModel):
         # start_time = time.time()
         inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
         targets_seq = data_tuple.targets[0].cpu().detach().numpy()
-        predictions_seq = predictions[0].cpu().detach().numpy()
+        predictions_seq = predictions[0].cpu().detach()
+        predictions_seq = torch.sigmoid(predictions_seq).numpy()
 
         # temporary for data with additional channel
         if len(inputs_seq.shape) == 3:
@@ -260,7 +253,7 @@ class DWM(SequentialModel):
         # Create figure template.
         fig = self.generate_figure_layout()
         # Get axes that artists will draw on.
-        (ax_memory, ax_attention, ax_snapshot, ax_inputs,
+        (ax_memory, ax_attention, ax_bookmark, ax_inputs,
          ax_targets, ax_predictions) = fig.axes
 
         # Set intial values of displayed  inputs, targets and predictions -
@@ -271,7 +264,7 @@ class DWM(SequentialModel):
 
         head_attention_displayed = np.zeros(
             (self.cell_state_history[0][1].shape[-1], targets_seq.shape[0]))
-        snapshot_attention_displayed = np.zeros(
+        bookmark_attention_displayed = np.zeros(
             (self.cell_state_history[0][2].shape[-1], targets_seq.shape[0]))
 
         # Log sequence length - so the user can understand what is going on.
@@ -297,36 +290,31 @@ class DWM(SequentialModel):
             targets_displayed[:, i] = target_element
             predictions_displayed[:, i] = prediction_element
 
-            memory_displayed = memory[0]
-            # Get attention of head 0.
+            memory_displayed = np.clip(memory[0], -3.0, 3.0)
             head_attention_displayed[:, i] = wt[0, 0, :]
-            snapshot_attention_displayed[:, i] = wt_d[0, 0, :]
+            bookmark_attention_displayed[:, i] = wt_d[0, 0, :]
 
             # Create "Artists" drawing data on "ImageAxes".
             artists = [None] * len(fig.axes)
+            params = {'edgecolor': 'black', 'cmap':'inferno', 'linewidths': 1.4e-3}
 
             # Tell artists what to do;)
-            artists[0] = ax_memory.imshow(np.transpose(
-                memory_displayed), interpolation='nearest', aspect='auto')
-            artists[1] = ax_attention.imshow(
-                head_attention_displayed,
-                interpolation='nearest',
-                aspect='auto')
-            artists[2] = ax_snapshot.imshow(
-                snapshot_attention_displayed,
-                interpolation='nearest',
-                aspect='auto')
-            artists[3] = ax_inputs.imshow(
-                inputs_displayed, interpolation='nearest', aspect='auto')
-            artists[4] = ax_targets.imshow(
-                targets_displayed, interpolation='nearest', aspect='auto')
-            artists[5] = ax_predictions.imshow(
-                predictions_displayed, interpolation='nearest', aspect='auto')
+            artists[0] = ax_memory.pcolormesh(np.transpose(memory_displayed),
+                                              vmin=-3.0, vmax=3.0, **params)
+            artists[1] = ax_attention.pcolormesh(np.copy(head_attention_displayed),
+                                                 vmin=0.0, vmax=1.0, **params)
+            artists[2] = ax_bookmark.pcolormesh(np.copy(bookmark_attention_displayed),
+                                                vmin=0.0, vmax=1.0, **params)
+            artists[3] = ax_inputs.pcolormesh(np.copy(inputs_displayed),
+                                              vmin=0.0, vmax=1.0, **params)
+            artists[4] = ax_targets.pcolormesh(np.copy(targets_displayed),
+                                               vmin=0.0, vmax=1.0, **params)
+            artists[5] = ax_predictions.pcolormesh(np.copy(predictions_displayed),
+                                                   vmin=0.0, vmax=1.0, **params)
 
             # Add "frame".
             frames.append(artists)
 
-        # print("--- %s seconds ---" % (time.time() - start_time))
         # Plot figure and list of frames.
 
         self.plotWindow.update(fig, frames)
