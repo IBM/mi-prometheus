@@ -1,27 +1,29 @@
 
 # Machine Intelligence: Prometheus
 
-#### Bringing Torch To Mankind
+#### Bringing (Py)Torch To Mankind
 
 ## Description
 
-A project of the Machine Intelligence team, focusing on enabling the applications of machine learning to be easier to compare and reproduce.
+MI-Prometheus (Machine Intelligence – Prometheus), an open-source framework built on top of PyTorch, enabling rapid development and comparison of diverse neural network-based models. In MI-Prometheus training and testing mechanisms are no longer pinned to a specific model or problem, whereas build-in mechanisms for configuration management facilitate running experiments combining different models with problems.
+
+A project of the Machine Intelligence team, IBM Research, Almaden.
 
 
 ## Core ideas
 
-   * model - class representing an actual (trainable) model (class derived from torch.nn.Module).
-   * problem - class returning generator producing data used for training/validation/testing of models (generalization of Data Generators and Datasets).
-   * configuration file - file containing set of parameters useful for training/testing of a given model on a given problem
-   * experiment - a single run of training or testing procedure 
-   * worker - application that reads configuration file, creates associated problem and model objects and runs experiment 
+   * Problem: a dataset or a data generator, returning a batch of inputs and ground truth labels used for a model training/validation/test,
+   * Model: a trainable model (i.e. a neural network),
+   * Worker: a specialized application that instantiates the Problem \& Model objects and controls the interactions between them.
+   * Configuration file(s): YAML file(s) containing the parameters of the Problem, Model and training procedure (e.g. terminal conditions, curriculum learning parameters),
+   * Experiment: a single run (training or test) of a given Model on a given Problem, using a specific Worker and Configuration file(s).
 
 ## Core features
 
    * Configuration management based on yaml files
    * Automatization of training/validation/testing pipelines
    * Integration with TensorBoard
-   * Advanced Visualization with MatPlotLib
+   * Advanced Visualization with matplotlib
 
 ## Dependencies
 
@@ -42,15 +44,24 @@ Installing Pytorch from Scratch (Ubuntu 16.14)
             build-essential \
             g++ \
             git \
-            wget \
-            ca-certificates && \
-        apt-get clean
+            wget \A project of the Machine Intelligence team, IBM Research, Almaden.
 
-    sudo apt install build-essential
+            ca-cerA project of the Machine Intelligence team, IBM Research, Almaden.
+tificates && \
+        apt-get clA project of the Machine Intelligence team, IBM Research, Almaden.
+ean
+A project of the Machine Intelligence team, IBM Research, Almaden.
 
-    wget --quiet https://repo.anaconda.com/archive/Anaconda3-5.2.0-Linux-x86_64.sh -O ~/anaconda.sh
+    sudo apt instaA project of the Machine Intelligence team, IBM Research, Almaden.
+ll build-essential
+A project of the Machine Intelligence team, IBM Research, Almaden.
 
-    chmod +x ~/anaconda.sh
+    wget --quiet hA project of the Machine Intelligence team, IBM Research, Almaden.
+ttps://repo.anaconda.com/archive/Anaconda3-5.2.0-Linux-x86_64.sh -O ~/anaconda.sh
+A project of the Machine Intelligence team, IBM Research, Almaden.
+
+    chmod +x ~/anaA project of the Machine Intelligence team, IBM Research, Almaden.
+conda.sh
 
     rm -rf /opt/conda
     ~/anaconda.sh -b -p /opt/conda
@@ -102,19 +113,22 @@ Installing requirments for MI-Prometheus (Ubuntu 16.14, assumes you have an pyth
 
 ## Main workers
 
-   * train - application for model training.
+   * trainer - application for model training.
 
 ```console
-foo@bar:~$ python train.py --h
-usage: train.py [-h] [--agree] [--config CONFIG] [--tensorboard {0,1,2}]
-                [--lf LOGGING_FREQUENCY]
-                [--log {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                [--visualize {0,1,2,3}]
+foo@bar:~$ python trainer.py --h
+usage: trainer.py [-h] [--agree] [--config CONFIG] [--savetag SAVETAG]
+                  [--outdir OUTDIR] [--tensorboard {0,1,2}]
+                  [--lf LOGGING_FREQUENCY]
+                  [--log {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                  [--visualize {0,1,2,3}]
 
 optional arguments:
   -h, --help            show this help message and exit
   --agree               Request user confirmation just after loading the settings, before starting training  (Default: False)
-  --config CONFIG       Name of the configuration file to be loaded
+  --config CONFIG       Name of the configuration file(s) to be loaded (more than one file must be separated with coma ",")
+  --savetag SAVETAG     Tag for the save directory
+  --outdir OUTDIR       Path to output directory where the experiments will be stored (DEFAULT: ./experiments)
   --tensorboard {0,1,2}
                         If present, log to TensorBoard. Log levels:
                         0: Just log the loss, accuracy, and seq_len
@@ -132,36 +146,43 @@ optional arguments:
                         3: Only during last validation, after training is completed
 ```
 
-   * train - application that loads the pretrained models and tests them on a given problem.
+   * tester - application that loads the pretrained models and tests them on a given problem.
 
 ```console
-foo@bar:~$ python train.py --h
-usage: test.py [-h] [--model MODEL] [--visualize]
-               [--log {critical,error,warning,info,debug,notset}]
+foo@bar:~$ python tester.py --h
+usage: tester.py [-h] [--model MODEL] [--savetag SAVETAG]
+                 [--log {critical,error,warning,info,debug,notset}]
+                 [--visualize]
 
 optional arguments:
   -h, --help            show this help message and exit
   --model MODEL         Path to and name of the file containing the saved
                         parameters of the model (model checkpoint)
-  --visualize           Activate dynamic visualization
+  --savetag SAVETAG     Tag for the save directory
   --log {critical,error,warning,info,debug,notset}
                         Log level. Default is INFO.
+  --visualize           Activate dynamic visualization
 ```
 
 
 # How to Run the code: 
-   * Training: ```python train.py --v 1 --c configs/dwm/serial_recall.yaml```
+   * Training: ```python trainer.py --v 1 --c configs/dwm/serial_recall.yaml```
 
-   * Testing:  ``` python test.py --m path_to_model --v 1```
+   * Testing:  ```python tester.py --m path_to_model --v 1```
 
 
 ## Documentation
 
-In order to generate a "living" documentation of the code please run Sphinx (TODO)
+In order to generate a "living" documentation of the code please use Sphinx. (to appear in gh-pages soon)
 
-## Maintainer
+## Maintainers
 
 * Tomasz Kornuta (tkornut@us.ibm.com)
-* Ryan McAvoy 
-* Younes Bouhadjar (younes.bouhadjy@gmail.com, University of Grenoble INP)
+* Vincent Marois
+* Ryan L. McAvoy
+* Younes Bouhadjar (younes.bouhadjy@gmail.com)
 * Alexis Asseman
+* Vincent Albouy
+* T.S. Jayram
+* Ahmet S. Ozcan
+
