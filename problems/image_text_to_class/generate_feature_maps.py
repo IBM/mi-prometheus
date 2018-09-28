@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) IBM Corporation 2018
-##
 # MIT License
 #
 # Copyright (c) 2018 Kim Seonghyeon
@@ -26,6 +24,8 @@
 # SOFTWARE.
 #
 # ------------------------------------------------------------------------------
+#
+# Copyright (C) IBM Corporation 2018
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
