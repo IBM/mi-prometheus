@@ -44,31 +44,16 @@ Installing Pytorch from Scratch (Ubuntu 16.14)
             build-essential \
             g++ \
             git \
-            wget \A project of the Machine Intelligence team, IBM Research, Almaden.
-
-            ca-cerA project of the Machine Intelligence team, IBM Research, Almaden.
-tificates && \
-        apt-get clA project of the Machine Intelligence team, IBM Research, Almaden.
-ean
-A project of the Machine Intelligence team, IBM Research, Almaden.
-
-    sudo apt instaA project of the Machine Intelligence team, IBM Research, Almaden.
-ll build-essential
-A project of the Machine Intelligence team, IBM Research, Almaden.
-
-    wget --quiet hA project of the Machine Intelligence team, IBM Research, Almaden.
-ttps://repo.anaconda.com/archive/Anaconda3-5.2.0-Linux-x86_64.sh -O ~/anaconda.sh
-A project of the Machine Intelligence team, IBM Research, Almaden.
-
-    chmod +x ~/anaA project of the Machine Intelligence team, IBM Research, Almaden.
-conda.sh
-
-    rm -rf /opt/conda
-    ~/anaconda.sh -b -p /opt/conda
-    rm ~/anaconda.sh
-
+            wget \
+            ca-certificates && \
+            apt-get clean 
+            sudo apt install build-essential
+            wget --quiet https://repo.anaconda.com/archive/Anaconda3-5.2.0-Linux-x86_64.sh -O ~/anaconda.sh
+           chmod +x ~/anaconda.sh
+           rm -rf /opt/conda
+           ~/anaconda.sh -b -p /opt/conda
+           rm ~/anaconda.sh
     /opt/conda/bin/python3 -m pip install --user virtualenv
-
     /opt/conda/bin/python3 -m virtualenv env
 
     echo "export PATH=/opt/conda/bin:$PATH" >> env/bin/activate
@@ -90,7 +75,7 @@ conda.sh
     cd ..
     rm -rf pytorch
 
-Installing requirments for MI-Prometheus (Ubuntu 16.14, assumes you have an python virtualenv named env in home )
+Installing requirements for MI-Prometheus (Ubuntu 16.14, assumes you have an python virtualenv named env in home )
 
     #!/bin/bash -x
 
