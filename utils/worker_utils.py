@@ -254,7 +254,7 @@ def validation(model, problem, episode, stat_col, data_valid, FLAGS, logger, val
     # Visualization of validation.
     if AppState().visualize:
         # Allow for preprocessing
-        data_valid, aux_valid, logits_valid = problem.plot_preprocessing(data_valid, logits_valid)
+        data_valid, logits_valid = problem.plot_preprocessing(data_valid, logits_valid)
 
         # True means that we should terminate
         return loss_valid, model.plot(data_valid, logits_valid)
