@@ -635,17 +635,22 @@ class CLEVR(ImageTextToClassProblem):
 
         return data_dict
 
-    def finalize_epoch(self):
+    def finalize_epoch(self, epoch):
         """
         Call ``self.get_acc_per_family()`` to get the accuracy per family.
+
+        :param epoch: current epoch index
+        :type epoch: int
 
         """
         #self.get_acc_per_family()
 
-    def initialize_epoch(self):
+    def initialize_epoch(self, epoch):
         """
         Resets the accuracy per category counters.
 
+        :param epoch: current epoch index
+        :type epoch: int
         """
 
         self.categories_stats = dict(zip(self.categories.keys(), self.tuple_list))

@@ -25,6 +25,7 @@ class StatisticsCollector(Mapping):
         self.formatting = dict()
 
         # Add default statistics with formatting.
+        self.add_statistic('epoch', '{:06d}')
         self.add_statistic('episode', '{:06d}')
         self.add_statistic('loss', '{:12.10f}')
 
@@ -59,7 +60,14 @@ class StatisticsCollector(Mapping):
         """
         self.statistics[key] = value
 
-    # def __delitem__(self, key):
+    def __delitem__(self, key):
+        """
+        Delete the specified key.
+
+        :param key: Key to be deleted.
+
+        """
+        del self.statistics[key]
 
     def __len__(self):
         """

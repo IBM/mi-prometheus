@@ -15,7 +15,8 @@
 !__init__.py
 !/models/**
 !/problems/**
-!/confgiuration/**
+!/workers/**
+!/configuration/**
 !/configs/**
 !/utils/**
 # You can be specific with these rules

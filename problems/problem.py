@@ -385,7 +385,7 @@ class Problem(Dataset):
                 if type(self.loss_function).__name__ in ['L1Loss', 'MSELoss', 'PoissonNLLLoss', 'KLDivLoss', 'BCELoss',
                                                          'BCEWithLogitsLoss', 'HingeEmbeddingLoss',
                                                          'MultiLabelMarginLoss', 'SmoothL1Loss', 'SoftMarginLoss',
-                                                         'MultiLabelSoftMarginLoss']:
+                                                         'MultiLabelSoftMarginLoss', 'MaskedBCEWithLogitsLoss']:
 
                     # these loss functions require the same shape for both the logits and ground truth labels
                     if len(self.data_definitions['targets']['size']) != len(model_data_definitions_['targets']['size']):
@@ -404,7 +404,7 @@ class Problem(Dataset):
                                                                                                   self.data_definitions['targets']['size']))
                 # these loss functions require that the ground truth labels have 1 less dimension
                 elif type(self.loss_function).__name__ in ['CrossEntropyLoss', 'NLLLoss', 'MarginRankingLoss',
-                                                           'MultiMarginLoss']:
+                                                           'MultiMarginLoss', 'MaskedCrossEntropyLoss']:
 
                     if len(self.data_definitions['targets']['size']) != len(model_data_definitions_['targets']['size'])-1:
                         # the ground truth labels and the logits don't have the same number of dimensions
@@ -616,7 +616,7 @@ class Problem(Dataset):
         else:
             return (self.length // batch_size) + 1
 
-    def initialize_epoch(self):
+    def initialize_epoch(self, epoch):
         """
         Function called to initialize a new epoch.
 
@@ -631,11 +631,14 @@ class Problem(Dataset):
 
             Empty - To be redefined in inheriting classes.
 
+        :param epoch: current epoch index
+        :type epoch: int
+
 
         """
         pass
 
-    def finalize_epoch(self):
+    def finalize_epoch(self, epoch):
         """
         Function called at the end of an epoch to execute a few tasks, e.g.:
 
@@ -651,6 +654,9 @@ class Problem(Dataset):
             Empty - To be redefined in inheriting classes.
 
             TODO: To display the final results for the current epoch, this function should use the Logger.
+
+        :param epoch: current epoch index
+        :type epoch: int
 
         """
         pass

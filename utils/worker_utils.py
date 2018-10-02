@@ -14,8 +14,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""worker_utils.py: Contains helper functions for different workers"""
-__author__ = "Ryan McAvoy, Tomasz Kornuta"
+"""
+worker_utils.py: Contains helper functions for different workers.
+
+"""
+__author__ = "Ryan McAvoy, Tomasz Kornuta, Vincent Marois"
 
 import os
 import yaml
@@ -24,14 +27,35 @@ import torch
 from .app_state import AppState
 
 
-def forward_step(model, problem, episode, stat_col, data_dict):
+def forward_step(model, problem, episode, stat_col, data_dict, epoch=None):
     """
-    Function performs a single forward step.
+    Function performs a single forward step:
 
-    #TODO: DOCUMENTATION!!!
+        - passes samples through the model,
+        - collects loss & others statistics
+
+    :param model: trainable model.
+    :type model: ``models.model.Model`` or a subclass
+
+    :param problem: problem generating samples.
+    :type problem: ``problems.problem.problem`` or a subclass
+
+    :param episode: current episode index (either in the current epoch or from the start of the training).
+    :type episode: int
+
+    :param stat_col: ``StatisticsCollector``.
+
+    :param data_dict: contains the batch of samples to pass to the model.
+    :type data_dict: ``DataDict``
+
+    :param epoch: current epoch index.
+    :type epoch: int, optional
 
 
-    :returns: logits, loss and accuracy (former using provided criterion)
+    :return:
+
+        - logits,
+        - loss
 
     """
     # convert to CUDA
@@ -45,6 +69,9 @@ def forward_step(model, problem, episode, stat_col, data_dict):
     loss = problem.evaluate_loss(data_dict, logits)
 
     # Collect "elementary" statistics - episode and loss.
+    if epoch is not None:
+        stat_col['epoch'] = epoch
+
     stat_col['episode'] = episode
     stat_col['loss'] = loss
 
@@ -58,16 +85,20 @@ def forward_step(model, problem, episode, stat_col, data_dict):
 
 def check_and_set_cuda(params, logger):
     """
-    Enables Cuda if available and sets the default data types.
+    Enables CUDA if available and sets the default data types.
 
-    :param params: paramater interface object containing either training or testing parameters
+    :param params: Parameter Registry containing either the training or test parameters.
+    :type params: ``ParamInterface``
+
     :param logger: logger object
+    :type logger: ``logging.Logger``
 
     """
     turn_on_cuda = False
     try:  # If the 'cuda' key is not present, catch the exception and do nothing
         turn_on_cuda = params['cuda']
     except KeyError:
+        logger.warning('CUDA key not present in ParamInterface.')
         pass
 
     # Determine if CUDA is to be used.
@@ -83,26 +114,31 @@ def check_and_set_cuda(params, logger):
     AppState().set_itype('int')
 
 
-def recurrent_config_parse(configs, configs_parsed):
+def recurrent_config_parse(configs: str, configs_parsed: list):
     """
-    Function parses names of configuration files in a recursive mannner, i.e.
-    by looking for 'default_config' sections and trying to load and parse those
+    Parses names of configuration files in a recursive manner, i.e. \
+    by looking for ``default_config`` sections and trying to load and parse those
     files one by one.
 
     :param configs: String containing names of configuration files (with paths), separated by comas.
-    :param configs_parsed: List of configurations that were already parsed (so we won't parse them many times).
-    :returns: list of parsed configuration files.
+    :type configs: str
+
+    :param configs_parsed: Configurations that were already parsed (so we won't parse them many times).
+    :type configs_parsed: list
+
+
+    :return: list of parsed configuration files.
 
     """
     # Split and remove spaces.
     configs_to_parse = configs.replace(" ", "").split(',')
-    #configs_to_parse = ''.join(configs.split()).split(',')
 
     # Terminal condition.
     while len(configs_to_parse) > 0:
 
         # Get config.
         config = configs_to_parse.pop(0)
+
         # Skip empty names (after lose comas).
         if config == '':
             continue
@@ -110,14 +146,12 @@ def recurrent_config_parse(configs, configs_parsed):
 
         # Check if it was already loaded.
         if config in configs_parsed:
-            print(
-                'Warning: Configuration file {} already parsed - skipping'.format(config))
+            print('Warning: Configuration file {} already parsed - skipping'.format(config))
             continue
 
         # Check if file exists.
         if not os.path.isfile(config):
             print('Error: Configuration file {} does not exist'.format(config))
-            #raise Exception('Error: Configuration file {} does not exist'.format(config))
             exit(-1)
 
         try:
@@ -125,8 +159,7 @@ def recurrent_config_parse(configs, configs_parsed):
             with open(config, 'r') as stream:
                 param_dict = yaml.safe_load(stream)
         except yaml.YAMLError as e:
-            print(
-                "Error: Couldn't properly parse the {} configuration file".format(config))
+            print("Error: Couldn't properly parse the {} configuration file".format(config))
             print('yaml.YAMLERROR:', e)
             exit(-1)
 
@@ -149,7 +182,7 @@ def cycle(iterable):
     This function is used in the (episodic) trainer to reuse the same ``DataLoader`` for a number of episodes\
     > len(dataset)/batch_size.
 
-    :param iterable:
+    :param iterable: iterable.
     :type iterable: iter
 
     """
@@ -158,14 +191,11 @@ def cycle(iterable):
             yield x
 
 
-def validation(model, problem, episode, stat_col, data_valid, FLAGS, logger, validation_file, validation_writer):
+def validation(model, problem, episode, stat_col, data_valid, FLAGS, logger, validation_file, validation_writer, epoch=None):
     """
     Performs a validation step on the model, using the provided data batch.
 
     Additionally logs results (to files, tensorboard) and handles visualization.
-
-    :param stat_col: Statistic collector object.
-    :return: True if training loop is supposed to end.
 
     :param model: Neural network model (being trained by the worker) going through cross-validated in this function.
     :type model: ``models.model.Model``
@@ -177,12 +207,13 @@ def validation(model, problem, episode, stat_col, data_valid, FLAGS, logger, val
     :type episode: int
 
     :param stat_col: statistics collector used for logging accuracy etc.
-    :type stat_col: utils.statistics_collector.StatisticsCollector
+    :type stat_col: ``StatisticsCollector``
 
     :param data_valid: data batch generated by the problem and used as input to the model.
     :type data_valid: ``DataDict``
 
     :param FLAGS: Parsed ``ArgumentParser`` flags
+    :type FLAGS: ``argparse.Namespace``
 
     :param logger: current logger utility.
     :type logger: ``logging.Logger``
@@ -190,6 +221,9 @@ def validation(model, problem, episode, stat_col, data_valid, FLAGS, logger, val
     :param validation_file: Opened CSV file used by the ``StatisticsCollector``.
 
     :param validation_writer: ``tensorboardX.SummaryWriter``.
+
+    :param epoch: current epoch index.
+    :type epoch: int, optional
 
     :return:
 
@@ -205,7 +239,7 @@ def validation(model, problem, episode, stat_col, data_valid, FLAGS, logger, val
 
     # Compute the validation loss using the provided data batch.
     with torch.no_grad():
-        logits_valid, loss_valid = forward_step(model, problem, episode, stat_col, data_valid)
+        logits_valid, loss_valid = forward_step(model, problem, episode, stat_col, data_valid, epoch)
 
     # Log to logger.
     logger.info(stat_col.export_statistics_to_string('[Validation]'))
