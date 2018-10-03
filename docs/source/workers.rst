@@ -10,7 +10,7 @@ Workers
 Base Worker
 --------------
 
-.. automodule:: workers.base_worker
+.. automodule:: workers.worker
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -18,7 +18,7 @@ Base Worker
 Base Trainer
 ----------------------------
 
-.. automodule:: workers.base_trainer
+.. automodule:: workers.trainer
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -34,7 +34,7 @@ Episodic Trainer
 Base Tester
 ----------------------------
 
-.. automodule:: workers.base_tester
+.. automodule:: workers.tester
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__

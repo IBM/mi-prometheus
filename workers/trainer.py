@@ -16,10 +16,10 @@
 # limitations under the License.
 
 """
-base_trainer.py:
+trainer.py:
 
     - This file sets hosts a function which adds specific arguments a trainer will need.
-    - Also defines the ``BaseTrainer()`` class.
+    - Also defines the ``Trainer()`` class.
 
 
 """
@@ -37,8 +37,8 @@ from torch.nn.utils import clip_grad_value_
 from torch.utils.data.dataloader import DataLoader
 
 
-import workers.base_worker as worker
-from workers.base_worker import BaseWorker
+import workers.worker as worker
+from workers.worker import Worker
 from models.model_factory import ModelFactory
 from problems.problem_factory import ProblemFactory
 
@@ -98,11 +98,13 @@ def add_arguments(parser: argparse.ArgumentParser):
                              "3: Only during the last validation episode, after training is completed.\n")
 
 
-class BaseTrainer(BaseWorker):
+class Trainer(Worker):
     """
     Base class for the trainers.
 
-    All trainers should subclass it.
+    Iterates over epochs on the dataset.
+
+    All other types of trainers (e.g. EpisodicTrainer) should subclass it.
 
     """
 
@@ -162,7 +164,7 @@ class BaseTrainer(BaseWorker):
         self.name = 'BaseTrainer'
 
         # call base constructor
-        super(BaseTrainer, self).__init__(flags)
+        super(Trainer, self).__init__(flags)
 
         # Check if config file was selected.
         if flags.config == '':
@@ -375,9 +377,9 @@ class BaseTrainer(BaseWorker):
 
     def forward(self, flags: argparse.Namespace):
         """
-        Main function of the ``BaseTrainer``.
+        Main function of the ``Trainer``.
 
-        Iterates over the number of epochs and the DataLoader.
+        Iterates over the number of epochs and the ``DataLoader``.
 
         .. note::
 
@@ -638,5 +640,5 @@ if __name__ == '__main__':
     # Parse arguments.
     FLAGS, unparsed = argp.parse_known_args()
 
-    base_trainer = BaseTrainer(FLAGS)
-    base_trainer.forward(FLAGS)
+    trainer = Trainer(FLAGS)
+    trainer.forward(FLAGS)

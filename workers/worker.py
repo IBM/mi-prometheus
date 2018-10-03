@@ -16,12 +16,13 @@
 # limitations under the License.
 
 """
-base_worker.py:
+worker.py:
 
     - This file contains the base parser used by every worker. Having a root common parser\
      shared by all workers allow easier future maintenance, as it eases adding an argument\
       to all workers. Each worker is able to add specific arguments using the ``add_arguments()``\
        function defined in the relevant module.
+
     - The base worker class is also defined here.
 
 
@@ -66,10 +67,10 @@ def add_arguments(parser: argparse.ArgumentParser):
                         help="Log level. (Default: INFO)")
 
 
-class BaseWorker(object):
+class Worker(object):
     """
     Base abstract class for the workers.
-    All workers should subclass it and override the relevant method.
+    All workers should subclass it and override the relevant methods.
     """
 
     def __init__(self, flags: argparse.Namespace):
@@ -98,7 +99,7 @@ class BaseWorker(object):
 
         """
         # call base constructor
-        super(BaseWorker, self).__init__()
+        super(Worker, self).__init__()
 
         # default name
         # self.name = 'BaseWorker'

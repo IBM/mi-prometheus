@@ -16,10 +16,10 @@
 # limitations under the License.
 
 """
-base_tester.py:
+tester.py:
 
     - This file sets hosts a function which adds specific arguments a tester will need.
-    - Also defines the Tester() class.
+    - Also defines the ``Tester()`` class.
 
 
 """
@@ -36,8 +36,8 @@ from random import randrange
 from datetime import datetime
 from torch.utils.data.dataloader import DataLoader
 
-import workers.base_worker as worker
-from workers.base_worker import BaseWorker
+import workers.worker as worker
+from workers.worker import Worker
 from models.model_factory import ModelFactory
 from problems.problem_factory import ProblemFactory
 from utils.worker_utils import forward_step, check_and_set_cuda, handshake
@@ -46,7 +46,9 @@ from utils.worker_utils import forward_step, check_and_set_cuda, handshake
 def add_arguments(parser: argparse.ArgumentParser):
     """
     Add arguments to the specific parser.
+
     These arguments are related to the basic Tester.
+
     :param parser: ``argparse.ArgumentParser``
     """
     # add here all arguments used by the tester.
@@ -63,7 +65,7 @@ def add_arguments(parser: argparse.ArgumentParser):
                         help='Activate dynamic visualization')
 
 
-class Tester(BaseWorker):
+class Tester(Worker):
     """
     Defines the basic Tester.
 
@@ -232,9 +234,10 @@ class Tester(BaseWorker):
 
         # Run test
         with torch.no_grad():
-            acc_loss = 0
 
-            for episode, data_dict in enumerate(self.problem):
+            acc_loss = 0
+            episode = 0
+            for data_dict in self.problem:
 
                 if episode == self.param_interface["testing"]["problem"]["max_test_episodes"]:
                     break

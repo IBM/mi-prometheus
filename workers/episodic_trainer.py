@@ -18,7 +18,7 @@
 """
 episodic_trainer.py:
 
-    - This file contains the implementation of the ``EpisodicTrainer``, which inherits from ``BaseTrainer``.
+    - This file contains the implementation of the ``EpisodicTrainer``, which inherits from ``Trainer``.
 
 """
 __author__ = "Vincent Marois"
@@ -27,19 +27,19 @@ import argparse
 import collections
 from torch.nn.utils import clip_grad_value_
 
-import workers.base_worker as worker
-import workers.base_trainer as trainer
-from workers.base_trainer import BaseTrainer
+import workers.worker as worker
+import workers.trainer as trainer
+from workers.trainer import Trainer
 from utils.worker_utils import forward_step, validation, cycle
 
 
-class EpisodicTrainer(BaseTrainer):
+class EpisodicTrainer(Trainer):
     """
     Implementation for the episodic Trainer.
 
     ..note::
 
-        The default ``BaseTrainer`` is based on epochs. While an epoch can be defined for all finite-size datasets,\
+        The default ``Trainer`` is based on epochs. While an epoch can be defined for all finite-size datasets,\
          it makes less sense for problems which have a very large, almost infinite, dataset (like algorithmic \
          tasks, which generate random data on-the-fly). This is why this episodic Trainer is implemented.
          Instead of looping on epochs, it iterates directly on episodes (we call an iteration on a single batch\
@@ -50,7 +50,7 @@ class EpisodicTrainer(BaseTrainer):
 
     def __init__(self, flags: argparse.Namespace):
         """
-        Only calls the ``BaseTrainer`` constructor as the initialization phase is identical to the ``BaseTrainer``.
+        Only calls the ``Trainer`` constructor as the initialization phase is identical to the ``Trainer``.
 
         :param flags: Parsed arguments from the parser.
 
