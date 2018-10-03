@@ -29,7 +29,7 @@ from .app_state import AppState
 
 def forward_step(model, problem, episode, stat_col, data_dict, epoch=None):
     """
-    Function performs a single forward step:
+    Function that performs a single forward step:
 
         - passes samples through the model,
         - collects loss & others statistics
@@ -40,7 +40,7 @@ def forward_step(model, problem, episode, stat_col, data_dict, epoch=None):
     :param problem: problem generating samples.
     :type problem: ``problems.problem.problem`` or a subclass
 
-    :param episode: current episode index (either in the current epoch or from the start of the training).
+    :param episode: current episode index
     :type episode: int
 
     :param stat_col: ``StatisticsCollector``.

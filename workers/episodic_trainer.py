@@ -16,11 +16,9 @@
 # limitations under the License.
 
 """
-base_trainer.py:
+episodic_trainer.py:
 
-    - This file sets hosts a function which adds specific arguments a trainer will need.
-    - Also defines the BaseTrainer() class.
-
+    - This file contains the implementation of the ``EpisodicTrainer``, which inherits from ``BaseTrainer``.
 
 """
 __author__ = "Vincent Marois"
@@ -41,7 +39,7 @@ class EpisodicTrainer(BaseTrainer):
 
     ..note::
 
-        The default Trainer is based on epochs. While an epoch can be defined for all finite-size datasets,\
+        The default ``BaseTrainer`` is based on epochs. While an epoch can be defined for all finite-size datasets,\
          it makes less sense for problems which have a very large, almost infinite, dataset (like algorithmic \
          tasks, which generate random data on-the-fly). This is why this episodic Trainer is implemented.
          Instead of looping on epochs, it iterates directly on episodes (we call an iteration on a single batch\
@@ -60,12 +58,38 @@ class EpisodicTrainer(BaseTrainer):
         self.name = 'EpisodicTrainer'
         super(EpisodicTrainer, self).__init__(flags=flags)
 
-        # delete 'epoch' entry in the StatisticsCollector
+        # delete 'epoch' entry in the StatisticsCollector as we don't need it.
         self.stat_col.__delitem__('epoch')
 
     def forward(self, flags: argparse.Namespace):
         """
-        TODO: Make documentation
+        Main function of the ``EpisodicTrainer``.
+
+        Iterates over the (cycled) DataLoader (one iteration = one episode).
+
+        .. note::
+
+            The test for terminal conditions (e.g. convergence) is done at the end of each episode. \
+            The terminal conditions are as follows:
+
+                 - The loss is below the specified threshold (using the validation loss or the highest training loss\
+                  over several episodes),
+                  - The maximum number of episodes has been met,
+                  - The user pressed 'Quit' during visualization (TODO: should change that)
+
+
+        The function does the following for each episode:
+
+            - Handles curriculum learning if set,
+            - Resets the gradients
+            - Forwards pass of the model,
+            - Logs statistics and exports to TensorBoard (if set),
+            - Computes gradients and update weights
+            - Activate visualization if set,
+            - Validate the model on a batch according to the validation frequency.
+            - Checks the above terminal conditions.
+
+
 
         :param flags: Parsed arguments from the parser.
 
@@ -86,7 +110,8 @@ class EpisodicTrainer(BaseTrainer):
         '''
         Main training and validation loop.
         '''
-        for episode, data_dict in enumerate(self.problem):
+        episode = 0
+        for data_dict in self.problem:
 
             # apply curriculum learning - change some of the Problem parameters
             self.curric_done = self.dataset.curriculum_learning_update_params(episode)
@@ -200,11 +225,10 @@ class EpisodicTrainer(BaseTrainer):
             if user_pressed_stop:
                 break
 
-            # II. & III - the loss is < threshold - only when we finished curriculum (# TODO: ?).
+            # II. & III - the loss is < threshold (only when curriculum learning is finished if set.)
             if self.curric_done or not self.must_finish_curriculum:
 
-                # break if conditions applied: convergence or max episodes
-                loss_stop = False
+                # loss_stop = True if convergence
                 if self.use_validation_problem:
                     loss_stop = validation_loss < self.param_interface['training']['terminal_condition']['loss_stop']
                     # We already saved that model.
@@ -215,7 +239,7 @@ class EpisodicTrainer(BaseTrainer):
                 if loss_stop:
                     # Ok, we have converged.
                     terminal_condition = True
-                    # "Finish" the training.
+                    # Finish the training.
                     break
 
             # IV - The episodes number limit has been reached.
@@ -230,9 +254,9 @@ class EpisodicTrainer(BaseTrainer):
                 # Validate on the problem if required - so we can collect the
                 # statistics needed during saving of the best model.
                 if self.use_validation_problem:
-                    validation_loss, user_pressed_stop = validation(self.model, self.problem_validation, episode,
-                                                                    self.stat_col, self.data_valid, flags, self.logger,
-                                                                    self.validation_file, self.validation_writer)
+                    _, _ = validation(self.model, self.problem_validation, episode,
+                                      self.stat_col, self.data_valid, flags, self.logger,
+                                      self.validation_file, self.validation_writer)
                 # save the model
                 self.model.save(self.model_dir, self.stat_col)
 

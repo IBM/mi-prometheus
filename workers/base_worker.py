@@ -29,9 +29,13 @@ base_worker.py:
 __author__ = "Vincent Marois"
 
 import yaml
+import torch
 import logging
-import logging.config
 import argparse
+import numpy as np
+import logging.config
+from random import randrange
+from abc import abstractmethod
 
 # Import utils.
 from utils.app_state import AppState
@@ -70,13 +74,28 @@ class BaseWorker(object):
 
     def __init__(self, flags: argparse.Namespace):
         """
-        Base constructor for all workers.
+        Base constructor for all workers:
 
-        Defines the logger.
+            - Initializes the Parameter Registry:
+
+                >>> self.param_interface = ParamInterface()
+
+            - Defines the logger:
+
+                >>> self.logger = logging.getLogger(name=self.name)
+
+            - Initialize the AppState singleton:
+
+                >>> self.app_state = AppState()
+
+            - Create the StatisticsCollector:
+
+                >>> self.stat_col = StatisticsCollector()
+
+
 
         :param flags: Parsed arguments from the parser.
 
-        TODO: Complete documentation
         """
         # call base constructor
         super(BaseWorker, self).__init__()
@@ -102,3 +121,68 @@ class BaseWorker(object):
         # Create statistics collector.
         self.stat_col = StatisticsCollector()
 
+    @abstractmethod
+    def forward(self, flags=None):
+        """
+        Main function of the worker which executes a specific task.
+
+        .. note::
+
+            Abstract. Should be implemented in the subclasses.
+
+        :param flags: Parsed arguments from the command line.
+        :type flags: argparse.Namespace, optional.
+
+        """
+
+    def add_file_handler_to_logger(self, logfile):
+        """
+        Add a ``logging.FileHandler`` to the logger of the current Worker.
+
+        Specifies a ``logging.Formatter``:
+
+            >>> logging.Formatter(fmt='[%(asctime)s] - %(levelname)s - %(name)s >>> %(message)s',
+            >>>                   datefmt='%Y-%m-%d %H:%M:%S')
+
+
+        :param logfile: File used by the ``FileHandler``.
+
+        """
+        # create file handler which logs even DEBUG messages
+        fh = logging.FileHandler(logfile)
+
+        # set logging level for this file
+        fh.setLevel(logging.DEBUG)
+
+        # create formatter and add it to the handlers
+        formatter = logging.Formatter(fmt='[%(asctime)s] - %(levelname)s - %(name)s >>> %(message)s',
+                                      datefmt='%Y-%m-%d %H:%M:%S')
+        fh.setFormatter(formatter)
+
+        # add the handler to the logger
+        self.logger.addHandler(fh)
+
+    def set_random_seeds(self):
+        """
+        Set ``torch`` & ``NumPy`` random seeds from the ParamRegistry:\
+        If one was indicated, use it, or set a random one.
+
+        """
+        # Set the random seeds: either from the loaded configuration or a default randomly selected one.
+        if "seed_torch" not in self.param_interface["training"] or self.param_interface["training"]["seed_torch"] == -1:
+            seed = randrange(0, 2 ** 32)
+            self.param_interface["training"].add_custom_params({"seed_torch": seed})
+
+        self.logger.info("Setting torch random seed to: {}".format(self.param_interface["training"]["seed_torch"]))
+
+        torch.manual_seed(self.param_interface["training"]["seed_torch"])
+
+        torch.cuda.manual_seed_all(self.param_interface["training"]["seed_torch"])
+
+        if "seed_numpy" not in self.param_interface["training"] or self.param_interface["training"]["seed_numpy"] == -1:
+            seed = randrange(0, 2 ** 32)
+            self.param_interface["training"].add_custom_params({"seed_numpy": seed})
+
+        self.logger.info("Setting numpy random seed to: {}".format(self.param_interface["training"]["seed_numpy"]))
+
+        np.random.seed(self.param_interface["training"]["seed_numpy"])

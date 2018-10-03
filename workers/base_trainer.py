@@ -19,7 +19,7 @@
 base_trainer.py:
 
     - This file sets hosts a function which adds specific arguments a trainer will need.
-    - Also defines the BaseTrainer() class.
+    - Also defines the ``BaseTrainer()`` class.
 
 
 """
@@ -28,12 +28,10 @@ __author__ = "Vincent Marois"
 import os
 import yaml
 import torch
-import logging
 import argparse
 import collections
 import numpy as np
 from time import sleep
-from random import randrange
 from datetime import datetime
 from torch.nn.utils import clip_grad_value_
 from torch.utils.data.dataloader import DataLoader
@@ -112,19 +110,53 @@ class BaseTrainer(BaseWorker):
         """
         Base constructor for all trainers:
 
-            - Loads the config file(s)
-            - Set up the log directory path
-            - Add a FileHandler to the logger (defined in BaseWorker)
-            - Handles TensorBoard writers & files
-            - Set random seeds
-            - Creates problem and model
-            - Handles curriculum learning if indicated
-            - Set optimizer
+            - Loads the config file(s):
+
+                >>> configs_to_load = recurrent_config_parse(flags.config, [])
+
+            - Set up the log directory path:
+
+                >>> os.makedirs(self.log_dir, exist_ok=False)
+
+            - Add a FileHandler to the logger (defined in BaseWorker):
+
+                >>>  self.logger.addHandler(fh)
+
+            - Handles TensorBoard writers & files:
+
+                >>> self.training_writer = SummaryWriter(self.log_dir + '/training')
+
+            - Set random seeds:
+
+                >>> torch.manual_seed(self.param_interface["training"]["seed_torch"])
+                >>> np.random.seed(self.param_interface["training"]["seed_numpy"])
+
+            - Creates problem and model:
+
+                >>> self.dataset = ProblemFactory.build_problem(self.param_interface['training']['problem'])
+                >>> self.model = ModelFactory.build_model(self.param_interface['model'], self.dataset.default_values)
+
+            - Creates the DataLoader:
+
+                >>> self.problem = DataLoader(dataset=self.dataset, ...)
+
+            - Handles curriculum learning if indicated:
+
+                >>> if 'curriculum_learning' in self.param_interface['training']:
+                >>> ...
+
+            - Handles validation problem if the config section is present:
+
+                >>> if ('validation' in self.param_interface) and ('problem' in self.param_interface['validation']):
+                >>> ...
+
+            - Set optimizer:
+
+                >>> self.optimizer = getattr(torch.optim, optimizer_name)
 
 
         :param flags: Parsed arguments from the parser.
 
-        TODO: Enhance documentation
         """
         # default name (define it before calling base constructor for logger)
         self.name = 'BaseTrainer'
@@ -157,14 +189,14 @@ class BaseTrainer(BaseWorker):
         # Get problem name.
         try:
             task_name = self.param_interface['training']['problem']['name']
-        except BaseException:
+        except KeyError:
             print("Error: Couldn't retrieve problem name from the loaded configuration")
             exit(-1)
 
         # Get model name.
         try:
             model_name = self.param_interface['model']['name']
-        except BaseException:
+        except KeyError:
             print("Error: Couldn't retrieve model name from the loaded configuration")
             exit(-1)
 
@@ -185,17 +217,8 @@ class BaseTrainer(BaseWorker):
         os.makedirs(self.model_dir, exist_ok=False)
         self.log_file = self.log_dir + 'trainer.log'
 
-        # the logger is created in BaseWorker.__init__(), now we need to add to add the handler for the logfile
-        # create file handler which logs even DEBUG messages
-        fh = logging.FileHandler(self.log_file)
-        # set logging level for this file
-        fh.setLevel(logging.DEBUG)
-        # create formatter and add it to the handlers
-        formatter = logging.Formatter(fmt='[%(asctime)s] - %(levelname)s - %(name)s >>> %(message)s',
-                                      datefmt='%Y-%m-%d %H:%M:%S')
-        fh.setFormatter(formatter)
-        # add the handler to the logger
-        self.logger.addHandler(fh)
+        # add the handler for the logfile to the logger
+        self.add_file_handler_to_logger(self.log_file)
 
         # Create tensorboard output - if tensorboard is supposed to be used.
         if flags.tensorboard is not None:
@@ -206,21 +229,24 @@ class BaseTrainer(BaseWorker):
         else:
             self.validation_writer = None
 
-        # Set the random seeds: either from the loaded configuration or a default randomly selected one.
-        if "seed_torch" not in self.param_interface["training"] or self.param_interface["training"]["seed_torch"] == -1:
-            seed = randrange(0, 2 ** 32)
-            self.param_interface["training"].add_custom_params({"seed_torch": seed})
-        self.logger.info("Setting torch random seed to: {}".format(self.param_interface["training"]["seed_torch"]))
-        torch.manual_seed(self.param_interface["training"]["seed_torch"])
-        torch.cuda.manual_seed_all(self.param_interface["training"]["seed_torch"])
+        # set random seeds
+        self.set_random_seeds()
 
-        if "seed_numpy" not in self.param_interface["training"] or self.param_interface["training"]["seed_numpy"] == -1:
-            seed = randrange(0, 2 ** 32)
-            self.param_interface["training"].add_custom_params({"seed_numpy": seed})
-        self.logger.info("Setting numpy random seed to: {}".format(self.param_interface["training"]["seed_numpy"]))
-        np.random.seed(self.param_interface["training"]["seed_numpy"])
+        # check that the number of epochs is available in param_interface. If not, put a default of 1.
+        if "max_epochs" not in self.param_interface["training"]["terminal_condition"] \
+                or self.param_interface["training"]["terminal_condition"]["max_epochs"] == -1:
+            max_epochs = 1
 
-        # check if CUDA is available turn it on
+            self.param_interface["training"]["terminal_condition"].add_custom_params({'max_epochs': max_epochs})
+
+        self.logger.info("Setting the max number of epochs to: {}".format(
+            self.param_interface["training"]["terminal_condition"]["max_epochs"]))
+
+        # get epoch size in terms of episodes:
+        epoch_size = self.dataset.get_epoch_size(self.param_interface["training"]["problem"]["batch_size"])
+        self.logger.info('Epoch size in terms of episodes: {}'.format(epoch_size))
+
+        # check if CUDA is available, if yes turn it on
         check_and_set_cuda(self.param_interface['training'], self.logger)
 
         # Build problem for the training
@@ -237,6 +263,7 @@ class BaseTrainer(BaseWorker):
         # no error thrown, so handshake succeeded
 
         # build the DataLoader on top of the Problem class
+        # For now, it doesn't use a Sampler: only shuffling the data.
         # Set a default number of workers to 4
         # TODO: allow the user to change the num_workers and other attributes value of the DataLoader.
         self.problem = DataLoader(dataset=self.dataset,
@@ -282,16 +309,17 @@ class BaseTrainer(BaseWorker):
         # Create the csv file to store the training statistics.
         self.training_file = self.stat_col.initialize_csv_file(self.log_dir, 'training.csv')
 
-        # Check if the validation section is present AND problem section is also present...
+        # Check if the validation section is present AND problem section is also present
         if ('validation' in self.param_interface) and ('problem' in self.param_interface['validation']):
-            # ... then load problem, set variables etc.
+            # Load problem, set variables etc.
 
             # Build the validation problem
             self.problem_validation = ProblemFactory.build_problem(self.param_interface['validation']['problem'])
 
             # build the DataLoader on top of the validation problem
-            # Set a default number of workers to 4
             # For now, it doesn't use a Sampler: only shuffling the data.
+            # Set a default number of workers to 4
+            # TODO: allow the user to change the num_workers and other attributes value of the DataLoader.
             dataloader_validation = DataLoader(self.problem_validation,
                                                batch_size=self.param_interface['validation']['problem']['batch_size'],
                                                shuffle=True,
@@ -317,7 +345,7 @@ class BaseTrainer(BaseWorker):
             self.use_validation_problem = False
             self.logger.info("Using training problem for calculation of loss and model validation")
 
-            # Use the training loss instead as a convergence criterion: If the loss is < threshold for a given\
+            # Use the training loss instead as a convergence criterion: If the loss is < threshold for a given
             # number of episodes (default: 10), assume the model has converged.
             try:
                 self.loss_length = self.param_interface['training']['length_loss']
@@ -329,7 +357,7 @@ class BaseTrainer(BaseWorker):
         optimizer_name = optimizer_conf['name']
         del optimizer_conf['name']
 
-        # Select for optimization only the parameters that require update!
+        # Select for optimization only the parameters that require update:
         self.optimizer = getattr(torch.optim, optimizer_name)(filter(lambda p: p.requires_grad,
                                                                      self.model.parameters()),
                                                               **optimizer_conf)
@@ -347,23 +375,39 @@ class BaseTrainer(BaseWorker):
 
     def forward(self, flags: argparse.Namespace):
         """
-        TODO: Make documentation
+        Main function of the ``BaseTrainer``.
+
+        Iterates over the number of epochs and the DataLoader.
+
+        .. note::
+
+            Because of the export of the weights and gradients to TensorBoard, we need to\
+             keep track of the current episode index from the start of the training, even \
+            though the Worker runs on epoch.
+
+        .. warning::
+            The test for terminal conditions (e.g. convergence) is done at the end of each epoch,\
+            not episode. The terminal conditions are as follows:
+
+                 - The loss is below the specified threshold (using the validation loss or the highest training loss\
+                  over several episodes),
+                  - The maximum number of epochs has been met,
+                  - The user pressed 'Quit' during visualization (TODO: should change that)
+
+        The function does the following for each epoch:
+
+            - Executes the ``initialize_epoch()`` & ``finish_epoch()`` function of the ``Problem`` class,
+            - Checks the above terminal conditions
+            - Iterates over the ``DataLoader``, and for each episode:
+
+                    - Handles curriculum learning if set,
+                    - Resets the gradients
+                    - Forwards pass of the model,
+                    - Logs statistics and exports to tensorboard (if set),
+                    - Computes gradients and update weights
+                    - Activate visualization if set,
+                    - Validate the model on a batch according to the validation frequency.
         """
-
-        # check that the number of epochs is available in param_interface. If not, put a default of 1.
-        if "max_epochs" not in self.param_interface["training"]["terminal_condition"] \
-                or self.param_interface["training"]["terminal_condition"]["max_epochs"] == -1:
-            max_epochs = 1
-
-            self.param_interface["training"]["terminal_condition"].add_custom_params({'max_epochs': max_epochs})
-
-        self.logger.info("Setting the max number of epochs to: {}".format(
-            self.param_interface["training"]["terminal_condition"]["max_epochs"]))
-
-        # get epoch size in terms of episodes:
-        epoch_size = self.dataset.get_epoch_size(self.param_interface["training"]["problem"]["batch_size"])
-        self.logger.info('Epoch size in terms of episodes: {}'.format(epoch_size))
-
         # Ask for confirmation - optional.
         if flags.confirm:
             input('Press any key to continue')
@@ -382,14 +426,14 @@ class BaseTrainer(BaseWorker):
 
         for epoch in range(self.param_interface["training"]["terminal_condition"]["max_epochs"]):
 
-            # initialize the epoch: this function can be used to set / reset counters etc.
-            self.logger.info('')
             self.logger.info('Epoch {} started'.format(epoch))
-            self.logger.info('')
+            # initialize the epoch: this function can be used to set / reset counters etc.
             self.dataset.initialize_epoch(epoch)
 
+            # set initial validation loss as infinite
             validation_loss = np.inf
 
+            # iterate over dataset
             for data_dict in self.problem:
 
                 # apply curriculum learning - change some of the Problem parameters
@@ -415,7 +459,7 @@ class BaseTrainer(BaseWorker):
                     # Store the calculated loss on a list.
                     last_losses.append(loss)
 
-                    # Truncate list length.
+                    # Truncate list length: pop oldest loss value.
                     if len(last_losses) > self.loss_length:
                         last_losses.popleft()
 
@@ -484,7 +528,7 @@ class BaseTrainer(BaseWorker):
                     # Validate on the problem if required.
                     if self.use_validation_problem:
 
-                        # Check visualization flag
+                        # Check visualization flag: Set it to activate vis in validation() if required.
                         if flags.visualize is not None and (flags.visualize == 1 or flags.visualize == 2):
                             self.app_state.visualize = True
                         else:
@@ -500,13 +544,11 @@ class BaseTrainer(BaseWorker):
 
                 episode += 1
 
-            # finalize the epoch, even if the learning was interrupted
-            self.logger.info('')
+            # finalize the epoch, even if the user pressed Quit during visualization
             self.logger.info('Epoch {} finished'.format(epoch))
-            self.logger.info('')
             self.dataset.finalize_epoch(epoch)
 
-            # 6. Terminal conditions.
+            # 6. Terminal conditions: Tests which conditions have been met.
 
             # I. The User pressed stop during visualization.
             if user_pressed_stop:
@@ -516,7 +558,7 @@ class BaseTrainer(BaseWorker):
             # II. & III - the loss is < threshold (only when curriculum learning is finished if set.)
             if self.curric_done or not self.must_finish_curriculum:
 
-                # break if convergence
+                # loss_stop = True if convergence
                 if self.use_validation_problem:
                     loss_stop = validation_loss < self.param_interface['training']['terminal_condition']['loss_stop']
                     # We already saved that model.
@@ -527,24 +569,24 @@ class BaseTrainer(BaseWorker):
                 if loss_stop:
                     # Ok, we have converged.
                     terminal_condition = True
-                    # "Finish" the training.
+                    # Finish the training.
                     break
 
             # IV - The epochs number limit has been reached.
-            if epoch == self.param_interface['training']['terminal_condition']['max_epochs']:
+            if epoch >= self.param_interface['training']['terminal_condition']['max_epochs']:
                 terminal_condition = True
                 # If we reach this condition, then it is possible that the model didn't converge correctly
-                # and present poorer performance.
+                # and presents poorer performance.
 
                 # We still save the model as it may perform better during this epoch
-                # (as opposed to the previous episode)
+                # (as opposed to the previous checkpoint)
 
                 # Validate on the problem if required - so we can collect the
                 # statistics needed during saving of the best model.
                 if self.use_validation_problem:
-                    validation_loss, user_pressed_stop = validation(self.model, self.problem_validation, episode,
-                                                                    self.stat_col, self.data_valid, flags, self.logger,
-                                                                    self.validation_file, self.validation_writer, epoch)
+                    _, _ = validation(self.model, self.problem_validation, episode,
+                                      self.stat_col, self.data_valid, flags, self.logger,
+                                      self.validation_file, self.validation_writer, epoch)
                 # save the model
                 self.model.save(self.model_dir, self.stat_col)
                 # "Finish" the training.
