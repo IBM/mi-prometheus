@@ -232,6 +232,12 @@ class BaseTrainer(BaseWorker):
         # set random seeds
         self.set_random_seeds()
 
+        # check if CUDA is available, if yes turn it on
+        check_and_set_cuda(self.param_interface['training'], self.logger)
+
+        # Build problem for the training
+        self.dataset = ProblemFactory.build_problem(self.param_interface['training']['problem'])
+
         # check that the number of epochs is available in param_interface. If not, put a default of 1.
         if "max_epochs" not in self.param_interface["training"]["terminal_condition"] \
                 or self.param_interface["training"]["terminal_condition"]["max_epochs"] == -1:
@@ -245,12 +251,6 @@ class BaseTrainer(BaseWorker):
         # get epoch size in terms of episodes:
         epoch_size = self.dataset.get_epoch_size(self.param_interface["training"]["problem"]["batch_size"])
         self.logger.info('Epoch size in terms of episodes: {}'.format(epoch_size))
-
-        # check if CUDA is available, if yes turn it on
-        check_and_set_cuda(self.param_interface['training'], self.logger)
-
-        # Build problem for the training
-        self.dataset = ProblemFactory.build_problem(self.param_interface['training']['problem'])
 
         # Build the model using the loaded configuration and default values of the problem.
         self.model = ModelFactory.build_model(self.param_interface['model'], self.dataset.default_values)

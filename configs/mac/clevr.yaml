@@ -27,6 +27,7 @@ training:
     terminal_condition:
         loss_stop: 0.03
         max_episodes: 220000  # approx 20 epochs with batch_size of 64
+        max_epochs: 20
 
     # fix the seeds
     seed_torch: 0
