@@ -7,7 +7,7 @@ Workers
 .. automodule:: workers
 .. currentmodule:: workers
 
-Base Worker
+Worker
 --------------
 
 .. automodule:: workers.worker
@@ -15,7 +15,7 @@ Base Worker
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-Base Trainer
+Trainer
 ----------------------------
 
 .. automodule:: workers.trainer
@@ -31,10 +31,26 @@ Episodic Trainer
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-Base Tester
+Tester
 ----------------------------
 
 .. automodule:: workers.tester
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+GridTrainerCPU
+--------------
+
+.. automodule:: workers.grid_trainer_cpu
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+GridTrainerCPU
+--------------
+
+.. automodule:: workers.grid_trainer_gpu
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
