@@ -28,11 +28,9 @@ __author__ = "Vincent Marois"
 import os
 import yaml
 import torch
-import logging
 import argparse
 import numpy as np
 from time import sleep
-from random import randrange
 from datetime import datetime
 from torch.utils.data.dataloader import DataLoader
 
