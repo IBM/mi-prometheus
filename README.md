@@ -168,6 +168,6 @@ In order to generate a "living" documentation of the code please use Sphinx. (to
 * Younes Bouhadjar (younes.bouhadjy@gmail.com)
 * Alexis Asseman
 * Vincent Albouy
-* T.S. Jayram
+* T.S. Jayram (jayram@us.ibm.com)
 * Ahmet S. Ozcan
 
