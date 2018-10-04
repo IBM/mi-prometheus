@@ -112,6 +112,9 @@ class GridTrainerGPU(GridTrainerCPU):
         :param flags: Parsed arguments from the parser.
 
         """
+        # Ask for confirmation - optional.
+        if flags.confirm:
+            input('Press any key to continue')
 
         # Run in as many threads as there are GPUs available to the script
         with ThreadPool(processes=self.max_concurrent_run) as pool:
