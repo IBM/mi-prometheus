@@ -242,7 +242,7 @@ class Tester(Worker):
             yaml.dump(self.param_interface.to_dict(),
                       yaml_backup_file, default_flow_style=False)
 
-    def forward(self, flags=None):
+    def forward(self, flags: argparse.Namespace):
         """
         Main function of the ``Tester``: Test the loaded model over the test set.
 
@@ -307,4 +307,4 @@ if __name__ == '__main__':
     FLAGS, unparsed = argp.parse_known_args()
 
     tester = Tester(FLAGS)
-    tester.forward()
+    tester.forward(FLAGS)

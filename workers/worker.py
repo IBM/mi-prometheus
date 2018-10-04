@@ -130,7 +130,7 @@ class Worker(object):
         self.stat_col = StatisticsCollector()
 
     @abstractmethod
-    def forward(self, flags=None):
+    def forward(self, flags: argparse.Namespace):
         """
         Main function of the worker which executes a specific task.
 
@@ -139,7 +139,6 @@ class Worker(object):
             Abstract. Should be implemented in the subclasses.
 
         :param flags: Parsed arguments from the command line.
-        :type flags: argparse.Namespace, optional.
 
         """
 
