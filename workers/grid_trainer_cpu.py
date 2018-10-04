@@ -102,7 +102,7 @@ class GridTrainerCPU(Worker):
             exit(-2)
 
         try:  # open file and get parameter dictionary.
-            with open(FLAGS.config, 'r') as stream:
+            with open(flags.config, 'r') as stream:
                 grid_dict = yaml.safe_load(stream)
 
         except yaml.YAMLError as e:
