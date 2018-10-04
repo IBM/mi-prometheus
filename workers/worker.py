@@ -66,6 +66,13 @@ def add_arguments(parser: argparse.ArgumentParser):
                         choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
                         help="Log level. (Default: INFO)")
 
+    # add here all arguments used by the trainers.
+    parser.add_argument('--agree',
+                        dest='confirm',
+                        action='store_true',
+                        help='Request user confirmation just after loading the settings, '
+                             'before starting training  (Default: False)')
+
 
 class Worker(object):
     """

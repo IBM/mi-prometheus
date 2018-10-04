@@ -51,13 +51,6 @@ def add_arguments(parser: argparse.ArgumentParser):
     These arguments will be shared by all (basic) trainers.
     :param parser: ``argparse.ArgumentParser``
     """
-    # add here all arguments used by the trainers.
-    parser.add_argument('--agree',
-                        dest='confirm',
-                        action='store_true',
-                        help='Request user confirmation just after loading the settings, '
-                             'before starting training  (Default: False)')
-
     parser.add_argument('--config',
                         dest='config',
                         type=str,

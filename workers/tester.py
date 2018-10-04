@@ -47,7 +47,7 @@ def add_arguments(parser: argparse.ArgumentParser):
     """
     Add arguments to the specific parser.
 
-    These arguments are related to the basic Tester.
+    These arguments are related to the basic ``Tester``.
 
     :param parser: ``argparse.ArgumentParser``
     """
@@ -69,24 +69,56 @@ class Tester(Worker):
     """
     Defines the basic Tester.
 
-    TODO: Enhance documentation.
+    If defining another type of tester, it should subclass it.
+
     """
 
     def __init__(self, flags: argparse.Namespace):
         """
         Constructor for the Tester:
 
-            -
+            - Checks that the model to use exists on file:
+
+                >>> if not os.path.isfile(flags.model)
+
+            - Checks that the configuration file exists:
+
+                >>> if not os.path.isfile(config_file)
+
+            - Set up the log directory path:
+
+                >>> os.makedirs(self.log_dir, exist_ok=False)
+
+            - Add a FileHandler to the logger (defined in BaseWorker):
+
+                >>>  self.logger.addHandler(fh)
+
+            - Set random seeds:
+
+                >>> torch.manual_seed(self.param_interface["training"]["seed_torch"])
+                >>> np.random.seed(self.param_interface["training"]["seed_numpy"])
+
+            - Creates problem and model:
+
+                >>> self.dataset = ProblemFactory.build_problem(self.param_interface['training']['problem'])
+                >>> self.model = ModelFactory.build_model(self.param_interface['model'], self.dataset.default_values)
+
+            - Creates the DataLoader:
+
+                >>> self.problem = DataLoader(dataset=self.dataset, ...)
+
 
         :param flags: Parsed arguments from the parser.
 
-        TODO: Enhance documentation
         """
         # default name (define it before calling base constructor for logger)
         self.name = 'Tester'
 
         # call base constructor
         super(Tester, self).__init__(flags)
+
+        # delete 'epoch' entry in the StatisticsCollector as we don't need it.
+        self.stat_col.__delitem__('epoch')
 
         # Check if model is present.
         if flags.model == '':
@@ -124,17 +156,8 @@ class Tester(Worker):
         # Logging - to subdir
         self.log_file = self.log_dir + 'tester.log'
 
-        # the logger is created in BaseWorker.__init__(), now we need to add to add the handler for the logfile
-        # create file handler which logs even DEBUG messages
-        fh = logging.FileHandler(self.log_file)
-        # set logging level for this file
-        fh.setLevel(logging.DEBUG)
-        # create formatter and add it to the handlers
-        formatter = logging.Formatter(fmt='[%(asctime)s] - %(levelname)s - %(name)s >>> %(message)s',
-                                      datefmt='%Y-%m-%d %H:%M:%S')
-        fh.setFormatter(formatter)
-        # add the handler to the logger
-        self.logger.addHandler(fh)
+        # add the handler for the logfile to the logger
+        self.add_file_handler_to_logger(self.log_file)
 
         if flags.visualize:
             self.app_state.visualize = True
@@ -143,33 +166,22 @@ class Tester(Worker):
         with open(config_file, 'r') as stream:
             self.param_interface.add_custom_params(yaml.load(stream))
 
-        # Set random seeds.
-        if "seed_torch" not in self.param_interface["testing"] or self.param_interface["testing"]["seed_torch"] == -1:
-            seed = randrange(0, 2 ** 32)
-            self.param_interface["testing"].add_custom_params({"seed_torch": seed})
-        self.logger.info("Setting torch random seed to: {}".format(self.param_interface["testing"]["seed_torch"]))
-        torch.manual_seed(self.param_interface["testing"]["seed_torch"])
-        torch.cuda.manual_seed_all(self.param_interface["testing"]["seed_torch"])
-
-        if "seed_numpy" not in self.param_interface["testing"] or self.param_interface["testing"]["seed_numpy"] == -1:
-            seed = randrange(0, 2 ** 32)
-            self.param_interface["testing"].add_custom_params({"seed_numpy": seed})
-        self.logger.info("Setting numpy random seed to: {}".format(self.param_interface["testing"]["seed_numpy"]))
-        np.random.seed(self.param_interface["testing"]["seed_numpy"])
+        # set random seeds
+        self.set_random_seeds()
 
         # check if CUDA is available turn it on
         check_and_set_cuda(self.param_interface['testing'], self.logger)
 
         # Get problem and model names.
         try:
-            task_name = self.param_interface['testing']['problem']['name']
-        except BaseException:
+            _ = self.param_interface['testing']['problem']['name']
+        except KeyError:
             print("Error: Couldn't retrieve the problem name from the loaded configuration")
             exit(-1)
 
         try:
-            model_name = self.param_interface['model']['name']
-        except BaseException:
+            _ = self.param_interface['model']['name']
+        except KeyError:
             print("Error: Couldn't retrieve model name from the loaded configuration")
             exit(-1)
 
@@ -203,11 +215,18 @@ class Tester(Worker):
 
         # check if the maximum number of episodes is specified, if not put a
         # default equal to the size of the dataset (divided by the batch size)
+        # So that by default, we loop over the test set once.
         if "max_test_episodes" not in self.param_interface["testing"]["problem"] \
                 or self.param_interface["testing"]["problem"]["max_test_episodes"] == -1:
-            max_test_episodes = self.dataset.get_epoch_size(self.param_interface['training']['problem']['batch_size'])
 
+            max_test_episodes = self.dataset.get_epoch_size(self.param_interface['training']['problem']['batch_size'])
             self.param_interface['testing']['problem'].add_custom_params({'max_test_episodes': max_test_episodes})
+
+        # warn if indicated number of episodes is larger than an epoch size:
+        if self.param_interface["testing"]["problem"]["max_test_episodes"] > \
+            self.dataset.get_epoch_size(self.param_interface['training']['problem']['batch_size']):
+
+            self.logger.warning('Indicated maximum number of episodes is larger than one epoch, reducing it.')
 
         self.logger.info("Setting the max number of episodes to: {}".format(
             self.param_interface["testing"]["problem"]["max_test_episodes"]))
@@ -225,12 +244,23 @@ class Tester(Worker):
             yaml.dump(self.param_interface.to_dict(),
                       yaml_backup_file, default_flow_style=False)
 
-    def forward(self):
+    def forward(self, flags=None):
         """
-        Runs a test.
+        Main function of the ``Tester``: Test the loaded model over the test set.
 
-        TODO: Enhance documentation.
+        Iterates over the ``DataLoader`` for a maximum number of episodes equal to the test set size.
+
+        The function does the following for each episode:
+
+            - Forwards pass of the model,
+            - Logs statistics & accumulates loss,
+            - Activate visualization if set.
+
         """
+
+        # Ask for confirmation - optional.
+        if flags.confirm:
+            input('Press any key to continue')
 
         # Run test
         with torch.no_grad():
