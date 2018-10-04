@@ -1,5 +1,5 @@
 # Lists of tasks that will be executed in batch.
-batch_tasks:
+grid_tasks:
   -
     default_configs: configs/maes_baselines/maes_sequence_comparison.yaml
     # Parameters that will be overwritten for a given task.
@@ -20,7 +20,7 @@ batch_tasks:
     default_configs: configs/maes_baselines/maes_reverse_recall.yaml
 
 # Parameters that will be overwritten for all tasks.
-batch_overwrite:
+grid_overwrite:
   # Model configuration.
   model:
     num_control_bits: &cbits 3
@@ -63,8 +63,8 @@ batch_overwrite:
       data_bits: *dbits
 
   
-batch_settings:
+grid_settings:
   # Number of times each task will be repeated.
   experiment_repetitions: 3
   # Max runs (that will be limited by the actual number of available CPUs/GPUs)
-  max_concurrent_runs: 7 
+  max_concurrent_runs: 7
