@@ -81,6 +81,10 @@ class GridTrainerCPU(Worker):
 
         :param flags: Parsed arguments from the parser.
 
+        :param cuda: Whether or not to use CUDA (cf ``GridTrainerGPU``). Default to False.
+        :type cuda: bool
+
+
         """
         self.name = 'GridTrainerCPU'
 
@@ -231,7 +235,7 @@ class GridTrainerCPU(Worker):
 
     def forward(self, flags: argparse.Namespace):
         """
-        Main function of the GridTrainerCPU.
+        Main function of the ``GridTrainerCPU``.
 
         Maps the grid experiments to CPU cores in the limit of the maximum concurrent runs allowed or maximum\
          available cores.
@@ -260,7 +264,7 @@ if __name__ == '__main__':
     # add default arguments
     worker.add_arguments(argp)
 
-    # add trainers-specific arguments
+    # add grid trainers-specific arguments
     add_arguments(argp)
 
     # Parse arguments.
