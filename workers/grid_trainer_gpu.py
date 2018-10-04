@@ -134,6 +134,8 @@ class GridTrainerGPU(GridTrainerCPU):
             for r in thread_results:
                 r.wait()
 
+        self.logger.info('Grid experiments finished.')
+
 
 if __name__ == '__main__':
     # Create parser with list of  runtime arguments.
