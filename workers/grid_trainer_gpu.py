@@ -97,7 +97,7 @@ class GridTrainerGPU(GridTrainerCPU):
 
         self.logger.info("Starting: {}".format(command_str))
         with open(os.devnull, 'w') as devnull:
-            result = subprocess.run(command_str.split(" "), shell=True, stdout=devnull)
+            result = subprocess.run(command_str.split(" "), stdout=devnull)
         self.logger.info("Finished: {}".format(command_str))
 
         if result.returncode != 0:
