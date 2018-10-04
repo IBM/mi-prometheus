@@ -287,6 +287,10 @@ class Tester(Worker):
                     is_closed = self.model.plot(data_dict, logits)
                     if is_closed:
                         break
+
+                # move to next episode.
+                episode += 1
+
             self.logger.info('Test finished!')
 
             # TODO: move to StatisticsAggregator for this.
