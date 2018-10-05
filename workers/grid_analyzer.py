@@ -186,13 +186,15 @@ class GridAnalyzer(Worker):
             test_csv = pd.read_csv(experiment + '/testing.csv', delimiter=',', header=0)
             # get average test loss
             nb_episode = test_csv.episode.values.astype(int)[-1]+1
-            cumul_loss = sum(test_csv.loss.values.astype(float))
+            losses = test_csv.loss.values.astype(float)
 
-            r['test_{}_average_loss'.format(test_idx)] = cumul_loss/nb_episode
+            r['test_{}_average_loss'.format(test_idx)] = sum(losses)/nb_episode
+            r['test_{}_std_loss'.format(test_idx)] = np.std(losses)
 
             if 'acc' in test_csv:
-                cumul_acc = sum(test_csv.acc.values.astype(float))
-                r['test_{}_average_acc'.format(test_idx)] = cumul_acc / nb_episode
+                accuracies = test_csv.acc.values.astype(float)
+                r['test_{}_average_acc'.format(test_idx)] = sum(accuracies) / nb_episode
+                r['test_{}_std_acc'.format(test_idx)] = np.std(accuracies)
 
         return r
 
