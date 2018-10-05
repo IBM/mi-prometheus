@@ -134,7 +134,7 @@ class GridTrainerGPU(GridTrainerCPU):
             for r in thread_results:
                 r.wait()
 
-        self.logger.info('Grid experiments finished.')
+        self.logger.info('Grid training experiments finished.')
 
 
 if __name__ == '__main__':

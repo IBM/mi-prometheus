@@ -214,6 +214,8 @@ class GridTrainerCPU(Worker):
 
             Statistics exporting to TensorBoard is currently not activated.
 
+            Visualization is deactivated to avoid any user interaction.
+
 
         """
         # set the command to be executed using the indicated Trainer
@@ -254,7 +256,7 @@ class GridTrainerCPU(Worker):
             func = partial(GridTrainerCPU.run_experiment, self, flags.episodic_trainer, self.outdir_str)
             pool.map(func, self.experiments_list)
 
-        self.logger.info('Grid experiments finished.')
+        self.logger.info('Grid training experiments finished.')
 
 
 if __name__ == '__main__':
