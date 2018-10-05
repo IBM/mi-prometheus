@@ -18,7 +18,8 @@
 """
 grid_tester_cpu.py:
 
-    - This file contains the implementation of a worker running the ``Tester`` on the results of a ``GridTrainer``.
+    - This file contains the implementation of a worker running the ``Tester`` on the results of a ``GridTrainer``
+    using CPUs.
 
     - The input is a list of directories for each problem/model e.g. `experiments/serial_recall/dnc`, \
       and executes on every run of the model in that directory.
@@ -26,7 +27,7 @@ grid_tester_cpu.py:
 """
 
 
-__author__ = "Tomasz Kornuta, Vincent Marois, Vincent Albouy"
+__author__ = "Tomasz Kornuta & Vincent Marois"
 
 
 import os
@@ -59,7 +60,7 @@ def add_arguments(parser: argparse.ArgumentParser):
                         dest='num_tests',
                         type=int,
                         default=1,
-                        help='number_of_repetitions')
+                        help='Number of test experiments to run for each model.')
 
 
 class GridTesterCPU(Worker):
@@ -105,12 +106,15 @@ class GridTesterCPU(Worker):
         self.experiments_list = [elem for elem in self.experiments_list if os.stat(
             elem + '/validation.csv').st_size > 24 and os.stat(elem + '/training.csv').st_size > 24]
 
-    def run_experiment(self, experiment_path: str):
+    def run_experiment(self, experiment_path: str, prefix=""):
         """
         Runs a test on the specified model (experiment_path) using the ``Tester``.
 
         :param experiment_path: Path to an experiment folder containing a trained model.
         :type experiment_path: str
+
+        :param prefix: Prefix to position before the command string (e.g. 'cuda-gpupick -n 1'). Optional.
+        :type prefix: str
 
         ..note::
 
@@ -118,21 +122,20 @@ class GridTesterCPU(Worker):
 
 
         """
-        path_to_model = os.path.join(experiment_path, '/models/model_best.pt')
+        path_to_model = os.path.join(experiment_path, 'models/model_best.pt')
 
         # check if models list is empty
         if not os.path.isfile(path_to_model):
             self.logger.warning('The indicated model {} does not exist on file.'.format(path_to_model))
-            # exit(-1)  # not sure if that would break stuff or not
 
         else:
 
             # Run the test
-            command_str = "python3 tester.py --model {0}".format(path_to_model).split(" ")
+            command_str = "{}python3 workers/tester.py --model {}".format(prefix, path_to_model)
 
             self.logger.info("Starting: {}".format(command_str))
             with open(os.devnull, 'w') as devnull:
-                result = subprocess.run(command_str, stdout=devnull)
+                result = subprocess.run(command_str.split(" "), stdout=devnull)
             self.logger.info("Finished: {}".format(command_str))
 
             if result.returncode != 0:
@@ -154,7 +157,7 @@ class GridTesterCPU(Worker):
 
         # Run in as many threads as there are CPUs available to the script
         with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
-            func = partial(GridTesterCPU.run_experiment, self)
+            func = partial(GridTesterCPU.run_experiment, self, prefix="")
             pool.map(func, self.experiments_list)
 
         self.logger.info('Grid test experiments finished.')
@@ -173,5 +176,5 @@ if __name__ == '__main__':
     # Parse arguments.
     FLAGS, unparsed = argp.parse_known_args()
 
-    grid_tester_cpu = GridTesterCPU(FLAGS, cuda=False)
+    grid_tester_cpu = GridTesterCPU(FLAGS)
     grid_tester_cpu.forward(FLAGS)

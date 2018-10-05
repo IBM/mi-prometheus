@@ -196,7 +196,7 @@ class GridTrainerCPU(Worker):
             else:
                 break
 
-    def run_experiment(self, episodic_trainer, output_dir: str, experiment_configs: str):
+    def run_experiment(self, episodic_trainer, output_dir: str, experiment_configs: str, prefix=""):
         """
         Runs the specified experiment using one Trainer.
 
@@ -210,6 +210,10 @@ class GridTrainerCPU(Worker):
         several config files, they must be separated with coma ",".
         :type experiment_configs: str
 
+        :param prefix: Prefix to position before the command string (e.g. 'cuda-gpupick -n 1'). Optional.
+        :type prefix: str
+
+
         ..note::
 
             Statistics exporting to TensorBoard is currently not activated.
@@ -220,11 +224,12 @@ class GridTrainerCPU(Worker):
         """
         # set the command to be executed using the indicated Trainer
         if episodic_trainer:
-            command_str = "python3 workers/episodic_trainer.py --c {0} --outdir " + output_dir
+            command_str = "{}python3 workers/episodic_trainer.py".format(prefix)
         else:
-            command_str = "python3 workers/trainer.py --c {0} --outdir " + output_dir
+            command_str = "{}python3 workers/trainer.py".format(prefix)
 
         # add experiment config
+        command_str = command_str + " --c {0} --outdir " + output_dir
         command_str = command_str.format(experiment_configs)
 
         self.logger.info("Starting: {}".format(command_str))
@@ -253,7 +258,7 @@ class GridTrainerCPU(Worker):
         max_processes = min(len(os.sched_getaffinity(0)), self.max_concurrent_run)
 
         with ThreadPool(processes=max_processes) as pool:
-            func = partial(GridTrainerCPU.run_experiment, self, flags.episodic_trainer, self.outdir_str)
+            func = partial(GridTrainerCPU.run_experiment, self, flags.episodic_trainer, self.outdir_str, prefix="")
             pool.map(func, self.experiments_list)
 
         self.logger.info('Grid training experiments finished.')

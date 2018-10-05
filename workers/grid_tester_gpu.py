@@ -16,16 +16,17 @@
 # limitations under the License.
 
 """
-grid_trainer_gpu.py:
+grid_tester_gpu.py:
 
-    - This file contains the implementation of a worker spanning a grid of training experiments on\
-     a collection of GPUs. It works by loading a template yaml file, modifying the resulting dict, and dumping\
-      that as yaml into a temporary file. The ``Trainer`` is then executed using the temporary yaml file as the task.\
-      It will run as many concurrent jobs as possible.
+    - This file contains the implementation of a worker running the ``Tester`` on the results of a ``GridTrainer``
+    using CPUs.
+
+    - The input is a list of directories for each problem/model e.g. `experiments/serial_recall/dnc`, \
+      and executes on every run of the model in that directory.
 
 """
 
-__author__ = "Alexis Asseman, Younes Bouhadjar, Vincent Marois"
+__author__ = "Tomasz Kornuta & Vincent Marois"
 
 import argparse
 from time import sleep
@@ -33,42 +34,44 @@ from functools import partial
 from multiprocessing.pool import ThreadPool
 
 import workers.worker as worker
-import workers.grid_trainer_cpu as gtc
-from workers.grid_trainer_cpu import GridTrainerCPU
+import workers.grid_tester_cpu as gtc
+from workers.grid_tester_cpu import GridTesterCPU
 
 
-class GridTrainerGPU(GridTrainerCPU):
+MAX_THREADS = 6
+
+
+class GridTesterGPU(GridTesterCPU):
     """
-    Grid Worker managing several training experiments on GPUs.
+    Implementation of the Grid Tester running on GPUs.
 
-    Reuses the ``Trainer`` (can specify the base one or the episodic one) to start one experiment.
+    Reuses the ``Tester`` to start one test experiment.
 
-    Inherits from ``GridTrainerCPU`` as the constructor is identical.
+    Inherits from ``GridTesterCPU`` as the constructor is identical.
 
     """
-    def __init__(self, flags: argparse.Namespace, cuda=True):
+
+    def __init__(self, flags: argparse.Namespace):
         """
-        Constructor for the ``GridTrainerGPU``:
+        Constructor for the ``GridTesterGPU``:
 
             - Calls the constructor of ``GridTrainerCPU`` as it is identical.
 
 
         :param flags: Parsed arguments from the parser.
 
-        :param cuda: Whether or not to use CUDA (cf ``GridTrainerGPU``). Default to True.
-        :type cuda: bool
-
         """
-        self.name = 'GridTrainerGPU'
+        self.name = 'GridTesterGPU'
 
         # call base constructor
-        super(GridTrainerGPU, self).__init__(flags, cuda)
+        super(GridTesterCPU, self).__init__(flags)
 
     def forward(self, flags: argparse.Namespace):
         """
-        Main function of the ``GridTrainerGPU``.
+        Main function of the ``GridTesterCPU``.
 
-        Maps the grid experiments to CUDA devices in the limit of the maximum concurrent runs allowed.
+        Maps the grid experiments to CPU cores in the limit of the maximum concurrent runs allowed or maximum\
+         available cores.
 
         :param flags: Parsed arguments from the parser.
 
@@ -78,18 +81,17 @@ class GridTrainerGPU(GridTrainerCPU):
             input('Press any key to continue')
 
         # Run in as many threads as there are GPUs available to the script
-        with ThreadPool(processes=self.max_concurrent_run) as pool:
+        with ThreadPool(processes=MAX_THREADS) as pool:
             # This contains a list of `AsyncResult` objects. To check if completed and get result.
             thread_results = []
 
             for task in self.experiments_list:
-                func = partial(GridTrainerGPU.run_experiment, self, flags.episodic_trainer, self.outdir_str,
-                               prefix="cuda-gpupick -n1 ")
+                func = partial(GridTesterGPU.run_experiment, self, prefix="cuda-gpupick -n1 ")
                 thread_results.append(pool.apply_async(func, (task,)))
 
                 # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
                 sleep(3)
-                while [r.ready() for r in thread_results].count(False) >= self.max_concurrent_run:
+                while [r.ready() for r in thread_results].count(False) >= MAX_THREADS:
                     sleep(3)
 
             # Equivalent of what would usually be called "join" for threads
@@ -112,5 +114,5 @@ if __name__ == '__main__':
     # Parse arguments.
     FLAGS, unparsed = argp.parse_known_args()
 
-    grid_trainer_gpu = GridTrainerGPU(FLAGS, cuda=True)
-    grid_trainer_gpu.forward(FLAGS)
+    grid_tester_gpu = GridTesterGPU(FLAGS)
+    grid_tester_gpu.forward(FLAGS)
