@@ -1,204 +1,233 @@
-"""
-This script post processes the output of batch_train and batch_test.
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) IBM Corporation 2018
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-It takes as input the same file as batch_test and executes on every run
-of the model in that directory. I.e. if you tell it to run on
-serial_recall/dnc, it will process every time you have ever run
-serial_recall with the DNC as long as test.py has been executed. This
-should be fixed later.
+"""
+grid_analyzer.py:
+
+    - This script post-processes the output of the ``GridTrainers`` and ``GridTesters``. \
+    It gathers the test results into one `.csv` file.
+
 
 """
+__author__ = "Tomasz Kornuta & Vincent Marois"
 
 import os
-import sys
-import yaml
-from multiprocessing.pool import ThreadPool
-import numpy as np
-from glob import glob
 import csv
+import yaml
+import argparse
+import numpy as np
 import pandas as pd
+from functools import partial
+from multiprocessing.pool import ThreadPool
+
 import matplotlib
 matplotlib.use('Agg')  # Headless backend for matplotlib
 import matplotlib.pyplot as plt
 
-
-def find_nearest(array, value):
-    array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
-    return array[idx], idx
+import workers.grid_tester_cpu as gtc
+from workers.worker import Worker
 
 
-def main():
-    batch_file = sys.argv[1]
-    assert os.path.isfile(batch_file)
+class GridAnalyzer(Worker):
+    """
+    Implementation of the Grid Analyzer. Post-processes the test results of a grid of experiments and gather them in\
+     a csv file.
 
-    # Load the list of yaml files to run
-    with open(batch_file, 'r') as f:
-        directory_checkpoints = [l.strip() for l in f.readlines()]
-        for foldername in directory_checkpoints:
-            assert os.path.isdir(foldername), foldername + " is not a file"
+    Inherits from ``Worker``.
 
-    experiments_list = []
-    for elem in directory_checkpoints:
-        list_path = os.walk(elem)
-        _, subdir, _ = next(list_path)
-        for sub in subdir:
-            checkpoints = os.path.join(elem, sub)
-            experiments_list.append(checkpoints)
+    TODO: complete doc
+    """
 
-    # Keep only the folders that contain validation.csv and training.csv
-    experiments_list = [elem for elem in experiments_list if os.path.isfile(
-        elem + '/validation.csv') and os.path.isfile(elem + '/training.csv')]
-    experiments_list = [elem for elem in experiments_list
-                        if os.path.isfile(elem + '/test.csv')]
+    def __init__(self, flags: argparse.Namespace):
+        """
+        Constructor for the ``GridAnalyzer``:
 
-    # check if the files are empty except for the first line
-    experiments_list = [elem for elem in experiments_list if os.stat(
-        elem + '/validation.csv').st_size > 24 and os.stat(elem + '/training.csv').st_size > 24]
-    experiments_list = [elem for elem in experiments_list
-                        if os.stat(elem + '/test.csv').st_size > 24]
-
-    # Run in as many threads as there are CPUs available to the script
-    with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
-        list_dict_exp = pool.map(run_experiment, experiments_list)
-        exp_values = dict(zip(list_dict_exp[0], zip(
-            *[d.values() for d in list_dict_exp])))
-
-        with open(directory_checkpoints[0].split("/")[0] + "_test.csv", "w") as outfile:
-            writer = csv.writer(outfile, delimiter=" ")
-            writer.writerow(exp_values.keys())
-            writer.writerows(zip(*exp_values.values()))
+            - TODO: complete doc
 
 
-def run_experiment(path: str):
-    r = {}  # results dictionary
-    run_test = True
+        :param flags: Parsed arguments from the parser.
 
-    r['timestamp'] = os.path.basename(os.path.normpath(path))
+        """
+        self.name = 'GridAnalyzer'
 
-    # Load yaml file. To get model name and problem name.
-    with open(path + '/train_settings.yaml', 'r') as yaml_file:
-        params = yaml.load(yaml_file)
-    r['model'] = params['model']['name']
-    r['problem'] = params['problem_train']['name']
+        # call base constructor
+        super(GridAnalyzer, self).__init__(flags)
 
-    # print path
-    print(path)
+        # Check if experiments directory was indicated.
+        if flags.outdir == '':
+            print('Please pass the experiments directory as --outdir')
+            exit(-1)
 
-    valid_csv = pd.read_csv(path + '/validation.csv', delimiter=',', header=0)
-    test_csv = pd.read_csv(path + '/test.csv', delimiter=',', header=0)
-    train_csv = pd.read_csv(path + '/training.csv', delimiter=',', header=0)
+        self.directory_chckpnts = flags.outdir
 
-    # best train point
-    train_episode = train_csv.episode.values.astype(
-        int)  # best train loss argument
-    train_loss = train_csv.loss.values.astype(
-        float)  # best train loss argument
-    if 'acc' in train_csv:
-        train_accuracy = train_csv.acc.values.astype(float)
+        # get all sub-directories paths in outdir
+        self.experiments_list = []
 
-    index_train_loss = np.argmin(train_loss)
-    best_train_ep = train_episode[index_train_loss]  # best train loss argument
-    best_train_loss = train_loss[index_train_loss]
+        for root, dirs, files in os.walk(self.directory_chckpnts, topdown=True):
+            for name in dirs:
+                self.experiments_list.append(os.path.join(root, name))
 
-    # best valid point
-    valid_episode = valid_csv.episode.values.astype(
-        int)  # best train loss argument
-    valid_loss = valid_csv.loss.values.astype(
-        float)  # best train loss argument
-    if 'acc' in valid_csv:
-        valid_accuracy = valid_csv.acc.values.astype(float)
+        # Keep only the folders that contain validation.csv and training.csv
+        self.experiments_list = [elem for elem in self.experiments_list if os.path.isfile(
+            elem + '/validation.csv') and os.path.isfile(elem + '/training.csv')]
 
-    index_val_loss = np.argmin(valid_loss)
-    best_valid_ep = valid_episode[index_val_loss]  # best train loss argument
-    best_valid_loss = valid_loss[index_val_loss]
+        # check if the files are empty except for the first line
+        self.experiments_list = [elem for elem in self.experiments_list if os.stat(
+            elem + '/validation.csv').st_size > 24 and os.stat(elem + '/training.csv').st_size > 24]
 
-    # Save plot of losses to png file
-    # Save plot of losses to png file
-    try:
-        ax = plt.gca()
-        ax.semilogy(valid_episode, valid_loss, label='validation loss')
-        ax.semilogy(train_episode, train_loss, label='training loss')
-        plt.savefig(path + '/loss.png')
-        plt.close()
-    except BaseException:
-        pass
-    ### ANALYSIS OF TRAINING AND VALIDATION DATA ###
+        print(self.experiments_list)
+        # TODO: may want to enhance this
 
-    # best valid train
-    index_val_loss = np.argmin(valid_loss)
-    # best validation loss argument
-    r['best_valid_arg'] = int(valid_episode[index_val_loss])
-    r['best_valid_loss'] = valid_loss[index_val_loss]
+    def run_experiment(self, experiment_path: str):
+        """
+        Analyzes test results.
 
-    if 'acc' in valid_csv:
-        r['best_valid_accuracy'] = valid_accuracy[index_val_loss]
+        TODO: complete doc
 
-    # best train loss
-    index_loss = np.where(train_loss < 1.E-4)[0]
+        :param experiment_path: Path to an experiment folder containing a trained model.
+        :type experiment_path: str
 
-    if index_loss.size:
-        # best validation loss argument
-        r['best_train_arg'] = int(train_episode[index_loss[0]])
-        r['best_train_loss'] = train_loss[index_loss[0]]
+
+        ..note::
+
+            Visualization is deactivated to avoid any user interaction.
+
+            TODO: anything else?
+
+
+        """
+
+        r = dict()  # results dictionary
+
+        r['timestamp'] = os.path.basename(os.path.normpath(experiment_path))
+
+        # Load yaml file. To get model name and problem name.
+        with open(experiment_path + '/training_configuration.yaml', 'r') as yaml_file:
+            params = yaml.load(yaml_file)
+
+        r['model'] = params['model']['name']
+        r['problem'] = params['testing']['problem']['name']
+
+        # get all sub-directories paths in experiment_path: to detect test experiments paths
+        experiments_tests = []
+
+        for root, dirs, files in os.walk(experiment_path, topdown=True):
+            for name in dirs:
+                experiments_tests.append(os.path.join(root, name))
+
+        # Keep only the folders that contain `testing.csv`
+        experiments_tests = [elem for elem in experiments_tests if os.path.isfile(elem + '/testing.csv')]
+
+        # check if that the `testing.csv` files are not empty
+        experiments_tests = [elem for elem in experiments_tests if os.stat(elem + '/testing.csv').st_size > 24]
+
+        print('test_list', experiments_tests)
+
+        valid_csv = pd.read_csv(experiment_path + '/validation.csv', delimiter=',', header=0)
+        train_csv = pd.read_csv(experiment_path + '/training.csv', delimiter=',', header=0)
+
+        # get best train point
+        train_episode = train_csv.episode.values.astype(int)
+        train_loss = train_csv.loss.values.astype(float)
+
+        index_train_loss = np.argmin(train_loss)
+        r['best_train_ep'] = train_episode[index_train_loss]  # episode index of lowest training loss
+        r['max_train_episode'] = train_episode[-1]
+        r['best_train_loss'] = train_loss[index_train_loss]  # lowest training loss
 
         if 'acc' in train_csv:
-            r['best_train_accuracy'] = train_accuracy[index_loss[0]]
-    else:
-        index_loss = np.argmin(train_loss)
-        # best validation loss argument
-        r['best_train_arg'] = int(train_episode[index_loss])
-        r['best_train_loss'] = train_loss[index_loss]
-        if 'acc' in train_csv:
-            r['best_train_accuracy'] = train_accuracy[index_loss]
+            train_accuracy = train_csv.acc.values.astype(float)
+            r['best_train_acc'] = train_accuracy[index_train_loss]
 
-    # If the best loss < .1, keep that as the early stopping point
-    # Otherwise, we take the very last data as the stopping point
-    if valid_loss[index_val_loss] < 1.E-4:
-        r['converge'] = True
-    else:
-        r['converge'] = False
+        # best valid point
+        valid_episode = valid_csv.episode.values.astype(int)
+        valid_loss = valid_csv.loss.values.astype(float)
 
-    r['stop_episode'] = train_episode[-1]
-    stop_train_index = -1
-    index_val_loss = -1
+        index_val_loss = np.argmin(valid_loss)
+        r['best_valid_ep'] = valid_episode[index_val_loss]  # episode index of lowest validation loss
+        r['best_valid_loss'] = valid_loss[index_val_loss]  # lowest validation loss
 
-    ### Find the best model ###
-    models_list3 = glob(path + '/models/model_episode_*')
-    models_list2 = [os.path.basename(os.path.normpath(e))
-                    for e in models_list3]
-    models_list = [int(e.split('_')[-1].split('.')[0]) for e in models_list2]
-
-    # Gather data at chosen stopping point
-    #r['valid_loss'] = val_loss[index_val_loss]
-    #r['valid_accuracy'] = val_accuracy[index_val_loss]
-    #r['valid_length'] = val_length[index_val_loss]
-
-    # check if models list is empty
-    if models_list and run_test:
-        # select the best model
-        best_num_model, idx_best = find_nearest(
-            models_list, r['best_valid_arg'])
-
-        last_model, idx_last = find_nearest(models_list, train_episode[-1])
-
-        # to avoid selecting model zeros, if training is not converging
-        if best_num_model == 0:
-            best_num_model = 1000  # hack for now
-
-        r['best_model'] = best_num_model
-
-        # best test point
-        r['test_loss'] = test_csv.loss.values.astype(
-            float)  # best train loss argument
         if 'acc' in valid_csv:
-            r['test_accuracy'] = test_csv.acc.values.astype(float)
+            valid_accuracy = valid_csv.acc.values.astype(float)
+            r['best_valid_accuracy'] = valid_accuracy[index_val_loss]
 
-    else:
-        print('There is no model in checkpoint {} '.format(path))
+        # Save plot of losses to png file  TODO: should check what that looks like
+        try:
+            ax = plt.gca()
+            ax.semilogy(valid_episode, valid_loss, label='validation loss')
+            ax.semilogy(train_episode, train_loss, label='training loss')
+            plt.savefig(experiment_path + '/loss.png')
+            plt.close()
+        except BaseException:
+            print('plotting did not work')
+            pass
 
-    return r
+        # get test statistics
+        for experiment in experiments_tests:
+            timestamp = os.path.basename(os.path.normpath(experiment))
+
+            test_csv = pd.read_csv(experiment + '/testing.csv', delimiter=',', header=0)
+            # get average test loss
+            nb_episode = test_csv.episode.values.astype(int)[-1]
+            cumul_loss = sum(test_csv.loss.values.astype(float))
+
+            r['test_{}_average_loss'.format(timestamp)] = cumul_loss/nb_episode
+
+            if 'acc' in test_csv:
+                cumul_acc = sum(test_csv.acc.values.astype(float))
+                r['test_{}_average_acc'.format(timestamp)] = cumul_acc / nb_episode
+
+        return r
+
+    def forward(self, flags: argparse.Namespace):
+        """
+        Constructor for the ``GridAnalyzer``:
+
+            - TODO: complete doc
+
+
+        :param flags: Parsed arguments from the parser.
+
+        """
+        # Run in as many threads as there are CPUs available to the script
+        with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
+            func = partial(GridAnalyzer.run_experiment, self)
+            list_dict_exp = pool.map(func, self.experiments_list)
+            print(list_dict_exp)
+
+            exp_values = dict(zip(list_dict_exp[0], zip(*[d.values() for d in list_dict_exp])))
+
+            with open(self.directory_chckpnts[0].split("/")[0] + "_test.csv", "w") as outfile:
+                writer = csv.writer(outfile, delimiter=" ")
+                writer.writerow(exp_values.keys())
+                writer.writerows(zip(*exp_values.values()))
+
+        self.logger.info('Analysis done.')
 
 
 if __name__ == '__main__':
-    main()
+    # Create parser with list of  runtime arguments.
+    argp = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+
+    # add grid_tester arguments
+    gtc.add_arguments(argp)
+
+    # Parse arguments.
+    FLAGS, unparsed = argp.parse_known_args()
+
+    grid_analyzer = GridAnalyzer(FLAGS)
+    grid_analyzer.forward(FLAGS)
