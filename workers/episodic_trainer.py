@@ -61,6 +61,12 @@ class EpisodicTrainer(Trainer):
         # delete 'epoch' entry in the StatisticsCollector as we don't need it.
         self.stat_col.__delitem__('epoch')
 
+        # recreate the csv files to avoid having the 'epoch' key still present
+        self.training_file = self.stat_col.initialize_csv_file(self.log_dir, 'training.csv')
+
+        if ('validation' in self.param_interface) and ('problem' in self.param_interface['validation']):
+            self.validation_file = self.stat_col.initialize_csv_file(self.log_dir, 'validation.csv')
+
     def forward(self, flags: argparse.Namespace):
         """
         Main function of the ``EpisodicTrainer``.
