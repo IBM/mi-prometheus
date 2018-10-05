@@ -47,7 +47,7 @@ GridTrainerCPU
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-GridTrainerCPU
+GridTrainerGPU
 --------------
 
 .. automodule:: workers.grid_trainer_gpu
@@ -55,3 +55,18 @@ GridTrainerCPU
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+GridTesterCPU
+--------------
+
+.. automodule:: workers.grid_tester_cpu
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+GridTesterGPU
+--------------
+
+.. automodule:: workers.grid_tester_gpu
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
