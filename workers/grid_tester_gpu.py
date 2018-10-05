@@ -18,8 +18,8 @@
 """
 grid_tester_gpu.py:
 
-    - This file contains the implementation of a worker running the ``Tester`` on the results of a ``GridTrainer``
-    using CPUs.
+    - This file contains the implementation of a worker running the ``Tester`` on the results of a ``GridTrainer``\
+     using CPUs.
 
     - The input is a list of directories for each problem/model e.g. `experiments/serial_recall/dnc`, \
       and executes on every run of the model in that directory.
@@ -64,7 +64,7 @@ class GridTesterGPU(GridTesterCPU):
         self.name = 'GridTesterGPU'
 
         # call base constructor
-        super(GridTesterCPU, self).__init__(flags)
+        super(GridTesterGPU, self).__init__(flags)
 
     def forward(self, flags: argparse.Namespace):
         """
