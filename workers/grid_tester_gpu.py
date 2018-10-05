@@ -28,6 +28,7 @@ grid_tester_gpu.py:
 
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
+import torch
 import argparse
 from time import sleep
 from functools import partial
@@ -36,9 +37,6 @@ from multiprocessing.pool import ThreadPool
 import workers.worker as worker
 import workers.grid_tester_cpu as gtc
 from workers.grid_tester_cpu import GridTesterCPU
-
-
-MAX_THREADS = 6
 
 
 class GridTesterGPU(GridTesterCPU):
@@ -81,7 +79,7 @@ class GridTesterGPU(GridTesterCPU):
             input('Press any key to continue')
 
         # Run in as many threads as there are GPUs available to the script
-        with ThreadPool(processes=MAX_THREADS) as pool:
+        with ThreadPool(processes=torch.cuda.device_count()) as pool:
             # This contains a list of `AsyncResult` objects. To check if completed and get result.
             thread_results = []
 
@@ -91,7 +89,7 @@ class GridTesterGPU(GridTesterCPU):
 
                 # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
                 sleep(3)
-                while [r.ready() for r in thread_results].count(False) >= MAX_THREADS:
+                while [r.ready() for r in thread_results].count(False) >= torch.cuda.device_count():
                     sleep(3)
 
             # Equivalent of what would usually be called "join" for threads
