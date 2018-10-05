@@ -134,13 +134,11 @@ class GridTrainerCPU(Worker):
             print("Error: Grid configuration is lacking the 'grid_tasks' section")
             exit(-5)
 
-        # Create a configuration specific to this grid trainer: set seeds to random and CUDA to false.
+        # Create a configuration specific to this grid trainer: set seeds to undefined (-1) and CUDA to false.
+        # It is important not to set the seeds here as they would be identical for all experiments.
 
         self.param_interface.add_custom_params({"training": {}})
-
-        self.set_random_seeds()
-
-        self.param_interface["training"].add_custom_params({"cuda": cuda})
+        self.param_interface["training"].add_custom_params({"seed_numpy": -1, "seed_torch": -1, "cuda": cuda})
 
         # Create temporary file
         param_interface_file = NamedTemporaryFile(mode='w', delete=False)
