@@ -16,50 +16,101 @@
 # limitations under the License.
 
 """model.py: contains base abstract model for all models"""
-__author__ = "Tomasz Kornuta"
+__author__ = "Tomasz Kornuta, Vincent Marois"
 
 import torch
 from torch import nn
 from abc import abstractmethod
-
 import numpy as np
 
 import logging
-logger = logging.getLogger('Model')
 
 from utils.app_state import AppState
 
 
 class Model(nn.Module):
     """
-    Class representing base class of all models.
+    Class representing base class for all Models.
 
-    Provides basic plotting functionality.
+    Inherits from torch.nn.Module as all subclasses will represent a trainable model.
+
+    Hence, all subclasses should override the ``forward`` function.
+
+    Implements features & attributes used by all subclasses.
 
     """
 
-    def __init__(self, params):
+    def __init__(self, params, problem_default_values_={}):
         """
-        Initializes application state and sets plot if visualization flag is
-        turned on.
+        Initializes a Model object.
 
         :param params: Parameters read from configuration file.
 
-        """
-        # Call base class inits here.
-        super(Model, self).__init__()
+        :param problem_default_values_: dict of parameters values coming from the problem class. One example of such\
+        parameter value is the size of the vocabulary set in a translation problem.
+        :type problem_default_values_: dict
 
-        # Initialize app state.
-        self.app_state = AppState()
+        This constructor:
+
+        - stores a pointer to ``params``:
+
+            >>> self.params = params
+
+        - sets a default problem name:
+
+            >>> self.name = 'Model'
+
+        - initializes the logger.
+
+            >>> self.logger = logging.Logger(self.name)
+
+        - tries to parse the values coming from ``problem_default_values_``:
+
+            >>>         try:
+            >>>             for key in problem_default_values_.keys():
+            >>>                 self.params.add_custom_params({key: problem_default_values_[key]})
+            >>>         except BaseException:
+            >>>             self.logger.info('No parameter value was parsed from problem_default_values_')
+
+        - initializes the data definitions:
+
+        .. note::
+
+            This dict contains information about the expected inputs and produced outputs of the current model class.
+
+            This object will be used during handshaking between the model and the problem class to ensure that the model
+            can accept the batches produced by the problem and that the problem can accept the predictions of the model
+            to compute the loss and accuracy.
+
+            This dict should be defined using self.params.
+
+            This dict should at least contains the `targets` field:
+
+                >>>     self.data_definitions = {'inputs': {'size': [-1, -1], 'type': [torch.Tensor]},
+                >>>                              'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
+                >>>                             }
+
+
+        - sets the access to ``AppState``: for dtype, visualization flag etc.
+
+            >>> self.app_state = AppState()
+
+        - initialize the best model loss (to select which model to save) to ``np.inf``:
+
+            >>> self.best_loss = np.inf
+
+        """
+        # Call base class constructor here.
+        super(Model, self).__init__()
 
         # Store pointer to params.
         self.params = params
 
-        # Window in which the data will be ploted.
-        self.plotWindow = None
+        # "Default" model name.
+        self.name = 'Model'
 
-        # Initialization of best loss - as INF.
-        self.best_loss = np.inf
+        # initialize the logger
+        self.logger = logging.getLogger(self.name)
 
         # Flag indicating whether intermediate checkpoints should be saved or
         # not (DEFAULT: False).
@@ -67,45 +118,164 @@ class Model(nn.Module):
             params.add_default_params({"save_intermediate": False})
         self.save_intermediate = params["save_intermediate"]
 
-        # "Default" model name.
-        self.name = 'Model'
+        # process all params from configuration file and problem_default_values_ here
+        try:
+            for key in problem_default_values_.keys():
+                self.params.add_custom_params({key: problem_default_values_[key]})
 
+        except BaseException:
+            self.logger.info('No parameter value was parsed from problem_default_values_')
+
+        # --> We assume from here that the model class has all parameters values needed (either from params or
+        # problem_default_values_) to be correctly instantiated and contained in self.params.
+
+        # We can then define a dict that contains a description of the expected (and mandatory) inputs for this model.
+        # This dict should be defined using self.params.
+        self.data_definitions = {'inputs': {'size': [-1, -1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
+                                }
+
+        # --> The remaining parameters should be hardcoded values.
+
+        # Initialize app state.
+        self.app_state = AppState()
+
+        # Window in which the data will be plotted.
+        self.plotWindow = None
+
+        # Initialization of best loss - as INF.
+        self.best_loss = np.inf
+
+    def handshake_definitions(self, problem_data_definitions_):
+        """
+        Proceeds to the handshake between what the Problem class provides (through a ``DataDict``) and what the model\
+        expects as inputs.
+
+        .. note::
+
+            Handshaking is defined here as making sure that the ``Model`` and the ``Problem`` agree on the data that they
+            exchange.
+            More specifically, the ``Model`` has a definition of the inputs data that it expects\
+            (through its ``self.data_definitions`` attribute). The ``Problem`` has the same object describing what \
+            it generates.
+
+            This functions proceeds to the handshaking as:
+
+                - Verifying that all keys existing in ``Model.data_definitions`` are also existing in \
+                  ``Problem.data_definitions``. If a key is missing, an exception is thrown.
+
+                  This function does not verify the key ``targets`` as this will be done by\
+                   ``problems.problem.Problem.handshake_definitions``.
+
+                - If all keys are present, than this function checks that for each (``Model.data_definitions``) key,\
+                 the shape and type of the corresponding value matches what is indicated for the corresponding key\
+                 in ``Problem.data_definitions``. If not, an exception is thrown.
+                - **If both steps above passed, than the Model accepts what the Problem generates and can proceed \
+                to the forward pass.**
+
+
+            To properly define the ``data_definitions`` dicts, here are some examples:
+
+                >>> data_definitions = {'img': {'size': [-1, 320, 480, 3], 'type': [np.ndarray]},
+                >>>                     'question': {'size': [-1, -1], 'type': [torch.Tensor]},
+                >>>                     'question_length': {'size': [-1], 'type': [list, int]},
+                >>>                     # ...
+                >>>                     }
+
+                Please indicate both the size and the type as ``lists``:
+
+                    - Indicate all dimensions in the correct order for each key `size` field. If a dimension is\
+                    unimportant or unknown (e.g. the batch size or variable-length sequences), then please indicate \
+                    ``-1`` at the correct location.
+                    - If an object is a composition of several Python objects (``list``, ``dict``,...), then please \
+                    include all objects type, matching the dimensions order: e.g. ``[list, dict]``.
+
+
+        :param problem_data_definitions_: Contains the definition of a sample generated by the ``Problem`` class.
+        :type problem_data_definitions_: dict
+
+        :return: True if the ``Model`` accepts what the ``Problem`` generates, otherwise throws an exception.
+        """
+
+        for key in [k for k in self.data_definitions.keys() if k != 'targets']:
+
+            if key not in problem_data_definitions_.keys():
+                raise KeyError('The key {} is missing in the Problem.data_definitions. Handshake failed.'.format(key))
+
+            else:
+                # key exists, first check the size:
+                for i, dim in enumerate(self.data_definitions[key]['size']):
+                    if dim == -1:
+                        pass  # don't care
+                    else:  # we actually need to check
+                        if dim != problem_data_definitions_[key]['size'][i]:
+                            raise ValueError('There is a mismatch in the expected size of the key {} '
+                                             'in Problem.data_definitions. Expected {}, got {}. Handshake failed.'.format(
+                                key, dim, problem_data_definitions_[key]['size'][i]))
+
+                # then, check the type:
+                for i, tp in enumerate(self.data_definitions[key]['type']):
+                    if not tp == problem_data_definitions_[key]['type'][i]:
+                        raise ValueError('There is a mismatch in the expected type(s) of the key {} '
+                                         'in Problem.data_definitions. Expected {}, got {}. Handshake failed.'.format(
+                            key, tp, problem_data_definitions_[key]['type'][i]))
+
+        # Everything matches, return true
+        return True
 
     def add_statistics(self, stat_col):
         """
-        Add statistics to collector.
+        Adds statistics to ``StatisticsCollector``.
 
-        EMPTY - To be redefined in inheriting classes.
+        .. note::
 
-        :param stat_col: Statistics collector.
+
+            Empty - To be redefined in inheriting classes.
+
+
+        :param stat_col: ``StatisticsCollector``.
 
         """
         pass
 
-    def collect_statistics(self, stat_col, data_tuple, logits):
+    def collect_statistics(self, stat_col, data_dict, logits):
         """
         Base statistics collection.
 
-        EMPTY - To be redefined in inheriting classes.
+         .. note::
 
-        :param stat_col: Statistics collector.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param logits: Logits being output of the model.
+
+            Empty - To be redefined in inheriting classes. The user has to ensure that the corresponding entry \
+            in the ``StatisticsCollector`` has been created with ``self.add_statistics()`` beforehand.
+
+        :param stat_col: ``StatisticsCollector``.
+
+        :param data_dict: ``DataDict`` containing inputs and targets.
+        :type data_dict: DataDict
+
+        :param logits: Predictions being output of the model.
 
         """
         pass
 
     @abstractmethod
-    def plot(self, data_tuple, predictions, sample_number=0):
+    def plot(self, data_dict, predictions, sample=0):
         """
         Plots inputs, targets and predictions, along with model-dependent
         variables.
 
-        Abstract - to be defined in derived classes.
+        . note::
 
-        :param data_tuple: Data tuple containing input and target batches.
+             Abstract - to be defined in derived classes.
+
+        :param data_dict: DataDict containing input and target batches.
+        :type data_dict: DataDict
+
         :param predictions: Prediction.
-        :param sample_number: Number of sample in batch (DEFAULT: 0)
+        :type predictions: torch.tensor
+
+        :param sample: Number of sample in batch (default: 0)
+        :type sample: int
 
         """
 
@@ -115,11 +285,15 @@ class Model(nn.Module):
         overloaded if one needs more control.
 
         :param model_dir: Directory where the model will be saved.
-        :param stat_col: Statistics collector that contain current loss and episode number (and other statistics).
-        :return: True if this is the best model that is found till now (considering loss).
+        :type model_dir: str
+
+        :param stat_col: Statistics collector containing the current loss and episode number (among other statistics).
+        :type stat_col: StatisticsCollector
+
+        :return: True if this is currently the best model (until the current episode, considering the loss).
 
         """
-        # Get two elementary statistics.
+        # Get the two elementary statistics.
         loss = stat_col['loss']
         episode = stat_col['episode']
 
@@ -131,37 +305,38 @@ class Model(nn.Module):
         }
 
         # for key, value in stat_col.statistics.items():
-        #    logger.warning("{}: {}".format(key, value))
+        #    self.logger.warning("{}: {}".format(key, value))
 
         # Save the intermediate checkpoint.
         if self.save_intermediate:
             filename = model_dir + 'model_episode_{:05d}.pt'.format(episode)
             torch.save(chkpt, filename)
-            logger.info(
+            self.logger.info(
                 "Model and statistics exported to checkpoint {}".format(
                     filename))
 
         # Save the best model.
-        if (loss < self.best_loss):
+        if loss < self.best_loss:
             self.best_loss = loss
             filename = model_dir + 'model_best.pt'
             torch.save(chkpt, filename)
-            logger.info(
+            self.logger.info(
                 "Model and statistics exported to checkpoint {}".format(
                     filename))
             return True
+
         # Else: that was not the best model.
         return False
 
     def load(self, checkpoint_file):
         """
-        Loads model from the checkpoint file.
+        Loads a model from the specified checkpoint file.
 
         :param checkpoint_file: File containing dictionary with model state and statistics.
 
         """
         # Load checkpoint
-        # This is to be able to load CUDA-trained model on CPU
+        # This is to be able to load a CUDA-trained model on CPU
         chkpt = torch.load(
             checkpoint_file, map_location=lambda storage, loc: storage)
 
@@ -169,7 +344,7 @@ class Model(nn.Module):
         self.load_state_dict(chkpt['state_dict'])
 
         # Print statistics.
-        logger.info(
+        self.logger.info(
             "Imported {} parameters from checkpoint (episode {}, loss {})".format(
                 chkpt['name'],
                 chkpt['stats']['episode'],
@@ -237,3 +412,37 @@ class Model(nn.Module):
             mod_str += '  ' + '| '* (indent_) + '\n'
     
         return mod_str
+
+
+if __name__ == '__main__':
+    """Unit test for the handshake."""
+
+    from utils.param_interface import ParamInterface
+    params = ParamInterface()
+
+    model = Model(params)
+
+    # you can play with one of the dicts below to see the handshake in action.
+    model.data_definitions = {'img': {'size': [-1, 320, 480, 3], 'type': [np.ndarray]},
+                                 'question': {'size': [-1, -1], 'type': [torch.Tensor]},
+                                 'question_length': {'size': [-1], 'type': [list, int]},
+                                 'question_string': {'size': [-1,-1], 'type': [list, str]},
+                                 'question_type': {'size': [-1,-1], 'type': [list, str]},
+                                 'targets': {'size': [-1], 'type': [torch.Tensor]},
+                                 'targets_string': {'size': [-1,-1], 'type': [list, str]},
+                                 'index': {'size': [-1], 'type': [list, int]},
+                                 'imgfile': {'size': [-1,-1], 'type': [list,str]},
+                                 }
+
+    problem_data_definitions = {'img': {'size': [-1, 320, 480, 3], 'type': [np.ndarray]},
+                                 'question': {'size': [-1, -1], 'type': [torch.Tensor]},
+                                 'question_length': {'size': [-1], 'type': [list, int]},
+                                 'question_string': {'size': [-1,-1], 'type': [list, str]},
+                                 'question_type': {'size': [-1,-1], 'type': [list, str]},
+                                 'targets': {'size': [-1], 'type': [torch.Tensor]},
+                                 'targets_string': {'size': [-1,-1], 'type': [list, str]},
+                                 'index': {'size': [-1], 'type': [list, int]},
+                                 'imgfile': {'size': [-1,-1], 'type': [list,str]}
+                                 }
+
+    model.handshake_definitions(problem_data_definitions)

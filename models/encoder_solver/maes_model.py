@@ -20,10 +20,8 @@ __author__ = "Tomasz Kornuta"
 
 from enum import Enum
 import torch
-import logging
-logger = logging.getLogger('MAES-Model')
 
-from problems.problem import DataTuple
+from problems.problem import DataDict
 from models.sequential_model import SequentialModel
 
 from models.encoder_solver.mae_cell import MAECell
@@ -40,7 +38,7 @@ class MAES(SequentialModel):
 
     """
 
-    def __init__(self, params):
+    def __init__(self, params, problem_default_values_={}):
         """
         Constructor. Initializes parameters on the basis of dictionary passed
         as argument.
@@ -49,7 +47,8 @@ class MAES(SequentialModel):
 
         """
         # Call base constructor.
-        super(MAES, self).__init__(params)
+        super(MAES, self).__init__(params, problem_default_values_)
+
         # Model name.
         self.name = 'MAES'
 
@@ -57,6 +56,7 @@ class MAES(SequentialModel):
         # Indices of control bits triggering encoding/decoding.
         self.encoding_bit = params['encoding_bit']  # Def: 0
         self.solving_bit = params['solving_bit']  # Def: 1
+
         # Check if we want to pass the whole cell state or only the memory.
         self.pass_cell_state = params.get('pass_cell_state', True)
 
@@ -68,6 +68,7 @@ class MAES(SequentialModel):
         # Save/load encoder.
         # params['encoder']['save'].add_default_params(False)
         self.save_encoder = params.get('save_encoder', False)
+
         # Path+filename to encoder.
         self.load_encoder = params.get('load_encoder', '')
         self.freeze_encoder = params.get('freeze_encoder', False)
@@ -87,12 +88,21 @@ class MAES(SequentialModel):
         # Operation modes.
         self.modes = Enum('Modes', ['Encode', 'Solve'])
 
+        # Expected content of the inputs
+        self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]}
+                                 }
+
+        # TODO: Not sure if some of the params above are coming from the Problem class. If yes -> use \
+        # problems_default_values_
+
     def save(self, model_dir, stat_col):
         """
         Method saves the model and encoder to file.
 
         :param model_dir: Directory where the model will be saved.
         :param stat_col: Statistics collector that contain current loss and episode number (and other statistics).
+
         :return: True if this is the best model that is found till now (considering loss).
 
         """
@@ -106,22 +116,25 @@ class MAES(SequentialModel):
 
         return is_best_model
 
-    def forward(self, data_tuple):
+    def forward(self, data_dict):
         """
         Forward function accepts a tuple consisting of:
 
-         - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and
-         - a tensor of targets
+            - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and
+            - a tensor of targets
 
-        :param data_tuple: Tuple containing inputs and targets.
-                :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
+
+        :param data_dict: DataDict containing inputs and targets.
+
+        :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
 
         """
         # Get dtype.
         dtype = self.app_state.dtype
 
-        # Unpack tuple.
-        (inputs_BxSxI, _) = data_tuple
+        # Unpack dict.
+        inputs_BxSxI, _, _, _, _ = data_dict.values()
+
         batch_size = inputs_BxSxI.size(0)
 
         # "Data-driven memory size".
@@ -187,7 +200,7 @@ class MAES(SequentialModel):
 
 if __name__ == "__main__":
     # Set logging level.
-    logger = logging.getLogger('MAES')
+    import logging
     logging.basicConfig(level=logging.DEBUG)
 
     # Set visualization.
@@ -207,7 +220,6 @@ if __name__ == "__main__":
               'memory': {'num_addresses': -1, 'num_content_bits': 11},
               'visualization_mode': 2
               })
-    logger.debug("params: {}".format(params))
 
     input_size = params["num_control_bits"] + params["num_data_bits"]
     output_size = params["num_data_bits"]
@@ -217,8 +229,9 @@ if __name__ == "__main__":
 
     # Construct our model by instantiating the class defined above.
     model = MAES(params)
+    model.logger.debug("params: {}".format(params))
 
-    # Check for different seq_lengts and batch_sizes.
+    # Check for different seq_lengths and batch_sizes.
     for i in range(2):
         # Create random Tensors to hold inputs and outputs
         enc = torch.zeros(batch_size, 1, input_size)
@@ -231,16 +244,17 @@ if __name__ == "__main__":
         x = torch.cat([enc, data, dec, dummy], dim=1)
         # Output
         y = torch.randn(batch_size, 2 + 2 * seq_length, output_size)
-        dt = DataTuple(x, y)
+
+        dt = DataDict({'inputs': x, 'targets': y})
 
         # Test forward pass.
-        logger.info("------- forward -------")
+        model.logger.info("------- forward -------")
         y_pred = model(dt)
 
-        logger.info("------- result -------")
-        logger.info("input {}:\n {}".format(x.size(), x))
-        logger.info("target.size():\n {}".format(y.size()))
-        logger.info("prediction {}:\n {}".format(y_pred.size(), y_pred))
+        model.logger.info("------- result -------")
+        model.logger.info("input {}:\n {}".format(x.size(), x))
+        model.logger.info("target.size():\n {}".format(y.size()))
+        model.logger.info("prediction {}:\n {}".format(y_pred.size(), y_pred))
 
         # Plot it and check whether window was closed or not.
         if model.plot(dt, y_pred):

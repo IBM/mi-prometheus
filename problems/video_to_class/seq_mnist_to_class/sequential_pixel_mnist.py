@@ -15,96 +15,187 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""sequential_pixel_mnist.py: load MNIST dataset using torchvision and transform it to a sequence of pixels"""
-__author__ = "Younes Bouhadjar"
+"""sequential_pixel_mnist.py: loads the `MNIST` dataset using ``torchvision`` and\
+ transform it to a sequence of pixels."""
+__author__ = "Younes Bouhadjar & Vincent Marois"
 
 import torch
 from torchvision import datasets, transforms
-from torch.utils.data.sampler import SubsetRandomSampler
 
-from problems.problem import DataTuple, MaskAuxTuple
+from problems.problem import DataDict
 from problems.video_to_class.video_to_class_problem import VideoToClassProblem
 
 
 class SequentialPixelMNIST(VideoToClassProblem):
     """
-    Class generating a sequence of pixels for sequential mnist.
+    The Sequential MNIST implies that the model does not get to see/generate the whole image at once \
+    (like for example a normal 2d-ConvNet would), but only one pixel at a time sequentially.
+
+    .. warning::
+
+        The dataset is not originally split into a training set, validation set and test set; only\
+        training and test set. It is recommended to use a validation set.
+
+        ``torch.utils.data.SubsetRandomSampler`` is recommended.
+
     """
 
     def __init__(self, params):
         """
-        Initialize.
+        Initializes SequentialPixelMNIST problem:
+
+            - Calls ``problems.problem.VideoToClassProblem`` class constructor,
+            - Sets following attributes using the provided ``params``:
+
+                - ``self.root_dir`` (`string`) : Root directory of dataset where ``processed/training.pt``\
+                    and  ``processed/test.pt`` will be saved,
+                - ``self.use_train_data`` (`bool`, `optional`) : If True, creates dataset from ``training.pt``,\
+                    otherwise from ``test.pt``
+                - ``self.defaut_values`` :
+
+                    >>> self.default_values = {'nb_classes': 10,
+                    >>>                        'length': 28*28}
+
+                - ``self.data_definitions`` :
+
+                    >>> self.data_definitions = {'images': {'size': [-1, 28*28], 'type': [torch.Tensor]},
+                    >>>                          'mask': {'size': [-1, 28*28], 'type': [torch.Tensor]},
+                    >>>                          'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                    >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
+                    >>>                         }
+
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
+
         """
         # Call base class constructors.
         super(SequentialPixelMNIST, self).__init__(params)
 
         # Retrieve parameters from the dictionary.
-        self.batch_size = params['batch_size']
-        self.start_index = params['start_index']
-        self.stop_index = params['stop_index']
+        self.use_train_data = params['use_train_data']
+        self.root_dir = params['root_dir']
+
         self.num_rows = 28
         self.num_columns = 28
-        self.use_train_data = params['use_train_data']
-        self.datasets_folder = params['mnist_folder']
+
+        # define the default_values dict: holds parameters values that a model may need.
+        self.default_values = {'nb_classes': 10,
+                               'length': 28*28
+                               }
+
+        self.data_definitions = {'images': {'size': [-1, 28*28], 'type': [torch.Tensor]},
+                                 'mask': {'size': [-1, 28*28], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'targets_label': {'size': [-1, 1], 'type': [list, str]}
+                                 }
+
+        self.name = 'SequentialPixelMNIST'
 
         # define transforms
-        train_transform = transforms.Compose([
-            transforms.ToTensor(), transforms.Lambda(lambda x: x.view(1, -1, 1))])
+        transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Lambda(lambda x: x.view(-1))])
 
-        # load the datasets
-        self.train_datasets = datasets.MNIST(
-            self.datasets_folder,
-            train=self.use_train_data,
-            download=True,
-            transform=train_transform)
-        # set split
-        num_train = len(self.train_datasets)
-        indices = list(range(num_train))
+        # load the dataset
+        self.dataset = datasets.MNIST(self.root_dir, train=self.use_train_data,
+                                       download=True, transform=transform)
 
-        idx = indices[self.start_index: self.stop_index]
-        self.sampler = SubsetRandomSampler(idx)
+        # Class names.
+        self.labels = 'Zero One Two Three Four Five Six Seven Eight Nine'.split(' ')
 
-    def generate_batch(self):
-        # data loader
-        train_loader = torch.utils.data.DataLoader(
-            self.train_datasets,
-            batch_size=self.batch_size,
-            sampler=self.sampler)
-        # create an iterator
-        train_loader = iter(train_loader)
+        self.length = len(self.dataset)
+
+    def __getitem__(self, index):
+        """
+        Getter method to access the dataset and return a sample.
+
+        :param index: index of the sample to return.
+        :type index: int
+
+        :return: ``DataDict({'images','targets', 'targets_label'})``, with:
+
+            - images: Image,
+            - mask
+            - targets: Index of the target class
+
+        """
+        # get sample
+        img, target = self.dataset.__getitem__(index)
+
+        # get label
+        label = self.labels[target.data]
 
         # create mask
-        mask = torch.zeros(self.num_rows * self.num_columns)
+        mask = torch.zeros(self.num_rows * self.num_columns).type(self.app_state.IntTensor)
         mask[-1] = 1
 
-        # train_loader a generator: (data, label)
-        (data, label) = next(train_loader)
+        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+        data_dict['images'] = img
+        data_dict['mask'] = mask
+        data_dict['targets'] = target
+        data_dict['targets_label'] = label
 
-        # Return DataTuple(!) and an empty (aux) tuple.
-        return DataTuple(data, label), MaskAuxTuple(mask.type(torch.uint8))
+        return data_dict
+
+    def collate_fn(self, batch):
+        """
+        Combines a list of ``DataDict`` (retrieved with ``__getitem__`` ) into a batch.
+
+        .. note::
+
+            This function wraps a call to ``default_collate`` and simply returns the batch as a ``DataDict``\
+            instead of a dict.
+            Multi-processing is supported as the data sources are small enough to be kept in memory\
+            (`training.pt` has a size of 47.5 MB).
+
+        :param batch: list of individual ``DataDict`` samples to combine.
+
+        :return: ``DataDict({'images','targets', 'targets_label'})`` containing the batch.
+
+        """
+
+        return DataDict({key: value for key, value in zip(self.data_definitions.keys(),
+                                                          super(SequentialPixelMNIST, self).collate_fn(batch).values())})
 
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
-    # "Loaded parameters".
+    # Load parameters.
     from utils.param_interface import ParamInterface 
     params = ParamInterface()
-    params.add_default_params({'batch_size': 3, 'start_index': 0, 'stop_index': 54999,
-              'use_train_data': True, 'mnist_folder': '~/data/mnist'})
+    params.add_default_params({'use_train_data': True, 'root_dir': '~/data/mnist'})
 
-    # Create problem object.
+    batch_size = 64
+
+    # Create problem.
     problem = SequentialPixelMNIST(params)
-    # Get generator
-    generator = problem.return_generator()
-    # Get batch.
-    num_rows = 28
-    num_columns = 28
-    sample_num = 0
-    data_tuple, _ = next(generator)
-    x, y = data_tuple
 
-    print(x.size())
+    # get a sample
+    sample = problem[0]
+    print(repr(sample))
+    print('__getitem__ works.')
+
+    # wrap DataLoader on top of this Dataset subclass
+    from torch.utils.data.dataloader import DataLoader
+
+    dataloader = DataLoader(dataset=problem, collate_fn=problem.collate_fn,
+                            batch_size=batch_size, shuffle=True, num_workers=8)
+
+    # try to see if there is a speed up when generating batches w/ multiple workers
+    import time
+
+    s = time.time()
+    for i, batch in enumerate(dataloader):
+        print('Batch # {} - {}'.format(i, type(batch)))
+
+    print('Number of workers: {}'.format(dataloader.num_workers))
+    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
-    problem.show_sample(x[sample_num, 0].reshape(num_rows, num_columns), y)
+    batch = next(iter(dataloader))
+
+    # reshape image for display
+    batch['images'] = batch['images'].view(batch_size, 1, problem.num_columns, problem.num_rows)
+
+    problem.show_sample(batch, 0)
+
+    print('Unit test completed')

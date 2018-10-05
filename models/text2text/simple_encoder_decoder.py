@@ -39,9 +39,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""simple_encoder_decoder.py: Implementation of an Encoder-Decoder network for text2text problems (e.g. translation)
-    Inspiration taken from the corresponding Pytorch tutorial.
-    See https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html """
+"""
+simple_encoder_decoder.py: Implementation of an Encoder-Decoder network for TextToText problems\
+ (e.g. machine translation)
+
+"""
 __author__ = "Vincent Marois "
 
 import torch
@@ -60,14 +62,16 @@ EOS_token = 2
 
 class SimpleEncoderDecoder(SequentialModel):
     """
-    Sequence to Sequence model based on EncoderRNN & DecoderRNN.
+    Sequence to Sequence model based on ``EncoderRNN`` & ``DecoderRNN``.
     """
 
-    def __init__(self, params):
+    def __init__(self, params, problem_default_values_={}):
         """
         Initializes the Encoder-Decoder network.
 
-        :param params: dict containing the main parameters set:
+        Calls parent class ``SequentialModel`` initialization.
+
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
             - max_length: maximal length of the input / output sequence of words: i.e, max length of the sentences
             to translate -> upper limit of seq_length
             - input_voc_size: should correspond to the length of the vocabulary set of the input language
@@ -76,7 +80,7 @@ class SimpleEncoderDecoder(SequentialModel):
 
         """
         # call base constructor
-        super(SimpleEncoderDecoder, self).__init__(params)
+        super(SimpleEncoderDecoder, self).__init__(params, problem_default_values_)
 
         self.max_length = params['max_length']
 
@@ -84,6 +88,11 @@ class SimpleEncoderDecoder(SequentialModel):
         self.input_voc_size = params['input_voc_size']
         self.hidden_size = params['hidden_size']
         self.encoder_bidirectional = params['encoder_bidirectional']
+
+        try:
+            self.nb_classes = problem_default_values_['nb_classes']
+        except BaseException:
+            self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
         # create encoder
         self.encoder = EncoderRNN(

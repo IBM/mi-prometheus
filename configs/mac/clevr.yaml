@@ -4,11 +4,18 @@ training:
     problem:
         name: &name clevr
         batch_size: &b 64
-        CLEVR_dir: &dir '/home/valbouy/CLEVR_v1.0' # magellan server
-        set: 'train'
-        clevr_humans: False
-        embedding_type: &emb 'random'
-        random_embedding_dim: &red 300
+        settings:
+            data_folder: &dir '/home/vmarois/CLEVR_v1.0' # magellan server
+            set: 'train'
+            dataset_variant: &var 'CLEVR'
+        images:
+            raw_images: False
+            feature_extractor:
+                cnn_model: &cnn 'resnet101'
+                num_blocks: 4
+        questions:
+            embedding_type: &emb 'random'
+            embedding_dim: 300
 
     # Set optimizer.
     optimizer:
@@ -20,6 +27,7 @@ training:
     terminal_condition:
         loss_stop: 0.03
         max_episodes: 220000  # approx 20 epochs with batch_size of 64
+        max_epochs: 20
 
     # fix the seeds
     seed_torch: 0
@@ -31,12 +39,18 @@ testing:
     problem:
         name: *name
         batch_size: *b
-        CLEVR_dir: *dir
-        set: 'val'
-        clevr_humans: False
-        embedding_type: *emb
-        random_embedding_dim: *red
-        max_test_episodes: 3
+        settings:
+            data_folder: *dir
+            set: 'val'
+            dataset_variant: *var
+            images:
+                raw_images: False
+                feature_extractor:
+                    cnn_model: *cnn
+                    num_blocks: 4
+            questions:
+                embedding_type: *emb
+                embedding_dim: 300
 
 validation:
     cuda: True
@@ -44,11 +58,18 @@ validation:
     problem:
         name: *name
         batch_size: *b
-        CLEVR_dir: *dir
-        set: 'val'
-        clevr_humans: False
-        embedding_type: *emb
-        random_embedding_dim: *red
+        settings:
+            data_folder: *dir
+            set: 'val'
+            dataset_variant: *var
+        images:
+            raw_images: False
+            feature_extractor:
+                cnn_model: *cnn
+                num_blocks: 4
+        questions:
+            embedding_type: *emb
+            embedding_dim: 300
 
 
 # Model parameters:
@@ -59,5 +80,4 @@ model:
     max_step: 12
     self_attention: False
     memory_gate: False
-    nb_classes: 28
     dropout: 0.15

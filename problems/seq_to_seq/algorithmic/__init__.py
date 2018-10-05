@@ -1,6 +1,6 @@
 from .maes_baselines import *
 
-from .algorithmic_seq_to_seq_problem import AlgSeqAuxTuple, AlgorithmicSeqToSeqProblem
+from .algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem
 from .distraction_carry import DistractionCarry
 from .distraction_forget import DistractionForget
 from .distraction_ignore import DistractionIgnore

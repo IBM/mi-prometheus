@@ -22,7 +22,7 @@ MI Prometheus is an open source Deep Learning Python library, built using Pytorc
    :maxdepth: 1
    :caption: Workers
 
-   workers/*
+   workers
 
 .. toctree::
    :maxdepth: 4

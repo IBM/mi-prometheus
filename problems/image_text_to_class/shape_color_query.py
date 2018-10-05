@@ -15,48 +15,65 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""shape_color_query.py: ShapeColorQuery is a a variation of Sort-of-CLEVR VQA problem, where question is a sequence composed of two items:
-first encoding the object type, and second encoding the query. """
-__author__ = "Tomasz Kornuta"
+"""
+shape_color_query.py: ShapeColorQuery is a a variation of the ``Sort-of-CLEVR`` problem, where the question is a\
+ sequence composed of two items:
 
+    - The first encodes the object type,
+    - The second encodes the query.
+
+"""
+__author__ = "Tomasz Kornuta & Vincent Marois"
+import torch
 import numpy as np
-
-import logging
-logger = logging.getLogger('Shape-Color-Query')
-
 from problems.image_text_to_class.sort_of_clevr import SortOfCLEVR
 
 
 class ShapeColorQuery(SortOfCLEVR):
     """
-    Shape-Color-Query is a a variation of Sort-of-CLEVR VQA problem, where
-    question is a sequence composed of three items:
+    Shape-Color-Query is a variation of the ``Sort-of-CLEVR`` problem, where\
+     the question is a sequence composed of three items:
 
-    - first two encoding the object, identified by color & shape, and
-    - third encoding the query.
+        - The first two are encoding the object, identified by its color & shape,
+        - The third is encoding the query.
+
+    Please see the ``SortOfCLEVR`` documentation for more information.
 
     """
 
     def __init__(self, params):
         """
-        Initializes Shape-Color-Query problem, calls base class initialization,
-        sets properties using the provided parameters.
+        Initializes the ``Shape-Color-Query`` problem, calls base class ``SortOfCLEVR``\
+        initialization, sets properties using the provided parameters.
 
-        :param params: Dictionary of parameters (read from configuration file).
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
         """
 
         # Call base class constructors.
         super(ShapeColorQuery, self).__init__(params)
 
+        # problem name
+        self.name = 'Shape-Color-Query'
+
+        # define the data_definitions dict: holds a description of the DataDict content
+        self.data_definitions = {'images': {'size': [-1, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
+                                 'questions': {'size': [-1, 3, self.NUM_QUESTIONS],
+                                               'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, self.NUM_COLORS + self.NUM_SHAPES + 2],
+                                             'type': [torch.Tensor]},
+                                 'targets_index': {'size': [-1], 'type': [torch.Tensor]},
+                                 'scenes_description': {'size': [-1, -1], 'type': [list, str]},
+                                 }
+
     def question2str(self, encoded_question):
         """
-        Decodes question, i.e. produces a human-understandable string.
+        Decodes the question, i.e. produces a human-understandable string.
 
-        :param color_query: A 3d tensor, with 1 row and 3 columns:
+        :param encoded_question: A 3D tensor, with 1 row and 3 columns:
 
-            - first two encoding the object, identified by shape, color, and
-            - third encoding the query.
+            - The first two are encoding the object, identified by its shape & color,
+            - The third is encoding the query.
 
         :return: Question in the form of a string.
 
@@ -66,19 +83,25 @@ class ShapeColorQuery(SortOfCLEVR):
             shape = 'object'
         else:
             shape = self.shape2str(np.argmax(encoded_question[0, :]))
+
         color = self.color2str(np.argmax(encoded_question[1, :]))
         query = self.question_type_template(np.argmax(encoded_question[2, :]))
+
         # Return the question as a string.
         return query.format(color, shape)
 
     def generate_question_matrix(self, objects):
         """
-        Generates questions tensor: [# of objects * # of Q, 3, encoding]
-        where second dimension ("temporal") encodes consecutivelly: shape, color, query
+        Generates the questions tensor: [# of objects * # of Q, 3, encoding],\
+        where the 2nd dimension (`temporal`) encodes consecutively: shape, color, query
 
         :param objects: List of objects - abstract scene representation.
+        :type object: list
+
         :return: a 3D tensor [# of questions for the whole scene, 3, num_bits]
+
         """
+
         # Number of scene questions.
         num_questions = len(objects) * self.NUM_QUESTIONS
         # Number of bits in Object and Query vectors.
@@ -110,32 +133,44 @@ if __name__ == "__main__":
     """ Tests Shape-Color-Query - generates and displays a sample"""
 
     # "Loaded parameters".
-    from utils.param_interface import ParamInterface 
+    from utils.param_interface import ParamInterface
+
     params = ParamInterface()
-    params.add_default_params({
-        'batch_size': 10,
-        'data_folder': '~/data/shape-color-query/',
-        'data_filename': 'training.hy',
-        'shuffle': True,
-        "regenerate": True,
-        'use_train_data': True,
-        'dataset_size': 100,
-        'img_size': 224})
+    params.add_default_params({'data_folder': '~/data/shape-color-query/',
+                               'split': 'train',
+                               'regenerate': False,
+                               'dataset_size': 10000,
+                               'img_size': 128})
 
-    # Configure logger.
-    logging.basicConfig(level=logging.DEBUG)
-    logger.debug("params: {}".format(params))
+    # create problem
+    shapecolorquery = ShapeColorQuery(params)
 
-    # Create problem object.
-    problem = ShapeColorQuery(params)
+    batch_size = 64
+    print('Number of episodes to run to cover the set once: {}'.format(shapecolorquery.get_epoch_size(batch_size)))
 
-    # Get generator
-    generator = problem.return_generator()
+    # get a sample
+    sample = shapecolorquery[0]
+    print(repr(sample))
+    print('__getitem__ works.')
 
-    # Get batch.
-    data_tuple, aux_tuple = next(generator)
-    for i in range(params['batch_size']):
-        (images, texts), _ = data_tuple
+    # wrap DataLoader on top of this Dataset subclass
+    from torch.utils.data.dataloader import DataLoader
 
-        # Display single sample from batch.
-        problem.show_sample(data_tuple, aux_tuple, i)
+    dataloader = DataLoader(dataset=shapecolorquery, collate_fn=shapecolorquery.collate_fn,
+                            batch_size=batch_size, shuffle=True, num_workers=8)
+
+    # try to see if there is a speed up when generating batches w/ multiple workers
+    import time
+
+    s = time.time()
+    for i, batch in enumerate(dataloader):
+        print('Batch # {} - {}'.format(i, type(batch)))
+
+    print('Number of workers: {}'.format(dataloader.num_workers))
+    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))
+
+    # Display single sample (0) from batch.
+    batch = next(iter(dataloader))
+    shapecolorquery.show_sample(batch, 0)
+
+    print('Unit test completed')

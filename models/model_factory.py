@@ -31,7 +31,7 @@ class ModelFactory(object):
     """
 
     @staticmethod
-    def build_model(params):
+    def build_model(params, problem_default_values_={}):
         """
         Static method returning particular model, depending on the name
         provided in the list of parameters.
@@ -106,7 +106,7 @@ class ModelFactory(object):
             logger.info(
                 'Loading the SimpleConvNet model from models.simple_cnn.simple_cnn')
             from models.simple_cnn.simple_cnn import SimpleConvNet
-            return SimpleConvNet(params)
+            return SimpleConvNet(params, problem_default_values_)
         elif name == 'thalnet':
             logger.info(
                 'Loading the ThalNetModel model from models.thalnet.thalnet_model')
@@ -148,6 +148,6 @@ class ModelFactory(object):
         elif name == 'mac':
             logger.info('Loading the MAC model from models.mac.model')
             from models.mac.model import MACNetwork
-            return MACNetwork(params)
+            return MACNetwork(params, problem_default_values_)
         else:
             raise ValueError

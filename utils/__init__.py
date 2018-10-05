@@ -5,6 +5,7 @@ from .singleton import SingletonMetaClass
 from .statistics_collector import StatisticsCollector
 from .time_plot import TimePlot
 
-from .worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse
+from .worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse, validation, cycle
 
 from .loss import *
+from .problems import *

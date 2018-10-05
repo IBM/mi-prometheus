@@ -25,7 +25,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from models.model import Model
-from problems.problem import DataTuple
+from problems.problem import DataDict
 
 
 class SimpleConvNet(Model):
@@ -35,7 +35,7 @@ class SimpleConvNet(Model):
     adjust them for his application.
     """
 
-    def __init__(self, params):
+    def __init__(self, params, problem_default_values_={}):
         super(SimpleConvNet, self).__init__(params)
         """
         Constructor of the SimpleConvNet
@@ -51,11 +51,25 @@ class SimpleConvNet(Model):
         self.filter_size_conv2 = params['filter_size_conv2']
         self.num_pooling = params['num_pooling']
 
-        # image size
-        self.num_channels = params['num_channels']
-        self.height = 224 if params['up_scaling'] else params['height']
-        self.width = 224 if params['up_scaling'] else params['width']
-        self.padding = params['padding']
+        self.name = 'SimpleConvNet'
+
+        # get image informations from the problem class
+        try:
+            # image size
+            self.num_channels = problem_default_values_['num_channels']
+            self.height = 224 if problem_default_values_['up_scaling'] else problem_default_values_['height']
+            self.width = 224 if problem_default_values_['up_scaling'] else problem_default_values_['width']
+            self.padding = problem_default_values_['padding']
+
+            # number of output neurons
+            self.nb_classes = problem_default_values_['nb_classes']
+
+        except BaseException:
+            self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
+
+        self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
+                                 }
 
         self.height_padded = self.height + sum(self.padding[0:2])
         self.width_padded = self.width + sum(self.padding[2:4])
@@ -92,24 +106,29 @@ class SimpleConvNet(Model):
             self.height_features_conv2,
             120)
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
+        self.fc3 = nn.Linear(84, self.nb_classes)
 
         if self.app_state.visualize:
             self.output_conv1 = []
             self.output_conv2 = []
 
-    def forward(self, data_tuple):
+    def forward(self, data_dict):
         """
         forward pass of SimpleConvNet model.
 
-        :param data_tuple: contains (inputs [batch_size, num_channels, width, height], targets [batch_size])
-        :return: x: logits [batch_size, num_classes]
+        :param data_dict: DataDict({'images','targets', 'targets_label'}), where:
+
+            - images: [batch_size, num_channels, width, height],
+            - targets [batch_size]
+
+        :return: Predictions [batch_size, num_classes]
 
         """
-        (inputs, targets) = data_tuple
+        # unpack data_dict
+        images, _, _ = data_dict.values()
 
         # apply Convolutional layer 1
-        x1 = self.conv1(inputs)
+        x1 = self.conv1(images)
         if self.app_state.visualize:
             self.output_conv1 = x1
 
@@ -126,16 +145,19 @@ class SimpleConvNet(Model):
 
         x = x2_max_pool.view(-1, self.depth_conv2 *
                              self.width_features_conv2 * self.height_features_conv2)
+
+        # apply 3 linear layers
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
+
         return x
 
-    def plot(self, data_tuple, predictions, sample_number=0):
+    def plot(self, data_dict, predictions, sample_number=0):
         """
         Simple plot - shows MNIST image with target and actual predicted class.
 
-        :param data_tuple: Data tuple containing input and target batches.
+        :param data_dict: DataDict({'images','targets', 'targets_label'})
         :param predictions: Prediction.
         :param sample_number: Number of sample in batch (DEFAULT: 0)
         """
@@ -145,8 +167,8 @@ class SimpleConvNet(Model):
         import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
 
-        # Unpack tuples.
-        images, targets = data_tuple
+        # unpack data_dict
+        images, targets, targets_label = data_dict.values()
 
         # Get sample.
         image = images[sample_number].cpu().detach().numpy()
@@ -154,7 +176,7 @@ class SimpleConvNet(Model):
         prediction = predictions[sample_number].cpu().detach().numpy()
 
         # Reshape image.
-        if (image.shape[0] == 1):
+        if image.shape[0] == 1:
             # This is single channel image - get rid of that dimension
             image = np.squeeze(image, axis=0)
         else:
@@ -195,40 +217,48 @@ if __name__ == '__main__':
     from utils.app_state import AppState
     AppState().visualize = True
 
+    from utils.param_interface import ParamInterface
+    from torch.utils.data.dataloader import DataLoader
+    from problems.image_to_class.mnist import MNIST
+    from problems.image_to_class.cifar10 import CIFAR10
+
+    problem_params = ParamInterface()
+    problem_params.add_custom_params({'use_train_data': True,
+                                      'root_dir': '~/data/cifar10',
+                                      'padding': [0, 0, 0, 0],
+                                      'up_scaling': False})
+    batch_size = 64
+
+    # create problem
+    dataset = CIFAR10(problem_params)
+    print('Problem {} instantiated.'.format(dataset.name))
+
+    # instantiate DataLoader object
+    problem = DataLoader(dataset, batch_size=batch_size, collate_fn=dataset.collate_fn)
+
     # Test base model.
     from utils.param_interface import ParamInterface
-    params = ParamInterface()
-    params.add_custom_params({
+    model_params = ParamInterface()
+    model_params.add_custom_params({
         'depth_conv1': 10,
         'depth_conv2': 20,
         'filter_size_conv1': 5,
         'filter_size_conv2': 5,
-        'num_pooling': 2,
-        'num_channels': 1,
-        'up_scaling': None,
-        'height': 28,
-        'width': 28,
-        'padding': (
-            0,
-            0,
-            0,
-            0)})
+        'num_pooling': 2})
 
     # model
-    model = SimpleConvNet(params)
+    model = SimpleConvNet(model_params, dataset.default_values)
+    print('Model {} instantiated.'.format(model.name))
 
-    while True:
-        # Generate new sequence.
-        # "Image" - batch x channels x width x height
-        input_np = np.random.binomial(1, 0.5, (1, 1, 28, 28))
-        input = torch.from_numpy(input_np).type(torch.FloatTensor)
-        # Target.
-        target = torch.randint(10, (10,), dtype=torch.int64)
+    # perform handshaking between MAC & CLEVR
+    model.handshake_definitions(dataset.data_definitions)
 
-        dt = DataTuple(input, target)
-        # prediction.
-        prediction = model(dt)
+    # generate a batch
+    for i_batch, sample in enumerate(problem):
+        print('Sample # {} - {}'.format(i_batch, sample['images'].shape), type(sample))
+        logits = model(sample)
+        print(logits.shape)
 
         # Plot it and check whether window was closed or not.
-        if model.plot(dt, prediction):
-            break
+        #if model.plot(sample, logits):
+        #    break

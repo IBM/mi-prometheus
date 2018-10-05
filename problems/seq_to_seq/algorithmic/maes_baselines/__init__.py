@@ -17,4 +17,5 @@ __all__ = [
     'SequenceEqualityCommandLines',
     'SequenceSymmetryCommandLines',
     'SerialRecallCommandLines',
-    'SkipRecallCommandLines']
+    'SkipRecallCommandLines'
+    ]

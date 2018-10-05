@@ -15,10 +15,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""problem.py: contains base class for all seq2seq problems"""
-__author__ = "Tomasz Kornuta"
+"""
+seq_to_seq_problem.py: contains base class for all sequence to sequence problems.
 
-from problems.problem import Problem
+"""
+
+__author__ = "Tomasz Kornuta & Vincent Marois"
+
+from problems.problem import Problem, DataDict
+import torch
 
 
 class SeqToSeqProblem(Problem):
@@ -30,10 +35,20 @@ class SeqToSeqProblem(Problem):
         """
         Initializes problem object. Calls base constructor.
 
-        :param params: Dictionary of parameters (read from configuration file).
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
         """
         super(SeqToSeqProblem, self).__init__(params)
+
+        # "Default" problem name.
+        self.name = 'SeqToSeqProblem'
+
+        # set default data_definitions dict
+        self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'sequences_length': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'mask': {'size': [-1, 1], 'type': [torch.Tensor]}
+                                 }
 
         # Check if predictions/targets should be masked.
         if 'use_mask' not in params:
@@ -41,20 +56,31 @@ class SeqToSeqProblem(Problem):
             params.add_default_params({'use_mask': True})
         self.use_mask = params["use_mask"]
 
-    def evaluate_loss(self, data_tuple, logits, aux_tuple):
+    def evaluate_loss(self, data_dict, logits):
         """ Calculates accuracy equal to mean number of correct predictions in a given batch.
-        WARNING: Applies mask (from aux_tuple) to both logits and targets!
+        WARNING: Applies mask to both logits and targets!
 
-        :param logits: Logits being output of the model.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param aux_tuple: Auxiliary tuple containing mask.
+        :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask'}).
+
+        :param logits: Predictions being output of the model.
+
         """
         # Check if mask should be is used - if so, use the correct loss
         # function.
-        if (self.use_mask):
+        if self.use_mask:
             loss = self.loss_function(
-                logits, data_tuple.targets, aux_tuple.mask)
+                logits, data_dict['targets'], data_dict['mask'])
         else:
-            loss = self.loss_function(logits, data_tuple.targets)
+            loss = self.loss_function(logits, data_dict['targets'])
 
         return loss
+
+
+if __name__ == '__main__':
+
+    from utils.param_interface import ParamInterface
+
+    sample = SeqToSeqProblem(ParamInterface())[0]
+    # equivalent to ImageTextToClassProblem(params={}).__getitem__(index=0)
+
+    print(repr(sample))
