@@ -134,10 +134,19 @@ class GridTrainerCPU(Worker):
             print("Error: Grid configuration is lacking the 'grid_tasks' section")
             exit(-5)
 
-        # Create a configuration specific to this grid trainer: set seeds to undefined (-1) and CUDA to false.
+        # Create a configuration specific to this grid trainer:
+        # set seeds to undefined (-1), CUDA to false and deactivate multiprocessing for `DataLoader`.
         # It is important not to set the seeds here as they would be identical for all experiments.
 
-        self.param_interface["training"].add_custom_params({"seed_numpy": -1, "seed_torch": -1, "cuda": cuda})
+        self.param_interface["training"].add_custom_params({"seed_numpy": -1,
+                                                            "seed_torch": -1,
+                                                            "cuda": cuda,
+                                                            "dataloader": {'num_workers': 0}})
+        self.param_interface["validation"].add_custom_params({"dataloader": {'num_workers': 0}})
+
+        # also doing it for GridTesters as they do not pass their ParamInterface to testers (it is reloaded
+        # from training_configuration.yaml)
+        self.param_interface["testing"].add_custom_params({"dataloader": {'num_workers': 0}})
 
         # Create temporary file
         param_interface_file = NamedTemporaryFile(mode='w', delete=False)

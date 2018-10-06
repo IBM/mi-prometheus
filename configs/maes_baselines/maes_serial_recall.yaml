@@ -8,14 +8,20 @@ default_configs:
 training:
     problem:
         name: &name maes_baselines/serial_recall_cl
+    dataloader:
+        num_workers: 8
 
 validation:
     problem:
-        name: *name 
+        name: *name
+    dataloader:
+        num_workers: 8
 
 testing:
     problem:
-        name: *name 
+        name: *name
+    dataloader:
+        num_workers: 8
 
 # And overwrite model parameters.
 #model:

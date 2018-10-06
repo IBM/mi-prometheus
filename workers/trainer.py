@@ -272,15 +272,18 @@ class Trainer(Worker):
         # no error thrown, so handshake succeeded
 
         # build the DataLoader on top of the Problem class
-        # For now, it doesn't use a Sampler: only shuffling the data.
-        # Set a default number of workers to 4
-        # TODO: allow the user to change the num_workers and other attributes value of the DataLoader.
         self.dataloader = DataLoader(dataset=self.problem,
                                      batch_size=self.param_interface['training']['problem']['batch_size'],
-                                     shuffle=True,
+                                     shuffle=self.param_interface['training']['dataloader']['shuffle'],
+                                     sampler=self.param_interface['training']['dataloader']['sampler'],
+                                     batch_sampler=self.param_interface['training']['dataloader']['batch_sampler'],
+                                     num_workers=self.param_interface['training']['dataloader']['num_workers'],
                                      collate_fn=self.problem.collate_fn,
-                                     num_workers=4,
+                                     pin_memory=self.param_interface['training']['dataloader']['pin_memory'],
+                                     drop_last=self.param_interface['training']['dataloader']['drop_last'],
+                                     timeout=self.param_interface['training']['dataloader']['timeout'],
                                      worker_init_fn=self.problem.worker_init_fn)
+        print('self.dataloader.num_workers', self.dataloader.num_workers)
 
         # parse the curriculum learning section in the loaded configuration.
         if 'curriculum_learning' in self.param_interface['training']:
@@ -326,14 +329,16 @@ class Trainer(Worker):
             self.problem_validation = ProblemFactory.build_problem(self.param_interface['validation']['problem'])
 
             # build the DataLoader on top of the validation problem
-            # For now, it doesn't use a Sampler: only shuffling the data.
-            # Set a default number of workers to 4
-            # TODO: allow the user to change the num_workers and other attributes value of the DataLoader.
-            dataloader_validation = DataLoader(self.problem_validation,
+            dataloader_validation = DataLoader(dataset=self.problem_validation,
                                                batch_size=self.param_interface['validation']['problem']['batch_size'],
-                                               shuffle=True,
+                                               shuffle=self.param_interface['validation']['dataloader']['shuffle'],
+                                               sampler=self.param_interface['validation']['dataloader']['sampler'],
+                                               batch_sampler=self.param_interface['validation']['dataloader']['batch_sampler'],
+                                               num_workers=self.param_interface['validation']['dataloader']['num_workers'],
                                                collate_fn=self.problem_validation.collate_fn,
-                                               num_workers=4,
+                                               pin_memory=self.param_interface['validation']['dataloader']['pin_memory'],
+                                               drop_last=self.param_interface['validation']['dataloader']['drop_last'],
+                                               timeout=self.param_interface['validation']['dataloader']['timeout'],
                                                worker_init_fn=self.problem_validation.worker_init_fn)
             # create an iterator
             dataloader_validation = iter(dataloader_validation)

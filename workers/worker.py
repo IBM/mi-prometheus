@@ -114,6 +114,24 @@ class Worker(object):
         # Initialize parameter interface.
         self.param_interface = ParamInterface()
 
+        # add empty sections
+        self.param_interface.add_custom_params({"training": {}})
+        self.param_interface.add_custom_params({"validation": {}})
+        self.param_interface.add_custom_params({"testing": {}})
+
+        # set a default configuration section for the DataLoaders
+        dataloader_config = {'dataloader': {'shuffle': True,
+                                            'sampler': None,
+                                            'batch_sampler': None,
+                                            'num_workers': 4,  # use multiprocessing by default
+                                            'pin_memory': False,
+                                            'drop_last': False,
+                                            'timeout': 0}}
+
+        self.param_interface["training"].add_custom_params(dataloader_config)
+        self.param_interface["validation"].add_custom_params(dataloader_config)
+        self.param_interface["testing"].add_custom_params(dataloader_config)
+
         # Load the default logger configuration.
         with open('logger_config.yaml', 'rt') as f:
             config = yaml.load(f.read())

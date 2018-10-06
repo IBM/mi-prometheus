@@ -98,11 +98,11 @@ class GridTesterCPU(Worker):
                 for name in dirs:
                     self.experiments_list.append(os.path.join(root, name))
 
-        # Keep only the folders that contain validation.csv and training.csv TODO: Why?
+        # Keep only the folders that contain validation.csv and training.csv
         self.experiments_list = [elem for elem in self.experiments_list if os.path.isfile(
             elem + '/validation.csv') and os.path.isfile(elem + '/training.csv')]
 
-        # check if the files are empty except for the first line TODO: Why?
+        # check if the files are not empty
         self.experiments_list = [elem for elem in self.experiments_list if os.stat(
             elem + '/validation.csv').st_size > 24 and os.stat(elem + '/training.csv').st_size > 24]
 

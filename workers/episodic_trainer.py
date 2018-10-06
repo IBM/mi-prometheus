@@ -111,16 +111,16 @@ class EpisodicTrainer(Trainer):
         terminal_condition = False
 
         # cycle the DataLoader -> infinite iterator
-        self.problem = cycle(self.problem)
+        self.dataloader = cycle(self.dataloader)
 
         '''
         Main training and validation loop.
         '''
         episode = 0
-        for data_dict in self.problem:
+        for data_dict in self.dataloader:
 
             # apply curriculum learning - change some of the Problem parameters
-            self.curric_done = self.dataset.curriculum_learning_update_params(episode)
+            self.curric_done = self.problem.curriculum_learning_update_params(episode)
 
             # reset all gradients
             self.optimizer.zero_grad()
@@ -135,7 +135,7 @@ class EpisodicTrainer(Trainer):
             self.model.train()
 
             # 1. Perform forward step, get predictions and compute loss.
-            logits, loss = forward_step(self.model, self.dataset, episode, self.stat_col, data_dict)
+            logits, loss = forward_step(self.model, self.problem, episode, self.stat_col, data_dict)
 
             if not self.use_validation_problem:
 
@@ -197,7 +197,7 @@ class EpisodicTrainer(Trainer):
             if self.app_state.visualize:
 
                 # Allow for preprocessing
-                data_dict, logits = self.dataset.plot_preprocessing(data_dict, logits)
+                data_dict, logits = self.problem.plot_preprocessing(data_dict, logits)
 
                 # Show plot, if user presses Quit - break.
                 if self.model.plot(data_dict, logits):
@@ -270,7 +270,7 @@ class EpisodicTrainer(Trainer):
                 break
 
             # check if we are at the end of the 'epoch': Indicate that the DataLoader is now cycling.
-            if ((episode + 1) % self.dataset.get_epoch_size(
+            if ((episode + 1) % self.problem.get_epoch_size(
                     self.param_interface['training']['problem']['batch_size'])) == 0:
                 self.logger.warning('The DataLoader has exhausted -> using cycle(iterable).')
 

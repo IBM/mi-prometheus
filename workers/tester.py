@@ -201,15 +201,17 @@ class Tester(Worker):
         # no error thrown, so handshake succeeded
 
         # build the DataLoader on top of the Problem class
-        # Set a default number of workers to 4
-        # TODO: allow the user to change the num_workers and other attributes value of the DataLoader.
         self.dataloader = DataLoader(dataset=self.problem,
                                      batch_size=self.param_interface['testing']['problem']['batch_size'],
-                                     shuffle=True,
+                                     shuffle=self.param_interface['testing']['dataloader']['shuffle'],
+                                     sampler=self.param_interface['testing']['dataloader']['sampler'],
+                                     batch_sampler=self.param_interface['testing']['dataloader']['batch_sampler'],
+                                     num_workers=self.param_interface['testing']['dataloader']['num_workers'],
                                      collate_fn=self.problem.collate_fn,
-                                     num_workers=4,
-                                     worker_init_fn=self.problem.worker_init_fn,
-                                     drop_last=False)
+                                     pin_memory=self.param_interface['testing']['dataloader']['pin_memory'],
+                                     drop_last=self.param_interface['testing']['dataloader']['drop_last'],
+                                     timeout=self.param_interface['testing']['dataloader']['timeout'],
+                                     worker_init_fn=self.problem.worker_init_fn)
 
         # check if the maximum number of episodes is specified, if not put a
         # default equal to the size of the dataset (divided by the batch size)
