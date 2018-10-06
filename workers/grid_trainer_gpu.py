@@ -41,7 +41,7 @@ class GridTrainerGPU(GridTrainerCPU):
     """
     Grid Worker managing several training experiments on GPUs.
 
-    Reuses the ``Trainer`` (can specify the base one or the episodic one) to start one experiment.
+    Reuses the ``Trainer`` (can specify the base one or the episode one) to start one experiment.
 
     Inherits from ``GridTrainerCPU`` as the constructor is identical.
 
@@ -55,7 +55,7 @@ class GridTrainerGPU(GridTrainerCPU):
 
         :param flags: Parsed arguments from the parser.
 
-        :param cuda: Whether or not to use CUDA (cf ``GridTrainerGPU``). Default to True.
+        :param cuda: Whether or not to use CUDA (cf ``GridTrainerCPU``). Default to True.
         :type cuda: bool
 
         """
@@ -83,7 +83,7 @@ class GridTrainerGPU(GridTrainerCPU):
             thread_results = []
 
             for task in self.experiments_list:
-                func = partial(GridTrainerGPU.run_experiment, self, flags.episodic_trainer, self.outdir_str,
+                func = partial(GridTrainerGPU.run_experiment, self, flags.episode_trainer, self.outdir_str,
                                prefix="cuda-gpupick -n1 ")
                 thread_results.append(pool.apply_async(func, (task,)))
 

@@ -104,7 +104,7 @@ class Trainer(Worker):
 
     Iterates over epochs on the dataset.
 
-    All other types of trainers (e.g. EpisodicTrainer) should subclass it.
+    All other types of trainers (e.g. EpisodeTrainer) should subclass it.
 
     """
 
@@ -140,7 +140,7 @@ class Trainer(Worker):
 
             - Creates the DataLoader:
 
-                >>> self.problem = DataLoader(dataset=self.dataset, ...)
+                >>> self.problem = DataLoader(dataset=self.problem, ...)
 
             - Handles curriculum learning if indicated:
 
@@ -161,7 +161,7 @@ class Trainer(Worker):
 
         """
         # default name (define it before calling base constructor for logger)
-        self.name = 'BaseTrainer'
+        self.name = 'Trainer'
 
         # call base constructor
         super(Trainer, self).__init__(flags)

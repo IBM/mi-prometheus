@@ -56,10 +56,10 @@ def add_arguments(parser: argparse.ArgumentParser):
                         default='',
                         help='Name of the grid configuration file to be loaded')
 
-    parser.add_argument('--episodic_trainer',
-                        dest='episodic_trainer',
+    parser.add_argument('--episode_trainer',
+                        dest='episode_trainer',
                         action='store_true',
-                        help='Select the episodic Trainer instead of the default (epoch-based)'
+                        help='Select the episode-based Trainer instead of the default (epoch-based)'
                              ' Trainer. Useful for algorithmic tasks.')
 
 
@@ -67,7 +67,7 @@ class GridTrainerCPU(Worker):
     """
     Grid Worker managing several training experiments on CPUs.
 
-    Reuses the ``Trainer`` (can specify the base one or the episodic one) to start one experiment.
+    Reuses the ``Trainer`` (can specify the base one or the episode one) to start one experiment.
 
     """
 
@@ -202,12 +202,12 @@ class GridTrainerCPU(Worker):
             else:
                 break
 
-    def run_experiment(self, episodic_trainer, output_dir: str, experiment_configs: str, prefix=""):
+    def run_experiment(self, episode_trainer, output_dir: str, experiment_configs: str, prefix=""):
         """
-        Runs the specified experiment using one Trainer.
+        Runs the specified experiment using one ``Trainer``.
 
-        :param episodic_trainer: Whether to use the EpisodicTrainer instead of the default Trainer
-        :type episodic_trainer: bool
+        :param episode_trainer: Whether to use the ``EpisodeTrainer`` instead of the default ``Trainer``
+        :type episode_trainer: bool
 
         :param output_dir: Output directory for the experiment files (logging, best model etc.)
         :type output_dir: str
@@ -229,8 +229,8 @@ class GridTrainerCPU(Worker):
 
         """
         # set the command to be executed using the indicated Trainer
-        if episodic_trainer:
-            command_str = "{}python3 workers/episodic_trainer.py".format(prefix)
+        if episode_trainer:
+            command_str = "{}python3 workers/episode_trainer.py".format(prefix)
         else:
             command_str = "{}python3 workers/trainer.py".format(prefix)
 
@@ -264,7 +264,7 @@ class GridTrainerCPU(Worker):
         max_processes = min(len(os.sched_getaffinity(0)), self.max_concurrent_run)
 
         with ThreadPool(processes=max_processes) as pool:
-            func = partial(GridTrainerCPU.run_experiment, self, flags.episodic_trainer, self.outdir_str, prefix="")
+            func = partial(GridTrainerCPU.run_experiment, self, flags.episode_trainer, self.outdir_str, prefix="")
             pool.map(func, self.experiments_list)
 
         self.logger.info('Grid training experiments finished.')
