@@ -137,7 +137,6 @@ class GridTrainerCPU(Worker):
         # Create a configuration specific to this grid trainer: set seeds to undefined (-1) and CUDA to false.
         # It is important not to set the seeds here as they would be identical for all experiments.
 
-        self.param_interface.add_custom_params({"training": {}})
         self.param_interface["training"].add_custom_params({"seed_numpy": -1, "seed_torch": -1, "cuda": cuda})
 
         # Create temporary file

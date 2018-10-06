@@ -238,7 +238,7 @@ class Trainer(Worker):
         check_and_set_cuda(self.param_interface['training'], self.logger)
 
         # Build problem for the training
-        self.dataset = ProblemFactory.build_problem(self.param_interface['training']['problem'])
+        self.problem = ProblemFactory.build_problem(self.param_interface['training']['problem'])
 
         # check that the number of epochs is available in param_interface. If not, put a default of 1.
         if "max_epochs" not in self.param_interface["training"]["terminal_condition"] \
@@ -251,11 +251,11 @@ class Trainer(Worker):
             self.param_interface["training"]["terminal_condition"]["max_epochs"]))
 
         # get epoch size in terms of episodes:
-        epoch_size = self.dataset.get_epoch_size(self.param_interface["training"]["problem"]["batch_size"])
+        epoch_size = self.problem.get_epoch_size(self.param_interface["training"]["problem"]["batch_size"])
         self.logger.info('Epoch size in terms of episodes: {}'.format(epoch_size))
 
         # Build the model using the loaded configuration and default values of the problem.
-        self.model = ModelFactory.build_model(self.param_interface['model'], self.dataset.default_values)
+        self.model = ModelFactory.build_model(self.param_interface['model'], self.problem.default_values)
 
         if flags.model != "":
             if os.path.isfile(flags.model):
@@ -268,28 +268,28 @@ class Trainer(Worker):
         self.model.cuda() if self.app_state.use_CUDA else None
 
         # perform 2-way handshake between Model and Problem
-        handshake(model=self.model, problem=self.dataset, logger=self.logger)
+        handshake(model=self.model, problem=self.problem, logger=self.logger)
         # no error thrown, so handshake succeeded
 
         # build the DataLoader on top of the Problem class
         # For now, it doesn't use a Sampler: only shuffling the data.
         # Set a default number of workers to 4
         # TODO: allow the user to change the num_workers and other attributes value of the DataLoader.
-        self.problem = DataLoader(dataset=self.dataset,
-                                  batch_size=self.param_interface['training']['problem']['batch_size'],
-                                  shuffle=True,
-                                  collate_fn=self.dataset.collate_fn,
-                                  num_workers=4,
-                                  worker_init_fn=self.dataset.worker_init_fn)
+        self.dataloader = DataLoader(dataset=self.problem,
+                                     batch_size=self.param_interface['training']['problem']['batch_size'],
+                                     shuffle=True,
+                                     collate_fn=self.problem.collate_fn,
+                                     num_workers=4,
+                                     worker_init_fn=self.problem.worker_init_fn)
 
         # parse the curriculum learning section in the loaded configuration.
         if 'curriculum_learning' in self.param_interface['training']:
 
             # Initialize curriculum learning - with values from loaded configuration.
-            self.dataset.curriculum_learning_initialize(self.param_interface['training']['curriculum_learning'])
+            self.problem.curriculum_learning_initialize(self.param_interface['training']['curriculum_learning'])
 
             # Set initial values of curriculum learning.
-            self.curric_done = self.dataset.curriculum_learning_update_params(0)
+            self.curric_done = self.problem.curriculum_learning_update_params(0)
 
             # If key is not present in config then it has to be finished (DEFAULT: True)
             if 'must_finish' not in self.param_interface['training']['curriculum_learning']:
@@ -300,7 +300,7 @@ class Trainer(Worker):
 
         else:
             # Initialize curriculum learning - with empty dict.
-            self.dataset.curriculum_learning_initialize({})
+            self.problem.curriculum_learning_initialize({})
 
             # If not using curriculum learning then it does not have to be finished.
             self.must_finish_curriculum = False
@@ -312,7 +312,7 @@ class Trainer(Worker):
             self.model_validation_interval = 100
 
         # Add model/problem dependent statistics.
-        self.dataset.add_statistics(self.stat_col)
+        self.problem.add_statistics(self.stat_col)
         self.model.add_statistics(self.stat_col)
 
         # Create the csv file to store the training statistics.
@@ -437,16 +437,16 @@ class Trainer(Worker):
 
             self.logger.info('Epoch {} started'.format(epoch))
             # initialize the epoch: this function can be used to set / reset counters etc.
-            self.dataset.initialize_epoch(epoch)
+            self.problem.initialize_epoch(epoch)
 
             # set initial validation loss as infinite
             validation_loss = np.inf
 
             # iterate over dataset
-            for data_dict in self.problem:
+            for data_dict in self.dataloader:
 
                 # apply curriculum learning - change some of the Problem parameters
-                self.curric_done = self.dataset.curriculum_learning_update_params(episode)
+                self.curric_done = self.problem.curriculum_learning_update_params(episode)
 
                 # reset all gradients
                 self.optimizer.zero_grad()
@@ -461,7 +461,7 @@ class Trainer(Worker):
                 self.model.train()
 
                 # 1. Perform forward step, get predictions and compute loss.
-                logits, loss = forward_step(self.model, self.dataset, episode, self.stat_col, data_dict, epoch)
+                logits, loss = forward_step(self.model, self.problem, episode, self.stat_col, data_dict, epoch)
 
                 if not self.use_validation_problem:
 
@@ -523,7 +523,7 @@ class Trainer(Worker):
                 if self.app_state.visualize:
 
                     # Allow for preprocessing
-                    data_dict, logits = self.dataset.plot_preprocessing(data_dict, logits)
+                    data_dict, logits = self.problem.plot_preprocessing(data_dict, logits)
 
                     # Show plot, if user presses Quit - break.
                     if self.model.plot(data_dict, logits):
@@ -555,7 +555,7 @@ class Trainer(Worker):
 
             # finalize the epoch, even if the user pressed Quit during visualization
             self.logger.info('Epoch {} finished'.format(epoch))
-            self.dataset.finalize_epoch(epoch)
+            self.problem.finalize_epoch(epoch)
 
             # 6. Terminal conditions: Tests which conditions have been met.
 
