@@ -54,8 +54,8 @@ def add_arguments(parser: argparse.ArgumentParser):
                         type=str,
                         default='',
                         dest='model',
-                        help='Path to and name of the file containing the saved parameters'
-                             ' of the model (model checkpoint)')
+                        help='Path to the file containing the saved parameters'
+                             ' of the model (model checkpoint, should end with a .pt extension.)')
 
     parser.add_argument('--visualize',
                         action='store_true',

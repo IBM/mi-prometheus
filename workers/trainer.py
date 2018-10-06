@@ -65,6 +65,13 @@ def add_arguments(parser: argparse.ArgumentParser):
                         help='Path to output directory where the experiment(s) folders will be stored.'
                              ' (DEFAULT: ./experiments)')
 
+    parser.add_argument('--model',
+                        type=str,
+                        default='',
+                        dest='model',
+                        help='Path to the file containing the saved parameters'
+                             ' of the model to load (model checkpoint, should end with a .pt extension.)')
+
     parser.add_argument('--tensorboard',
                         action='store',
                         dest='tensorboard', choices=[0, 1, 2],
@@ -249,6 +256,13 @@ class Trainer(Worker):
 
         # Build the model using the loaded configuration and default values of the problem.
         self.model = ModelFactory.build_model(self.param_interface['model'], self.dataset.default_values)
+
+        if flags.model != "":
+            if os.path.isfile(flags.model):
+                # Load parameters from checkpoint.
+                self.model.load(flags.model)
+            else:
+                self.logger.error("Couldn't load the checkpoint {} : does not exist on disk.".format(flags.model))
 
         # move model to CUDA if applicable
         self.model.cuda() if self.app_state.use_CUDA else None
