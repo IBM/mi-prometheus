@@ -164,8 +164,13 @@ class Tester(Worker):
         with open(config_file, 'r') as stream:
             self.param_interface.add_custom_params(yaml.load(stream))
 
-        # set random seeds
-        self.set_random_seeds()
+        # set random seeds: reuse the ones set during training & stored in config_file (training_configuration.yaml)
+        torch.manual_seed(self.param_interface["training"]["seed_torch"])
+        torch.cuda.manual_seed_all(self.param_interface["training"]["seed_torch"])
+        self.logger.info('Reusing training seed_torch: {}'.format(self.param_interface["training"]["seed_torch"]))
+
+        np.random.seed(self.param_interface["training"]["seed_numpy"])
+        self.logger.info('Reusing training seed_numpy: {}'.format(self.param_interface["training"]["seed_numpy"]))
 
         # check if CUDA is available turn it on
         check_and_set_cuda(self.param_interface['testing'], self.logger)
