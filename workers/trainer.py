@@ -329,35 +329,30 @@ class Trainer(Worker):
             self.problem_validation = ProblemFactory.build_problem(self.param_interface['validation']['problem'])
 
             # build the DataLoader on top of the validation problem
-            dataloader_validation = DataLoader(dataset=self.problem_validation,
-                                               batch_size=self.param_interface['validation']['problem']['batch_size'],
-                                               shuffle=self.param_interface['validation']['dataloader']['shuffle'],
-                                               sampler=self.param_interface['validation']['dataloader']['sampler'],
-                                               batch_sampler=self.param_interface['validation']['dataloader']['batch_sampler'],
-                                               num_workers=self.param_interface['validation']['dataloader']['num_workers'],
-                                               collate_fn=self.problem_validation.collate_fn,
-                                               pin_memory=self.param_interface['validation']['dataloader']['pin_memory'],
-                                               drop_last=self.param_interface['validation']['dataloader']['drop_last'],
-                                               timeout=self.param_interface['validation']['dataloader']['timeout'],
-                                               worker_init_fn=self.problem_validation.worker_init_fn)
-            # create an iterator
-            dataloader_validation = iter(dataloader_validation)
-
-            # Get a single batch that will be used for validation (!)
-            # TODO: move this step in validation() and handle using more than 1 batch for validation.
-            self.data_valid = next(dataloader_validation)
+            self.dl_valid = DataLoader(dataset=self.problem_validation,
+                                       batch_size=self.param_interface['validation']['problem']['batch_size'],
+                                       shuffle=self.param_interface['validation']['dataloader']['shuffle'],
+                                       sampler=self.param_interface['validation']['dataloader']['sampler'],
+                                       batch_sampler=self.param_interface['validation']['dataloader']['batch_sampler'],
+                                       num_workers=self.param_interface['validation']['dataloader']['num_workers'],
+                                       collate_fn=self.problem_validation.collate_fn,
+                                       pin_memory=self.param_interface['validation']['dataloader']['pin_memory'],
+                                       drop_last=self.param_interface['validation']['dataloader']['drop_last'],
+                                       timeout=self.param_interface['validation']['dataloader']['timeout'],
+                                       worker_init_fn=self.problem_validation.worker_init_fn)
 
             # Create the csv file to store the validation statistics.
             self.validation_file = self.stat_col.initialize_csv_file(self.log_dir, 'validation.csv')
 
             # Turn on validation.
             self.use_validation_problem = True
-            self.logger.info("Using validation problem for calculation of loss and model validation")
+            self.logger.info("Using validation problem for loss computation and model validation")
 
         else:
             # We do not have a validation problem - so turn it off.
             self.use_validation_problem = False
-            self.logger.info("Using training problem for calculation of loss and model validation")
+            self.logger.warning("No validation problem configuration found - Setting up early stopping as a "
+                                "convergence criterion.")
 
             # Use the training loss instead as a convergence criterion: If the loss is < threshold for a given
             # number of episodes (default: 10), assume the model has converged.
@@ -440,12 +435,12 @@ class Trainer(Worker):
 
         for epoch in range(self.param_interface["training"]["terminal_condition"]["max_epochs"]):
 
+            # empty Statistics Collector
+            # self.stat_col.empty()
+
             self.logger.info('Epoch {} started'.format(epoch))
             # initialize the epoch: this function can be used to set / reset counters etc.
             self.problem.initialize_epoch(epoch)
-
-            # set initial validation loss as infinite
-            validation_loss = np.inf
 
             # iterate over dataset
             for data_dict in self.dataloader:
@@ -535,32 +530,57 @@ class Trainer(Worker):
                         user_pressed_stop = True
                         break
 
-                #  5. Validate and (optionally) save the model.
-
-                if (episode % self.model_validation_interval) == 0:
-
-                    # Validate on the problem if required.
-                    if self.use_validation_problem:
-
-                        # Check visualization flag: Set it to activate vis in validation() if required.
-                        if flags.visualize is not None and (flags.visualize == 1 or flags.visualize == 2):
-                            self.app_state.visualize = True
-                        else:
-                            self.app_state.visualize = False
-
-                        # Perform validation.
-                        validation_loss, user_pressed_stop = validation(self.model, self.problem_validation, episode,
-                                                                        self.stat_col, self.data_valid, flags, self.logger,
-                                                                        self.validation_file, self.validation_writer, epoch)
-
-                    # Save the model using the latest (validation or training) statistics.
-                    self.model.save(self.model_dir, self.stat_col)
-
                 episode += 1
 
             # finalize the epoch, even if the user pressed Quit during visualization
             self.logger.info('Epoch {} finished'.format(epoch))
+
+            # aggregate training statistics
+            # self.stat_agg.aggregate_statistics()
+            # self.logger.info(self.stat_agg.export_statistics_to_string('[Epoch {}]'.format(epoch))
+            # self.stat_agg.export_statistics_to_csv(self.training_aggregate_file)
+
+            # empty Statistics Collector
+            # self.stat_col.empty()
+
             self.problem.finalize_epoch(epoch)
+
+            # 5. Validate over the entire validation set
+            if self.use_validation_problem:
+                self.logger.info('Validating over the entire validation set')
+
+                # Turn on evaluation mode.
+                self.model.eval()
+
+                for data_dict in self.dl_valid:
+                    # 1. Perform forward step, get predictions and compute loss.
+                    # episode is not being incremented here -> fix
+
+                    # Compute the validation loss using the provided data batch.
+                    with torch.no_grad():
+                        logits_valid, loss_valid = forward_step(self.model, self.problem_validation, episode,
+                                                                self.stat_col, data_dict, epoch)
+
+                    # Log to logger.
+                    # self.logger.info(self.stat_col.export_statistics_to_string('[Validation]'))
+
+                    # Visualization of validation.
+                    if self.app_state.visualize >= 1:
+                        # Allow for preprocessing
+                        data_valid, logits_valid = self.problem_validation.plot_preprocessing(data_dict, logits_valid)
+
+                        # Show plot, if user presses Quit - break.
+                        if self.model.plot(data_dict, logits_valid):
+                            user_pressed_stop = True
+                            break
+
+                # Save the model using the latest (validation or training) statistics.
+                self.model.save(self.model_dir, self.stat_col)
+
+                # Aggregate statistics and log to logger, csv
+                # self.stat_agg.aggregate_statistics()
+                # self.logger.info(self.stat_agg.export_statistics_to_string('[Validation]'))
+                # self.stat_agg.export_statistics_to_csv(self.validation_file)
 
             # 6. Terminal conditions: Tests which conditions have been met.
 
@@ -574,7 +594,7 @@ class Trainer(Worker):
 
                 # loss_stop = True if convergence
                 if self.use_validation_problem:
-                    loss_stop = validation_loss < self.param_interface['training']['terminal_condition']['loss_stop']
+                    loss_stop = loss_valid < self.param_interface['training']['terminal_condition']['loss_stop']
                     # We already saved that model.
                 else:
                     loss_stop = max(last_losses) < self.param_interface['training']['terminal_condition']['loss_stop']
@@ -598,8 +618,12 @@ class Trainer(Worker):
                 # Validate on the problem if required - so we can collect the
                 # statistics needed during saving of the best model.
                 if self.use_validation_problem:
+                    # generate a batch
+                    self.dl_valid = iter(self.dl_valid)
+                    data_valid = next(self.dl_valid)
+
                     _, _ = validation(self.model, self.problem_validation, episode,
-                                      self.stat_col, self.data_valid, flags, self.logger,
+                                      self.stat_col, data_valid, flags, self.logger,
                                       self.validation_file, self.validation_writer, epoch)
                 # save the model
                 self.model.save(self.model_dir, self.stat_col)
@@ -620,7 +644,11 @@ class Trainer(Worker):
 
                 # Perform validation.
                 if self.use_validation_problem:
-                    _, _ = validation(self.model, self.problem_validation, episode, self.stat_col, self.data_valid,
+                    # generate a batch
+                    self.dl_valid = iter(self.dl_valid)
+                    data_valid = next(self.dl_valid)
+
+                    _, _ = validation(self.model, self.problem_validation, episode, self.stat_col, data_valid,
                                       flags, self.logger, self.validation_file, self.validation_writer)
 
             else:

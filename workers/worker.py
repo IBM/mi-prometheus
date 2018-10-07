@@ -147,6 +147,9 @@ class Worker(object):
         # Create statistics collector.
         self.stat_col = StatisticsCollector()
 
+        # Create statistics aggregator
+        # self.stat_agg = StatisticsAggregator()
+
     @abstractmethod
     def forward(self, flags: argparse.Namespace):
         """
