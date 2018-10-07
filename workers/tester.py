@@ -109,11 +109,12 @@ class Tester(Worker):
         :param flags: Parsed arguments from the parser.
 
         """
-        # default name (define it before calling base constructor for logger)
-        self.name = 'Tester'
-
         # call base constructor
         super(Tester, self).__init__(flags)
+
+        # set logger name
+        self.name = 'Tester'
+        self.set_logger_name(self.name)
 
         # delete 'epoch' entry in the StatisticsCollector as we don't need it.
         self.stat_col.__delitem__('epoch')

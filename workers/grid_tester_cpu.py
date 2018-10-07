@@ -82,10 +82,12 @@ class GridTesterCPU(Worker):
         :param flags: Parsed arguments from the parser.
 
         """
-        self.name = 'GridTesterCPU'
-
         # call base constructor
         super(GridTesterCPU, self).__init__(flags)
+
+        # set logger name
+        self.name = 'GridTesterCPU'
+        self.set_logger_name(self.name)
 
         directory_chckpnts = flags.outdir
         num_tests = flags.num_tests

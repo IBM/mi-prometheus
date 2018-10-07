@@ -160,11 +160,12 @@ class Trainer(Worker):
         :param flags: Parsed arguments from the parser.
 
         """
-        # default name (define it before calling base constructor for logger)
-        self.name = 'Trainer'
-
         # call base constructor
         super(Trainer, self).__init__(flags)
+
+        # set name of logger
+        self.name = 'Trainer'
+        self.set_logger_name(self.name)
 
         # Check if config file was selected.
         if flags.config == '':

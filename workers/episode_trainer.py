@@ -55,8 +55,12 @@ class EpisodeTrainer(Trainer):
         :param flags: Parsed arguments from the parser.
 
         """
-        self.name = 'EpisodeTrainer'
+        # call base constructor
         super(EpisodeTrainer, self).__init__(flags=flags)
+
+        # set logger name
+        self.name = 'EpisodeTrainer'
+        self.set_logger_name(self.name)
 
         # delete 'epoch' entry in the StatisticsCollector as we don't need it.
         self.stat_col.__delitem__('epoch')

@@ -59,10 +59,12 @@ class GridTrainerGPU(GridTrainerCPU):
         :type cuda: bool
 
         """
-        self.name = 'GridTrainerGPU'
-
         # call base constructor
         super(GridTrainerGPU, self).__init__(flags, cuda)
+
+        # set logger name
+        self.name = 'GridTrainerGPU'
+        self.set_logger_name(self.name)
 
     def forward(self, flags: argparse.Namespace):
         """

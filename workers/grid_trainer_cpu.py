@@ -86,10 +86,12 @@ class GridTrainerCPU(Worker):
 
 
         """
-        self.name = 'GridTrainerCPU'
-
         # call base constructor
         super(GridTrainerCPU, self).__init__(flags)
+
+        # set logger name
+        self.name = 'GridTrainerCPU'
+        self.set_logger_name(self.name)
 
         # Check if config file was selected.
         if flags.config == '':
