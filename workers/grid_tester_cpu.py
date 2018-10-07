@@ -108,8 +108,7 @@ class GridTesterCPU(Worker):
         self.experiments_list = [elem for elem in self.experiments_list if os.stat(
             elem + '/validation.csv').st_size > 24 and os.stat(elem + '/training.csv').st_size > 24]
 
-        self.nb_total_exp = len(self.experiments_list) * num_tests
-        self.logger.info('Number of experiments to run: {}'.format(self.nb_total_exp))
+        self.logger.info('Number of experiments to run: {}'.format(len(self.experiments_list)))
         self.experiments_done = 0
 
     def run_experiment(self, experiment_path: str, prefix=""):
