@@ -188,6 +188,9 @@ class GridTrainerCPU(Worker):
         for _ in range(experiment_repetitions):
             self.experiments_list.extend(configs)
 
+        self.logger.info('Number of experiments to run: {}'.format(len(self.experiments_list)))
+        self.experiments_done = 0
+
         # create experiment directory label of the day
         self.outdir_str = './experiments_' + '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
 
@@ -243,7 +246,10 @@ class GridTrainerCPU(Worker):
         self.logger.info("Starting: {}".format(command_str))
         with open(os.devnull, 'w') as devnull:
             result = subprocess.run(command_str.split(" "), stdout=devnull)
+        self.experiments_done += 1
         self.logger.info("Finished: {}".format(command_str))
+        print()
+        self.logger.info('Number of experiments done: {}/{}.'.format(self.experiments_done, len(self.experiments_list)))
 
         if result.returncode != 0:
             self.logger.info("Training exited with code: {}".format(result.returncode))

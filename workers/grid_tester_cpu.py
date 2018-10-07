@@ -108,6 +108,10 @@ class GridTesterCPU(Worker):
         self.experiments_list = [elem for elem in self.experiments_list if os.stat(
             elem + '/validation.csv').st_size > 24 and os.stat(elem + '/training.csv').st_size > 24]
 
+        self.nb_total_exp = len(self.experiments_list) * num_tests
+        self.logger.info('Number of experiments to run: {}'.format(self.nb_total_exp))
+        self.experiments_done = 0
+
     def run_experiment(self, experiment_path: str, prefix=""):
         """
         Runs a test on the specified model (experiment_path) using the ``Tester``.
@@ -138,7 +142,11 @@ class GridTesterCPU(Worker):
             self.logger.info("Starting: {}".format(command_str))
             with open(os.devnull, 'w') as devnull:
                 result = subprocess.run(command_str.split(" "), stdout=devnull)
+            self.experiments_done += 1
             self.logger.info("Finished: {}".format(command_str))
+            print()
+            self.logger.info(
+                'Number of experiments done: {}/{}.'.format(self.experiments_done, len(self.experiments_list)))
 
             if result.returncode != 0:
                 self.logger.info("Testing exited with code: {}".format(result.returncode))
