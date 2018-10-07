@@ -284,7 +284,6 @@ class Trainer(Worker):
                                      drop_last=self.param_interface['training']['dataloader']['drop_last'],
                                      timeout=self.param_interface['training']['dataloader']['timeout'],
                                      worker_init_fn=self.problem.worker_init_fn)
-        print('self.dataloader.num_workers', self.dataloader.num_workers)
 
         # parse the curriculum learning section in the loaded configuration.
         if 'curriculum_learning' in self.param_interface['training']:
