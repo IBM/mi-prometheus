@@ -294,14 +294,14 @@ class Model(nn.Module):
 
         """
         # Get the two elementary statistics.
-        loss = stat_col['loss']
-        episode = stat_col['episode']
+        loss = stat_col['loss'][-1]
+        episode = stat_col['episode'][-1]
 
         # Checkpoint to be saved.
         chkpt = {
             'name': self.name,
             'state_dict': self.state_dict(),
-            'stats': stat_col.statistics
+            'stats': {k: v[-1] for k, v in stat_col.statistics.items()}
         }
 
         # for key, value in stat_col.statistics.items():

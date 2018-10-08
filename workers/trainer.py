@@ -436,7 +436,8 @@ class Trainer(Worker):
         for epoch in range(self.param_interface["training"]["terminal_condition"]["max_epochs"]):
 
             # empty Statistics Collector
-            # self.stat_col.empty()
+            self.stat_col.empty()
+            self.logger.info('Emptied StatisticsCollector.')
 
             self.logger.info('Epoch {} started'.format(epoch))
             # initialize the epoch: this function can be used to set / reset counters etc.
@@ -541,7 +542,8 @@ class Trainer(Worker):
             # self.stat_agg.export_statistics_to_csv(self.training_aggregate_file)
 
             # empty Statistics Collector
-            # self.stat_col.empty()
+            self.stat_col.empty()
+            self.logger.info('Emptied StatisticsCollector.')
 
             self.problem.finalize_epoch(epoch)
 
@@ -578,7 +580,7 @@ class Trainer(Worker):
                 self.model.save(self.model_dir, self.stat_col)
 
                 # Aggregate statistics and log to logger, csv
-                # self.stat_agg.aggregate_statistics()
+                # self.stat_agg.aggregate_statistics(stat_col)
                 # self.logger.info(self.stat_agg.export_statistics_to_string('[Validation]'))
                 # self.stat_agg.export_statistics_to_csv(self.validation_file)
 

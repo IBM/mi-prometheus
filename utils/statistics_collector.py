@@ -15,19 +15,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""statistics_collector.py: contains class used for collection and export of statistics during training, validation and testing """
-__author__ = "Tomasz Kornuta"
+"""
+statistics_collector.py: contains class used for collection and export of statistics during training,\
+ validation and testing.
+
+ """
+__author__ = "Tomasz Kornuta & Vincent Marois"
 
 from collections import Mapping
 
 
 class StatisticsCollector(Mapping):
     """
-    Specialized class used for collection and export of statistics during
-    training, validation and testing.
+    Specialized class used for the collection and export of statistics during\
+     training, validation and testing.
 
-    Inherits `collections.Mapping`, thererefor offers functionality
-    close to a `dict`.
+    Inherits ``collections.Mapping``, therefore it offers functionality\
+     close to a ``dict``.
 
     """
 
@@ -46,34 +50,41 @@ class StatisticsCollector(Mapping):
 
     def add_statistic(self, key, formatting):
         """
-        Add statistic to collector.
+        Add a statistic to collector.
+        The value of associated to the key is of type ``list``.
 
         :param key: Key of the statistic.
+        :type key: str
+
         :param formatting: Formatting that will be used when logging and exporting to CSV.
 
         """
         self.formatting[key] = formatting
-        self.statistics[key] = -1
+
+        # instantiate associated value as list.
+        self.statistics[key] = list()
 
     def __getitem__(self, key):
         """
         Get statistics value for given key.
 
         :param key: Key to value in parameters.
-        :return: Statistics value associated with given key.
+        :type str
+
+        :return: Statistics value list associated with given key.
 
         """
         return self.statistics[key]
 
     def __setitem__(self, key, value):
         """
-        Add/overwrites value of statistic associated with a given key.
+        Add value to the list of the statistic associated with a given key.
 
         :param key: Key to value in parameters.
-        :param value: Statistics value associated with given key.
+        :param value: Statistics value to append to the list associated with given key.
 
         """
-        self.statistics[key] = value
+        self.statistics[key].append(value)
 
     def __delitem__(self, key):
         """
@@ -86,15 +97,23 @@ class StatisticsCollector(Mapping):
 
     def __len__(self):
         """
-        Returns "length" of statistics (i.e. number of tracked values).
+        Returns "length" of ``self.statistics`` (i.e. number of tracked values).
         """
-        return len(self.statistics.__len__)
+        return self.statistics.__len__()
 
     def __iter__(self):
         """
         Iterator.
         """
-        return iter(self.statistics.__iter__)
+        return self.statistics.__iter__()
+
+    def empty(self):
+        """
+        Empty the list associated to the keys of the current statistics collector.
+
+        """
+        for key in self.statistics.keys():
+            del self.statistics[key][:]
 
     def initialize_csv_file(self, log_dir, filename):
         """
@@ -106,10 +125,12 @@ class StatisticsCollector(Mapping):
         :return: File stream opened for writing.
 
         """
-        # Iterate through keys and concatenate them.
         header_str = ''
-        for key, value in self.statistics.items():
+
+        # Iterate through keys and concatenate them.
+        for key in self.statistics.keys():
             header_str += key + ","
+
         # Remove last coma and add \n.
         header_str = header_str[:-1] + '\n'
 
@@ -123,7 +144,7 @@ class StatisticsCollector(Mapping):
         """
         Method writes current statistics to csv using the possessed formatting.
 
-        :param file: File stream opened for writing.
+        :param csv_file: File stream opened for writing.
 
         """
         # Iterate through values and concatenate them.
@@ -131,10 +152,13 @@ class StatisticsCollector(Mapping):
         for key, value in self.statistics.items():
             # Get formatting - using '{}' as default.
             format_str = self.formatting.get(key, '{}')
+
             # Add value to string using formatting.
-            values_str += format_str.format(value) + ","
+            values_str += format_str.format(value[-1]) + ","
+
         # Remove last coma and add \n.
         values_str = values_str[:-1] + '\n'
+
         csv_file.write(values_str)
 
     def export_statistics_to_string(self, additional_tag=''):
@@ -152,13 +176,12 @@ class StatisticsCollector(Mapping):
             # Get formatting - using '{}' as default.
             format_str = self.formatting.get(key, '{}')
             # Add value to string using formatting.
-            stat_str += format_str.format(value) + "; "
+            stat_str += format_str.format(value[-1]) + "; "
+
         # Remove last two element.
         stat_str = stat_str[:-2] + " " + additional_tag
-        return stat_str
 
-# format_str = 'episode {:05d}; acc={:12.10f}; loss={:12.10f}; length={:d}'
-# logger.info(format_str.format(episode, accuracy, loss, train_length))
+        return stat_str
 
     def export_statistics_to_tensorboard(self, tb_writer):
         """
@@ -168,16 +191,14 @@ class StatisticsCollector(Mapping):
 
         """
         # Get episode number.
-        episode = self.statistics['episode']
+        episode = self.statistics['episode'][-1]
+
         # Iterate through keys and values and concatenate them.
-        stat_str = ''
         for key, value in self.statistics.items():
             # Skip episode.
             if key == 'episode':
                 continue
-            tb_writer.add_scalar(key, value, episode)
-
-# training_writer.add_scalar('Loss', loss, episode)
+            tb_writer.add_scalar(key, value[-1], episode)
 
 
 if __name__ == "__main__":
@@ -185,6 +206,7 @@ if __name__ == "__main__":
     stat_col = StatisticsCollector()
     stat_col.add_statistic('acc', '{:2.3f}')
 
+    stat_col['epoch'] = 0
     stat_col['episode'] = 0
     stat_col['loss'] = 0.7
     stat_col['acc'] = 100
@@ -196,7 +218,14 @@ if __name__ == "__main__":
     stat_col['episode'] = 1
     stat_col['loss'] = 0.7
     stat_col['acc'] = 99.3
+
+    stat_col.add_statistic('seq_length', '{:2.0f}')
     stat_col['seq_length'] = 5
 
     stat_col.export_statistics_to_csv(csv_file)
     print(stat_col.export_statistics_to_string('[Validation]'))
+
+    stat_col.empty()
+
+    for k in stat_col:
+        print('key: {} - value {}:'.format(k, stat_col[k]))
