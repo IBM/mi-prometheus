@@ -69,7 +69,7 @@ class StatisticsCollector(Mapping):
         Get statistics value for given key.
 
         :param key: Key to value in parameters.
-        :type str
+        :type key: str
 
         :return: Statistics value list associated with given key.
 
