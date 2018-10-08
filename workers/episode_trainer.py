@@ -23,6 +23,7 @@ episode_trainer.py:
 """
 __author__ = "Vincent Marois"
 
+import torch
 import argparse
 import collections
 from torch.nn.utils import clip_grad_value_
@@ -70,6 +71,9 @@ class EpisodeTrainer(Trainer):
 
         if ('validation' in self.param_interface) and ('problem' in self.param_interface['validation']):
             self.validation_file = self.stat_col.initialize_csv_file(self.log_dir, 'validation.csv')
+
+            # generate one batch used for validation
+            self.data_valid = next(iter(self.dl_valid))
 
     def forward(self, flags: argparse.Namespace):
         """
@@ -284,6 +288,45 @@ class EpisodeTrainer(Trainer):
         '''
         End of main training and validation loop.
         '''
+        # empty Statistics Collector
+        self.stat_col.empty()
+        self.logger.info('Emptied StatisticsCollector.')
+
+        # Validate over the entire validation set
+        if self.use_validation_problem:
+            self.logger.info('Validating over the entire validation set')
+
+            # Turn on evaluation mode.
+            self.model.eval()
+
+            for data_dict in self.dl_valid:
+                # 1. Perform forward step, get predictions and compute loss.
+                # episode is not being incremented here -> fix
+
+                # Compute the validation loss using the provided data batch.
+                with torch.no_grad():
+                    logits_valid, loss_valid = forward_step(self.model, self.problem_validation, episode,
+                                                            self.stat_col, data_dict)
+
+                # Log to logger.
+                # self.logger.info(self.stat_col.export_statistics_to_string('[Validation]'))
+
+                # Visualization of validation.
+                if self.app_state.visualize >= 1:
+                    # Allow for preprocessing
+                    data_valid, logits_valid = self.problem_validation.plot_preprocessing(data_dict, logits_valid)
+
+                    # Show plot, if user presses Quit - break.
+                    if self.model.plot(data_dict, logits_valid):
+                        break
+
+            # Save the model using the latest (validation or training) statistics.
+            self.model.save(self.model_dir, self.stat_col)
+
+            # Aggregate statistics and log to logger, csv
+            # self.stat_agg.aggregate_statistics(stat_col)
+            # self.logger.info(self.stat_agg.export_statistics_to_string('[Validation]'))
+            # self.stat_agg.export_statistics_to_csv(self.validation_file)
 
         # Check whether we have finished training properly.
         if terminal_condition:
