@@ -364,7 +364,7 @@ def validate_over_set(model, problem, dataloader, stat_col, stat_est, FLAGS, log
     with torch.no_grad():
         for ep, data_dict in enumerate(dataloader):
             # 1. Perform forward step, get predictions and compute loss.
-            logits_valid, loss_valid = forward_step(model, problem, ep, stat_col, data_dict, epoch)
+            logits_valid, _ = forward_step(model, problem, ep, stat_col, data_dict, epoch)
 
             # 2.Visualization of validation for the randomly selected batch
             if AppState().visualize and ep == vis_index:
@@ -392,7 +392,7 @@ def validate_over_set(model, problem, dataloader, stat_col, stat_est, FLAGS, log
 
     if FLAGS.tensorboard is not None:
         # Export statistical estimators
-        stat_est.export_statistics_to_tensorboard(val_writer)
+        stat_est.export_estimators_to_tensorboard(val_writer)
 
     # return average loss and whether the user pressed `Quit` during the visualization
-    return stat_est['loss_mean'], user_pressed_stop
+    return stat_est['loss'], user_pressed_stop

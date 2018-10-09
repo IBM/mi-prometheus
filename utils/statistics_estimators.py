@@ -67,7 +67,7 @@ class StatisticsEstimators(StatisticsCollector):
         self.add_estimator('epoch', '{:06d}')
 
         # Add default statistical estimators for the loss (indicating a formatting).
-        self.add_estimator('loss_mean', '{:12.10f}')
+        self.add_estimator('loss', '{:12.10f}')  # represents the average loss
         self.add_estimator('loss_min', '{:12.10f}')
         self.add_estimator('loss_max', '{:12.10f}')
         self.add_estimator('loss_std', '{:12.10f}')
@@ -254,7 +254,7 @@ if __name__ == "__main__":
 
     stat_est['loss_min'] = min(loss_values)
     stat_est['loss_max'] = max(loss_values)
-    stat_est['loss_mean'] = np.average(loss_values)
+    stat_est['loss'] = np.average(loss_values)
     stat_est['loss_std'] = np.std(loss_values)
 
     print(stat_est.export_estimators_to_string())

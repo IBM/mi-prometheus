@@ -29,7 +29,6 @@ import os
 import yaml
 import torch
 import argparse
-import collections
 import numpy as np
 from time import sleep
 from datetime import datetime
@@ -42,7 +41,7 @@ from workers.worker import Worker
 from models.model_factory import ModelFactory
 from problems.problem_factory import ProblemFactory
 
-from utils.worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse, validation, handshake, validate_over_set
+from utils.worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse, handshake, validate_over_set
 
 
 def add_arguments(parser: argparse.ArgumentParser):
@@ -543,6 +542,9 @@ class Trainer(Worker):
             self.problem.finalize_epoch(epoch)
 
             # 5. Validate over the entire validation set
+            # Check visualization flag - turn on visualization for last validation if needed.
+            if flags.visualize is not None and (1 <= flags.visualize <= 2):
+                self.app_state.visualize = True
             avg_loss_valid, user_pressed_stop = validate_over_set(self.model, self.problem_validation, self.dl_valid,
                                                                   self.stat_col, self.stat_est, flags, self.logger,
                                                                   self.val_est_file, self.validation_writer, epoch)
@@ -570,7 +572,7 @@ class Trainer(Worker):
                     break
 
             # IV - The epochs number limit has been reached.
-            if epoch >= self.param_interface['training']['terminal_condition']['max_epochs']:
+            if epoch+1 >= self.param_interface['training']['terminal_condition']['max_epochs']:
                 terminal_condition = True
                 # If we reach this condition, then it is possible that the model didn't converge correctly
                 # and presents poorer performance.

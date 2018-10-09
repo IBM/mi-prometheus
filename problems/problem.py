@@ -651,7 +651,7 @@ class Problem(Dataset):
         """
         stat_est['loss_min'] = min(stat_col['loss'])
         stat_est['loss_max'] = max(stat_col['loss'])
-        stat_est['loss_mean'] = torch.mean(torch.tensor(stat_col['loss']))
+        stat_est['loss'] = torch.mean(torch.tensor(stat_col['loss']))
         stat_est['loss_std'] = torch.std(torch.tensor(stat_col['loss']))
 
     def get_epoch_size(self, batch_size):
