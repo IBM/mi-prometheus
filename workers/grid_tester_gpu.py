@@ -59,10 +59,12 @@ class GridTesterGPU(GridTesterCPU):
         :param flags: Parsed arguments from the parser.
 
         """
-        self.name = 'GridTesterGPU'
-
         # call base constructor
         super(GridTesterGPU, self).__init__(flags)
+
+        # set logger name
+        self.name = 'GridTrainerGPU'
+        self.set_logger_name(self.name)
 
     def forward(self, flags: argparse.Namespace):
         """

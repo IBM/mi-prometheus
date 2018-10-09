@@ -16,9 +16,9 @@
 # limitations under the License.
 
 """
-episodic_trainer.py:
+episode_trainer.py:
 
-    - This file contains the implementation of the ``EpisodicTrainer``, which inherits from ``Trainer``.
+    - This file contains the implementation of the ``EpisodeTrainer``, which inherits from ``Trainer``.
 
 """
 __author__ = "Vincent Marois"
@@ -33,15 +33,15 @@ from workers.trainer import Trainer
 from utils.worker_utils import forward_step, validation, cycle
 
 
-class EpisodicTrainer(Trainer):
+class EpisodeTrainer(Trainer):
     """
-    Implementation for the episodic Trainer.
+    Implementation for the episode-based Trainer.
 
     ..note::
 
         The default ``Trainer`` is based on epochs. While an epoch can be defined for all finite-size datasets,\
          it makes less sense for problems which have a very large, almost infinite, dataset (like algorithmic \
-         tasks, which generate random data on-the-fly). This is why this episodic Trainer is implemented.
+         tasks, which generate random data on-the-fly). This is why this episode Trainer is implemented.
          Instead of looping on epochs, it iterates directly on episodes (we call an iteration on a single batch\
           an episode).
 
@@ -55,8 +55,12 @@ class EpisodicTrainer(Trainer):
         :param flags: Parsed arguments from the parser.
 
         """
-        self.name = 'EpisodicTrainer'
-        super(EpisodicTrainer, self).__init__(flags=flags)
+        # call base constructor
+        super(EpisodeTrainer, self).__init__(flags=flags)
+
+        # set logger name
+        self.name = 'EpisodeTrainer'
+        self.set_logger_name(self.name)
 
         # delete 'epoch' entry in the StatisticsCollector as we don't need it.
         self.stat_col.__delitem__('epoch')
@@ -69,7 +73,7 @@ class EpisodicTrainer(Trainer):
 
     def forward(self, flags: argparse.Namespace):
         """
-        Main function of the ``EpisodicTrainer``.
+        Main function of the ``EpisodeTrainer``.
 
         Iterates over the (cycled) DataLoader (one iteration = one episode).
 
@@ -111,16 +115,16 @@ class EpisodicTrainer(Trainer):
         terminal_condition = False
 
         # cycle the DataLoader -> infinite iterator
-        self.problem = cycle(self.problem)
+        self.dataloader = cycle(self.dataloader)
 
         '''
         Main training and validation loop.
         '''
         episode = 0
-        for data_dict in self.problem:
+        for data_dict in self.dataloader:
 
             # apply curriculum learning - change some of the Problem parameters
-            self.curric_done = self.dataset.curriculum_learning_update_params(episode)
+            self.curric_done = self.problem.curriculum_learning_update_params(episode)
 
             # reset all gradients
             self.optimizer.zero_grad()
@@ -135,7 +139,7 @@ class EpisodicTrainer(Trainer):
             self.model.train()
 
             # 1. Perform forward step, get predictions and compute loss.
-            logits, loss = forward_step(self.model, self.dataset, episode, self.stat_col, data_dict)
+            logits, loss = forward_step(self.model, self.problem, episode, self.stat_col, data_dict)
 
             if not self.use_validation_problem:
 
@@ -197,7 +201,7 @@ class EpisodicTrainer(Trainer):
             if self.app_state.visualize:
 
                 # Allow for preprocessing
-                data_dict, logits = self.dataset.plot_preprocessing(data_dict, logits)
+                data_dict, logits = self.problem.plot_preprocessing(data_dict, logits)
 
                 # Show plot, if user presses Quit - break.
                 if self.model.plot(data_dict, logits):
@@ -270,7 +274,7 @@ class EpisodicTrainer(Trainer):
                 break
 
             # check if we are at the end of the 'epoch': Indicate that the DataLoader is now cycling.
-            if ((episode + 1) % self.dataset.get_epoch_size(
+            if ((episode + 1) % self.problem.get_epoch_size(
                     self.param_interface['training']['problem']['batch_size'])) == 0:
                 self.logger.warning('The DataLoader has exhausted -> using cycle(iterable).')
 
@@ -323,5 +327,5 @@ if __name__ == '__main__':
     # Parse arguments.
     FLAGS, unparsed = argp.parse_known_args()
 
-    episodic_trainer = EpisodicTrainer(FLAGS)
-    episodic_trainer.forward(FLAGS)
+    episode_trainer = EpisodeTrainer(FLAGS)
+    episode_trainer.forward(FLAGS)

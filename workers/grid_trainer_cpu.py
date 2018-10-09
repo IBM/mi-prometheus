@@ -56,10 +56,10 @@ def add_arguments(parser: argparse.ArgumentParser):
                         default='',
                         help='Name of the grid configuration file to be loaded')
 
-    parser.add_argument('--episodic_trainer',
-                        dest='episodic_trainer',
+    parser.add_argument('--episode_trainer',
+                        dest='episode_trainer',
                         action='store_true',
-                        help='Select the episodic Trainer instead of the default (epoch-based)'
+                        help='Select the episode-based Trainer instead of the default (epoch-based)'
                              ' Trainer. Useful for algorithmic tasks.')
 
 
@@ -67,7 +67,7 @@ class GridTrainerCPU(Worker):
     """
     Grid Worker managing several training experiments on CPUs.
 
-    Reuses the ``Trainer`` (can specify the base one or the episodic one) to start one experiment.
+    Reuses the ``Trainer`` (can specify the base one or the episode one) to start one experiment.
 
     """
 
@@ -86,10 +86,12 @@ class GridTrainerCPU(Worker):
 
 
         """
-        self.name = 'GridTrainerCPU'
-
         # call base constructor
         super(GridTrainerCPU, self).__init__(flags)
+
+        # set logger name
+        self.name = 'GridTrainerCPU'
+        self.set_logger_name(self.name)
 
         # Check if config file was selected.
         if flags.config == '':
@@ -134,11 +136,19 @@ class GridTrainerCPU(Worker):
             print("Error: Grid configuration is lacking the 'grid_tasks' section")
             exit(-5)
 
-        # Create a configuration specific to this grid trainer: set seeds to undefined (-1) and CUDA to false.
+        # Create a configuration specific to this grid trainer:
+        # set seeds to undefined (-1), CUDA to false and deactivate multiprocessing for `DataLoader`.
         # It is important not to set the seeds here as they would be identical for all experiments.
 
-        self.param_interface.add_custom_params({"training": {}})
-        self.param_interface["training"].add_custom_params({"seed_numpy": -1, "seed_torch": -1, "cuda": cuda})
+        self.param_interface["training"].add_custom_params({"seed_numpy": -1,
+                                                            "seed_torch": -1,
+                                                            "cuda": cuda,
+                                                            "dataloader": {'num_workers': 0}})
+        self.param_interface["validation"].add_custom_params({"dataloader": {'num_workers': 0}})
+
+        # also doing it for GridTesters as they do not pass their ParamInterface to testers (it is reloaded
+        # from training_configuration.yaml)
+        self.param_interface["testing"].add_custom_params({"dataloader": {'num_workers': 0}})
 
         # Create temporary file
         param_interface_file = NamedTemporaryFile(mode='w', delete=False)
@@ -178,6 +188,9 @@ class GridTrainerCPU(Worker):
         for _ in range(experiment_repetitions):
             self.experiments_list.extend(configs)
 
+        self.logger.info('Number of experiments to run: {}'.format(len(self.experiments_list)))
+        self.experiments_done = 0
+
         # create experiment directory label of the day
         self.outdir_str = './experiments_' + '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
 
@@ -194,12 +207,12 @@ class GridTrainerCPU(Worker):
             else:
                 break
 
-    def run_experiment(self, episodic_trainer, output_dir: str, experiment_configs: str, prefix=""):
+    def run_experiment(self, episode_trainer, output_dir: str, experiment_configs: str, prefix=""):
         """
-        Runs the specified experiment using one Trainer.
+        Runs the specified experiment using one ``Trainer``.
 
-        :param episodic_trainer: Whether to use the EpisodicTrainer instead of the default Trainer
-        :type episodic_trainer: bool
+        :param episode_trainer: Whether to use the ``EpisodeTrainer`` instead of the default ``Trainer``
+        :type episode_trainer: bool
 
         :param output_dir: Output directory for the experiment files (logging, best model etc.)
         :type output_dir: str
@@ -221,8 +234,8 @@ class GridTrainerCPU(Worker):
 
         """
         # set the command to be executed using the indicated Trainer
-        if episodic_trainer:
-            command_str = "{}python3 workers/episodic_trainer.py".format(prefix)
+        if episode_trainer:
+            command_str = "{}python3 workers/episode_trainer.py".format(prefix)
         else:
             command_str = "{}python3 workers/trainer.py".format(prefix)
 
@@ -233,7 +246,10 @@ class GridTrainerCPU(Worker):
         self.logger.info("Starting: {}".format(command_str))
         with open(os.devnull, 'w') as devnull:
             result = subprocess.run(command_str.split(" "), stdout=devnull)
+        self.experiments_done += 1
         self.logger.info("Finished: {}".format(command_str))
+        print()
+        self.logger.info('Number of experiments done: {}/{}.'.format(self.experiments_done, len(self.experiments_list)))
 
         if result.returncode != 0:
             self.logger.info("Training exited with code: {}".format(result.returncode))
@@ -256,7 +272,7 @@ class GridTrainerCPU(Worker):
         max_processes = min(len(os.sched_getaffinity(0)), self.max_concurrent_run)
 
         with ThreadPool(processes=max_processes) as pool:
-            func = partial(GridTrainerCPU.run_experiment, self, flags.episodic_trainer, self.outdir_str, prefix="")
+            func = partial(GridTrainerCPU.run_experiment, self, flags.episode_trainer, self.outdir_str, prefix="")
             pool.map(func, self.experiments_list)
 
         self.logger.info('Grid training experiments finished.')

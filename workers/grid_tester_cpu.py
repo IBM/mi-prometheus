@@ -82,10 +82,12 @@ class GridTesterCPU(Worker):
         :param flags: Parsed arguments from the parser.
 
         """
-        self.name = 'GridTesterCPU'
-
         # call base constructor
         super(GridTesterCPU, self).__init__(flags)
+
+        # set logger name
+        self.name = 'GridTesterCPU'
+        self.set_logger_name(self.name)
 
         directory_chckpnts = flags.outdir
         num_tests = flags.num_tests
@@ -98,13 +100,16 @@ class GridTesterCPU(Worker):
                 for name in dirs:
                     self.experiments_list.append(os.path.join(root, name))
 
-        # Keep only the folders that contain validation.csv and training.csv TODO: Why?
+        # Keep only the folders that contain validation.csv and training.csv
         self.experiments_list = [elem for elem in self.experiments_list if os.path.isfile(
             elem + '/validation.csv') and os.path.isfile(elem + '/training.csv')]
 
-        # check if the files are empty except for the first line TODO: Why?
+        # check if the files are not empty
         self.experiments_list = [elem for elem in self.experiments_list if os.stat(
             elem + '/validation.csv').st_size > 24 and os.stat(elem + '/training.csv').st_size > 24]
+
+        self.logger.info('Number of experiments to run: {}'.format(len(self.experiments_list)))
+        self.experiments_done = 0
 
     def run_experiment(self, experiment_path: str, prefix=""):
         """
@@ -136,7 +141,11 @@ class GridTesterCPU(Worker):
             self.logger.info("Starting: {}".format(command_str))
             with open(os.devnull, 'w') as devnull:
                 result = subprocess.run(command_str.split(" "), stdout=devnull)
+            self.experiments_done += 1
             self.logger.info("Finished: {}".format(command_str))
+            print()
+            self.logger.info(
+                'Number of experiments done: {}/{}.'.format(self.experiments_done, len(self.experiments_list)))
 
             if result.returncode != 0:
                 self.logger.info("Testing exited with code: {}".format(result.returncode))

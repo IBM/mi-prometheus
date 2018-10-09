@@ -54,8 +54,8 @@ def add_arguments(parser: argparse.ArgumentParser):
                         type=str,
                         default='',
                         dest='model',
-                        help='Path to and name of the file containing the saved parameters'
-                             ' of the model (model checkpoint)')
+                        help='Path to the file containing the saved parameters'
+                             ' of the model (model checkpoint, should end with a .pt extension.)')
 
     parser.add_argument('--visualize',
                         action='store_true',
@@ -109,11 +109,12 @@ class Tester(Worker):
         :param flags: Parsed arguments from the parser.
 
         """
-        # default name (define it before calling base constructor for logger)
-        self.name = 'Tester'
-
         # call base constructor
         super(Tester, self).__init__(flags)
+
+        # set logger name
+        self.name = 'Tester'
+        self.set_logger_name(self.name)
 
         # delete 'epoch' entry in the StatisticsCollector as we don't need it.
         self.stat_col.__delitem__('epoch')
@@ -164,8 +165,13 @@ class Tester(Worker):
         with open(config_file, 'r') as stream:
             self.param_interface.add_custom_params(yaml.load(stream))
 
-        # set random seeds
-        self.set_random_seeds()
+        # set random seeds: reuse the ones set during training & stored in config_file (training_configuration.yaml)
+        torch.manual_seed(self.param_interface["training"]["seed_torch"])
+        torch.cuda.manual_seed_all(self.param_interface["training"]["seed_torch"])
+        self.logger.info('Reusing training seed_torch: {}'.format(self.param_interface["training"]["seed_torch"]))
+
+        np.random.seed(self.param_interface["training"]["seed_numpy"])
+        self.logger.info('Reusing training seed_numpy: {}'.format(self.param_interface["training"]["seed_numpy"]))
 
         # check if CUDA is available turn it on
         check_and_set_cuda(self.param_interface['testing'], self.logger)
@@ -194,22 +200,24 @@ class Tester(Worker):
         self.model.eval()
 
         # Build problem.
-        self.dataset = ProblemFactory.build_problem(self.param_interface['testing']['problem'])
+        self.problem = ProblemFactory.build_problem(self.param_interface['testing']['problem'])
 
         # perform 2-way handshake between Model and Problem
-        handshake(model=self.model, problem=self.dataset, logger=self.logger)
+        handshake(model=self.model, problem=self.problem, logger=self.logger)
         # no error thrown, so handshake succeeded
 
         # build the DataLoader on top of the Problem class
-        # Set a default number of workers to 4
-        # TODO: allow the user to change the num_workers and other attributes value of the DataLoader.
-        self.problem = DataLoader(dataset=self.dataset,
-                                  batch_size=self.param_interface['testing']['problem']['batch_size'],
-                                  shuffle=True,
-                                  collate_fn=self.dataset.collate_fn,
-                                  num_workers=4,
-                                  worker_init_fn=self.dataset.worker_init_fn,
-                                  drop_last=False)
+        self.dataloader = DataLoader(dataset=self.problem,
+                                     batch_size=self.param_interface['testing']['problem']['batch_size'],
+                                     shuffle=self.param_interface['testing']['dataloader']['shuffle'],
+                                     sampler=self.param_interface['testing']['dataloader']['sampler'],
+                                     batch_sampler=self.param_interface['testing']['dataloader']['batch_sampler'],
+                                     num_workers=self.param_interface['testing']['dataloader']['num_workers'],
+                                     collate_fn=self.problem.collate_fn,
+                                     pin_memory=self.param_interface['testing']['dataloader']['pin_memory'],
+                                     drop_last=self.param_interface['testing']['dataloader']['drop_last'],
+                                     timeout=self.param_interface['testing']['dataloader']['timeout'],
+                                     worker_init_fn=self.problem.worker_init_fn)
 
         # check if the maximum number of episodes is specified, if not put a
         # default equal to the size of the dataset (divided by the batch size)
@@ -217,12 +225,12 @@ class Tester(Worker):
         if "max_test_episodes" not in self.param_interface["testing"]["problem"] \
                 or self.param_interface["testing"]["problem"]["max_test_episodes"] == -1:
 
-            max_test_episodes = self.dataset.get_epoch_size(self.param_interface['training']['problem']['batch_size'])
+            max_test_episodes = self.problem.get_epoch_size(self.param_interface['training']['problem']['batch_size'])
             self.param_interface['testing']['problem'].add_custom_params({'max_test_episodes': max_test_episodes})
 
         # warn if indicated number of episodes is larger than an epoch size:
         if self.param_interface["testing"]["problem"]["max_test_episodes"] > \
-            self.dataset.get_epoch_size(self.param_interface['training']['problem']['batch_size']):
+            self.problem.get_epoch_size(self.param_interface['training']['problem']['batch_size']):
 
             self.logger.warning('Indicated maximum number of episodes is larger than one epoch, reducing it.')
 
@@ -230,7 +238,7 @@ class Tester(Worker):
             self.param_interface["testing"]["problem"]["max_test_episodes"]))
 
         # Add model/problem dependent statistics.
-        self.dataset.add_statistics(self.stat_col)
+        self.problem.add_statistics(self.stat_col)
         self.model.add_statistics(self.stat_col)
 
         # Create test output csv file.
@@ -265,12 +273,12 @@ class Tester(Worker):
 
             acc_loss = 0
             episode = 0
-            for data_dict in self.problem:
+            for data_dict in self.dataloader:
 
                 if episode == self.param_interface["testing"]["problem"]["max_test_episodes"]:
                     break
 
-                logits, loss = forward_step(self.model, self.dataset, episode, self.stat_col, data_dict)
+                logits, loss = forward_step(self.model, self.problem, episode, self.stat_col, data_dict)
                 acc_loss += loss
 
                 # Log to logger.
@@ -281,7 +289,7 @@ class Tester(Worker):
                 if self.app_state.visualize:
 
                     # Allow for preprocessing
-                    data_dict, logits = self.dataset.plot_preprocessing(data_dict, logits)
+                    data_dict, logits = self.problem.plot_preprocessing(data_dict, logits)
 
                     # Show plot, if user presses Quit - break.
                     is_closed = self.model.plot(data_dict, logits)

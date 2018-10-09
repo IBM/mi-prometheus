@@ -60,10 +60,12 @@ class GridAnalyzer(Worker):
         :param flags: Parsed arguments from the parser.
 
         """
-        self.name = 'GridAnalyzer'
-
         # call base constructor
         super(GridAnalyzer, self).__init__(flags)
+
+        # set logger name
+        self.name = 'GridAnalyzer'
+        self.set_logger_name(self.name)
 
         # Check if experiments directory was indicated.
         if flags.outdir == '':

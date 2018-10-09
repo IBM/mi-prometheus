@@ -65,6 +65,13 @@ def add_arguments(parser: argparse.ArgumentParser):
                         help='Path to output directory where the experiment(s) folders will be stored.'
                              ' (DEFAULT: ./experiments)')
 
+    parser.add_argument('--model',
+                        type=str,
+                        default='',
+                        dest='model',
+                        help='Path to the file containing the saved parameters'
+                             ' of the model to load (model checkpoint, should end with a .pt extension.)')
+
     parser.add_argument('--tensorboard',
                         action='store',
                         dest='tensorboard', choices=[0, 1, 2],
@@ -97,7 +104,7 @@ class Trainer(Worker):
 
     Iterates over epochs on the dataset.
 
-    All other types of trainers (e.g. EpisodicTrainer) should subclass it.
+    All other types of trainers (e.g. EpisodeTrainer) should subclass it.
 
     """
 
@@ -133,7 +140,7 @@ class Trainer(Worker):
 
             - Creates the DataLoader:
 
-                >>> self.problem = DataLoader(dataset=self.dataset, ...)
+                >>> self.problem = DataLoader(dataset=self.problem, ...)
 
             - Handles curriculum learning if indicated:
 
@@ -153,11 +160,12 @@ class Trainer(Worker):
         :param flags: Parsed arguments from the parser.
 
         """
-        # default name (define it before calling base constructor for logger)
-        self.name = 'BaseTrainer'
-
         # call base constructor
         super(Trainer, self).__init__(flags)
+
+        # set name of logger
+        self.name = 'Trainer'
+        self.set_logger_name(self.name)
 
         # Check if config file was selected.
         if flags.config == '':
@@ -231,7 +239,7 @@ class Trainer(Worker):
         check_and_set_cuda(self.param_interface['training'], self.logger)
 
         # Build problem for the training
-        self.dataset = ProblemFactory.build_problem(self.param_interface['training']['problem'])
+        self.problem = ProblemFactory.build_problem(self.param_interface['training']['problem'])
 
         # check that the number of epochs is available in param_interface. If not, put a default of 1.
         if "max_epochs" not in self.param_interface["training"]["terminal_condition"] \
@@ -244,38 +252,50 @@ class Trainer(Worker):
             self.param_interface["training"]["terminal_condition"]["max_epochs"]))
 
         # get epoch size in terms of episodes:
-        epoch_size = self.dataset.get_epoch_size(self.param_interface["training"]["problem"]["batch_size"])
+        epoch_size = self.problem.get_epoch_size(self.param_interface["training"]["problem"]["batch_size"])
         self.logger.info('Epoch size in terms of episodes: {}'.format(epoch_size))
 
         # Build the model using the loaded configuration and default values of the problem.
-        self.model = ModelFactory.build_model(self.param_interface['model'], self.dataset.default_values)
+        self.model = ModelFactory.build_model(self.param_interface['model'], self.problem.default_values)
+
+        if flags.model != "":
+            if os.path.isfile(flags.model):
+                # Load parameters from checkpoint.
+                self.model.load(flags.model)
+            else:
+                self.logger.error("Couldn't load the checkpoint {} : does not exist on disk.".format(flags.model))
 
         # move model to CUDA if applicable
         self.model.cuda() if self.app_state.use_CUDA else None
 
         # perform 2-way handshake between Model and Problem
-        handshake(model=self.model, problem=self.dataset, logger=self.logger)
+        handshake(model=self.model, problem=self.problem, logger=self.logger)
         # no error thrown, so handshake succeeded
 
+        # Log the model summary.
+        self.logger.info(self.model.summarize())
+
         # build the DataLoader on top of the Problem class
-        # For now, it doesn't use a Sampler: only shuffling the data.
-        # Set a default number of workers to 4
-        # TODO: allow the user to change the num_workers and other attributes value of the DataLoader.
-        self.problem = DataLoader(dataset=self.dataset,
-                                  batch_size=self.param_interface['training']['problem']['batch_size'],
-                                  shuffle=True,
-                                  collate_fn=self.dataset.collate_fn,
-                                  num_workers=4,
-                                  worker_init_fn=self.dataset.worker_init_fn)
+        self.dataloader = DataLoader(dataset=self.problem,
+                                     batch_size=self.param_interface['training']['problem']['batch_size'],
+                                     shuffle=self.param_interface['training']['dataloader']['shuffle'],
+                                     sampler=self.param_interface['training']['dataloader']['sampler'],
+                                     batch_sampler=self.param_interface['training']['dataloader']['batch_sampler'],
+                                     num_workers=self.param_interface['training']['dataloader']['num_workers'],
+                                     collate_fn=self.problem.collate_fn,
+                                     pin_memory=self.param_interface['training']['dataloader']['pin_memory'],
+                                     drop_last=self.param_interface['training']['dataloader']['drop_last'],
+                                     timeout=self.param_interface['training']['dataloader']['timeout'],
+                                     worker_init_fn=self.problem.worker_init_fn)
 
         # parse the curriculum learning section in the loaded configuration.
         if 'curriculum_learning' in self.param_interface['training']:
 
             # Initialize curriculum learning - with values from loaded configuration.
-            self.dataset.curriculum_learning_initialize(self.param_interface['training']['curriculum_learning'])
+            self.problem.curriculum_learning_initialize(self.param_interface['training']['curriculum_learning'])
 
             # Set initial values of curriculum learning.
-            self.curric_done = self.dataset.curriculum_learning_update_params(0)
+            self.curric_done = self.problem.curriculum_learning_update_params(0)
 
             # If key is not present in config then it has to be finished (DEFAULT: True)
             if 'must_finish' not in self.param_interface['training']['curriculum_learning']:
@@ -286,7 +306,7 @@ class Trainer(Worker):
 
         else:
             # Initialize curriculum learning - with empty dict.
-            self.dataset.curriculum_learning_initialize({})
+            self.problem.curriculum_learning_initialize({})
 
             # If not using curriculum learning then it does not have to be finished.
             self.must_finish_curriculum = False
@@ -298,7 +318,7 @@ class Trainer(Worker):
             self.model_validation_interval = 100
 
         # Add model/problem dependent statistics.
-        self.dataset.add_statistics(self.stat_col)
+        self.problem.add_statistics(self.stat_col)
         self.model.add_statistics(self.stat_col)
 
         # Create the csv file to store the training statistics.
@@ -312,14 +332,16 @@ class Trainer(Worker):
             self.problem_validation = ProblemFactory.build_problem(self.param_interface['validation']['problem'])
 
             # build the DataLoader on top of the validation problem
-            # For now, it doesn't use a Sampler: only shuffling the data.
-            # Set a default number of workers to 4
-            # TODO: allow the user to change the num_workers and other attributes value of the DataLoader.
-            dataloader_validation = DataLoader(self.problem_validation,
+            dataloader_validation = DataLoader(dataset=self.problem_validation,
                                                batch_size=self.param_interface['validation']['problem']['batch_size'],
-                                               shuffle=True,
+                                               shuffle=self.param_interface['validation']['dataloader']['shuffle'],
+                                               sampler=self.param_interface['validation']['dataloader']['sampler'],
+                                               batch_sampler=self.param_interface['validation']['dataloader']['batch_sampler'],
+                                               num_workers=self.param_interface['validation']['dataloader']['num_workers'],
                                                collate_fn=self.problem_validation.collate_fn,
-                                               num_workers=4,
+                                               pin_memory=self.param_interface['validation']['dataloader']['pin_memory'],
+                                               drop_last=self.param_interface['validation']['dataloader']['drop_last'],
+                                               timeout=self.param_interface['validation']['dataloader']['timeout'],
                                                worker_init_fn=self.problem_validation.worker_init_fn)
             # create an iterator
             dataloader_validation = iter(dataloader_validation)
@@ -423,16 +445,16 @@ class Trainer(Worker):
 
             self.logger.info('Epoch {} started'.format(epoch))
             # initialize the epoch: this function can be used to set / reset counters etc.
-            self.dataset.initialize_epoch(epoch)
+            self.problem.initialize_epoch(epoch)
 
             # set initial validation loss as infinite
             validation_loss = np.inf
 
             # iterate over dataset
-            for data_dict in self.problem:
+            for data_dict in self.dataloader:
 
                 # apply curriculum learning - change some of the Problem parameters
-                self.curric_done = self.dataset.curriculum_learning_update_params(episode)
+                self.curric_done = self.problem.curriculum_learning_update_params(episode)
 
                 # reset all gradients
                 self.optimizer.zero_grad()
@@ -447,7 +469,7 @@ class Trainer(Worker):
                 self.model.train()
 
                 # 1. Perform forward step, get predictions and compute loss.
-                logits, loss = forward_step(self.model, self.dataset, episode, self.stat_col, data_dict, epoch)
+                logits, loss = forward_step(self.model, self.problem, episode, self.stat_col, data_dict, epoch)
 
                 if not self.use_validation_problem:
 
@@ -509,7 +531,7 @@ class Trainer(Worker):
                 if self.app_state.visualize:
 
                     # Allow for preprocessing
-                    data_dict, logits = self.dataset.plot_preprocessing(data_dict, logits)
+                    data_dict, logits = self.problem.plot_preprocessing(data_dict, logits)
 
                     # Show plot, if user presses Quit - break.
                     if self.model.plot(data_dict, logits):
@@ -541,7 +563,7 @@ class Trainer(Worker):
 
             # finalize the epoch, even if the user pressed Quit during visualization
             self.logger.info('Epoch {} finished'.format(epoch))
-            self.dataset.finalize_epoch(epoch)
+            self.problem.finalize_epoch(epoch)
 
             # 6. Terminal conditions: Tests which conditions have been met.
 
