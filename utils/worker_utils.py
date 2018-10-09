@@ -390,7 +390,7 @@ def validate_over_set(model, problem, dataloader, stat_col, stat_est, FLAGS, log
     # 5. Export to csv
     stat_est.export_estimators_to_csv(val_file)
 
-    if FLAGS.tensorboard is not None:
+    if FLAGS.tensorboard is not None and val_writer is not None:
         # Export statistical estimators
         stat_est.export_estimators_to_tensorboard(val_writer)
 

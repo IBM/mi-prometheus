@@ -199,7 +199,7 @@ class Trainer(Worker):
 
         # Get validation problem name
         try:
-            task_name = self.param_interface['validation']['problem']['name']
+            _ = self.param_interface['validation']['problem']['name']
         except KeyError:
             print("Error: Couldn't retrieve problem name from the 'validation' section in the loaded configuration")
             exit(-1)
@@ -316,7 +316,7 @@ class Trainer(Worker):
             # If not using curriculum learning then it does not have to be finished.
             self.must_finish_curriculum = False
 
-        # Set the Model validation frequency (DEFAULT: 100 episodes).
+        # Set the Model validation frequency for the EpisodicTrainer (Default: 100 episodes).
         try:
             self.model_validation_interval = self.param_interface['training']['validation_interval']
         except KeyError:
@@ -332,9 +332,6 @@ class Trainer(Worker):
 
         # Create the csv file to store the training statistics.
         self.training_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'training_statistics.csv')
-
-        # Create the csv file to store the training statistical estimators.
-        self.training_est_file = self.stat_est.initialize_csv_file(self.log_dir, 'training_estimators.csv')
 
         # Build the validation problem
         self.problem_validation = ProblemFactory.build_problem(self.param_interface['validation']['problem'])
@@ -415,6 +412,9 @@ class Trainer(Worker):
 
 
         """
+        # Create the csv file to store the training statistical estimators.
+        self.training_est_file = self.stat_est.initialize_csv_file(self.log_dir, 'training_estimators.csv')
+
         # Ask for confirmation - optional.
         if flags.confirm:
             input('Press any key to continue')
