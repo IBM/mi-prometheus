@@ -216,6 +216,37 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         #stat_col['num_subseq'] = data_dict['num_subsequences']
         stat_col['max_seq_length'] = self.max_sequence_length
 
+    def add_estimators(self, stat_est):
+        """
+        Adds statistical estimators related to the accuracy to ``StatisticsEstimators``.
+
+        :param stat_est: ``StatisticsEstimators``.
+
+        """
+
+        stat_est.add_estimator('acc', '{:12.10f}')  # represents the average accuracy
+        stat_est.add_estimator('acc_min', '{:12.10f}')
+        stat_est.add_estimator('acc_max', '{:12.10f}')
+        stat_est.add_estimator('acc_std', '{:12.10f}')
+
+    def collect_estimators(self, stat_col, stat_est):
+        """
+        Collect the statistical estimators added using ``self.add_estimator``.
+
+        :param stat_col: ``StatisticsCollector``.
+
+        :param stat_est: ``StatisticsEstimators``.
+
+
+        """
+        # collect base statistical estimators
+        super(AlgorithmicSeqToSeqProblem, self).collect_estimators(stat_col, stat_est)
+
+        stat_est['acc_min'] = min(stat_col['acc'])
+        stat_est['acc_max'] = max(stat_col['acc'])
+        stat_est['acc'] = torch.mean(torch.tensor(stat_col['acc']))
+        stat_est['acc_std'] = torch.std(torch.tensor(stat_col['acc']))
+
     def show_sample(self, data_dict, sample=0):
         """
         Shows the sample (both input and target sequences) using ``matplotlib``.
