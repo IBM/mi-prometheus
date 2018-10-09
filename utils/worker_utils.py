@@ -22,8 +22,9 @@ __author__ = "Ryan McAvoy, Tomasz Kornuta, Vincent Marois"
 
 import os
 import yaml
-
 import torch
+from random import randrange
+
 from .app_state import AppState
 
 
@@ -69,7 +70,7 @@ def forward_step(model, problem, episode, stat_col, data_dict, epoch=None):
     loss = problem.evaluate_loss(data_dict, logits)
 
     # Collect "elementary" statistics - episode and loss.
-    if epoch is not None:
+    if 'epoch' in stat_col:
         stat_col['epoch'] = epoch
 
     stat_col['episode'] = episode
@@ -303,3 +304,95 @@ def handshake(model, problem, logger):
                     'accepted by the loss function {l}.'.format(m=model.name, p=problem.name, l=problem.loss_function))
 
     # handshake succeeded, so we can continue.
+
+
+def validate_over_set(model, problem, dataloader, stat_col, stat_est, FLAGS, logger, val_file, val_writer, epoch=None):
+    """
+    Performs a validation step on the model, using the provided dataloader.
+
+    Iterates over the entire validation set (through the dataloader) and aggregates the collected statistics (through \
+    ``stat_col``) using the ``stat_agg`` and logs that to the console, csv and tensorboard (if set).
+
+    If visualization is activated, this function will select a random batch to visualize.
+
+    :param model: Neural network model (being trained by the worker) going through cross-validation in this function.
+    :type model: ``models.model.Model``
+
+    :param problem: Problem used to generate batches (on which the dataloader is built).
+    :type problem: ``problems.problem.Problem``
+
+    :param dataloader: Problem used to generate the batch ``data_valid`` used as input to the model.
+    :type dataloader: ``torch.utils.data.dataloader.DataLoader``
+
+    :param stat_col: statistics collector used for logging accuracy etc.
+    :type stat_col: ``StatisticsCollector``
+
+    :param stat_est: statistics estimators used to collect statistical estimators (min/max/mean/std etc.)
+    :type stat_est: ``StatisticsEstimators``
+
+    :param FLAGS: Parsed ``ArgumentParser`` flags
+    :type FLAGS: ``argparse.Namespace``
+
+    :param logger: current logger utility.
+    :type logger: ``logging.Logger``
+
+    :param val_file: Opened CSV file used by the ``StatisticsEstimators`` to log the statistical estimators values.
+
+    :param val_writer: ``tensorboardX.SummaryWriter`` to log the statistical estimators values.
+
+    :param epoch: current epoch index.
+    :type epoch: int, optional
+
+    :return:
+
+        - Average loss over the validation set.
+        - if ``AppState().visualize``:
+            return True if the user closed the window, else False
+          else:
+            return False, i.e. continue training.
+
+
+    """
+    logger.info('Validating over the entire validation set')
+
+    # Turn on evaluation mode.
+    model.eval()
+
+    # get a random batch index which will be used for visualization
+    vis_index = randrange(len(dataloader))
+
+    with torch.no_grad():
+        for ep, data_dict in enumerate(dataloader):
+            # 1. Perform forward step, get predictions and compute loss.
+            logits_valid, loss_valid = forward_step(model, problem, ep, stat_col, data_dict, epoch)
+
+            # 2.Visualization of validation for the randomly selected batch
+            if AppState().visualize and ep == vis_index:
+
+                # Allow for preprocessing
+                data_valid, logits_valid = problem.plot_preprocessing(data_dict, logits_valid)
+
+                # Show plot, and record if the user pressed 'Quit'.
+                if model.plot(data_dict, logits_valid):
+                    user_pressed_stop = True
+                else:
+                    user_pressed_stop = False
+            else:
+                user_pressed_stop = False
+
+    # 3. Collect statistical estimators
+    model.collect_estimators(stat_col, stat_est)
+    problem.collect_estimators(stat_col, stat_est)
+
+    # 4. Log to logger
+    logger.info(stat_est.export_estimators_to_string('[Validation {}]'.format(epoch)))
+
+    # 5. Export to csv
+    stat_est.export_estimators_to_csv(val_file)
+
+    if FLAGS.tensorboard is not None:
+        # Export statistical estimators
+        stat_est.export_statistics_to_tensorboard(val_writer)
+
+    # return average loss and whether the user pressed `Quit` during the visualization
+    return stat_est['loss_mean'], user_pressed_stop

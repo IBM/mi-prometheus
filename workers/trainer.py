@@ -42,7 +42,7 @@ from workers.worker import Worker
 from models.model_factory import ModelFactory
 from problems.problem_factory import ProblemFactory
 
-from utils.worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse, validation, handshake
+from utils.worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse, validation, handshake, validate_over_set
 
 
 def add_arguments(parser: argparse.ArgumentParser):
@@ -85,7 +85,9 @@ def add_arguments(parser: argparse.ArgumentParser):
                         dest='logging_frequency',
                         default=100,
                         type=int,
-                        help='TensorBoard logging frequency (Default: 100, i.e. logs every 100 episodes).')
+                        help='Statistics logging frequency. Will impact logging to the logger and exporting to '
+                             'TensorBoard. Writing to the csv file is not impacted (frequency of 1).'
+                             '(Default: 100, i.e. logs every 100 episodes).')
 
     parser.add_argument('--visualize',
                         dest='visualize',
@@ -189,11 +191,18 @@ class Trainer(Worker):
 
         # -> At this point, the Param Registry contains the configuration loaded (and overwritten) from several files.
 
-        # Get problem name.
+        # Get training problem name.
         try:
             task_name = self.param_interface['training']['problem']['name']
         except KeyError:
-            print("Error: Couldn't retrieve problem name from the loaded configuration")
+            print("Error: Couldn't retrieve problem name from the 'training' section in the loaded configuration")
+            exit(-1)
+
+        # Get validation problem name
+        try:
+            task_name = self.param_interface['validation']['problem']['name']
+        except KeyError:
+            print("Error: Couldn't retrieve problem name from the 'validation' section in the loaded configuration")
             exit(-1)
 
         # Get model name.
@@ -223,7 +232,7 @@ class Trainer(Worker):
         # add the handler for the logfile to the logger
         self.add_file_handler_to_logger(self.log_file)
 
-        # Create tensorboard output - if tensorboard is supposed to be used.
+        # Create tensorboard outputs - if tensorboard is supposed to be used.
         if flags.tensorboard is not None:
             from tensorboardX import SummaryWriter
 
@@ -318,48 +327,34 @@ class Trainer(Worker):
         self.problem.add_statistics(self.stat_col)
         self.model.add_statistics(self.stat_col)
 
+        # Add model/problem dependent statistical estimators.
+        self.problem.add_estimators(self.stat_est)
+        self.model.add_estimators(self.stat_est)
+
         # Create the csv file to store the training statistics.
-        self.training_file = self.stat_col.initialize_csv_file(self.log_dir, 'training.csv')
+        self.training_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'training_statistics.csv')
 
-        # Check if the validation section is present AND problem section is also present
-        if ('validation' in self.param_interface) and ('problem' in self.param_interface['validation']):
-            # Load problem, set variables etc.
+        # Create the csv file to store the training statistical estimators.
+        self.training_est_file = self.stat_est.initialize_csv_file(self.log_dir, 'training_estimators.csv')
 
-            # Build the validation problem
-            self.problem_validation = ProblemFactory.build_problem(self.param_interface['validation']['problem'])
+        # Build the validation problem
+        self.problem_validation = ProblemFactory.build_problem(self.param_interface['validation']['problem'])
 
-            # build the DataLoader on top of the validation problem
-            self.dl_valid = DataLoader(dataset=self.problem_validation,
-                                       batch_size=self.param_interface['validation']['problem']['batch_size'],
-                                       shuffle=self.param_interface['validation']['dataloader']['shuffle'],
-                                       sampler=self.param_interface['validation']['dataloader']['sampler'],
-                                       batch_sampler=self.param_interface['validation']['dataloader']['batch_sampler'],
-                                       num_workers=self.param_interface['validation']['dataloader']['num_workers'],
-                                       collate_fn=self.problem_validation.collate_fn,
-                                       pin_memory=self.param_interface['validation']['dataloader']['pin_memory'],
-                                       drop_last=self.param_interface['validation']['dataloader']['drop_last'],
-                                       timeout=self.param_interface['validation']['dataloader']['timeout'],
-                                       worker_init_fn=self.problem_validation.worker_init_fn)
+        # build the DataLoader on top of the validation problem
+        self.dl_valid = DataLoader(dataset=self.problem_validation,
+                                   batch_size=self.param_interface['validation']['problem']['batch_size'],
+                                   shuffle=self.param_interface['validation']['dataloader']['shuffle'],
+                                   sampler=self.param_interface['validation']['dataloader']['sampler'],
+                                   batch_sampler=self.param_interface['validation']['dataloader']['batch_sampler'],
+                                   num_workers=self.param_interface['validation']['dataloader']['num_workers'],
+                                   collate_fn=self.problem_validation.collate_fn,
+                                   pin_memory=self.param_interface['validation']['dataloader']['pin_memory'],
+                                   drop_last=self.param_interface['validation']['dataloader']['drop_last'],
+                                   timeout=self.param_interface['validation']['dataloader']['timeout'],
+                                   worker_init_fn=self.problem_validation.worker_init_fn)
 
-            # Create the csv file to store the validation statistics.
-            self.validation_file = self.stat_col.initialize_csv_file(self.log_dir, 'validation.csv')
-
-            # Turn on validation.
-            self.use_validation_problem = True
-            self.logger.info("Using validation problem for loss computation and model validation")
-
-        else:
-            # We do not have a validation problem - so turn it off.
-            self.use_validation_problem = False
-            self.logger.warning("No validation problem configuration found - Setting up early stopping as a "
-                                "convergence criterion.")
-
-            # Use the training loss instead as a convergence criterion: If the loss is < threshold for a given
-            # number of episodes (default: 10), assume the model has converged.
-            try:
-                self.loss_length = self.param_interface['training']['length_loss']
-            except KeyError:
-                self.loss_length = 10
+        # Create the csv file to store the validation statistical estimators.
+        self.val_est_file = self.stat_est.initialize_csv_file(self.log_dir, 'validation_estimators.csv')
 
         # Set the optimizer.
         optimizer_conf = dict(self.param_interface['training']['optimizer'])
@@ -392,21 +387,24 @@ class Trainer(Worker):
 
             Because of the export of the weights and gradients to TensorBoard, we need to\
              keep track of the current episode index from the start of the training, even \
-            though the Worker runs on epoch.
+            though the Worker runs on epoch. This may change in a future release.
 
         .. warning::
-            The test for terminal conditions (e.g. convergence) is done at the end of each epoch,\
+
+            The test for terminal conditions (e.g. convergence) is done at the end of each epoch, \
             not episode. The terminal conditions are as follows:
 
-                 - The loss is below the specified threshold (using the validation loss or the highest training loss\
-                  over several episodes),
-                  - The maximum number of epochs has been met,
-                  - The user pressed 'Quit' during visualization (TODO: should change that)
+                - The loss is below the specified threshold (using the validation loss),
+                - The maximum number of epochs has been met,
+                - Early stopping is set and the validation loss did not change by delta for the indicated number \
+                of epochs,
+                - The user pressed 'Quit' during visualization (TODO: should change that)
+
 
         The function does the following for each epoch:
 
             - Executes the ``initialize_epoch()`` & ``finish_epoch()`` function of the ``Problem`` class,
-            - Checks the above terminal conditions
+            - Checks the above terminal conditions,
             - Iterates over the ``DataLoader``, and for each episode:
 
                     - Handles curriculum learning if set,
@@ -414,15 +412,13 @@ class Trainer(Worker):
                     - Forwards pass of the model,
                     - Logs statistics and exports to tensorboard (if set),
                     - Computes gradients and update weights
-                    - Activate visualization if set,
-                    - Validate the model on a batch according to the validation frequency.
+                    - Activate visualization if set.
+
+
         """
         # Ask for confirmation - optional.
         if flags.confirm:
             input('Press any key to continue')
-
-        # Start Training
-        last_losses = collections.deque()
 
         # Flag denoting whether we converged (or reached last episode).
         terminal_condition = False
@@ -464,15 +460,6 @@ class Trainer(Worker):
                 # 1. Perform forward step, get predictions and compute loss.
                 logits, loss = forward_step(self.model, self.problem, episode, self.stat_col, data_dict, epoch)
 
-                if not self.use_validation_problem:
-
-                    # Store the calculated loss on a list.
-                    last_losses.append(loss)
-
-                    # Truncate list length: pop oldest loss value.
-                    if len(last_losses) > self.loss_length:
-                        last_losses.popleft()
-
                 # 2. Backward gradient flow.
                 loss.backward()
 
@@ -489,15 +476,16 @@ class Trainer(Worker):
                 # 3. Perform optimization.
                 self.optimizer.step()
 
-                # 4. Log statistics.
+                # 4. Log collected statistics.
 
-                # Log to logger.
-                self.logger.info(self.stat_col.export_statistics_to_string())
+                # 4.1. Log to logger.
+                if episode % flags.logging_frequency == 0:
+                    self.logger.info(self.stat_col.export_statistics_to_string())
 
-                # Export to csv.
-                self.stat_col.export_statistics_to_csv(self.training_file)
+                # 4.2. Export to csv.
+                self.stat_col.export_statistics_to_csv(self.training_stats_file)
 
-                # Export data to tensorboard.
+                # 4.3. Export data to tensorboard.
                 if (flags.tensorboard is not None) and (episode % flags.logging_frequency == 0):
                     self.stat_col.export_statistics_to_tensorboard(self.training_writer)
 
@@ -520,26 +508,33 @@ class Trainer(Worker):
                             except Exception as e:
                                 self.logger.error("  {} :: grad :: {}".format(name, e))
 
-                # Check visualization of training data.
+                # 5. Check visualization of training data.
                 if self.app_state.visualize:
 
                     # Allow for preprocessing
                     data_dict, logits = self.problem.plot_preprocessing(data_dict, logits)
 
-                    # Show plot, if user presses Quit - break.
+                    # Show plot, if user presses `Quit` - break.
                     if self.model.plot(data_dict, logits):
                         user_pressed_stop = True
                         break
 
                 episode += 1
 
-            # finalize the epoch, even if the user pressed Quit during visualization
+            # Finalize the epoch, even if the user pressed `Quit` during visualization
             self.logger.info('Epoch {} finished'.format(epoch))
 
-            # aggregate training statistics
-            # self.stat_agg.aggregate_statistics()
-            # self.logger.info(self.stat_agg.export_statistics_to_string('[Epoch {}]'.format(epoch))
-            # self.stat_agg.export_statistics_to_csv(self.training_aggregate_file)
+            # Collect the statistical estimators
+            self.model.collect_estimators(self.stat_col, self.stat_est)
+            self.problem.collect_estimators(self.stat_col, self.stat_est)
+
+            self.stat_est['episode'] = episode
+            self.stat_est['epoch'] = epoch
+
+            # Log the statistical estimators to the logger
+            self.logger.info(self.stat_est.export_estimators_to_string())
+            # Log the statistical estimators to the csv file
+            self.stat_est.export_estimators_to_csv(self.training_est_file)
 
             # empty Statistics Collector
             self.stat_col.empty()
@@ -548,41 +543,12 @@ class Trainer(Worker):
             self.problem.finalize_epoch(epoch)
 
             # 5. Validate over the entire validation set
-            if self.use_validation_problem:
-                self.logger.info('Validating over the entire validation set')
+            avg_loss_valid, user_pressed_stop = validate_over_set(self.model, self.problem_validation, self.dl_valid,
+                                                                  self.stat_col, self.stat_est, flags, self.logger,
+                                                                  self.val_est_file, self.validation_writer, epoch)
 
-                # Turn on evaluation mode.
-                self.model.eval()
-
-                for data_dict in self.dl_valid:
-                    # 1. Perform forward step, get predictions and compute loss.
-                    # episode is not being incremented here -> fix
-
-                    # Compute the validation loss using the provided data batch.
-                    with torch.no_grad():
-                        logits_valid, loss_valid = forward_step(self.model, self.problem_validation, episode,
-                                                                self.stat_col, data_dict, epoch)
-
-                    # Log to logger.
-                    # self.logger.info(self.stat_col.export_statistics_to_string('[Validation]'))
-
-                    # Visualization of validation.
-                    if self.app_state.visualize >= 1:
-                        # Allow for preprocessing
-                        data_valid, logits_valid = self.problem_validation.plot_preprocessing(data_dict, logits_valid)
-
-                        # Show plot, if user presses Quit - break.
-                        if self.model.plot(data_dict, logits_valid):
-                            user_pressed_stop = True
-                            break
-
-                # Save the model using the latest (validation or training) statistics.
-                self.model.save(self.model_dir, self.stat_col)
-
-                # Aggregate statistics and log to logger, csv
-                # self.stat_agg.aggregate_statistics(stat_col)
-                # self.logger.info(self.stat_agg.export_statistics_to_string('[Validation]'))
-                # self.stat_agg.export_statistics_to_csv(self.validation_file)
+            # Save the model using the average validation loss.
+            self.model.save(self.model_dir, avg_loss_valid, self.stat_est)
 
             # 6. Terminal conditions: Tests which conditions have been met.
 
@@ -595,12 +561,7 @@ class Trainer(Worker):
             if self.curric_done or not self.must_finish_curriculum:
 
                 # loss_stop = True if convergence
-                if self.use_validation_problem:
-                    loss_stop = loss_valid < self.param_interface['training']['terminal_condition']['loss_stop']
-                    # We already saved that model.
-                else:
-                    loss_stop = max(last_losses) < self.param_interface['training']['terminal_condition']['loss_stop']
-                    # We already saved that model.
+                loss_stop = self.stat_est['loss_mean'] < self.param_interface['training']['terminal_condition']['loss_stop']
 
                 if loss_stop:
                     # Ok, we have converged.
@@ -614,21 +575,6 @@ class Trainer(Worker):
                 # If we reach this condition, then it is possible that the model didn't converge correctly
                 # and presents poorer performance.
 
-                # We still save the model as it may perform better during this epoch
-                # (as opposed to the previous checkpoint)
-
-                # Validate on the problem if required - so we can collect the
-                # statistics needed during saving of the best model.
-                if self.use_validation_problem:
-                    # generate a batch
-                    self.dl_valid = iter(self.dl_valid)
-                    data_valid = next(self.dl_valid)
-
-                    _, _ = validation(self.model, self.problem_validation, episode,
-                                      self.stat_col, data_valid, flags, self.logger,
-                                      self.validation_file, self.validation_writer, epoch)
-                # save the model
-                self.model.save(self.model_dir, self.stat_col)
                 # "Finish" the training.
                 break
 
@@ -644,24 +590,19 @@ class Trainer(Worker):
             if flags.visualize is not None and (flags.visualize == 3):
                 self.app_state.visualize = True
 
-                # Perform validation.
-                if self.use_validation_problem:
-                    # generate a batch
-                    self.dl_valid = iter(self.dl_valid)
-                    data_valid = next(self.dl_valid)
+                # Perform last validation (mainly for if flags.visualize = 3 since we just validated this model).
 
-                    _, _ = validation(self.model, self.problem_validation, episode, self.stat_col, data_valid,
-                                      flags, self.logger, self.validation_file, self.validation_writer)
+                _, _ = validate_over_set(self.model, self.problem_validation, self.dl_valid, self.stat_col,
+                                         self.stat_est, flags, self.logger, self.val_est_file, self.validation_writer,
+                                         self.stat_col['epoch'][-1])
 
-            else:
-                self.app_state.visualize = False
-
-        else:  # the training did not end properly
+        else:  # the training probably did not end properly
             self.logger.warning('Learning interrupted!')
 
         # Close all files.
-        self.training_file.close()
-        self.validation_file.close()
+        self.training_stats_file.close()
+        self.training_est_file.close()
+        self.val_est_file.close()
 
         if flags.tensorboard is not None:
             # Close the TensorBoard writers.
