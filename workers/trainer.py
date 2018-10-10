@@ -285,6 +285,9 @@ class Trainer(Worker):
         handshake(model=self.model, problem=self.problem, logger=self.logger)
         # no error thrown, so handshake succeeded
 
+        # Log the model summary.
+        self.logger.info(self.model.summarize())
+
         # build the DataLoader on top of the Problem class, using the associated configuration section
         self.dataloader = DataLoader(dataset=self.problem,
                                      batch_size=self.param_interface['training']['problem']['batch_size'],
