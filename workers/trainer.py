@@ -288,7 +288,7 @@ class Trainer(Worker):
         # Log the model summary.
         self.logger.info(self.model.summarize())
 
-        # build the DataLoader on top of the Problem class, using the associated configuration section
+        # build the DataLoader on top of the Problem class, using the associated configuration section.
         self.dataloader = DataLoader(dataset=self.problem,
                                      batch_size=self.param_interface['training']['problem']['batch_size'],
                                      shuffle=self.param_interface['training']['dataloader']['shuffle'],
