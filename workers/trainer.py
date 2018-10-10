@@ -23,7 +23,7 @@ trainer.py:
 
 
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Marois, Tomasz Kornuta"
 
 import os
 import yaml
@@ -131,13 +131,13 @@ class Trainer(Worker):
 
             - Set random seeds:
 
-                >>> torch.manual_seed(self.param_interface["training"]["seed_torch"])
-                >>> np.random.seed(self.param_interface["training"]["seed_numpy"])
+                >>> torch.manual_seed(self.params["training"]["seed_torch"])
+                >>> np.random.seed(self.params["training"]["seed_numpy"])
 
             - Creates problem and model:
 
-                >>> self.dataset = ProblemFactory.build_problem(self.param_interface['training']['problem'])
-                >>> self.model = ModelFactory.build_model(self.param_interface['model'], self.dataset.default_values)
+                >>> self.dataset = ProblemFactory.build_problem(self.params['training']['problem'])
+                >>> self.model = ModelFactory.build_model(self.params['model'], self.dataset.default_values)
 
             - Creates the DataLoader:
 
@@ -145,7 +145,7 @@ class Trainer(Worker):
 
             - Handles curriculum learning if indicated:
 
-                >>> if 'curriculum_learning' in self.param_interface['training']:
+                >>> if 'curriculum_learning' in self.params['training']:
                 >>> ...
 
             - Handles the validation of the model:
@@ -183,28 +183,28 @@ class Trainer(Worker):
         # Read the YAML files one by one - but in reverse order -> overwrite the first indicated config(s)
         for config in reversed(configs_to_load):
             # Load params from YAML file.
-            self.param_interface.add_config_params_from_yaml(config)
+            self.params.add_config_params_from_yaml(config)
             print('Loaded configuration from file {}'.format(config))
 
         # -> At this point, the Param Registry contains the configuration loaded (and overwritten) from several files.
 
         # Get training problem name.
         try:
-            training_problem_name = self.param_interface['training']['problem']['name']
+            training_problem_name = self.params['training']['problem']['name']
         except KeyError:
             print("Error: Couldn't retrieve problem name from the 'training' section in the loaded configuration")
             exit(-1)
 
         # Get validation problem name
         try:
-            _ = self.param_interface['validation']['problem']['name']
+            _ = self.params['validation']['problem']['name']
         except KeyError:
             print("Error: Couldn't retrieve problem name from the 'validation' section in the loaded configuration")
             exit(-1)
 
         # Get model name.
         try:
-            model_name = self.param_interface['model']['name']
+            model_name = self.params['model']['name']
         except KeyError:
             print("Error: Couldn't retrieve model name from the loaded configuration")
             exit(-1)
@@ -229,40 +229,31 @@ class Trainer(Worker):
         self.log_file = self.log_dir + 'trainer.log'
         self.add_file_handler_to_logger(self.log_file)
 
-        # Create TensorBoard outputs - if TensorBoard is supposed to be used.
-        if flags.tensorboard is not None:
-            from tensorboardX import SummaryWriter
-
-            self.training_writer = SummaryWriter(self.log_dir + '/training')
-            self.validation_writer = SummaryWriter(self.log_dir + '/validation')
-        else:
-            self.validation_writer = None
-
         # set random seeds
         self.set_random_seeds()
 
         # check if CUDA is available, if yes turn it on
-        check_and_set_cuda(self.param_interface['training'], self.logger)
+        check_and_set_cuda(self.params['training'], self.logger)
 
         # Build the problem for the training
-        self.problem = ProblemFactory.build_problem(self.param_interface['training']['problem'])
+        self.problem = ProblemFactory.build_problem(self.params['training']['problem'])
 
         # check that the number of epochs is available in param_interface. If not, put a default of 1.
-        if "max_epochs" not in self.param_interface["training"]["terminal_condition"] \
-                or self.param_interface["training"]["terminal_condition"]["max_epochs"] == -1:
+        if "max_epochs" not in self.params["training"]["terminal_condition"] \
+                or self.params["training"]["terminal_condition"]["max_epochs"] == -1:
             max_epochs = 1
 
-            self.param_interface["training"]["terminal_condition"].add_config_params({'max_epochs': max_epochs})
+            self.params["training"]["terminal_condition"].add_config_params({'max_epochs': max_epochs})
 
         self.logger.info("Setting the max number of epochs to: {}".format(
-            self.param_interface["training"]["terminal_condition"]["max_epochs"]))
+            self.params["training"]["terminal_condition"]["max_epochs"]))
 
         # ge t theepoch size in terms of episodes:
-        epoch_size = self.problem.get_epoch_size(self.param_interface["training"]["problem"]["batch_size"])
+        epoch_size = self.problem.get_epoch_size(self.params["training"]["problem"]["batch_size"])
         self.logger.info('Epoch size in terms of episodes: {}'.format(epoch_size))
 
         # Build the model using the loaded configuration and the default values of the problem.
-        self.model = ModelFactory.build_model(self.param_interface['model'], self.problem.default_values)
+        self.model = ModelFactory.build_model(self.params['model'], self.problem.default_values)
 
         # load the indicated pretrained model checkpoint if the argument is valid
         if flags.model != "":
@@ -285,31 +276,31 @@ class Trainer(Worker):
 
         # build the DataLoader on top of the Problem class, using the associated configuration section.
         self.dataloader = DataLoader(dataset=self.problem,
-                                     batch_size=self.param_interface['training']['problem']['batch_size'],
-                                     shuffle=self.param_interface['training']['dataloader']['shuffle'],
-                                     sampler=self.param_interface['training']['dataloader']['sampler'],
-                                     batch_sampler=self.param_interface['training']['dataloader']['batch_sampler'],
-                                     num_workers=self.param_interface['training']['dataloader']['num_workers'],
+                                     batch_size=self.params['training']['problem']['batch_size'],
+                                     shuffle=self.params['training']['dataloader']['shuffle'],
+                                     sampler=self.params['training']['dataloader']['sampler'],
+                                     batch_sampler=self.params['training']['dataloader']['batch_sampler'],
+                                     num_workers=self.params['training']['dataloader']['num_workers'],
                                      collate_fn=self.problem.collate_fn,
-                                     pin_memory=self.param_interface['training']['dataloader']['pin_memory'],
-                                     drop_last=self.param_interface['training']['dataloader']['drop_last'],
-                                     timeout=self.param_interface['training']['dataloader']['timeout'],
+                                     pin_memory=self.params['training']['dataloader']['pin_memory'],
+                                     drop_last=self.params['training']['dataloader']['drop_last'],
+                                     timeout=self.params['training']['dataloader']['timeout'],
                                      worker_init_fn=self.problem.worker_init_fn)
 
         # parse the curriculum learning section in the loaded configuration.
-        if 'curriculum_learning' in self.param_interface['training']:
+        if 'curriculum_learning' in self.params['training']:
 
             # Initialize curriculum learning - with values from loaded configuration.
-            self.problem.curriculum_learning_initialize(self.param_interface['training']['curriculum_learning'])
+            self.problem.curriculum_learning_initialize(self.params['training']['curriculum_learning'])
 
             # Set initial values of curriculum learning.
             self.curric_done = self.problem.curriculum_learning_update_params(0)
 
             # If the 'must_finish' key is not present in config then then it will be finished by default
-            if 'must_finish' not in self.param_interface['training']['curriculum_learning']:
-                self.param_interface['training']['curriculum_learning'].add_default_params({'must_finish': True})
+            if 'must_finish' not in self.params['training']['curriculum_learning']:
+                self.params['training']['curriculum_learning'].add_default_params({'must_finish': True})
 
-            self.must_finish_curriculum = self.param_interface['training']['curriculum_learning']['must_finish']
+            self.must_finish_curriculum = self.params['training']['curriculum_learning']['must_finish']
             self.logger.info("Using curriculum learning")
 
         else:
@@ -319,39 +310,24 @@ class Trainer(Worker):
             # If not using curriculum learning then it does not have to be finished.
             self.must_finish_curriculum = False
 
-        # Add the model & problem dependent statistics to the ``StatisticsCollector``
-        self.problem.add_statistics(self.stat_col)
-        self.model.add_statistics(self.stat_col)
-
-        # Add the model & problem dependent statistical estimators to the ``StatisticsEstimators``
-        self.problem.add_estimators(self.stat_est)
-        self.model.add_estimators(self.stat_est)
-
-        # Create the csv file to store the training statistics.
-        self.training_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'training_statistics.csv')
-
-        # Build the validation problem
-        self.problem_validation = ProblemFactory.build_problem(self.param_interface['validation']['problem'])
+        # Build the validation problem.
+        self.problem_validation = ProblemFactory.build_problem(self.params['validation']['problem'])
 
         # build the DataLoader on top of the validation problem
         self.dl_valid = DataLoader(dataset=self.problem_validation,
-                                   batch_size=self.param_interface['validation']['problem']['batch_size'],
-                                   shuffle=self.param_interface['validation']['dataloader']['shuffle'],
-                                   sampler=self.param_interface['validation']['dataloader']['sampler'],
-                                   batch_sampler=self.param_interface['validation']['dataloader']['batch_sampler'],
-                                   num_workers=self.param_interface['validation']['dataloader']['num_workers'],
+                                   batch_size=self.params['validation']['problem']['batch_size'],
+                                   shuffle=self.params['validation']['dataloader']['shuffle'],
+                                   sampler=self.params['validation']['dataloader']['sampler'],
+                                   batch_sampler=self.params['validation']['dataloader']['batch_sampler'],
+                                   num_workers=self.params['validation']['dataloader']['num_workers'],
                                    collate_fn=self.problem_validation.collate_fn,
-                                   pin_memory=self.param_interface['validation']['dataloader']['pin_memory'],
-                                   drop_last=self.param_interface['validation']['dataloader']['drop_last'],
-                                   timeout=self.param_interface['validation']['dataloader']['timeout'],
+                                   pin_memory=self.params['validation']['dataloader']['pin_memory'],
+                                   drop_last=self.params['validation']['dataloader']['drop_last'],
+                                   timeout=self.params['validation']['dataloader']['timeout'],
                                    worker_init_fn=self.problem_validation.worker_init_fn)
 
-        # Create the csv file to store the validation statistical estimators
-        # This file will contains several data points for the ``Trainer`` (but only one for the ``EpisodicTrainer``)
-        self.val_est_file = self.stat_est.initialize_csv_file(self.log_dir, 'validation_estimators.csv')
-
         # Set the optimizer.
-        optimizer_conf = dict(self.param_interface['training']['optimizer'])
+        optimizer_conf = dict(self.params['training']['optimizer'])
         optimizer_name = optimizer_conf['name']
         del optimizer_conf['name']
 
@@ -362,27 +338,76 @@ class Trainer(Worker):
 
         # -> At this point, all configuration for the ``Trainer`` is complete.
 
-        # -------------------------
-        # This attribute is used for the ``EpisodicTrainer``: as this constructor is also used by the
-        # ``EpisodicTrainer``, we set it here before saving the configuration to file.
-        # Set the Model validation frequency for the ``EpisodicTrainer`` (Default: 100 episodes).
-        try:
-            self.model_validation_interval = self.param_interface['training']['validation_interval']
-        except KeyError:
-            self.model_validation_interval = 100
-        # -------------------------
+        # Add the model & problem dependent statistics to the ``StatisticsCollector``
+        self.problem.add_statistics(self.stat_col)
+        self.model.add_statistics(self.stat_col)
+
+        # Add the model & problem dependent statistical estimators to the ``StatisticsEstimators``
+        self.problem.add_estimators(self.stat_est)
+        self.model.add_estimators(self.stat_est)
 
         # Save the resulting configuration into a .yaml settings file, under log_dir
         with open(self.log_dir + "training_configuration.yaml", 'w') as yaml_backup_file:
-            yaml.dump(self.param_interface.to_dict(), yaml_backup_file, default_flow_style=False)
+            yaml.dump(self.params.to_dict(), yaml_backup_file, default_flow_style=False)
 
         # Log the resulting training configuration.
         conf_str = '\n' + '='*80 + '\n'
         conf_str += 'Final registry configuration for training {} on {}:\n'.format(model_name, training_problem_name)
         conf_str += '='*80 + '\n'
-        conf_str += yaml.safe_dump(self.param_interface.to_dict(), default_flow_style=False)
+        conf_str += yaml.safe_dump(self.params.to_dict(), default_flow_style=False)
         conf_str += '='*80 + '\n'
         self.logger.info(conf_str)
+
+    def initialize_tensorboard(self, tensorboard_flag):
+        """
+        Function initializes tensorboard
+
+        :param tensorboard_flag: Flag set from command line. If not None, it will activate different \
+            modes of TB summary writer
+
+        """
+        # Create TensorBoard outputs - if TensorBoard is supposed to be used.
+        if tensorboard_flag is not None:
+            from tensorboardX import SummaryWriter
+
+            self.training_writer = SummaryWriter(self.log_dir + '/training')
+            self.validation_writer = SummaryWriter(self.log_dir + '/validation')
+        else:
+            self.training_writer = None
+            self.validation_writer = None
+
+
+    def finalize_tensorboard(self):
+        """ 
+        Finalizes operation of TensorBoard writers.
+        """
+        # Close the TensorBoard writers.
+        if self.training_writer is not None:
+            self.training_writer.close()
+        if self.validation_writer is not None:
+            self.validation_writer.close()
+        
+
+    def initialize_statistics_collection(self):
+        """
+        Function initializes all statistics collectors and aggregators used by a given worker,
+        creates output files etc.
+        """
+        # Create the csv file to store the training statistics.
+        self.training_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'training_statistics.csv')
+
+        # Create the csv file to store the validation statistical estimators
+        # This file will contains several data points for the ``Trainer`` (but only one for the ``EpisodicTrainer``)
+        self.validation_stats_aggregated_file = self.stat_est.initialize_csv_file(self.log_dir, 'validation_estimators.csv')
+
+    def finalize_statistics_collection(self):
+        """
+        Finalizes statistics collection, closes all files etc.
+        """
+        # Close all files.
+        self.training_stats_file.close()
+        self.validation_stats_aggregated_file.close()
+
 
     def forward(self, flags: argparse.Namespace):
         """
@@ -445,7 +470,7 @@ class Trainer(Worker):
         '''
         episode = 0
 
-        for epoch in range(self.param_interface["training"]["terminal_condition"]["max_epochs"]):
+        for epoch in range(self.params["training"]["terminal_condition"]["max_epochs"]):
 
             # user_pressed_stop = True means that we stop visualizing training episodes for the current epoch.
             user_pressed_stop = False
@@ -484,7 +509,7 @@ class Trainer(Worker):
                 # Check the presence of the 'gradient_clipping'  parameter.
                 try:
                     # if present - clip gradients to a range (-gradient_clipping, gradient_clipping)
-                    val = self.param_interface['training']['gradient_clipping']
+                    val = self.params['training']['gradient_clipping']
                     clip_grad_value_(self.model.parameters(), val)
 
                 except KeyError:
@@ -567,7 +592,7 @@ class Trainer(Worker):
                 self.app_state.visualize = False
             avg_loss_valid, _ = validate_over_set(self.model, self.problem_validation, self.dl_valid,
                                                   self.stat_col, self.stat_est, flags, self.logger,
-                                                  self.val_est_file, self.validation_writer, epoch)
+                                                  self.validation_stats_aggregated_file, self.validation_writer, epoch)
 
             # Save the model using the average validation loss.
             self.model.save(self.model_dir, avg_loss_valid, self.stat_est)
@@ -582,7 +607,7 @@ class Trainer(Worker):
             if self.curric_done or not self.must_finish_curriculum:
 
                 # loss_stop = True if convergence
-                loss_stop = self.stat_est['loss_mean'] < self.param_interface['training']['terminal_condition']['loss_stop']
+                loss_stop = self.stat_est['loss_mean'] < self.params['training']['terminal_condition']['loss_stop']
 
                 if loss_stop:
                     # Ok, we have converged.
@@ -598,7 +623,7 @@ class Trainer(Worker):
             # terminal_condition = 'Early Stopping.'
 
             # III - The epochs number limit has been reached.
-            if epoch > self.param_interface['training']['terminal_condition']['max_epochs']:
+            if epoch > self.params['training']['terminal_condition']['max_epochs']:
                 terminal_condition = 'Maximum number of epochs reached.'
                 # If we reach this condition, then it is possible that the model didn't converge correctly
                 # and presents poorer performance.
@@ -635,13 +660,13 @@ class Trainer(Worker):
         # Perform last validation (mainly for if flags.visualize = 3 since we just validated this model).
         self.logger.info('Last validation on the entire validation set:')
         _, _ = validate_over_set(self.model, self.problem_validation, self.dl_valid, self.stat_col,
-                                 self.stat_est, flags, self.logger, self.val_est_file, self.validation_writer,
+                                 self.stat_est, flags, self.logger, self.validation_stats_aggregated_file, self.validation_writer,
                                  'after end of training.')
 
         # Close all files.
         self.training_stats_file.close()
         self.training_est_file.close()
-        self.val_est_file.close()
+        self.validation_stats_aggregated_file.close()
 
         if flags.tensorboard is not None:
             # Close the TensorBoard writers.
@@ -663,4 +688,8 @@ if __name__ == '__main__':
     FLAGS, unparsed = argp.parse_known_args()
 
     trainer = Trainer(FLAGS)
+    # Initialize tensorboard and statistics collection.
+    trainer.initialize_tensorboard(FLAGS.tensorboard_flag)
+    trainer.initialize_statistics_collection()
+    # GO!
     trainer.forward(FLAGS)

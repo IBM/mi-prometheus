@@ -27,7 +27,7 @@ worker.py:
 
 
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Marois, Tomasz Kornuta"
 
 import yaml
 import torch
@@ -87,7 +87,7 @@ class Worker(object):
 
             - Initializes the Parameter Registry:
 
-                >>> self.param_interface = ParamInterface()
+                >>> self.params = ParamInterface()
 
             - Defines the logger:
 
@@ -117,12 +117,12 @@ class Worker(object):
         self.name = 'Worker'
 
         # Initialize parameter interface.
-        self.param_interface = ParamInterface()
+        self.params = ParamInterface()
 
         # add empty sections
-        self.param_interface.add_default_params({"training": {}})
-        self.param_interface.add_default_params({"validation": {}})
-        self.param_interface.add_default_params({"testing": {}})
+        self.params.add_default_params({"training": {}})
+        self.params.add_default_params({"validation": {}})
+        self.params.add_default_params({"testing": {}})
 
         # set a default configuration section for the DataLoaders
         dataloader_config = {'dataloader': {'shuffle': False,
@@ -133,9 +133,9 @@ class Worker(object):
                                             'drop_last': False,
                                             'timeout': 0}}
 
-        self.param_interface["training"].add_default_params(dataloader_config)
-        self.param_interface["validation"].add_default_params(dataloader_config)
-        self.param_interface["testing"].add_default_params(dataloader_config)
+        self.params["training"].add_default_params(dataloader_config)
+        self.params["validation"].add_default_params(dataloader_config)
+        self.params["testing"].add_default_params(dataloader_config)
 
         # Load the default logger configuration.
         with open('logger_config.yaml', 'rt') as f:
@@ -228,21 +228,21 @@ class Worker(object):
 
         """
         # Set the random seeds: either from the loaded configuration or a default randomly selected one.
-        if "seed_torch" not in self.param_interface["training"] or self.param_interface["training"]["seed_torch"] == -1:
+        if "seed_torch" not in self.params["training"] or self.params["training"]["seed_torch"] == -1:
             seed = randrange(0, 2 ** 32)
             # Overwrite the config param!
-            self.param_interface["training"].add_config_params({"seed_torch": seed})
+            self.params["training"].add_config_params({"seed_torch": seed})
 
-        self.logger.info("Setting torch random seed to: {}".format(self.param_interface["training"]["seed_torch"]))
+        self.logger.info("Setting torch random seed to: {}".format(self.params["training"]["seed_torch"]))
 
-        torch.manual_seed(self.param_interface["training"]["seed_torch"])
+        torch.manual_seed(self.params["training"]["seed_torch"])
 
-        torch.cuda.manual_seed_all(self.param_interface["training"]["seed_torch"])
+        torch.cuda.manual_seed_all(self.params["training"]["seed_torch"])
 
-        if "seed_numpy" not in self.param_interface["training"] or self.param_interface["training"]["seed_numpy"] == -1:
+        if "seed_numpy" not in self.params["training"] or self.params["training"]["seed_numpy"] == -1:
             seed = randrange(0, 2 ** 32)
-            self.param_interface["training"].add_config_params({"seed_numpy": seed})
+            self.params["training"].add_config_params({"seed_numpy": seed})
 
-        self.logger.info("Setting numpy random seed to: {}".format(self.param_interface["training"]["seed_numpy"]))
+        self.logger.info("Setting numpy random seed to: {}".format(self.params["training"]["seed_numpy"]))
 
-        np.random.seed(self.param_interface["training"]["seed_numpy"])
+        np.random.seed(self.params["training"]["seed_numpy"])

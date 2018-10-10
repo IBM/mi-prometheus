@@ -21,7 +21,7 @@ episode_trainer.py:
     - This file contains the implementation of the ``EpisodeTrainer``, which inherits from ``Trainer``.
 
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Marois, Tomasz Kornuta"
 
 import argparse
 from torch.nn.utils import clip_grad_value_
@@ -61,23 +61,41 @@ class EpisodeTrainer(Trainer):
         self.name = 'EpisodeTrainer'
         self.set_logger_name(self.name)
 
-        # delete 'epoch' entry in the StatisticsCollector as we don't need it.
-        self.stat_col.__delitem__('epoch')
-
-
-        # Recreate the csv files to avoid having the 'epoch' key still present:
-
-        # Recreate the csv file to store the training statistics.
-        self.training_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'training_statistics.csv')
-
-        # Create the csv file to store the validation statistics.
-        self.val_file = self.stat_col.initialize_csv_file(self.log_dir, 'validation_statistics.csv')
-
-        # ReCreate the csv file to store the validation statistical estimators.
-        self.val_est_file = self.stat_est.initialize_csv_file(self.log_dir, 'validation_estimators.csv')
+        # Set the Model validation frequency for the ``EpisodicTrainer`` (Default: 100 episodes).
+        self.params['validation'].add_default_params({'interval': 100})
+        self.model_validation_interval = self.params['validation']['interval']
 
         # generate one batch used for validation
         self.data_valid = next(iter(self.dl_valid))
+
+
+    def initialize_statistics_collection(self):
+        """
+        Function initializes all statistics collectors and aggregators used by a given worker,
+        creates output files etc.
+        """
+        # delete 'epoch' entry in the StatisticsCollector as we don't need it.
+        self.stat_col.__delitem__('epoch')
+
+        # Create the csv file to store the training statistics.
+        self.training_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'training_statistics.csv')
+
+        # Create the csv file to store the validation statistics.
+        self.validation_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'validation_statistics.csv')
+
+        # Create the csv file to store the validation statistic aggregations.
+        self.validation_stats_aggregated_file = self.stat_est.initialize_csv_file(self.log_dir, 'validation_statistics_aggregated.csv')
+
+
+    def finalize_statistics_collection(self):
+        """
+        Finalizes statistics collection, closes all files etc.
+        """
+        # Close all files.
+        self.training_stats_file.close()
+        self.validation_stats_file.close()
+        self.validation_stats_aggregated_file.close()
+
 
     def forward(self, flags: argparse.Namespace):
         """
@@ -148,7 +166,7 @@ class EpisodeTrainer(Trainer):
             # Check the presence of the 'gradient_clipping'  parameter.
             try:
                 # if present - clip gradients to a range (-gradient_clipping, gradient_clipping)
-                val = self.param_interface['training']['gradient_clipping']
+                val = self.params['training']['gradient_clipping']
                 clip_grad_value_(self.model.parameters(), val)
 
             except KeyError:
@@ -217,13 +235,12 @@ class EpisodeTrainer(Trainer):
                 # Perform validation.
                 validation_loss, user_pressed_stop = validation(self.model, self.problem_validation, episode,
                                                                 self.stat_col, self.data_valid, flags, self.logger,
-                                                                self.val_file, self.validation_writer)
+                                                                self.validation_stats_file, self.validation_writer)
 
                 # Save the model using the latest validation statistics.
                 self.model.save(self.model_dir, validation_loss, self.stat_col)
 
             # 7. Terminal conditions.
-
 
             # Apply curriculum learning - change some of the Problem parameters
             self.curric_done = self.problem.curriculum_learning_update_params(episode)
@@ -236,7 +253,7 @@ class EpisodeTrainer(Trainer):
             if self.curric_done or not self.must_finish_curriculum:
 
                 # loss_stop = True if convergence
-                loss_stop = validation_loss < self.param_interface['training']['terminal_condition']['loss_stop']
+                loss_stop = validation_loss < self.params['training']['terminal_condition']['loss_stop']
                 # We already saved that model.
 
                 if loss_stop:
@@ -246,7 +263,7 @@ class EpisodeTrainer(Trainer):
                     break
 
             # 7.3. - The episodes number limit has been reached.
-            if episode == self.param_interface['training']['terminal_condition']['max_episodes']:
+            if episode == self.params['training']['terminal_condition']['max_episodes']:
                 terminal_condition = True
                 # If we reach this condition, then it is possible that the model didn't converge correctly
                 # and present poorer performance.
@@ -268,7 +285,7 @@ class EpisodeTrainer(Trainer):
 
             # check if we are at the end of the 'epoch': Indicate that the DataLoader is now cycling.
             if ((episode + 1) % self.problem.get_epoch_size(
-                    self.param_interface['training']['problem']['batch_size'])) == 0:
+                    self.params['training']['problem']['batch_size'])) == 0:
                 self.logger.warning('The DataLoader has exhausted -> using cycle(iterable).')
 
             # Move on to next episode.
@@ -291,7 +308,7 @@ class EpisodeTrainer(Trainer):
         self.stat_est['episode'] = episode
         avg_loss_valid, user_pressed_stop = validate_over_set(self.model, self.problem_validation, self.dl_valid,
                                                               self.stat_col, self.stat_est, flags, self.logger,
-                                                              self.val_est_file, None, 1)
+                                                              self.validation_stats_aggregated_file, None, 1)
 
         # Save the model using the average validation loss.
         self.model.save(self.model_dir, avg_loss_valid, self.stat_est)
@@ -304,15 +321,8 @@ class EpisodeTrainer(Trainer):
         else:  # the training did not end properly
             self.logger.warning('Learning interrupted!')
 
-        # Close all files.
-        self.training_stats_file.close()
-        self.val_file.close()
-        self.val_est_file.close()
-
-        if flags.tensorboard is not None:
-            # Close the TensorBoard writers.
-            self.training_writer.close()
-            self.validation_writer.close()
+        # And statistics collection.
+        self.finalize_statistics_collection()
 
 
 if __name__ == '__main__':
@@ -329,4 +339,8 @@ if __name__ == '__main__':
     FLAGS, unparsed = argp.parse_known_args()
 
     episode_trainer = EpisodeTrainer(FLAGS)
+    # Initialize tensorboard and statistics collection.
+    episode_trainer.initialize_tensorboard(FLAGS.tensorboard)
+    episode_trainer.initialize_statistics_collection()
+    # GO!
     episode_trainer.forward(FLAGS)
