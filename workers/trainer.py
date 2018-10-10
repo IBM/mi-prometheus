@@ -376,11 +376,13 @@ class Trainer(Worker):
         with open(self.log_dir + "training_configuration.yaml", 'w') as yaml_backup_file:
             yaml.dump(self.param_interface.to_dict(), yaml_backup_file, default_flow_style=False)
 
-        # Log the loaded training configuration to the logger.
-        infostr = 'Configuration for {}:\n'.format(training_problem_name)
-        infostr += yaml.safe_dump(self.param_interface.to_dict(), default_flow_style=False,
-                                  explicit_start=True, explicit_end=True)
-        self.logger.info(infostr)
+        # Log the resulting training configuration.
+        conf_str = '\n' + '='*80 + '\n'
+        conf_str += 'Final registry configuration for training {} on {}:\n'.format(model_name, training_problem_name)
+        conf_str += '='*80 + '\n'
+        conf_str += yaml.safe_dump(self.param_interface.to_dict(), default_flow_style=False)
+        conf_str += '='*80 + '\n'
+        self.logger.info(conf_str)
 
     def forward(self, flags: argparse.Namespace):
         """
