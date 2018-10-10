@@ -42,7 +42,7 @@ from abc import abstractmethod
 from utils.app_state import AppState
 from utils.param_interface import ParamInterface
 from utils.statistics_collector import StatisticsCollector
-from utils.statistics_estimators import StatisticsEstimators
+from utils.statistics_aggregator import StatisticsAggregator
 
 
 def add_arguments(parser: argparse.ArgumentParser):
@@ -101,9 +101,9 @@ class Worker(object):
 
                 >>> self.stat_col = StatisticsCollector()
 
-            - Create the StatisticsEstimators:
+            - Create the StatisticsAggregator:
 
-                >>> self.stat_est = StatisticsEstimators()
+                >>> self.stat_agg = StatisticsAggregator()
 
 
 
@@ -152,8 +152,8 @@ class Worker(object):
         # Create statistics collector.
         self.stat_col = StatisticsCollector()
 
-        # Create statistics aggregator
-        self.stat_est = StatisticsEstimators()
+        # Create statistics aggregator.
+        self.stat_agg = StatisticsAggregator()
 
     @abstractmethod
     def forward(self, flags: argparse.Namespace):

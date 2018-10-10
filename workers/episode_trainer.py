@@ -74,9 +74,6 @@ class EpisodeTrainer(Trainer):
         Function initializes all statistics collectors and aggregators used by a given worker,
         creates output files etc.
         """
-        # delete 'epoch' entry in the StatisticsCollector as we don't need it.
-        self.stat_col.__delitem__('epoch')
-
         # Create the csv file to store the training statistics.
         self.training_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'training_statistics.csv')
 
@@ -84,7 +81,7 @@ class EpisodeTrainer(Trainer):
         self.validation_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'validation_statistics.csv')
 
         # Create the csv file to store the validation statistic aggregations.
-        self.validation_stats_aggregated_file = self.stat_est.initialize_csv_file(self.log_dir, 'validation_statistics_aggregated.csv')
+        self.validation_stats_aggregated_file = self.stat_agg.initialize_csv_file(self.log_dir, 'validation_statistics_aggregated.csv')
 
 
     def finalize_statistics_collection(self):
@@ -305,13 +302,13 @@ class EpisodeTrainer(Trainer):
         else:
             self.app_state.visualize = False
 
-        self.stat_est['episode'] = episode
+        self.stat_agg['episode'] = episode
         avg_loss_valid, user_pressed_stop = validate_over_set(self.model, self.problem_validation, self.dl_valid,
-                                                              self.stat_col, self.stat_est, flags, self.logger,
+                                                              self.stat_col, self.stat_agg, flags, self.logger,
                                                               self.validation_stats_aggregated_file, None, 1)
 
         # Save the model using the average validation loss.
-        self.model.save(self.model_dir, avg_loss_valid, self.stat_est)
+        self.model.save(self.model_dir, avg_loss_valid, self.stat_agg)
 
         # Check whether we have finished training properly.
         if terminal_condition:

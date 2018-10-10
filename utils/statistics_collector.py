@@ -44,7 +44,6 @@ class StatisticsCollector(Mapping):
         self.formatting = dict()
 
         # Add default statistics with formatting.
-        self.add_statistic('epoch', '{:06d}')
         self.add_statistic('episode', '{:06d}')
         self.add_statistic('loss', '{:12.10f}')
 

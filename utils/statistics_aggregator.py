@@ -16,10 +16,10 @@
 # limitations under the License.
 
 """
-statistics_estimators.py: Allows to compute several statistical estimators (e.g. average, standard deviation...)\
+estimator.py: Allows to compute several statistical aggregators (e.g. average, standard deviation...)\
  using the statistics collected over an epoch or a validation phase by the ``StatisticsCollector``.
 
- Allows to summarize the current epoch or validation phase using statistical estimators.
+ Allows to summarize the current epoch or validation phase using statistical aggregators.
 
  """
 __author__ = "Vincent Marois"
@@ -27,16 +27,16 @@ __author__ = "Vincent Marois"
 from utils.statistics_collector import StatisticsCollector
 
 
-class StatisticsEstimators(StatisticsCollector):
+class StatisticsAggregator(StatisticsCollector):
     """
-    Specialized class used for the computation of several statistical estimators.
+    Specialized class used for the computation of several statistical aggregators.
 
     Inherits from ``StatisticsCollector`` as it extends its capabilities: it relies \
     on ``StatisticsCollector`` to collect the statistics over an epoch (training set) \
     or a validation (over the validation set).
 
     Once the statistics have been collected, the ``StatisticsEstimator`` allows to compute several \
-    statistical estimators to summarize the last epoch or validation phase.
+    statistical aggregators to summarize the last epoch or validation phase.
 
     E.g. With the list of loss values from the last epoch, we can compute the average loss, the min & max, \
     and the standard deviation.
@@ -48,31 +48,33 @@ class StatisticsEstimators(StatisticsCollector):
         """
         Constructor for the ``StatisticsEstimator``.
 
-        Add the following basic statistical estimators:
+        Add the following basic statistical aggregators:
 
             - Minimum & maximum loss value,
             - Average loss,
             - Standard deviation of the loss.
 
-        Other statistical estimators can be added via ``self.add_estimator()``.
+        Other statistical aggregators can be added via ``self.add_aggregator()``.
 
         """
         # call base constructor
-        super(StatisticsEstimators, self).__init__()
+        super(StatisticsAggregator, self).__init__()
 
-        self.estimators = dict()
+        self.aggregators = dict()
 
-        # add 'estimators' for the episode index and epoch
-        self.add_estimator('episode', '{:06d}')
-        self.add_estimator('epoch', '{:06d}')
+        # add 'aggregators' for the episode.
+        self.add_aggregator('episode', '{:06d}')
+        # Number of aggregated episodes.
+        self.add_aggregator('episodes_aggregated', '{:06d}')
 
-        # Add default statistical estimators for the loss (indicating a formatting).
-        self.add_estimator('loss', '{:12.10f}')  # represents the average loss
-        self.add_estimator('loss_min', '{:12.10f}')
-        self.add_estimator('loss_max', '{:12.10f}')
-        self.add_estimator('loss_std', '{:12.10f}')
+        # Add default statistical aggregators for the loss (indicating a formatting).
+        # Represents the average loss, but stying with loss for TensorBoard "variable compatibility".
+        self.add_aggregator('loss', '{:12.10f}')  
+        self.add_aggregator('loss_min', '{:12.10f}')
+        self.add_aggregator('loss_max', '{:12.10f}')
+        self.add_aggregator('loss_std', '{:12.10f}')
 
-    def add_estimator(self, key, formatting):
+    def add_aggregator(self, key, formatting):
         """
         Add a statistical estimator.
         The value associated to the specified key is initiated as -1.
@@ -90,7 +92,7 @@ class StatisticsEstimators(StatisticsCollector):
         self.formatting[key] = formatting
 
         # instantiate associated value as list.
-        self.estimators[key] = -1
+        self.aggregators[key] = -1
 
     def __getitem__(self, key):
         """
@@ -102,7 +104,7 @@ class StatisticsEstimators(StatisticsCollector):
         :return: Values list associated with the specified statistical estimator.
 
         """
-        return self.estimators[key]
+        return self.aggregators[key]
 
     def __setitem__(self, key, value):
         """
@@ -115,7 +117,7 @@ class StatisticsEstimators(StatisticsCollector):
         :type value: int, float
 
         """
-        self.estimators[key] = value
+        self.aggregators[key] = value
 
     def __delitem__(self, key):
         """
@@ -125,24 +127,42 @@ class StatisticsEstimators(StatisticsCollector):
         :type key: str
 
         """
-        del self.estimators[key]
+        del self.aggregators[key]
 
     def __len__(self):
         """
-        Returns the number of tracked statistical estimators.
+        Returns the number of tracked statistical aggregators.
         """
-        return self.estimators.__len__()
+        return self.aggregators.__len__()
 
     def __iter__(self):
         """
-        Return an iterator on the currently tracked statistical estimators.
+        Return an iterator on the currently tracked statistical aggregators.
         """
-        return self.estimators.__iter__()
+        return self.aggregators.__iter__()
+
+    def aggregate(self, stat_col):
+        """
+        Method aggregates the default statistics collected by the Statistics Collector.
+
+        :param: stat_col: ''StatisticsCollector''
+        """
+        # Get loss values.
+        loss_values = stat_col['loss']
+        # Calcualte default aggregates.
+        self.aggregators['loss'] = np.average(loss_values)
+        self.aggregators['loss_min'] = min(loss_values)
+        self.aggregators['loss_max'] = max(loss_values)
+        self.aggregators['loss_std'] = np.std(loss_values)
+        # Simply copy the last episode from collector.
+        self.aggregators['episode'] = stat_col['episode'][-1]
+        self.aggregators['episodes_aggregated'] = len(loss_values)
+        
 
     def initialize_csv_file(self, log_dir, filename):
         """
         This method creates a new `csv` file and initializes it with a header produced \
-        on the base of the statistical estimators names.
+        on the base of the statistical aggregators names.
 
         :param log_dir: Path to file.
         :type log_dir: str
@@ -156,7 +176,7 @@ class StatisticsEstimators(StatisticsCollector):
         header_str = ''
 
         # Iterate through keys and concatenate them.
-        for key in self.estimators.keys():
+        for key in self.aggregators.keys():
             header_str += key + ","
 
         # Remove last coma and add \n.
@@ -168,9 +188,9 @@ class StatisticsEstimators(StatisticsCollector):
 
         return csv_file
 
-    def export_estimators_to_csv(self, csv_file):
+    def export_aggregators_to_csv(self, csv_file):
         """
-        This method writes the current statistical estimators values to the `csv_file` using the associated formatting.
+        This method writes the current statistical aggregators values to the `csv_file` using the associated formatting.
 
         :param csv_file: File stream opened for writing.
 
@@ -178,7 +198,7 @@ class StatisticsEstimators(StatisticsCollector):
         values_str = ''
 
         # Iterate through values and concatenate them.
-        for key, value in self.estimators.items():
+        for key, value in self.aggregators.items():
 
             # Get formatting - using '{}' as default.
             format_str = self.formatting.get(key, '{}')
@@ -191,22 +211,22 @@ class StatisticsEstimators(StatisticsCollector):
 
         csv_file.write(values_str)
 
-    def export_estimators_to_string(self, additional_tag=''):
+    def export_aggregators_to_string(self, additional_tag=''):
         """
-        This method returns the current statistical estimators values in the form of a string using the \
+        This method returns the current statistical aggregators values in the form of a string using the \
         associated formatting.
 
         :param additional_tag: An additional tag to append at the end of the created string.
         :type additional_tag: str
 
 
-        :return: String being the concatenation of the statistical estimators names & values.
+        :return: String being the concatenation of the statistical aggregators names & values.
 
         """
         stat_str = ''
 
         # Iterate through keys and values and concatenate them.
-        for key, value in self.estimators.items():
+        for key, value in self.aggregators.items():
 
             stat_str += key + ' '
             # Get formatting - using '{}' as default.
@@ -214,24 +234,24 @@ class StatisticsEstimators(StatisticsCollector):
             # Add value to string using formatting.
             stat_str += format_str.format(value) + "; "
 
-        # Remove last two element and add additional tag
+        # Remove last two elements and add additional tag
         stat_str = stat_str[:-2] + " " + additional_tag
 
         return stat_str
 
-    def export_estimators_to_tensorboard(self, tb_writer):
+    def export_aggregators_to_tensorboard(self, tb_writer):
         """
-        Method exports current statistical estimators values to TensorBoard.
+        Method exports current statistical aggregators values to TensorBoard.
 
         :param tb_writer: TensorBoard writer.
         :type tb_writer: ``tensorboardX.SummaryWriter``
 
         """
         # Get episode number.
-        episode = self.estimators['episode']
+        episode = self.aggregators['episode']
 
         # Iterate through keys and values and concatenate them.
-        for key, value in self.estimators.items():
+        for key, value in self.aggregators.items():
             # Skip episode.
             if key == 'episode':
                 continue
@@ -240,26 +260,25 @@ class StatisticsEstimators(StatisticsCollector):
 
 if __name__ == "__main__":
 
-    stat_est = StatisticsEstimators()
+    stat_col = StatisticsCollector()
+    stat_agg = StatisticsAggregator()
 
     # create some random values
     import random
     import numpy as np
     loss_values = random.sample(range(100), 100)
 
-    # add episode value and delete epoch statistics
-    stat_est.statistics['episode'].append(0)
+    for episode, loss in enumerate(loss_values):
+        stat_col['episode'] = episode
+        stat_col['loss'] = loss
+        #print(stat_col.export_statistics_to_string())
+        
+    # Aggregate.
+    stat_agg.aggregate(stat_col)
+    print(stat_agg.export_aggregators_to_string())
 
-    del stat_est.statistics['epoch']
+    # Add new aggregator (a simulation of "additional statistics collected by model")
+    stat_agg.add_aggregator('acc_mean', '{:2.5f}')
+    stat_agg['acc_mean'] = np.mean(random.sample(range(100), 100))
 
-    stat_est['loss_min'] = min(loss_values)
-    stat_est['loss_max'] = max(loss_values)
-    stat_est['loss'] = np.average(loss_values)
-    stat_est['loss_std'] = np.std(loss_values)
-
-    print(stat_est.export_estimators_to_string())
-
-    stat_est.add_estimator('acc_mean', '{:2.5f}')
-    stat_est['acc_mean'] = np.mean(random.sample(range(100), 100))
-
-    print(stat_est.export_estimators_to_string('[Epoch 1]'))
+    print(stat_agg.export_aggregators_to_string('[Epoch 1]'))

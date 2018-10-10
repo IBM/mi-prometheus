@@ -343,8 +343,8 @@ class Trainer(Worker):
         self.model.add_statistics(self.stat_col)
 
         # Add the model & problem dependent statistical estimators to the ``StatisticsEstimators``
-        self.problem.add_estimators(self.stat_est)
-        self.model.add_estimators(self.stat_est)
+        self.problem.add_estimators(self.stat_agg)
+        self.model.add_estimators(self.stat_agg)
 
         # Save the resulting configuration into a .yaml settings file, under log_dir
         with open(self.log_dir + "training_configuration.yaml", 'w') as yaml_backup_file:
@@ -393,12 +393,16 @@ class Trainer(Worker):
         Function initializes all statistics collectors and aggregators used by a given worker,
         creates output files etc.
         """
+        # Add statistics characteristic for this (i.e. epoch) trainer.
+        self.stat_col.add_statistic('epoch', '{:06d}')
+        self.stat_agg.add_aggregator('epoch', '{:06d}')
+
         # Create the csv file to store the training statistics.
         self.training_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'training_statistics.csv')
 
         # Create the csv file to store the validation statistical estimators
         # This file will contains several data points for the ``Trainer`` (but only one for the ``EpisodicTrainer``)
-        self.validation_stats_aggregated_file = self.stat_est.initialize_csv_file(self.log_dir, 'validation_estimators.csv')
+        self.validation_stats_aggregated_file = self.stat_agg.initialize_csv_file(self.log_dir, 'validation_estimators.csv')
 
     def finalize_statistics_collection(self):
         """
@@ -456,7 +460,7 @@ class Trainer(Worker):
         """
         # Create the csv file to store the training statistical estimators.
         # doing it in the forward, not constructor, as the ``EpisodicTrainer`` does not need it.
-        self.training_est_file = self.stat_est.initialize_csv_file(self.log_dir, 'training_estimators.csv')
+        self.training_est_file = self.stat_agg.initialize_csv_file(self.log_dir, 'training_estimators.csv')
 
         # Ask for confirmation - optional.
         if flags.confirm:
@@ -566,16 +570,16 @@ class Trainer(Worker):
             self.logger.info('Epoch {} finished'.format(epoch))
 
             # Collect the statistical estimators
-            self.model.collect_estimators(self.stat_col, self.stat_est)
-            self.problem.collect_estimators(self.stat_col, self.stat_est)
+            self.model.collect_estimators(self.stat_col, self.stat_agg)
+            self.problem.collect_estimators(self.stat_col, self.stat_agg)
 
-            self.stat_est['episode'] = episode
-            self.stat_est['epoch'] = epoch
+            self.stat_agg['episode'] = episode
+            self.stat_agg['epoch'] = epoch
 
             # Log the statistical estimators to the logger
-            self.logger.info(self.stat_est.export_estimators_to_string())
+            self.logger.info(self.stat_agg.export_estimators_to_string())
             # Log the statistical estimators to the csv file
-            self.stat_est.export_estimators_to_csv(self.training_est_file)
+            self.stat_agg.export_estimators_to_csv(self.training_est_file)
 
             # empty Statistics Collector
             self.stat_col.empty()
@@ -591,11 +595,11 @@ class Trainer(Worker):
             else:
                 self.app_state.visualize = False
             avg_loss_valid, _ = validate_over_set(self.model, self.problem_validation, self.dl_valid,
-                                                  self.stat_col, self.stat_est, flags, self.logger,
+                                                  self.stat_col, self.stat_agg, flags, self.logger,
                                                   self.validation_stats_aggregated_file, self.validation_writer, epoch)
 
             # Save the model using the average validation loss.
-            self.model.save(self.model_dir, avg_loss_valid, self.stat_est)
+            self.model.save(self.model_dir, avg_loss_valid, self.stat_agg)
 
             # 6. Terminal conditions: Tests which conditions have been met.
 
@@ -607,7 +611,7 @@ class Trainer(Worker):
             if self.curric_done or not self.must_finish_curriculum:
 
                 # loss_stop = True if convergence
-                loss_stop = self.stat_est['loss_mean'] < self.params['training']['terminal_condition']['loss_stop']
+                loss_stop = self.stat_agg['loss_mean'] < self.params['training']['terminal_condition']['loss_stop']
 
                 if loss_stop:
                     # Ok, we have converged.
@@ -660,7 +664,7 @@ class Trainer(Worker):
         # Perform last validation (mainly for if flags.visualize = 3 since we just validated this model).
         self.logger.info('Last validation on the entire validation set:')
         _, _ = validate_over_set(self.model, self.problem_validation, self.dl_valid, self.stat_col,
-                                 self.stat_est, flags, self.logger, self.validation_stats_aggregated_file, self.validation_writer,
+                                 self.stat_agg, flags, self.logger, self.validation_stats_aggregated_file, self.validation_writer,
                                  'after end of training.')
 
         # Close all files.
