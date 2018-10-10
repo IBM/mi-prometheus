@@ -612,6 +612,50 @@ class Problem(Dataset):
         """
         pass
 
+    def add_estimators(self, stat_est):
+        """
+        Adds statistical estimators to ``StatisticsEstimators``.
+
+        .. note::
+
+
+            Empty - To be redefined in inheriting classes.
+
+
+        :param stat_est: ``StatisticsEstimators``.
+
+        """
+
+        pass
+
+    def collect_estimators(self, stat_col, stat_est):
+        """
+        Collect the statistical estimators added using ``self.add_estimator``.
+
+         .. note::
+
+
+            Only computes the min, max, mean, std of the loss as these are basic statistical estimators \
+            set by default.
+
+            The user can override this function in subclasses but should call \
+            ``super().collect_estimators(stat_col, stat_est)`` to collect basic statistical estimators.
+
+            Given that the ``StatisticsEstimators`` uses the statistics collected by the ``StatisticsCollector``, \
+            the user should also ensure that these statistics are correctly collected \
+            (i.e. use of ``self.add_statistics`` and ``self.collect_statistics``.
+
+        :param stat_col: ``StatisticsCollector``.
+
+        :param stat_est: ``StatisticsEstimators``.
+
+
+        """
+        stat_est['loss_min'] = min(stat_col['loss'])
+        stat_est['loss_max'] = max(stat_col['loss'])
+        stat_est['loss'] = torch.mean(torch.tensor(stat_col['loss']))
+        stat_est['loss_std'] = torch.std(torch.tensor(stat_col['loss']))
+
     def get_epoch_size(self, batch_size):
         """
         Compute the number of iterations ('episodes') to run given the size of the dataset and the batch size to cover

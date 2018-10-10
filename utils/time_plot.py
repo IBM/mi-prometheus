@@ -65,19 +65,19 @@ class TimePlot(QtWidgets.QMainWindow):
         next_btn = QtWidgets.QPushButton("&Next episode")  # Shortcut is Alt+N
         next_btn.clicked.connect(self._next_clicked)
         # Quit button.
-        quit_btn = QtWidgets.QPushButton("&Quit")  # Shortcut is Alt+Q
-        quit_btn.clicked.connect(self.closeEvent)
+        stop_btn = QtWidgets.QPushButton("&Stop visualization")  # Shortcut is Alt+Q
+        stop_btn.clicked.connect(self.closeEvent)
         # Add buttons to widget.
         hbox_buttons.addWidget(save_movie_btn)
         hbox_buttons.addWidget(next_btn)
-        hbox_buttons.addWidget(quit_btn)
+        hbox_buttons.addWidget(stop_btn)
         self.layout.addLayout(hbox_buttons, 2, 0)
 
         self.is_closed = False
         self.is_playing = False
 
     def _save_movie_clicked(self):
-        logger = logging.getLogger('ModelBase')
+        logger = logging.getLogger('Model')
         logger.info("Saving movie - please wait...")
         # Generate filename.
         time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())

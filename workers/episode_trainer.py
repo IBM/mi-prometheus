@@ -24,13 +24,12 @@ episode_trainer.py:
 __author__ = "Vincent Marois"
 
 import argparse
-import collections
 from torch.nn.utils import clip_grad_value_
 
 import workers.worker as worker
 import workers.trainer as trainer
 from workers.trainer import Trainer
-from utils.worker_utils import forward_step, validation
+from utils.worker_utils import forward_step, validation,  validate_over_set
 
 
 class EpisodeTrainer(Trainer):
@@ -65,11 +64,20 @@ class EpisodeTrainer(Trainer):
         # delete 'epoch' entry in the StatisticsCollector as we don't need it.
         self.stat_col.__delitem__('epoch')
 
-        # recreate the csv files to avoid having the 'epoch' key still present
-        self.training_file = self.stat_col.initialize_csv_file(self.log_dir, 'training.csv')
 
-        if ('validation' in self.param_interface) and ('problem' in self.param_interface['validation']):
-            self.validation_file = self.stat_col.initialize_csv_file(self.log_dir, 'validation.csv')
+        # Recreate the csv files to avoid having the 'epoch' key still present:
+
+        # Recreate the csv file to store the training statistics.
+        self.training_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'training_statistics.csv')
+
+        # Create the csv file to store the validation statistics.
+        self.val_file = self.stat_col.initialize_csv_file(self.log_dir, 'validation_statistics.csv')
+
+        # ReCreate the csv file to store the validation statistical estimators.
+        self.val_est_file = self.stat_est.initialize_csv_file(self.log_dir, 'validation_estimators.csv')
+
+        # generate one batch used for validation
+        self.data_valid = next(iter(self.dl_valid))
 
     def forward(self, flags: argparse.Namespace):
         """
@@ -100,16 +108,12 @@ class EpisodeTrainer(Trainer):
             - Checks the above terminal conditions.
 
 
-
         :param flags: Parsed arguments from the parser.
 
         """
         # Ask for confirmation - optional.
         if flags.confirm:
             input('Press any key to continue')
-
-        # Start Training
-        last_losses = collections.deque()
 
         # Flag denoting whether we converged (or reached last episode).
         terminal_condition = False
@@ -138,15 +142,6 @@ class EpisodeTrainer(Trainer):
             # 1. Perform forward step, get predictions and compute loss.
             logits, loss = forward_step(self.model, self.problem, episode, self.stat_col, data_dict)
 
-            if not self.use_validation_problem:
-
-                # Store the calculated loss on a list.
-                last_losses.append(loss)
-
-                # Truncate list length.
-                if len(last_losses) > self.loss_length:
-                    last_losses.popleft()
-
             # 2. Backward gradient flow.
             loss.backward()
 
@@ -163,15 +158,12 @@ class EpisodeTrainer(Trainer):
             # 3. Perform optimization.
             self.optimizer.step()
 
-            # 4. Log statistics.
+            # 4. Log collected statistics.
 
-            # Log to logger.
-            self.logger.info(self.stat_col.export_statistics_to_string())
+            # 4.1. Export to csv.
+            self.stat_col.export_statistics_to_csv(self.training_stats_file)
 
-            # Export to csv.
-            self.stat_col.export_statistics_to_csv(self.training_file)
-
-            # Export data to tensorboard.
+            # 4.2. Export data to tensorboard.
             if (flags.tensorboard is not None) and (episode % flags.logging_frequency == 0):
                 self.stat_col.export_statistics_to_tensorboard(self.training_writer)
 
@@ -194,7 +186,14 @@ class EpisodeTrainer(Trainer):
                         except Exception as e:
                             self.logger.error("  {} :: grad :: {}".format(name, e))
 
-            # Check visualization of training data.
+            # 4.3. Log to logger.
+            if episode % flags.logging_frequency == 0:
+                self.logger.info(self.stat_col.export_statistics_to_string())
+
+                # empty Statistics Collector to avoid memory leak
+                self.stat_col.empty()
+
+            # 5. Check visualization of training data.
             if self.app_state.visualize:
 
                 # Allow for preprocessing
@@ -204,47 +203,41 @@ class EpisodeTrainer(Trainer):
                 if self.model.plot(data_dict, logits):
                     break
 
-            #  5. Validate and (optionally) save the model.
+            #  6. Validate and (optionally) save the model.
             user_pressed_stop = False
 
             if (episode % self.model_validation_interval) == 0:
 
-                # Validate on the problem if required.
-                if self.use_validation_problem:
+                # Check visualization flag
+                if flags.visualize is not None and (1 <= flags.visualize <= 2):
+                    self.app_state.visualize = True
+                else:
+                    self.app_state.visualize = False
 
-                    # Check visualization flag
-                    if flags.visualize is not None and (flags.visualize == 1 or flags.visualize == 2):
-                        self.app_state.visualize = True
-                    else:
-                        self.app_state.visualize = False
+                # Perform validation.
+                validation_loss, user_pressed_stop = validation(self.model, self.problem_validation, episode,
+                                                                self.stat_col, self.data_valid, flags, self.logger,
+                                                                self.val_file, self.validation_writer)
 
-                    # Perform validation.
-                    validation_loss, user_pressed_stop = validation(self.model, self.problem_validation, episode,
-                                                                    self.stat_col, self.data_valid, flags, self.logger,
-                                                                    self.validation_file, self.validation_writer)
+                # Save the model using the latest validation statistics.
+                self.model.save(self.model_dir, validation_loss, self.stat_col)
 
-                # Save the model using the latest (validation or training) statistics.
-                self.model.save(self.model_dir, self.stat_col)
+            # 7. Terminal conditions.
 
-            # 6. Terminal conditions.
 
             # Apply curriculum learning - change some of the Problem parameters
             self.curric_done = self.problem.curriculum_learning_update_params(episode)
 
-            # I. The User pressed stop during visualization.
+            # 7.1. The User pressed stop during visualization.
             if user_pressed_stop:
                 break
 
-            # II. & III - the loss is < threshold (only when curriculum learning is finished if set.)
+            # 7.2. - the loss is < threshold (only when curriculum learning is finished if set.)
             if self.curric_done or not self.must_finish_curriculum:
 
                 # loss_stop = True if convergence
-                if self.use_validation_problem:
-                    loss_stop = validation_loss < self.param_interface['training']['terminal_condition']['loss_stop']
-                    # We already saved that model.
-                else:
-                    loss_stop = max(last_losses) < self.param_interface['training']['terminal_condition']['loss_stop']
-                    # We already saved that model.
+                loss_stop = validation_loss < self.param_interface['training']['terminal_condition']['loss_stop']
+                # We already saved that model.
 
                 if loss_stop:
                     # Ok, we have converged.
@@ -252,7 +245,7 @@ class EpisodeTrainer(Trainer):
                     # Finish the training.
                     break
 
-            # IV - The episodes number limit has been reached.
+            # 7.3. - The episodes number limit has been reached.
             if episode == self.param_interface['training']['terminal_condition']['max_episodes']:
                 terminal_condition = True
                 # If we reach this condition, then it is possible that the model didn't converge correctly
@@ -263,8 +256,8 @@ class EpisodeTrainer(Trainer):
 
                 # Validate on the problem if required - so we can collect the
                 # statistics needed during saving of the best model.
-                if self.use_validation_problem:
-                    _, _ = validation(self.model, self.problem_validation, episode,
+                #if self.use_validation_problem:
+                _, _ = validation(self.model, self.problem_validation, episode,
                                       self.stat_col, self.data_valid, flags, self.logger,
                                       self.validation_file, self.validation_writer)
                 # save the model
@@ -284,29 +277,37 @@ class EpisodeTrainer(Trainer):
         '''
         End of main training and validation loop.
         '''
+        # empty Statistics Collector
+        self.stat_col.empty()
+        self.logger.info('Emptied StatisticsCollector.')
+
+        # Validate over the entire validation set
+        # Check visualization flag - turn on visualization for last validation if needed.
+        if flags.visualize is not None and (flags.visualize == 3):
+            self.app_state.visualize = True
+        else:
+            self.app_state.visualize = False
+
+        self.stat_est['episode'] = episode
+        avg_loss_valid, user_pressed_stop = validate_over_set(self.model, self.problem_validation, self.dl_valid,
+                                                              self.stat_col, self.stat_est, flags, self.logger,
+                                                              self.val_est_file, None, 1)
+
+        # Save the model using the average validation loss.
+        self.model.save(self.model_dir, avg_loss_valid, self.stat_est)
 
         # Check whether we have finished training properly.
         if terminal_condition:
 
             self.logger.info('Learning finished!')
-            # Check visualization flag - turn on visualization for last validation if needed.
-            if flags.visualize is not None and (flags.visualize == 3):
-                self.app_state.visualize = True
-
-                # Perform validation.
-                if self.use_validation_problem:
-                    _, _ = validation(self.model, self.problem_validation, episode, self.stat_col, self.data_valid,
-                                      flags, self.logger, self.validation_file, self.validation_writer)
-
-            else:
-                self.app_state.visualize = False
 
         else:  # the training did not end properly
             self.logger.warning('Learning interrupted!')
 
         # Close all files.
-        self.training_file.close()
-        self.validation_file.close()
+        self.training_stats_file.close()
+        self.val_file.close()
+        self.val_est_file.close()
 
         if flags.tensorboard is not None:
             # Close the TensorBoard writers.
