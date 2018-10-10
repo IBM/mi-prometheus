@@ -258,6 +258,43 @@ class Model(nn.Module):
         """
         pass
 
+    def add_estimators(self, stat_est):
+        """
+        Adds statistical estimators to ``StatisticsEstimators``.
+
+        .. note::
+
+
+            Empty - To be redefined in inheriting classes.
+
+
+        :param stat_est: ``StatisticsEstimators``.
+
+        """
+        pass
+
+    def collect_estimators(self, stat_col, stat_est):
+        """
+        Collect the statistical estimators added using ``self.add_estimator``.
+
+         .. note::
+
+
+            Empty - To be redefined in inheriting classes. The user has to ensure that the corresponding entry \
+            in the ``StatisticsEstimators`` has been created with ``self.add_estimator()`` beforehand.\
+
+            Given that the ``StatisticsEstimators`` uses the statistics collected by the ``StatisticsCollector``, \
+            the user should also ensure that these statistics are correctly collected \
+            (i.e. use of ``self.add_statistics`` and ``self.collect_statistics``.
+
+        :param stat_col: ``StatisticsCollector``.
+
+        :param stat_est: ``StatisticsEstimators``.
+
+
+        """
+        pass
+
     @abstractmethod
     def plot(self, data_dict, predictions, sample=0):
         """
@@ -279,7 +316,7 @@ class Model(nn.Module):
 
         """
 
-    def save(self, model_dir, stat_col):
+    def save(self, model_dir, loss, stats):
         """
         Generic method saving the model parameters to file. It can be
         overloaded if one needs more control.
@@ -287,42 +324,43 @@ class Model(nn.Module):
         :param model_dir: Directory where the model will be saved.
         :type model_dir: str
 
-        :param stat_col: Statistics collector containing the current loss and episode number (among other statistics).
-        :type stat_col: ``StatisticsCollector``
+        :param loss: Latest loss value to consider to determine if the model improved: Can be the average loss over the \
+        entire validation set or over one batch.
+
+        :param stats: Statistics value to save with the model.
+        :type stats: ``StatisticsCollector`` or ``StatisticsEstimator``
 
         :return: True if this is currently the best model (until the current episode, considering the loss).
 
         """
-        # Get the two elementary statistics.
-        loss = stat_col['loss']
-        episode = stat_col['episode']
+        # Get the episode index and the statistics:
+        if stats.__class__.__name__ == 'StatisticsCollector':
+            episode = stats['episode'][-1]
+            statistics = {k: v[-1] for k, v in stats.items()}
+
+        else:
+            episode = stats.statistics['episode']
+            statistics = {k: v for k, v in stats.items()}
 
         # Checkpoint to be saved.
-        chkpt = {
-            'name': self.name,
-            'state_dict': self.state_dict(),
-            'stats': stat_col.statistics
-        }
-
-        # for key, value in stat_col.statistics.items():
-        #    self.logger.warning("{}: {}".format(key, value))
+        chkpt = {'name': self.name,
+                 'state_dict': self.state_dict(),
+                 'stats': statistics
+                }
 
         # Save the intermediate checkpoint.
         if self.save_intermediate:
             filename = model_dir + 'model_episode_{:05d}.pt'.format(episode)
             torch.save(chkpt, filename)
             self.logger.info(
-                "Model and statistics exported to checkpoint {}".format(
-                    filename))
+                "Model and statistics exported to checkpoint {}".format(filename))
 
         # Save the best model.
         if loss < self.best_loss:
             self.best_loss = loss
             filename = model_dir + 'model_best.pt'
             torch.save(chkpt, filename)
-            self.logger.info(
-                "Model and statistics exported to checkpoint {}".format(
-                    filename))
+            self.logger.info("Model and statistics exported to checkpoint {}".format(filename))
             return True
 
         # Else: that was not the best model.
