@@ -162,8 +162,7 @@ class Tester(Worker):
             self.app_state.visualize = True
 
         # Read YAML file
-        with open(config_file, 'r') as stream:
-            self.param_interface.add_custom_params(yaml.load(stream))
+        self.param_interface.add_config_params_from_yaml(config_file)
 
         # set random seeds: reuse the ones set during training & stored in config_file (training_configuration.yaml)
         torch.manual_seed(self.param_interface["training"]["seed_torch"])
@@ -222,17 +221,16 @@ class Tester(Worker):
         # check if the maximum number of episodes is specified, if not put a
         # default equal to the size of the dataset (divided by the batch size)
         # So that by default, we loop over the test set once.
+        max_test_episodes = self.problem.get_epoch_size(self.param_interface['testing']['problem']['batch_size'])
+
         if "max_test_episodes" not in self.param_interface["testing"]["problem"] \
                 or self.param_interface["testing"]["problem"]["max_test_episodes"] == -1:
-
-            max_test_episodes = self.problem.get_epoch_size(self.param_interface['training']['problem']['batch_size'])
-            self.param_interface['testing']['problem'].add_custom_params({'max_test_episodes': max_test_episodes})
+            self.param_interface['testing']['problem'].add_config_params({'max_test_episodes': max_test_episodes})
 
         # warn if indicated number of episodes is larger than an epoch size:
-        if self.param_interface["testing"]["problem"]["max_test_episodes"] > \
-            self.problem.get_epoch_size(self.param_interface['training']['problem']['batch_size']):
-
+        if self.param_interface["testing"]["problem"]["max_test_episodes"] > max_test_episodes:
             self.logger.warning('Indicated maximum number of episodes is larger than one epoch, reducing it.')
+            self.param_interface['testing']['problem'].add_config_params({'max_test_episodes': max_test_episodes})
 
         self.logger.info("Setting the max number of episodes to: {}".format(
             self.param_interface["testing"]["problem"]["max_test_episodes"]))

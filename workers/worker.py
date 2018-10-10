@@ -115,22 +115,22 @@ class Worker(object):
         self.param_interface = ParamInterface()
 
         # add empty sections
-        self.param_interface.add_custom_params({"training": {}})
-        self.param_interface.add_custom_params({"validation": {}})
-        self.param_interface.add_custom_params({"testing": {}})
+        self.param_interface.add_default_params({"training": {}})
+        self.param_interface.add_default_params({"validation": {}})
+        self.param_interface.add_default_params({"testing": {}})
 
         # set a default configuration section for the DataLoaders
-        dataloader_config = {'dataloader': {'shuffle': True,
+        dataloader_config = {'dataloader': {'shuffle': False,
                                             'sampler': None,
                                             'batch_sampler': None,
-                                            'num_workers': 4,  # use multiprocessing by default
+                                            'num_workers': 0,  # use multiprocessing by default
                                             'pin_memory': False,
                                             'drop_last': False,
                                             'timeout': 0}}
 
-        self.param_interface["training"].add_custom_params(dataloader_config)
-        self.param_interface["validation"].add_custom_params(dataloader_config)
-        self.param_interface["testing"].add_custom_params(dataloader_config)
+        self.param_interface["training"].add_default_params(dataloader_config)
+        self.param_interface["validation"].add_default_params(dataloader_config)
+        self.param_interface["testing"].add_default_params(dataloader_config)
 
         # Load the default logger configuration.
         with open('logger_config.yaml', 'rt') as f:
@@ -159,6 +159,22 @@ class Worker(object):
         :param flags: Parsed arguments from the command line.
 
         """
+
+
+    def cycle(self, iterable):
+        """
+        Cycle an iterator to prevent its exhaustion.
+        This function is used in the (episodic) trainer to reuse the same ``DataLoader`` for a number of episodes\
+        > len(dataset)/batch_size.
+
+        :param iterable: iterable.
+        :type iterable: iter
+
+        """
+        while True:
+            for x in iterable:
+                yield x
+
 
     def set_logger_name(self, name):
         """
@@ -206,7 +222,8 @@ class Worker(object):
         # Set the random seeds: either from the loaded configuration or a default randomly selected one.
         if "seed_torch" not in self.param_interface["training"] or self.param_interface["training"]["seed_torch"] == -1:
             seed = randrange(0, 2 ** 32)
-            self.param_interface["training"].add_custom_params({"seed_torch": seed})
+            # Overwrite the config param!
+            self.param_interface["training"].add_config_params({"seed_torch": seed})
 
         self.logger.info("Setting torch random seed to: {}".format(self.param_interface["training"]["seed_torch"]))
 
@@ -216,7 +233,7 @@ class Worker(object):
 
         if "seed_numpy" not in self.param_interface["training"] or self.param_interface["training"]["seed_numpy"] == -1:
             seed = randrange(0, 2 ** 32)
-            self.param_interface["training"].add_custom_params({"seed_numpy": seed})
+            self.param_interface["training"].add_config_params({"seed_numpy": seed})
 
         self.logger.info("Setting numpy random seed to: {}".format(self.param_interface["training"]["seed_numpy"]))
 

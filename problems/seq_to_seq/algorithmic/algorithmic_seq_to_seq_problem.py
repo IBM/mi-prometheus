@@ -67,8 +67,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         self.max_sequence_length = params['max_sequence_length']
 
         # Add parameter denoting 0-1 distribution (DEFAULT: 0.5 i.e. equal).
-        if 'bias' not in params:
-            params.add_default_params({'bias': 0.5})
+        params.add_default_params({'bias': 0.5})
         self.bias = params['bias']
 
         # "Default" problem name.
@@ -89,7 +88,73 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
                                }
 
         # TODO: Should derive the actual theoretical limit instead of a arbitrary limit.
-        self.length = 100000
+        params.add_default_params({'len': 10000000})
+        # Read value from registry - if it was set in config file, it will override the above default value.
+        self.length = params['len']
+
+
+    def set_max_length(self, max_length):
+        """
+        Sets max length that is used e.g. during curriculum learning.
+        """
+        self.max_sequence_length = max_length
+
+
+    def curriculum_learning_initialize(self, curriculum_params):
+        """
+        Initializes curriculum learning - simply saves the curriculum params.
+
+        .. note::
+
+            This method can be overwritten in the derived classes.
+
+
+        :param curriculum_params: Interface to parameters accessing curriculum learning view of the registry tree.
+        """
+        # Save params.
+        self.curriculum_params = curriculum_params
+        # Overwrite the length.
+        self.length = self.curriculum_params['interval'] * self.params["batch_size"]
+        self.logger.info("Initializing curriculum learning! (Warning: setting problem length to \
+            curriculum interval*batch, which enables utilization of curriculum learning with multiple load workers)")
+
+    def curriculum_learning_update_params(self, episode):
+        """
+        Updates problem parameters according to curriculum learning. In the
+        case of algorithmic sequential problems, it updates the max sequence
+        length, depending on configuration parameters.
+
+        :param episode: Number of the current episode.
+        :type episode: int
+
+        :return: Boolean informing whether curriculum learning is finished (or wasn't active at all).
+
+        """
+        # Curriculum learning stop condition.
+        curric_done = True
+        try:
+            # Read curriculum learning parameters.
+            max_max_length = self.params['max_sequence_length']
+            interval = self.curriculum_params['interval']
+            initial_max_sequence_length = self.curriculum_params['initial_max_sequence_length']
+
+            if self.curriculum_params['interval'] > 0:
+                # Curriculum learning goes from the initial max length to the
+                # max length in steps of size 1
+                max_length = initial_max_sequence_length + \
+                    ((episode+1) // interval)
+                if max_length > max_max_length:
+                    max_length = max_max_length
+                else:
+                    curric_done = False
+                # Change max length.
+                self.max_sequence_length = max_length
+        except KeyError:
+            pass
+        # Return information whether we finished CL (i.e. reached max sequence
+        # length).
+        return curric_done
+
 
     def calculate_accuracy(self, data_dict, logits):
         """
@@ -108,7 +173,6 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         :return: Accuracy.
 
         """
-
         # Check if mask should be is used - if so, apply.
         if self.use_mask:
             return self.loss_function.masked_accuracy(
@@ -251,11 +315,11 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         ax3.set_xlabel('Item number', fontname='Times New Roman', fontsize=13)
 
         # print data
-        print("\ninputs:", data_dict['sequences'][sample, :, :])
-        print("\ntargets:", data_dict['targets'][sample, :, :])
-        print("\nmask:", data_dict['mask'][sample:sample + 1, :])
-        print("\nseq_length:", data_dict['sequences_length'])
-        print("\nnum_subsequences:", data_dict['num_subsequences'])
+        #print("\ninputs:", data_dict['sequences'][sample, :, :])
+        #print("\ntargets:", data_dict['targets'][sample, :, :])
+        #print("\nmask:", data_dict['mask'][sample:sample + 1, :])
+        #print("\nseq_length:", data_dict['sequences_length'])
+        #print("\nnum_subsequences:", data_dict['num_subsequences'])
 
         # show data.
         ax1.imshow(np.transpose(data_dict['sequences'][sample, :, :], [
@@ -267,42 +331,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         plt.tight_layout()
         plt.show()
 
-    def curriculum_learning_update_params(self, episode):
-        """
-        Updates problem parameters according to curriculum learning. In the
-        case of algorithmic sequential problems, it updates the max sequence
-        length, depending on configuration parameters.
 
-        :param episode: Number of the current episode.
-        :type episode: int
-
-        :return: Boolean informing whether curriculum learning is finished (or wasn't active at all).
-
-        """
-        # Curriculum learning stop condition.
-        curric_done = True
-        try:
-            # Read curriculum learning parameters.
-            max_max_length = self.params['max_sequence_length']
-            interval = self.curriculum_params['interval']
-            initial_max_sequence_length = self.curriculum_params['initial_max_sequence_length']
-
-            if self.curriculum_params['interval'] > 0:
-                # Curriculum learning goes from the initial max length to the
-                # max length in steps of size 1
-                max_length = initial_max_sequence_length + \
-                    (episode // interval)
-                if max_length >= max_max_length:
-                    max_length = max_max_length
-                else:
-                    curric_done = False
-                # Change max length.
-                self.max_sequence_length = max_length
-        except KeyError:
-            pass
-        # Return information whether we finished CL (i.e. reached max sequence
-        # length).
-        return curric_done
 
 
 if __name__ == '__main__':

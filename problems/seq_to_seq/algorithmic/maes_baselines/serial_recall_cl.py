@@ -75,7 +75,7 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
 
         .. note::
 
-            The sequence length is drawn randomly between ``selg.min_sequence_length`` and \
+            The sequence length is drawn randomly between ``self.min_sequence_length`` and \
             ``self.max_sequence_length``.
 
 
@@ -127,9 +127,8 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         inputs = np.zeros([2 * seq_length + 2, self.control_bits + self.data_bits],
                           dtype=np.float32)
 
-        # Set start main control marker.
-        inputs[0, 0:self.control_bits] = np.tile(
-            marker_start_main, (1))
+        # Set the start main control marker.
+        inputs[0, 0:self.control_bits] = np.tile(marker_start_main, (1))
 
         # Set bit sequence.
         inputs[1:seq_length + 1,
@@ -282,11 +281,6 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
 
         return data_dict
 
-    # method for changing the maximum length, used mainly during curriculum
-    # learning
-    def set_max_length(self, max_length):
-        self.max_sequence_length = max_length
-
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
@@ -304,11 +298,6 @@ if __name__ == "__main__":
     # Create problem object.
     dataset = SerialRecallCommandLines(params)
 
-    # get a sample
-    sample = dataset[0]
-    print(repr(sample))
-    print('__getitem__ works.')
-
     # wrap DataLoader on top
     from torch.utils.data.dataloader import DataLoader
 
@@ -318,18 +307,25 @@ if __name__ == "__main__":
     problem = DataLoader(dataset=dataset, batch_size=batch_size, collate_fn=dataset.collate_fn,
                          shuffle=False, num_workers=4, worker_init_fn=init_fn)
 
-    # generate a batch
+    # Measure generation time.
+    print("Measuring generation time. Please wait...") 
     import time
-
     s = time.time()
     for i, batch in enumerate(problem):
-        print('Batch # {} - {}'.format(i, type(batch)))
+        tmp = 0
+        #print('Batch # {} - {}'.format(i, type(batch)))
 
     print('Number of workers: {}'.format(problem.num_workers))
-    print('time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
+    print('Time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
           .format(len(dataset), batch_size, time.time() - s))
+
+    # get a sample
+    sample = dataset[0]
+    print(repr(sample))
+    print('__getitem__ works.')
 
     # Display single sample (0) from batch.
     batch = next(iter(problem))
     dataset.show_sample(batch, 0)
+
     print('Unit test completed.')

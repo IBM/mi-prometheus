@@ -30,7 +30,7 @@ from torch.nn.utils import clip_grad_value_
 import workers.worker as worker
 import workers.trainer as trainer
 from workers.trainer import Trainer
-from utils.worker_utils import forward_step, validation, cycle
+from utils.worker_utils import forward_step, validation
 
 
 class EpisodeTrainer(Trainer):
@@ -115,16 +115,13 @@ class EpisodeTrainer(Trainer):
         terminal_condition = False
 
         # cycle the DataLoader -> infinite iterator
-        self.dataloader = cycle(self.dataloader)
+        self.dataloader = self.cycle(self.dataloader)
 
         '''
         Main training and validation loop.
         '''
         episode = 0
         for data_dict in self.dataloader:
-
-            # apply curriculum learning - change some of the Problem parameters
-            self.curric_done = self.problem.curriculum_learning_update_params(episode)
 
             # reset all gradients
             self.optimizer.zero_grad()
@@ -230,6 +227,9 @@ class EpisodeTrainer(Trainer):
                 self.model.save(self.model_dir, self.stat_col)
 
             # 6. Terminal conditions.
+
+            # Apply curriculum learning - change some of the Problem parameters
+            self.curric_done = self.problem.curriculum_learning_update_params(episode)
 
             # I. The User pressed stop during visualization.
             if user_pressed_stop:

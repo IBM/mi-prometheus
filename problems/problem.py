@@ -305,6 +305,8 @@ class Problem(Dataset):
         """
         # Store pointer to params.
         self.params = params
+        # Empty curriculum learning params - for now.
+        self.curriculum_params = {}
 
         # Set default loss function.
         self.loss_function = None

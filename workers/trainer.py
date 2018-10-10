@@ -177,15 +177,9 @@ class Trainer(Worker):
 
         # Read the YAML files one by one - but in reverse order!
         for config in reversed(configs_to_load):
-            # Open file and try to add that to list of parameter dictionaries.
-            with open(config, 'r') as stream:
-                # Load param dictionaries in reverse order.
-                self.param_interface.add_custom_params(yaml.load(stream))
-
+            # Load params from YAML file.
+            self.param_interface.add_config_params_from_yaml(config)
             print('Loaded configuration from file {}'.format(config))
-            # Add to list of loaded configs.
-
-            configs_to_load.append(config)
 
         # -> At this point, the Param Registry contains the configuration loaded (and overwritten) from several files.
 
@@ -246,7 +240,7 @@ class Trainer(Worker):
                 or self.param_interface["training"]["terminal_condition"]["max_epochs"] == -1:
             max_epochs = 1
 
-            self.param_interface["training"]["terminal_condition"].add_custom_params({'max_epochs': max_epochs})
+            self.param_interface["training"]["terminal_condition"].add_config_params({'max_epochs': max_epochs})
 
         self.logger.info("Setting the max number of epochs to: {}".format(
             self.param_interface["training"]["terminal_condition"]["max_epochs"]))
