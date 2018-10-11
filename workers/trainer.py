@@ -203,13 +203,13 @@ class Trainer(Worker):
             else:
                 break
 
-        # Models dir.
-        self.model_dir = self.log_dir + 'models/'
-        os.makedirs(self.model_dir, exist_ok=False)
-
         # Set log dir and add the handler for the logfile to the logger.
         self.log_file = self.log_dir + 'trainer.log'
         self.add_file_handler_to_logger(self.log_file)
+
+        # Models dir.
+        self.model_dir = self.log_dir + 'models/'
+        os.makedirs(self.model_dir, exist_ok=False)
 
         # Set random seeds in the training section.
         self.set_random_seeds(self.params['training'], 'training')

@@ -254,10 +254,10 @@ class EpisodeTrainer(Trainer):
                 # Move on to next episode.
                 episode += 1
 
+            self.logger.info('Training finished!')
             '''
             End of main training and validation loop.
             '''
-
             # Check visualization flag - turn on visualization for last validation if needed.
             if (self.flags.visualize == 3):
                 self.app_state.visualize = True
@@ -270,11 +270,11 @@ class EpisodeTrainer(Trainer):
             # Save the model using the average validation loss.
             self.model.save(self.model_dir, self.validation_stat_agg)
 
-            self.logger.info('Training finished!')
+            self.logger.info('Experiment finished!')
 
         except SystemExit:
             # the training did not end properly
-            self.logger.warning('Training interrupted!')
+            self.logger.warning('Experiment interrupted!')
         finally:
             # Finalize statistics collection.
             self.finalize_statistics_collection()

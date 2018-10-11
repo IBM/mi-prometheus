@@ -24,6 +24,7 @@ from abc import abstractmethod
 import numpy as np
 
 import logging
+import datetime
 
 from utils.app_state import AppState
 
@@ -346,6 +347,7 @@ class Model(nn.Module):
 
         # Checkpoint to be saved.
         chkpt = {'name': self.name,
+                 'timestamp': datetime.datetime.now(),
                  'state_dict': self.state_dict(),
                  'stats': statistics
                 }
@@ -385,8 +387,9 @@ class Model(nn.Module):
 
         # Print statistics.
         self.logger.info(
-            "Imported {} parameters from checkpoint (episode {}, loss {})".format(
+            "Imported {} parameters from checkpoint from {} (episode {}, loss {})".format(
                 chkpt['name'],
+                chkpt['timestamp'],
                 chkpt['stats']['episode'],
                 chkpt['stats']['loss']))
 

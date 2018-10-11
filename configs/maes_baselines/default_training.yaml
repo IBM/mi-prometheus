@@ -18,4 +18,4 @@ training:
     # Terminal condition parameters:
     terminal_condition:
         loss_stop: 1.0e-5
-        max_episodes: 200
+        max_episodes: 10000
