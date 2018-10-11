@@ -15,13 +15,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+__author__ = "Alexis Asseman, Tomasz Kornuta, Ryan L. McAvoy"
+
 from .singleton import SingletonMetaClass
 import torch
 
 
 class AppState(metaclass=SingletonMetaClass):
     def __init__(self):
+        # Disable visualization by default.
         self.visualize = False
+        # Use non-cuda types by default.
         self.convert_non_cuda_types()
         self.set_dtype('float')
         self.set_itype('int')

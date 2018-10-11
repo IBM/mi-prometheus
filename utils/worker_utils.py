@@ -84,37 +84,6 @@ def forward_step(model, problem, episode, stat_col, data_dict, epoch=None):
     return logits, loss
 
 
-def check_and_set_cuda(params, logger):
-    """
-    Enables CUDA if available and sets the default data types.
-
-    :param params: Parameter Registry containing either the training or test parameters.
-    :type params: ``ParamInterface``
-
-    :param logger: logger object
-    :type logger: ``logging.Logger``
-
-    """
-    turn_on_cuda = False
-    try:  # If the 'cuda' key is not present, catch the exception and do nothing
-        turn_on_cuda = params['cuda']
-    except KeyError:
-        logger.warning('CUDA key not present in ParamInterface.')
-        pass
-
-    # Determine if CUDA is to be used.
-    if torch.cuda.is_available():
-        if turn_on_cuda:
-            AppState().convert_cuda_types()
-            logger.info('Running with CUDA enabled')
-    elif turn_on_cuda:
-        logger.warning('CUDA is enabled but there is no available device')
-
-    # TODO Add flags to change these
-    AppState().set_dtype('float')
-    AppState().set_itype('int')
-
-
 def recurrent_config_parse(configs: str, configs_parsed: list):
     """
     Parses names of configuration files in a recursive manner, i.e. \

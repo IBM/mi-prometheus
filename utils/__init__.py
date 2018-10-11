@@ -7,7 +7,7 @@ from .statistics_aggregator import StatisticsAggregator
 from .time_plot import TimePlot
 from .data_dict import DataDict
 
-from .worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse, validation, cycle, validate_over_set
+from .worker_utils import forward_step, recurrent_config_parse, validation, cycle, validate_over_set
 
 from .loss import *
 from .problems import *

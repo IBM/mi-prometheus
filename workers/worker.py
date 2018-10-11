@@ -27,7 +27,7 @@ worker.py:
 
 
 """
-__author__ = "Vincent Marois, Tomasz Kornuta"
+__author__ = "Vincent Marois, Tomasz Kornut, Ryan L. McAvoy"
 
 import yaml
 import torch
@@ -168,12 +168,38 @@ class Worker(object):
 
         """
 
-    def forward_step(self, problem, data_dict, episode, epoch=None):
+    def check_and_set_cuda(self, params):
         """
-        Function that performs a single forward step:
+        Enables CUDA if available and sets the default data types.
+
+        :param params: Section in config/param registry that will be used \
+            ("training" or "test" will have effect only!)
+
+        """
+        # Set CUDA to false by default.
+        params.add_default_params({'cuda': False})
+        # Get actual CUDA value.
+        turn_on_cuda = params['cuda']
+
+        # Determine if CUDA is to be used.
+        if torch.cuda.is_available():
+            if turn_on_cuda:
+                self.app_state.convert_cuda_types()
+                self.logger.info('Running with CUDA enabled')
+        elif turn_on_cuda:
+            self.logger.error('CUDA is enabled but there is no available device')
+
+
+    def predict_and_evaluate(self, model, problem, data_dict, episode, epoch=None):
+        """
+        Function that performs the following:
 
             - passes samples through the model,
-            - collects loss & others statistics
+            - calculates loss using the problem
+            - collect problem and model statistics,
+
+        :param model: trainable model.
+        :type model: ``models.model.Model`` or a subclass
 
         :param problem: problem generating samples.
         :type problem: ``problems.problem.problem`` or a subclass
@@ -194,12 +220,12 @@ class Worker(object):
             - loss
 
         """
-        # convert to CUDA
+        # Convert to CUDA.
         if self.app_state.use_CUDA:
             data_dict = data_dict.cuda()
 
         # Perform forward calculation.
-        logits = self.model(data_dict)
+        logits = model(data_dict)
 
         # Evaluate loss function.
         loss = problem.evaluate_loss(data_dict, logits)
@@ -213,7 +239,7 @@ class Worker(object):
 
         # Collect other (potential) statistics from problem & model.
         problem.collect_statistics(self.stat_col, data_dict, logits)
-        self.model.collect_statistics(self.stat_col, data_dict, logits)
+        model.collect_statistics(self.stat_col, data_dict, logits)
 
         # Return tuple: logits, loss.
         return logits, loss
@@ -271,29 +297,33 @@ class Worker(object):
         # add the handler to the logger
         self.logger.addHandler(fh)
 
-    def set_random_seeds(self, section_name):
+    def set_random_seeds(self, params, section_name):
         """
         Set ``torch`` & ``NumPy`` random seeds from the ParamRegistry:\
         If one was indicated, use it, or set a random one.
 
-        :param section_name: Name of the section in config/param registry that will be changed \
+        :param params: Section in config/param registry that will be changed \
             ("training" or "test" will have effect only!)
+
+        :param section_name: Name of the section (for logging purposes only)
 
         """
         # Set the random seeds: either from the loaded configuration or a default randomly selected one.
-        if "seed_torch" not in self.params[section_name] or self.params[section_name]["seed_torch"] == -1:
+        params.add_default_params({"seed_numpy": -1})
+        if params["seed_numpy"] == -1:
             seed = randrange(0, 2 ** 32)
             # Overwrite the config param!
-            self.params[section_name].add_config_params({"seed_torch": seed})
+            params.add_config_params({"seed_numpy": seed})
 
-        self.logger.info("Setting torch random seed in {} to: {}".format(section_name, self.params[section_name]["seed_torch"]))
-        torch.manual_seed(self.params[section_name]["seed_torch"])
-        torch.cuda.manual_seed_all(self.params[section_name]["seed_torch"])
+        self.logger.info("Setting numpy random seed in {} to: {}".format(section_name, params["seed_numpy"]))
+        np.random.seed(params["seed_numpy"])
 
-        if "seed_numpy" not in self.params[section_name] or self.params[section_name]["seed_numpy"] == -1:
+        params.add_default_params({"seed_torch": -1})
+        if params["seed_torch"] == -1:
             seed = randrange(0, 2 ** 32)
-            self.params[section_name].add_config_params({"seed_numpy": seed})
+            # Overwrite the config param!
+            params.add_config_params({"seed_torch": seed})
 
-        self.logger.info("Setting numpy random seed in {} to: {}".format(section_name, self.params[section_name]["seed_numpy"]))
-
-        np.random.seed(self.params[section_name]["seed_numpy"])
+        self.logger.info("Setting torch random seed in {} to: {}".format(section_name, params["seed_torch"]))
+        torch.manual_seed(params["seed_torch"])
+        torch.cuda.manual_seed_all(params["seed_torch"])

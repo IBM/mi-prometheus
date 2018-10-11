@@ -38,7 +38,7 @@ import workers.worker as worker
 from workers.worker import Worker
 from models.model_factory import ModelFactory
 from problems.problem_factory import ProblemFactory
-from utils.worker_utils import forward_step, check_and_set_cuda, handshake
+from utils.worker_utils import forward_step, handshake
 
 
 def add_arguments(parser: argparse.ArgumentParser):

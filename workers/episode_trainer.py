@@ -142,7 +142,7 @@ class EpisodeTrainer(Trainer):
             Main training and validation loop.
             '''
             episode = 0
-            for data_dict in self.dataloader:
+            for training_dict in self.dataloader:
 
                 # reset all gradients
                 self.optimizer.zero_grad()
@@ -157,7 +157,7 @@ class EpisodeTrainer(Trainer):
                 self.model.train()
 
                 # 1. Perform forward step, get predictions and compute loss.
-                logits, loss = self.forward_step(self.problem, data_dict, episode)
+                logits, loss = self.predict_and_evaluate(self.model, self.problem, training_dict, episode)
 
                 # 2. Backward gradient flow.
                 loss.backward()
@@ -214,10 +214,10 @@ class EpisodeTrainer(Trainer):
                 if self.app_state.visualize:
 
                     # Allow for preprocessing
-                    data_dict, logits = self.problem.plot_preprocessing(data_dict, logits)
+                    training_dict, logits = self.problem.plot_preprocessing(training_dict, logits)
 
                     # Show plot, if user will press Stop then a SystemExit exception will be thrown.
-                    self.model.plot(data_dict, logits)
+                    self.model.plot(training_dict, logits)
 
 
                 #  6. Validate and (optionally) save the model.
@@ -285,15 +285,14 @@ class EpisodeTrainer(Trainer):
             # Empty the Statistics Collector.
             self.stat_col.empty()
 
-            # Validate over the entire validation set
             # Check visualization flag - turn on visualization for last validation if needed.
             if (flags.visualize == 3):
                 self.app_state.visualize = True
             else:
                 self.app_state.visualize = False
 
-            self.stat_agg['episode'] = episode
-            avg_loss_valid = self.validation_over_set(episode)
+            # Validate over the entire validation set.
+            self.validation_over_set(episode)
 
             # Save the model using the average validation loss.
             self.model.save(self.model_dir, self.stat_agg)
