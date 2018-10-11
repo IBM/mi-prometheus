@@ -91,9 +91,11 @@ def add_arguments(parser: argparse.ArgumentParser):
 
     parser.add_argument('--visualize',
                         dest='visualize',
-                        choices=[0, 1, 2, 3],
+                        default='-1',
+                        choices=[-1, 0, 1, 2, 3],
                         type=int,
                         help="Activate dynamic visualization (Warning: will require user interaction):\n"
+                             "-1: disabled (DEFAULT)\n"
                              "0: Only during training episodes.\n"
                              "1: During both training and validation episodes.\n"
                              "2: Only during validation episodes.\n"
@@ -358,9 +360,6 @@ class Trainer(Worker):
         conf_str += yaml.safe_dump(self.params.to_dict(), default_flow_style=False)
         conf_str += '='*80 + '\n'
         self.logger.info(conf_str)
-        # Ask for confirmation - optional.
-        if flags.confirm:
-            input('Press any key to continue')
 
 
     def initialize_tensorboard(self, tensorboard_flag):

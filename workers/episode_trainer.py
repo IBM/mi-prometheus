@@ -126,6 +126,10 @@ class EpisodeTrainer(Trainer):
         :param flags: Parsed arguments from the parser.
 
         """
+        # Ask for confirmation - optional.
+        if flags.confirm:
+            input('Press any key to continue')
+
         # Initialize tensorboard and statistics collection.
         self.initialize_statistics_collection()
         self.initialize_tensorboard(flags.tensorboard)
@@ -144,7 +148,7 @@ class EpisodeTrainer(Trainer):
                 self.optimizer.zero_grad()
 
                 # Check the visualization flag - Set it if visualization is wanted during training & validation episodes.
-                if flags.visualize is not None and flags.visualize <= 1:
+                if (0 <= flags.visualize <= 1):
                     self.app_state.visualize = True
                 else:
                     self.app_state.visualize = False
@@ -220,7 +224,7 @@ class EpisodeTrainer(Trainer):
                 if (episode % self.model_validation_interval) == 0:
 
                     # Check visualization flag
-                    if flags.visualize is not None and (1 <= flags.visualize <= 2):
+                    if (1 <= flags.visualize <= 2):
                         self.app_state.visualize = True
                     else:
                         self.app_state.visualize = False
@@ -283,7 +287,7 @@ class EpisodeTrainer(Trainer):
 
             # Validate over the entire validation set
             # Check visualization flag - turn on visualization for last validation if needed.
-            if flags.visualize is not None and (flags.visualize == 3):
+            if (flags.visualize == 3):
                 self.app_state.visualize = True
             else:
                 self.app_state.visualize = False
@@ -299,10 +303,10 @@ class EpisodeTrainer(Trainer):
         except SystemExit as e:
             # the training did not end properly
             self.logger.warning('Training interrupted!')
-
-        # Finalize statistics collection.
-        self.finalize_statistics_collection()
-        self.finalize_tensorboard()
+        finally:
+            # Finalize statistics collection.
+            self.finalize_statistics_collection()
+            self.finalize_tensorboard()
 
 if __name__ == '__main__':
     # Create parser with list of  runtime arguments.
