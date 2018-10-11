@@ -86,28 +86,27 @@ if __name__ == "__main__":
     from utils.param_interface import ParamInterface
 
     problem_params = ParamInterface()
-    problem_params.add_custom_params({'name': 'CLEVR',
-                                      'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
-                                                   'set': 'train',
-                                                   'dataset_variant': 'CLEVR'},
-
-                                      'images': {'raw_images': False,
-                                                 'feature_extractor': {'cnn_model': 'resnet101',
-                                                                       'num_blocks': 4}},
-
-                                      'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
+    problem_params.add_custom_params({'name': 'SerialRecallCommandLines',
+                                      'control_bits': 4,
+                                      'data_bits': 8,
+                                      'min_sequence_length': 2,
+                                      'max_sequence_length': 5})
 
     # create problem
     problem = ProblemFactory.build_problem(problem_params)
 
     model_params = ParamInterface()
-    model_params.add_custom_params({'name': 'MACNetwork',
-                                    'dim': 512,
-                                    'embed_hidden': 300,
-                                    'max_step': 12,
-                                    'self_attention': True,
-                                    'memory_gate': True,
-                                    'dropout': 0.15})
+    model_params.add_custom_params({'name': 'MAES',
+                                    'num_control_bits': 3,
+                                    'num_data_bits': 8,
+                                    'encoding_bit': 0,
+                                    'solving_bit': 1,
+                                    'controller': {'name': 'rnn', 'hidden_state_size': 20,
+                                                   'num_layers': 1, 'non_linearity': 'sigmoid'},
+                                    'mae_interface': {'shift_size': 3},
+                                    'mas_interface': {'shift_size': 3},
+                                    'memory': {'num_addresses': -1, 'num_content_bits': 11},
+                                    'visualization_mode': 2})
 
     model = ModelFactory.build_model(model_params, problem.default_values)
     print(type(model))
