@@ -17,7 +17,7 @@ training:
 # This section is optional.
 validation:
     # How often the model will be validated/saved.
-    interval: 500
+    interval: 100
     problem:
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
         control_bits: *cbits

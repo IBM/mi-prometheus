@@ -168,6 +168,59 @@ class Worker(object):
 
         """
 
+    def forward_step(self, model, problem, data_dict, episode, epoch=None):
+        """
+        Function that performs a single forward step:
+
+            - passes samples through the model,
+            - collects loss & others statistics
+
+        :param model: trainable model.
+        :type model: ``models.model.Model`` or a subclass
+
+        :param problem: problem generating samples.
+        :type problem: ``problems.problem.problem`` or a subclass
+
+        :param data_dict: contains the batch of samples to pass to the model.
+        :type data_dict: ``DataDict``
+
+        :param episode: current episode index
+        :type episode: int
+
+        :param epoch: current epoch index.
+        :type epoch: int, optional
+
+
+        :return:
+
+            - logits,
+            - loss
+
+        """
+        # convert to CUDA
+        if self.app_state.use_CUDA:
+            data_dict = data_dict.cuda()
+
+        # Perform forward calculation.
+        logits = model(data_dict)
+
+        # Evaluate loss function.
+        loss = problem.evaluate_loss(data_dict, logits)
+
+        # Collect "elementary" statistics - episode and loss.
+        if ('epoch' in self.stat_col) and (epoch is not None):
+            self.stat_col['epoch'] = epoch
+
+        self.stat_col['episode'] = episode
+        self.stat_col['loss'] = loss
+
+        # Collect other (potential) statistics from problem & model.
+        problem.collect_statistics(self.stat_col, data_dict, logits)
+        model.collect_statistics(self.stat_col, data_dict, logits)
+
+        # Return tuple: logits, loss.
+        return logits, loss
+
 
     def cycle(self, iterable):
         """

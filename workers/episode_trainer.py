@@ -23,13 +23,12 @@ episode_trainer.py:
 """
 __author__ = "Vincent Marois, Tomasz Kornuta"
 
-import argparse
 from torch.nn.utils import clip_grad_value_
 
+import argparse
 import workers.worker as worker
 import workers.trainer as trainer
 from workers.trainer import Trainer
-from utils.worker_utils import forward_step, validation,  validate_over_set
 
 
 class EpisodeTrainer(Trainer):
@@ -38,9 +37,9 @@ class EpisodeTrainer(Trainer):
 
     ..note::
 
-        The default ``Trainer`` is based on epochs. While an epoch can be defined for all finite-size datasets,\
+        The default ``EpochTrainer`` is based on epochs. While an epoch can be defined for all finite-size datasets,\
          it makes less sense for problems which have a very large, almost infinite, dataset (like algorithmic \
-         tasks, which generate random data on-the-fly). This is why this episode Trainer is implemented.
+         tasks, which generate random data on-the-fly). This is why this Episode Trainer is implemented.
          Instead of looping on epochs, it iterates directly on episodes (we call an iteration on a single batch\
           an episode).
 
@@ -65,8 +64,8 @@ class EpisodeTrainer(Trainer):
         self.params['validation'].add_default_params({'interval': 100})
         self.model_validation_interval = self.params['validation']['interval']
 
-        # generate one batch used for validation
-        self.data_valid = next(iter(self.validation_dataloader))
+        # generate a single batch used for validation
+        self.validation_batch = next(iter(self.validation_dataloader))
 
 
     def initialize_statistics_collection(self):
@@ -156,7 +155,7 @@ class EpisodeTrainer(Trainer):
             self.model.train()
 
             # 1. Perform forward step, get predictions and compute loss.
-            logits, loss = forward_step(self.model, self.problem, episode, self.stat_col, data_dict)
+            logits, loss = self.forward_step(self.model, self.problem, data_dict, episode)
 
             # 2. Backward gradient flow.
             loss.backward()
@@ -176,11 +175,11 @@ class EpisodeTrainer(Trainer):
 
             # 4. Log collected statistics.
 
-            # 4.1. Export to csv.
+            # 4.1. Export to csv - at every step.
             self.stat_col.export_statistics_to_csv(self.training_stats_file)
 
             # 4.2. Export data to tensorboard.
-            if (flags.tensorboard is not None) and (episode % flags.logging_frequency == 0):
+            if (self.training_writer is not None) and (episode % flags.logging_frequency == 0):
                 self.stat_col.export_statistics_to_tensorboard(self.training_writer)
 
                 # Export histograms.
@@ -231,9 +230,7 @@ class EpisodeTrainer(Trainer):
                     self.app_state.visualize = False
 
                 # Perform validation.
-                validation_loss, user_pressed_stop = validation(self.model, self.validation_problem, episode,
-                                                                self.stat_col, self.data_valid, flags, self.logger,
-                                                                self.validation_stats_file, self.validation_writer)
+                validation_loss, user_pressed_stop = self.validation_step(self.validation_batch, episode)
 
                 # Save the model using the latest validation statistics.
                 self.model.save(self.model_dir, self.stat_col)
@@ -272,7 +269,7 @@ class EpisodeTrainer(Trainer):
                 # Validate on the problem if required - so we can collect the
                 # statistics needed during saving of the best model.
                 #if self.use_validation_problem:
-                _, _ = self.validation_step(self.data_valid, episode)
+                _, _ = self.validation_step(self.validation_batch, episode)
                 # save the model
                 self.model.save(self.model_dir, self.stat_col)
 
@@ -304,7 +301,7 @@ class EpisodeTrainer(Trainer):
         # Check whether we have finished training properly.
         if terminal_condition:
             self.stat_agg['episode'] = episode
-            avg_loss_valid, user_pressed_stop = self.validate_over_set(0, 0)
+            avg_loss_valid, user_pressed_stop = self.validation_over_set(episode)
 
             # Save the model using the average validation loss.
             self.model.save(self.model_dir, self.stat_agg)
