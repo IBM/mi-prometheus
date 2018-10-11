@@ -73,27 +73,6 @@ class Trainer(Worker):
 
         # Add arguments to the specific parser.
         # These arguments will be shared by all (basic) trainers.
-        self.parser.add_argument('--config',
-                            dest='config',
-                            type=str,
-                            default='',
-                            help='Name of the configuration file(s) to be loaded.'
-                                'If specifying more than one file, they must be separated with coma ",".)')
-
-        self.parser.add_argument('--outdir',
-                            dest='outdir',
-                            type=str,
-                            default="./experiments",
-                            help='Path to the output directory where the experiment(s) folders will be stored.'
-                                ' (DEFAULT: ./experiments)')
-
-        self.parser.add_argument('--model',
-                            type=str,
-                            default='',
-                            dest='model',
-                            help='Path to the file containing the saved parameters'
-                                ' of the model to load (model checkpoint, should end with a .pt extension.)')
-
         self.parser.add_argument('--tensorboard',
                             action='store',
                             dest='tensorboard', choices=[0, 1, 2],
@@ -102,14 +81,6 @@ class Trainer(Worker):
                                 "0: Log the collected statistics.\n"
                                 "1: Add the histograms of the model's biases & weights (Warning: Slow).\n"
                                 "2: Add the histograms of the model's biases & weights gradients (Warning: Even slower).")
-
-        self.parser.add_argument('--li',
-                            dest='logging_interval',
-                            default=100,
-                            type=int,
-                            help='Statistics logging interval. Will impact logging to the logger and exporting to '
-                                'TensorBoard. Writing to the csv file is not impacted (interval of 1).'
-                                '(Default: 100, i.e. logs every 100 episodes).')
 
         self.parser.add_argument('--visualize',
                             dest='visualize',
@@ -202,21 +173,21 @@ class Trainer(Worker):
         try:
             training_problem_name = self.params['training']['problem']['name']
         except KeyError:
-            print("Error: Couldn't retrieve problem name from the 'training' section in the loaded configuration")
+            print("Error: Couldn't retrieve the problem name from the 'training' section in the loaded configuration")
             exit(-1)
 
         # Get validation problem name
         try:
             _ = self.params['validation']['problem']['name']
         except KeyError:
-            print("Error: Couldn't retrieve problem name from the 'validation' section in the loaded configuration")
+            print("Error: Couldn't retrieve the problem name from the 'validation' section in the loaded configuration")
             exit(-1)
 
         # Get model name.
         try:
             model_name = self.params['model']['name']
         except KeyError:
-            print("Error: Couldn't retrieve model name from the loaded configuration")
+            print("Error: Couldn't retrieve the model name from the loaded configuration")
             exit(-1)
 
         # Prepare the output path for logging
@@ -232,17 +203,18 @@ class Trainer(Worker):
             else:
                 break
 
+        # Models dir.
         self.model_dir = self.log_dir + 'models/'
         os.makedirs(self.model_dir, exist_ok=False)
 
-        # add the handler for the logfile to the logger
+        # Set log dir and add the handler for the logfile to the logger.
         self.log_file = self.log_dir + 'trainer.log'
         self.add_file_handler_to_logger(self.log_file)
 
         # Set random seeds in the training section.
         self.set_random_seeds(self.params['training'], 'training')
 
-        # check if CUDA is available, if yes turn it on
+        # Check if CUDA is available, if yes turn it on.
         self.check_and_set_cuda(self.params['training'])
 
         ################# TRAINING PROBLEM ################# 
@@ -357,8 +329,7 @@ class Trainer(Worker):
             yaml.dump(self.params.to_dict(), yaml_backup_file, default_flow_style=False)
 
         # Log the resulting training configuration.
-        conf_str = '\n' + '='*80 + '\n'
-        conf_str += 'Final registry configuration for training {} on {}:\n'.format(model_name, training_problem_name)
+        conf_str = 'Final registry configuration for training of {} on {}:\n'.format(model_name, training_problem_name)
         conf_str += '='*80 + '\n'
         conf_str += yaml.safe_dump(self.params.to_dict(), default_flow_style=False)
         conf_str += '='*80 + '\n'

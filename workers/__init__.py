@@ -1,4 +1,4 @@
-from .tester import add_arguments, Tester
+from .tester import Tester
 from .episode_trainer import EpisodeTrainer
 from .grid_trainer_cpu import GridTrainerCPU, add_arguments
 from .grid_trainer_gpu import GridTrainerGPU

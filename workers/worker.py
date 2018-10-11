@@ -100,6 +100,27 @@ class Worker(object):
 
         # Add arguments to the specific parser.
         # These arguments will be shared by all workers.
+        self.parser.add_argument('--config',
+                            dest='config',
+                            type=str,
+                            default='',
+                            help='Name of the configuration file(s) to be loaded.'
+                                'If specifying more than one file, they must be separated with coma ",".)')
+
+        self.parser.add_argument('--model',
+                            type=str,
+                            default='',
+                            dest='model',
+                            help='Path to the file containing the saved parameters'
+                                ' of the model to load (model checkpoint, should end with a .pt extension.)')
+
+        self.parser.add_argument('--outdir',
+                            dest='outdir',
+                            type=str,
+                            default="./experiments",
+                            help='Path to the output directory where the experiment(s) folders will be stored.'
+                                ' (DEFAULT: ./experiments)')
+
         self.parser.add_argument('--savetag',
                             dest='savetag',
                             type=str,
@@ -113,6 +134,14 @@ class Worker(object):
                             default='INFO',
                             choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
                             help="Log level. (Default: INFO)")
+
+        self.parser.add_argument('--li',
+                            dest='logging_interval',
+                            default=100,
+                            type=int,
+                            help='Statistics logging interval. Will impact logging to the logger and exporting to '
+                                'TensorBoard. Writing to the csv file is not impacted (interval of 1).'
+                                '(Default: 100, i.e. logs every 100 episodes).')
 
         self.parser.add_argument('--agree',
                             dest='confirm',
