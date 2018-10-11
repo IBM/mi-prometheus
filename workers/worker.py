@@ -29,7 +29,9 @@ worker.py:
 """
 __author__ = "Vincent Marois, Tomasz Kornut, Ryan L. McAvoy"
 
+import os
 import yaml
+
 import torch
 import logging
 import argparse
@@ -45,35 +47,6 @@ from utils.statistics_collector import StatisticsCollector
 from utils.statistics_aggregator import StatisticsAggregator
 
 
-def add_arguments(parser: argparse.ArgumentParser):
-    """
-    Add arguments to the specific parser.
-    These arguments will be shared by all workers.
-    :param parser: ``argparse.ArgumentParser``
-    """
-    #  It is possible to add arguments to all workers by adding them in this function.
-
-    parser.add_argument('--savetag',
-                        dest='savetag',
-                        type=str,
-                        default='',
-                        help='Tag for the save directory')
-
-    parser.add_argument('--log',
-                        action='store',
-                        dest='log',
-                        type=str,
-                        default='INFO',
-                        choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
-                        help="Log level. (Default: INFO)")
-
-    # add here all arguments used by the trainers.
-    parser.add_argument('--agree',
-                        dest='confirm',
-                        action='store_true',
-                        help='Request user confirmation just after loading the settings, '
-                             'before starting training  (Default: False)')
-
 
 class Worker(object):
     """
@@ -81,9 +54,13 @@ class Worker(object):
     All workers should subclass it and override the relevant methods.
     """
 
-    def __init__(self, flags: argparse.Namespace):
+    def __init__(self, name="Worker"):
         """
         Base constructor for all workers:
+
+            - Initializes the AppState singleton:
+
+                >>> self.app_state = AppState()
 
             - Initializes the Parameter Registry:
 
@@ -93,31 +70,78 @@ class Worker(object):
 
                 >>> self.logger = logging.getLogger(name=self.name)
 
-            - Initialize the AppState singleton:
+            - Creates parser and adds default worker command line arguments
 
-                >>> self.app_state = AppState()
-
-            - Create the StatisticsCollector:
-
-                >>> self.stat_col = StatisticsCollector()
-
-            - Create the StatisticsAggregator:
-
-                >>> self.stat_agg = StatisticsAggregator()
-
-
-
-        :param flags: Parsed arguments from the parser.
+        :param name: Name of the worker (DEFAULT: ''Worker'').
 
         """
-        # call base constructor
+        # Call base constructor.
         super(Worker, self).__init__()
 
-        # default name
-        self.name = 'Worker'
+        # Set worker name.
+        self.name = name
+
+        # Initialize the application state singleton.
+        self.app_state = AppState()
 
         # Initialize parameter interface.
         self.params = ParamInterface()
+
+        # Load the default logger configuration.
+        with open('logger_config.yaml', 'rt') as f:
+            config = yaml.load(f.read())
+            logging.config.dictConfig(config)
+
+        # Create the Logger, set its label and logging level.
+        self.logger = logging.getLogger(name=self.name)
+
+        # Create parser with a list of runtime arguments.
+        self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+
+        # Add arguments to the specific parser.
+        # These arguments will be shared by all workers.
+        self.parser.add_argument('--savetag',
+                            dest='savetag',
+                            type=str,
+                            default='',
+                            help='Tag for the save directory')
+
+        self.parser.add_argument('--log',
+                            action='store',
+                            dest='log',
+                            type=str,
+                            default='INFO',
+                            choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
+                            help="Log level. (Default: INFO)")
+
+        self.parser.add_argument('--agree',
+                            dest='confirm',
+                            action='store_true',
+                            help='Request user confirmation just after loading the settings, '
+                                'before starting training  (Default: False)')
+
+
+    def setup_experiment(self):
+        """
+        Setups a specific experiment. 
+        Base method:
+
+            - Parses command line arguments.
+
+            - Sets the three default sections and sets their dataloaders params. 
+
+        .. note::
+
+            Child classes should reimplement this method, but still call it parent to draw the basic functionality.
+
+        :param flags: Parsed arguments from the command line.
+
+        """
+        # Parse arguments.
+        self.flags, unparsed = self.parser.parse_known_args()
+
+        # Set logger depending on the settins.
+        self.logger.setLevel(getattr(logging, self.flags.log.upper(), None))
 
         # add empty sections
         self.params.add_default_params({"training": {}})
@@ -137,23 +161,11 @@ class Worker(object):
         self.params["validation"].add_default_params(dataloader_config)
         self.params["testing"].add_default_params(dataloader_config)
 
-        # Load the default logger configuration.
-        with open('logger_config.yaml', 'rt') as f:
-            config = yaml.load(f.read())
-            logging.config.dictConfig(config)
-
-        # Create the Logger, set its label and logging level.
-        self.logger = logging.getLogger(name=self.name)
-        self.logger.setLevel(getattr(logging, flags.log.upper(), None))
-
-        # Initialize the application state singleton.
-        self.app_state = AppState()
-
 
     @abstractmethod
-    def forward(self, flags: argparse.Namespace):
+    def run_experiment(self):
         """
-        Main function of the worker which executes a specific task.
+        Main function of the worker which executes a specific experiment.
 
         .. note::
 
@@ -163,6 +175,95 @@ class Worker(object):
 
         """
 
+    def add_file_handler_to_logger(self, logfile):
+        """
+        Add a ``logging.FileHandler`` to the logger of the current Worker.
+
+        Specifies a ``logging.Formatter``:
+
+            >>> logging.Formatter(fmt='[%(asctime)s] - %(levelname)s - %(name)s >>> %(message)s',
+            >>>                   datefmt='%Y-%m-%d %H:%M:%S')
+
+
+        :param logfile: File used by the ``FileHandler``.
+
+        """
+        # create file handler which logs even DEBUG messages
+        fh = logging.FileHandler(logfile)
+
+        # set logging level for this file
+        fh.setLevel(logging.DEBUG)
+
+        # create formatter and add it to the handlers
+        formatter = logging.Formatter(fmt='[%(asctime)s] - %(levelname)s - %(name)s >>> %(message)s',
+                                      datefmt='%Y-%m-%d %H:%M:%S')
+        fh.setFormatter(formatter)
+
+        # add the handler to the logger
+        self.logger.addHandler(fh)
+
+    def recurrent_config_parse(self, configs: str, configs_parsed: list):
+        """
+        Parses names of configuration files in a recursive manner, i.e. \
+        by looking for ``default_config`` sections and trying to load and parse those
+        files one by one.
+
+        :param configs: String containing names of configuration files (with paths), separated by comas.
+        :type configs: str
+
+        :param configs_parsed: Configurations that were already parsed (so we won't parse them many times).
+        :type configs_parsed: list
+
+
+        :return: list of parsed configuration files.
+
+        """
+        # Split and remove spaces.
+        configs_to_parse = configs.replace(" ", "").split(',')
+
+        # Terminal condition.
+        while len(configs_to_parse) > 0:
+
+            # Get config.
+            config = configs_to_parse.pop(0)
+
+            # Skip empty names (after lose comas).
+            if config == '':
+                continue
+            print("Info: Parsing the {} configuration file".format(config))
+
+            # Check if it was already loaded.
+            if config in configs_parsed:
+                print('Warning: Configuration file {} already parsed - skipping'.format(config))
+                continue
+
+            # Check if file exists.
+            if not os.path.isfile(config):
+                print('Error: Configuration file {} does not exist'.format(config))
+                exit(-1)
+
+            try:
+                # Open file and get parameter dictionary.
+                with open(config, 'r') as stream:
+                    param_dict = yaml.safe_load(stream)
+            except yaml.YAMLError as e:
+                print("Error: Couldn't properly parse the {} configuration file".format(config))
+                print('yaml.YAMLERROR:', e)
+                exit(-1)
+
+            # Remember that we loaded that config.
+            configs_parsed.append(config)
+
+            # Check if there are any default configs to load.
+            if 'default_configs' in param_dict:
+                # If there are - recursion!
+                configs_parsed = self.recurrent_config_parse(
+                    param_dict['default_configs'], configs_parsed)
+
+        # Done, return list of loaded configs.
+        return configs_parsed
+
+        
     def check_and_set_cuda(self, params):
         """
         Enables CUDA if available and sets the default data types.
@@ -257,43 +358,6 @@ class Worker(object):
             for x in iterable:
                 yield x
 
-
-    def set_logger_name(self, name):
-        """
-        Set name of ``self.logger``.
-
-        :param name: New name for the ``logging.Logger``.
-        :type name: str
-
-        """
-        self.logger.name = name
-
-    def add_file_handler_to_logger(self, logfile):
-        """
-        Add a ``logging.FileHandler`` to the logger of the current Worker.
-
-        Specifies a ``logging.Formatter``:
-
-            >>> logging.Formatter(fmt='[%(asctime)s] - %(levelname)s - %(name)s >>> %(message)s',
-            >>>                   datefmt='%Y-%m-%d %H:%M:%S')
-
-
-        :param logfile: File used by the ``FileHandler``.
-
-        """
-        # create file handler which logs even DEBUG messages
-        fh = logging.FileHandler(logfile)
-
-        # set logging level for this file
-        fh.setLevel(logging.DEBUG)
-
-        # create formatter and add it to the handlers
-        formatter = logging.Formatter(fmt='[%(asctime)s] - %(levelname)s - %(name)s >>> %(message)s',
-                                      datefmt='%Y-%m-%d %H:%M:%S')
-        fh.setFormatter(formatter)
-
-        # add the handler to the logger
-        self.logger.addHandler(fh)
 
     def set_random_seeds(self, params, section_name):
         """

@@ -45,64 +45,8 @@ from problems.problem_factory import ProblemFactory
 from utils.statistics_collector import StatisticsCollector
 from utils.statistics_aggregator import StatisticsAggregator
 
-from utils.worker_utils import recurrent_config_parse, handshake
+from utils.worker_utils import handshake
 
-
-def add_arguments(parser: argparse.ArgumentParser):
-    """
-    Add arguments to the specific parser.
-    These arguments will be shared by all (basic) trainers.
-    :param parser: ``argparse.ArgumentParser``
-    """
-    parser.add_argument('--config',
-                        dest='config',
-                        type=str,
-                        default='',
-                        help='Name of the configuration file(s) to be loaded.'
-                             'If specifying more than one file, they must be separated with coma ",".)')
-
-    parser.add_argument('--outdir',
-                        dest='outdir',
-                        type=str,
-                        default="./experiments",
-                        help='Path to the output directory where the experiment(s) folders will be stored.'
-                             ' (DEFAULT: ./experiments)')
-
-    parser.add_argument('--model',
-                        type=str,
-                        default='',
-                        dest='model',
-                        help='Path to the file containing the saved parameters'
-                             ' of the model to load (model checkpoint, should end with a .pt extension.)')
-
-    parser.add_argument('--tensorboard',
-                        action='store',
-                        dest='tensorboard', choices=[0, 1, 2],
-                        type=int,
-                        help="If present, enable logging to TensorBoard. Available log levels:\n"
-                             "0: Log the collected statistics.\n"
-                             "1: Add the histograms of the model's biases & weights (Warning: Slow).\n"
-                             "2: Add the histograms of the model's biases & weights gradients (Warning: Even slower).")
-
-    parser.add_argument('--li',
-                        dest='logging_interval',
-                        default=100,
-                        type=int,
-                        help='Statistics logging interval. Will impact logging to the logger and exporting to '
-                             'TensorBoard. Writing to the csv file is not impacted (interval of 1).'
-                             '(Default: 100, i.e. logs every 100 episodes).')
-
-    parser.add_argument('--visualize',
-                        dest='visualize',
-                        default='-1',
-                        choices=[-1, 0, 1, 2, 3],
-                        type=int,
-                        help="Activate dynamic visualization (Warning: will require user interaction):\n"
-                             "-1: disabled (DEFAULT)\n"
-                             "0: Only during training episodes.\n"
-                             "1: During both training and validation episodes.\n"
-                             "2: Only during validation episodes.\n"
-                             "3: Only during the last validation, after the training is completed.\n")
 
 
 class Trainer(Worker):
@@ -115,13 +59,80 @@ class Trainer(Worker):
 
     """
 
-    def __init__(self, flags: argparse.Namespace):
+    def __init__(self, name="Trainer"):
         """
         Base constructor for all trainers:
 
+            - Adds default trainer command line arguments
+
+        :param name: Name of the worker (DEFAULT: ''Trainer'').
+
+        """ 
+        # Call base constructor to set up app state, registry and add default params.
+        super(Trainer, self).__init__(name)
+
+        # Add arguments to the specific parser.
+        # These arguments will be shared by all (basic) trainers.
+        self.parser.add_argument('--config',
+                            dest='config',
+                            type=str,
+                            default='',
+                            help='Name of the configuration file(s) to be loaded.'
+                                'If specifying more than one file, they must be separated with coma ",".)')
+
+        self.parser.add_argument('--outdir',
+                            dest='outdir',
+                            type=str,
+                            default="./experiments",
+                            help='Path to the output directory where the experiment(s) folders will be stored.'
+                                ' (DEFAULT: ./experiments)')
+
+        self.parser.add_argument('--model',
+                            type=str,
+                            default='',
+                            dest='model',
+                            help='Path to the file containing the saved parameters'
+                                ' of the model to load (model checkpoint, should end with a .pt extension.)')
+
+        self.parser.add_argument('--tensorboard',
+                            action='store',
+                            dest='tensorboard', choices=[0, 1, 2],
+                            type=int,
+                            help="If present, enable logging to TensorBoard. Available log levels:\n"
+                                "0: Log the collected statistics.\n"
+                                "1: Add the histograms of the model's biases & weights (Warning: Slow).\n"
+                                "2: Add the histograms of the model's biases & weights gradients (Warning: Even slower).")
+
+        self.parser.add_argument('--li',
+                            dest='logging_interval',
+                            default=100,
+                            type=int,
+                            help='Statistics logging interval. Will impact logging to the logger and exporting to '
+                                'TensorBoard. Writing to the csv file is not impacted (interval of 1).'
+                                '(Default: 100, i.e. logs every 100 episodes).')
+
+        self.parser.add_argument('--visualize',
+                            dest='visualize',
+                            default='-1',
+                            choices=[-1, 0, 1, 2, 3],
+                            type=int,
+                            help="Activate dynamic visualization (Warning: will require user interaction):\n"
+                                "-1: disabled (DEFAULT)\n"
+                                "0: Only during training episodes.\n"
+                                "1: During both training and validation episodes.\n"
+                                "2: Only during validation episodes.\n"
+                                "3: Only during the last validation, after the training is completed.\n")
+
+
+    def setup_experiment(self):
+        """
+        Sets up experiment of all trainers:
+
+            - Calls base class setup_experiment to parse the command line arguments 
+
             - Loads the config file(s):
 
-                >>> configs_to_load = recurrent_config_parse(flags.config, [])
+                >>> configs_to_load = self.recurrent_config_parse(flags.config, [])
 
             - Set up the log directory path:
 
@@ -130,10 +141,6 @@ class Trainer(Worker):
             - Add a FileHandler to the logger (defined in BaseWorker):
 
                 >>>  self.add_file_handler_to_logger(self.log_file)
-
-            - Handles TensorBoard writers & files:
-
-                >>> self.training_writer = SummaryWriter(self.log_dir + '/training')
 
             - Set random seeds:
 
@@ -162,29 +169,26 @@ class Trainer(Worker):
                 etc.), \
                 - Will validate the model again at the end of training if one of the terminal conditions is met.
 
-
             - Set optimizer:
 
                 >>> self.optimizer = getattr(torch.optim, optimizer_name)
 
+            - Handles TensorBoard writers & files:
 
-        :param flags: Parsed arguments from the parser.
+                >>> self.training_writer = SummaryWriter(self.log_dir + '/training')
 
         """
-        # call base constructor
-        super(Trainer, self).__init__(flags)
+        # Call base method to parse all command line arguments and add default sections.
+        super(Trainer, self).setup_experiment()
 
-        # set name of logger
-        self.name = 'Trainer'
-        self.set_logger_name(self.name)
 
         # Check if config file was selected.
-        if flags.config == '':
+        if self.flags.config == '':
             print('Please pass configuration file(s) as --c parameter')
             exit(-1)
 
         # Get the list of configurations which need to be loaded.
-        configs_to_load = recurrent_config_parse(flags.config, [])
+        configs_to_load = self.recurrent_config_parse(self.flags.config, [])
 
         # Read the YAML files one by one - but in reverse order -> overwrite the first indicated config(s)
         for config in reversed(configs_to_load):
@@ -219,9 +223,9 @@ class Trainer(Worker):
         while True:  # Dirty fix: if log_dir already exists, wait for 1 second and try again
             try:
                 time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
-                if flags.savetag != '':
-                    time_str = time_str + "_" + flags.savetag
-                self.log_dir = flags.outdir + '/' + training_problem_name + '/' + model_name + '/' + time_str + '/'
+                if self.flags.savetag != '':
+                    time_str = time_str + "_" + self.flags.savetag
+                self.log_dir = self.flags.outdir + '/' + training_problem_name + '/' + model_name + '/' + time_str + '/'
                 os.makedirs(self.log_dir, exist_ok=False)
             except FileExistsError:
                 sleep(1)
@@ -241,30 +245,10 @@ class Trainer(Worker):
         # check if CUDA is available, if yes turn it on
         self.check_and_set_cuda(self.params['training'])
 
+        ################# TRAINING PROBLEM ################# 
+
         # Build the problem for the training
         self.training_problem = ProblemFactory.build_problem(self.params['training']['problem'])
-
-        # Build the model using the loaded configuration and the default values of the problem.
-        self.model = ModelFactory.build_model(self.params['model'], self.training_problem.default_values)
-
-        # load the indicated pretrained model checkpoint if the argument is valid
-        if flags.model != "":
-            if os.path.isfile(flags.model):
-                # Load parameters from checkpoint.
-                self.model.load(flags.model)
-            else:
-                self.logger.error("Couldn't load the checkpoint {} : does not exist on disk.".format(flags.model))
-
-        # move the model to CUDA if applicable
-        if self.app_state.use_CUDA:
-            self.model.cuda()
-
-        # perform 2-way handshake between Model and Problem
-        handshake(model=self.model, problem=self.training_problem, logger=self.logger)
-        # no error thrown, so handshake succeeded
-
-        # Log the model summary.
-        self.logger.info(self.model.summarize())
 
         # build the DataLoader on top of the Problem class, using the associated configuration section.
         self.training_dataloader = DataLoader(dataset=self.training_problem,
@@ -289,8 +273,7 @@ class Trainer(Worker):
             self.curric_done = self.training_problem.curriculum_learning_update_params(0)
 
             # If the 'must_finish' key is not present in config then then it will be finished by default
-            if 'must_finish' not in self.params['training']['curriculum_learning']:
-                self.params['training']['curriculum_learning'].add_default_params({'must_finish': True})
+            self.params['training']['curriculum_learning'].add_default_params({'must_finish': True})
 
             self.must_finish_curriculum = self.params['training']['curriculum_learning']['must_finish']
             self.logger.info("Using curriculum learning")
@@ -302,6 +285,8 @@ class Trainer(Worker):
             # If not using curriculum learning then it does not have to be finished.
             self.must_finish_curriculum = False
 
+        ################# VALIDATION PROBLEM ################# 
+        
         # Build the validation problem.
         self.validation_problem = ProblemFactory.build_problem(self.params['validation']['problem'])
 
@@ -318,9 +303,42 @@ class Trainer(Worker):
                                    timeout=self.params['validation']['dataloader']['timeout'],
                                    worker_init_fn=self.validation_problem.worker_init_fn)
 
+        # Validation interval (Default: 100 episodes).
+        self.params['validation'].add_default_params({'interval': 100})
+        self.model_validation_interval = self.params['validation']['interval']
+
+        # Generate a single batch used for validation.
+        self.validation_batch = next(iter(self.validation_dataloader))
+
+        ################# MODEL PROBLEM ################# 
+        
+        # Build the model using the loaded configuration and the default values of the problem.
+        self.model = ModelFactory.build_model(self.params['model'], self.training_problem.default_values)
+
+        # load the indicated pretrained model checkpoint if the argument is valid
+        if self.flags.model != "":
+            if os.path.isfile(self.flags.model):
+                # Load parameters from checkpoint.
+                self.model.load(self.flags.model)
+            else:
+                self.logger.error("Couldn't load the checkpoint {} : does not exist on disk.".format(self.flags.model))
+
+        # Move the model to CUDA if applicable.
+        if self.app_state.use_CUDA:
+            self.model.cuda()
+
+        # Log the model summary.
+        self.logger.info(self.model.summarize())
+
+        # perform 2-way handshake between Model and Problem
+        handshake(model=self.model, problem=self.training_problem, logger=self.logger)
+        # no error thrown, so handshake succeeded
+
         # perform 2-way handshake between Model and Problem
         handshake(model=self.model, problem=self.validation_problem, logger=self.logger)
         # no error thrown, so handshake succeeded
+
+        ################# OPTIMIZER ################# 
 
         # Set the optimizer.
         optimizer_conf = dict(self.params['training']['optimizer'])
@@ -397,16 +415,13 @@ class Trainer(Worker):
         self.validation_set_stats_file.close()
 
 
-    def initialize_tensorboard(self, tensorboard_flag):
+    def initialize_tensorboard(self):
         """
         Function initializes tensorboard
 
-        :param tensorboard_flag: Flag set from command line. If not None, it will activate different \
-            modes of TB summary writer
-
         """
         # Create TensorBoard outputs - if TensorBoard is supposed to be used.
-        if tensorboard_flag is not None:
+        if self.flags.tensorboard is not None:
             from tensorboardX import SummaryWriter
             self.training_batch_writer = SummaryWriter(self.log_dir + '/training')
             self.training_stat_col.initialize_tensorboard(self.training_batch_writer)
@@ -439,8 +454,6 @@ class Trainer(Worker):
             self.validation_batch_writer.close()
         if self.validation_set_writer is not None:
             self.validation_set_writer.close()
-        
-
 
 
     def validate_on_batch(self, valid_batch, episode, epoch=None):
@@ -451,7 +464,6 @@ class Trainer(Worker):
 
         :param valid_batch: data batch generated by the problem and used as input to the model.
         :type valid_batch: ``DataDict``
-
 
         :param episode: current training episode index.
         :type episode: int

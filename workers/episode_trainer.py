@@ -46,29 +46,29 @@ class EpisodeTrainer(Trainer):
 
     """
 
-    def __init__(self, flags: argparse.Namespace):
+    def __init__(self, name="EpisodeTrainer"):
         """
         Only calls the ``Trainer`` constructor as the initialization phase is identical to the ``Trainer``.
 
-        :param flags: Parsed arguments from the parser.
+       :param name: Name of the worker (DEFAULT: ''EpisodeTrainer'').
 
+        """ 
+        # Call base constructor to set up app state, registry and add default params.
+        super(EpisodeTrainer, self).__init__(name)
+
+
+
+    def setup_experiment(self):
         """
-        # call base constructor
-        super(EpisodeTrainer, self).__init__(flags=flags)
+        Sets up experiment for episode trainer:
 
-        # set logger name
-        self.name = 'EpisodeTrainer'
-        self.set_logger_name(self.name)
-
-        # Set the Model validation frequency for the ``EpisodicTrainer`` (Default: 100 episodes).
-        self.params['validation'].add_default_params({'interval': 100})
-        self.model_validation_interval = self.params['validation']['interval']
-
-        # generate a single batch used for validation
-        self.validation_batch = next(iter(self.validation_dataloader))
+            - Calls base class setup_experiment to parse the command line arguments 
+        """
+        # Call base method to parse all command line arguments, load configuration, create problems and model etc.
+        super(EpisodeTrainer, self).setup_experiment()
 
 
-    def forward(self, flags: argparse.Namespace):
+    def run_experiment(self):
         """
         Main function of the ``EpisodeTrainer``.
 
@@ -82,7 +82,7 @@ class EpisodeTrainer(Trainer):
                  - The loss is below the specified threshold (using the validation loss or the highest training loss\
                   over several episodes),
                   - The maximum number of episodes has been met,
-                  - The user pressed 'Quit' during visualization (TODO: should change that)
+                  - The user pressed 'Stop experiment' during visualization (TODO: should change that)
 
 
         The function does the following for each episode:
@@ -101,12 +101,12 @@ class EpisodeTrainer(Trainer):
 
         """
         # Ask for confirmation - optional.
-        if flags.confirm:
-            input('Press any key to continue')
+        if self.flags.confirm:
+            input('Press any key to run the experiment')
 
         # Initialize tensorboard and statistics collection.
         self.initialize_statistics_collection()
-        self.initialize_tensorboard(flags.tensorboard)
+        self.initialize_tensorboard()
 
         # cycle the DataLoader -> infinite iterator
         self.training_dataloader = self.cycle(self.training_dataloader)
@@ -122,7 +122,7 @@ class EpisodeTrainer(Trainer):
                 self.optimizer.zero_grad()
 
                 # Check the visualization flag - Set it if visualization is wanted during training & validation episodes.
-                if (0 <= flags.visualize <= 1):
+                if (0 <= self.flags.visualize <= 1):
                     self.app_state.visualize = True
                 else:
                     self.app_state.visualize = False
@@ -156,11 +156,11 @@ class EpisodeTrainer(Trainer):
                 self.training_stat_col.export_statistics_to_csv()
 
                 # 4.2. Export data to tensorboard - at logging frequency.
-                if (self.training_batch_writer is not None) and (episode % flags.logging_interval == 0):
+                if (self.training_batch_writer is not None) and (episode % self.flags.logging_interval == 0):
                     self.training_stat_col.export_statistics_to_tensorboard()
 
                     # Export histograms.
-                    if flags.tensorboard >= 1:
+                    if self.flags.tensorboard >= 1:
                         for name, param in self.model.named_parameters():
                             try:
                                 self.training_batch_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
@@ -169,7 +169,7 @@ class EpisodeTrainer(Trainer):
                                 self.logger.error("  {} :: data :: {}".format(name, e))
 
                     # Export gradients.
-                    if flags.tensorboard >= 2:
+                    if self.flags.tensorboard >= 2:
                         for name, param in self.model.named_parameters():
                             try:
                                 self.training_batch_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode,
@@ -179,7 +179,7 @@ class EpisodeTrainer(Trainer):
                                 self.logger.error("  {} :: grad :: {}".format(name, e))
 
                 # 4.3. Log to logger - at logging frequency.
-                if episode % flags.logging_interval == 0:
+                if episode % self.flags.logging_interval == 0:
                     self.logger.info(self.training_stat_col.export_statistics_to_string())
 
                     # empty Statistics Collector to avoid memory leak
@@ -199,7 +199,7 @@ class EpisodeTrainer(Trainer):
                 if (episode % self.model_validation_interval) == 0:
 
                     # Check visualization flag
-                    if (1 <= flags.visualize <= 2):
+                    if (1 <= self.flags.visualize <= 2):
                         self.app_state.visualize = True
                     else:
                         self.app_state.visualize = False
@@ -259,7 +259,7 @@ class EpisodeTrainer(Trainer):
             '''
 
             # Check visualization flag - turn on visualization for last validation if needed.
-            if (flags.visualize == 3):
+            if (self.flags.visualize == 3):
                 self.app_state.visualize = True
             else:
                 self.app_state.visualize = False
@@ -282,18 +282,9 @@ class EpisodeTrainer(Trainer):
 
 
 if __name__ == '__main__':
-    # Create parser with list of  runtime arguments.
-    argp = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
-    # add default arguments
-    worker.add_arguments(argp)
-
-    # add trainers-specific arguments
-    trainer.add_arguments(argp)
-
-    # Parse arguments.
-    FLAGS, unparsed = argp.parse_known_args()
-
-    episode_trainer = EpisodeTrainer(FLAGS)
+    episode_trainer = EpisodeTrainer()
+    # parse args, load configuration and create all required objects.
+    episode_trainer.setup_experiment()
     # GO!
-    episode_trainer.forward(FLAGS)
+    episode_trainer.run_experiment()

@@ -65,7 +65,7 @@ class TimePlot(QtWidgets.QMainWindow):
         next_btn = QtWidgets.QPushButton("&Proceed")  # Shortcut is Alt+P
         next_btn.clicked.connect(self._next_clicked)
         # Quit button.
-        stop_btn = QtWidgets.QPushButton("&Stop worker")  # Shortcut is Alt+S
+        stop_btn = QtWidgets.QPushButton("&Stop experiment")  # Shortcut is Alt+S
         stop_btn.clicked.connect(self.closeEvent)
         # Add buttons to widget.
         hbox_buttons.addWidget(save_movie_btn)
