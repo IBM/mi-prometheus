@@ -280,36 +280,35 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         #stat_col['num_subseq'] = data_dict['num_subsequences']
         stat_col['max_seq_length'] = self.max_sequence_length
 
-    def add_estimators(self, stat_est):
+    def add_aggregators(self, stat_agg):
         """
-        Adds statistical estimators related to the accuracy to ``StatisticsEstimators``.
+        Adds problem-dependent statistical aggregators to ``StatisticsAggregator``.
 
-        :param stat_est: ``StatisticsEstimators``.
+        :param stat_agg: ``StatisticsAggregator``.
 
         """
+        stat_agg.add_aggregator('acc', '{:12.10f}')  # represents the average accuracy
+        stat_agg.add_aggregator('acc_min', '{:12.10f}')
+        stat_agg.add_aggregator('acc_max', '{:12.10f}')
+        stat_agg.add_aggregator('acc_std', '{:12.10f}')
 
-        stat_est.add_estimator('acc', '{:12.10f}')  # represents the average accuracy
-        stat_est.add_estimator('acc_min', '{:12.10f}')
-        stat_est.add_estimator('acc_max', '{:12.10f}')
-        stat_est.add_estimator('acc_std', '{:12.10f}')
 
-    def collect_estimators(self, stat_col, stat_est):
+    def aggregate_statistics(self, stat_col, stat_agg):
         """
-        Collect the statistical estimators added using ``self.add_estimator``.
+        Aggregates the statistics collected by ''StatisticsCollector'' and adds the results to ''StatisticsAggregator''.
 
         :param stat_col: ``StatisticsCollector``.
 
-        :param stat_est: ``StatisticsEstimators``.
-
+        :param stat_agg: ``StatisticsAggregator``.
 
         """
-        # collect base statistical estimators
-        super(AlgorithmicSeqToSeqProblem, self).collect_estimators(stat_col, stat_est)
+        # Aggregate base statistics.
+        super(AlgorithmicSeqToSeqProblem, self).aggregate_statistics(stat_col, stat_agg)
 
-        stat_est['acc_min'] = min(stat_col['acc'])
-        stat_est['acc_max'] = max(stat_col['acc'])
-        stat_est['acc'] = torch.mean(torch.tensor(stat_col['acc']))
-        stat_est['acc_std'] = torch.std(torch.tensor(stat_col['acc']))
+        stat_agg['acc_min'] = min(stat_col['acc'])
+        stat_agg['acc_max'] = max(stat_col['acc'])
+        stat_agg['acc'] = torch.mean(torch.tensor(stat_col['acc']))
+        stat_agg['acc_std'] = torch.std(torch.tensor(stat_col['acc']))
 
     def show_sample(self, data_dict, sample=0):
         """
@@ -369,7 +368,7 @@ if __name__ == '__main__':
 
     from utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_custom_params({'control_bits': 2,
+    params.add_config_params({'control_bits': 2,
                               'data_bits': 8,
                               'min_sequence_length': 1,
                               'max_sequence_length': 10})

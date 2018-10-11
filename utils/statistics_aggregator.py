@@ -141,12 +141,21 @@ class StatisticsAggregator(StatisticsCollector):
         """
         return self.aggregators.__iter__()
 
-    def aggregate(self, stat_col):
+    def aggregate_statistics(self, stat_col):
         """
         Method aggregates the default statistics collected by the Statistics Collector.
 
         :param: stat_col: ''StatisticsCollector''
         """
+        # By default, copy last values for all variables have mathing names.
+        # (will work well for e.g. episode or epoch)
+        for k,v in stat_col.items():
+            if k in self.aggregators:
+                # Copy last collected value.
+                self.aggregators[k] = v[-1]
+        # Simply copy the last episode from collector.
+        #self.aggregators['episode'] = stat_col['episode'][-1]
+
         # Get loss values.
         loss_values = stat_col['loss']
         # Calcualte default aggregates.
@@ -154,8 +163,6 @@ class StatisticsAggregator(StatisticsCollector):
         self.aggregators['loss_min'] = min(loss_values)
         self.aggregators['loss_max'] = max(loss_values)
         self.aggregators['loss_std'] = np.std(loss_values)
-        # Simply copy the last episode from collector.
-        self.aggregators['episode'] = stat_col['episode'][-1]
         self.aggregators['episodes_aggregated'] = len(loss_values)
         
 
@@ -263,18 +270,19 @@ if __name__ == "__main__":
     stat_col = StatisticsCollector()
     stat_agg = StatisticsAggregator()
 
-    # create some random values
     import random
     import numpy as np
-    loss_values = random.sample(range(100), 100)
 
+    # create some random values
+    loss_values = random.sample(range(100), 100)
+    # "Collect" basic statistics.
     for episode, loss in enumerate(loss_values):
         stat_col['episode'] = episode
         stat_col['loss'] = loss
         #print(stat_col.export_statistics_to_string())
         
     # Aggregate.
-    stat_agg.aggregate(stat_col)
+    stat_agg.aggregate_statistics(stat_col)
     print(stat_agg.export_aggregators_to_string())
 
     # Add new aggregator (a simulation of "additional statistics collected by model")

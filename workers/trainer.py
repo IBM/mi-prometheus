@@ -152,7 +152,7 @@ class Trainer(Worker):
 
                 - Instantiates the problem class, with the parameters contained in the `validation` section,
                 - Will validate the model at the end of each epoch, over the entire validation set, and log the \
-                statistical estimators (minimum / maximum / average / standard deviation... of the loss, accuracy \
+                statistical aggregators (minimum / maximum / average / standard deviation... of the loss, accuracy \
                 etc.), \
                 - Will validate the model again at the end of training if one of the terminal conditions is met.
 
@@ -342,9 +342,9 @@ class Trainer(Worker):
         self.problem.add_statistics(self.stat_col)
         self.model.add_statistics(self.stat_col)
 
-        # Add the model & problem dependent statistical estimators to the ``StatisticsEstimators``
-        self.problem.add_estimators(self.stat_agg)
-        self.model.add_estimators(self.stat_agg)
+        # Add the model & problem dependent statistical aggregators to the ``StatisticsEstimators``
+        self.problem.add_aggregators(self.stat_agg)
+        self.model.add_aggregators(self.stat_agg)
 
         # Save the resulting configuration into a .yaml settings file, under log_dir
         with open(self.log_dir + "training_configuration.yaml", 'w') as yaml_backup_file:
@@ -400,9 +400,14 @@ class Trainer(Worker):
         # Create the csv file to store the training statistics.
         self.training_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'training_statistics.csv')
 
-        # Create the csv file to store the validation statistical estimators
+        # Create the csv file to store the training statistical estimators.
+        # doing it in the forward, not constructor, as the ``EpisodicTrainer`` does not need it.
+        self.training_stats_aggregated_file = self.stat_agg.initialize_csv_file(self.log_dir, 'training_aggregated_statistics.csv')
+
+        # Create the csv file to store the validation statistical aggregators
         # This file will contains several data points for the ``Trainer`` (but only one for the ``EpisodicTrainer``)
-        self.validation_stats_aggregated_file = self.stat_agg.initialize_csv_file(self.log_dir, 'validation_estimators.csv')
+        self.validation_stats_aggregated_file = self.stat_agg.initialize_csv_file(self.log_dir, 'validation_aggregated_statistics.csv')
+
 
     def finalize_statistics_collection(self):
         """
@@ -410,6 +415,7 @@ class Trainer(Worker):
         """
         # Close all files.
         self.training_stats_file.close()
+        self.training_stats_aggregated_file.close()
         self.validation_stats_aggregated_file.close()
 
 
@@ -448,7 +454,7 @@ class Trainer(Worker):
                     - Computes gradients and update weights
                     - Activate visualization if set (vis. level 0)
 
-            - Validate the model on the entire validation set, logs the statistical estimators values \
+            - Validate the model on the entire validation set, logs the statistical aggregators values \
               and visualize on a randon batch if set (vis. level 1 or 2)
 
 
@@ -458,10 +464,6 @@ class Trainer(Worker):
 
 
         """
-        # Create the csv file to store the training statistical estimators.
-        # doing it in the forward, not constructor, as the ``EpisodicTrainer`` does not need it.
-        self.training_est_file = self.stat_agg.initialize_csv_file(self.log_dir, 'training_estimators.csv')
-
         # Ask for confirmation - optional.
         if flags.confirm:
             input('Press any key to continue')
@@ -569,17 +571,14 @@ class Trainer(Worker):
             # Finalize the epoch
             self.logger.info('Epoch {} finished'.format(epoch))
 
-            # Collect the statistical estimators
-            self.model.collect_estimators(self.stat_col, self.stat_agg)
-            self.problem.collect_estimators(self.stat_col, self.stat_agg)
+            # Collect the statistical aggregators
+            self.model.aggregate_statistics(self.stat_col, self.stat_agg)
+            self.problem.aggregate_statistics(self.stat_col, self.stat_agg)
 
-            self.stat_agg['episode'] = episode
-            self.stat_agg['epoch'] = epoch
-
-            # Log the statistical estimators to the logger
-            self.logger.info(self.stat_agg.export_estimators_to_string())
-            # Log the statistical estimators to the csv file
-            self.stat_agg.export_estimators_to_csv(self.training_est_file)
+            # Log the statistical aggregators to the logger
+            self.logger.info(self.stat_agg.export_aggregators_to_string())
+            # Log the statistical aggregators to the csv file
+            self.stat_agg.export_aggregators_to_csv(self.training_agg)
 
             # empty Statistics Collector
             self.stat_col.empty()

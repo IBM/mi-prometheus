@@ -114,8 +114,7 @@ class Model(nn.Module):
 
         # Flag indicating whether intermediate checkpoints should be saved or
         # not (DEFAULT: False).
-        if "save_intermediate" not in params:
-            params.add_default_params({"save_intermediate": False})
+        params.add_default_params({"save_intermediate": False})
         self.save_intermediate = params["save_intermediate"]
 
         # process all params from configuration file and problem_default_values_ here
@@ -258,24 +257,24 @@ class Model(nn.Module):
         """
         pass
 
-    def add_estimators(self, stat_est):
+    def add_aggregators(self, stat_agg):
         """
-        Adds statistical estimators to ``StatisticsEstimators``.
+        Adds statistical aggregators to ``StatisticsAggregator``.
 
         .. note::
-
 
             Empty - To be redefined in inheriting classes.
 
 
-        :param stat_est: ``StatisticsEstimators``.
+        :param stat_agg: ``StatisticsAggregator``.
 
         """
         pass
 
-    def collect_estimators(self, stat_col, stat_est):
+
+    def aggregate_statistics(self, stat_col, stat_agg):
         """
-        Collect the statistical estimators added using ``self.add_estimator``.
+        Aggregates the statistics collected by ''StatisticsCollector'' and adds the results to ''StatisticsAggregator''.
 
          .. note::
 
@@ -283,13 +282,13 @@ class Model(nn.Module):
             Empty - To be redefined in inheriting classes. The user has to ensure that the corresponding entry \
             in the ``StatisticsEstimators`` has been created with ``self.add_estimator()`` beforehand.\
 
-            Given that the ``StatisticsEstimators`` uses the statistics collected by the ``StatisticsCollector``, \
+            Given that the ``StatisticsAggregator`` uses the statistics collected by the ``StatisticsCollector``, \
             the user should also ensure that these statistics are correctly collected \
             (i.e. use of ``self.add_statistics`` and ``self.collect_statistics``.
 
         :param stat_col: ``StatisticsCollector``.
 
-        :param stat_est: ``StatisticsEstimators``.
+        :param stat_agg: ``StatisticsAggregator``.
 
 
         """

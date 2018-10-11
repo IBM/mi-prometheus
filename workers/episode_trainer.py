@@ -81,7 +81,8 @@ class EpisodeTrainer(Trainer):
         self.validation_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'validation_statistics.csv')
 
         # Create the csv file to store the validation statistic aggregations.
-        self.validation_stats_aggregated_file = self.stat_agg.initialize_csv_file(self.log_dir, 'validation_statistics_aggregated.csv')
+        # This file will contains several data points for the ``Trainer`` (but only one for the ``EpisodicTrainer``)
+        self.validation_stats_aggregated_file = self.stat_agg.initialize_csv_file(self.log_dir, 'validation_aggregated_statistics.csv')
 
 
     def finalize_statistics_collection(self):
