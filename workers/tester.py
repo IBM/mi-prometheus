@@ -314,7 +314,6 @@ class Tester(Worker):
         # Turn on evaluation mode.
         self.model.eval()
 
-        print("logging_interval = ",self.flags.logging_interval)
         try:
             # Run test
             with torch.no_grad():

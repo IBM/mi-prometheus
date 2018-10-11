@@ -256,10 +256,14 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         :type stat_col: ``StatisticsCollector``
 
         """
+        # Add basic statistics.
+        super(AlgorithmicSeqToSeqProblem, self).add_statistics(stat_col)
+
         stat_col.add_statistic('acc', '{:12.10f}')
         stat_col.add_statistic('seq_length', '{:d}')
         #stat_col.add_statistic('num_subseq', '{:d}')
         stat_col.add_statistic('max_seq_length', '{:d}')
+        stat_col.add_statistic('batch_size', '{:06d}')
 
     def collect_statistics(self, stat_col, data_dict, logits):
         """
@@ -275,10 +279,14 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         :type logits: tensor
 
         """
+        # Collect basic statistics.
+        super(AlgorithmicSeqToSeqProblem, self).collect_statistics(stat_col, data_dict, logits)
+
         stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
         stat_col['seq_length'] = data_dict['sequences_length']
         #stat_col['num_subseq'] = data_dict['num_subsequences']
         stat_col['max_seq_length'] = self.max_sequence_length
+        stat_col['batch_size'] = logits.shape[0] # Batch major.
 
     def add_aggregators(self, stat_agg):
         """
@@ -287,10 +295,14 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         :param stat_agg: ``StatisticsAggregator``.
 
         """
+        # Add basic aggregators.
+        super(AlgorithmicSeqToSeqProblem, self).add_aggregators(stat_agg)
+
         stat_agg.add_aggregator('acc', '{:12.10f}')  # represents the average accuracy
         stat_agg.add_aggregator('acc_min', '{:12.10f}')
         stat_agg.add_aggregator('acc_max', '{:12.10f}')
         stat_agg.add_aggregator('acc_std', '{:12.10f}')
+        stat_agg.add_aggregator('samples_aggregated', '{:006d}')  # represents the average accuracy
 
 
     def aggregate_statistics(self, stat_col, stat_agg):
@@ -309,6 +321,8 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         stat_agg['acc_max'] = max(stat_col['acc'])
         stat_agg['acc'] = torch.mean(torch.tensor(stat_col['acc']))
         stat_agg['acc_std'] = torch.std(torch.tensor(stat_col['acc']))
+        stat_agg['samples_aggregated'] = sum(stat_col['batch_size'])
+
 
     def show_sample(self, data_dict, sample=0):
         """
