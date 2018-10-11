@@ -66,7 +66,7 @@ class EpisodeTrainer(Trainer):
         self.model_validation_interval = self.params['validation']['interval']
 
         # generate one batch used for validation
-        self.data_valid = next(iter(self.dl_valid))
+        self.data_valid = next(iter(self.validation_dataloader))
 
 
     def initialize_statistics_collection(self):
@@ -231,12 +231,12 @@ class EpisodeTrainer(Trainer):
                     self.app_state.visualize = False
 
                 # Perform validation.
-                validation_loss, user_pressed_stop = validation(self.model, self.problem_validation, episode,
+                validation_loss, user_pressed_stop = validation(self.model, self.validation_problem, episode,
                                                                 self.stat_col, self.data_valid, flags, self.logger,
                                                                 self.validation_stats_file, self.validation_writer)
 
                 # Save the model using the latest validation statistics.
-                self.model.save(self.model_dir, validation_loss, self.stat_col)
+                self.model.save(self.model_dir, self.stat_col)
 
             # 7. Terminal conditions.
 
@@ -272,9 +272,7 @@ class EpisodeTrainer(Trainer):
                 # Validate on the problem if required - so we can collect the
                 # statistics needed during saving of the best model.
                 #if self.use_validation_problem:
-                _, _ = validation(self.model, self.problem_validation, episode,
-                                      self.stat_col, self.data_valid, flags, self.logger,
-                                      self.validation_file, self.validation_writer)
+                _, _ = self.validation_step(self.data_valid, episode)
                 # save the model
                 self.model.save(self.model_dir, self.stat_col)
 
@@ -303,25 +301,22 @@ class EpisodeTrainer(Trainer):
         else:
             self.app_state.visualize = False
 
-        self.stat_agg['episode'] = episode
-        avg_loss_valid, user_pressed_stop = validate_over_set(self.model, self.problem_validation, self.dl_valid,
-                                                              self.stat_col, self.stat_agg, flags, self.logger,
-                                                              self.validation_stats_aggregated_file, None, 1)
-
-        # Save the model using the average validation loss.
-        self.model.save(self.model_dir, avg_loss_valid, self.stat_agg)
-
         # Check whether we have finished training properly.
         if terminal_condition:
+            self.stat_agg['episode'] = episode
+            avg_loss_valid, user_pressed_stop = self.validate_over_set(0, 0)
+
+            # Save the model using the average validation loss.
+            self.model.save(self.model_dir, self.stat_agg)
 
             self.logger.info('Learning finished!')
 
         else:  # the training did not end properly
             self.logger.warning('Learning interrupted!')
 
-        # And statistics collection.
+        # Finalize statistics collection.
         self.finalize_statistics_collection()
-
+        self.finalize_tensorboard()
 
 if __name__ == '__main__':
     # Create parser with list of  runtime arguments.

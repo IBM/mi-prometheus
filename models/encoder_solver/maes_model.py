@@ -96,18 +96,19 @@ class MAES(SequentialModel):
         # TODO: Not sure if some of the params above are coming from the Problem class. If yes -> use \
         # problems_default_values_
 
-    def save(self, model_dir, loss, stat_col):
+    def save(self, model_dir, stat_col):
         """
         Method saves the model and encoder to file.
 
         :param model_dir: Directory where the model will be saved.
+        
         :param stat_col: Statistics collector that contain current loss and episode number (and other statistics).
 
         :return: True if this is the best model that is found till now (considering loss).
 
         """
         # Call the case method to save the whole model.
-        is_best_model = super(SequentialModel, self).save(model_dir, loss, stat_col)
+        is_best_model = super(SequentialModel, self).save(model_dir, stat_col)
 
         # Additionally, if flag is set to True, save the encoder.
         if self.save_encoder:

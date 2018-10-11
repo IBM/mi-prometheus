@@ -14,6 +14,7 @@ training:
 validation:
     problem:
         name: *name
+        length: 1000
     dataloader:
         num_workers: 8
 

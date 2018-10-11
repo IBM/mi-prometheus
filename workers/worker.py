@@ -221,28 +221,29 @@ class Worker(object):
         # add the handler to the logger
         self.logger.addHandler(fh)
 
-    def set_random_seeds(self):
+    def set_random_seeds(self, section_name):
         """
         Set ``torch`` & ``NumPy`` random seeds from the ParamRegistry:\
         If one was indicated, use it, or set a random one.
 
+        :param section_name: Name of the section in config/param registry that will be changed \
+            ("training" or "test" will have effect only!)
+
         """
         # Set the random seeds: either from the loaded configuration or a default randomly selected one.
-        if "seed_torch" not in self.params["training"] or self.params["training"]["seed_torch"] == -1:
+        if "seed_torch" not in self.params[section_name] or self.params[section_name]["seed_torch"] == -1:
             seed = randrange(0, 2 ** 32)
             # Overwrite the config param!
-            self.params["training"].add_config_params({"seed_torch": seed})
+            self.params[section_name].add_config_params({"seed_torch": seed})
 
-        self.logger.info("Setting torch random seed to: {}".format(self.params["training"]["seed_torch"]))
+        self.logger.info("Setting torch random seed in {} to: {}".format(section_name, self.params[section_name]["seed_torch"]))
+        torch.manual_seed(self.params[section_name]["seed_torch"])
+        torch.cuda.manual_seed_all(self.params[section_name]["seed_torch"])
 
-        torch.manual_seed(self.params["training"]["seed_torch"])
-
-        torch.cuda.manual_seed_all(self.params["training"]["seed_torch"])
-
-        if "seed_numpy" not in self.params["training"] or self.params["training"]["seed_numpy"] == -1:
+        if "seed_numpy" not in self.params[section_name] or self.params[section_name]["seed_numpy"] == -1:
             seed = randrange(0, 2 ** 32)
-            self.params["training"].add_config_params({"seed_numpy": seed})
+            self.params[section_name].add_config_params({"seed_numpy": seed})
 
-        self.logger.info("Setting numpy random seed to: {}".format(self.params["training"]["seed_numpy"]))
+        self.logger.info("Setting numpy random seed in {} to: {}".format(section_name, self.params[section_name]["seed_numpy"]))
 
-        np.random.seed(self.params["training"]["seed_numpy"])
+        np.random.seed(self.params[section_name]["seed_numpy"])

@@ -22,8 +22,9 @@ estimator.py: Allows to compute several statistical aggregators (e.g. average, s
  Allows to summarize the current epoch or validation phase using statistical aggregators.
 
  """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Marois, Tomasz Kornuta"
 
+import numpy as np
 from utils.statistics_collector import StatisticsCollector
 
 
@@ -271,7 +272,6 @@ if __name__ == "__main__":
     stat_agg = StatisticsAggregator()
 
     import random
-    import numpy as np
 
     # create some random values
     loss_values = random.sample(range(100), 100)

@@ -14,12 +14,8 @@ training:
 
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
-    # How often the model will be validated/saved.
-    validation_interval: 100
-    # Optional parameters denoting number of - used when validation section is not present.
-    length_loss: 10
 
     # Terminal condition parameters:
     terminal_condition:
         loss_stop: 1.0e-5
-        max_episodes: 100000
+        max_episodes: 200

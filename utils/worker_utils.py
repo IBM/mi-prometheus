@@ -70,7 +70,7 @@ def forward_step(model, problem, episode, stat_col, data_dict, epoch=None):
     loss = problem.evaluate_loss(data_dict, logits)
 
     # Collect "elementary" statistics - episode and loss.
-    if 'epoch' in stat_col:
+    if ('epoch' in stat_col) and (epoch is not None):
         stat_col['epoch'] = epoch
 
     stat_col['episode'] = episode
@@ -381,8 +381,8 @@ def validate_over_set(model, problem, dataloader, stat_col, stat_est, FLAGS, log
                 user_pressed_stop = False
 
     # 3. Collect statistical estimators
-    model.collect_estimators(stat_col, stat_est)
-    problem.collect_estimators(stat_col, stat_est)
+    model.aggregate_statistics(stat_col, stat_est)
+    problem.aggregate_statistics(stat_col, stat_est)
 
     # 4. Log to logger
     logger.info(stat_est.export_estimators_to_string('[Validation {}]'.format(epoch)))

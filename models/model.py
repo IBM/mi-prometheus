@@ -315,16 +315,13 @@ class Model(nn.Module):
 
         """
 
-    def save(self, model_dir, loss, stats):
+    def save(self, model_dir, stats):
         """
         Generic method saving the model parameters to file. It can be
         overloaded if one needs more control.
 
         :param model_dir: Directory where the model will be saved.
         :type model_dir: str
-
-        :param loss: Latest loss value to consider to determine if the model improved: Can be the average loss over the \
-        entire validation set or over one batch.
 
         :param stats: Statistics value to save with the model.
         :type stats: ``StatisticsCollector`` or ``StatisticsEstimator``
@@ -334,11 +331,17 @@ class Model(nn.Module):
         """
         # Get the episode index and the statistics:
         if stats.__class__.__name__ == 'StatisticsCollector':
+            # Get data from collector.
             episode = stats['episode'][-1]
+            loss = stats['loss'][-1]
+            # "Copy" last values only.
             statistics = {k: v[-1] for k, v in stats.items()}
 
         else:
-            episode = stats.statistics['episode']
+            # Get data from aggregator.
+            episode = stats['episode']
+            loss = stats['loss']
+            # Simply copy values.
             statistics = {k: v for k, v in stats.items()}
 
         # Checkpoint to be saved.

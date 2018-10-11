@@ -88,9 +88,9 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
                                }
 
         # TODO: Should derive the actual theoretical limit instead of a arbitrary limit.
-        params.add_default_params({'len': 10000000})
+        params.add_default_params({'length': 10000000})
         # Read value from registry - if it was set in config file, it will override the above default value.
-        self.length = params['len']
+        self.length = params['length']
 
 
     def set_max_length(self, max_length):
