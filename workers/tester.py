@@ -229,13 +229,19 @@ class Tester(Worker):
 
         # Create model object.
         self.model = ModelFactory.build_model(self.params['model'])
-        self.model.cuda() if self.app_state.use_CUDA else None
 
         # Load parameters from checkpoint.
         self.model.load(self.flags.model)
 
         # Turn on evaluation mode.
         self.model.eval()
+
+        # Move the model to CUDA if applicable.
+        if self.app_state.use_CUDA:
+            self.model.cuda()
+
+        # Log the model summary.
+        self.logger.info(self.model.summarize())
 
         # perform 2-way handshake between Model and Problem
         handshake(model=self.model, problem=self.problem, logger=self.logger)
@@ -360,7 +366,7 @@ class Tester(Worker):
                 # Export to csv
                 self.testing_stat_agg.export_aggregators_to_csv()
 
-        except SystemExit as e:
+        except SystemExit:
             # the training did not end properly
             self.logger.warning('Testing interrupted!')
         finally:

@@ -70,7 +70,7 @@ class EpisodeTrainer(Trainer):
 
     def run_experiment(self):
         """
-        Main function of the ``EpisodeTrainer``.
+        Main function of the ``EpisodeTrainer``, runs the experiment.
 
         Iterates over the (cycled) DataLoader (one iteration = one episode).
 
@@ -272,7 +272,7 @@ class EpisodeTrainer(Trainer):
 
             self.logger.info('Training finished!')
 
-        except SystemExit as e:
+        except SystemExit:
             # the training did not end properly
             self.logger.warning('Training interrupted!')
         finally:

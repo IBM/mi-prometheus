@@ -169,6 +169,22 @@ class Worker(object):
         # Parse arguments.
         self.flags, unparsed = self.parser.parse_known_args()
 
+        # Log the parsed flags.
+        flags_str = 'Properly parsed command line arguments: \n'
+        flags_str += '='*80 + '\n'
+        for arg in vars(self.flags): 
+            flags_str += "{}= {} \n".format(arg, getattr(self.flags, arg))
+        flags_str += '='*80 + '\n'
+        self.logger.info(flags_str)
+
+        # Log the unparsed flags.
+        flags_str = 'Invalid command line arguments: \n'
+        flags_str += '='*80 + '\n'
+        for arg in unparsed: 
+            flags_str += "{} \n".format(arg)
+        flags_str += '='*80 + '\n'
+        self.logger.warning(flags_str)
+
         # Set logger depending on the settins.
         self.logger.setLevel(getattr(logging, self.flags.log.upper(), None))
 
