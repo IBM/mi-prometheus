@@ -83,7 +83,7 @@ class SequentialModel(Model):
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
-            return False
+            return
 
         # Initialize timePlot window - if required.
         if self.plotWindow is None:
@@ -174,9 +174,6 @@ class SequentialModel(Model):
 
         # Plot figure and list of frames.
         self.plotWindow.update(fig, frames)
-
-        # Return True if user closed the window.
-        return self.plotWindow.is_closed
 
 
 if __name__ == '__main__':

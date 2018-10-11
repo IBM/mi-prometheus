@@ -42,7 +42,7 @@ from workers.worker import Worker
 from models.model_factory import ModelFactory
 from problems.problem_factory import ProblemFactory
 
-from utils.worker_utils import forward_step, check_and_set_cuda, recurrent_config_parse, handshake, validate_over_set
+from utils.worker_utils import check_and_set_cuda, recurrent_config_parse, handshake
 
 
 def add_arguments(parser: argparse.ArgumentParser):
@@ -358,6 +358,10 @@ class Trainer(Worker):
         conf_str += yaml.safe_dump(self.params.to_dict(), default_flow_style=False)
         conf_str += '='*80 + '\n'
         self.logger.info(conf_str)
+        # Ask for confirmation - optional.
+        if flags.confirm:
+            input('Press any key to continue')
+
 
     def initialize_tensorboard(self, tensorboard_flag):
         """
@@ -454,7 +458,7 @@ class Trainer(Worker):
 
         # Compute the validation loss using the provided data batch.
         with torch.no_grad():
-            valid_logits, valid_loss = forward_step(self.model, self.validation_problem, episode, self.stat_col, valid_batch, epoch)
+            valid_logits, valid_loss = self.forward_step(self.validation_problem, valid_batch, episode, epoch)
 
         # Log to logger.
         self.logger.info(self.stat_col.export_statistics_to_string('[Validation]'))
@@ -471,11 +475,11 @@ class Trainer(Worker):
             # Allow for preprocessing
             valid_batch, valid_logits = self.problem.plot_preprocessing(valid_batch, valid_logits)
 
-            # True means that we should terminate
-            return valid_loss, self.model.plot(valid_batch, valid_logits)
+            # Show plot, if user will press Stop then a SystemExit exception will be thrown.
+            self.model.plot(valid_batch, valid_logits)
 
         # Else simply return false, i.e. continue training.
-        return valid_loss, False
+        return valid_loss
 
     def validation_over_set(self, episode, epoch=None):
         """
@@ -517,7 +521,7 @@ class Trainer(Worker):
         with torch.no_grad():
             for ep, valid_batch in enumerate(self.validation_dataloader):
                 # 1. Perform forward step, get predictions and compute loss.
-                valid_logits, _ = forward_step(self.model, self.validation_problem, ep, self.stat_col, valid_batch, epoch)
+                valid_logits, _ = self.forward_step(self.validation_problem, valid_batch, ep, epoch)
 
                 # 2.Visualization of validation for the randomly selected batch
                 if self.app_state.visualize and ep == vis_index:
@@ -525,10 +529,8 @@ class Trainer(Worker):
                     # Allow for preprocessing
                     valid_batch, valid_logits = self.validation_problem.plot_preprocessing(valid_batch, valid_logits)
 
-                    # Show plot, and record if the user pressed 'Stop Training'.
-                    user_pressed_stop = self.model.plot(valid_batch, valid_logits)
-                else:
-                    user_pressed_stop = False
+                    # Show plot, if user will press Stop then a SystemExit exception will be thrown.
+                    self.model.plot(valid_batch, valid_logits)
 
         # 3. Aggregate statistics.
         self.model.aggregate_statistics(self.stat_col, self.stat_agg)
@@ -547,7 +549,7 @@ class Trainer(Worker):
             self.stat_agg.export_aggregators_to_tensorboard(self.validation_writer)
 
         # return average loss and whether the user pressed `Quit` during the visualization
-        return self.stat_agg['loss'], user_pressed_stop
+        return self.stat_agg['loss']
 
     def forward(self, flags: argparse.Namespace):
         """
@@ -693,8 +695,8 @@ class Trainer(Worker):
 
                     # Allow for preprocessing
                     data_dict, logits = self.problem.plot_preprocessing(data_dict, logits)
-                    # visualization
-                    user_pressed_stop = self.model.plot(data_dict, logits)
+                    # Show plot, if user will press Stop then a SystemExit exception will be thrown.
+                    self.model.plot(data_dict, logits)
 
                 episode += 1
 

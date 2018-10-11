@@ -59,22 +59,20 @@ class TimePlot(QtWidgets.QMainWindow):
         hbox_buttons.addStretch(1)
         # Button for saving movies.
         save_movie_btn = QtWidgets.QPushButton(
-            "&Save as movie")  # Shortcut is Alt+S
+            "Save as &movie")  # Shortcut is Alt+M
         save_movie_btn.clicked.connect(self._save_movie_clicked)
         # Button for next episode.
-        next_btn = QtWidgets.QPushButton("&Next episode")  # Shortcut is Alt+N
+        next_btn = QtWidgets.QPushButton("&Proceed")  # Shortcut is Alt+P
         next_btn.clicked.connect(self._next_clicked)
         # Quit button.
-        stop_btn = QtWidgets.QPushButton("&Stop visualization")  # Shortcut is Alt+Q
+        stop_btn = QtWidgets.QPushButton("&Stop worker")  # Shortcut is Alt+S
         stop_btn.clicked.connect(self.closeEvent)
         # Add buttons to widget.
         hbox_buttons.addWidget(save_movie_btn)
         hbox_buttons.addWidget(next_btn)
         hbox_buttons.addWidget(stop_btn)
         self.layout.addLayout(hbox_buttons, 2, 0)
-
-        self.is_closed = False
-        self.is_playing = False
+        self.terminate = False
 
     def _save_movie_clicked(self):
         logger = logging.getLogger('Model')
@@ -98,7 +96,7 @@ class TimePlot(QtWidgets.QMainWindow):
 
     def closeEvent(self, _):
         # Set flag to True, so we could break the external loop.
-        self.is_closed = True
+        self.terminate = True
         self.qapp.quit()
 
     def update(self, fig, frames):
@@ -129,7 +127,10 @@ class TimePlot(QtWidgets.QMainWindow):
 
         # Show.
         self.show()
-        self.qapp.exec_()  # Resume event loop
+        self.qapp.exec_()  
+        # Resume event loop - throw SystemExit if one pressed "stop".
+        if self.terminate:
+            raise SystemExit
 
     def slider_valuechanged(self):
         """
@@ -172,27 +173,35 @@ if __name__ == '__main__':
     axes[1].set_title("output")
     axes[2].set_title("target")
 
-    def f(x, y):
+    def fun(x, y):
         return np.sin(x) + np.cos(y)
 
-    while not plot.is_closed:
-        x = np.linspace(0, 2 * np.pi, 120)
-        y = np.linspace(0, 2 * np.pi, 100).reshape(-1, 1)
-        # frames is a list of lists, each row is a list of artists to draw in a
-        # given frame.
-        frames = []
-        for i in range(60):
-            x += np.pi / 15.
-            y += np.pi / 20.
-            # Get axes
-            artists = [None] * len(fig.axes)
-            artists[0] = axes[0].imshow(f(x, y))
-            artists[1] = axes[1].imshow(f(x, y))
-            artists[2] = axes[2].imshow(f(x, y))
-            # Make them invisible.
-            for artist in artists:
-                artist.set_visible(False)
-            # Add "frame".
-            frames.append(artists)
-        # Plot.
-        plot.update(fig, frames)
+    try:
+        tmp = 0
+        while True:
+            print("Inside of while")
+            x = np.linspace(tmp, 2 * np.pi, 120)
+            y = np.linspace(0, 2 * np.pi, 100).reshape(-1, 1)
+            # frames is a list of lists, each row is a list of artists to draw in a
+            # given frame.
+            frames = []
+            for i in range(60):
+                x += np.pi / 15.
+                y += np.pi / 20.
+                # Get axes
+                artists = [None] * len(fig.axes)
+                artists[0] = axes[0].imshow(fun(x, y))
+                artists[1] = axes[1].imshow(fun(x, y))
+                artists[2] = axes[2].imshow(fun(x, y))
+                # Make them invisible.
+                for artist in artists:
+                    artist.set_visible(False)
+                # Add "frame".
+                frames.append(artists)
+            # Plot.
+            plot.update(fig, frames)
+            tmp = tmp + 1
+    except SystemExit as e:
+        print("Visualization stopped")
+
+

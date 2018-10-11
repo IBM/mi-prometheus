@@ -168,15 +168,12 @@ class Worker(object):
 
         """
 
-    def forward_step(self, model, problem, data_dict, episode, epoch=None):
+    def forward_step(self, problem, data_dict, episode, epoch=None):
         """
         Function that performs a single forward step:
 
             - passes samples through the model,
             - collects loss & others statistics
-
-        :param model: trainable model.
-        :type model: ``models.model.Model`` or a subclass
 
         :param problem: problem generating samples.
         :type problem: ``problems.problem.problem`` or a subclass
@@ -202,7 +199,7 @@ class Worker(object):
             data_dict = data_dict.cuda()
 
         # Perform forward calculation.
-        logits = model(data_dict)
+        logits = self.model(data_dict)
 
         # Evaluate loss function.
         loss = problem.evaluate_loss(data_dict, logits)
@@ -216,7 +213,7 @@ class Worker(object):
 
         # Collect other (potential) statistics from problem & model.
         problem.collect_statistics(self.stat_col, data_dict, logits)
-        model.collect_statistics(self.stat_col, data_dict, logits)
+        self.model.collect_statistics(self.stat_col, data_dict, logits)
 
         # Return tuple: logits, loss.
         return logits, loss
