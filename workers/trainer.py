@@ -565,3 +565,5 @@ class Trainer(Worker):
         # Return the average validation loss.
         return self.validation_stat_agg['loss']
 
+if __name__ == '__main__':
+    print("The trainer file contains only the abstract Trainer class, please use episode_trainer or epoch_trainer for training.")
