@@ -40,6 +40,11 @@ class StatisticsCollector(Mapping):
         Initialization - creates dictionaries for statistics and formatting, adds standard statistics (episode and loss).
         """
         super(StatisticsCollector, self).__init__()
+
+        # Set default "output streams" for none.
+        self.tb_writer = None
+        self.csv_file = None
+
         self.statistics = dict()
         self.formatting = dict()
 
@@ -134,18 +139,25 @@ class StatisticsCollector(Mapping):
         header_str = header_str[:-1] + '\n'
 
         # Open file for writing.
-        csv_file = open(log_dir + filename, 'w', 1)
-        csv_file.write(header_str)
+        self.csv_file = open(log_dir + filename, 'w', 1)
+        self.csv_file.write(header_str)
 
-        return csv_file
+        return self.csv_file
 
-    def export_statistics_to_csv(self, csv_file):
+    def export_statistics_to_csv(self, csv_file = None):
         """
         Method writes current statistics to csv using the possessed formatting.
 
-        :param csv_file: File stream opened for writing.
+        :param csv_file: File stream opened for writing, optional
 
         """
+        # Try to use the remembered one.    
+        if csv_file is None:
+            csv_file = self.csv_file
+        # If it is still None - well, we cannot do anything more.
+        if csv_file is None:
+            return
+
         # Iterate through values and concatenate them.
         values_str = ''
         for key, value in self.statistics.items():
@@ -159,6 +171,7 @@ class StatisticsCollector(Mapping):
         values_str = values_str[:-1] + '\n'
 
         csv_file.write(values_str)
+
 
     def export_statistics_to_string(self, additional_tag=''):
         """
@@ -182,15 +195,27 @@ class StatisticsCollector(Mapping):
 
         return stat_str
 
-    def export_statistics_to_tensorboard(self, tb_writer):
+    def initialize_tensorboard(self, tb_writer):
+        """ 
+        Memorizes the writer that will be used with this collector.
+        """ 
+        self.tb_writer = tb_writer
+
+    def export_statistics_to_tensorboard(self, tb_writer=None):
         """
         Method exports current statistics to tensorboard.
 
-        :param tb_writer: TensorBoard writer.
+        :param tb_writer: TensorBoard writer, optional.
 
         """
         # Get episode number.
         episode = self.statistics['episode'][-1]
+
+        if (tb_writer is None):
+            tb_writer = self.tb_writer
+        # If it is still None - well, we cannot do anything more.
+        if tb_writer is None:
+            return
 
         # Iterate through keys and values and concatenate them.
         for key, value in self.statistics.items():

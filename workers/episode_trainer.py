@@ -68,32 +68,6 @@ class EpisodeTrainer(Trainer):
         self.validation_batch = next(iter(self.validation_dataloader))
 
 
-    def initialize_statistics_collection(self):
-        """
-        Function initializes all statistics collectors and aggregators used by a given worker,
-        creates output files etc.
-        """
-        # Create the csv file to store the training statistics.
-        self.training_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'training_statistics.csv')
-
-        # Create the csv file to store the validation statistics.
-        self.validation_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'validation_statistics.csv')
-
-        # Create the csv file to store the validation statistic aggregations.
-        # This file will contains several data points for the ``Trainer`` (but only one for the ``EpisodicTrainer``)
-        self.validation_stats_aggregated_file = self.stat_agg.initialize_csv_file(self.log_dir, 'validation_aggregated_statistics.csv')
-
-
-    def finalize_statistics_collection(self):
-        """
-        Finalizes statistics collection, closes all files etc.
-        """
-        # Close all files.
-        self.training_stats_file.close()
-        self.validation_stats_file.close()
-        self.validation_stats_aggregated_file.close()
-
-
     def forward(self, flags: argparse.Namespace):
         """
         Main function of the ``EpisodeTrainer``.
@@ -135,14 +109,14 @@ class EpisodeTrainer(Trainer):
         self.initialize_tensorboard(flags.tensorboard)
 
         # cycle the DataLoader -> infinite iterator
-        self.dataloader = self.cycle(self.dataloader)
+        self.training_dataloader = self.cycle(self.training_dataloader)
 
         try:
             '''
             Main training and validation loop.
             '''
             episode = 0
-            for training_dict in self.dataloader:
+            for training_dict in self.training_dataloader:
 
                 # reset all gradients
                 self.optimizer.zero_grad()
@@ -157,7 +131,8 @@ class EpisodeTrainer(Trainer):
                 self.model.train()
 
                 # 1. Perform forward step, get predictions and compute loss.
-                logits, loss = self.predict_and_evaluate(self.model, self.problem, training_dict, episode)
+                logits, loss = self.predict_evaluate_collect(self.model, self.training_problem, 
+                    training_dict, self.training_stat_col, episode)
 
                 # 2. Backward gradient flow.
                 loss.backward()
@@ -178,17 +153,17 @@ class EpisodeTrainer(Trainer):
                 # 4. Log collected statistics.
 
                 # 4.1. Export to csv - at every step.
-                self.stat_col.export_statistics_to_csv(self.training_stats_file)
+                self.training_stat_col.export_statistics_to_csv()
 
-                # 4.2. Export data to tensorboard.
-                if (self.training_writer is not None) and (episode % flags.logging_frequency == 0):
-                    self.stat_col.export_statistics_to_tensorboard(self.training_writer)
+                # 4.2. Export data to tensorboard - at logging frequency.
+                if (self.training_batch_writer is not None) and (episode % flags.logging_interval == 0):
+                    self.training_stat_col.export_statistics_to_tensorboard()
 
                     # Export histograms.
                     if flags.tensorboard >= 1:
                         for name, param in self.model.named_parameters():
                             try:
-                                self.training_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
+                                self.training_batch_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
 
                             except Exception as e:
                                 self.logger.error("  {} :: data :: {}".format(name, e))
@@ -197,24 +172,24 @@ class EpisodeTrainer(Trainer):
                     if flags.tensorboard >= 2:
                         for name, param in self.model.named_parameters():
                             try:
-                                self.training_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode,
+                                self.training_batch_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode,
                                                                 bins='doane')
 
                             except Exception as e:
                                 self.logger.error("  {} :: grad :: {}".format(name, e))
 
-                # 4.3. Log to logger.
-                if episode % flags.logging_frequency == 0:
-                    self.logger.info(self.stat_col.export_statistics_to_string())
+                # 4.3. Log to logger - at logging frequency.
+                if episode % flags.logging_interval == 0:
+                    self.logger.info(self.training_stat_col.export_statistics_to_string())
 
                     # empty Statistics Collector to avoid memory leak
-                    self.stat_col.empty()
+                    self.training_stat_col.empty()
 
                 # 5. Check visualization of training data.
                 if self.app_state.visualize:
 
                     # Allow for preprocessing
-                    training_dict, logits = self.problem.plot_preprocessing(training_dict, logits)
+                    training_dict, logits = self.training_problem.plot_preprocessing(training_dict, logits)
 
                     # Show plot, if user will press Stop then a SystemExit exception will be thrown.
                     self.model.plot(training_dict, logits)
@@ -230,15 +205,15 @@ class EpisodeTrainer(Trainer):
                         self.app_state.visualize = False
 
                     # Perform validation.
-                    validation_loss = self.validation_step(self.validation_batch, episode)
+                    validation_loss = self.validate_on_batch(self.validation_batch, episode)
 
                     # Save the model using the latest validation statistics.
-                    self.model.save(self.model_dir, self.stat_col)
+                    self.model.save(self.model_dir, self.validation_stat_col)
 
                 # 7. Terminal conditions.
 
                 # Apply curriculum learning - change some of the Problem parameters
-                self.curric_done = self.problem.curriculum_learning_update_params(episode)
+                self.curric_done = self.training_problem.curriculum_learning_update_params(episode)
 
                 # 7.2. - the loss is < threshold (only when curriculum learning is finished if set.)
                 if self.curric_done or not self.must_finish_curriculum:
@@ -263,16 +238,16 @@ class EpisodeTrainer(Trainer):
                     # statistics needed during saving of the best model.
                     # Do not visualize.
                     self.app_state.visualize = False
-                    self.validation_step(self.validation_batch, episode)
+                    self.validate_on_batch(self.validation_batch, episode)
 
                     # save the model
-                    self.model.save(self.model_dir, self.stat_col)
+                    self.model.save(self.model_dir, self.validation_stat_col)
 
                     # "Finish" the training.
                     break
 
                 # check if we are at the end of the 'epoch': Indicate that the DataLoader is now cycling.
-                if ((episode + 1) % self.problem.get_epoch_size(
+                if ((episode + 1) % self.training_problem.get_epoch_size(
                         self.params['training']['problem']['batch_size'])) == 0:
                     self.logger.warning('The DataLoader has exhausted -> using cycle(iterable).')
 
@@ -282,8 +257,6 @@ class EpisodeTrainer(Trainer):
             '''
             End of main training and validation loop.
             '''
-            # Empty the Statistics Collector.
-            self.stat_col.empty()
 
             # Check visualization flag - turn on visualization for last validation if needed.
             if (flags.visualize == 3):
@@ -292,10 +265,10 @@ class EpisodeTrainer(Trainer):
                 self.app_state.visualize = False
 
             # Validate over the entire validation set.
-            self.validation_over_set(episode)
+            self.validate_on_set(episode)
 
             # Save the model using the average validation loss.
-            self.model.save(self.model_dir, self.stat_agg)
+            self.model.save(self.model_dir, self.validation_stat_agg)
 
             self.logger.info('Training finished!')
 
@@ -306,6 +279,7 @@ class EpisodeTrainer(Trainer):
             # Finalize statistics collection.
             self.finalize_statistics_collection()
             self.finalize_tensorboard()
+
 
 if __name__ == '__main__':
     # Create parser with list of  runtime arguments.

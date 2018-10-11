@@ -149,11 +149,6 @@ class Worker(object):
         # Initialize the application state singleton.
         self.app_state = AppState()
 
-        # Create statistics collector.
-        self.stat_col = StatisticsCollector()
-
-        # Create statistics aggregator.
-        self.stat_agg = StatisticsAggregator()
 
     @abstractmethod
     def forward(self, flags: argparse.Namespace):
@@ -190,7 +185,7 @@ class Worker(object):
             self.logger.error('CUDA is enabled but there is no available device')
 
 
-    def predict_and_evaluate(self, model, problem, data_dict, episode, epoch=None):
+    def predict_evaluate_collect(self, model, problem, data_dict, stat_col, episode, epoch=None):
         """
         Function that performs the following:
 
@@ -206,6 +201,9 @@ class Worker(object):
 
         :param data_dict: contains the batch of samples to pass to the model.
         :type data_dict: ``DataDict``
+
+        :param stat_col: statistics collector used for logging accuracy etc.
+        :type stat_col: ``StatisticsCollector``
 
         :param episode: current episode index
         :type episode: int
@@ -231,15 +229,15 @@ class Worker(object):
         loss = problem.evaluate_loss(data_dict, logits)
 
         # Collect "elementary" statistics - episode and loss.
-        if ('epoch' in self.stat_col) and (epoch is not None):
-            self.stat_col['epoch'] = epoch
+        if ('epoch' in stat_col) and (epoch is not None):
+            stat_col['epoch'] = epoch
 
-        self.stat_col['episode'] = episode
-        self.stat_col['loss'] = loss
+        stat_col['episode'] = episode
+        stat_col['loss'] = loss
 
         # Collect other (potential) statistics from problem & model.
-        problem.collect_statistics(self.stat_col, data_dict, logits)
-        model.collect_statistics(self.stat_col, data_dict, logits)
+        problem.collect_statistics(stat_col, data_dict, logits)
+        model.collect_statistics(stat_col, data_dict, logits)
 
         # Return tuple: logits, loss.
         return logits, loss

@@ -42,6 +42,9 @@ from workers.worker import Worker
 from models.model_factory import ModelFactory
 from problems.problem_factory import ProblemFactory
 
+from utils.statistics_collector import StatisticsCollector
+from utils.statistics_aggregator import StatisticsAggregator
+
 from utils.worker_utils import recurrent_config_parse, handshake
 
 
@@ -81,12 +84,12 @@ def add_arguments(parser: argparse.ArgumentParser):
                              "1: Add the histograms of the model's biases & weights (Warning: Slow).\n"
                              "2: Add the histograms of the model's biases & weights gradients (Warning: Even slower).")
 
-    parser.add_argument('--lf',
-                        dest='logging_frequency',
+    parser.add_argument('--li',
+                        dest='logging_interval',
                         default=100,
                         type=int,
-                        help='Statistics logging frequency. Will impact logging to the logger and exporting to '
-                             'TensorBoard. Writing to the csv file is not impacted (frequency of 1).'
+                        help='Statistics logging interval. Will impact logging to the logger and exporting to '
+                             'TensorBoard. Writing to the csv file is not impacted (interval of 1).'
                              '(Default: 100, i.e. logs every 100 episodes).')
 
     parser.add_argument('--visualize',
@@ -239,24 +242,10 @@ class Trainer(Worker):
         self.check_and_set_cuda(self.params['training'])
 
         # Build the problem for the training
-        self.problem = ProblemFactory.build_problem(self.params['training']['problem'])
-
-        # check that the number of epochs is available in param_interface. If not, put a default of 1.
-        if "max_epochs" not in self.params["training"]["terminal_condition"] \
-                or self.params["training"]["terminal_condition"]["max_epochs"] == -1:
-            max_epochs = 1
-
-            self.params["training"]["terminal_condition"].add_config_params({'max_epochs': max_epochs})
-
-        self.logger.info("Setting the max number of epochs to: {}".format(
-            self.params["training"]["terminal_condition"]["max_epochs"]))
-
-        # ge t theepoch size in terms of episodes:
-        epoch_size = self.problem.get_epoch_size(self.params["training"]["problem"]["batch_size"])
-        self.logger.info('Epoch size in terms of episodes: {}'.format(epoch_size))
+        self.training_problem = ProblemFactory.build_problem(self.params['training']['problem'])
 
         # Build the model using the loaded configuration and the default values of the problem.
-        self.model = ModelFactory.build_model(self.params['model'], self.problem.default_values)
+        self.model = ModelFactory.build_model(self.params['model'], self.training_problem.default_values)
 
         # load the indicated pretrained model checkpoint if the argument is valid
         if flags.model != "":
@@ -271,33 +260,33 @@ class Trainer(Worker):
             self.model.cuda()
 
         # perform 2-way handshake between Model and Problem
-        handshake(model=self.model, problem=self.problem, logger=self.logger)
+        handshake(model=self.model, problem=self.training_problem, logger=self.logger)
         # no error thrown, so handshake succeeded
 
         # Log the model summary.
         self.logger.info(self.model.summarize())
 
         # build the DataLoader on top of the Problem class, using the associated configuration section.
-        self.dataloader = DataLoader(dataset=self.problem,
+        self.training_dataloader = DataLoader(dataset=self.training_problem,
                                      batch_size=self.params['training']['problem']['batch_size'],
                                      shuffle=self.params['training']['dataloader']['shuffle'],
                                      sampler=self.params['training']['dataloader']['sampler'],
                                      batch_sampler=self.params['training']['dataloader']['batch_sampler'],
                                      num_workers=self.params['training']['dataloader']['num_workers'],
-                                     collate_fn=self.problem.collate_fn,
+                                     collate_fn=self.training_problem.collate_fn,
                                      pin_memory=self.params['training']['dataloader']['pin_memory'],
                                      drop_last=self.params['training']['dataloader']['drop_last'],
                                      timeout=self.params['training']['dataloader']['timeout'],
-                                     worker_init_fn=self.problem.worker_init_fn)
+                                     worker_init_fn=self.training_problem.worker_init_fn)
 
         # parse the curriculum learning section in the loaded configuration.
         if 'curriculum_learning' in self.params['training']:
 
             # Initialize curriculum learning - with values from loaded configuration.
-            self.problem.curriculum_learning_initialize(self.params['training']['curriculum_learning'])
+            self.training_problem.curriculum_learning_initialize(self.params['training']['curriculum_learning'])
 
             # Set initial values of curriculum learning.
-            self.curric_done = self.problem.curriculum_learning_update_params(0)
+            self.curric_done = self.training_problem.curriculum_learning_update_params(0)
 
             # If the 'must_finish' key is not present in config then then it will be finished by default
             if 'must_finish' not in self.params['training']['curriculum_learning']:
@@ -308,7 +297,7 @@ class Trainer(Worker):
 
         else:
             # Initialize curriculum learning - with empty dict.
-            self.problem.curriculum_learning_initialize({})
+            self.training_problem.curriculum_learning_initialize({})
 
             # If not using curriculum learning then it does not have to be finished.
             self.must_finish_curriculum = False
@@ -329,6 +318,10 @@ class Trainer(Worker):
                                    timeout=self.params['validation']['dataloader']['timeout'],
                                    worker_init_fn=self.validation_problem.worker_init_fn)
 
+        # perform 2-way handshake between Model and Problem
+        handshake(model=self.model, problem=self.validation_problem, logger=self.logger)
+        # no error thrown, so handshake succeeded
+
         # Set the optimizer.
         optimizer_conf = dict(self.params['training']['optimizer'])
         optimizer_name = optimizer_conf['name']
@@ -340,14 +333,6 @@ class Trainer(Worker):
                                                               **optimizer_conf)
 
         # -> At this point, all configuration for the ``Trainer`` is complete.
-
-        # Add the model & problem dependent statistics to the ``StatisticsCollector``
-        self.problem.add_statistics(self.stat_col)
-        self.model.add_statistics(self.stat_col)
-
-        # Add the model & problem dependent statistical aggregators to the ``StatisticsEstimators``
-        self.problem.add_aggregators(self.stat_agg)
-        self.model.add_aggregators(self.stat_agg)
 
         # Save the resulting configuration into a .yaml settings file, under log_dir
         with open(self.log_dir + "training_configuration.yaml", 'w') as yaml_backup_file:
@@ -362,6 +347,56 @@ class Trainer(Worker):
         self.logger.info(conf_str)
 
 
+    def initialize_statistics_collection(self):
+        """
+        Function initializes all statistics collectors and aggregators used by a given worker,
+        creates output files etc.
+        """
+        # TRAINING.
+        # Create statistics collector for training.
+        self.training_stat_col = StatisticsCollector()
+        self.training_problem.add_statistics(self.training_stat_col)
+        self.model.add_statistics(self.training_stat_col)
+        # Create the csv file to store the training statistics.
+        self.training_batch_stats_file = self.training_stat_col.initialize_csv_file(self.log_dir, 'training_statistics.csv')
+
+        # Create statistics aggregator for training.
+        self.training_stat_agg = StatisticsAggregator()
+        self.training_problem.add_aggregators(self.training_stat_agg)
+        self.model.add_aggregators(self.training_stat_agg)
+        # Create the csv file to store the training statistic aggregations.
+        # This file will contains several data points for the ``EpochTrainer`` (and none for ``EpisodicTrainer``)
+        self.training_set_stats_file = self.training_stat_agg.initialize_csv_file(self.log_dir, 'training_set_agg_statistics.csv')
+
+        # VALIDATION.
+        # Create statistics collector for validation.
+        self.validation_stat_col = StatisticsCollector()
+        self.validation_problem.add_statistics(self.validation_stat_col)
+        self.model.add_statistics(self.validation_stat_col)
+        # Create the csv file to store the validation statistics.
+        self.validation_batch_stats_file = self.validation_stat_col.initialize_csv_file(self.log_dir, 'validation_statistics.csv')
+
+        # Create statistics aggregator for validation.
+        self.validation_stat_agg = StatisticsAggregator()
+        self.validation_problem.add_aggregators(self.validation_stat_agg)
+        self.model.add_aggregators(self.validation_stat_agg)
+        # Create the csv file to store the validation statistic aggregations.
+        # This file will contains several data points for the ``Trainer`` (but only one for the ``EpisodicTrainer``)
+        self.validation_set_stats_file = self.validation_stat_agg.initialize_csv_file(self.log_dir, 'validation_set_agg_statistics.csv')
+
+
+
+    def finalize_statistics_collection(self):
+        """
+        Finalizes statistics collection, closes all files etc.
+        """
+        # Close all files.
+        self.training_batch_stats_file.close()
+        self.training_set_stats_file.close()
+        self.validation_batch_stats_file.close()
+        self.validation_set_stats_file.close()
+
+
     def initialize_tensorboard(self, tensorboard_flag):
         """
         Function initializes tensorboard
@@ -373,12 +408,22 @@ class Trainer(Worker):
         # Create TensorBoard outputs - if TensorBoard is supposed to be used.
         if tensorboard_flag is not None:
             from tensorboardX import SummaryWriter
+            self.training_batch_writer = SummaryWriter(self.log_dir + '/training')
+            self.training_stat_col.initialize_tensorboard(self.training_batch_writer)
 
-            self.training_writer = SummaryWriter(self.log_dir + '/training')
-            self.validation_writer = SummaryWriter(self.log_dir + '/validation')
+            self.training_set_writer = SummaryWriter(self.log_dir + '/training_set_agg')
+            self.training_stat_agg.initialize_tensorboard(self.training_set_writer)
+            
+            self.validation_batch_writer = SummaryWriter(self.log_dir + '/validation')
+            self.validation_stat_col.initialize_tensorboard(self.validation_batch_writer)
+
+            self.validation_set_writer = SummaryWriter(self.log_dir + '/validation_set_agg')
+            self.validation_stat_agg.initialize_tensorboard(self.validation_set_writer)
         else:
-            self.training_writer = None
-            self.validation_writer = None
+            self.training_batch_writer = None
+            self.training_set_writer = None
+            self.validation_batch_writer = None
+            self.validation_set_writer = None
 
 
     def finalize_tensorboard(self):
@@ -386,54 +431,27 @@ class Trainer(Worker):
         Finalizes operation of TensorBoard writers.
         """
         # Close the TensorBoard writers.
-        if self.training_writer is not None:
-            self.training_writer.close()
-        if self.validation_writer is not None:
-            self.validation_writer.close()
+        if self.training_batch_writer is not None:
+            self.training_batch_writer.close()
+        if self.training_set_writer is not None:
+            self.training_set_writer.close()
+        if self.validation_batch_writer is not None:
+            self.validation_batch_writer.close()
+        if self.validation_set_writer is not None:
+            self.validation_set_writer.close()
         
 
-    def initialize_statistics_collection(self):
+
+
+    def validate_on_batch(self, valid_batch, episode, epoch=None):
         """
-        Function initializes all statistics collectors and aggregators used by a given worker,
-        creates output files etc.
-        """
-        # Add statistics characteristic for this (i.e. epoch) trainer.
-        self.stat_col.add_statistic('epoch', '{:06d}')
-        self.stat_agg.add_aggregator('epoch', '{:06d}')
-
-        # Create the csv file to store the training statistics.
-        self.training_stats_file = self.stat_col.initialize_csv_file(self.log_dir, 'training_statistics.csv')
-
-        # Create the csv file to store the training statistical estimators.
-        # doing it in the forward, not constructor, as the ``EpisodicTrainer`` does not need it.
-        self.training_stats_aggregated_file = self.stat_agg.initialize_csv_file(self.log_dir, 'training_aggregated_statistics.csv')
-
-        # Create the csv file to store the validation statistical aggregators
-        # This file will contains several data points for the ``Trainer`` (but only one for the ``EpisodicTrainer``)
-        self.validation_stats_aggregated_file = self.stat_agg.initialize_csv_file(self.log_dir, 'validation_aggregated_statistics.csv')
-
-
-    def finalize_statistics_collection(self):
-        """
-        Finalizes statistics collection, closes all files etc.
-        """
-        # Close all files.
-        self.training_stats_file.close()
-        self.training_stats_aggregated_file.close()
-        self.validation_stats_aggregated_file.close()
-
-
-    def validation_step(self, valid_batch, episode, epoch=None):
-        """
-        Performs a validation step on the model, using the provided data batch.
+        Performs a validation of the model using the provided batch.
 
         Additionally logs results (to files, tensorboard) and handles visualization.
 
         :param valid_batch: data batch generated by the problem and used as input to the model.
         :type valid_batch: ``DataDict``
 
-        :param stat_col: statistics collector used for logging accuracy etc.
-        :type stat_col: ``StatisticsCollector``
 
         :param episode: current training episode index.
         :type episode: int
@@ -455,22 +473,21 @@ class Trainer(Worker):
 
         # Compute the validation loss using the provided data batch.
         with torch.no_grad():
-            valid_logits, valid_loss = self.predict_and_evaluate(self.model, self.validation_problem, valid_batch, episode, epoch)
+            valid_logits, valid_loss = self.predict_evaluate_collect(self.model, self.validation_problem, valid_batch, self.validation_stat_col, episode, epoch)
 
         # Log to logger.
-        self.logger.info(self.stat_col.export_statistics_to_string('[Validation on a single batch]'))
+        self.logger.info(self.validation_stat_col.export_statistics_to_string('[Validation on a single batch]'))
 
         # Export to csv.
-        self.stat_col.export_statistics_to_csv(self.validation_stats_file)
+        self.validation_stat_col.export_statistics_to_csv()
 
-        if self.validation_writer is not None:
-            # Save loss + accuracy to TensorBoard.
-            self.stat_col.export_statistics_to_tensorboard(self.validation_writer)
+        # Save loss + accuracy to TensorBoard.
+        self.validation_stat_col.export_statistics_to_tensorboard()
 
         # Visualization of validation.
         if self.app_state.visualize:
             # Allow for preprocessing
-            valid_batch, valid_logits = self.problem.plot_preprocessing(valid_batch, valid_logits)
+            valid_batch, valid_logits = self.validation_problem.plot_preprocessing(valid_batch, valid_logits)
 
             # Show plot, if user will press Stop then a SystemExit exception will be thrown.
             self.model.plot(valid_batch, valid_logits)
@@ -479,7 +496,7 @@ class Trainer(Worker):
         return valid_loss
 
 
-    def validation_over_set(self, episode, epoch=None):
+    def validate_on_set(self, episode, epoch=None):
         """
         Performs a validation of the model on the whole validation set, using the validation dataloader.
 
@@ -514,13 +531,12 @@ class Trainer(Worker):
         vis_index = randrange(len(self.validation_dataloader))
 
         # Reset the statistics.
-        self.stat_col.empty()
+        self.validation_stat_col.empty()
 
         with torch.no_grad():
             for ep, valid_batch in enumerate(self.validation_dataloader):
-                print(ep)
                 # 1. Perform forward step, get predictions and compute loss.
-                valid_logits, _ = self.forward_step(self.model, self.validation_problem, valid_batch, ep, epoch)
+                valid_logits, _ = self.predict_evaluate_collect(self.model, self.validation_problem, valid_batch, self.validation_stat_col, ep, epoch)
 
                 # 2.Visualization of validation for the randomly selected batch
                 if self.app_state.visualize and ep == vis_index:
@@ -532,21 +548,20 @@ class Trainer(Worker):
                     self.model.plot(valid_batch, valid_logits)
 
         # 3. Aggregate statistics.
-        self.model.aggregate_statistics(self.stat_col, self.stat_agg)
-        self.problem.aggregate_statistics(self.stat_col, self.stat_agg)
+        self.model.aggregate_statistics(self.validation_stat_col, self.validation_stat_agg)
+        self.validation_problem.aggregate_statistics(self.validation_stat_col, self.validation_stat_agg)
         # Set episode, so "the point" will appear in the right place in TB.
-        self.stat_agg["episode"] = episode
+        self.validation_stat_agg["episode"] = episode
 
         # 4. Log to logger
-        self.logger.info(self.stat_agg.export_aggregators_to_string('[Validation on the whole set]'))
+        self.logger.info(self.validation_stat_agg.export_aggregators_to_string('[Validation on the whole set]'))
 
         # 5. Export to csv
-        self.stat_agg.export_aggregators_to_csv(self.validation_stats_aggregated_file)
+        self.validation_stat_agg.export_aggregators_to_csv()
 
-        if self.validation_writer is not None:
-            # Export to TensorBoard.
-            self.stat_agg.export_aggregators_to_tensorboard(self.validation_writer)
+        # 6. Export to TensorBoard.
+        self.validation_stat_agg.export_aggregators_to_tensorboard()
 
-        # return average loss and whether the user pressed `Quit` during the visualization
-        return self.stat_agg['loss']
+        # Return the average validation loss.
+        return self.validation_stat_agg['loss']
 

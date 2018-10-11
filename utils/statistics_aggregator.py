@@ -191,18 +191,25 @@ class StatisticsAggregator(StatisticsCollector):
         header_str = header_str[:-1] + '\n'
 
         # Open file for writing.
-        csv_file = open(log_dir + filename, 'w', 1)
-        csv_file.write(header_str)
+        self.csv_file = open(log_dir + filename, 'w', 1)
+        self.csv_file.write(header_str)
 
-        return csv_file
+        return self.csv_file
 
-    def export_aggregators_to_csv(self, csv_file):
+    def export_aggregators_to_csv(self, csv_file=None):
         """
         This method writes the current statistical aggregators values to the `csv_file` using the associated formatting.
 
-        :param csv_file: File stream opened for writing.
+        :param csv_file: File stream opened for writing, optional.
 
         """
+        # Try to use the remembered one.    
+        if csv_file is None:
+            csv_file = self.csv_file
+        # If it is still None - well, we cannot do anything more.
+        if csv_file is None:
+            return
+
         values_str = ''
 
         # Iterate through values and concatenate them.
@@ -247,16 +254,22 @@ class StatisticsAggregator(StatisticsCollector):
 
         return stat_str
 
-    def export_aggregators_to_tensorboard(self, tb_writer):
+    def export_aggregators_to_tensorboard(self, tb_writer = None):
         """
         Method exports current statistical aggregators values to TensorBoard.
 
-        :param tb_writer: TensorBoard writer.
+        :param tb_writer: TensorBoard writer, optional
         :type tb_writer: ``tensorboardX.SummaryWriter``
 
         """
         # Get episode number.
         episode = self.aggregators['episode']
+
+        if (tb_writer is None):
+            tb_writer = self.tb_writer
+        # If it is still None - well, we cannot do anything more.
+        if tb_writer is None:
+            return
 
         # Iterate through keys and values and concatenate them.
         for key, value in self.aggregators.items():
