@@ -144,7 +144,7 @@ class StatisticsCollector(Mapping):
 
         return self.csv_file
 
-    def export_statistics_to_csv(self, csv_file = None):
+    def export_to_csv(self, csv_file = None):
         """
         Method writes current statistics to csv using the possessed formatting.
 
@@ -173,7 +173,7 @@ class StatisticsCollector(Mapping):
         csv_file.write(values_str)
 
 
-    def export_statistics_to_string(self, additional_tag=''):
+    def export_to_string(self, additional_tag=''):
         """
         Method returns current statistics in the form of string using the
         possessed formatting.
@@ -201,7 +201,7 @@ class StatisticsCollector(Mapping):
         """ 
         self.tb_writer = tb_writer
 
-    def export_statistics_to_tensorboard(self, tb_writer=None):
+    def export_to_tensorboard(self, tb_writer=None):
         """
         Method exports current statistics to tensorboard.
 
@@ -230,14 +230,14 @@ if __name__ == "__main__":
     stat_col = StatisticsCollector()
     stat_col.add_statistic('acc', '{:2.3f}')
 
-    stat_col['epoch'] = 0
+    #stat_col['epoch'] = 0
     stat_col['episode'] = 0
     stat_col['loss'] = 0.7
     stat_col['acc'] = 100
 
     csv_file = stat_col.initialize_csv_file('./', 'collector_test.csv')
-    stat_col.export_statistics_to_csv(csv_file)
-    print(stat_col.export_statistics_to_string())
+    stat_col.export_to_csv(csv_file)
+    print(stat_col.export_to_string())
 
     stat_col['episode'] = 1
     stat_col['loss'] = 0.7
@@ -246,8 +246,8 @@ if __name__ == "__main__":
     stat_col.add_statistic('seq_length', '{:2.0f}')
     stat_col['seq_length'] = 5
 
-    stat_col.export_statistics_to_csv(csv_file)
-    print(stat_col.export_statistics_to_string('[Validation]'))
+    stat_col.export_to_csv(csv_file)
+    print(stat_col.export_to_string('[Validation]'))
 
     stat_col.empty()
 

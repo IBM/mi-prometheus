@@ -379,7 +379,8 @@ class Worker(object):
             stat_col['epoch'] = epoch
 
         stat_col['episode'] = episode
-        stat_col['loss'] = loss
+        # Collect loss as float.
+        stat_col['loss'] = loss.item()
 
         # Collect other (potential) statistics from problem & model.
         problem.collect_statistics(stat_col, data_dict, logits)
@@ -402,7 +403,6 @@ class Worker(object):
         while True:
             for x in iterable:
                 yield x
-            self.logger.warning('Yielded all samples -> ending cycle!')
 
 
 

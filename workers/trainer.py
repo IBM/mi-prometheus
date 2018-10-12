@@ -455,14 +455,8 @@ class Trainer(Worker):
         with torch.no_grad():
             valid_logits, valid_loss = self.predict_evaluate_collect(self.model, self.validation_problem, valid_batch, self.validation_stat_col, episode, epoch)
 
-        # Log to logger.
-        self.logger.info(self.validation_stat_col.export_statistics_to_string('[Validation on a single batch]'))
-
-        # Export to csv.
-        self.validation_stat_col.export_statistics_to_csv()
-
-        # Save loss + accuracy to TensorBoard.
-        self.validation_stat_col.export_statistics_to_tensorboard()
+        # Export statistics.
+        self.export_statistics(self.validation_stat_col, '[Validation on a single batch]')
 
         # Visualization of validation.
         if self.app_state.visualize:
@@ -474,6 +468,48 @@ class Trainer(Worker):
 
         # Else simply return false, i.e. continue training.
         return valid_loss
+
+
+    def export_statistics(self, stat_obj, tag=''):
+        """
+        Export the statistics/aggregations to logger, csv and TB.
+
+        :param stat_obj: ''StatisticsCollector'' or ''StatisticsAggregator'' object.
+        :param tag: Additional tag that will be added to string exported to logger, optional (DEFAULT = '').
+
+        """ 
+        # Log to logger
+        self.logger.info(stat_obj.export_to_string(tag))
+
+        # Export to csv
+        stat_obj.export_to_csv()
+
+        # Export to TensorBoard.
+        stat_obj.export_to_tensorboard()
+
+
+
+    def aggregate_and_export_statistics(self, problem, model, stat_col, stat_agg, episode, tag=''):
+        """
+        Aggregates the collected statistics. Export the aggregations to logger, csv and TB.
+        Empties statistics collector during next episode.
+
+        :param stat_col: ''StatisticsCollector'' object.
+        :param stat_agg: ''StatisticsAggregator'' object.
+        :param tag: Additional tag that will be added to string exported to logger, optional (DEFAULT = '').
+
+        """ 
+        # Aggregate statistics.
+        problem.aggregate_statistics(stat_col, stat_agg)
+        model.aggregate_statistics(stat_col, stat_agg)
+        # Set episode, so "the point" will appear in the right place in TB.
+        stat_agg["episode"] = episode
+
+        # Export to logger, cvs and TB.
+        self.export_statistics(stat_agg, tag)
+
+        # Empty the statistics collector.
+        stat_col.empty()
 
 
     def validate_on_set(self, episode, epoch=None):
@@ -527,20 +563,9 @@ class Trainer(Worker):
                     # Show plot, if user will press Stop then a SystemExit exception will be thrown.
                     self.model.plot(valid_batch, valid_logits)
 
-        # 3. Aggregate statistics.
-        self.model.aggregate_statistics(self.validation_stat_col, self.validation_stat_agg)
-        self.validation_problem.aggregate_statistics(self.validation_stat_col, self.validation_stat_agg)
-        # Set episode, so "the point" will appear in the right place in TB.
-        self.validation_stat_agg["episode"] = episode
-
-        # 4. Log to logger
-        self.logger.info(self.validation_stat_agg.export_aggregators_to_string('[Validation on the whole set]'))
-
-        # 5. Export to csv
-        self.validation_stat_agg.export_aggregators_to_csv()
-
-        # 6. Export to TensorBoard.
-        self.validation_stat_agg.export_aggregators_to_tensorboard()
+        # Export aggregated statistics.
+        self.aggregate_and_export_statistics(self.model, self.validation_problem, 
+                self.validation_stat_col, self.validation_stat_agg, episode, '[Validation on the whole set]')
 
         # Return the average validation loss.
         return self.validation_stat_agg['loss']

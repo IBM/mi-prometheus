@@ -156,11 +156,11 @@ class EpisodeTrainer(Trainer):
                 # 4. Log collected statistics.
 
                 # 4.1. Export to csv - at every step.
-                self.training_stat_col.export_statistics_to_csv()
+                self.training_stat_col.export_to_csv()
 
                 # 4.2. Export data to tensorboard - at logging frequency.
                 if (self.training_batch_writer is not None) and (episode % self.flags.logging_interval == 0):
-                    self.training_stat_col.export_statistics_to_tensorboard()
+                    self.training_stat_col.export_to_tensorboard()
 
                     # Export histograms.
                     if self.flags.tensorboard >= 1:
@@ -183,10 +183,7 @@ class EpisodeTrainer(Trainer):
 
                 # 4.3. Log to logger - at logging frequency.
                 if episode % self.flags.logging_interval == 0:
-                    self.logger.info(self.training_stat_col.export_statistics_to_string())
-
-                    # empty Statistics Collector to avoid memory leak
-                    self.training_stat_col.empty()
+                    self.logger.info(self.training_stat_col.export_to_string())
 
                 # 5. Check visualization of training data.
                 if self.app_state.visualize:
@@ -250,9 +247,11 @@ class EpisodeTrainer(Trainer):
                     self.curric_done = self.training_problem.curriculum_learning_update_params(episode)
                     # Aggregate training statistics for the epoch.
 
+                    # Export aggregated statistics.
+                    self.aggregate_and_export_statistics(self.model, self.training_problem, 
+                            self.training_stat_col, self.training_stat_agg, episode, '[Training on the whole set]')
                     # Next epoch!
                     epoch += 1
-                    self.logger.warning('The DataLoader has exhausted -> using cycle(iterable).')
 
                 # Move on to next episode.
                 episode += 1

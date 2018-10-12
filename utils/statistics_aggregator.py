@@ -154,11 +154,10 @@ class StatisticsAggregator(StatisticsCollector):
             if k in self.aggregators:
                 # Copy last collected value.
                 self.aggregators[k] = v[-1]
-        # Simply copy the last episode from collector.
-        #self.aggregators['episode'] = stat_col['episode'][-1]
 
         # Get loss values.
         loss_values = stat_col['loss']
+
         # Calcualte default aggregates.
         self.aggregators['loss'] = np.average(loss_values)
         self.aggregators['loss_min'] = min(loss_values)
@@ -196,7 +195,7 @@ class StatisticsAggregator(StatisticsCollector):
 
         return self.csv_file
 
-    def export_aggregators_to_csv(self, csv_file=None):
+    def export_to_csv(self, csv_file=None):
         """
         This method writes the current statistical aggregators values to the `csv_file` using the associated formatting.
 
@@ -226,7 +225,7 @@ class StatisticsAggregator(StatisticsCollector):
 
         csv_file.write(values_str)
 
-    def export_aggregators_to_string(self, additional_tag=''):
+    def export_to_string(self, additional_tag=''):
         """
         This method returns the current statistical aggregators values in the form of a string using the \
         associated formatting.
@@ -254,7 +253,7 @@ class StatisticsAggregator(StatisticsCollector):
 
         return stat_str
 
-    def export_aggregators_to_tensorboard(self, tb_writer = None):
+    def export_to_tensorboard(self, tb_writer = None):
         """
         Method exports current statistical aggregators values to TensorBoard.
 
@@ -296,10 +295,10 @@ if __name__ == "__main__":
         
     # Aggregate.
     stat_agg.aggregate_statistics(stat_col)
-    print(stat_agg.export_aggregators_to_string())
+    print(stat_agg.export_to_string())
 
     # Add new aggregator (a simulation of "additional statistics collected by model")
     stat_agg.add_aggregator('acc_mean', '{:2.5f}')
     stat_agg['acc_mean'] = np.mean(random.sample(range(100), 100))
 
-    print(stat_agg.export_aggregators_to_string('[Epoch 1]'))
+    print(stat_agg.export_to_string('[Epoch 1]'))
