@@ -130,7 +130,7 @@ class TimePlot(QtWidgets.QMainWindow):
         self.qapp.exec_()  
         # Resume event loop - throw SystemExit if one pressed "stop".
         if self.terminate:
-            raise SystemExit
+            raise SystemExit("the user pressed Stop!")
 
     def slider_valuechanged(self):
         """

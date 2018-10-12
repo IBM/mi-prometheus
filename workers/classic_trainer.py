@@ -80,7 +80,7 @@ class ClassicTrainer(Trainer):
         else:
             self.logger.info("Partial Validation activated with interval equal to {} episodes".format(self.partial_validation_interval))
 
-        # Terminal condition II: max epochs. Optional.
+        # Terminal condition II: max epochs. Mandatory.
         self.params["training"]["terminal_conditions"].add_default_params({'epoch_limit': 10})
         self.epoch_limit = self.params["training"]["terminal_conditions"]["epoch_limit"]
         if self.epoch_limit <= 0:
@@ -93,7 +93,7 @@ class ClassicTrainer(Trainer):
         epoch_size = self.training_problem.get_epoch_size(self.params["training"]["problem"]["batch_size"])
         self.logger.info('Epoch size in terms of training episodes: {}'.format(epoch_size))
 
-        # Terminal condition III: max episodes. Mandatory.
+        # Terminal condition III: max episodes. Optional.
         self.params["training"]["terminal_conditions"].add_default_params({'episode_limit': -1})
         self.episode_limit = self.params['training']['terminal_conditions']['episode_limit']
         if self.episode_limit < 0:
@@ -121,10 +121,11 @@ class ClassicTrainer(Trainer):
             The test for terminal conditions (e.g. convergence) is done at the end of each epoch. \
             The terminal conditions are as follows:
 
-                - The loss is below the specified threshold (using the full validation loss),
-                - TODO: Early stopping is set and the full validation loss did not change by delta \
+                - I. The loss is below the specified threshold (using the full validation loss),
+                - TODO: II. Early stopping is set and the full validation loss did not change by delta \
                     for the indicated number of epochs,
-                - The maximum number of epochs has been met.
+                - III. The maximum number of epochs has been met (OPTIONAL),
+                - IV. The maximum number of epochs has been met.
 
             Besides, the user can always stop experiment by pressing 'Stop experiment' during visualization
 
@@ -335,7 +336,7 @@ class ClassicTrainer(Trainer):
 
         except SystemExit:
             # the training did not end properly
-            self.logger.warning('Experiment interrupted!')
+            self.logger.error('Experiment interrupted because {}'.format(e))
         finally:
             # Finalize statistics collection.
             self.finalize_statistics_collection()

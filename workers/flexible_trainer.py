@@ -121,8 +121,11 @@ class FlexibleTrainer(Trainer):
             The test for terminal conditions (e.g. convergence) is done at the end of each episode. \
             The terminal conditions are as follows:
 
-                - The loss is below the specified threshold (using the partial validation loss,
-                - The maximum number of episodes has been met,
+                - I. The loss is below the specified threshold (using the partial validation loss),
+                - TODO: II. Early stopping is set and the full validation loss did not change by delta \
+                    for the indicated number of epochs,
+                - III. The maximum number of episodes has been met,
+                - IV. The maximum number of epochs has been met (OPTIONAL).
             
             Additionally, experiment can be stopped by the user by pressing 'Stop experiment' \
             during visualization.
@@ -160,6 +163,9 @@ class FlexibleTrainer(Trainer):
             # Reset the counters.
             episode = 0
             epoch = 0
+
+            # Inform the training problem class that epoch has started.
+            self.training_problem.initialize_epoch(epoch)
 
             # Set default termination cause.
             termination_cause = "Episode limit reached"
@@ -335,9 +341,9 @@ class FlexibleTrainer(Trainer):
 
             self.logger.info('Experiment finished!')
 
-        except SystemExit:
+        except SystemExit as e:
             # the training did not end properly
-            self.logger.warning('Experiment interrupted!')
+            self.logger.error('Experiment interrupted because {}'.format(e))
         finally:
             # Finalize statistics collection.
             self.finalize_statistics_collection()
