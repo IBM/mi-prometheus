@@ -227,7 +227,7 @@ class Tester(Worker):
         ################# MODEL PROBLEM ################# 
 
         # Create model object.
-        self.model = ModelFactory.build_model(self.params['model'])
+        self.model = ModelFactory.build_model(self.params['model'], self.problem.default_values)
 
         # Load parameters from checkpoint.
         self.model.load(self.flags.model)
