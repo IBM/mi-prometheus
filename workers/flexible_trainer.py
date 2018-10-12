@@ -16,9 +16,9 @@
 # limitations under the License.
 
 """
-episode_trainer.py:
+flexible_trainer.py:
 
-    - This file contains the implementation of the ``EpisodeTrainer``, which inherits from ``Trainer``.
+    - This file contains the implementation of the ``FlexibleTrainer``, which inherits from ``Trainer``.
 
 """
 __author__ = "Vincent Marois, Tomasz Kornuta"
@@ -30,30 +30,32 @@ from workers.trainer import Trainer
 
 
 
-class EpisodeTrainer(Trainer):
+class FlexibleTrainer(Trainer):
     """
     Implementation for the episode-based Trainer.
 
     ..note::
 
         The default ``EpochTrainer`` is based on epochs. While an epoch can be defined for all finite-size datasets,\
-         it makes less sense for problems which have a very large, almost infinite, dataset (like algorithmic \
-         tasks, which generate random data on-the-fly). This is why this Episode Trainer is implemented.
-         Instead of looping on epochs, it iterates directly on episodes (we call an iteration on a single batch\
-          an episode).
+        it makes less sense for problems which have a very large, almost infinite, dataset (like algorithmic \
+        tasks, which generate random data on-the-fly). \
+         
+        This is why this Flexible Trainer was implemented.
+        Instead of looping on epochs, it iterates directly on episodes (we call an iteration on a single batch\
+        an episode).
 
 
     """
 
-    def __init__(self, name="EpisodeTrainer"):
+    def __init__(self, name="FlexibleTrainer"):
         """
         Only calls the ``Trainer`` constructor as the initialization phase is identical to the ``Trainer``.
 
-       :param name: Name of the worker (DEFAULT: ''EpisodeTrainer'').
+       :param name: Name of the worker (DEFAULT: ''FlexibleTrainer'').
 
         """ 
         # Call base constructor to set up app state, registry and add default params.
-        super(EpisodeTrainer, self).__init__(name)
+        super(FlexibleTrainer, self).__init__(name)
 
 
 
@@ -64,7 +66,7 @@ class EpisodeTrainer(Trainer):
             - Calls base class setup_experiment to parse the command line arguments 
         """
         # Call base method to parse all command line arguments, load configuration, create problems and model etc.
-        super(EpisodeTrainer, self).setup_experiment()
+        super(FlexibleTrainer, self).setup_experiment()
 
         ################# TERMINAL CONDITIONS ################# 
         self.logger.info('Terminal conditions:\n' + '='*80)
@@ -77,8 +79,8 @@ class EpisodeTrainer(Trainer):
         # In this trainer Partial Validation is mandatory, hence interval must be > 0.
         self.params['validation'].add_default_params({'partial_validation_interval': 100})
         self.partial_validation_interval = self.params['validation']['partial_validation_interval']
-        if self.partial_validation_interval < 0:
-            self.logger.error("Episodic Trainer relies on Partial Validation, thus interval must be non-negative!")
+        if self.partial_validation_interval <= 0:
+            self.logger.error("Episodic Trainer relies on Partial Validation, thus interval must be a positive number!")
             exit(-4)
         else:
             self.logger.info("Partial Validation activated with interval equal to {} episodes".format(self.partial_validation_interval))
@@ -86,7 +88,7 @@ class EpisodeTrainer(Trainer):
         # Terminal condition II: max epochs. Optional.
         self.params["training"]["terminal_conditions"].add_default_params({'epoch_limit': -1})
         self.epoch_limit = self.params["training"]["terminal_conditions"]["epoch_limit"]
-        if self.epoch_limit < 0:
+        if self.epoch_limit <= 0:
             self.logger.info("Termination based on Epoch Limit is disabled")
             # Set to infinity.
             self.epoch_limit = np.Inf
@@ -100,16 +102,17 @@ class EpisodeTrainer(Trainer):
         # Terminal condition III: max episodes. Mandatory.
         self.params["training"]["terminal_conditions"].add_default_params({'episode_limit': 100000})
         self.episode_limit = self.params['training']['terminal_conditions']['episode_limit']
-        if self.episode_limit < 0:
-            self.logger.error("Episodic Trainer relies on episodes, thus Episode Limit must be non-negative!")
+        if self.episode_limit <= 0:
+            self.logger.error("Flexible Trainer relies on episodes, thus Episode Limit must be a positive number!")
             exit(-5)
         else:
-            self.logger.info("Setting the Episode Limit to: {}\n".format(self.episode_limit))
+            self.logger.info("Setting the Episode Limit to: {}".format(self.episode_limit))
+        self.logger.info('\n' + '='*80)
 
 
     def run_experiment(self):
         """
-        Main function of the ``EpisodeTrainer``, runs the experiment.
+        Main function of the ``FlexibleTrainer``, runs the experiment.
 
         Iterates over the (cycled) DataLoader (one iteration = one episode).
 
@@ -158,7 +161,7 @@ class EpisodeTrainer(Trainer):
             episode = 0
             epoch = 0
 
-            # Default termination cause
+            # Set default termination cause.
             termination_cause = "Episode limit reached"
             for training_dict in self.training_dataloader:
 
@@ -186,7 +189,6 @@ class EpisodeTrainer(Trainer):
                     # if present - clip gradients to a range (-gradient_clipping, gradient_clipping)
                     val = self.params['training']['gradient_clipping']
                     clip_grad_value_(self.model.parameters(), val)
-
                 except KeyError:
                     # Else - do nothing.
                     pass
@@ -251,17 +253,21 @@ class EpisodeTrainer(Trainer):
                     # Save the model using the latest validation statistics.
                     self.model.save(self.model_dir, self.validation_stat_col)
 
-                    # 7. Terminal conditions.
-                    # 7.1. - the loss is < threshold (only when curriculum learning is finished if set.)
+                    # Terminal conditions.
+                    # I. the loss is < threshold (only when curriculum learning is finished if set.)
                     # We check that condition only in validation step!
                     if self.curric_done or not self.must_finish_curriculum:
 
-                        # True if model converged.
+                        # Check the Partial Validation loss.
                         if (validation_loss < self.loss_stop):
-                            termination_cause = "Loss below stop threshold (model converged)"
+                            termination_cause = "Partial Validation Loss want below Loss Stop threshold (model converged)"
                             break
 
-                # 7.2. - The episodes number limit has been reached.
+                    # II. Early stopping is set and loss hasn't improved by delta in n epochs.
+                    # early_stopping(index=epoch, avg_valid_loss). (TODO: coming in next release)
+                    # termination_cause = 'Early Stopping.'
+
+                # III. The episodes number limit has been reached.
                 if episode+1 >= self.episode_limit:
                     # If we reach this condition, then it is possible that the model didn't converge correctly
                     # but it currently might get better since last validation.
@@ -278,23 +284,24 @@ class EpisodeTrainer(Trainer):
                         self.model.save(self.model_dir, self.validation_stat_col)
 
                     termination_cause = "Episode Limit reached"
-                    # "Finish" the training.
                     break
 
                 # Check if we are at the end of the 'epoch': indicate that the DataLoader is now cycling.
                 if ((episode + 1) % self.training_problem.get_epoch_size(
                         self.params['training']['problem']['batch_size'])) == 0:
+
                     # Epoch just ended!
+                    # Inform the problem class that the epoch has ended.
+                    self.training_problem.finalize_epoch(epoch)
 
-                    # Apply curriculum learning - change some of the Problem parameters
-                    self.curric_done = self.training_problem.curriculum_learning_update_params(episode)
                     # Aggregate training statistics for the epoch.
-
-                    # Export aggregated statistics.
                     self.aggregate_and_export_statistics(self.model, self.training_problem, 
                             self.training_stat_col, self.training_stat_agg, episode, '[Full Training]')
 
-                    # 7.3 Epoch limit has been reached.
+                    # Apply curriculum learning - change some of the Problem parameters
+                    self.curric_done = self.training_problem.curriculum_learning_update_params(episode)
+
+                    # IV. Epoch limit has been reached.
                     if epoch+1 >= self.epoch_limit:
                         termination_cause = "Epoch Limit reached"
                         # "Finish" the training.
@@ -302,14 +309,17 @@ class EpisodeTrainer(Trainer):
 
                     # Next epoch!
                     epoch += 1
+                    self.logger.info('Starting next epoch: {}'.format(epoch))
+                    # Inform the training problem class that epoch has started.
+                    self.training_problem.initialize_epoch(epoch)
 
                 # Move on to next episode.
                 episode += 1
 
-            self.logger.info('Training finished because: {}'.format(termination_cause))
             '''
             End of main training and validation loop. Perform final full validation.
             '''
+            self.logger.info('Training finished because {}'.format(termination_cause))
             # Check visualization flag - turn on visualization for last validation if needed.
             if (self.flags.visualize == 3):
                 self.app_state.visualize = True
@@ -335,8 +345,8 @@ class EpisodeTrainer(Trainer):
 
 if __name__ == '__main__':
 
-    episode_trainer = EpisodeTrainer()
+    trainer = FlexibleTrainer()
     # parse args, load configuration and create all required objects.
-    episode_trainer.setup_experiment()
+    trainer.setup_experiment()
     # GO!
-    episode_trainer.run_experiment()
+    trainer.run_experiment()

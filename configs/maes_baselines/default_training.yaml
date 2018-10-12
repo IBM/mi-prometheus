@@ -3,7 +3,7 @@ training:
     # Curriculum learning - optional.
     curriculum_learning:
         initial_max_sequence_length: 5
-        must_finish: false
+    #    must_finish: false
 
     # Optimizer parameters:
     optimizer:
@@ -17,6 +17,6 @@ training:
 
     # Terminal condition parameters:
     terminal_conditions:
-        loss_stop: 1.0e-5
+        loss_stop: 1.0e-1
         episode_limit: 10000
-        epoch_limit: -1
+        epoch_limit: 5

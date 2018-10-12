@@ -248,7 +248,7 @@ class Trainer(Worker):
             self.params['training']['curriculum_learning'].add_default_params({'must_finish': True})
 
             self.must_finish_curriculum = self.params['training']['curriculum_learning']['must_finish']
-            self.logger.info("Using curriculum learning")
+            self.logger.info("Curriculum Learning activated")
 
         else:
             # If not using curriculum learning then it does not have to be finished.
