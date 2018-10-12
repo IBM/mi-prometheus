@@ -1,8 +1,8 @@
 # Problem parameters:
 training:
-    cuda: True
-    seed_numpy: 4354
-    seed_torch: 2452
+    #cuda: True
+    #seed_numpy: 4354
+    #seed_torch: 2452
     problem:
         name: &name mnist
         # Size of generated input: [batch_size x sequence_length x number of control and data bits].

@@ -253,10 +253,10 @@ class Worker(object):
         self.params.add_default_params({"testing": {}})
 
         # set a default configuration section for the DataLoaders
-        dataloader_config = {'dataloader': {'shuffle': False,
+        dataloader_config = {'dataloader': {'shuffle': True, # Turn shuffle by default.
                                             'sampler': None,
                                             'batch_sampler': None,
-                                            'num_workers': 0,  # use multiprocessing by default
+                                            'num_workers': 0,  # Do not use multiprocessing by default - for now.
                                             'pin_memory': False,
                                             'drop_last': False,
                                             'timeout': 0}}

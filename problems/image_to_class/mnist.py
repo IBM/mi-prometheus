@@ -133,7 +133,6 @@ class MNIST(ImageToClassProblem):
 
 
         """
-
         img, target = self.dataset.__getitem__(index)
 
         # pad img
