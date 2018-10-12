@@ -323,7 +323,7 @@ class Tester(Worker):
 
                     # Log to logger - at logging frequency.
                     if episode % self.flags.logging_interval == 0:
-                        self.logger.info(self.testing_stat_col.export_to_string('[Test on batch]'))
+                        self.logger.info(self.testing_stat_col.export_to_string('[Partial Test]'))
 
                     if self.app_state.visualize:
 
@@ -336,11 +336,12 @@ class Tester(Worker):
                     # move to next episode.
                     episode += 1
 
-                self.logger.info('Test finished!')
+                self.logger.info('\n' + '='*80)
+                self.logger.info('Test finished')
 
                 # Export aggregated statistics.
                 self.aggregate_and_export_statistics(self.model, self.problem, 
-                        self.testing_stat_col, self.testing_stat_agg, episode, '[Test on the whole set]')
+                        self.testing_stat_col, self.testing_stat_agg, episode, '[Full Test]')
 
         except SystemExit:
             # the training did not end properly

@@ -317,6 +317,7 @@ class ClassicTrainer(Trainer):
             '''
             End of main training and validation loop. Perform final full validation.
             '''
+            self.logger.info('\n' + '='*80)
             self.logger.info('Training finished because {}'.format(termination_cause))
             # Check visualization flag - turn on visualization for last validation if needed.
             if (self.flags.visualize == 3):

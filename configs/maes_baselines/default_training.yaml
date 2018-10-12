@@ -17,6 +17,6 @@ training:
 
     # Terminal condition parameters:
     terminal_conditions:
-        loss_stop: 1.0e-1
+        loss_stop: 1.0e-5
         episode_limit: 10000
-        epoch_limit: 5
+        epoch_limit: 100
