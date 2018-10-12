@@ -14,7 +14,7 @@ training:
         min_sequence_length: 3
         max_sequence_length: 20
         # Size of the dataset. Influences how often curriculum learning will be triggered (when the dataset is exhausted!)
-        size: 500
+        size: 32000 # Every 500 episodes
 
 # This section is optional.
 validation:

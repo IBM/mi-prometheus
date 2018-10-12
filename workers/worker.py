@@ -390,6 +390,47 @@ class Worker(object):
         return logits, loss
 
 
+    def export_statistics(self, stat_obj, tag=''):
+        """
+        Export the statistics/aggregations to logger, csv and TB.
+
+        :param stat_obj: ''StatisticsCollector'' or ''StatisticsAggregator'' object.
+        :param tag: Additional tag that will be added to string exported to logger, optional (DEFAULT = '').
+
+        """ 
+        # Log to logger
+        self.logger.info(stat_obj.export_to_string(tag))
+
+        # Export to csv
+        stat_obj.export_to_csv()
+
+        # Export to TensorBoard.
+        stat_obj.export_to_tensorboard()
+
+
+    def aggregate_and_export_statistics(self, problem, model, stat_col, stat_agg, episode, tag=''):
+        """
+        Aggregates the collected statistics. Export the aggregations to logger, csv and TB.
+        Empties statistics collector during next episode.
+
+        :param stat_col: ''StatisticsCollector'' object.
+        :param stat_agg: ''StatisticsAggregator'' object.
+        :param tag: Additional tag that will be added to string exported to logger, optional (DEFAULT = '').
+
+        """ 
+        # Aggregate statistics.
+        problem.aggregate_statistics(stat_col, stat_agg)
+        model.aggregate_statistics(stat_col, stat_agg)
+        # Set episode, so "the point" will appear in the right place in TB.
+        stat_agg["episode"] = episode
+
+        # Export to logger, cvs and TB.
+        self.export_statistics(stat_agg, tag)
+
+        # Empty the statistics collector.
+        stat_col.empty()
+
+
     def cycle(self, iterable):
         """
         Cycle an iterator to prevent its exhaustion.

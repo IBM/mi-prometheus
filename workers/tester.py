@@ -334,11 +334,11 @@ class Tester(Worker):
                         test_dict, self.testing_stat_col, episode)
 
                     # Export to csv - at every step.
-                    self.testing_stat_col.export_statistics_to_csv()
+                    self.testing_stat_col.export_to_csv()
 
                     # Log to logger - at logging frequency.
                     if episode % self.flags.logging_interval == 0:
-                        self.logger.info(self.testing_stat_col.export_statistics_to_string('[Test on batch]'))
+                        self.logger.info(self.testing_stat_col.export_to_string('[Test on batch]'))
 
                     if self.app_state.visualize:
 
@@ -353,17 +353,9 @@ class Tester(Worker):
 
                 self.logger.info('Test finished!')
 
-                # Aggregate statistics.
-                self.problem.aggregate_statistics(self.testing_stat_col, self.testing_stat_agg)
-                self.model.aggregate_statistics(self.testing_stat_col, self.testing_stat_agg)
-                # Set episode, so "the point" will appear in the right place in TB.
-                self.testing_stat_agg["episode"] = episode
-
-                # Log to logger
-                self.logger.info(self.testing_stat_agg.export_aggregators_to_string('[Test on the whole set]'))
-
-                # Export to csv
-                self.testing_stat_agg.export_aggregators_to_csv()
+                # Export aggregated statistics.
+                self.aggregate_and_export_statistics(self.model, self.problem, 
+                        self.testing_stat_col, self.testing_stat_agg, episode, '[Test on the whole set]')
 
         except SystemExit:
             # the training did not end properly
