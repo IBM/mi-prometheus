@@ -2,7 +2,6 @@
 training:
     # Curriculum learning - optional.
     curriculum_learning:
-        interval: 500
         initial_max_sequence_length: 5
 
     # Optimizer parameters:

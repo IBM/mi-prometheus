@@ -402,6 +402,8 @@ class Worker(object):
         while True:
             for x in iterable:
                 yield x
+            self.logger.warning('Yielded all samples -> ending cycle!')
+
 
 
     def set_random_seeds(self, params, section_name):

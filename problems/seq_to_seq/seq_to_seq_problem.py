@@ -50,10 +50,8 @@ class SeqToSeqProblem(Problem):
                                  'mask': {'size': [-1, 1], 'type': [torch.Tensor]}
                                  }
 
-        # Check if predictions/targets should be masked.
-        if 'use_mask' not in params:
-            # TODO: Set false as default!
-            params.add_default_params({'use_mask': True})
+        # Check if predictions/targets should be masked (DEFAULT: True).
+        params.add_default_params({'use_mask': True})
         self.use_mask = params["use_mask"]
 
     def evaluate_loss(self, data_dict, logits):

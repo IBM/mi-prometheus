@@ -23,7 +23,7 @@ tester.py:
 
 
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Marois, Tomasz Kornuta, Younes Bouhadjar"
 
 import os
 import yaml
@@ -34,7 +34,6 @@ from time import sleep
 from datetime import datetime
 from torch.utils.data.dataloader import DataLoader
 
-import workers.worker as worker
 from workers.worker import Worker
 from models.model_factory import ModelFactory
 from problems.problem_factory import ProblemFactory
@@ -368,7 +367,7 @@ class Tester(Worker):
 
         except SystemExit:
             # the training did not end properly
-            self.logger.warning('Testing interrupted!')
+            self.logger.warning('Experiment interrupted!')
         finally:
             # Finalize statistics collection.
             self.finalize_statistics_collection()

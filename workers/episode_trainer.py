@@ -21,7 +21,7 @@ episode_trainer.py:
     - This file contains the implementation of the ``EpisodeTrainer``, which inherits from ``Trainer``.
 
 """
-__author__ = "Vincent Marois, Tomasz Kornuta"
+__author__ = "Vincent Marois, Tomasz Kornuta, "
 
 from torch.nn.utils import clip_grad_value_
 
@@ -115,7 +115,10 @@ class EpisodeTrainer(Trainer):
             '''
             Main training and validation loop.
             '''
+            # Reset the counters.
             episode = 0
+            epoch = 0
+
             for training_dict in self.training_dataloader:
 
                 # reset all gradients
@@ -210,45 +213,45 @@ class EpisodeTrainer(Trainer):
                     # Save the model using the latest validation statistics.
                     self.model.save(self.model_dir, self.validation_stat_col)
 
-                # 7. Terminal conditions.
+                    # 7. Terminal conditions.
+                    # 7.1. - the loss is < threshold (only when curriculum learning is finished if set.)
+                    # We check that condition only in validation step!
+                    if self.curric_done or not self.must_finish_curriculum:
 
-                # Apply curriculum learning - change some of the Problem parameters
-                self.curric_done = self.training_problem.curriculum_learning_update_params(episode)
+                        # True if model converged.
+                        if (validation_loss < self.params['training']['terminal_condition']['loss_stop']):
+                            break
 
-                # 7.2. - the loss is < threshold (only when curriculum learning is finished if set.)
-                if self.curric_done or not self.must_finish_curriculum:
-
-                    # loss_stop = True if convergence
-                    loss_stop = validation_loss < self.params['training']['terminal_condition']['loss_stop']
-                    # We already saved that model.
-
-                    if loss_stop:
-                        # Finish the training.
-                        break
-
-                # 7.3. - The episodes number limit has been reached.
+                # 7.2. - The episodes number limit has been reached.
                 if episode+1 > self.params['training']['terminal_condition']['max_episodes']:
                     # If we reach this condition, then it is possible that the model didn't converge correctly
-                    # and present poorer performance.
+                    # but it currently might get better since last validation.
 
-                    # We still save the model as it may perform better during this episode
-                    # (as opposed to the previous episode)
+                    if (self.validation_stat_col["episode"] != episode):                
+                        # We still must validate and try to save the model as it may perform better during this episode
+                        # (as opposed to the previous 7.1 condition)
 
-                    # Validate on the problem if required - so we can collect the
-                    # statistics needed during saving of the best model.
-                    # Do not visualize.
-                    self.app_state.visualize = False
-                    self.validate_on_batch(self.validation_batch, episode)
+                        # Do not visualize.
+                        self.app_state.visualize = False
+                        self.validate_on_batch(self.validation_batch, episode)
 
-                    # save the model
-                    self.model.save(self.model_dir, self.validation_stat_col)
+                        # Save the model.
+                        self.model.save(self.model_dir, self.validation_stat_col)
 
                     # "Finish" the training.
                     break
 
-                # check if we are at the end of the 'epoch': Indicate that the DataLoader is now cycling.
+                # Check if we are at the end of the 'epoch': indicate that the DataLoader is now cycling.
                 if ((episode + 1) % self.training_problem.get_epoch_size(
                         self.params['training']['problem']['batch_size'])) == 0:
+                    # Epoch just ended!
+
+                    # Apply curriculum learning - change some of the Problem parameters
+                    self.curric_done = self.training_problem.curriculum_learning_update_params(episode)
+                    # Aggregate training statistics for the epoch.
+
+                    # Next epoch!
+                    epoch += 1
                     self.logger.warning('The DataLoader has exhausted -> using cycle(iterable).')
 
                 # Move on to next episode.

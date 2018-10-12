@@ -50,6 +50,9 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         # call base constructor
         super(AlgorithmicSeqToSeqProblem, self).__init__(params)
 
+        # "Default" problem name.
+        self.name = 'AlgorithmicSeqToSeqProblem'
+
         # Set default loss function - cross entropy.
         if self.use_mask:
             self.loss_function = MaskedBCEWithLogitsLoss()
@@ -70,9 +73,6 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         params.add_default_params({'bias': 0.5})
         self.bias = params['bias']
 
-        # "Default" problem name.
-        self.name = 'AlgorithmicSeqToSeqProblem'
-
         # set default data_definitions dict
         self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
                                  'sequences_length': {'size': [-1], 'type': [torch.Tensor]},
@@ -88,9 +88,9 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
                                }
 
         # TODO: Should derive the actual theoretical limit instead of a arbitrary limit.
-        params.add_default_params({'length': 10000000})
+        params.add_default_params({'size': 1000})
         # Read value from registry - if it was set in config file, it will override the above default value.
-        self.length = params['length']
+        self.length = params['size']
 
 
     def set_max_length(self, max_length):
@@ -113,10 +113,11 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         """
         # Save params.
         self.curriculum_params = curriculum_params
-        # Overwrite the length.
-        self.length = self.curriculum_params['interval'] * self.params["batch_size"]
-        self.logger.info("Initializing curriculum learning! (Warning: setting problem length to \
-            curriculum interval*batch, which enables utilization of curriculum learning with multiple load workers)")
+        # Inform the user.
+        epoch_size =  self.get_epoch_size(self.params["batch_size"])
+        self.logger.info("Initializing curriculum learning! Will activate when all samples are exhausted \
+            (every {} episodes when using batch of size {})".format(epoch_size, self.params["batch_size"]))
+
 
     def curriculum_learning_update_params(self, episode):
         """
@@ -135,24 +136,22 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         try:
             # Read curriculum learning parameters.
             max_max_length = self.params['max_sequence_length']
-            interval = self.curriculum_params['interval']
             initial_max_sequence_length = self.curriculum_params['initial_max_sequence_length']
+            epoch_size =  self.get_epoch_size(self.params["batch_size"])
 
-            if self.curriculum_params['interval'] > 0:
-                # Curriculum learning goes from the initial max length to the
-                # max length in steps of size 1
-                max_length = initial_max_sequence_length + \
-                    ((episode+1) // interval)
-                if max_length > max_max_length:
-                    max_length = max_max_length
-                else:
-                    curric_done = False
-                # Change max length.
-                self.max_sequence_length = max_length
+            # Curriculum learning goes from the initial max length to the
+            # max length in steps of size 1
+            max_length = initial_max_sequence_length + \
+                ((episode+1) // epoch_size)
+            if max_length > max_max_length:
+                max_length = max_max_length
+            else:
+                curric_done = False
+            # Change max length.
+            self.max_sequence_length = max_length
         except KeyError:
             pass
-        # Return information whether we finished CL (i.e. reached max sequence
-        # length).
+        # Return information whether we finished CL (i.e. reached max sequence length).
         return curric_done
 
 

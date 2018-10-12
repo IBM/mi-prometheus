@@ -251,9 +251,6 @@ class Trainer(Worker):
             self.logger.info("Using curriculum learning")
 
         else:
-            # Initialize curriculum learning - with empty dict.
-            self.training_problem.curriculum_learning_initialize({})
-
             # If not using curriculum learning then it does not have to be finished.
             self.must_finish_curriculum = False
 
@@ -279,7 +276,7 @@ class Trainer(Worker):
         self.params['validation'].add_default_params({'interval': 100})
         self.model_validation_interval = self.params['validation']['interval']
 
-        # Generate a single batch used for validation.
+        # Generate a single batch used for "batch validation".
         self.validation_batch = next(iter(self.validation_dataloader))
 
         ################# MODEL PROBLEM ################# 
