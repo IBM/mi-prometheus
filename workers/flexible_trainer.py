@@ -280,7 +280,7 @@ class FlexibleTrainer(Trainer):
 
                     if (self.validation_stat_col["episode"] != episode):                
                         # We still must validate and try to save the model as it may perform better during this episode
-                        # (as opposed to the previous 7.1 condition)
+                        # (as opposed to the previous II. condition)
 
                         # Do not visualize.
                         self.app_state.visualize = False

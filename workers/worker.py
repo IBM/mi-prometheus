@@ -283,10 +283,10 @@ class Worker(object):
         loss_values = stat_col['loss']
 
         # Calcualte default aggregates.
-        stat_agg.aggregators['loss'] = np.average(loss_values)
+        stat_agg.aggregators['loss'] = torch.mean(torch.tensor(loss_values))
         stat_agg.aggregators['loss_min'] = min(loss_values)
         stat_agg.aggregators['loss_max'] = max(loss_values)
-        stat_agg.aggregators['loss_std'] = np.std(loss_values)
+        stat_agg.aggregators['loss_std'] = 0.0 if len(loss_values) <= 1 else torch.std(torch.tensor(loss_values))
         stat_agg.aggregators['episodes_aggregated'] = len(loss_values)
 
 
@@ -463,7 +463,7 @@ class Worker(object):
 
         stat_col['episode'] = episode
         # Collect loss as float.
-        stat_col['loss'] = loss.item()
+        stat_col['loss'] = loss
 
         # Collect other (potential) statistics from problem & model.
         problem.collect_statistics(stat_col, data_dict, logits)
