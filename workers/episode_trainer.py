@@ -21,14 +21,13 @@ episode_trainer.py:
     - This file contains the implementation of the ``EpisodeTrainer``, which inherits from ``Trainer``.
 
 """
-__author__ = "Vincent Marois, Tomasz Kornuta, "
+__author__ = "Vincent Marois, Tomasz Kornuta"
 
+import numpy as np
 from torch.nn.utils import clip_grad_value_
 
-import argparse
-import workers.worker as worker
-import workers.trainer as trainer
 from workers.trainer import Trainer
+
 
 
 class EpisodeTrainer(Trainer):
@@ -67,6 +66,46 @@ class EpisodeTrainer(Trainer):
         # Call base method to parse all command line arguments, load configuration, create problems and model etc.
         super(EpisodeTrainer, self).setup_experiment()
 
+        ################# TERMINAL CONDITIONS ################# 
+        self.logger.info('Terminal conditions:\n' + '='*80)
+
+        # Terminal condition I: loss. 
+        self.params['training']['terminal_conditions'].add_default_params({'loss_stop': 1e-5})
+        self.loss_stop = self.params['training']['terminal_conditions']['loss_stop']
+        self.logger.info("Setting Loss Stop threshold to {}".format(self.loss_stop))
+
+        # In this trainer Partial Validation is mandatory, hence interval must be > 0.
+        self.params['validation'].add_default_params({'partial_validation_interval': 100})
+        self.partial_validation_interval = self.params['validation']['partial_validation_interval']
+        if self.partial_validation_interval < 0:
+            self.logger.error("Episodic Trainer relies on Partial Validation, thus interval must be non-negative!")
+            exit(-4)
+        else:
+            self.logger.info("Partial Validation activated with interval equal to {} episodes".format(self.partial_validation_interval))
+
+        # Terminal condition II: max epochs. Optional.
+        self.params["training"]["terminal_conditions"].add_default_params({'epoch_limit': -1})
+        self.epoch_limit = self.params["training"]["terminal_conditions"]["epoch_limit"]
+        if self.epoch_limit < 0:
+            self.logger.info("Termination based on Epoch Limit is disabled")
+            # Set to infinity.
+            self.epoch_limit = np.Inf
+        else:
+            self.logger.info("Setting the Epoch Limit to: {}".format(self.epoch_limit))
+
+        # Calculate the epoch size in terms of episodes.
+        epoch_size = self.training_problem.get_epoch_size(self.params["training"]["problem"]["batch_size"])
+        self.logger.info('Epoch size in terms of training episodes: {}'.format(epoch_size))
+
+        # Terminal condition III: max episodes. Mandatory.
+        self.params["training"]["terminal_conditions"].add_default_params({'episode_limit': 100000})
+        self.episode_limit = self.params['training']['terminal_conditions']['episode_limit']
+        if self.episode_limit < 0:
+            self.logger.error("Episodic Trainer relies on episodes, thus Episode Limit must be non-negative!")
+            exit(-5)
+        else:
+            self.logger.info("Setting the Episode Limit to: {}\n".format(self.episode_limit))
+
 
     def run_experiment(self):
         """
@@ -79,10 +118,11 @@ class EpisodeTrainer(Trainer):
             The test for terminal conditions (e.g. convergence) is done at the end of each episode. \
             The terminal conditions are as follows:
 
-                 - The loss is below the specified threshold (using the validation loss or the highest training loss\
-                  over several episodes),
-                  - The maximum number of episodes has been met,
-                  - The user pressed 'Stop experiment' during visualization (TODO: should change that)
+                - The loss is below the specified threshold (using the partial validation loss,
+                - The maximum number of episodes has been met,
+            
+            Additionally, experiment can be stopped by the user by pressing 'Stop experiment' \
+            during visualization.
 
 
         The function does the following for each episode:
@@ -100,9 +140,8 @@ class EpisodeTrainer(Trainer):
         :param flags: Parsed arguments from the parser.
 
         """
-        # Ask for confirmation - optional.
-        if self.flags.confirm:
-            input('Press any key to run the experiment')
+        # Export and log configuration, optionally asking the user for confirmation.
+        self.export_experiment_configuration(self.log_dir, "training_configuration.yaml",self.flags.confirm)
 
         # Initialize tensorboard and statistics collection.
         self.initialize_statistics_collection()
@@ -119,6 +158,8 @@ class EpisodeTrainer(Trainer):
             episode = 0
             epoch = 0
 
+            # Default termination cause
+            termination_cause = "Episode limit reached"
             for training_dict in self.training_dataloader:
 
                 # reset all gradients
@@ -196,7 +237,7 @@ class EpisodeTrainer(Trainer):
 
 
                 #  6. Validate and (optionally) save the model.
-                if (episode % self.model_validation_interval) == 0:
+                if (episode % self.partial_validation_interval) == 0:
 
                     # Check visualization flag
                     if (1 <= self.flags.visualize <= 2):
@@ -216,11 +257,12 @@ class EpisodeTrainer(Trainer):
                     if self.curric_done or not self.must_finish_curriculum:
 
                         # True if model converged.
-                        if (validation_loss < self.params['training']['terminal_condition']['loss_stop']):
+                        if (validation_loss < self.loss_stop):
+                            termination_cause = "Loss below stop threshold (model converged)"
                             break
 
                 # 7.2. - The episodes number limit has been reached.
-                if episode+1 > self.params['training']['terminal_condition']['max_episodes']:
+                if episode+1 >= self.episode_limit:
                     # If we reach this condition, then it is possible that the model didn't converge correctly
                     # but it currently might get better since last validation.
 
@@ -235,6 +277,7 @@ class EpisodeTrainer(Trainer):
                         # Save the model.
                         self.model.save(self.model_dir, self.validation_stat_col)
 
+                    termination_cause = "Episode Limit reached"
                     # "Finish" the training.
                     break
 
@@ -249,16 +292,23 @@ class EpisodeTrainer(Trainer):
 
                     # Export aggregated statistics.
                     self.aggregate_and_export_statistics(self.model, self.training_problem, 
-                            self.training_stat_col, self.training_stat_agg, episode, '[Training on the whole set]')
+                            self.training_stat_col, self.training_stat_agg, episode, '[Full Training]')
+
+                    # 7.3 Epoch limit has been reached.
+                    if epoch+1 >= self.epoch_limit:
+                        termination_cause = "Epoch Limit reached"
+                        # "Finish" the training.
+                        break
+
                     # Next epoch!
                     epoch += 1
 
                 # Move on to next episode.
                 episode += 1
 
-            self.logger.info('Training finished!')
+            self.logger.info('Training finished because: {}'.format(termination_cause))
             '''
-            End of main training and validation loop.
+            End of main training and validation loop. Perform final full validation.
             '''
             # Check visualization flag - turn on visualization for last validation if needed.
             if (self.flags.visualize == 3):

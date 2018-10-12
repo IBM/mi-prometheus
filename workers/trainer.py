@@ -273,10 +273,6 @@ class Trainer(Worker):
                                    timeout=self.params['validation']['dataloader']['timeout'],
                                    worker_init_fn=self.validation_problem.worker_init_fn)
 
-        # Validation interval (Default: 100 episodes).
-        self.params['validation'].add_default_params({'interval': 100})
-        self.model_validation_interval = self.params['validation']['interval']
-
         # Generate a single batch used for "batch validation".
         self.validation_batch = next(iter(self.validation_dataloader))
 
@@ -319,19 +315,6 @@ class Trainer(Worker):
         self.optimizer = getattr(torch.optim, optimizer_name)(filter(lambda p: p.requires_grad,
                                                                      self.model.parameters()),
                                                               **optimizer_conf)
-
-        # -> At this point, all configuration for the ``Trainer`` is complete.
-
-        # Save the resulting configuration into a .yaml settings file, under log_dir
-        with open(self.log_dir + "training_configuration.yaml", 'w') as yaml_backup_file:
-            yaml.dump(self.params.to_dict(), yaml_backup_file, default_flow_style=False)
-
-        # Log the resulting training configuration.
-        conf_str = 'Final registry configuration for training of {} on {}:\n'.format(model_name, training_problem_name)
-        conf_str += '='*80 + '\n'
-        conf_str += yaml.safe_dump(self.params.to_dict(), default_flow_style=False)
-        conf_str += '='*80 + '\n'
-        self.logger.info(conf_str)
 
 
     def add_statistics(self, stat_col):
@@ -487,7 +470,7 @@ class Trainer(Worker):
             valid_logits, valid_loss = self.predict_evaluate_collect(self.model, self.validation_problem, valid_batch, self.validation_stat_col, episode, epoch)
 
         # Export statistics.
-        self.export_statistics(self.validation_stat_col, '[Validation on a single batch]')
+        self.export_statistics(self.validation_stat_col, '[Partial Validation]')
 
         # Visualization of validation.
         if self.app_state.visualize:
@@ -555,7 +538,7 @@ class Trainer(Worker):
 
         # Export aggregated statistics.
         self.aggregate_and_export_statistics(self.model, self.validation_problem, 
-                self.validation_stat_col, self.validation_stat_agg, episode, '[Validation on the whole set]')
+                self.validation_stat_col, self.validation_stat_agg, episode, '[Full Validation]')
 
         # Return the average validation loss.
         return self.validation_stat_agg['loss']

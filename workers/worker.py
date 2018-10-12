@@ -84,7 +84,7 @@ class Worker(object):
         # Initialize the application state singleton.
         self.app_state = AppState()
 
-        # Initialize parameter interface.
+        # Initialize parameter interface/registry.
         self.params = ParamInterface()
 
         # Load the default logger configuration.
@@ -149,6 +149,87 @@ class Worker(object):
                             help='Request user confirmation just after loading the settings, '
                                 'before starting training  (Default: False)')
 
+    def setup_experiment(self):
+        """
+        Setups a specific experiment. 
+        Base method:
+
+            - Parses command line arguments.
+
+            - Sets the three default sections and sets their dataloaders params. 
+
+        .. note::
+
+            Child classes should reimplement this method, but still call it parent to draw the basic functionality.
+
+        :param flags: Parsed arguments from the command line.
+
+        """
+        # Parse arguments.
+        self.flags, self.unparsed = self.parser.parse_known_args()
+
+        # Set logger depending on the settins.
+        self.logger.setLevel(getattr(logging, self.flags.log.upper(), None))
+
+        # add empty sections
+        self.params.add_default_params({"training": {'terminal_conditions': {}}})
+        self.params.add_default_params({"validation": {}})
+        self.params.add_default_params({"testing": {}})
+
+        # set a default configuration section for the DataLoaders
+        dataloader_config = {'dataloader': {'shuffle': True, # Turn shuffle by default.
+                                            'sampler': None,
+                                            'batch_sampler': None,
+                                            'num_workers': 0,  # Do not use multiprocessing by default - for now.
+                                            'pin_memory': False,
+                                            'drop_last': False,
+                                            'timeout': 0}}
+
+        self.params["training"].add_default_params(dataloader_config)
+        self.params["validation"].add_default_params(dataloader_config)
+        self.params["testing"].add_default_params(dataloader_config)
+
+
+
+    def export_experiment_configuration(self, log_dir, filename, user_confirm):
+        """
+        Method dumps the configuration to yaml file.
+
+        """
+        # -> At this point, all configuration for experiment is complete.
+
+        # Save the resulting configuration into a .yaml settings file, under log_dir
+        with open(log_dir + filename, 'w') as yaml_backup_file:
+            yaml.dump(self.params.to_dict(), yaml_backup_file, default_flow_style=False)
+
+        # Log the parsed flags.
+        flags_str = 'Properly parsed command line arguments: \n'
+        flags_str += '='*80 + '\n'
+        for arg in vars(self.flags): 
+            flags_str += "{}= {} \n".format(arg, getattr(self.flags, arg))
+        flags_str += '='*80 + '\n'
+        self.logger.info(flags_str)
+
+        # Log the unparsed flags.
+        if self.unparsed:
+            flags_str = 'Invalid command line arguments: \n'
+            flags_str += '='*80 + '\n'
+            for arg in self.unparsed: 
+                flags_str += "{} \n".format(arg)
+            flags_str += '='*80 + '\n'
+            self.logger.warning(flags_str)
+
+        # Log the resulting training configuration.
+        conf_str = 'Final registry configuration:\n'
+        conf_str += '='*80 + '\n'
+        conf_str += yaml.safe_dump(self.params.to_dict(), default_flow_style=False)
+        conf_str += '='*80 + '\n'
+        self.logger.info(conf_str)
+
+        # Ask for confirmation - optional.
+        if user_confirm:
+            input('Press <Enter> to start the experiment')
+
 
     def add_statistics(self, stat_col):
         """
@@ -207,63 +288,6 @@ class Worker(object):
         stat_agg.aggregators['loss_max'] = max(loss_values)
         stat_agg.aggregators['loss_std'] = np.std(loss_values)
         stat_agg.aggregators['episodes_aggregated'] = len(loss_values)
-
-
-    def setup_experiment(self):
-        """
-        Setups a specific experiment. 
-        Base method:
-
-            - Parses command line arguments.
-
-            - Sets the three default sections and sets their dataloaders params. 
-
-        .. note::
-
-            Child classes should reimplement this method, but still call it parent to draw the basic functionality.
-
-        :param flags: Parsed arguments from the command line.
-
-        """
-        # Parse arguments.
-        self.flags, unparsed = self.parser.parse_known_args()
-
-        # Log the parsed flags.
-        flags_str = 'Properly parsed command line arguments: \n'
-        flags_str += '='*80 + '\n'
-        for arg in vars(self.flags): 
-            flags_str += "{}= {} \n".format(arg, getattr(self.flags, arg))
-        flags_str += '='*80 + '\n'
-        self.logger.info(flags_str)
-
-        # Log the unparsed flags.
-        flags_str = 'Invalid command line arguments: \n'
-        flags_str += '='*80 + '\n'
-        for arg in unparsed: 
-            flags_str += "{} \n".format(arg)
-        flags_str += '='*80 + '\n'
-        self.logger.warning(flags_str)
-
-        # Set logger depending on the settins.
-        self.logger.setLevel(getattr(logging, self.flags.log.upper(), None))
-
-        # add empty sections
-        self.params.add_default_params({"training": {}})
-        self.params.add_default_params({"validation": {}})
-        self.params.add_default_params({"testing": {}})
-
-        # set a default configuration section for the DataLoaders
-        dataloader_config = {'dataloader': {'shuffle': True, # Turn shuffle by default.
-                                            'sampler': None,
-                                            'batch_sampler': None,
-                                            'num_workers': 0,  # Do not use multiprocessing by default - for now.
-                                            'pin_memory': False,
-                                            'drop_last': False,
-                                            'timeout': 0}}
-
-        self.params["training"].add_default_params(dataloader_config)
-        self.params["validation"].add_default_params(dataloader_config)
-        self.params["testing"].add_default_params(dataloader_config)
 
 
     @abstractmethod

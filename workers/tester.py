@@ -246,22 +246,6 @@ class Tester(Worker):
         handshake(model=self.model, problem=self.problem, logger=self.logger)
         # no error thrown, so handshake succeeded
 
-        # -> At this point, all configuration for the ``Trainer`` is complete.
-
-        # Ok, finished loading the configuration.
-        # Save the resulting configuration into a yaml settings file, under log_dir
-        with open(self.log_dir + "testing_configuration.yaml", 'w') as yaml_backup_file:
-            yaml.dump(self.params.to_dict(),
-                      yaml_backup_file, default_flow_style=False)
-
-        # Log the resulting training configuration.
-        conf_str = 'Final registry configuration for testing of {} on {}:\n'.format(model_name, testing_problem_name)
-        conf_str += '='*80 + '\n'
-        conf_str += yaml.safe_dump(self.params.to_dict(), default_flow_style=False)
-        conf_str += '='*80 + '\n'
-        self.logger.info(conf_str)
-
-
     def initialize_statistics_collection(self):
         """
         Function initializes all statistics collectors and aggregators used by a given worker,
@@ -305,9 +289,8 @@ class Tester(Worker):
             - Activate visualization if set.
 
         """
-        # Ask for confirmation - optional.
-        if self.flags.confirm:
-            input('Press any key to run the experiment')
+        # Export and log configuration, optionally asking the user for confirmation.
+        self.export_experiment_configuration(self.log_dir, "testing_configuration.yaml",self.flags.confirm)
 
         # Initialize tensorboard and statistics collection.
         self.initialize_statistics_collection()
