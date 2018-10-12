@@ -135,7 +135,7 @@ class EpisodeTrainer(Trainer):
 
                 # 1. Perform forward step, get predictions and compute loss.
                 logits, loss = self.predict_evaluate_collect(self.model, self.training_problem, 
-                    training_dict, self.training_stat_col, episode)
+                    training_dict, self.training_stat_col, episode, epoch)
 
                 # 2. Backward gradient flow.
                 loss.backward()
@@ -205,7 +205,7 @@ class EpisodeTrainer(Trainer):
                         self.app_state.visualize = False
 
                     # Perform validation.
-                    validation_loss = self.validate_on_batch(self.validation_batch, episode)
+                    validation_loss = self.validate_on_batch(self.validation_batch, episode, epoch)
 
                     # Save the model using the latest validation statistics.
                     self.model.save(self.model_dir, self.validation_stat_col)
@@ -230,7 +230,7 @@ class EpisodeTrainer(Trainer):
 
                         # Do not visualize.
                         self.app_state.visualize = False
-                        self.validate_on_batch(self.validation_batch, episode)
+                        self.validate_on_batch(self.validation_batch, episode, epoch)
 
                         # Save the model.
                         self.model.save(self.model_dir, self.validation_stat_col)
@@ -267,7 +267,7 @@ class EpisodeTrainer(Trainer):
                 self.app_state.visualize = False
 
             # Validate over the entire validation set.
-            self.validate_on_set(episode)
+            self.validate_on_set(episode, epoch)
 
             # Save the model using the average validation loss.
             self.model.save(self.model_dir, self.validation_stat_agg)

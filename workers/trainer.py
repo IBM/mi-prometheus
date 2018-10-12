@@ -333,6 +333,32 @@ class Trainer(Worker):
         self.logger.info(conf_str)
 
 
+    def add_statistics(self, stat_col):
+        """
+        Calls base method and adds epoch statistics to ``StatisticsCollector``.
+
+        :param stat_col: ``StatisticsCollector``.
+
+        """
+        # Add loss and episode.
+        super(Trainer, self).add_statistics(stat_col)
+        # Add default statistics with formatting.
+        stat_col.add_statistic('epoch', '{:02d}')
+
+  
+    def add_aggregators(self, stat_agg):
+        """
+        Adds basic aggregarors to to ``StatisticsAggregator`` and extends them with: epoch.
+
+        :param stat_agg: ``StatisticsAggregator``.
+
+        """
+        # Add basic aggregators.
+        super(Trainer, self).add_aggregators(stat_agg)
+        # add 'aggregators' for the episode.
+        stat_agg.add_aggregator('epoch', '{:02d}')
+
+
     def initialize_statistics_collection(self):
         """
         Function initializes all statistics collectors and aggregators used by a given worker,
@@ -341,6 +367,7 @@ class Trainer(Worker):
         # TRAINING.
         # Create statistics collector for training.
         self.training_stat_col = StatisticsCollector()
+        self.add_statistics(self.training_stat_col)
         self.training_problem.add_statistics(self.training_stat_col)
         self.model.add_statistics(self.training_stat_col)
         # Create the csv file to store the training statistics.
@@ -348,6 +375,7 @@ class Trainer(Worker):
 
         # Create statistics aggregator for training.
         self.training_stat_agg = StatisticsAggregator()
+        self.add_aggregators(self.training_stat_agg)
         self.training_problem.add_aggregators(self.training_stat_agg)
         self.model.add_aggregators(self.training_stat_agg)
         # Create the csv file to store the training statistic aggregations.
@@ -357,6 +385,7 @@ class Trainer(Worker):
         # VALIDATION.
         # Create statistics collector for validation.
         self.validation_stat_col = StatisticsCollector()
+        self.add_statistics(self.validation_stat_col)
         self.validation_problem.add_statistics(self.validation_stat_col)
         self.model.add_statistics(self.validation_stat_col)
         # Create the csv file to store the validation statistics.
@@ -364,6 +393,7 @@ class Trainer(Worker):
 
         # Create statistics aggregator for validation.
         self.validation_stat_agg = StatisticsAggregator()
+        self.add_aggregators(self.validation_stat_agg)
         self.validation_problem.add_aggregators(self.validation_stat_agg)
         self.model.add_aggregators(self.validation_stat_agg)
         # Create the csv file to store the validation statistic aggregations.
@@ -469,47 +499,6 @@ class Trainer(Worker):
         # Else simply return false, i.e. continue training.
         return valid_loss
 
-
-    def export_statistics(self, stat_obj, tag=''):
-        """
-        Export the statistics/aggregations to logger, csv and TB.
-
-        :param stat_obj: ''StatisticsCollector'' or ''StatisticsAggregator'' object.
-        :param tag: Additional tag that will be added to string exported to logger, optional (DEFAULT = '').
-
-        """ 
-        # Log to logger
-        self.logger.info(stat_obj.export_to_string(tag))
-
-        # Export to csv
-        stat_obj.export_to_csv()
-
-        # Export to TensorBoard.
-        stat_obj.export_to_tensorboard()
-
-
-
-    def aggregate_and_export_statistics(self, problem, model, stat_col, stat_agg, episode, tag=''):
-        """
-        Aggregates the collected statistics. Export the aggregations to logger, csv and TB.
-        Empties statistics collector during next episode.
-
-        :param stat_col: ''StatisticsCollector'' object.
-        :param stat_agg: ''StatisticsAggregator'' object.
-        :param tag: Additional tag that will be added to string exported to logger, optional (DEFAULT = '').
-
-        """ 
-        # Aggregate statistics.
-        problem.aggregate_statistics(stat_col, stat_agg)
-        model.aggregate_statistics(stat_col, stat_agg)
-        # Set episode, so "the point" will appear in the right place in TB.
-        stat_agg["episode"] = episode
-
-        # Export to logger, cvs and TB.
-        self.export_statistics(stat_agg, tag)
-
-        # Empty the statistics collector.
-        stat_col.empty()
 
 
     def validate_on_set(self, episode, epoch=None):

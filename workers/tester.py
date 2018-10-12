@@ -269,6 +269,7 @@ class Tester(Worker):
         """
         # Create statistics collector for testing.
         self.testing_stat_col = StatisticsCollector()
+        self.add_statistics(self.testing_stat_col)
         self.problem.add_statistics(self.testing_stat_col)
         self.model.add_statistics(self.testing_stat_col)
         # Create the csv file to store the testing statistics.
@@ -276,6 +277,7 @@ class Tester(Worker):
 
         # Create statistics aggregator for testing.
         self.testing_stat_agg = StatisticsAggregator()
+        self.add_aggregators(self.testing_stat_agg)
         self.problem.add_aggregators(self.testing_stat_agg)
         self.model.add_aggregators(self.testing_stat_agg)
         # Create the csv file to store the testing statistic aggregations.

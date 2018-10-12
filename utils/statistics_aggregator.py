@@ -63,17 +63,6 @@ class StatisticsAggregator(StatisticsCollector):
 
         self.aggregators = dict()
 
-        # add 'aggregators' for the episode.
-        self.add_aggregator('episode', '{:06d}')
-        # Number of aggregated episodes.
-        self.add_aggregator('episodes_aggregated', '{:06d}')
-
-        # Add default statistical aggregators for the loss (indicating a formatting).
-        # Represents the average loss, but stying with loss for TensorBoard "variable compatibility".
-        self.add_aggregator('loss', '{:12.10f}')  
-        self.add_aggregator('loss_min', '{:12.10f}')
-        self.add_aggregator('loss_max', '{:12.10f}')
-        self.add_aggregator('loss_std', '{:12.10f}')
 
     def add_aggregator(self, key, formatting):
         """
@@ -141,29 +130,6 @@ class StatisticsAggregator(StatisticsCollector):
         Return an iterator on the currently tracked statistical aggregators.
         """
         return self.aggregators.__iter__()
-
-    def aggregate_statistics(self, stat_col):
-        """
-        Method aggregates the default statistics collected by the Statistics Collector.
-
-        :param: stat_col: ''StatisticsCollector''
-        """
-        # By default, copy last values for all variables have mathing names.
-        # (will work well for e.g. episode or epoch)
-        for k,v in stat_col.items():
-            if k in self.aggregators:
-                # Copy last collected value.
-                self.aggregators[k] = v[-1]
-
-        # Get loss values.
-        loss_values = stat_col['loss']
-
-        # Calcualte default aggregates.
-        self.aggregators['loss'] = np.average(loss_values)
-        self.aggregators['loss_min'] = min(loss_values)
-        self.aggregators['loss_max'] = max(loss_values)
-        self.aggregators['loss_std'] = np.std(loss_values)
-        self.aggregators['episodes_aggregated'] = len(loss_values)
         
 
     def initialize_csv_file(self, log_dir, filename):

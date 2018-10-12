@@ -48,10 +48,6 @@ class StatisticsCollector(Mapping):
         self.statistics = dict()
         self.formatting = dict()
 
-        # Add default statistics with formatting.
-        self.add_statistic('episode', '{:06d}')
-        self.add_statistic('loss', '{:12.10f}')
-
     def add_statistic(self, key, formatting):
         """
         Add a statistic to collector.
@@ -228,6 +224,8 @@ class StatisticsCollector(Mapping):
 if __name__ == "__main__":
 
     stat_col = StatisticsCollector()
+    stat_col.add_statistic('loss', '{:12.10f}')
+    stat_col.add_statistic('episode', '{:06d}')
     stat_col.add_statistic('acc', '{:2.3f}')
 
     #stat_col['epoch'] = 0

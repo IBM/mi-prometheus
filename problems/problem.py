@@ -443,9 +443,8 @@ class Problem(Dataset):
         :param stat_agg: ``StatisticsAggregator``.
 
         """
-        # Aggregate the basic statistics.
-        stat_agg.aggregate_statistics(stat_col)
-
+        pass
+        
     def get_epoch_size(self, batch_size):
         """
         Compute the number of iterations ('episodes') to run given the size of the dataset and the batch size to cover

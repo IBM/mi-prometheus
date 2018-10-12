@@ -150,6 +150,65 @@ class Worker(object):
                                 'before starting training  (Default: False)')
 
 
+    def add_statistics(self, stat_col):
+        """
+        Adds most elementary shared statistics to ``StatisticsCollector``: episode and loss.
+
+        :param stat_col: ``StatisticsCollector``.
+
+        """
+        # Add default statistics with formatting.
+        stat_col.add_statistic('loss', '{:12.10f}')
+        stat_col.add_statistic('episode', '{:06d}')
+
+
+    def add_aggregators(self, stat_agg):
+        """
+        Adds basic: statistical aggregators to ``StatisticsAggregator``: episode, 
+            episodes_aggregated and loss derivatives.
+
+        :param stat_agg: ``StatisticsAggregator``.
+
+        """
+        # add 'aggregators' for the episode.
+        stat_agg.add_aggregator('episode', '{:06d}')
+        # Number of aggregated episodes.
+        stat_agg.add_aggregator('episodes_aggregated', '{:06d}')
+
+        # Add default statistical aggregators for the loss (indicating a formatting).
+        # Represents the average loss, but stying with loss for TensorBoard "variable compatibility".
+        stat_agg.add_aggregator('loss', '{:12.10f}')  
+        stat_agg.add_aggregator('loss_min', '{:12.10f}')
+        stat_agg.add_aggregator('loss_max', '{:12.10f}')
+        stat_agg.add_aggregator('loss_std', '{:12.10f}')
+
+
+    def aggregate_statistics(self, stat_col, stat_agg):
+        """
+        Method aggregates the default statistics collected by the Statistics Collector.
+
+        :param stat_col: ''StatisticsCollector''
+        :param stat_agg: ''StatisticsAggregator''
+
+        """
+        # By default, copy last values for all variables have mathing names.
+        # (will work well for e.g. episode or epoch)
+        for k,v in stat_col.items():
+            if k in stat_agg.aggregators:
+                # Copy last collected value.
+                stat_agg.aggregators[k] = v[-1]
+
+        # Get loss values.
+        loss_values = stat_col['loss']
+
+        # Calcualte default aggregates.
+        stat_agg.aggregators['loss'] = np.average(loss_values)
+        stat_agg.aggregators['loss_min'] = min(loss_values)
+        stat_agg.aggregators['loss_max'] = max(loss_values)
+        stat_agg.aggregators['loss_std'] = np.std(loss_values)
+        stat_agg.aggregators['episodes_aggregated'] = len(loss_values)
+
+
     def setup_experiment(self):
         """
         Setups a specific experiment. 
@@ -419,6 +478,7 @@ class Worker(object):
 
         """ 
         # Aggregate statistics.
+        self.aggregate_statistics(stat_col, stat_agg)
         problem.aggregate_statistics(stat_col, stat_agg)
         model.aggregate_statistics(stat_col, stat_agg)
         # Set episode, so "the point" will appear in the right place in TB.
