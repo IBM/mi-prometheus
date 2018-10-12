@@ -253,6 +253,7 @@ class Trainer(Worker):
         else:
             # If not using curriculum learning then it does not have to be finished.
             self.must_finish_curriculum = False
+            self.curric_done = True
 
         ################# VALIDATION PROBLEM ################# 
         
@@ -345,7 +346,7 @@ class Trainer(Worker):
         # Add default statistics with formatting.
         stat_col.add_statistic('epoch', '{:02d}')
 
-  
+
     def add_aggregators(self, stat_agg):
         """
         Adds basic aggregarors to to ``StatisticsAggregator`` and extends them with: epoch.
