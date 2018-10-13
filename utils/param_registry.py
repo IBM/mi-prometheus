@@ -17,14 +17,14 @@
 
 __author__ = "Alexis Asseman, Tomasz Kornuta"
 
-from utils.singleton import SingletonMetaClass
-from collections import Mapping
 from abc import ABCMeta
+from collections import Mapping
+from utils.singleton import SingletonMetaClass
 
 
 class MetaSingletonABC(SingletonMetaClass, ABCMeta):
     """
-    Metaclass that inherits both SingletonMetaClass, and ABCMeta
+    Metaclass that inherits both SingletonMetaClass, and ABCMeta \
     (collection.Mappings' metaclass).
     """
     pass
@@ -32,19 +32,24 @@ class MetaSingletonABC(SingletonMetaClass, ABCMeta):
 
 class ParamRegistry(Mapping, metaclass=MetaSingletonABC):
     """
-    This class should not be used except through `ParameterInterface`.
+    This class should not be used except through ``ParameterInterface``.
 
-    Registry singleton for the parameters. Registers default values (from workers, models, problems, etc)
+    Registry singleton for the parameters. Registers default values (from workers, models, problems, etc) \
     as well as config values loaded by the user for the particular experiment.
 
-    Parameters can be read from the registry by indexing. The returned parameters are the default ones superseded by
+    Parameters can be read from the registry by indexing. The returned parameters are the default ones superseded by \
     all the config ones. The merging of default and config parameters is computed every time the registry is changed.
 
     """
 
     def __init__(self):
+        """
+        Constructor. Call bsae constructor and initializes empty parameters dicts.
+
+        """
         super(ParamRegistry, self).__init__()
         # Default parameters set in the code.
+
         self._default_params = {}
         # Parameters read from configuration files.
         self._superseding_config_params = {}
@@ -53,10 +58,9 @@ class ParamRegistry(Mapping, metaclass=MetaSingletonABC):
 
     def _update_params(self):
         """
-        Computes the params from the default param registry superseded by the
+        Computes the params from the default param registry superseded by the \
         config params registry.
 
-        :return: None
 
         """
         self._params = self._default_params.copy()
@@ -64,11 +68,11 @@ class ParamRegistry(Mapping, metaclass=MetaSingletonABC):
 
     def add_default_params(self, default_params: dict):
         """
-        Appends default params (i.e. set in the code) to the registry. 
-        This method should be used by the objects necessitating default values (problems, models, workers etc.).
+        Appends default params (i.e. set in the code) to the registry. \
+        This method should be used by the objects necessitating default values (problems, models, workers etc.). \
 
         :param default_params: Dictionary containing default values.
-        :return: None
+
 
         """
         # Update default params list.
@@ -78,11 +82,11 @@ class ParamRegistry(Mapping, metaclass=MetaSingletonABC):
 
     def add_config_params(self, config_params: dict):
         """
-        Appends parameters read from configuration files to the registry.
-        This is intended for the user to dynamically (re)configure his experiments.
+        Appends parameters read from configuration files to the registry. \
+        This is intended for the user to dynamically (re)configure his experiments. \
 
         :param config_params: Dictionary containing config values
-        :return: None
+
 
         """
         # Update config params list.
@@ -92,10 +96,11 @@ class ParamRegistry(Mapping, metaclass=MetaSingletonABC):
 
     def __getitem__(self, key):
         """
-        Get parameter value under key. The parameter dict is derived from the
+        Get parameter value under key. The parameter dict is derived from the \
         default parameters updated with the config parameters.
 
         :param key: key to value in parameters
+
         :return: parameter value
 
         """
@@ -109,11 +114,13 @@ class ParamRegistry(Mapping, metaclass=MetaSingletonABC):
 
     def update_dict_recursively(self, d, u):
         """
-        Method updates a given parameter list in a recursive manner, starting
+        Method updates a given parameter list in a recursive manner, starting \
         from the parameter registry root.
 
         :param d: Current parameter registry (default or config) node
+
         :param u: Values to be added/updated
+
         :return: Updated node
 
         """

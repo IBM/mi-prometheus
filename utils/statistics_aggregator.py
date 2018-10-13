@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """
-estimator.py: Allows to compute several statistical aggregators (e.g. average, standard deviation...)\
+statistics_aggregator.py: Allows to compute several statistical aggregators (e.g. average, standard deviation...)\
  using the statistics collected over an epoch or a validation phase by the ``StatisticsCollector``.
 
  Allows to summarize the current epoch or validation phase using statistical aggregators.
@@ -36,7 +36,7 @@ class StatisticsAggregator(StatisticsCollector):
     on ``StatisticsCollector`` to collect the statistics over an epoch (training set) \
     or a validation (over the validation set).
 
-    Once the statistics have been collected, the ``StatisticsEstimator`` allows to compute several \
+    Once the statistics have been collected, the ``StatisticsAggregator`` allows to compute several \
     statistical aggregators to summarize the last epoch or validation phase.
 
     E.g. With the list of loss values from the last epoch, we can compute the average loss, the min & max, \
@@ -47,13 +47,7 @@ class StatisticsAggregator(StatisticsCollector):
 
     def __init__(self):
         """
-        Constructor for the ``StatisticsEstimator``.
-
-        Add the following basic statistical aggregators:
-
-            - Minimum & maximum loss value,
-            - Average loss,
-            - Standard deviation of the loss.
+        Constructor for the ``StatisticsAggregator``. Defines empty aggregators dict.
 
         Other statistical aggregators can be added via ``self.add_aggregator()``.
 
@@ -63,13 +57,12 @@ class StatisticsAggregator(StatisticsCollector):
 
         self.aggregators = dict()
 
-
     def add_aggregator(self, key, formatting):
         """
-        Add a statistical estimator.
+        Add a statistical aggregator.
         The value associated to the specified key is initiated as -1.
 
-        :param key: Statistical estimator to add. Such estimator (e.g. min, max, mean, std...)\
+        :param key: Statistical aggregator to add. Such aggregator (e.g. min, max, mean, std...)\
          should be based on an existing statistics collected by the ``StatisticsCollector`` \
          (e.g. added by ``add_statistic`` and collected by ``model.collect_statistics`` or \
          ``problem.collect_statistics``.
@@ -86,21 +79,21 @@ class StatisticsAggregator(StatisticsCollector):
 
     def __getitem__(self, key):
         """
-        Get the values list of the specified statistical estimator.
+        Get the values list of the specified statistical aggregator.
 
-        :param key: Name of the statistical estimator to get the values list of.
+        :param key: Name of the statistical aggregator to get the values list of.
         :type key: str
 
-        :return: Values list associated with the specified statistical estimator.
+        :return: Values list associated with the specified statistical aggregator.
 
         """
         return self.aggregators[key]
 
     def __setitem__(self, key, value):
         """
-        Set the value of the specified statistical estimator, thus overwriting the existing one.
+        Set the value of the specified statistical aggregator, thus overwriting the existing one.
 
-        :param key: Name of the statistical estimator to set the value of.
+        :param key: Name of the statistical aggregator to set the value of.
         :type key: str
 
         :param value: Value to set for the given key.
@@ -111,7 +104,7 @@ class StatisticsAggregator(StatisticsCollector):
 
     def __delitem__(self, key):
         """
-        Delete the specified statistical estimator.
+        Delete the specified statistical aggregator.
 
         :param key: Key to be deleted.
         :type key: str
@@ -130,7 +123,6 @@ class StatisticsAggregator(StatisticsCollector):
         Return an iterator on the currently tracked statistical aggregators.
         """
         return self.aggregators.__iter__()
-        
 
     def initialize_csv_file(self, log_dir, filename):
         """

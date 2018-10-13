@@ -18,16 +18,14 @@
 """problem.py: contains base class for all problems"""
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
-import numpy as np
-import logging
-
 import torch
+import logging
+import numpy as np
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import default_collate
 
 from utils.app_state import AppState
 from utils.data_dict import DataDict
-
 
 
 class Problem(Dataset):
@@ -101,6 +99,7 @@ class Problem(Dataset):
         """
         # Store pointer to params.
         self.params = params
+
         # Empty curriculum learning params - for now.
         self.curriculum_params = {}
 
@@ -424,19 +423,14 @@ class Problem(Dataset):
 
     def aggregate_statistics(self, stat_col, stat_agg):
         """
-        Aggregates the statistics collected by ''StatisticsCollector'' and adds the results to ''StatisticsAggregator''.
+        Aggregates the statistics collected by ``StatisticsCollector`` and adds the results to ``StatisticsAggregator``.
 
          .. note::
 
-            Only computes the min, max, mean, std of the loss as these are basic statistical aggregator \
-            set by default.
-
+            Empty - To be redefined in inheriting classes.
             The user can override this function in subclasses but should call \
-            ``super().collect_aggregator(stat_col, stat_agg)`` to collect basic statistical aggregator.
+            ``super().aggregate_statistics(stat_col, stat_agg)`` to collect basic statistical aggregators (if set).
 
-            Given that the ``StatisticsAggregator`` uses the statistics collected by the ``StatisticsCollector``, \
-            the user should also ensure that these statistics are correctly collected \
-            (i.e. use of ``self.add_statistics`` and ``self.collect_statistics``.
 
         :param stat_col: ``StatisticsCollector``.
 
@@ -470,12 +464,6 @@ class Problem(Dataset):
         """
         Function called to initialize a new epoch.
 
-        The primary use is to reset ``StatisticsAggregators`` that track statistics over one epoch, e.g.:
-
-            - Average accuracy over the epoch
-            - Time taken for the epoch and average per batch
-            - etc...
-
         .. note::
 
 
@@ -490,20 +478,13 @@ class Problem(Dataset):
 
     def finalize_epoch(self, epoch):
         """
-        Function called at the end of an epoch to execute a few tasks, e.g.:
-
-            - Compute the mean accuracy over the epoch,
-            - Get the time taken for the epoch and per batch
-            - etc.
-
-        This function will use the ``StatisticsAggregators`` set up (or reset) in ``self.initialize_epoch()`.
+        Function called at the end of an epoch to execute a few tasks.
 
         .. note::
 
 
             Empty - To be redefined in inheriting classes.
 
-            TODO: To display the final results for the current epoch, this function should use the Logger.
 
         :param epoch: current epoch index
         :type epoch: int
@@ -542,6 +523,7 @@ class Problem(Dataset):
 
 
         :param curriculum_params: Interface to parameters accessing curriculum learning view of the registry tree.
+
         """
         # Save params.
         self.curriculum_params = curriculum_params
@@ -563,3 +545,33 @@ class Problem(Dataset):
 
         return True
 
+
+if __name__ == '__main__':
+    """Unit test for DataDict & targets handshaking"""
+    from utils.param_interface import ParamInterface
+
+    params = ParamInterface()
+
+    problem = Problem(params)
+    problem.data_definitions = {'inputs': {'size': [-1, -1], 'type': [torch.Tensor]},
+                                'targets': {'size': [-1], 'type': [torch.Tensor]}
+                                }
+    problem.loss_function = torch.nn.CrossEntropyLoss()  # torch.nn.L1Loss, torch.nn.TripletMarginLoss
+
+    datadict = DataDict({key: None for key in problem.data_definitions.keys()})
+
+    #datadict['inputs'] = torch.ones([64, 20, 512]).type(torch.FloatTensor)
+    #datadict['targets'] = torch.ones([64, 20]).type(torch.FloatTensor)
+
+    #print(repr(datadict))
+
+    model_data_definitions = {'question': {'size': [-1, -1], 'type': [torch.Tensor]},
+                              'question_length': {'size': [-1], 'type': [list, int]},
+                              'question_string': {'size': [-1, -1], 'type': [list, str]},
+                              'question_type': {'size': [-1, -1], 'type': [list, str]},
+                              'targets': {'size': [-1, -1], 'type': [torch.Tensor]},
+                              'targets_string': {'size': [-1, -1], 'type': [list, str]},
+                              'index': {'size': [-1], 'type': [list, int]},
+                              'imgfile': {'size': [-1, -1], 'type': [list, str]}}
+
+    problem.handshake_definitions(model_data_definitions_=model_data_definitions)

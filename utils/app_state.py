@@ -15,16 +15,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__author__ = "Alexis Asseman, Tomasz Kornuta, Ryan L. McAvoy"
+__author__ = "Alexis Asseman, Tomasz Kornuta, Ryan L. McAvoy, Vincent Marois"
 
-from .singleton import SingletonMetaClass
+from utils.singleton import SingletonMetaClass
 import torch
 
 
 class AppState(metaclass=SingletonMetaClass):
+    """
+    Represents the application state. Knows if computations should be moved to GPU, if visualization should be \
+    activated etc.
+    """
+
     def __init__(self):
+        """
+        Constructor:
+
+            - Disable visualization by default,
+            - Use non-cuda types by default.
+        """
         # Disable visualization by default.
         self.visualize = False
+
         # Use non-cuda types by default.
         self.convert_non_cuda_types()
         self.set_dtype('float')
@@ -34,7 +46,8 @@ class AppState(metaclass=SingletonMetaClass):
         """
         Sets a global floating point type to be used in the models.
 
-        :param flag: string flag indicating a floating point type
+        :param flag: Flag indicating a floating point type.
+        :type flag: str
 
         """
         if flag == 'float':
@@ -50,7 +63,8 @@ class AppState(metaclass=SingletonMetaClass):
         """
         Sets a global integer type to be used in the models.
 
-        :param flag: string flag indicating an integer type
+        :param flag: Flag indicating an integer type.
+        :type flag: str
 
         """
 

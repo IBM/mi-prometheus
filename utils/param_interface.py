@@ -17,27 +17,28 @@
 
 __author__ = "Alexis Asseman, Tomasz Kornuta"
 
-from utils.param_registry import ParamRegistry
-from collections import Mapping
 import yaml
+from collections import Mapping
+from utils.param_registry import ParamRegistry
 
 
 class ParamInterface(Mapping):
     """
-    Interface to `ParameterRegistry` singleton.
+    Interface to ``ParameterRegistry`` singleton.
 
-    Inherits `collections.Mapping`, and therefore exposes functionality
-    close to a `dict`. Offers a read (through `collections.Mapping`
-    interface) and write (through `add_default_params` and
-    `add_config_params` methods) view of the `ParameterRegistry`.
+    Inherits ``collections.Mapping``, and therefore exposes functionality \
+    close to a `dict`. Offers a read (through ``collections.Mapping`` \
+    interface) and write (through ``add_default_params`` and \
+    ``add_config_params`` methods) view of the ``ParameterRegistry``.
 
     """
 
     def __init__(self, *keys):
         """
 
-        :param keys: sequence of keys to the subtree of the registry. The subtree hierarchy will be created if it
+        :param keys: sequence of keys to the subtree of the registry. The subtree hierarchy will be created if it \
         does not exist. If empty, shows the whole registry.
+
         """
         super(ParamInterface, self).__init__()
         self._param_registry = ParamRegistry()
@@ -85,11 +86,11 @@ class ParamInterface(Mapping):
 
     def __getitem__(self, key):
         """
-        Get parameter value under key. The parameter dict is derived from the
+        Get parameter value under key. The parameter dict is derived from the \
         default parameters updated with the config parameters.
 
         :param key: key to value in parameters
-        :return: ParameterInterface(key) or value if leaf of the ParamRegistry tree.
+        :return: ``ParameterInterface(key)`` or value if leaf of the ``ParamRegistry`` tree.
 
         """
         v = self._lookup(key)
@@ -106,13 +107,12 @@ class ParamInterface(Mapping):
 
     def add_default_params(self, default_params: dict):
         """
-        Appends default params dictionary to the registry. This should not be
-        used by the user, but rather set by the objects necessitating default
-        values. The dictionary will be inserted into the subtree chosen during
-        initialization of `ParameterInterface`
+        Appends default params dictionary to the registry. This should not be \
+        used by the user, but rather set by the objects necessitating default \
+        values. The dictionary will be inserted into the subtree chosen during \
+        initialization of ``ParameterInterface``
 
         :param default_params: Dictionary containing default values.
-        :return: None
 
         """
         self._param_registry.add_default_params(
@@ -121,27 +121,25 @@ class ParamInterface(Mapping):
 
     def add_config_params(self, config_params: dict):
         """
-        Appends config parameters dictionary to the registry. This is intended
-        for the user to dynamically (re)configure the experiments. The dictionary 
-        will be inserted into the subtree chosen during initialization of
-        `ParameterInterface`
+        Appends config parameters dictionary to the registry. This is intended \
+        for the user to dynamically (re)configure the experiments. The dictionary \
+        will be inserted into the subtree chosen during initialization of \
+        ``ParameterInterface``
 
         :param config_params: Dictionary containing config values.
-        :return: None
+
 
         """
         self._param_registry.add_config_params(
             self._nest_dict(config_params)
         )
 
-
     def add_config_params_from_yaml(self, yaml_path: str):
         """
-        Helper function. Has the same functionality as `add_config_params`, but
+        Helper function. Has the same functionality as ``add_config_params``, but \
         loads from path of yaml file.
 
-        :param yaml_path: Path to yaml file containing config paramters
-        :return: None
+        :param yaml_path: Path to yaml file containing config parameters.
 
         """
         # Open file and try to add that to list of parameter dictionaries.

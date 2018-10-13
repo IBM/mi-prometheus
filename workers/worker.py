@@ -268,6 +268,14 @@ class Worker(object):
         """
         Aggregates the default statistics collected by the ``StatisticsCollector``.
 
+
+        .. note::
+            Only computes the min, max, mean, std of the loss as these are basic statistical aggregator by default.
+
+            Given that the ``StatisticsAggregator`` uses the statistics collected by the ``StatisticsCollector``, \
+            we should ensure that these statistics are correctly collected (i.e. use of ``self.add_statistics()`` \
+            and ``collect_statistics()``).
+
         :param stat_col: ``StatisticsCollector``
 
         :param stat_agg: ``StatisticsAggregator``

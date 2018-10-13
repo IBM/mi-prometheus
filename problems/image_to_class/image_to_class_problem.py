@@ -126,10 +126,9 @@ class ImageToClassProblem(Problem):
         stat_agg.add_aggregator('acc_std', '{:12.10f}')
         stat_agg.add_aggregator('samples_aggregated', '{:006d}')  # represents the average accuracy
 
-
     def aggregate_statistics(self, stat_col, stat_agg):
         """
-        Aggregates the statistics collected by ''StatisticsCollector'' and adds the results to ''StatisticsAggregator''.
+        Aggregates the statistics collected by ``StatisticsCollector'' and adds the results to ``StatisticsAggregator``.
 
         :param stat_col: ``StatisticsCollector``.
 
@@ -141,7 +140,6 @@ class ImageToClassProblem(Problem):
         stat_agg['acc'] = torch.mean(torch.tensor(stat_col['acc']))
         stat_agg['acc_std'] = torch.std(torch.tensor(stat_col['acc']))
         stat_agg['samples_aggregated'] = sum(stat_col['batch_size'])
-
 
     def show_sample(self, data_dict, sample_number=0):
         """

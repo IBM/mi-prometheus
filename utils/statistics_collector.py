@@ -37,7 +37,7 @@ class StatisticsCollector(Mapping):
 
     def __init__(self):
         """
-        Initialization - creates dictionaries for statistics and formatting, adds standard statistics (episode and loss).
+        Initialization - creates dictionaries for statistics and formatting.
         """
         super(StatisticsCollector, self).__init__()
 
@@ -121,7 +121,11 @@ class StatisticsCollector(Mapping):
         on the base of statistics names.
 
         :param log_dir: Path to file.
+        :type log_dir: str
+
         :param filename: Filename to be created.
+        :type filename: str
+
         :return: File stream opened for writing.
 
         """
@@ -140,7 +144,7 @@ class StatisticsCollector(Mapping):
 
         return self.csv_file
 
-    def export_to_csv(self, csv_file = None):
+    def export_to_csv(self, csv_file=None):
         """
         Method writes current statistics to csv using the possessed formatting.
 
@@ -168,13 +172,16 @@ class StatisticsCollector(Mapping):
 
         csv_file.write(values_str)
 
-
     def export_to_string(self, additional_tag=''):
         """
         Method returns current statistics in the form of string using the
         possessed formatting.
 
-        :return: String being concatenation of statistics names and values.
+        :param additional_tag: An additional tag to append at the end of the created string.
+        :type additional_tag: str
+
+
+        :return: String being the concatenation of the statistical aggregators names & values.
 
         """
         # Iterate through keys and values and concatenate them.
@@ -207,7 +214,7 @@ class StatisticsCollector(Mapping):
         # Get episode number.
         episode = self.statistics['episode'][-1]
 
-        if (tb_writer is None):
+        if tb_writer is None:
             tb_writer = self.tb_writer
         # If it is still None - well, we cannot do anything more.
         if tb_writer is None:
@@ -228,7 +235,6 @@ if __name__ == "__main__":
     stat_col.add_statistic('episode', '{:06d}')
     stat_col.add_statistic('acc', '{:2.3f}')
 
-    #stat_col['epoch'] = 0
     stat_col['episode'] = 0
     stat_col['loss'] = 0.7
     stat_col['acc'] = 100

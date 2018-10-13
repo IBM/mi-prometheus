@@ -15,16 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""model.py: contains base abstract model for all models"""
+"""
+model.py: contains base abstract model class. All models should subclass it.
+
+"""
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import torch
-from torch import nn
-from abc import abstractmethod
-import numpy as np
-
 import logging
 import datetime
+import numpy as np
+from torch import nn
+from abc import abstractmethod
 
 from utils.app_state import AppState
 
@@ -33,7 +35,7 @@ class Model(nn.Module):
     """
     Class representing base class for all Models.
 
-    Inherits from torch.nn.Module as all subclasses will represent a trainable model.
+    Inherits from ``torch.nn.Module`` as all subclasses will represent a trainable model.
 
     Hence, all subclasses should override the ``forward`` function.
 
@@ -47,7 +49,7 @@ class Model(nn.Module):
 
         :param params: Parameters read from configuration file.
 
-        :param problem_default_values_: dict of parameters values coming from the problem class. One example of such\
+        :param problem_default_values_: dict of parameters values coming from the problem class. One example of such \
         parameter value is the size of the vocabulary set in a translation problem.
         :type problem_default_values_: dict
 
@@ -272,20 +274,19 @@ class Model(nn.Module):
         """
         pass
 
-
     def aggregate_statistics(self, stat_col, stat_agg):
         """
-        Aggregates the statistics collected by ''StatisticsCollector'' and adds the results to ''StatisticsAggregator''.
+        Aggregates the statistics collected by ``StatisticsCollector`` and adds the results to ``StatisticsAggregator``.
 
          .. note::
 
 
             Empty - To be redefined in inheriting classes. The user has to ensure that the corresponding entry \
-            in the ``StatisticsEstimators`` has been created with ``self.add_estimator()`` beforehand.\
+            in the ``StatisticsAggregator`` has been created with ``self.add_aggregators()`` beforehand.\
 
             Given that the ``StatisticsAggregator`` uses the statistics collected by the ``StatisticsCollector``, \
             the user should also ensure that these statistics are correctly collected \
-            (i.e. use of ``self.add_statistics`` and ``self.collect_statistics``.
+            (i.e. use of ``self.add_statistics`` and ``self.collect_statistics``).
 
         :param stat_col: ``StatisticsCollector``.
 
@@ -298,8 +299,7 @@ class Model(nn.Module):
     @abstractmethod
     def plot(self, data_dict, predictions, sample=0):
         """
-        Plots inputs, targets and predictions, along with model-dependent
-        variables.
+        Plots inputs, targets and predictions, along with model-dependent variables.
 
         . note::
 
@@ -318,14 +318,14 @@ class Model(nn.Module):
 
     def save(self, model_dir, stats):
         """
-        Generic method saving the model parameters to file. It can be
+        Generic method saving the model parameters to file. It can be \
         overloaded if one needs more control.
 
         :param model_dir: Directory where the model will be saved.
         :type model_dir: str
 
         :param stats: Statistics value to save with the model.
-        :type stats: ``StatisticsCollector`` or ``StatisticsEstimator``
+        :type stats: ``StatisticsCollector`` or ``StatisticsAggregator``
 
         :return: True if this is currently the best model (until the current episode, considering the loss).
 
@@ -490,25 +490,25 @@ if __name__ == '__main__':
 
     # you can play with one of the dicts below to see the handshake in action.
     model.data_definitions = {'img': {'size': [-1, 320, 480, 3], 'type': [np.ndarray]},
-                                 'question': {'size': [-1, -1], 'type': [torch.Tensor]},
-                                 'question_length': {'size': [-1], 'type': [list, int]},
-                                 'question_string': {'size': [-1,-1], 'type': [list, str]},
-                                 'question_type': {'size': [-1,-1], 'type': [list, str]},
-                                 'targets': {'size': [-1], 'type': [torch.Tensor]},
-                                 'targets_string': {'size': [-1,-1], 'type': [list, str]},
-                                 'index': {'size': [-1], 'type': [list, int]},
-                                 'imgfile': {'size': [-1,-1], 'type': [list,str]},
-                                 }
+                              'question': {'size': [-1, -1], 'type': [torch.Tensor]},
+                              'question_length': {'size': [-1], 'type': [list, int]},
+                              'question_string': {'size': [-1,-1], 'type': [list, str]},
+                              'question_type': {'size': [-1,-1], 'type': [list, str]},
+                              'targets': {'size': [-1], 'type': [torch.Tensor]},
+                              'targets_string': {'size': [-1,-1], 'type': [list, str]},
+                              'index': {'size': [-1], 'type': [list, int]},
+                              'imgfile': {'size': [-1,-1], 'type': [list,str]},
+                               }
 
     problem_data_definitions = {'img': {'size': [-1, 320, 480, 3], 'type': [np.ndarray]},
-                                 'question': {'size': [-1, -1], 'type': [torch.Tensor]},
-                                 'question_length': {'size': [-1], 'type': [list, int]},
-                                 'question_string': {'size': [-1,-1], 'type': [list, str]},
-                                 'question_type': {'size': [-1,-1], 'type': [list, str]},
-                                 'targets': {'size': [-1], 'type': [torch.Tensor]},
-                                 'targets_string': {'size': [-1,-1], 'type': [list, str]},
-                                 'index': {'size': [-1], 'type': [list, int]},
-                                 'imgfile': {'size': [-1,-1], 'type': [list,str]}
-                                 }
+                                'question': {'size': [-1, -1], 'type': [torch.Tensor]},
+                                'question_length': {'size': [-1], 'type': [list, int]},
+                                'question_string': {'size': [-1,-1], 'type': [list, str]},
+                                'question_type': {'size': [-1,-1], 'type': [list, str]},
+                                'targets': {'size': [-1], 'type': [torch.Tensor]},
+                                'targets_string': {'size': [-1,-1], 'type': [list, str]},
+                                'index': {'size': [-1], 'type': [list, int]},
+                                'imgfile': {'size': [-1,-1], 'type': [list,str]}
+                                }
 
     model.handshake_definitions(problem_data_definitions)

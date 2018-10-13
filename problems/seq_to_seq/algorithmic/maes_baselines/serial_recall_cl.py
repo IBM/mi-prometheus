@@ -23,7 +23,7 @@ __author__ = "Ryan McAvoy, Tomasz Kornuta, Vincent Marois"
 
 import torch
 import numpy as np
-from problems.problem import DataDict
+from utils.data_dict import DataDict
 from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem
 
 
@@ -184,7 +184,7 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
             The samples created by ``__getitem__`` are simply not used.
 
 
-        :param batch: Should be a list of DataDict retrieved by `__getitem__`, each containing tensors, numbers,\
+        :param batch: Should be a list of ``DataDict`` retrieved by `__getitem__`, each containing tensors, numbers,\
         dicts or lists. --> **Not Used Here!**
 
         :return: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}), with:
@@ -288,7 +288,7 @@ if __name__ == "__main__":
     # "Loaded parameters".
     from utils.param_interface import ParamInterface 
     params = ParamInterface()
-    params.add_custom_params({'control_bits': 4,
+    params.add_config_params({'control_bits': 4,
                               'data_bits': 8,
                               # 'randomize_control_lines': False,
                               'min_sequence_length': 2,
@@ -301,11 +301,8 @@ if __name__ == "__main__":
     # wrap DataLoader on top
     from torch.utils.data.dataloader import DataLoader
 
-    def init_fn(worker_id):
-        np.random.seed(seed=worker_id)
-
     problem = DataLoader(dataset=dataset, batch_size=batch_size, collate_fn=dataset.collate_fn,
-                         shuffle=False, num_workers=4, worker_init_fn=init_fn)
+                         shuffle=False, num_workers=4, worker_init_fn=dataset.worker_init_fn)
 
     # Measure generation time.
     print("Measuring generation time. Please wait...") 

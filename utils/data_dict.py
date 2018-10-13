@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
@@ -19,8 +18,12 @@
 """data_dict.py: contains data dictionary class"""
 __author__ = "Vincent Marois"
 
-import collections
 import torch
+import logging
+import collections
+
+logger = logging.Logger('DataDict')
+
 
 class DataDict(collections.MutableMapping):
     """
@@ -224,7 +227,6 @@ class DataDict(collections.MutableMapping):
                 detached_datadict[key] = self[key]
 
         return detached_datadict
-
 
 
 if __name__ == '__main__':
