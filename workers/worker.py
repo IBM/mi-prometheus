@@ -411,7 +411,7 @@ class Worker(object):
                 self.app_state.convert_cuda_types()
                 self.logger.info('Running with CUDA enabled')
         elif turn_on_cuda:
-            self.logger.error('CUDA is enabled but there is no available device')
+            self.logger.warning('CUDA is enabled but there is no available GPU device, using CPU instead')
 
 
     def predict_evaluate_collect(self, model, problem, data_dict, stat_col, episode, epoch=None):
