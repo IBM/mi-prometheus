@@ -27,6 +27,7 @@ import inspect
 
 import models
 
+
 class ModelFactory(object):
     """
     ModelFactory: Class instantiating the specified model class using the passed params.
@@ -35,7 +36,7 @@ class ModelFactory(object):
     @staticmethod
     def build_model(params, problem_default_values_={}):
         """
-        Static method returning a particular model, depending on the name\
+        Static method returning a particular model, depending on the name \
         provided in the list of parameters.
 
         :param params: Parameters used to instantiate the model class.
@@ -75,7 +76,7 @@ class ModelFactory(object):
         # Check if class is derived (even indirectly) from Model.
         inherits = False
         for c in inspect.getmro(model_class):
-            if (c.__name__ == models.Model.__name__):
+            if c.__name__ == models.Model.__name__:
                 inherits = True
                 break
         if not inherits:
@@ -96,16 +97,16 @@ if __name__ == "__main__":
 
     model_params = ParamInterface()
     model_params.add_default_params({'name': 'MAES',
-                                    'num_control_bits': 3,
-                                    'num_data_bits': 8,
-                                    'encoding_bit': 0,
-                                    'solving_bit': 1,
-                                    'controller': {'name': 'rnn', 'hidden_state_size': 20,
-                                                   'num_layers': 1, 'non_linearity': 'sigmoid'},
-                                    'mae_interface': {'shift_size': 3},
-                                    'mas_interface': {'shift_size': 3},
-                                    'memory': {'num_addresses': -1, 'num_content_bits': 11},
-                                    'visualization_mode': 2})
+                                     'num_control_bits': 3,
+                                     'num_data_bits': 8,
+                                     'encoding_bit': 0,
+                                     'solving_bit': 1,
+                                     'controller': {'name': 'rnn', 'hidden_state_size': 20,
+                                                    'num_layers': 1, 'non_linearity': 'sigmoid'},
+                                     'mae_interface': {'shift_size': 3},
+                                     'mas_interface': {'shift_size': 3},
+                                     'memory': {'num_addresses': -1, 'num_content_bits': 11},
+                                     'visualization_mode': 2})
 
     model = ModelFactory.build_model(model_params, {})
     print(type(model))

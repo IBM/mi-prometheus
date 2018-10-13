@@ -288,7 +288,7 @@ if __name__ == "__main__":
     # "Loaded parameters".
     from utils.param_interface import ParamInterface 
     params = ParamInterface()
-    params.add_default_params({'control_bits': 4,
+    params.add_config_params({'control_bits': 4,
                               'data_bits': 8,
                               # 'randomize_control_lines': False,
                               'min_sequence_length': 2,

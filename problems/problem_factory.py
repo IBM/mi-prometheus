@@ -27,6 +27,7 @@ import inspect
 
 import problems
 
+
 class ProblemFactory(object):
     """
     ProblemFactory: Class instantiating the specified problem class using the passed params.
@@ -35,7 +36,7 @@ class ProblemFactory(object):
     @staticmethod
     def build_problem(params):
         """
-        Static method returning a particular problem, depending on the name\
+        Static method returning a particular problem, depending on the name \
         provided in the list of parameters.
 
         :param params: Parameters used to instantiate the Problem class.
@@ -51,6 +52,7 @@ class ProblemFactory(object):
         """
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger('ProblemFactory')
+
         # Check presence of the name
         if 'name' not in params:
             logger.error("Problem configuration section does not contain the key 'name'")
@@ -65,7 +67,7 @@ class ProblemFactory(object):
         # Check if class is derived (even indirectly) from Problem.
         inherits = False
         for c in inspect.getmro(problem_class):
-            if (c.__name__ == problems.Problem.__name__):
+            if c.__name__ == problems.Problem.__name__:
                 inherits = True
                 break
         if not inherits:
@@ -85,14 +87,14 @@ if __name__ == "__main__":
     from utils.param_interface import ParamInterface
     params = ParamInterface()
     params.add_default_params({'name': 'SerialRecall',
-                              'control_bits': 3,
-                              'data_bits': 8,
-                              'batch_size': 1,
-                              'min_sequence_length': 1,
-                              'max_sequence_length': 10,
-                              'num_subseq_min': 1,
-                              'num_subseq_max': 5,
-                              'bias': 0.5})
+                               'control_bits': 3,
+                               'data_bits': 8,
+                               'batch_size': 1,
+                               'min_sequence_length': 1,
+                               'max_sequence_length': 10,
+                               'num_subseq_min': 1,
+                               'num_subseq_max': 5,
+                               'bias': 0.5})
 
     problem = ProblemFactory.build_problem(params)
     print(type(problem))
