@@ -15,139 +15,98 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""model_factory.py: Factory building models"""
-__author__ = "Tomasz Kornuta"
+"""
+model_factory.py: Utility constructing a model class using specified parameters.
 
-import sys
+"""
+__author__ = "Tomasz Kornuta & Vincent Marois"
+
 import os.path
 import logging
+
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('ModelFactory')
 
 
 class ModelFactory(object):
     """
-    Class returning concrete models depending on the name provided in the list
-    of parameters.
+    ModelFactory: Class instantiating the specified model class using the passed params.
     """
 
     @staticmethod
     def build_model(params, problem_default_values_={}):
         """
-        Static method returning particular model, depending on the name
+        Static method returning a particular model, depending on the name\
         provided in the list of parameters.
 
-        :param params: Dictionary of parameters (in particular containing 'name' which is equivalend to model name)
-        :returns: Instance of a given model.
+        :param params: Parameters used to instantiate the model class.
+        :type params: ``utils.param_interface.ParamInterface``
+
+        ..note::
+
+            ``params`` should contains the exact (case-sensitive) class name of the model to instantiate.
+
+        :param problem_default_values_: Default (hardcoded) values coming from a Problem class. Can be used to pass \
+        values such as a number of classes, an embedding dimension etc.
+        :type problem_default_values_: dict
+
+
+        :return: Instance of a given model.
 
         """
-        # Check name
+        # Check presence of the name
         if 'name' not in params:
-            logger.error(
-                "Model dictionary does not contain the 'name' parameter")
-            raise ValueError
+            logger.error("Model parameter dictionary does not contain the key 'name'.")
+            raise KeyError
 
-        # Try to load model
-        name = params['name']
+        # get the class name
+        name = os.path.basename(params['name'])
 
-        if name == 'dnc':
-            logger.info('Loading the DNC model from models.dnc.dnc_model')
-            sys.path.append(os.path.join(os.path.dirname(__file__), 'dnc'))
-            from models.dnc.dnc_model import DNC
-            return DNC(params)
-        elif name == 'dwm':
-            logger.info('Loading the DWM model from models.dwm.dwm_model')
-            from models.dwm.dwm_model import DWM
-            return DWM(params)
-        elif name == 'es_lstm':
-            logger.info(
-                'Loading the EncoderSolverLSTM model from models.encoder_solver.es_lstm_model')
-            sys.path.append(os.path.join(
-                os.path.dirname(__file__), 'encoder_solver'))
-            from models.encoder_solver.es_lstm_model import EncoderSolverLSTM
-            return EncoderSolverLSTM(params)
-        elif name == 'es_ntm':
-            logger.info(
-                'Loading the EncoderSolverNTM model from models.encoder_solver.es_ntm_model')
-            sys.path.append(os.path.join(
-                os.path.dirname(__file__), 'encoder_solver'))
-            from models.encoder_solver.es_ntm_model import EncoderSolverNTM
-            return EncoderSolverNTM(params)
-        elif name == 'lstm':
-            logger.info('Loading the LSTM model from models.lstm.lstm_model')
-            from models.lstm.lstm_model import LSTM
-            return LSTM(params)
-        elif name == 'maes':
-            logger.info(
-                'Loading the MAES model from models.encoder_solver.maes_model')
-            sys.path.append(os.path.join(
-                os.path.dirname(__file__), 'encoder_solver'))
-            from models.encoder_solver.maes_model import MAES
-            return MAES(params)
-        elif name == 'mae2s':
-            logger.info(
-                'Loading the MAE2S model from models.encoder_solver.mae2s_model')
-            sys.path.append(os.path.join(
-                os.path.dirname(__file__), 'encoder_solver'))
-            from models.encoder_solver.mae2s_model import MAE2S
-            return MAE2S(params)
-        elif name == 'ntm':
-            logger.info('Loading the NTM model from models.ntm.ntm_model')
-            sys.path.append(os.path.join(os.path.dirname(__file__), 'ntm'))
-            from models.ntm.ntm_model import NTM
-            return NTM(params)
-        elif name == 'seq2seqlstm':
-            logger.info(
-                'Loading the EncoderDecoderLSTM model from models.seq2seqlstm.encoder_decoder_lstm')
-            sys.path.append(os.path.join(
-                os.path.dirname(__file__), 'seq2seqlstm'))
-            from models.seq2seqlstm.encoder_decoder_lstm import EncoderDecoderLSTM
-            return EncoderDecoderLSTM(params)
-        elif name == 'simple_cnn':
-            logger.info(
-                'Loading the SimpleConvNet model from models.simple_cnn.simple_cnn')
-            from models.simple_cnn.simple_cnn import SimpleConvNet
-            return SimpleConvNet(params, problem_default_values_)
-        elif name == 'thalnet':
-            logger.info(
-                'Loading the ThalNetModel model from models.thalnet.thalnet_model')
-            from models.thalnet.thalnet_model import ThalNetModel
-            return ThalNetModel(params)
-        elif name == 'alexnet':
-            logger.info(
-                'Loading the AlexnetWrapper model from models.vision.alexnet_wrapper')
-            from models.vision.alexnet_wrapper import AlexnetWrapper
-            return AlexnetWrapper(params)
-        elif name == 'cnn_lstm_vqa':
-            logger.info(
-                'Loading the CNNLSTMVQA model models.cnn_lstm_vqa.cnn_lstm_vqa')
-            logger.warning("Warning: CNNLSTMVQA under development")
-            from models.cnn_lstm_vqa.cnn_lstm_vqa import CNNLSTMVQA
-            return CNNLSTMVQA(params)
-        elif name == 'stacked_attention_vqa':
-            logger.info(
-                'Loading the AttentionVQA model from models.stacked_attention_vqa.model')
-            logger.warning("Warning: StackedAttentionVQA under development")
-            from models.stacked_attention_vqa.model import StackedAttentionVQA
-            return StackedAttentionVQA(params)
-        elif name == 'multi_hops_attention':
-            logger.info(
-                'Loading the MultiHopsAttention model from models.multi_hops_attention.multi_hops_attention')
-            logger.warning("Warning: MultiHopsAttention under development")
-            from models.multi_hops_attention.multi_hops_attention import MultiHopsAttention
-            return MultiHopsAttention(params)
-        elif name == 'simple_encoder_decoder':
-            sys.path.append(os.path.join(os.path.dirname(
-                __file__), 'simple_encoder_solver'))
-            from models.text2text.simple_encoder_decoder import SimpleEncoderDecoder
-            return SimpleEncoderDecoder(params)
-        elif name == 'relational_network':
-            logger.info(
-                'Loading the RelationalNetwork model from models.relational_net.relational_network')
-            from models.relational_net.relational_network import RelationalNetwork
-            return RelationalNetwork(params)
-        elif name == 'mac':
-            logger.info('Loading the MAC model from models.mac.model')
-            from models.mac.model import MACNetwork
-            return MACNetwork(params, problem_default_values_)
-        else:
-            raise ValueError
+        # import the models package
+        import models
+
+        # verify that the specified class is in the models package
+        if name not in dir(models):
+            logger.error("Could not find the specified classname in the models package.")
+            raise KeyError
+
+        # get the actual class
+        model_class = getattr(models, name)
+        logger.info('Loading the {} model from {}'.format(name, model_class.__module__))
+
+        # return the instantiated model class
+        return model_class(params, problem_default_values_)
+
+
+if __name__ == "__main__":
+    """
+    Tests ModelFactory.
+    """
+    from problems.problem_factory import ProblemFactory
+    from utils.param_interface import ParamInterface
+
+    problem_params = ParamInterface()
+    problem_params.add_custom_params({'name': 'SerialRecallCommandLines',
+                                      'control_bits': 4,
+                                      'data_bits': 8,
+                                      'min_sequence_length': 2,
+                                      'max_sequence_length': 5})
+
+    # create problem
+    problem = ProblemFactory.build_problem(problem_params)
+
+    model_params = ParamInterface()
+    model_params.add_custom_params({'name': 'MAES',
+                                    'num_control_bits': 3,
+                                    'num_data_bits': 8,
+                                    'encoding_bit': 0,
+                                    'solving_bit': 1,
+                                    'controller': {'name': 'rnn', 'hidden_state_size': 20,
+                                                   'num_layers': 1, 'non_linearity': 'sigmoid'},
+                                    'mae_interface': {'shift_size': 3},
+                                    'mas_interface': {'shift_size': 3},
+                                    'memory': {'num_addresses': -1, 'num_content_bits': 11},
+                                    'visualization_mode': 2})
+
+    model = ModelFactory.build_model(model_params, problem.default_values)
+    print(type(model))
