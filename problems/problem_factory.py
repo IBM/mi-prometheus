@@ -52,8 +52,8 @@ class ProblemFactory(object):
         """
         # Check presence of the name
         if 'name' not in params:
-            logger.error("Problem parameter dictionary does not contain the key 'name'.")
-            raise KeyError
+            logger.error("Problem parameter dictionary does not contain the key 'name'")
+            exit(-1)
 
         # get the class name
         name = os.path.basename(params['name'])
@@ -63,8 +63,8 @@ class ProblemFactory(object):
 
         # verify that the specified class is in the problems package
         if name not in dir(problems):
-            logger.error("Could not find the specified classname in the problems package.")
-            raise KeyError
+            logger.error("Could not find the specified class '{}' in the problems package".format(name))
+            exit(-1)
 
         # get the actual class
         problem_class = getattr(problems, name)
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     """
     from utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_custom_params({'name': 'SerialRecall',
+    params.add_default_params({'name': 'SerialRecall',
                               'control_bits': 3,
                               'data_bits': 8,
                               'batch_size': 1,

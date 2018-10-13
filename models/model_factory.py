@@ -57,7 +57,7 @@ class ModelFactory(object):
         # Check presence of the name
         if 'name' not in params:
             logger.error("Model parameter dictionary does not contain the key 'name'.")
-            raise KeyError
+            exit(-1)
 
         # get the class name
         name = os.path.basename(params['name'])
@@ -67,8 +67,8 @@ class ModelFactory(object):
 
         # verify that the specified class is in the models package
         if name not in dir(models):
-            logger.error("Could not find the specified classname in the models package.")
-            raise KeyError
+            logger.error("Could not find the specified class '{}' in the models package.".format(name))
+            exit(-1)
 
         # get the actual class
         model_class = getattr(models, name)
@@ -82,21 +82,10 @@ if __name__ == "__main__":
     """
     Tests ModelFactory.
     """
-    from problems.problem_factory import ProblemFactory
     from utils.param_interface import ParamInterface
 
-    problem_params = ParamInterface()
-    problem_params.add_custom_params({'name': 'SerialRecallCommandLines',
-                                      'control_bits': 4,
-                                      'data_bits': 8,
-                                      'min_sequence_length': 2,
-                                      'max_sequence_length': 5})
-
-    # create problem
-    problem = ProblemFactory.build_problem(problem_params)
-
     model_params = ParamInterface()
-    model_params.add_custom_params({'name': 'MAES',
+    model_params.add_default_params({'name': 'MAES',
                                     'num_control_bits': 3,
                                     'num_data_bits': 8,
                                     'encoding_bit': 0,
@@ -108,5 +97,5 @@ if __name__ == "__main__":
                                     'memory': {'num_addresses': -1, 'num_content_bits': 11},
                                     'visualization_mode': 2})
 
-    model = ModelFactory.build_model(model_params, problem.default_values)
+    model = ModelFactory.build_model(model_params, {})
     print(type(model))
