@@ -26,9 +26,7 @@ tester.py:
 __author__ = "Vincent Marois, Tomasz Kornuta, Younes Bouhadjar"
 
 import os
-import yaml
 import torch
-import argparse
 import numpy as np
 from time import sleep
 from datetime import datetime
@@ -44,11 +42,9 @@ from utils.statistics_aggregator import StatisticsAggregator
 from utils.worker_utils import handshake
 
 
-
-
 class Tester(Worker):
     """
-    Defines the basic Tester.
+    Defines the basic ``Tester``.
 
     If defining another type of tester, it should subclass it.
 
@@ -56,9 +52,10 @@ class Tester(Worker):
 
     def __init__(self, name="Tester"):
         """
-        Calls the ``Worker`` constructor, adds some additinal params to parser.
+        Calls the ``Worker`` constructor, adds some additional params to parser.
 
-       :param name: Name of the worker (DEFAULT: ''Tester'').
+       :param name: Name of the worker (DEFAULT: "Tester").
+       :type name: str
 
         """ 
         # Call base constructor to set up app state, registry and add default params.
@@ -66,14 +63,13 @@ class Tester(Worker):
 
         # Add arguments are related to the basic ``Tester``.
         self.parser.add_argument('--visualize',
-                        action='store_true',
-                        dest='visualize',
-                        help='Activate dynamic visualization')
-
+                                 action='store_true',
+                                 dest='visualize',
+                                 help='Activate dynamic visualization')
 
     def setup_experiment(self):
         """
-        Sets up experiment for tester:
+        Sets up experiment for the ``Tester``:
 
             - Checks that the model to use exists on file:
 
@@ -93,20 +89,17 @@ class Tester(Worker):
 
             - Set random seeds:
 
-                >>> torch.manual_seed(self.params["training"]["seed_torch"])
-                >>> np.random.seed(self.params["training"]["seed_numpy"])
+                >>>  self.set_random_seeds(self.params['testing'], 'testing')
 
             - Creates problem and model:
 
-                >>> self.dataset = ProblemFactory.build_problem(self.params['training']['problem'])
+                >>> self.problem = ProblemFactory.build_problem(self.params['training']['problem'])
                 >>> self.model = ModelFactory.build_model(self.params['model'], self.dataset.default_values)
 
             - Creates the DataLoader:
 
-                >>> self.problem = DataLoader(dataset=self.dataset, ...)
+                >>> self.dataloader = DataLoader(dataset=self.problem, ...)
 
-
-        :param flags: Parsed arguments from the parser.
 
         """
         # Call base method to parse all command line arguments and add default sections.
@@ -124,7 +117,6 @@ class Tester(Worker):
 
         # Extract path.
         abs_path, _ = os.path.split(os.path.dirname(os.path.abspath(self.flags.model)))
-
 
         # Check if config file was indicated by the user.
         if self.flags.config != '':
@@ -151,14 +143,14 @@ class Tester(Worker):
 
         # Get testing problem name.
         try:
-            testing_problem_name = self.params['testing']['problem']['name']
+            _ = self.params['testing']['problem']['name']
         except KeyError:
             print("Error: Couldn't retrieve the problem name from the 'testing' section in the loaded configuration")
             exit(-1)
 
         # Get model name.
         try:
-            model_name = self.params['model']['name']
+            _ = self.params['model']['name']
         except KeyError:
             print("Error: Couldn't retrieve the model name from the loaded configuration")
             exit(-1)
@@ -191,7 +183,6 @@ class Tester(Worker):
 
         # Build problem.
         self.problem = ProblemFactory.build_problem(self.params['testing']['problem'])
-
 
         # build the DataLoader on top of the Problem class
         self.dataloader = DataLoader(dataset=self.problem,
@@ -288,6 +279,7 @@ class Tester(Worker):
             - Logs statistics & accumulates loss,
             - Activate visualization if set.
 
+
         """
         # Export and log configuration, optionally asking the user for confirmation.
         self.export_experiment_configuration(self.log_dir, "testing_configuration.yaml",self.flags.confirm)
@@ -301,9 +293,6 @@ class Tester(Worker):
         self.logger.info('Testing over the entire test set ({} samples in {} episodes)'.format(
             len(self.problem), len(self.dataloader)))
 
-        # Turn on evaluation mode.
-        self.model.eval()
-
         try:
             # Run test
             with torch.no_grad():
@@ -316,7 +305,7 @@ class Tester(Worker):
 
                     # Evaluate model on a given batch.
                     logits, _ = self.predict_evaluate_collect(self.model, self.problem, 
-                        test_dict, self.testing_stat_col, episode)
+                                                              test_dict, self.testing_stat_col, episode)
 
                     # Export to csv - at every step.
                     self.testing_stat_col.export_to_csv()
@@ -341,7 +330,8 @@ class Tester(Worker):
 
                 # Export aggregated statistics.
                 self.aggregate_and_export_statistics(self.model, self.problem, 
-                        self.testing_stat_col, self.testing_stat_agg, episode, '[Full Test]')
+                                                     self.testing_stat_col, self.testing_stat_agg, episode,
+                                                     '[Full Test]')
 
         except SystemExit:
             # the training did not end properly

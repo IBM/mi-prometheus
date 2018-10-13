@@ -29,20 +29,18 @@ from torch.nn.utils import clip_grad_value_
 from workers.trainer import Trainer
 
 
-
 class FlexibleTrainer(Trainer):
     """
-    Implementation for the episode-based Trainer.
+    Implementation for the episode-based ``FlexibleTrainer``.
 
     ..note::
 
-        The default ``EpochTrainer`` is based on epochs. While an epoch can be defined for all finite-size datasets,\
+        The ``ClassicTrainer`` is based on epochs. While an epoch can be defined for all finite-size datasets, \
         it makes less sense for problems which have a very large, almost infinite, dataset (like algorithmic \
         tasks, which generate random data on-the-fly). \
          
-        This is why this Flexible Trainer was implemented.
-        Instead of looping on epochs, it iterates directly on episodes (we call an iteration on a single batch\
-        an episode).
+        This is why this FlexibleTrainer was implemented. Instead of looping on epochs, it iterates directly on \
+        episodes (we call an iteration on a single batch an episode).
 
 
     """
@@ -51,19 +49,20 @@ class FlexibleTrainer(Trainer):
         """
         Only calls the ``Trainer`` constructor as the initialization phase is identical to the ``Trainer``.
 
-       :param name: Name of the worker (DEFAULT: ''FlexibleTrainer'').
+       :param name: Name of the worker (DEFAULT: ``FlexibleTrainer`).
+       :type name: str
 
         """ 
         # Call base constructor to set up app state, registry and add default params.
         super(FlexibleTrainer, self).__init__(name)
 
-
-
     def setup_experiment(self):
         """
         Sets up experiment for episode trainer:
 
-            - Calls base class setup_experiment to parse the command line arguments 
+            - Calls base class setup_experiment to parse the command line arguments,
+            - Sets up the terminal conditions (loss threshold, episodes & epochs (optional) limits).
+
         """
         # Call base method to parse all command line arguments, load configuration, create problems and model etc.
         super(FlexibleTrainer, self).setup_experiment()
@@ -109,7 +108,6 @@ class FlexibleTrainer(Trainer):
             self.logger.info("Setting the Episode Limit to: {}".format(self.episode_limit))
         self.logger.info('\n' + '='*80)
 
-
     def run_experiment(self):
         """
         Main function of the ``FlexibleTrainer``, runs the experiment.
@@ -143,13 +141,11 @@ class FlexibleTrainer(Trainer):
             - Checks the above terminal conditions.
 
 
-        :param flags: Parsed arguments from the parser.
-
         """
         # Export and log configuration, optionally asking the user for confirmation.
         self.export_experiment_configuration(self.log_dir, "training_configuration.yaml",self.flags.confirm)
 
-        # Initialize tensorboard and statistics collection.
+        # Initialize TensorBoard and statistics collection.
         self.initialize_statistics_collection()
         self.initialize_tensorboard()
 
@@ -174,8 +170,9 @@ class FlexibleTrainer(Trainer):
                 # reset all gradients
                 self.optimizer.zero_grad()
 
-                # Check the visualization flag - Set it if visualization is wanted during training & validation episodes.
-                if (0 <= self.flags.visualize <= 1):
+                # Check the visualization flag - Set it if visualization is wanted during
+                # training & validation episodes.
+                if 0 <= self.flags.visualize <= 1:
                     self.app_state.visualize = True
                 else:
                     self.app_state.visualize = False
@@ -185,7 +182,7 @@ class FlexibleTrainer(Trainer):
 
                 # 1. Perform forward step, get predictions and compute loss.
                 logits, loss = self.predict_evaluate_collect(self.model, self.training_problem, 
-                    training_dict, self.training_stat_col, episode, epoch)
+                                                             training_dict, self.training_stat_col, episode, epoch)
 
                 # 2. Backward gradient flow.
                 loss.backward()
@@ -207,7 +204,7 @@ class FlexibleTrainer(Trainer):
                 # 4.1. Export to csv - at every step.
                 self.training_stat_col.export_to_csv()
 
-                # 4.2. Export data to tensorboard - at logging frequency.
+                # 4.2. Export data to TensorBoard - at logging frequency.
                 if (self.training_batch_writer is not None) and (episode % self.flags.logging_interval == 0):
                     self.training_stat_col.export_to_tensorboard()
 
@@ -215,7 +212,8 @@ class FlexibleTrainer(Trainer):
                     if self.flags.tensorboard >= 1:
                         for name, param in self.model.named_parameters():
                             try:
-                                self.training_batch_writer.add_histogram(name, param.data.cpu().numpy(), episode, bins='doane')
+                                self.training_batch_writer.add_histogram(name, param.data.cpu().numpy(), episode,
+                                                                         bins='doane')
 
                             except Exception as e:
                                 self.logger.error("  {} :: data :: {}".format(name, e))
@@ -224,8 +222,8 @@ class FlexibleTrainer(Trainer):
                     if self.flags.tensorboard >= 2:
                         for name, param in self.model.named_parameters():
                             try:
-                                self.training_batch_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(), episode,
-                                                                bins='doane')
+                                self.training_batch_writer.add_histogram(name + '/grad', param.grad.data.cpu().numpy(),
+                                                                         episode, bins='doane')
 
                             except Exception as e:
                                 self.logger.error("  {} :: grad :: {}".format(name, e))
@@ -243,12 +241,11 @@ class FlexibleTrainer(Trainer):
                     # Show plot, if user will press Stop then a SystemExit exception will be thrown.
                     self.model.plot(training_dict, logits)
 
-
                 #  6. Validate and (optionally) save the model.
                 if (episode % self.partial_validation_interval) == 0:
 
                     # Check visualization flag
-                    if (1 <= self.flags.visualize <= 2):
+                    if 1 <= self.flags.visualize <= 2:
                         self.app_state.visualize = True
                     else:
                         self.app_state.visualize = False
@@ -266,7 +263,8 @@ class FlexibleTrainer(Trainer):
 
                         # Check the Partial Validation loss.
                         if (validation_loss < self.loss_stop):
-                            termination_cause = "Partial Validation Loss want below Loss Stop threshold (model converged)"
+                            termination_cause = "Partial Validation Loss went below Loss Stop " \
+                                                "threshold (model converged)."
                             break
 
                     # II. Early stopping is set and loss hasn't improved by delta in n epochs.
@@ -278,7 +276,7 @@ class FlexibleTrainer(Trainer):
                     # If we reach this condition, then it is possible that the model didn't converge correctly
                     # but it currently might get better since last validation.
 
-                    if (self.validation_stat_col["episode"] != episode):                
+                    if self.validation_stat_col["episode"] != episode:
                         # We still must validate and try to save the model as it may perform better during this episode
                         # (as opposed to the previous II. condition)
 
@@ -289,7 +287,7 @@ class FlexibleTrainer(Trainer):
                         # Save the model.
                         self.model.save(self.model_dir, self.validation_stat_col)
 
-                    termination_cause = "Episode Limit reached"
+                    termination_cause = "Episode Limit reached."
                     break
 
                 # Check if we are at the end of the 'epoch': indicate that the DataLoader is now cycling.
@@ -328,7 +326,7 @@ class FlexibleTrainer(Trainer):
             self.logger.info('\n' + '='*80)
             self.logger.info('Training finished because {}'.format(termination_cause))
             # Check visualization flag - turn on visualization for last validation if needed.
-            if (self.flags.visualize == 3):
+            if self.flags.visualize == 3:
                 self.app_state.visualize = True
             else:
                 self.app_state.visualize = False

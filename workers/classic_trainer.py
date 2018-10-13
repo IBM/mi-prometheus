@@ -18,7 +18,8 @@
 """
 classic_trainer.py:
 
-    - This file contains the implementation of the ``ClassicTrainer``, which inherits from ``Trainer``.
+    - This file contains the implementation of the ``ClassicTrainer``, which inherits from ``Trainer``. \
+    The ``ClassicTrainer`` is based on epochs.
 
 """
 __author__ = "Vincent Marois, Tomasz Kornuta"
@@ -29,17 +30,17 @@ from torch.nn.utils import clip_grad_value_
 from workers.trainer import Trainer
 
 
-
 class ClassicTrainer(Trainer):
     """
-    Implementation for the epoch-based Trainer.
+    Implementation for the epoch-based ``ClassicTrainer``.
 
     ..note::
 
         The default ``ClassicTrainer`` is based on epochs. \
         An epoch is defined as passing through all samples of a finite-size dataset.\
-        The ''ClassicTrainer'' allows to loop over all samples from the training set many times i.e. in many epochs.\
-        When an epochs finishes, it performs similar step for verification set and collects the statistics.
+        The ``ClassicTrainer`` allows to loop over all samples from the training set many times i.e. in many epochs. \
+        When an epochs finishes, it performs a similar step for the validation set and collects the statistics.
+
 
     """
 
@@ -47,19 +48,20 @@ class ClassicTrainer(Trainer):
         """
         Only calls the ``Trainer`` constructor as the initialization phase is identical to the ``Trainer``.
 
-       :param name: Name of the worker (DEFAULT: ''ClassicTrainer'').
+       :param name: Name of the worker (DEFAULT: "ClassicTrainer").
+       :type name: str
 
         """ 
         # Call base constructor to set up app state, registry and add default params.
         super(ClassicTrainer, self).__init__(name)
 
-
-
     def setup_experiment(self):
         """
-        Sets up experiment for epoch trainer:
+        Sets up an experiment for the ``ClassicTrainer``:
 
-            - Calls base class setup_experiment to parse the command line arguments 
+            - Calls base class setup_experiment to parse the command line arguments,
+            - Sets up the terminal conditions (loss threshold, episodes (optional) & epochs limits).
+
         """
         # Call base method to parse all command line arguments, load configuration, create problems and model etc.
         super(ClassicTrainer, self).setup_experiment()
@@ -72,7 +74,7 @@ class ClassicTrainer(Trainer):
         self.loss_stop = self.params['training']['terminal_conditions']['loss_stop']
         self.logger.info("Setting Loss Stop threshold to {}".format(self.loss_stop))
 
-        # In this trainer Partial Validation is optional.
+        # In this trainer, Partial Validation is optional.
         self.params['validation'].add_default_params({'partial_validation_interval': -1})
         self.partial_validation_interval = self.params['validation']['partial_validation_interval']
         if self.partial_validation_interval <= 0:
@@ -124,17 +126,17 @@ class ClassicTrainer(Trainer):
                 - I. The loss is below the specified threshold (using the full validation loss),
                 - TODO: II. Early stopping is set and the full validation loss did not change by delta \
                     for the indicated number of epochs,
-                - III. The maximum number of epochs has been met (OPTIONAL),
-                - IV. The maximum number of epochs has been met.
+                - III. The maximum number of epochs has been met,
+                - IV. The maximum number of episodes has been met (optional).
 
-            Besides, the user can always stop experiment by pressing 'Stop experiment' during visualization
+            Besides, the user can always stop experiment by pressing 'Stop experiment' during visualization.
+
 
         The function does the following for each epoch:
 
             - Executes the ``initialize_epoch()`` & ``finish_epoch()`` function of the ``Problem`` class,
             - For each episode:
 
-                    - Iterates over the ``DataLoader``,
                     - Resets the gradients,
                     - Forwards pass of the model,
                     - Logs statistics and exports to TensorBoard (if set),
@@ -142,11 +144,11 @@ class ClassicTrainer(Trainer):
                     - Activates visualization if set (vis. level 0),
                     - Validates the model on a batch according to the validation frequency.
 
-            - At the end of episode:
+            - At the end of epoch:
 
                     - Handles curriculum learning (if set),
                     - Validates the model on the full validation set, logs the statistics \
-                    and visualizes on a randon batch if set (vis. level 1 or 2)
+                    and visualizes on a random batch if set (vis. level 1 or 2)
                     - Checks the above terminal conditions.
 
         The last validation on the full set is done additionally at the end on training, \
@@ -154,9 +156,9 @@ class ClassicTrainer(Trainer):
 
         """
         # Export and log configuration, optionally asking the user for confirmation.
-        self.export_experiment_configuration(self.log_dir, "training_configuration.yaml",self.flags.confirm)
+        self.export_experiment_configuration(self.log_dir, "training_configuration.yaml", self.flags.confirm)
 
-        # Initialize tensorboard and statistics collection.
+        # Initialize TensorBoard and statistics collection.
         self.initialize_statistics_collection()
         self.initialize_tensorboard()
 
@@ -164,8 +166,9 @@ class ClassicTrainer(Trainer):
             '''
             Main training and validation loop.
             '''
-            # Reset the counters.
+            # Reset the counter.
             episode = 0
+            last_epoch = 0
 
             # Set default termination cause.
             termination_cause = "Epoch limit reached"
@@ -175,14 +178,15 @@ class ClassicTrainer(Trainer):
                 # Inform the training problem class that epoch has started.
                 self.training_problem.initialize_epoch(epoch)
 
-                # Exhaus training set.
+                # Exhaust training set.
                 for training_dict in self.training_dataloader:
 
                     # reset all gradients
                     self.optimizer.zero_grad()
 
-                    # Check the visualization flag - Set it if visualization is wanted during training & validation episodes.
-                    if (0 <= self.flags.visualize <= 1):
+                    # Check the visualization flag - Set it if visualization is wanted during
+                    # training & validation episodes.
+                    if 0 <= self.flags.visualize <= 1:
                         self.app_state.visualize = True
                     else:
                         self.app_state.visualize = False
@@ -192,7 +196,7 @@ class ClassicTrainer(Trainer):
 
                     # 1. Perform forward step, get predictions and compute loss.
                     logits, loss = self.predict_evaluate_collect(self.model, self.training_problem, 
-                        training_dict, self.training_stat_col, episode, epoch)
+                                                                 training_dict, self.training_stat_col, episode, epoch)
 
                     # 2. Backward gradient flow.
                     loss.backward()
@@ -250,12 +254,11 @@ class ClassicTrainer(Trainer):
                         # Show plot, if user will press Stop then a SystemExit exception will be thrown.
                         self.model.plot(training_dict, logits)
 
-
                     #  6. Validate and (optionally) save the model.
                     if (self.partial_validation_interval > 0) and (episode % self.partial_validation_interval) == 0:
 
                         # Check visualization flag
-                        if (1 <= self.flags.visualize <= 2):
+                        if 1 <= self.flags.visualize <= 2:
                             self.app_state.visualize = True
                         else:
                             self.app_state.visualize = False
@@ -269,6 +272,7 @@ class ClassicTrainer(Trainer):
                     # III. The episodes number limit has been reached.
                     if episode+1 >= self.episode_limit:
                         termination_cause = "Episode Limit reached"
+                        last_epoch = epoch
                         break
 
                     # Move on to next episode.
@@ -280,7 +284,8 @@ class ClassicTrainer(Trainer):
 
                 # Aggregate training statistics for the epoch.
                 self.aggregate_and_export_statistics(self.model, self.training_problem, 
-                        self.training_stat_col, self.training_stat_agg, episode, '[Full Training]')
+                                                     self.training_stat_col, self.training_stat_agg,
+                                                     episode, '[Epoch {}]'.format(epoch))
 
                 # Apply curriculum learning - change some of the Problem parameters
                 self.curric_done = self.training_problem.curriculum_learning_update_params(episode)
@@ -288,7 +293,7 @@ class ClassicTrainer(Trainer):
                 # Perform full validation!
 
                 # Check visualization flag - turn on visualization for last validation if needed.
-                if (self.flags.visualize == 3):
+                if 1 <= self.flags.visualize <= 2:
                     self.app_state.visualize = True
                 else:
                     self.app_state.visualize = False
@@ -305,8 +310,9 @@ class ClassicTrainer(Trainer):
                 if self.curric_done or not self.must_finish_curriculum:
 
                     # Check the Full Validation loss.
-                    if (self.validation_stat_agg["loss"] < self.loss_stop):
-                        termination_cause = "Full Validation Loss want below Loss Stop threshold (model converged)"
+                    if self.validation_stat_agg["loss"] < self.loss_stop:
+                        termination_cause = "Full Validation Loss went below Loss Stop threshold (model converged)"
+                        last_epoch = epoch
                         break
 
                 # II. Early stopping is set and loss hasn't improved by delta in n epochs.
@@ -314,6 +320,7 @@ class ClassicTrainer(Trainer):
                 # termination_cause = 'Early Stopping.'
 
                 # IV. The epoch number limit has been reached, condition is already made in for loop.
+                last_epoch = epoch
 
             '''
             End of main training and validation loop. Perform final full validation.
@@ -321,13 +328,13 @@ class ClassicTrainer(Trainer):
             self.logger.info('\n' + '='*80)
             self.logger.info('Training finished because {}'.format(termination_cause))
             # Check visualization flag - turn on visualization for last validation if needed.
-            if (self.flags.visualize == 3):
+            if self.flags.visualize == 3:
                 self.app_state.visualize = True
             else:
                 self.app_state.visualize = False
 
             # Validate over the entire validation set.
-            self.validate_on_set(episode, epoch)
+            self.validate_on_set(episode, last_epoch)
 
             # Save the model using the average validation loss.
             self.model.save(self.model_dir, self.validation_stat_agg)

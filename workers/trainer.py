@@ -18,35 +18,26 @@
 """
 trainer.py:
 
-    - This file sets hosts a function which adds specific arguments a trainer will need.
-    - Also defines the ``Trainer()`` class, which is the default, epoch-based trainer.
+    - Defines the ``Trainer()`` class, which is the abstract base trainer.
 
 
 """
 __author__ = "Vincent Marois, Tomasz Kornuta"
 
 import os
-import yaml
 import torch
-import argparse
-import numpy as np
-from random import randrange
 from time import sleep
+from random import randrange
 from datetime import datetime
-from torch.nn.utils import clip_grad_value_
 from torch.utils.data.dataloader import DataLoader
 
-
-import workers.worker as worker
 from workers.worker import Worker
+from utils.worker_utils import handshake
 from models.model_factory import ModelFactory
 from problems.problem_factory import ProblemFactory
 
 from utils.statistics_collector import StatisticsCollector
 from utils.statistics_aggregator import StatisticsAggregator
-
-from utils.worker_utils import handshake
-
 
 
 class Trainer(Worker):
@@ -55,7 +46,7 @@ class Trainer(Worker):
 
     Iterates over epochs on the dataset.
 
-    All other types of trainers (e.g. ``EpisodeTrainer``) should subclass it.
+    All other types of trainers (e.g. ``ClassicTrainer`` & ``FlexibleTrainer``) should subclass it.
 
     """
 
@@ -66,40 +57,41 @@ class Trainer(Worker):
             - Adds default trainer command line arguments
 
         :param name: Name of the worker (DEFAULT: ''Trainer'').
+        :type name: str
 
         """ 
         # Call base constructor to set up app state, registry and add default params.
         super(Trainer, self).__init__(name)
 
         # Add arguments to the specific parser.
-        # These arguments will be shared by all (basic) trainers.
+        # These arguments will be shared by all basic trainers.
         self.parser.add_argument('--tensorboard',
-                            action='store',
-                            dest='tensorboard', choices=[0, 1, 2],
-                            type=int,
-                            help="If present, enable logging to TensorBoard. Available log levels:\n"
-                                "0: Log the collected statistics.\n"
-                                "1: Add the histograms of the model's biases & weights (Warning: Slow).\n"
-                                "2: Add the histograms of the model's biases & weights gradients (Warning: Even slower).")
+                                 action='store',
+                                 dest='tensorboard', choices=[0, 1, 2],
+                                 type=int,
+                                 help="If present, enable logging to TensorBoard. Available log levels:\n"
+                                      "0: Log the collected statistics.\n"
+                                      "1: Add the histograms of the model's biases & weights (Warning: Slow).\n"
+                                      "2: Add the histograms of the model's biases & weights gradients "
+                                      "(Warning: Even slower).")
 
         self.parser.add_argument('--visualize',
-                            dest='visualize',
-                            default='-1',
-                            choices=[-1, 0, 1, 2, 3],
-                            type=int,
-                            help="Activate dynamic visualization (Warning: will require user interaction):\n"
-                                "-1: disabled (DEFAULT)\n"
-                                "0: Only during training episodes.\n"
-                                "1: During both training and validation episodes.\n"
-                                "2: Only during validation episodes.\n"
-                                "3: Only during the last validation, after the training is completed.\n")
-
+                                 dest='visualize',
+                                 default='-1',
+                                 choices=[-1, 0, 1, 2, 3],
+                                 type=int,
+                                 help="Activate dynamic visualization (Warning: will require user interaction):\n"
+                                      "-1: disabled (DEFAULT)\n"
+                                      "0: Only during training episodes.\n"
+                                      "1: During both training and validation episodes.\n"
+                                      "2: Only during validation episodes.\n"
+                                      "3: Only during the last validation, after the training is completed.\n")
 
     def setup_experiment(self):
         """
         Sets up experiment of all trainers:
 
-            - Calls base class setup_experiment to parse the command line arguments 
+            - Calls base class setup_experiment to parse the command line arguments,
 
             - Loads the config file(s):
 
@@ -109,23 +101,22 @@ class Trainer(Worker):
 
                 >>> os.makedirs(self.log_dir, exist_ok=False)
 
-            - Add a FileHandler to the logger (defined in BaseWorker):
+            - Add a ``FileHandler`` to the logger:
 
                 >>>  self.add_file_handler_to_logger(self.log_file)
 
             - Set random seeds:
 
-                >>> torch.manual_seed(self.params["training"]["seed_torch"])
-                >>> np.random.seed(self.params["training"]["seed_numpy"])
+                >>>  self.set_random_seeds(self.params['training'], 'training')
 
-            - Creates problem and model:
+            - Creates training problem and model:
 
-                >>> self.dataset = ProblemFactory.build_problem(self.params['training']['problem'])
-                >>> self.model = ModelFactory.build_model(self.params['model'], self.dataset.default_values)
+                >>> self.training_problem = ProblemFactory.build_problem(self.params['training']['problem'])
+                >>> self.model = ModelFactory.build_model(self.params['model'], self.training_problem.default_values)
 
             - Creates the DataLoader:
 
-                >>> self.problem = DataLoader(dataset=self.problem, ...)
+                >>> self.training_dataloader = DataLoader(dataset=self.training_problem, ...)
 
             - Handles curriculum learning if indicated:
 
@@ -134,11 +125,7 @@ class Trainer(Worker):
 
             - Handles the validation of the model:
 
-                - Instantiates the problem class, with the parameters contained in the `validation` section,
-                - Will validate the model at the end of each epoch, over the entire validation set, and log the \
-                statistical aggregators (minimum / maximum / average / standard deviation... of the loss, accuracy \
-                etc.), \
-                - Will validate the model again at the end of training if one of the terminal conditions is met.
+                - Creates validation problem & DataLoader
 
             - Set optimizer:
 
@@ -151,7 +138,6 @@ class Trainer(Worker):
         """
         # Call base method to parse all command line arguments and add default sections.
         super(Trainer, self).setup_experiment()
-
 
         # Check if config file was selected.
         if self.flags.config == '':
@@ -224,16 +210,16 @@ class Trainer(Worker):
 
         # build the DataLoader on top of the Problem class, using the associated configuration section.
         self.training_dataloader = DataLoader(dataset=self.training_problem,
-                                     batch_size=self.params['training']['problem']['batch_size'],
-                                     shuffle=self.params['training']['dataloader']['shuffle'],
-                                     sampler=self.params['training']['dataloader']['sampler'],
-                                     batch_sampler=self.params['training']['dataloader']['batch_sampler'],
-                                     num_workers=self.params['training']['dataloader']['num_workers'],
-                                     collate_fn=self.training_problem.collate_fn,
-                                     pin_memory=self.params['training']['dataloader']['pin_memory'],
-                                     drop_last=self.params['training']['dataloader']['drop_last'],
-                                     timeout=self.params['training']['dataloader']['timeout'],
-                                     worker_init_fn=self.training_problem.worker_init_fn)
+                                              batch_size=self.params['training']['problem']['batch_size'],
+                                              shuffle=self.params['training']['dataloader']['shuffle'],
+                                              sampler=self.params['training']['dataloader']['sampler'],
+                                              batch_sampler=self.params['training']['dataloader']['batch_sampler'],
+                                              num_workers=self.params['training']['dataloader']['num_workers'],
+                                              collate_fn=self.training_problem.collate_fn,
+                                              pin_memory=self.params['training']['dataloader']['pin_memory'],
+                                              drop_last=self.params['training']['dataloader']['drop_last'],
+                                              timeout=self.params['training']['dataloader']['timeout'],
+                                              worker_init_fn=self.training_problem.worker_init_fn)
 
         # parse the curriculum learning section in the loaded configuration.
         if 'curriculum_learning' in self.params['training']:
@@ -262,18 +248,18 @@ class Trainer(Worker):
 
         # build the DataLoader on top of the validation problem
         self.validation_dataloader = DataLoader(dataset=self.validation_problem,
-                                   batch_size=self.params['validation']['problem']['batch_size'],
-                                   shuffle=self.params['validation']['dataloader']['shuffle'],
-                                   sampler=self.params['validation']['dataloader']['sampler'],
-                                   batch_sampler=self.params['validation']['dataloader']['batch_sampler'],
-                                   num_workers=self.params['validation']['dataloader']['num_workers'],
-                                   collate_fn=self.validation_problem.collate_fn,
-                                   pin_memory=self.params['validation']['dataloader']['pin_memory'],
-                                   drop_last=self.params['validation']['dataloader']['drop_last'],
-                                   timeout=self.params['validation']['dataloader']['timeout'],
-                                   worker_init_fn=self.validation_problem.worker_init_fn)
+                                                batch_size=self.params['validation']['problem']['batch_size'],
+                                                shuffle=self.params['validation']['dataloader']['shuffle'],
+                                                sampler=self.params['validation']['dataloader']['sampler'],
+                                                batch_sampler=self.params['validation']['dataloader']['batch_sampler'],
+                                                num_workers=self.params['validation']['dataloader']['num_workers'],
+                                                collate_fn=self.validation_problem.collate_fn,
+                                                pin_memory=self.params['validation']['dataloader']['pin_memory'],
+                                                drop_last=self.params['validation']['dataloader']['drop_last'],
+                                                timeout=self.params['validation']['dataloader']['timeout'],
+                                                worker_init_fn=self.validation_problem.worker_init_fn)
 
-        # Generate a single batch used for "batch validation".
+        # Generate a single batch used for partial validation.
         self.validation_batch = next(iter(self.validation_dataloader))
 
         ################# MODEL PROBLEM ################# 
@@ -296,11 +282,11 @@ class Trainer(Worker):
         # Log the model summary.
         self.logger.info(self.model.summarize())
 
-        # perform 2-way handshake between Model and Problem
+        # perform 2-way handshake between Model and Training Problem
         handshake(model=self.model, problem=self.training_problem, logger=self.logger)
         # no error thrown, so handshake succeeded
 
-        # perform 2-way handshake between Model and Problem
+        # perform 2-way handshake between Model and Validation Problem
         handshake(model=self.model, problem=self.validation_problem, logger=self.logger)
         # no error thrown, so handshake succeeded
 
@@ -316,7 +302,6 @@ class Trainer(Worker):
                                                                      self.model.parameters()),
                                                               **optimizer_conf)
 
-
     def add_statistics(self, stat_col):
         """
         Calls base method and adds epoch statistics to ``StatisticsCollector``.
@@ -326,26 +311,26 @@ class Trainer(Worker):
         """
         # Add loss and episode.
         super(Trainer, self).add_statistics(stat_col)
+
         # Add default statistics with formatting.
         stat_col.add_statistic('epoch', '{:02d}')
 
-
     def add_aggregators(self, stat_agg):
         """
-        Adds basic aggregarors to to ``StatisticsAggregator`` and extends them with: epoch.
+        Adds basic aggregators to to ``StatisticsAggregator`` and extends them with: epoch.
 
         :param stat_agg: ``StatisticsAggregator``.
 
         """
         # Add basic aggregators.
         super(Trainer, self).add_aggregators(stat_agg)
-        # add 'aggregators' for the episode.
-        stat_agg.add_aggregator('epoch', '{:02d}')
 
+        # add 'aggregators' for the epoch.
+        stat_agg.add_aggregator('epoch', '{:02d}')
 
     def initialize_statistics_collection(self):
         """
-        Function initializes all statistics collectors and aggregators used by a given worker,
+        Function initializes all statistics collectors and aggregators used by a given worker, \
         creates output files etc.
         """
         # TRAINING.
@@ -363,7 +348,6 @@ class Trainer(Worker):
         self.training_problem.add_aggregators(self.training_stat_agg)
         self.model.add_aggregators(self.training_stat_agg)
         # Create the csv file to store the training statistic aggregations.
-        # This file will contains several data points for the ``EpochTrainer`` (and none for ``EpisodicTrainer``)
         self.training_set_stats_file = self.training_stat_agg.initialize_csv_file(self.log_dir, 'training_set_agg_statistics.csv')
 
         # VALIDATION.
@@ -381,14 +365,12 @@ class Trainer(Worker):
         self.validation_problem.add_aggregators(self.validation_stat_agg)
         self.model.add_aggregators(self.validation_stat_agg)
         # Create the csv file to store the validation statistic aggregations.
-        # This file will contains several data points for the ``Trainer`` (but only one for the ``EpisodicTrainer``)
         self.validation_set_stats_file = self.validation_stat_agg.initialize_csv_file(self.log_dir, 'validation_set_agg_statistics.csv')
-
-
 
     def finalize_statistics_collection(self):
         """
         Finalizes statistics collection, closes all files etc.
+
         """
         # Close all files.
         self.training_batch_stats_file.close()
@@ -396,10 +378,9 @@ class Trainer(Worker):
         self.validation_batch_stats_file.close()
         self.validation_set_stats_file.close()
 
-
     def initialize_tensorboard(self):
         """
-        Function initializes tensorboard
+        Initializes TensorBoard writers, and log directories.
 
         """
         # Create TensorBoard outputs - if TensorBoard is supposed to be used.
@@ -422,7 +403,6 @@ class Trainer(Worker):
             self.validation_batch_writer = None
             self.validation_set_writer = None
 
-
     def finalize_tensorboard(self):
         """ 
         Finalizes operation of TensorBoard writers.
@@ -437,12 +417,11 @@ class Trainer(Worker):
         if self.validation_set_writer is not None:
             self.validation_set_writer.close()
 
-
     def validate_on_batch(self, valid_batch, episode, epoch=None):
         """
         Performs a validation of the model using the provided batch.
 
-        Additionally logs results (to files, tensorboard) and handles visualization.
+        Additionally logs results (to files, TensorBoard) and handles visualization.
 
         :param valid_batch: data batch generated by the problem and used as input to the model.
         :type valid_batch: ``DataDict``
@@ -453,13 +432,7 @@ class Trainer(Worker):
         :param epoch: current epoch index.
         :type epoch: int, optional
 
-        :return:
-
-            - Validation loss,
-            - if AppState().visualize:
-                return True if the user closed the window, else False
-            else:
-                return False, i.e. continue training.
+        :return: Validation loss.
 
         """
         # Turn on evaluation mode.
@@ -467,7 +440,9 @@ class Trainer(Worker):
 
         # Compute the validation loss using the provided data batch.
         with torch.no_grad():
-            valid_logits, valid_loss = self.predict_evaluate_collect(self.model, self.validation_problem, valid_batch, self.validation_stat_col, episode, epoch)
+            valid_logits, valid_loss = self.predict_evaluate_collect(self.model, self.validation_problem,
+                                                                     valid_batch, self.validation_stat_col,
+                                                                     episode, epoch)
 
         # Export statistics.
         self.export_statistics(self.validation_stat_col, '[Partial Validation]')
@@ -480,17 +455,14 @@ class Trainer(Worker):
             # Show plot, if user will press Stop then a SystemExit exception will be thrown.
             self.model.plot(valid_batch, valid_logits)
 
-        # Else simply return false, i.e. continue training.
         return valid_loss
-
-
 
     def validate_on_set(self, episode, epoch=None):
         """
-        Performs a validation of the model on the whole validation set, using the validation dataloader.
+        Performs a validation of the model on the whole validation set, using the validation ``DataLoader``.
 
-        Iterates over the entire validation set (through the dataloader), aggregates the collected statistics\ 
-        and logs that to the console, csv and tensorboard (if set).
+        Iterates over the entire validation set (through the `DataLoader``), aggregates the collected statistics \
+        and logs that to the console, csv and TensorBoard (if set).
 
         If visualization is activated, this function will select a random batch to visualize.
 
@@ -500,13 +472,7 @@ class Trainer(Worker):
         :param epoch: current epoch index.
         :type epoch: int, optional
 
-        :return:
-
-            - Average loss over the validation set.
-            - if ``AppState().visualize``:
-                return True if the user closed the window, else False
-            else:
-                return False, i.e. continue training.
+        :return: Average loss over the validation set.
 
 
         """
@@ -525,7 +491,8 @@ class Trainer(Worker):
         with torch.no_grad():
             for ep, valid_batch in enumerate(self.validation_dataloader):
                 # 1. Perform forward step, get predictions and compute loss.
-                valid_logits, _ = self.predict_evaluate_collect(self.model, self.validation_problem, valid_batch, self.validation_stat_col, ep, epoch)
+                valid_logits, _ = self.predict_evaluate_collect(self.model, self.validation_problem, valid_batch,
+                                                                self.validation_stat_col, ep, epoch)
 
                 # 2.Visualization of validation for the randomly selected batch
                 if self.app_state.visualize and ep == vis_index:
@@ -543,5 +510,7 @@ class Trainer(Worker):
         # Return the average validation loss.
         return self.validation_stat_agg['loss']
 
+
 if __name__ == '__main__':
-    print("The trainer file contains only the abstract Trainer class, please use episode_trainer or epoch_trainer for training.")
+    print("The trainer.py file contains only the abstract Trainer class. "
+          "Use classic_trainer or flexible_trainer for training.")
