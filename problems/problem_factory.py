@@ -23,10 +23,9 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import os.path
 import logging
+import inspect
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('ProblemFactory')
-
+import problems
 
 class ProblemFactory(object):
     """
@@ -50,26 +49,31 @@ class ProblemFactory(object):
         :return: Instance of a given problem.
 
         """
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger('ProblemFactory')
         # Check presence of the name
         if 'name' not in params:
-            logger.error("Problem parameter dictionary does not contain the key 'name'")
+            logger.error("Problem configuration section does not contain the key 'name'")
             exit(-1)
 
-        # get the class name
+        # Get the class name.
         name = os.path.basename(params['name'])
 
-        # import the problems package
-        import problems
+        # Get the actual class.
+        problem_class = getattr(problems, name)
 
-        # verify that the specified class is in the problems package
-        if name not in dir(problems):
-            logger.error("Could not find the specified class '{}' in the problems package".format(name))
+        # Check if class is derived (even indirectly) from Problem.
+        inherits = False
+        for c in inspect.getmro(problem_class):
+            if (c.__name__ == problems.Problem.__name__):
+                inherits = True
+                break
+        if not inherits:
+            logger.error("The specified class '{}' is not derived from the Problem class".format(name))
             exit(-1)
 
-        # get the actual class
-        problem_class = getattr(problems, name)
+        # Ok, proceed.
         logger.info('Loading the {} problem from {}'.format(name, problem_class.__module__))
-
         # return the instantiated problem class
         return problem_class(params)
 

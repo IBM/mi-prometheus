@@ -23,10 +23,9 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import os.path
 import logging
+import inspect
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('ModelFactory')
-
+import models
 
 class ModelFactory(object):
     """
@@ -54,26 +53,37 @@ class ModelFactory(object):
         :return: Instance of a given model.
 
         """
-        # Check presence of the name
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger('ModelFactory')
+
+        # Check presence of the name attribute.
         if 'name' not in params:
-            logger.error("Model parameter dictionary does not contain the key 'name'.")
+            logger.error("Model configuration section does not contain the key 'name'")
             exit(-1)
 
-        # get the class name
+        # Get the class name.
         name = os.path.basename(params['name'])
 
-        # import the models package
-        import models
-
-        # verify that the specified class is in the models package
+        # Verify that the specified class is in the models package.
         if name not in dir(models):
             logger.error("Could not find the specified class '{}' in the models package.".format(name))
             exit(-1)
 
-        # get the actual class
+        # Get the actual class.
         model_class = getattr(models, name)
-        logger.info('Loading the {} model from {}'.format(name, model_class.__module__))
 
+        # Check if class is derived (even indirectly) from Model.
+        inherits = False
+        for c in inspect.getmro(model_class):
+            if (c.__name__ == models.Model.__name__):
+                inherits = True
+                break
+        if not inherits:
+            logger.error("The specified class '{}' is not derived from the Model class".format(name))
+            exit(-1)
+
+        # Ok, proceed.
+        logger.info('Loading the {} model from {}'.format(name, model_class.__module__))
         # return the instantiated model class
         return model_class(params, problem_default_values_)
 
