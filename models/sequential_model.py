@@ -18,8 +18,8 @@
 """sequential_model.py: contains base model for all sequential models"""
 __author__ = "Tomasz Kornuta, Vincent Marois"
 
-import numpy as np
 import torch
+import numpy as np
 
 from models.model import Model
 from problems.problem import DataDict
@@ -29,7 +29,7 @@ class SequentialModel(Model):
     """
     Class representing base class for all Sequential Models.
 
-    Inherits from models.model.Model as most functionalities are the same.
+    Inherits from models.model.Model as most features are the same.
 
     Should be derived by all sequential models.
 
@@ -43,12 +43,12 @@ class SequentialModel(Model):
 
         :param params: Parameters read from configuration ``.yaml`` file.
 
-        :param problem_default_values_: dict of parameters values coming from the problem class. One example of such\
+        :param problem_default_values_: dict of parameters values coming from the problem class. One example of such \
         parameter value is the size of the vocabulary set in a translation problem.
         :type problem_default_values_: dict
 
         """
-        super(SequentialModel, self).__init__(params, problem_default_values_={})
+        super(SequentialModel, self).__init__(params, problem_default_values_=problem_default_values_)
 
         # "Default" model name.
         self.name = 'SequentialModel'
@@ -83,7 +83,7 @@ class SequentialModel(Model):
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
-            return False
+            return
 
         # Initialize timePlot window - if required.
         if self.plotWindow is None:
@@ -94,15 +94,14 @@ class SequentialModel(Model):
         import matplotlib.ticker as ticker
 
         # Change fonts globally - for all figures/subsplots at once.
-        #from matplotlib import rc
-        #rc('font', **{'family': 'Times New Roman'})
+        # from matplotlib import rc
+        # rc('font', **{'family': 'Times New Roman'})
         import matplotlib.pylab as pylab
-        params = {
-            # 'legend.fontsize': '28',
-            'axes.titlesize': 'large',
-            'axes.labelsize': 'large',
-            'xtick.labelsize': 'medium',
-            'ytick.labelsize': 'medium'}
+        params = {# 'legend.fontsize': '28',
+                  'axes.titlesize': 'large',
+                  'axes.labelsize': 'large',
+                  'xtick.labelsize': 'medium',
+                  'ytick.labelsize': 'medium'}
         pylab.rcParams.update(params)
 
         # Create a single "figure layout" for all displayed frames.
@@ -174,9 +173,6 @@ class SequentialModel(Model):
 
         # Plot figure and list of frames.
         self.plotWindow.update(fig, frames)
-
-        # Return True if user closed the window.
-        return self.plotWindow.is_closed
 
 
 if __name__ == '__main__':

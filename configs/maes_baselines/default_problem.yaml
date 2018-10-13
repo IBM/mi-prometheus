@@ -13,9 +13,13 @@ training:
         # Parameters denoting min and max lengths.
         min_sequence_length: 3
         max_sequence_length: 20
+        # Size of the dataset. Influences how often curriculum learning will be triggered (when the dataset is exhausted!)
+        size: 32000 # i.e. every 500 episodes, as in the paper
 
 # This section is optional.
 validation:
+    # How often the model will be validated/saved.
+    partial_validation_interval: 100
     problem:
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
         control_bits: *cbits
@@ -24,6 +28,7 @@ validation:
         # Parameters denoting min and max lengths.
         min_sequence_length: 21
         max_sequence_length: 21
+        size: 64 # Which means that partial validation = full validation.
 
 
 testing:
@@ -39,8 +44,9 @@ testing:
         data_bits: *dbits
         batch_size: 64
         # Parameters denoting min and max lengths.
-        min_sequence_length: 1000
-        max_sequence_length: 1000
+        min_sequence_length: 100
+        max_sequence_length: 100
+        size: 64
 
     
 # Model parameters:

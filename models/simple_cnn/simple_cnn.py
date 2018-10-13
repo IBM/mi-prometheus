@@ -209,7 +209,6 @@ class SimpleConvNet(Model):
 
         # Plot!
         plt.show()
-        exit()
 
 
 if __name__ == '__main__':

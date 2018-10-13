@@ -21,11 +21,12 @@ algorithmic_seq_to_seq_problem.py: abstract base class for algorithmic sequentia
 """
 __author__ = "Tomasz Kornuta, Younes Bouhadjar, Vincent Marois"
 
-import numpy as np
 import torch
+import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-from problems.problem import DataDict
+
+from utils.data_dict import DataDict
 from problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
 from utils.loss.masked_bce_with_logits_loss import MaskedBCEWithLogitsLoss
 
@@ -50,6 +51,9 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         # call base constructor
         super(AlgorithmicSeqToSeqProblem, self).__init__(params)
 
+        # "Default" problem name.
+        self.name = 'AlgorithmicSeqToSeqProblem'
+
         # Set default loss function - cross entropy.
         if self.use_mask:
             self.loss_function = MaskedBCEWithLogitsLoss()
@@ -67,12 +71,8 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         self.max_sequence_length = params['max_sequence_length']
 
         # Add parameter denoting 0-1 distribution (DEFAULT: 0.5 i.e. equal).
-        if 'bias' not in params:
-            params.add_default_params({'bias': 0.5})
+        params.add_default_params({'bias': 0.5})
         self.bias = params['bias']
-
-        # "Default" problem name.
-        self.name = 'AlgorithmicSeqToSeqProblem'
 
         # set default data_definitions dict
         self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
@@ -89,7 +89,69 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
                                }
 
         # TODO: Should derive the actual theoretical limit instead of a arbitrary limit.
-        self.length = 100000
+        params.add_default_params({'size': 1000})
+        # Read value from registry - if it was set in config file, it will override the above default value.
+        self.length = params['size']
+
+    def set_max_length(self, max_length):
+        """ Sets maximum sequence lenth (property).
+
+        :param max_length: Length to be saved as max.
+        """
+        self.max_sequence_length = max_length
+
+    def curriculum_learning_initialize(self, curriculum_params):
+        """
+        Initializes curriculum learning - simply saves the curriculum params.
+
+        .. note::
+
+            This method can be overwritten in the derived classes.
+
+
+        :param curriculum_params: Interface to parameters accessing curriculum learning view of the registry tree.
+        """
+        # Save params.
+        self.curriculum_params = curriculum_params
+        # Inform the user.
+        epoch_size = self.get_epoch_size(self.params["batch_size"])
+        self.logger.info("Initializing curriculum learning! Will activate when all samples are exhausted \
+            (every {} episodes when using batch of size {})".format(epoch_size, self.params["batch_size"]))
+
+    def curriculum_learning_update_params(self, episode):
+        """
+        Updates problem parameters according to curriculum learning. In the \
+        case of algorithmic sequential problems, it updates the max sequence \
+        length, depending on configuration parameters.
+
+        :param episode: Number of the current episode.
+        :type episode: int
+
+        :return: Boolean informing whether curriculum learning is finished (or wasn't active at all).
+
+        """
+        # Curriculum learning stop condition.
+        curric_done = True
+        try:
+            # Read curriculum learning parameters.
+            max_max_length = self.params['max_sequence_length']
+            initial_max_sequence_length = self.curriculum_params['initial_max_sequence_length']
+            epoch_size = self.get_epoch_size(self.params["batch_size"])
+
+            # Curriculum learning goes from the initial max length to the
+            # max length in steps of size 1
+            max_length = initial_max_sequence_length + \
+                ((episode+1) // epoch_size)
+            if max_length > max_max_length:
+                max_length = max_max_length
+            else:
+                curric_done = False
+            # Change max length.
+            self.max_sequence_length = max_length
+        except KeyError:
+            pass
+        # Return information whether we finished CL (i.e. reached max sequence length).
+        return curric_done
 
     def calculate_accuracy(self, data_dict, logits):
         """
@@ -108,21 +170,12 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         :return: Accuracy.
 
         """
-
         # Check if mask should be is used - if so, apply.
         if self.use_mask:
             return self.loss_function.masked_accuracy(
                 logits, data_dict['targets'], data_dict['mask'])
         else:
-            return (1 - torch.abs(torch.round(F.sigmoid(logits)) -
-                                  data_dict['targets'])).mean()
-
-    # def set_max_length(self, max_length):
-    #    """ Sets maximum sequence lenth (property).
-    #
-    #    :param max_length: Length to be saved as max.
-    #    """
-    #    self.max_sequence_length = max_length
+            return (1 - torch.abs(torch.round(F.sigmoid(logits)) - data_dict['targets'])).mean()
 
     def add_ctrl(self, seq, ctrl, pos):
         """
@@ -192,10 +245,14 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         :type stat_col: ``StatisticsCollector``
 
         """
+        # Add basic statistics.
+        super(AlgorithmicSeqToSeqProblem, self).add_statistics(stat_col)
+
         stat_col.add_statistic('acc', '{:12.10f}')
         stat_col.add_statistic('seq_length', '{:d}')
         #stat_col.add_statistic('num_subseq', '{:d}')
         stat_col.add_statistic('max_seq_length', '{:d}')
+        stat_col.add_statistic('batch_size', '{:06d}')
 
     def collect_statistics(self, stat_col, data_dict, logits):
         """
@@ -211,41 +268,48 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         :type logits: tensor
 
         """
+        # Collect basic statistics.
+        super(AlgorithmicSeqToSeqProblem, self).collect_statistics(stat_col, data_dict, logits)
+
         stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
         stat_col['seq_length'] = data_dict['sequences_length']
         #stat_col['num_subseq'] = data_dict['num_subsequences']
         stat_col['max_seq_length'] = self.max_sequence_length
+        stat_col['batch_size'] = logits.shape[0] # Batch major.
 
-    def add_estimators(self, stat_est):
+    def add_aggregators(self, stat_agg):
         """
-        Adds statistical estimators related to the accuracy to ``StatisticsEstimators``.
+        Adds problem-dependent statistical aggregators to ``StatisticsAggregator``.
 
-        :param stat_est: ``StatisticsEstimators``.
+        :param stat_agg: ``StatisticsAggregator``.
 
         """
+        # Add basic aggregators.
+        super(AlgorithmicSeqToSeqProblem, self).add_aggregators(stat_agg)
 
-        stat_est.add_estimator('acc', '{:12.10f}')  # represents the average accuracy
-        stat_est.add_estimator('acc_min', '{:12.10f}')
-        stat_est.add_estimator('acc_max', '{:12.10f}')
-        stat_est.add_estimator('acc_std', '{:12.10f}')
+        stat_agg.add_aggregator('acc', '{:12.10f}')  # represents the average accuracy
+        stat_agg.add_aggregator('acc_min', '{:12.10f}')
+        stat_agg.add_aggregator('acc_max', '{:12.10f}')
+        stat_agg.add_aggregator('acc_std', '{:12.10f}')
+        stat_agg.add_aggregator('samples_aggregated', '{:06d}')
 
-    def collect_estimators(self, stat_col, stat_est):
+    def aggregate_statistics(self, stat_col, stat_agg):
         """
-        Collect the statistical estimators added using ``self.add_estimator``.
+        Aggregates the statistics collected by ``StatisticsCollector`` and adds the results to ``StatisticsAggregator``.
 
         :param stat_col: ``StatisticsCollector``.
 
-        :param stat_est: ``StatisticsEstimators``.
-
+        :param stat_agg: ``StatisticsAggregator``.
 
         """
-        # collect base statistical estimators
-        super(AlgorithmicSeqToSeqProblem, self).collect_estimators(stat_col, stat_est)
+        # Aggregate base statistics.
+        super(AlgorithmicSeqToSeqProblem, self).aggregate_statistics(stat_col, stat_agg)
 
-        stat_est['acc_min'] = min(stat_col['acc'])
-        stat_est['acc_max'] = max(stat_col['acc'])
-        stat_est['acc'] = torch.mean(torch.tensor(stat_col['acc']))
-        stat_est['acc_std'] = torch.std(torch.tensor(stat_col['acc']))
+        stat_agg['acc_min'] = min(stat_col['acc'])
+        stat_agg['acc_max'] = max(stat_col['acc'])
+        stat_agg['acc'] = torch.mean(torch.tensor(stat_col['acc']))
+        stat_agg['acc_std'] = 0.0 if len(stat_col['acc']) <= 1 else torch.std(torch.tensor(stat_col['acc']))
+        stat_agg['samples_aggregated'] = sum(stat_col['batch_size'])
 
     def show_sample(self, data_dict, sample=0):
         """
@@ -282,11 +346,11 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         ax3.set_xlabel('Item number', fontname='Times New Roman', fontsize=13)
 
         # print data
-        print("\ninputs:", data_dict['sequences'][sample, :, :])
-        print("\ntargets:", data_dict['targets'][sample, :, :])
-        print("\nmask:", data_dict['mask'][sample:sample + 1, :])
-        print("\nseq_length:", data_dict['sequences_length'])
-        print("\nnum_subsequences:", data_dict['num_subsequences'])
+        #print("\ninputs:", data_dict['sequences'][sample, :, :])
+        #print("\ntargets:", data_dict['targets'][sample, :, :])
+        #print("\nmask:", data_dict['mask'][sample:sample + 1, :])
+        #print("\nseq_length:", data_dict['sequences_length'])
+        #print("\nnum_subsequences:", data_dict['num_subsequences'])
 
         # show data.
         ax1.imshow(np.transpose(data_dict['sequences'][sample, :, :], [
@@ -298,49 +362,12 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         plt.tight_layout()
         plt.show()
 
-    def curriculum_learning_update_params(self, episode):
-        """
-        Updates problem parameters according to curriculum learning. In the
-        case of algorithmic sequential problems, it updates the max sequence
-        length, depending on configuration parameters.
-
-        :param episode: Number of the current episode.
-        :type episode: int
-
-        :return: Boolean informing whether curriculum learning is finished (or wasn't active at all).
-
-        """
-        # Curriculum learning stop condition.
-        curric_done = True
-        try:
-            # Read curriculum learning parameters.
-            max_max_length = self.params['max_sequence_length']
-            interval = self.curriculum_params['interval']
-            initial_max_sequence_length = self.curriculum_params['initial_max_sequence_length']
-
-            if self.curriculum_params['interval'] > 0:
-                # Curriculum learning goes from the initial max length to the
-                # max length in steps of size 1
-                max_length = initial_max_sequence_length + \
-                    (episode // interval)
-                if max_length >= max_max_length:
-                    max_length = max_max_length
-                else:
-                    curric_done = False
-                # Change max length.
-                self.max_sequence_length = max_length
-        except KeyError:
-            pass
-        # Return information whether we finished CL (i.e. reached max sequence
-        # length).
-        return curric_done
-
 
 if __name__ == '__main__':
 
     from utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_custom_params({'control_bits': 2,
+    params.add_config_params({'control_bits': 2,
                               'data_bits': 8,
                               'min_sequence_length': 1,
                               'max_sequence_length': 10})

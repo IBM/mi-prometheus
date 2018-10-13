@@ -37,16 +37,16 @@ class StatisticsCollector(Mapping):
 
     def __init__(self):
         """
-        Initialization - creates dictionaries for statistics and formatting, adds standard statistics (episode and loss).
+        Initialization - creates dictionaries for statistics and formatting.
         """
         super(StatisticsCollector, self).__init__()
+
+        # Set default "output streams" for none.
+        self.tb_writer = None
+        self.csv_file = None
+
         self.statistics = dict()
         self.formatting = dict()
-
-        # Add default statistics with formatting.
-        self.add_statistic('epoch', '{:06d}')
-        self.add_statistic('episode', '{:06d}')
-        self.add_statistic('loss', '{:12.10f}')
 
     def add_statistic(self, key, formatting):
         """
@@ -121,7 +121,11 @@ class StatisticsCollector(Mapping):
         on the base of statistics names.
 
         :param log_dir: Path to file.
+        :type log_dir: str
+
         :param filename: Filename to be created.
+        :type filename: str
+
         :return: File stream opened for writing.
 
         """
@@ -135,18 +139,25 @@ class StatisticsCollector(Mapping):
         header_str = header_str[:-1] + '\n'
 
         # Open file for writing.
-        csv_file = open(log_dir + filename, 'w', 1)
-        csv_file.write(header_str)
+        self.csv_file = open(log_dir + filename, 'w', 1)
+        self.csv_file.write(header_str)
 
-        return csv_file
+        return self.csv_file
 
-    def export_statistics_to_csv(self, csv_file):
+    def export_to_csv(self, csv_file=None):
         """
         Method writes current statistics to csv using the possessed formatting.
 
-        :param csv_file: File stream opened for writing.
+        :param csv_file: File stream opened for writing, optional
 
         """
+        # Try to use the remembered one.    
+        if csv_file is None:
+            csv_file = self.csv_file
+        # If it is still None - well, we cannot do anything more.
+        if csv_file is None:
+            return
+
         # Iterate through values and concatenate them.
         values_str = ''
         for key, value in self.statistics.items():
@@ -161,12 +172,16 @@ class StatisticsCollector(Mapping):
 
         csv_file.write(values_str)
 
-    def export_statistics_to_string(self, additional_tag=''):
+    def export_to_string(self, additional_tag=''):
         """
         Method returns current statistics in the form of string using the
         possessed formatting.
 
-        :return: String being concatenation of statistics names and values.
+        :param additional_tag: An additional tag to append at the end of the created string.
+        :type additional_tag: str
+
+
+        :return: String being the concatenation of the statistical aggregators names & values.
 
         """
         # Iterate through keys and values and concatenate them.
@@ -183,15 +198,27 @@ class StatisticsCollector(Mapping):
 
         return stat_str
 
-    def export_statistics_to_tensorboard(self, tb_writer):
+    def initialize_tensorboard(self, tb_writer):
+        """ 
+        Memorizes the writer that will be used with this collector.
+        """ 
+        self.tb_writer = tb_writer
+
+    def export_to_tensorboard(self, tb_writer=None):
         """
         Method exports current statistics to tensorboard.
 
-        :param tb_writer: TensorBoard writer.
+        :param tb_writer: TensorBoard writer, optional.
 
         """
         # Get episode number.
         episode = self.statistics['episode'][-1]
+
+        if tb_writer is None:
+            tb_writer = self.tb_writer
+        # If it is still None - well, we cannot do anything more.
+        if tb_writer is None:
+            return
 
         # Iterate through keys and values and concatenate them.
         for key, value in self.statistics.items():
@@ -204,16 +231,17 @@ class StatisticsCollector(Mapping):
 if __name__ == "__main__":
 
     stat_col = StatisticsCollector()
+    stat_col.add_statistic('loss', '{:12.10f}')
+    stat_col.add_statistic('episode', '{:06d}')
     stat_col.add_statistic('acc', '{:2.3f}')
 
-    stat_col['epoch'] = 0
     stat_col['episode'] = 0
     stat_col['loss'] = 0.7
     stat_col['acc'] = 100
 
     csv_file = stat_col.initialize_csv_file('./', 'collector_test.csv')
-    stat_col.export_statistics_to_csv(csv_file)
-    print(stat_col.export_statistics_to_string())
+    stat_col.export_to_csv(csv_file)
+    print(stat_col.export_to_string())
 
     stat_col['episode'] = 1
     stat_col['loss'] = 0.7
@@ -222,8 +250,8 @@ if __name__ == "__main__":
     stat_col.add_statistic('seq_length', '{:2.0f}')
     stat_col['seq_length'] = 5
 
-    stat_col.export_statistics_to_csv(csv_file)
-    print(stat_col.export_statistics_to_string('[Validation]'))
+    stat_col.export_to_csv(csv_file)
+    print(stat_col.export_to_string('[Validation]'))
 
     stat_col.empty()
 

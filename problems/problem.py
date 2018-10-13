@@ -18,220 +18,14 @@
 """problem.py: contains base class for all problems"""
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
-import collections
 import torch
+import logging
 import numpy as np
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import default_collate
 
 from utils.app_state import AppState
-
-import logging
-logger = logging.Logger('DataDict')
-
-
-class DataDict(collections.MutableMapping):
-    """
-    - Mapping: A container object that supports arbitrary key lookups and implements the methods ``__getitem__``, \
-    ``__iter__`` and ``__len__``.
-
-    - Mutable objects can change their value but keep their id() -> ease modifying existing keys' value.
-
-    DataDict: Dict used for storing batches of data by problems.
-
-    **This is the main object class used to share data between a problem class and a model class through a worker.**
-    """
-
-    def __init__(self, *args, **kwargs):
-        """
-        DataDict constructor. Can be initialized in different ways:
-
-            >>> data_dict = DataDict()
-            >>> data_dict = DataDict({'inputs': torch.tensor(), 'targets': numpy.ndarray()})
-            >>> # etc.
-
-        :param args: Used to pass a non-keyworded, variable-length argument list.
-
-        :param kwargs: Used to pass a keyworded, variable-length argument list.
-        """
-        self.__dict__.update(*args, **kwargs)
-
-    def __setitem__(self, key, value, addkey=False):
-        """
-        key:value setter function.
-
-        :param key: Dict Key.
-
-        :param value: Associated value.
-
-        :param addkey: Indicate whether or not it is authorized to add a new key `on-the-fly`.\
-        Default: ``False``.
-        :type addkey: bool
-
-        .. warning::
-
-            `addkey` is set to ``False`` by default as setting it to ``True`` removes flexibility of the\
-            ``DataDict``. Indeed, there are some cases where adding a key `on-the-fly` to a ``DataDict`` is\
-            useful (e.g. for plotting pre-processing).
-
-
-        """
-        if addkey and key not in self.keys():
-            logger.error('KeyError: Cannot modify a non-existing key.')
-            raise KeyError('Cannot modify a non-existing key.')
-        else:
-            self.__dict__[key] = value
-
-    def __getitem__(self, key):
-        """
-        Value getter function.
-
-        :param key: Dict Key.
-
-        :return: Associated Value.
-
-        """
-        return self.__dict__[key]
-
-    def __delitem__(self, key, override=False):
-        """
-        Delete a key:value pair.
-
-        .. warning::
-
-            By default, it is not authorized to delete an existing key. Set `override` to ``True`` to ignore this\
-            restriction.
-
-        :param key: Dict Key.
-
-        :param override: Indicate whether or not to lift the ban of non-deletion of any key.
-        :type override: bool
-
-        """
-        if not override:
-            logger.error('KeyError: Not authorizing the deletion of a key.')
-            raise KeyError('Not authorizing the deletion of a key.')
-        else:
-            del self.__dict__[key]
-
-    def __iter__(self):
-        return iter(self.__dict__)
-
-    def __len__(self):
-        return len(self.__dict__)
-
-    def __str__(self):
-        """
-        :return: A simple Dict representation of ``DataDict``.
-
-        """
-        return str(self.__dict__)
-
-    def __repr__(self):
-        """
-        :return: Echoes class, id, & reproducible representation in the Read–Eval–Print Loop.
-
-        """
-        return '{}, DataDict({})'.format(super(DataDict, self).__repr__(), self.__dict__)
-
-    def numpy(self):
-        """
-        Converts the DataDict to numpy objects.
-
-        .. note::
-
-            The ``torch.tensor`` (s) contained in `self` are converted using ``torch.Tensor.numpy()`` : \
-            This tensor and the returned ndarray share the same underlying storage. \
-            Changes to ``self`` tensor will be reflected in the ndarray and vice versa.
-
-            If an element of ``self`` is not a ``torch.tensor``, it is returned as is.
-
-
-        :return: Converted DataDict.
-
-        """
-        numpy_datadict = self.__class__({key: None for key in self.keys()})
-
-        for key in self:
-            if isinstance(self[key], torch.Tensor):
-                numpy_datadict[key] = self[key].numpy()
-            else:
-                numpy_datadict[key] = self[key]
-
-        return numpy_datadict
-
-    def cpu(self):
-        """
-        Moves the DataDict to memory accessible to the CPU.
-
-        .. note::
-
-            The ``torch.tensor`` (s) contained in `self` are converted using ``torch.Tensor.cpu()`` .
-            If an element of `self` is not a ``torch.tensor``, it is returned as is, \
-            i.e. We only move the ``torch.tensor`` (s) contained in `self`.
-
-
-        :return: Converted DataDict.
-
-        """
-        cpu_datadict = self.__class__({key: None for key in self.keys()})
-
-        for key in self:
-            if isinstance(self[key], torch.Tensor):
-                cpu_datadict[key] = self[key].cpu()
-            else:
-                cpu_datadict[key] = self[key]
-
-        return cpu_datadict
-
-    def cuda(self, device=None, non_blocking=False):
-        """
-        Returns a copy of this object in CUDA memory.
-
-        .. note::
-
-            Wraps call to ``torch.Tensor.cuda()``: If this object is already in CUDA memory and on the correct device, \
-            then no copy is performed and the original object is returned.
-            If an element of `self` is not a ``torch.tensor``, it is returned as is, \
-            i.e. We only move the ``torch.tensor`` (s) contained in `self`. \
-
-
-        :param device: The destination GPU device. Defaults to the current CUDA device.
-        :type device: torch.device
-
-        :param non_blocking: If True and the source is in pinned memory, the copy will be asynchronous with respect to \
-        the host. Otherwise, the argument has no effect. Default: ``False``.
-        :type non_blocking: bool
-
-        """
-        cuda_datadict = self.__class__({key: None for key in self.keys()})
-        for key in self:
-            if isinstance(self[key], torch.Tensor):
-                cuda_datadict[key] = self[key].cuda(device=device, non_blocking=non_blocking)
-            else:
-                cuda_datadict[key] = self[key]
-
-        return cuda_datadict
-
-    def detach(self):
-        """
-        Returns a new DataDict, detached from the current graph.
-        The result will never require gradient.
-
-        .. note::
-            Wraps call to ``torch.Tensor.detach()`` : the ``torch.tensor`` (s) in the returned ``DataDict`` use the same\
-            data tensor(s) as the original one(s).
-            In-place modifications on either of them will be seen, and may trigger errors in correctness checks.
-
-        """
-        detached_datadict = self.__class__({key: None for key in self.keys()})
-        for key in self:
-            if isinstance(self[key], torch.Tensor):
-                detached_datadict[key] = self[key].detach()
-            else:
-                detached_datadict[key] = self[key]
-
-        return detached_datadict
+from utils.data_dict import DataDict
 
 
 class Problem(Dataset):
@@ -305,6 +99,9 @@ class Problem(Dataset):
         """
         # Store pointer to params.
         self.params = params
+
+        # Empty curriculum learning params - for now.
+        self.curriculum_params = {}
 
         # Set default loss function.
         self.loss_function = None
@@ -610,50 +407,38 @@ class Problem(Dataset):
         """
         pass
 
-    def add_estimators(self, stat_est):
+    def add_aggregators(self, stat_agg):
         """
-        Adds statistical estimators to ``StatisticsEstimators``.
+        Adds statistical aggregators to ``StatisticsAggregator``.
 
         .. note::
-
 
             Empty - To be redefined in inheriting classes.
 
 
-        :param stat_est: ``StatisticsEstimators``.
+        :param stat_agg: ``StatisticsAggregator``.
 
         """
-
         pass
 
-    def collect_estimators(self, stat_col, stat_est):
+    def aggregate_statistics(self, stat_col, stat_agg):
         """
-        Collect the statistical estimators added using ``self.add_estimator``.
+        Aggregates the statistics collected by ``StatisticsCollector`` and adds the results to ``StatisticsAggregator``.
 
          .. note::
 
-
-            Only computes the min, max, mean, std of the loss as these are basic statistical estimators \
-            set by default.
-
+            Empty - To be redefined in inheriting classes.
             The user can override this function in subclasses but should call \
-            ``super().collect_estimators(stat_col, stat_est)`` to collect basic statistical estimators.
+            ``super().aggregate_statistics(stat_col, stat_agg)`` to collect basic statistical aggregators (if set).
 
-            Given that the ``StatisticsEstimators`` uses the statistics collected by the ``StatisticsCollector``, \
-            the user should also ensure that these statistics are correctly collected \
-            (i.e. use of ``self.add_statistics`` and ``self.collect_statistics``.
 
         :param stat_col: ``StatisticsCollector``.
 
-        :param stat_est: ``StatisticsEstimators``.
-
+        :param stat_agg: ``StatisticsAggregator``.
 
         """
-        stat_est['loss_min'] = min(stat_col['loss'])
-        stat_est['loss_max'] = max(stat_col['loss'])
-        stat_est['loss'] = torch.mean(torch.tensor(stat_col['loss']))
-        stat_est['loss_std'] = torch.std(torch.tensor(stat_col['loss']))
-
+        pass
+        
     def get_epoch_size(self, batch_size):
         """
         Compute the number of iterations ('episodes') to run given the size of the dataset and the batch size to cover
@@ -679,12 +464,6 @@ class Problem(Dataset):
         """
         Function called to initialize a new epoch.
 
-        The primary use is to reset ``StatisticsAggregators`` that track statistics over one epoch, e.g.:
-
-            - Average accuracy over the epoch
-            - Time taken for the epoch and average per batch
-            - etc...
-
         .. note::
 
 
@@ -699,20 +478,13 @@ class Problem(Dataset):
 
     def finalize_epoch(self, epoch):
         """
-        Function called at the end of an epoch to execute a few tasks, e.g.:
-
-            - Compute the mean accuracy over the epoch,
-            - Get the time taken for the epoch and per batch
-            - etc.
-
-        This function will use the ``StatisticsAggregators`` set up (or reset) in ``self.initialize_epoch()`.
+        Function called at the end of an epoch to execute a few tasks.
 
         .. note::
 
 
             Empty - To be redefined in inheriting classes.
 
-            TODO: To display the final results for the current epoch, this function should use the Logger.
 
         :param epoch: current epoch index
         :type epoch: int
@@ -751,6 +523,7 @@ class Problem(Dataset):
 
 
         :param curriculum_params: Interface to parameters accessing curriculum learning view of the registry tree.
+
         """
         # Save params.
         self.curriculum_params = curriculum_params
@@ -775,7 +548,6 @@ class Problem(Dataset):
 
 if __name__ == '__main__':
     """Unit test for DataDict & targets handshaking"""
-
     from utils.param_interface import ParamInterface
 
     params = ParamInterface()
@@ -784,7 +556,7 @@ if __name__ == '__main__':
     problem.data_definitions = {'inputs': {'size': [-1, -1], 'type': [torch.Tensor]},
                                 'targets': {'size': [-1], 'type': [torch.Tensor]}
                                 }
-    problem.loss_function = torch.nn.CrossEntropyLoss  # torch.nn.L1Loss, torch.nn.TripletMarginLoss
+    problem.loss_function = torch.nn.CrossEntropyLoss()  # torch.nn.L1Loss, torch.nn.TripletMarginLoss
 
     datadict = DataDict({key: None for key in problem.data_definitions.keys()})
 
@@ -795,12 +567,11 @@ if __name__ == '__main__':
 
     model_data_definitions = {'question': {'size': [-1, -1], 'type': [torch.Tensor]},
                               'question_length': {'size': [-1], 'type': [list, int]},
-                              'question_string': {'size': [-1,-1], 'type': [list, str]},
-                              'question_type': {'size': [-1,-1], 'type': [list, str]},
+                              'question_string': {'size': [-1, -1], 'type': [list, str]},
+                              'question_type': {'size': [-1, -1], 'type': [list, str]},
                               'targets': {'size': [-1, -1], 'type': [torch.Tensor]},
-                              'targets_string': {'size': [-1,-1], 'type': [list, str]},
+                              'targets_string': {'size': [-1, -1], 'type': [list, str]},
                               'index': {'size': [-1], 'type': [list, int]},
-                              'imgfile': {'size': [-1,-1], 'type': [list,str]},
-                               }
+                              'imgfile': {'size': [-1, -1], 'type': [list, str]}}
 
     problem.handshake_definitions(model_data_definitions_=model_data_definitions)

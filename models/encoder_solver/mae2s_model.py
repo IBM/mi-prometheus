@@ -95,7 +95,9 @@ class MAE2S(SequentialModel):
         Method saves the model and encoder to file.
 
         :param model_dir: Directory where the model will be saved.
+
         :param stat_col: Statistics collector that contain current loss and episode number (and other statistics).
+        
         :return: True if this is the best model that is found till now (considering loss).
 
         """

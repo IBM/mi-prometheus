@@ -70,7 +70,7 @@ def forward_step(model, problem, episode, stat_col, data_dict, epoch=None):
     loss = problem.evaluate_loss(data_dict, logits)
 
     # Collect "elementary" statistics - episode and loss.
-    if 'epoch' in stat_col:
+    if ('epoch' in stat_col) and (epoch is not None):
         stat_col['epoch'] = epoch
 
     stat_col['episode'] = episode
@@ -82,37 +82,6 @@ def forward_step(model, problem, episode, stat_col, data_dict, epoch=None):
 
     # Return tuple: logits, loss.
     return logits, loss
-
-
-def check_and_set_cuda(params, logger):
-    """
-    Enables CUDA if available and sets the default data types.
-
-    :param params: Parameter Registry containing either the training or test parameters.
-    :type params: ``ParamInterface``
-
-    :param logger: logger object
-    :type logger: ``logging.Logger``
-
-    """
-    turn_on_cuda = False
-    try:  # If the 'cuda' key is not present, catch the exception and do nothing
-        turn_on_cuda = params['cuda']
-    except KeyError:
-        logger.warning('CUDA key not present in ParamInterface.')
-        pass
-
-    # Determine if CUDA is to be used.
-    if torch.cuda.is_available():
-        if turn_on_cuda:
-            AppState().convert_cuda_types()
-            logger.info('Running with CUDA enabled')
-    elif turn_on_cuda:
-        logger.warning('CUDA is enabled but there is no available device')
-
-    # TODO Add flags to change these
-    AppState().set_dtype('float')
-    AppState().set_itype('int')
 
 
 def recurrent_config_parse(configs: str, configs_parsed: list):
@@ -381,8 +350,8 @@ def validate_over_set(model, problem, dataloader, stat_col, stat_est, FLAGS, log
                 user_pressed_stop = False
 
     # 3. Collect statistical estimators
-    model.collect_estimators(stat_col, stat_est)
-    problem.collect_estimators(stat_col, stat_est)
+    model.aggregate_statistics(stat_col, stat_est)
+    problem.aggregate_statistics(stat_col, stat_est)
 
     # 4. Log to logger
     logger.info(stat_est.export_estimators_to_string('[Validation {}]'.format(epoch)))
