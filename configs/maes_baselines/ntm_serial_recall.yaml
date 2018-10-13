@@ -7,8 +7,7 @@ default_configs:
 # Then overwrite problem name(s).
 training:
     problem:
-        name: &name maes_baselines/serial_recall_cl
-
+        name: &name SerialRecallCommandLines
 validation:
     problem:
         name: *name 

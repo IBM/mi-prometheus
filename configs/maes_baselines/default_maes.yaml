@@ -1,6 +1,6 @@
 # Model parameters:
 model:
-    name: maes
+    name: MAES
     # Optional parameter: visualization.
     #visualization_mode: 2
     # Input bits = [command_bits, data_bits]
