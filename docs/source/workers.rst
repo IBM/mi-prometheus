@@ -23,10 +23,18 @@ Trainer
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-Episodic Trainer
+FlexibleTrainer
 ----------------------------
 
-.. automodule:: workers.episodic_trainer
+.. automodule:: workers.flexible_trainer
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+ClassicTrainer
+----------------------------
+
+.. automodule:: workers.classic_trainer
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
