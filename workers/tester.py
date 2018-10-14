@@ -215,7 +215,7 @@ class Tester(Worker):
         self.logger.info("Setting the max number of episodes to: {}".format(
             self.params["testing"]["problem"]["max_test_episodes"]))
 
-        ################# MODEL PROBLEM ################# 
+        ################# MODEL #################
 
         # Create model object.
         self.model = ModelFactory.build_model(self.params['model'], self.problem.default_values)

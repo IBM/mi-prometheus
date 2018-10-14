@@ -98,8 +98,8 @@ class Worker(object):
                                  dest='config',
                                  type=str,
                                  default='',
-                                 help='Name of the configuration file(s) to be loaded.'
-                                      'If specifying more than one file, they must be separated with coma ",".)')
+                                 help='Name of the configuration file(s) to be loaded. '
+                                      'If specifying more than one file, they must be separated with coma ",".')
 
         self.parser.add_argument('--model',
                                  type=str,

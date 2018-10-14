@@ -49,7 +49,7 @@ class FlexibleTrainer(Trainer):
         """
         Only calls the ``Trainer`` constructor as the initialization phase is identical to the ``Trainer``.
 
-       :param name: Name of the worker (DEFAULT: ``FlexibleTrainer`).
+       :param name: Name of the worker (DEFAULT: "FlexibleTrainer").
        :type name: str
 
         """ 

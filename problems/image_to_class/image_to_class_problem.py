@@ -138,7 +138,7 @@ class ImageToClassProblem(Problem):
         stat_agg['acc_min'] = min(stat_col['acc'])
         stat_agg['acc_max'] = max(stat_col['acc'])
         stat_agg['acc'] = torch.mean(torch.tensor(stat_col['acc']))
-        stat_agg['acc_std'] = torch.std(torch.tensor(stat_col['acc']))
+        stat_agg['acc_std'] = 0.0 if len(stat_col['acc']) <= 1 else torch.std(torch.tensor(stat_col['acc']))
         stat_agg['samples_aggregated'] = sum(stat_col['batch_size'])
 
     def show_sample(self, data_dict, sample_number=0):
