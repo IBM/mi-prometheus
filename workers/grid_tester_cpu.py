@@ -105,7 +105,7 @@ class GridTesterCPU(GridWorker):
 
         # check if the files are not empty
         self.experiments_list = [elem for elem in self.experiments_list if os.stat(
-            elem + '/validation_statistics.csv').st_size > 24 and os.stat(elem + '/training.csv_statistics').st_size > 24]
+            elem + '/validation_statistics.csv').st_size > 24 and os.stat(elem + '/training_statistics.csv').st_size > 24]
 
         self.logger.info('Number of experiments to run: {}'.format(len(self.experiments_list)))
         self.experiments_done = 0
@@ -136,7 +136,7 @@ class GridTesterCPU(GridWorker):
         else:
 
             # Run the test
-            command_str = "{}python3 workers/tester.py --model {} --li {} --ll".format(prefix, path_to_model,
+            command_str = "{}python3 workers/tester.py --model {} --li {} --ll {}".format(prefix, path_to_model,
                                                                                        self.flags.logging_interval,
                                                                                        self.flags.log_level)
 
