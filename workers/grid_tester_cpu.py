@@ -57,14 +57,6 @@ class GridTesterCPU(GridWorker):
         # call base constructor
         super(GridTesterCPU, self).__init__(name=name)
 
-        # add here all arguments used by the GridTesterCPU.
-        self.parser.add_argument('--model',
-                                 type=str,
-                                 default='',
-                                 dest='model',
-                                 help='Path to the file containing the saved parameters'
-                                      ' of the model to load (model checkpoint, should end with a .pt extension.)')
-
         # get number_of_repetitions
         self.parser.add_argument('--n',
                                  dest='num_tests',
