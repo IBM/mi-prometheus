@@ -360,6 +360,7 @@ class Model(nn.Module):
                 "Model and statistics exported to checkpoint {}".format(filename))
 
         # Save the best model.
+        loss = loss.cpu()  # moving loss value to cpu type to allow (initial) comparison with numpy type
         if loss < self.best_loss:
             self.best_loss = loss
             filename = model_dir + 'model_best.pt'
