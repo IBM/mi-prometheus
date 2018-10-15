@@ -25,45 +25,17 @@ grid_tester_cpu.py:
       and executes on every run of the model in that directory.
 
 """
-
-
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
-
 import os
-import argparse
 import subprocess
 from functools import partial
 from multiprocessing.pool import ThreadPool
 
-import workers.worker as worker
-from workers.worker import Worker
+from workers.grid_worker import GridWorker
 
 
-def add_arguments(parser: argparse.ArgumentParser):
-    """
-    Add arguments to the specific parser.
-
-    These arguments are related to the  ``GridTesterCPU``.
-
-    :param parser: ``argparse.ArgumentParser``
-    """
-    # add here all arguments used by the GridTesterCPU.
-    parser.add_argument('--outdir',
-                        dest='outdir',
-                        type=str,
-                        default="./experiments",
-                        help='Path to output directory where the experiments are stored (DEFAULT: ./experiments)')
-
-    # get number_of_repetitions
-    parser.add_argument('--n',
-                        dest='num_tests',
-                        type=int,
-                        default=1,
-                        help='Number of test experiments to run for each model.')
-
-
-class GridTesterCPU(Worker):
+class GridTesterCPU(GridWorker):
     """
     Implementation of the Grid Tester running on CPUs.
 
@@ -71,26 +43,53 @@ class GridTesterCPU(Worker):
 
     """
 
-    def __init__(self, flags: argparse.Namespace):
+    def __init__(self, name="GridTesterCPU"):
         """
         Constructor for the ``GridTesterCPU``:
 
-            - constructs all possible sub-directories paths in `flags.outdir`
-            - only keeps the ones that both `validation.csv` and `training.csv`
+            - Calls the base constructor to set the worker's name and add default command lines arguments,
+            - Adds some ``GridTrainer`` specific command line arguments.
 
-
-        :param flags: Parsed arguments from the parser.
+        :param name: Name of the worker (DEFAULT: "GridTesterCPU").
+        :type name: str
 
         """
         # call base constructor
-        super(GridTesterCPU, self).__init__(flags)
+        super(GridTesterCPU, self).__init__(name=name)
 
-        # set logger name
-        self.name = 'GridTesterCPU'
-        self.set_logger_name(self.name)
+        # add here all arguments used by the GridTesterCPU.
+        self.parser.add_argument('--model',
+                                 type=str,
+                                 default='',
+                                 dest='model',
+                                 help='Path to the file containing the saved parameters'
+                                      ' of the model to load (model checkpoint, should end with a .pt extension.)')
 
-        directory_chckpnts = flags.outdir
-        num_tests = flags.num_tests
+        # get number_of_repetitions
+        self.parser.add_argument('--n',
+                                 dest='num_tests',
+                                 type=int,
+                                 default=1,
+                                 help='Number of test experiments to run for each model.')
+
+    def setup_grid_experiment(self, cuda=False):
+        """
+         Setups the overall grid of experiments:
+
+        - Calls the ``super(self).setup_experiment()`` to parse arguments,
+
+        - Recursively creates the paths to the experiments folders, verifying that they are valid (e.g. \
+        contain `validation_statistics.csv` and `training_statistics.csv`).
+
+
+        :param cuda: Whether to use cuda or not. Default to ``False``.
+        :type cuda: bool
+
+        """
+        super(GridTesterCPU, self).setup_grid_experiment(cuda=cuda)
+
+        directory_chckpnts = self.flags.outdir
+        num_tests = self.flags.num_tests
 
         # get all sub-directories paths in outdir, repeating according to flags.num
         self.experiments_list = []
@@ -102,11 +101,11 @@ class GridTesterCPU(Worker):
 
         # Keep only the folders that contain validation.csv and training.csv
         self.experiments_list = [elem for elem in self.experiments_list if os.path.isfile(
-            elem + '/validation.csv') and os.path.isfile(elem + '/training.csv')]
+            elem + '/validation_statistics.csv') and os.path.isfile(elem + '/training_statistics.csv')]
 
         # check if the files are not empty
         self.experiments_list = [elem for elem in self.experiments_list if os.stat(
-            elem + '/validation.csv').st_size > 24 and os.stat(elem + '/training.csv').st_size > 24]
+            elem + '/validation_statistics.csv').st_size > 24 and os.stat(elem + '/training.csv_statistics').st_size > 24]
 
         self.logger.info('Number of experiments to run: {}'.format(len(self.experiments_list)))
         self.experiments_done = 0
@@ -123,8 +122,9 @@ class GridTesterCPU(Worker):
 
         ..note::
 
-            Visualization is deactivated to avoid any user interaction.
-
+            - Visualization is deactivated to avoid any user interaction.
+            - Command-line arguments such as the logging interval (``--li``) and log level (``--ll``) are passed \
+             to the used ``Trainer``.
 
         """
         path_to_model = os.path.join(experiment_path, 'models/model_best.pt')
@@ -136,7 +136,9 @@ class GridTesterCPU(Worker):
         else:
 
             # Run the test
-            command_str = "{}python3 workers/tester.py --model {}".format(prefix, path_to_model)
+            command_str = "{}python3 workers/tester.py --model {} --li {} --ll".format(prefix, path_to_model,
+                                                                                       self.flags.logging_interval,
+                                                                                       self.flags.log_level)
 
             self.logger.info("Starting: {}".format(command_str))
             with open(os.devnull, 'w') as devnull:
@@ -150,18 +152,16 @@ class GridTesterCPU(Worker):
             if result.returncode != 0:
                 self.logger.info("Testing exited with code: {}".format(result.returncode))
 
-    def forward(self, flags: argparse.Namespace):
+    def run_grid_experiment(self):
         """
         Main function of the ``GridTesterCPU``.
 
         Maps the grid experiments to CPU cores in the limit of the maximum concurrent runs allowed or maximum\
          available cores.
 
-        :param flags: Parsed arguments from the parser.
-
         """
         # Ask for confirmation - optional.
-        if flags.confirm:
+        if self.flags.confirm:
             input('Press any key to continue')
 
         # Run in as many threads as there are CPUs available to the script
@@ -173,17 +173,10 @@ class GridTesterCPU(Worker):
 
 
 if __name__ == '__main__':
-    # Create parser with list of  runtime arguments.
-    argp = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    grid_tester_cpu = GridTesterCPU()
 
-    # add default arguments
-    worker.add_arguments(argp)
+    # parse args, load configuration and create all required objects.
+    grid_tester_cpu.setup_grid_experiment(cuda=False)
 
-    # add grid trainers-specific arguments
-    add_arguments(argp)
-
-    # Parse arguments.
-    FLAGS, unparsed = argp.parse_known_args()
-
-    grid_tester_cpu = GridTesterCPU(FLAGS)
-    grid_tester_cpu.forward(FLAGS)
+    # GO!
+    grid_tester_cpu.run_grid_experiment()
