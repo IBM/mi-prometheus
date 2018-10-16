@@ -39,20 +39,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""control_unit.py: Implementation of the Control Unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the
-                reference paper."""
+"""
+control_unit.py: Implementation of the Control Unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the \
+reference paper.
+"""
 __author__ = "Vincent Marois"
 
-
-from models.mac.utils_mac import linear
 import torch
 from torch import nn
 import torch.nn.functional as F
+from models.mac.utils_mac import linear
 
 
 class ControlUnit(nn.Module):
     """
-    Implementation of the Control Unit of the MAC network.
+    Implementation of the ``ControlUnit`` of the MAC network.
     """
 
     def __init__(self, dim, max_step):
@@ -60,7 +61,10 @@ class ControlUnit(nn.Module):
         Constructor for the control unit.
 
         :param dim: global 'd' hidden dimension
-        :param max_step: maximum number of steps -> number of MAC cells in the network
+        :type dim: int
+
+        :param max_step: maximum number of steps -> number of MAC cells in the network.
+        :type max_step: int
 
         """
 
@@ -83,13 +87,21 @@ class ControlUnit(nn.Module):
 
     def forward(self, step, contextual_words, question_encoding, ctrl_state):
         """
-        Forward pass of the control unit.
+        Forward pass of the ``ControlUnit``.
 
         :param step: index of the current MAC cell.
-        :param contextual_words: tensor of shape [batch_size x maxQuestionLength x dim] containing the words encodings ('representation of each word in the context of the question')
+        :type step: int
 
-        :param question_encoding: question representation, of shape [batch_size x 2*dim]
+        :param contextual_words: tensor of shape [batch_size x maxQuestionLength x dim] containing the words \
+        encodings ('representation of each word in the context of the question').
+        :type contextual_words: torch.tensor
+
+
+        :param question_encoding: question representation, of shape [batch_size x 2*dim].
+        :type question_encoding: torch.tensor
+
         :param ctrl_state: previous control state, of shape [batch_size x dim]
+        :type ctrl_state: torch.tensor
 
         :return: new control state, [batch_size x dim]
 

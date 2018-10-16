@@ -39,28 +39,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""output_unit.py: Implementation of the Output Unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the
-                reference paper."""
+"""
+output_unit.py: Implementation of the ``OutputUnit`` for the MAC network. Cf https://arxiv.org/abs/1803.03067 \
+for the reference paper.
+"""
 __author__ = "Vincent Marois"
 
-
-from models.mac.utils_mac import linear
 import torch
 from torch import nn
 from torch.nn.init import kaiming_uniform_
+from models.mac.utils_mac import linear
 
 
 class OutputUnit(nn.Module):
     """
-    Implementation of the Output Unit of the MAC network.
+    Implementation of the ``OutputUnit`` of the MAC network.
     """
 
     def __init__(self, dim, nb_classes):
         """
-        Constructor for the write unit.
+        Constructor for the ``OutputUnit``.
 
-        :param dim: global 'd' dimension
-        :param nb_classes: number of classes to consider (classification problem)
+        :param dim: global 'd' dimension.
+        :type dim: int
+
+        :param nb_classes: number of classes to consider (classification problem).
+        :type nb_classes: int
 
         """
 
@@ -75,10 +79,13 @@ class OutputUnit(nn.Module):
 
     def forward(self, mem_state, question_encodings):
         """
-        Forward pass of the output unit.
+        Forward pass of the ``OutputUnit``.
 
         :param mem_state: final memory state, shape [batch_size x dim]
+        :type mem_state: torch.tensor
+
         :param question_encodings: questions encodings, shape [batch_size x (2*dim)]
+        :type question_encodings: torch.tensor
 
         :return: probability distribution over the classes, [batch_size x nb_classes]
 

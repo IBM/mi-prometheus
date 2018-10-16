@@ -42,7 +42,7 @@
 """
 model.py:
 
-    - Implementation of the MAC network, reusing the different units implemented in separated files.
+    - Implementation of the ``MAC`` network, reusing the different units implemented in separated files.
     - Cf https://arxiv.org/abs/1803.03067 for the reference paper.
 
 
@@ -65,14 +65,15 @@ from models.mac.output_unit import OutputUnit
 
 class MACNetwork(Model):
     """
-    Implementation of the entire MAC network.
+    Implementation of the entire ``MAC`` network.
     """
 
     def __init__(self, params, problem_default_values_={}):
         """
-        Constructor for the MAC network.
+        Constructor for the ``MAC`` network.
 
         :param params: dict of parameters (read from configuration ``.yaml`` file).
+        :type params: utils.ParamInterface
 
         """
 
@@ -118,6 +119,18 @@ class MACNetwork(Model):
             [transforms.Resize([224, 224]), transforms.ToTensor()])
 
     def forward(self, data_dict, dropout=0.15):
+        """
+        Forward pass of the ``MAC`` network. Calls first the ``InputUnit``, then the recurrent \
+        MAC cells and finally the ```OutputUnit``.
+
+        :param data_dict: input data batch.
+        :type data_dict: utils.DataDict
+
+        :param dropout: dropout rate.
+        :type dropout: float
+
+        :return: Predictions of the model.
+        """
 
         # reset cell state history for visualization
         if self.app_state.visualize:
@@ -195,15 +208,16 @@ class MACNetwork(Model):
 
     def plot(self, data_dict, logits, sample=0):
         """
-        Visualize the attention weights (Control Unit & Read Unit) on the
-        question & feature maps. Dynamic visualization throughout the reasoning
+        Visualize the attention weights (``ControlUnit`` & ``ReadUnit``) on the \
+        question & feature maps. Dynamic visualization throughout the reasoning \
         steps is possible.
 
-        :param data_dict: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
-        'targets_string', 'index','imgfile', 'prediction_string'})
+        :param data_dict: DataDict({'img','question', 'question_length', 'question_string', 'question_type', \
+        'targets', 'targets_string', 'index','imgfile', 'prediction_string'})
+        :type data_dict: utils.DataDict
 
-        :param logits: Prediction of the model
-        :type logits: tensor
+        :param logits: Prediction of the model.
+        :type logits: torch.tensor
 
         :param sample: Index of sample in batch (Default: 0)
         :type sample: int
@@ -225,7 +239,6 @@ class MACNetwork(Model):
         s_questions = data_dict['question_string']
         question_type = data_dict['question_type']
         answer_string = data_dict['targets_string']
-        index = data_dict['index']
         imgfiles = data_dict['imgfile']
         prediction_string = data_dict['prediction_string']
         clevr_dir = data_dict['clevr_dir']
@@ -306,7 +319,8 @@ class MACNetwork(Model):
                 attention_question.transpose(1, 0),
                 interpolation='nearest', aspect='auto', cmap='Reds')
             artists[4] = ax_step.text(
-                0, 0.5, 'Reasoning step index: ' + str(step), fontsize=15)
+                0, 0.5, 'Reasoning step index: ' + str(step) + ' | Question type: ' + question_type[sample],
+                fontsize=15)
 
             # Add "frame".
             frames.append(artists)
@@ -360,6 +374,7 @@ if __name__ == '__main__':
 
     model = MACNetwork(model_params, clevr_dataset.default_values)
     print('Model {} instantiated.'.format(model.name))
+    model.app_state.visualize = True
 
     # perform handshaking between MAC & CLEVR
     model.handshake_definitions(clevr_dataset.data_definitions)
@@ -368,6 +383,8 @@ if __name__ == '__main__':
     for i_batch, sample in enumerate(problem):
         print('Sample # {} - {}'.format(i_batch, sample['img'].shape), type(sample))
         logits = model(sample)
+        clevr_dataset.plot_preprocessing(sample, logits)
+        model.plot(sample, logits)
         print(logits.shape)
 
     print('Unit test completed.')

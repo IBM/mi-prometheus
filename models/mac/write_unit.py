@@ -39,28 +39,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""write_unit.py: Implementation of the Write Unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the
-                reference paper."""
+"""
+write_unit.py: Implementation of the ``WriteUnit`` for the MAC network. Cf https://arxiv.org/abs/1803.03067 \
+for the reference paper.
+"""
 __author__ = "Vincent Marois"
 
-from models.mac.utils_mac import linear
 import torch
 from torch import nn
 import torch.nn.functional as F
+from models.mac.utils_mac import linear
 
 
 class WriteUnit(nn.Module):
     """
-    Implementation of the Write Unit of the MAC network.
+    Implementation of the ``WriteUnit`` of the MAC network.
     """
 
     def __init__(self, dim, self_attention=False, memory_gate=False):
         """
-        Constructor for the write unit.
+        Constructor for the ``WriteUnit``.
 
         :param dim: global 'd' hidden dimension
+        :type dim: int
+
         :param self_attention: whether or not to use self-attention on the previous control states
+        :type self_attention: bool
+
         :param memory_gate: whether or not to use memory gating.
+        :type memory_gate: bool
 
         """
 
@@ -84,11 +91,16 @@ class WriteUnit(nn.Module):
 
     def forward(self, memory_states, read_vector, ctrl_states):
         """
-        Forward pass of the write unit.
+        Forward pass of the ``WriteUnit``.
 
-        :param memory_states: list of all previous memory states, each of shape [batch_size x dim]
-        :param read_vector: current read vector (output of the read unit), shape [batch_size x dim]
-        :param ctrl_states: list of all previous control states, each of shape [batch_size x dim]
+        :param memory_states: All previous memory states, each of shape [batch_size x dim].
+        :type memory_states: list
+
+        :param read_vector: current read vector (output of the read unit), shape [batch_size x dim].
+        :type read_vector: torch.tensor
+
+        :param ctrl_states: All previous control states, each of shape [batch_size x dim].
+        :type ctrl_states: list
 
         :return: current memory state, shape [batch_size x mem_dim]
 

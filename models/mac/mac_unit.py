@@ -39,38 +39,46 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""mac_unit.py: Implementation of the MAC cell for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the
-                reference paper."""
+"""
+mac_unit.py: Implementation of the MAC Unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the \
+reference paper.
+"""
 __author__ = "Vincent Marois"
 
-
+import torch
+from torch import nn
 from models.mac.control_unit import ControlUnit
 from models.mac.read_unit import ReadUnit
 from models.mac.write_unit import WriteUnit
-
-from torch import nn
-import torch
-
 from utils.app_state import AppState
 app_state = AppState()
 
 
 class MACUnit(nn.Module):
     """
-    Implementation of the MAC Cell of the MAC network.
+    Implementation of the ``MACUnit`` (iteration over the MAC cell) of the MAC network.
     """
 
     def __init__(self, dim, max_step=12, self_attention=False,
                  memory_gate=False, dropout=0.15):
         """
-        Constructor for the MAC Unit, which represents the recurrence over the
+        Constructor for the ``MACUnit``, which represents the recurrence over the \
         MACCell.
 
-        :param dim: global 'd' hidden dimension
-        :param max_step: maximal number of MAC cells.
-        :param self_attention: whether or not to use self-attention in the WriteUnit.
-        :param memory_gate: whether or not to use memory gating in the WriteUnit.
-        :param dropout: dropout probability for the variational dropout mask.
+        :param dim: global 'd' hidden dimension.
+        :type dim: int
+
+        :param max_step: maximal number of MAC cells. Default: 12
+        :type max_step: int
+
+        :param self_attention: whether or not to use self-attention in the ``WriteUnit``. Default: ``False``.
+        :type self_attention: bool
+
+        :param memory_gate: whether or not to use memory gating in the ``WriteUnit``. Default: ``False``.
+        :type memory_gate: bool
+
+        :param dropout: dropout probability for the variational dropout mask. Default: 0.15
+        :type dropout: float
 
         """
 
@@ -99,7 +107,10 @@ class MACUnit(nn.Module):
         Create a dropout mask to be applied on x.
 
         :param x: tensor of arbitrary shape to apply the mask on.
+        :type x: torch.tensor
+
         :param dropout: dropout rate.
+        :type dropout: float
 
         :return: mask.
 
@@ -115,13 +126,20 @@ class MACUnit(nn.Module):
 
     def forward(self, context, question, knowledge, kb_proj):
         """
-        Forward pass of the MACUnit, which represents the recurrence over the
+        Forward pass of the ``MACUnit``, which represents the recurrence over the \
         MACCell.
 
         :param context: contextual words, shape [batch_size x maxQuestionLength x dim]
+        :type context: torch.tensor
+
         :param question: questions encodings, shape [batch_size x 2*dim]
-        :param knowledge: knowledge_base (feature maps extracted by a CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
-        :return:
+        :type question: torch.tensor
+
+        :param knowledge: knowledge_base (feature maps extracted by a CNN), shape \
+        [batch_size x nb_kernels x (feat_H * feat_W)].
+        :type knowledge: torch.tensor
+
+        :return: list of the memory states.
 
         """
         batch_size = question.size(0)
