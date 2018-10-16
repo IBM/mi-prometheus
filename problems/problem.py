@@ -18,6 +18,7 @@
 """problem.py: contains base class for all problems"""
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
+import signal
 import torch
 import logging
 import numpy as np
@@ -343,7 +344,13 @@ class Problem(Dataset):
 
         :return: ``None`` by default
         """
+        # Set random seed of a worker.
         np.random.seed(seed=np.random.get_state()[1][0] + worker_id)
+
+        # Ignores SIGINT signal - what enables "nice" termination of dataloader worker threads.
+        # https://discuss.pytorch.org/t/dataloader-multiple-workers-and-keyboardinterrupt/9740/2
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+
 
     def get_data_definitions(self):
         """

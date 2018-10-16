@@ -341,9 +341,12 @@ class OffLineTrainer(Trainer):
 
             self.logger.info('Experiment finished!')
 
-        except SystemExit:
+        except SystemExit as e:
             # the training did not end properly
             self.logger.error('Experiment interrupted because {}'.format(e))
+        except KeyboardInterrupt:
+            # the training did not end properly
+            self.logger.error('Experiment interrupted!')
         finally:
             # Finalize statistics collection.
             self.finalize_statistics_collection()
