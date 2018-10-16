@@ -18,18 +18,16 @@
 """
 grid_trainer_cpu.py:
 
-    - This file contains the implementation of a worker spanning a grid of training experiments on\
-     a collection of CPUs. It works by loading a template yaml file, modifying the resulting dict, and dumping\
-      that as yaml into a temporary file. The ``Trainer`` is then executed using the temporary yaml file as the task.\
-      It will run as many concurrent jobs as possible.
+    - This file contains the implementation of a worker spanning a grid of training experiments on \
+     a collection of CPUs. It works by loading a template yaml file, modifying the resulting dict, and dumping \
+      that as yaml into a temporary file. The specified ``Trainer`` is then executed using the temporary yaml \
+      file as the task. This grid trainer will run as many concurrent jobs as possible.
 
 """
 __author__ = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta, Vincent Marois"
 
-
 import os
 import yaml
-import argparse
 import subprocess
 from time import sleep
 from datetime import datetime
@@ -37,78 +35,91 @@ from functools import partial
 from tempfile import NamedTemporaryFile
 from multiprocessing.pool import ThreadPool
 
-import workers.worker as worker
-from workers.worker import Worker
+from workers.grid_worker import GridWorker
 
 
-def add_arguments(parser: argparse.ArgumentParser):
-    """
-    Add arguments to the specific parser.
-
-    These arguments are related to the  ``GridTrainerCPU``.
-
-    :param parser: ``argparse.ArgumentParser``
-    """
-    # add here all arguments used by the GridTrainerCPU.
-    parser.add_argument('--config',
-                        dest='config',
-                        type=str,
-                        default='',
-                        help='Name of the grid configuration file to be loaded')
-
-    parser.add_argument('--episode_trainer',
-                        dest='episode_trainer',
-                        action='store_true',
-                        help='Select the episode-based Trainer instead of the default (epoch-based)'
-                             ' Trainer. Useful for algorithmic tasks.')
-
-
-class GridTrainerCPU(Worker):
+class GridTrainerCPU(GridWorker):
     """
     Grid Worker managing several training experiments on CPUs.
 
-    Reuses the ``Trainer`` (can specify the base one or the episode one) to start one experiment.
+    Reuses a ``Trainer`` (can specify the ``classic`` one or the ``flexible`` one) to start one experiment.
 
     """
 
-    def __init__(self, flags: argparse.Namespace, cuda=False):
+    def __init__(self, name="GridTrainerCPU"):
         """
         Constructor for the ``GridTrainerCPU``:
 
-            - Recursively loads the configuration files needed for the specified grid tasks,
-            - Set up the log directory path.
+            - Calls the base constructor to set the worker's name and add default command lines arguments,
+            - Adds some ``GridTrainer`` specific command line arguments.
 
-
-        :param flags: Parsed arguments from the parser.
-
-        :param cuda: Whether or not to use CUDA (cf ``GridTrainerGPU``). Default to False.
-        :type cuda: bool
-
+        :param name: Name of the worker (DEFAULT: "GridTrainerCPU").
+        :type name: str
 
         """
         # call base constructor
-        super(GridTrainerCPU, self).__init__(flags)
+        super(GridTrainerCPU, self).__init__(name=name)
 
-        # set logger name
-        self.name = 'GridTrainerCPU'
-        self.set_logger_name(self.name)
+        # add one command line argument
+        self.parser.add_argument('--config',
+                                 dest='config',
+                                 type=str,
+                                 default='',
+                                 help='Name of the configuration file(s) to be loaded. '
+                                      'If specifying more than one file, they must be separated with coma ",".')
+
+        self.parser.add_argument('--flexible_trainer',
+                                 dest='flexible_trainer',
+                                 action='store_true',
+                                 help='Select the FlexibleTrainer instead of the default ClassicTrainer.')
+
+        self.parser.add_argument('--tensorboard',
+                                 action='store',
+                                 dest='tensorboard', choices=[0, 1, 2],
+                                 type=int,
+                                 help="If present, enable logging to TensorBoard. Available log levels:\n"
+                                      "0: Log the collected statistics.\n"
+                                      "1: Add the histograms of the model's biases & weights (Warning: Slow).\n"
+                                      "2: Add the histograms of the model's biases & weights gradients "
+                                      "(Warning: Even slower).")
+
+    def setup_grid_experiment(self, cuda=False):
+        """
+        Setups a specific experiment.
+
+        - Calls the ``super(self).setup_experiment()`` to parse arguments, sets the 3 default sections \
+        (training / validation / test) and sets their dataloaders params.
+
+        - Verifies that the specified config file is valid,
+
+        - Parses it and recursively creates the configurations files for the grid tasks, overwriting \
+        specific sections if indicated (`grid_overwrite` and/or `overwrite` (task specific),
+
+        - Creates the output dir.
+
+
+        :param cuda: Whether to use cuda or not. Default to ``False``.
+        :type cuda: bool
+
+        """
+        super(GridTrainerCPU, self).setup_grid_experiment(cuda=cuda)
 
         # Check if config file was selected.
-        if flags.config == '':
-            print('Please pass grid configuration file as --c parameter')
+        if self.flags.config == '':
+            print('Please pass grid configuration file as --c parameter.')
             exit(-1)
 
         # Check if file exists.
-        if not os.path.isfile(flags.config):
-            print('Error: Grid configuration file {} does not exist'.format(flags.config))
+        if not os.path.isfile(self.flags.config):
+            print('Error: Grid configuration file {} does not exist.'.format(self.flags.config))
             exit(-2)
 
         try:  # open file and get parameter dictionary.
-            with open(flags.config, 'r') as stream:
+            with open(self.flags.config, 'r') as stream:
                 grid_dict = yaml.safe_load(stream)
 
         except yaml.YAMLError as e:
-            print("Error: Coudn't properly parse the {} grid configuration file".format(flags.config))
+            print("Error: Could not properly parse the {} grid configuration file.".format(self.flags.config))
             print('yaml.YAMLERROR:', e)
             exit(-3)
 
@@ -118,7 +129,7 @@ class GridTrainerCPU(Worker):
             self.max_concurrent_run = grid_dict['grid_settings']['max_concurrent_runs']
 
         except KeyError:
-            print("Error: The 'grid_settings' section must define 'experiment_repetitions' and 'max_concurrent_runs'")
+            print("Error: The 'grid_settings' section must define 'experiment_repetitions' and 'max_concurrent_runs'.")
             exit(-4)
 
         # Check the presence of grid_overwrite section.
@@ -133,29 +144,12 @@ class GridTrainerCPU(Worker):
 
         # Check the presence of the tasks section.
         if 'grid_tasks' not in grid_dict:
-            print("Error: Grid configuration is lacking the 'grid_tasks' section")
+            print("Error: Grid configuration is lacking the 'grid_tasks' section.")
             exit(-5)
-
-        # Create a configuration specific to this grid trainer:
-        # set seeds to undefined (-1), CUDA to false and deactivate multiprocessing for `DataLoader`.
-        # It is important not to set the seeds here as they would be identical for all experiments.
-
-        self.param_interface["training"].add_default_params({"seed_numpy": -1,
-                                                            "seed_torch": -1,
-                                                            "cuda": cuda,
-                                                            "dataloader": {'num_workers': 0}})
-        self.param_interface["validation"].add_default_params({"dataloader": {'num_workers': 0}})
-
-        # also doing it for GridTesters as they do not pass their ParamInterface to testers (it is reloaded
-        # from training_configuration.yaml)
-        self.param_interface["testing"].add_default_params({"seed_numpy": -1,
-                                                            "seed_torch": -1,
-                                                            "cuda": cuda,
-                                                            "dataloader": {'num_workers': 0}})
 
         # Create temporary file
         param_interface_file = NamedTemporaryFile(mode='w', delete=False)
-        yaml.dump(self.param_interface.to_dict(), param_interface_file, default_flow_style=False)
+        yaml.dump(self.params.to_dict(), param_interface_file, default_flow_style=False)
 
         configs = []
         overwrite_files = []
@@ -167,7 +161,7 @@ class GridTrainerCPU(Worker):
                 # Retrieve the config(s).
                 current_configs = param_interface_file.name + ',' + task['default_configs']
 
-                # Extend them by batch_overwrite.
+                # Extend them by grid_overwrite.
                 if grid_overwrite_filename is not None:
                     current_configs = grid_overwrite_filename + ',' + current_configs
 
@@ -178,13 +172,13 @@ class GridTrainerCPU(Worker):
                     yaml.dump(task['overwrite'], overwrite_files[-1], default_flow_style=False)
                     current_configs = overwrite_files[-1].name + ',' + current_configs
 
-                # Get list of configs that ne   ed to be loaded.
+                # Get list of configs that need to be loaded.
                 configs.append(current_configs)
 
             except KeyError:
                 pass
 
-        # at this point, configs should contains the str of config file(s) corresponding to the grid_tasks
+        # at this point, configs should contains the str of config file(s) corresponding to the grid_tasks.
 
         # Create list of experiments
         self.experiments_list = []
@@ -195,11 +189,11 @@ class GridTrainerCPU(Worker):
         self.experiments_done = 0
 
         # create experiment directory label of the day
-        self.outdir_str = './experiments_' + '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
+        self.outdir_str = self.flags.outdir + '_{0:%Y%m%d_%H%M%S}'.format(datetime.now())
 
         # add savetag
-        if flags.savetag != '':
-            self.outdir_str = self.outdir_str + "_" + flags.savetag + '/'
+        if self.flags.savetag != '':
+            self.outdir_str = self.outdir_str + "_" + self.flags.savetag + '/'
 
         # Prepare output paths for logging
         while True:  # Dirty fix: if log_dir already exists, wait for 1 second and try again
@@ -210,18 +204,12 @@ class GridTrainerCPU(Worker):
             else:
                 break
 
-    def run_experiment(self, episode_trainer, output_dir: str, experiment_configs: str, prefix=""):
+    def run_experiment(self, experiment_configs: str, prefix=""):
         """
-        Runs the specified experiment using one ``Trainer``.
-
-        :param episode_trainer: Whether to use the ``EpisodeTrainer`` instead of the default ``Trainer``
-        :type episode_trainer: bool
-
-        :param output_dir: Output directory for the experiment files (logging, best model etc.)
-        :type output_dir: str
+        Setups the overall grid of experiments.
 
         :param experiment_configs: Configuration file(s) passed to the trainer using its `--c` argument. If indicating\
-        several config files, they must be separated with coma ",".
+         several config files, they must be separated with coma ",".
         :type experiment_configs: str
 
         :param prefix: Prefix to position before the command string (e.g. 'cuda-gpupick -n 1'). Optional.
@@ -230,21 +218,26 @@ class GridTrainerCPU(Worker):
 
         ..note::
 
-            Statistics exporting to TensorBoard is currently not activated.
-
-            Visualization is deactivated to avoid any user interaction.
+            - Not using the ``--model`` argument of the ``Trainer`` to load a pretrained model.
+            - Visualization is deactivated to avoid any user interaction.
+            - Command-line arguments such as the logging interval (``--li``), tensorboard (``--t``) and log level \
+            (``--ll``) are passed to the used ``Trainer``.
 
 
         """
         # set the command to be executed using the indicated Trainer
-        if episode_trainer:
-            command_str = "{}python3 workers/episode_trainer.py".format(prefix)
+        if self.flags.flexible_trainer:
+            command_str = "{}python3 workers/flexible_trainer.py".format(prefix)
         else:
-            command_str = "{}python3 workers/trainer.py".format(prefix)
+            command_str = "{}python3 workers/classic_trainer.py".format(prefix)
 
         # add experiment config
-        command_str = command_str + " --c {0} --outdir " + output_dir
+        command_str = command_str + " --c {0} --outdir " + self.outdir_str + ' --li ' + str(self.flags.logging_interval) \
+                      + ' --ll ' + str(self.flags.log_level)
         command_str = command_str.format(experiment_configs)
+
+        if self.flags.tensorboard is not None:
+            command_str += " --t " + str(self.flags.tensorboard)
 
         self.logger.info("Starting: {}".format(command_str))
         with open(os.devnull, 'w') as devnull:
@@ -257,42 +250,33 @@ class GridTrainerCPU(Worker):
         if result.returncode != 0:
             self.logger.info("Training exited with code: {}".format(result.returncode))
 
-    def forward(self, flags: argparse.Namespace):
+    def run_grid_experiment(self):
         """
         Main function of the ``GridTrainerCPU``.
 
         Maps the grid experiments to CPU cores in the limit of the maximum concurrent runs allowed or maximum\
          available cores.
 
-        :param flags: Parsed arguments from the parser.
-
         """
         # Ask for confirmation - optional.
-        if flags.confirm:
+        if self.flags.confirm:
             input('Press any key to continue')
 
         # Run in as many threads as there are CPUs available to the script
         max_processes = min(len(os.sched_getaffinity(0)), self.max_concurrent_run)
 
         with ThreadPool(processes=max_processes) as pool:
-            func = partial(GridTrainerCPU.run_experiment, self, flags.episode_trainer, self.outdir_str, prefix="")
+            func = partial(GridTrainerCPU.run_experiment, self, prefix="")
             pool.map(func, self.experiments_list)
 
         self.logger.info('Grid training experiments finished.')
 
 
 if __name__ == '__main__':
-    # Create parser with list of  runtime arguments.
-    argp = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    grid_trainer_cpu = GridTrainerCPU()
 
-    # add default arguments
-    worker.add_arguments(argp)
+    # parse args, load configuration and create all required objects.
+    grid_trainer_cpu.setup_grid_experiment(cuda=False)
 
-    # add grid trainers-specific arguments
-    add_arguments(argp)
-
-    # Parse arguments.
-    FLAGS, unparsed = argp.parse_known_args()
-
-    grid_trainer_cpu = GridTrainerCPU(FLAGS, cuda=False)
-    grid_trainer_cpu.forward(FLAGS)
+    # GO!
+    grid_trainer_cpu.run_grid_experiment()

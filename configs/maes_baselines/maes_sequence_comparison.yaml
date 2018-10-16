@@ -7,7 +7,7 @@ default_configs:
 # Then overwrite problem name(s).
 training:
     problem:
-        name: &name maes_baselines/sequence_comparison_cl
+        name: &name SequenceComparisonCommandLines
         output_bits: &obits 1
 
 validation:

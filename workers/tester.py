@@ -27,19 +27,16 @@ __author__ = "Vincent Marois, Tomasz Kornuta, Younes Bouhadjar"
 
 import os
 import torch
-import numpy as np
 from time import sleep
 from datetime import datetime
 from torch.utils.data.dataloader import DataLoader
 
 from workers.worker import Worker
+from utils.worker_utils import handshake
 from models.model_factory import ModelFactory
 from problems.problem_factory import ProblemFactory
-
 from utils.statistics_collector import StatisticsCollector
 from utils.statistics_aggregator import StatisticsAggregator
-
-from utils.worker_utils import handshake
 
 
 class Tester(Worker):

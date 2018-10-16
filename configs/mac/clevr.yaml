@@ -2,7 +2,7 @@ training:
     cuda: True
     # Problem parameters:
     problem:
-        name: &name clevr
+        name: &name CLEVR
         batch_size: &b 64
         settings:
             data_folder: &dir '/home/vmarois/CLEVR_v1.0' # magellan server
@@ -24,10 +24,9 @@ training:
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     # Terminal condition parameters:
-    terminal_condition:
+    terminal_conditions:
         loss_stop: 0.03
-        max_episodes: 220000  # approx 20 epochs with batch_size of 64
-        max_epochs: 20
+        epoch_limit: 20
 
     # fix the seeds
     seed_torch: 0
@@ -54,6 +53,7 @@ testing:
 
 validation:
     cuda: True
+    partial_validation_interval: 200
     # Problem parameters:
     problem:
         name: *name
@@ -74,7 +74,7 @@ validation:
 
 # Model parameters:
 model:
-    name: mac
+    name: MACNetwork
     dim: 512
     embed_hidden: 300
     max_step: 12
