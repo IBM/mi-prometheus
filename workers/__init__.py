@@ -1,7 +1,7 @@
 from .worker import Worker
 from .trainer import Trainer
-from .classic_trainer import ClassicTrainer
-from .flexible_trainer import FlexibleTrainer
+from .offline_trainer import OffLineTrainer
+from .online_trainer import OnLineTrainer
 from .tester import Tester
 
 from .grid_worker import GridWorker
