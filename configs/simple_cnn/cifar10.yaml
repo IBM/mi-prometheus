@@ -50,10 +50,17 @@ testing:
 # Model parameters:
 model:
     name: simple_cnn   # simple convolutional neural network
-    # Input bits = [control_bits, data_bits]
-    # Output bits = [data_bits]
-    depth_conv1: 6
-    depth_conv2: 16
-    filter_size_conv1: 5
-    filter_size_conv2: 5
-    num_pooling: 2
+    conv1:
+        out_channels: 6
+        kernel_size: 5
+        stride: 1
+        padding: 0
+    conv2:
+        out_channels: 16
+        kernel_size: 5
+        stride: 1
+        padding: 0
+    maxpool1:
+        kernel_size:2
+    maxpool2:
+        kernel_size:2

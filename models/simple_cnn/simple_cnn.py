@@ -15,76 +15,109 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""simple_cnn: a simple Convolutional neural network designed specifically to solve MNIST and CIFAR 10 dataset """
+"""
+simple_cnn: a simple Convolutional Neural Network (CNN) designed specifically to solve MNIST and CIFAR 10 dataset. \
+ To be taken as an illustrative example.
+ """
 
 __author__ = "Younes Bouhadjar"
 
-import numpy as np
 import torch
+import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
 from models.model import Model
-from problems.problem import DataDict
 
 
 class SimpleConvNet(Model):
     """
-    A simple Convolutional neural network designed specifically to solve MNIST
-    and CIFAR 10 dataset, The parameters here are not hardcoded so the user can
-    adjust them for his application.
+    A simple 2 layers CNN designed specifically to solve ``MNIST`` &`` CIFAR10`` datasets. \
+    The parameters here are not hardcoded so the user can adjust them for his application, \
+    and see their impact on the model's behavior.
     """
 
     def __init__(self, params, problem_default_values_={}):
+        """
+        Constructor of the ``SimpleConvNet``. \
+
+        The overall structure of this CNN is as follows. We indicate also the parameters that the user can change:
+
+            Conv1 -> MaxPool1 -> ReLu -> Conv2 -> MaxPool2 -> ReLu (-> flatten) -> Linear1 -> Linear2 -> Linear3
+
+        For Conv1 & Conv2: number of output channels, kernel size, stride and padding.
+        For MaxPool1 & MaxPool2: Kernel size
+        For Linear3: The number of classes is read from ``problem_default_values_``. The number of output nodes for \
+        Linear1 is set to 120, and Linear2 is fixed to 120 -> 84 for now.
+
+        The size of the images (width, height, number of channels) are read from ``problem_default_values_``. \
+        Also, it is possible that the images are padded (with 0s) by the ``Problem`` class. The padding values \
+        (e.g. [2,2,2,2]) should be indicated in ``problem_default_values_``, so that we can adjust the width & height.
+
+        .. warning::
+
+            The images will be upscaled to [224, 224] (which is the input size of AlexNet, so this would \
+            allow for comparison) if ``problem_default_values_['up_scaling']`` is ``True``.
+
+
+        :param params: dictionary of parameters (read from the ``.yaml`` configuration file.)
+
+        :param problem_default_values_: default values coming from the ``Problem`` class.
+        :type problem_default_values_: dict
+
+        """
+        # call base constructor.
         super(SimpleConvNet, self).__init__(params)
-        """
-        Constructor of the SimpleConvNet
 
-        :param: dictionary of parameters
-        """
+        # retrieve the cnn parameters from the configuration
+        self.depth_conv1 = params['out_channels_conv1']
+        self.depth_conv2 = params['out_channels_conv2']
 
-        # retrieve parameters from the yaml file
-        # cnn parameters
-        self.depth_conv1 = params['depth_conv1']
-        self.depth_conv2 = params['depth_conv2']
         self.filter_size_conv1 = params['filter_size_conv1']
         self.filter_size_conv2 = params['filter_size_conv2']
-        self.num_pooling = params['num_pooling']
 
+        self.kernel_size_pooling = params['kernel_size_pooling']
+
+        self.conv_stride = params['conv_stride']
+
+        # model name
         self.name = 'SimpleConvNet'
 
-        # get image informations from the problem class
+        # get image information from the problem class
         try:
-            # image size
-            self.num_channels = problem_default_values_['num_channels']
+            self.num_channels = problem_default_values_['num_channels']  # number of channels
+
+            # upscale the image to [224, 224] if indicated
             self.height = 224 if problem_default_values_['up_scaling'] else problem_default_values_['height']
             self.width = 224 if problem_default_values_['up_scaling'] else problem_default_values_['width']
+
+            # padding to use if specified.
             self.padding = problem_default_values_['padding']
 
-            # number of output neurons
+            # number of output nodes
             self.nb_classes = problem_default_values_['nb_classes']
 
         except BaseException:
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
-        self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width], 'type': [torch.Tensor]},
+        self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width],
+                                            'type': [torch.Tensor]},
                                  'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
                                  }
 
+        # take into account the padding.
         self.height_padded = self.height + sum(self.padding[0:2])
         self.width_padded = self.width + sum(self.padding[2:4])
 
-        # Input size of the first fully connected layer:
         # We can compute the spatial size of the output volume as a function of the input volume size (W),
         # the receptive field size of the Conv Layer neurons (F), the stride with which they are applied (S),
-        # and the amount of zero padding used (P) on the border. You can convince yourself that the correct formula
-        # for calculating how many neurons “fit” is given by  (W−F+2P)/S+1.
+        # and the amount of zero padding used (P) on the border.
+        # The corresponding equation is conv_size = ((W−F+2P)/S)+1.
 
-        # TODO: for now we assume that padding = 0 and stride = 1
         self.width_features_conv1 = np.floor(
-            ((self.width_padded - self.filter_size_conv1) + 1) / self.num_pooling)
+            ((self.width - self.filter_size_conv1 + sum(self.padding[2:4])) / self.conv_stride) + 1)
         self.height_features_conv1 = np.floor(
-            ((self.height_padded - self.filter_size_conv1) + 1) / self.num_pooling)
+            ((self.height - self.filter_size_conv1 + sum(self.padding[0:2])) / self.conv_stride) + 1)
 
         self.width_features_conv2 = np.floor(
             ((self.width_features_conv1 - self.filter_size_conv2) + 1) / self.num_pooling)

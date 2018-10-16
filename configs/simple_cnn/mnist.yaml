@@ -57,8 +57,10 @@ model:
     name: SimpleConvNet   # simple convolutional neural network
     # Input bits = [control_bits, data_bits]
     # Output bits = [data_bits]
-    depth_conv1: 10
-    depth_conv2: 20
+    out_channels_conv1: 10
+    out_channels_conv2: 20
     filter_size_conv1: 6
     filter_size_conv2: 6
-    num_pooling: 2
+    kernel_size_pooling: 2
+    conv_padding: 0
+    conv_stride: 1
