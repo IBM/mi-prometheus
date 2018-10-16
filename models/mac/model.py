@@ -50,19 +50,17 @@ model.py:
 __author__ = "Vincent Marois , Vincent Albouy"
 
 import os
+import nltk
 import torch
 import numpy as np
+from PIL import Image
 import torch.nn.functional as F
-
+from torchvision import transforms
 from models.model import Model
 
 from models.mac.input_unit import InputUnit
 from models.mac.mac_unit import MACUnit
 from models.mac.output_unit import OutputUnit
-from PIL import Image
-from torchvision import transforms
-
-import nltk
 
 
 class MACNetwork(Model):
@@ -126,7 +124,9 @@ class MACNetwork(Model):
             self.mac_unit.cell_state_history = []
 
         # unpack data_dict
-        images, questions, questions_length, _, _, _, _, _, _ = data_dict.values()
+        images = data_dict['img']
+        questions = data_dict['question']
+        questions_length = data_dict['question_length']
 
         # input unit
         img, kb_proj, lstm_out, h = self.input_unit(
@@ -143,7 +143,7 @@ class MACNetwork(Model):
     @staticmethod
     def generate_figure_layout():
         """
-        Generate a figure layout for the attention visualization (done in
+        Generate a figure layout for the attention visualization (done in \
         ``MACNetwork.plot()``)
 
         :return: figure layout.
@@ -222,7 +222,13 @@ class MACNetwork(Model):
             self.plotWindow = TimePlot()
 
         # unpack data_dict
-        _, _, _, s_questions, question_type, _, answer_string, index, imgfiles, prediction_string, clevr_dir = data_dict.values()
+        s_questions = data_dict['question_string']
+        question_type = data_dict['question_type']
+        answer_string = data_dict['targets_string']
+        index = data_dict['index']
+        imgfiles = data_dict['imgfile']
+        prediction_string = data_dict['prediction_string']
+        clevr_dir = data_dict['clevr_dir']
 
         # needed for nltk.word.tokenize
         nltk.download('punkt')
@@ -327,15 +333,14 @@ if __name__ == '__main__':
 
     from problems.image_text_to_class.clevr import CLEVR
     problem_params = ParamInterface()
-    problem_params.add_custom_params({'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
-                               'set': 'train',
-                               'dataset_variant': 'CLEVR'},
+    problem_params.add_config_params({'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
+                                                   'set': 'train', 'dataset_variant': 'CLEVR'},
 
-                               'images': {'raw_images': False,
-                                          'feature_extractor': {'cnn_model': 'resnet101',
-                                                                'num_blocks': 4}},
+                                      'images': {'raw_images': False,
+                                                 'feature_extractor': {'cnn_model': 'resnet101',
+                                                                       'num_blocks': 4}},
 
-                               'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
+                                      'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
 
     # create problem
     clevr_dataset = CLEVR(problem_params)
@@ -346,12 +351,12 @@ if __name__ == '__main__':
     problem = DataLoader(clevr_dataset, batch_size=batch_size, collate_fn=clevr_dataset.collate_fn)
 
     model_params = ParamInterface()
-    model_params.add_custom_params({'dim': dim,
-                              'embed_hidden': embed_hidden,
-                              'max_step': 12,
-                              'self_attention': self_attention,
-                              'memory_gate': memory_gate,
-                              'dropout': dropout})
+    model_params.add_config_params({'dim': dim,
+                                    'embed_hidden': embed_hidden,
+                                    'max_step': 12,
+                                    'self_attention': self_attention,
+                                    'memory_gate': memory_gate,
+                                    'dropout': dropout})
 
     model = MACNetwork(model_params, clevr_dataset.default_values)
     print('Model {} instantiated.'.format(model.name))
