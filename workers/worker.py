@@ -108,6 +108,11 @@ class Worker(object):
                                  help='Path to the file containing the saved parameters'
                                       ' of the model to load (model checkpoint, should end with a .pt extension.)')
 
+        self.parser.add_argument('--gpu',
+                                 dest='confirm',
+                                 action='store_false',
+                                 help='Worker will perform computations on GPUs, if availablein the system (Default: False)')
+
         self.parser.add_argument('--outdir',
                                  dest='outdir',
                                  type=str,
@@ -398,26 +403,21 @@ class Worker(object):
         # Done, return list of loaded configs.
         return configs_parsed
 
-    def check_and_set_cuda(self, params):
+    def check_and_set_cuda(self, use_gpu):
         """
-        Enables CUDA if available and sets the default data types.
+        Enables computations on CUDA if GPU is available.
+        Sets the default data types.
 
-        :param params: Section in config/param registry that will be used \
-            ("training" or "testing" only will be taken into account.)
+        :param use_gpu: Command line flag indicating whether use GPU/CUDA or not. 
 
         """
-        # Set CUDA to false by default.
-        params.add_default_params({'cuda': False})
-        # Get actual CUDA value.
-        turn_on_cuda = params['cuda']
-
-        # Determine if CUDA is to be used.
+        # Determine if GPU/CUDA is available.
         if torch.cuda.is_available():
-            if turn_on_cuda:
+            if use_gpu:
                 self.app_state.convert_cuda_types()
-                self.logger.info('Running with CUDA enabled')
-        elif turn_on_cuda:
-            self.logger.warning('CUDA is enabled but there is no available GPU device, using CPU instead')
+                self.logger.info('Running computations on GPU using CUDA enabled')
+        elif use_gpu:
+            self.logger.warning('GPU flag is enabled but there are no available GPU devices, using CPU instead')
 
     def predict_evaluate_collect(self, model, problem, data_dict, stat_col, episode, epoch=None):
         """
