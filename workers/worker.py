@@ -110,8 +110,9 @@ class Worker(object):
 
         self.parser.add_argument('--gpu',
                                  dest='use_gpu',
-                                 action='store_false',
-                                 help='Worker will perform computations on GPUs, if availablein the system (Default: False)')
+                                 action='store_true',
+                                 help='The current worker will move the computations on GPU devices, if available in '
+                                      'the system. (Default: False)')
 
         self.parser.add_argument('--outdir',
                                  dest='outdir',
@@ -418,6 +419,8 @@ class Worker(object):
                 self.logger.info('Running computations on GPU using CUDA enabled')
         elif use_gpu:
             self.logger.warning('GPU flag is enabled but there are no available GPU devices, using CPU instead')
+        else:
+            self.logger.warning('GPU flag is disabled, using CPU.')
 
     def predict_evaluate_collect(self, model, problem, data_dict, stat_col, episode, epoch=None):
         """

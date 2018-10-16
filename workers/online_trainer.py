@@ -102,7 +102,7 @@ class OnLineTrainer(Trainer):
         self.params["training"]["terminal_conditions"].add_default_params({'episode_limit': 100000})
         self.episode_limit = self.params['training']['terminal_conditions']['episode_limit']
         if self.episode_limit <= 0:
-            self.logger.error("On-Line Trainer relies on episodes, thus Episode Limit must be a positive number!")
+            self.logger.error("OnLine Trainer relies on episodes, thus Episode Limit must be a positive number!")
             exit(-5)
         else:
             self.logger.info("Setting the Episode Limit to: {}".format(self.episode_limit))

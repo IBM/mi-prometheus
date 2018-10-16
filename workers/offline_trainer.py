@@ -86,7 +86,7 @@ class OffLineTrainer(Trainer):
         self.params["training"]["terminal_conditions"].add_default_params({'epoch_limit': 10})
         self.epoch_limit = self.params["training"]["terminal_conditions"]["epoch_limit"]
         if self.epoch_limit <= 0:
-            self.logger.error("Off-Line Trainer relies on epochs, thus Epoch Limit must be a positive number!")
+            self.logger.error("OffLine Trainer relies on epochs, thus Epoch Limit must be a positive number!")
             exit(-5)
         else:
             self.logger.info("Setting the Epoch Limit to: {}".format(self.epoch_limit))

@@ -57,7 +57,7 @@ class GridTrainerCPU(GridWorker):
         :type name: str
 
         :param use_gpu: Indicates whether the worker should use GPU or not.
-        :type name: bool
+        :type use_gpu: bool
 
         """
         # call base constructor
@@ -232,7 +232,7 @@ class GridTrainerCPU(GridWorker):
             command_str = "{}python3 workers/offline_trainer.py".format(prefix)
 
         # Add gpu flag if required.
-        if (self.app_state.use_CUDA):
+        if self.app_state.use_CUDA:
             command_str += " --gpu "
 
         # Add experiment config(s).
