@@ -43,7 +43,7 @@ class GridTesterCPU(GridWorker):
 
     """
 
-    def __init__(self, name="GridTesterCPU"):
+    def __init__(self, name="GridTesterCPU", use_gpu=False):
         """
         Constructor for the ``GridTesterCPU``:
 
@@ -53,9 +53,12 @@ class GridTesterCPU(GridWorker):
         :param name: Name of the worker (DEFAULT: "GridTesterCPU").
         :type name: str
 
+        :param use_gpu: Indicates whether the worker should use GPU or not.
+        :type name: bool
+
         """
         # call base constructor
-        super(GridTesterCPU, self).__init__(name=name)
+        super(GridTesterCPU, self).__init__(name=name,use_gpu=use_gpu)
 
         # get number_of_repetitions
         self.parser.add_argument('--n',
@@ -64,7 +67,7 @@ class GridTesterCPU(GridWorker):
                                  default=1,
                                  help='Number of test experiments to run for each model.')
 
-    def setup_grid_experiment(self, cuda=False):
+    def setup_grid_experiment(self):
         """
          Setups the overall grid of experiments:
 
@@ -78,7 +81,7 @@ class GridTesterCPU(GridWorker):
         :type cuda: bool
 
         """
-        super(GridTesterCPU, self).setup_grid_experiment(cuda=cuda)
+        super(GridTesterCPU, self).setup_grid_experiment()
 
         directory_chckpnts = self.flags.outdir
         num_tests = self.flags.num_tests
@@ -131,6 +134,9 @@ class GridTesterCPU(GridWorker):
             command_str = "{}python3 workers/tester.py --model {} --li {} --ll {}".format(prefix, path_to_model,
                                                                                        self.flags.logging_interval,
                                                                                        self.flags.log_level)
+            # Add gpu flag if required.
+            if (self.app_state.use_CUDA):
+                command_str += " --gpu "
 
             self.logger.info("Starting: {}".format(command_str))
             with open(os.devnull, 'w') as devnull:
@@ -168,7 +174,7 @@ if __name__ == '__main__':
     grid_tester_cpu = GridTesterCPU()
 
     # parse args, load configuration and create all required objects.
-    grid_tester_cpu.setup_grid_experiment(cuda=False)
+    grid_tester_cpu.setup_grid_experiment()
 
     # GO!
     grid_tester_cpu.run_grid_experiment()

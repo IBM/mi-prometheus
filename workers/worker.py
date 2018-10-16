@@ -109,7 +109,7 @@ class Worker(object):
                                       ' of the model to load (model checkpoint, should end with a .pt extension.)')
 
         self.parser.add_argument('--gpu',
-                                 dest='confirm',
+                                 dest='use_gpu',
                                  action='store_false',
                                  help='Worker will perform computations on GPUs, if availablein the system (Default: False)')
 

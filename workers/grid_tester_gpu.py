@@ -46,7 +46,7 @@ class GridTesterGPU(GridTesterCPU):
 
     """
 
-    def __init__(self, name="GridTesterGPU"):
+    def __init__(self, name="GridTesterGPU", use_gpu=True):
         """
         Constructor for the ``GridTesterGPU``:
 
@@ -56,9 +56,12 @@ class GridTesterGPU(GridTesterCPU):
         :param name: Name of the worker (DEFAULT: "GridTesterGPU").
         :type name: str
 
+        :param use_gpu: Indicates whether the worker should use GPU or not.
+        :type name: bool
+
         """
         # call base constructor
-        super(GridTesterGPU, self).__init__(name=name)
+        super(GridTesterGPU, self).__init__(name=name,use_gpu=use_gpu)
 
     def run_grid_experiment(self):
         """
@@ -97,7 +100,7 @@ if __name__ == '__main__':
     grid_tester_gpu = GridTesterGPU()
 
     # parse args, load configuration and create all required objects.
-    grid_tester_gpu.setup_grid_experiment(cuda=True)
+    grid_tester_gpu.setup_grid_experiment()
 
     # GO!
     grid_tester_gpu.run_grid_experiment()

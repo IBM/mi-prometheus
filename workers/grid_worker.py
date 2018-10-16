@@ -42,7 +42,7 @@ class GridWorker(object):
     All grid workers should subclass it and override the relevant methods.
     """
 
-    def __init__(self, name="GridWorker"):
+    def __init__(self, name="GridWorker", use_gpu=False):
         """
         Base constructor for all grid workers:
 
@@ -63,6 +63,10 @@ class GridWorker(object):
         :param name: Name of the worker (DEFAULT: "GridWorker").
         :type name: str
 
+        :param use_gpu: Indicates whether the worker should use GPU or not. Value coming from the subclasses \
+         (e.g. ``GridTrainerCPU`` vs ``GridTrainerGPU``) (DEFAULT: False).
+        :type name: bool
+
         """
         # Call base constructor.
         super(GridWorker, self).__init__()
@@ -72,6 +76,7 @@ class GridWorker(object):
 
         # Initialize the application state singleton.
         self.app_state = AppState()
+        self.app_state.use_CUDA = use_gpu
 
         # Initialize parameter interface/registry.
         self.params = ParamInterface()
@@ -126,7 +131,7 @@ class GridWorker(object):
                                  help='Request user confirmation before starting the grid experiment.'
                                       '  (Default: False)')
 
-    def setup_grid_experiment(self, cuda):
+    def setup_grid_experiment(self):
         """
         Setups the overall grid of experiments.
 
@@ -141,12 +146,6 @@ class GridWorker(object):
 
             Child classes should override this method, but still call its parent to draw the basic functionality \
             implemented here.
-
-
-        :param cuda: Whether to use cuda or not. Value coming from the subclasses (e.g. ``GridTrainerCPU`` vs \
-        ``GridTrainerGPU``).
-        :type cuda: bool
-
 
         """
         # Parse arguments.
@@ -164,14 +163,12 @@ class GridWorker(object):
         # It is important not to set the seeds here as they would be identical for all experiments.
         self.params["training"].add_default_params({"seed_numpy": -1,
                                                     "seed_torch": -1,
-                                                    "cuda": cuda,
                                                     "dataloader": {'num_workers': 0}})
 
         self.params["validation"].add_default_params({"dataloader": {'num_workers': 0}})
 
         self.params["testing"].add_default_params({"seed_numpy": -1,
                                                    "seed_torch": -1,
-                                                   "cuda": cuda,
                                                    "dataloader": {'num_workers': 0}})
 
     @abstractmethod

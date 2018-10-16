@@ -43,7 +43,7 @@ class GridTrainerGPU(GridTrainerCPU):
     Inherits from ``GridTrainerCPU`` as the constructor & ``setup_grid_experiment`` are identical.
 
     """
-    def __init__(self, name="GridTrainerGPU"):
+    def __init__(self, name="GridTrainerGPU", use_gpu=True):
         """
         Constructor for the ``GridTrainerGPU``:
 
@@ -53,9 +53,12 @@ class GridTrainerGPU(GridTrainerCPU):
         :param name: Name of the worker (DEFAULT: "GridTrainerGPU").
         :type name: str
 
+        :param use_gpu: Indicates whether the worker should use GPU or not.
+        :type name: bool
+
         """
         # call base constructor
-        super(GridTrainerGPU, self).__init__(name=name)
+        super(GridTrainerGPU, self).__init__(name=name,use_gpu=use_gpu)
 
     def run_grid_experiment(self):
         """
@@ -93,7 +96,7 @@ if __name__ == '__main__':
     grid_trainer_gpu = GridTrainerGPU()
 
     # parse args, load configuration and create all required objects.
-    grid_trainer_gpu.setup_grid_experiment(cuda=True)
+    grid_trainer_gpu.setup_grid_experiment()
 
     # GO!
     grid_trainer_gpu.run_grid_experiment()
