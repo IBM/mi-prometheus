@@ -8,11 +8,10 @@ from .mac import *
 #from .ntm import *
 #from .relational_net import *
 #from .seq2seqlstm import *
-from .simple_cnn import *
 #from .stacked_attention_vqa import *
 #from .text2text import *
 #from .thalnet import *
-#from .vision import *
+from .vision import *
 
 from .model import Model
 from .model_factory import ModelFactory

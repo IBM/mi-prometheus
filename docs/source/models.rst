@@ -45,7 +45,7 @@ Model
 
 :hidden:`SimpleConvNet`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.simple_cnn
+.. automodule:: models.vision
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
