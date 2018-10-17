@@ -1,59 +1,47 @@
 # Problem parameters:
 training:
-    seed_numpy: 4354
-    seed_torch: 2452
+    #seed_numpy: 4354
+    #seed_torch: 2452
     problem:
-        name: &name mnist
-        # Size of generated input: [batch_size x sequence_length x number of control and data bits].
-        batch_size: 64
-        start_index: 0
-        stop_index: 54999
+        name: &name MNIST
+        batch_size: &b 64
+        index: [0, 54999]
         use_train_data: True
         padding: &p [0,0,0,0] # ex: (x1, x2, x3, x4) pad last dim by (x1, x2) and 2nd to last by (x3, x4)
-        mnist_folder: '~/data/mnist'
-        cuda: False  # The presence of the 'cuda' key is optional
+        root_dir: '~/data/mnist'
         up_scaling: &scale True # if up_scale true the image is resized to 224 x 224
     # optimizer parameters:
     optimizer:
-        # Exact name of the pytorch optimizer function
         name: Adam
-        # Function arguments of the optimizer, by name
         lr: 0.01
     # settings parameters
-    terminal_condition:
+    terminal_conditions:
         loss_stop: 1.0e-5
-        max_episodes: 50000
+        episode_limit: 50000
+        epochs_limit: 10
 
 # Problem parameters:
 validation:
     problem:
         name: *name
-        # batch size
-        batch_size: 5000
-        start_index: 55000
-        stop_index: 59999
-        use_train_data: True
+        batch_size: *b
+        index: [54999, 59999]
+        use_train_data: True  # True because we are splitting the training set to: validation and training
         padding: *p
-        mnist_folder: '~/data/mnist'
+        root_dir: '~/data/mnist'
         up_scaling: *scale
 
 # Problem parameters:
 testing:
     problem:
         name: *name
-        # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-        batch_size: 10000
-        start_index: 0
-        stop_index: 9999
+        batch_size: *b
         use_train_data: False
         padding: *p
-        mnist_folder: '~/data/mnist'
+        root_dir: '~/data/mnist'
         up_scaling: *scale
 
 # Model parameters:
 model:
-    name: alexnet   # alexnet
-    # Input bits = [control_bits, data_bits]
-    # Output bits = [data_bits]
-    num_classes: 10
-    up_scaling: *scale
+    name: AlexnetWrapper
+    pretrained: False
