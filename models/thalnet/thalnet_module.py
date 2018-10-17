@@ -53,7 +53,7 @@ class ThalnetModule(nn.Module):
         # Parameters needed for the controller
         self.input_context_size = self.input_size + self.context_size
         self.controller_hidden_size = self.output_size + self.center_size_per_module
-        self.controller_type = 'ffgru'
+        self.controller_type = 'FFGRUController'
         self.non_linearity = ''
 
         # Set module
@@ -66,7 +66,7 @@ class ThalnetModule(nn.Module):
             "ff_output_size": center_size_per_module
         }
 
-        self.controller = ControllerFactory.build_model(controller_params)
+        self.controller = ControllerFactory.build_controller(controller_params)
 
     def init_state(self, batch_size):
         """

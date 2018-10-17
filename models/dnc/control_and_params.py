@@ -65,7 +65,7 @@ class ControlParams(nn.Module):
             "non_linearity": self.non_linearity
         }
 
-        self.state_gen = ControllerFactory.build_model(controller_params)
+        self.state_gen = ControllerFactory.build_controller(controller_params)
 
         self.output_gen = nn.Linear(self.hidden_state_size, output_size)
 
