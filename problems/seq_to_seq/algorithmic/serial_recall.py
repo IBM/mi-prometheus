@@ -23,6 +23,9 @@ __author__ = "Tomasz Kornuta, Younes Bouhadjar, Vincent Marois"
 
 import torch
 import numpy as np
+
+from types import MethodType
+
 from problems.problem import DataDict
 from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem
 
@@ -66,7 +69,11 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
         assert self.control_bits >= 2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
         assert self.data_bits >= 2, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
 
-        #self.__getitem__ = self.generate_sample
+        # "Attach" the "__getitem__" and "collate_fn" functions to class.
+        #setattr(self.__class__, '__getitem__', staticmethod(self.generate_sample_ignore_index))
+        #setattr(self.__class__, 'collate_fn', staticmethod(self.collate_samples_from_batch))
+        setattr(self.__class__, '__getitem__', staticmethod(self.generate_sample_ignore_index))
+        setattr(self.__class__, 'collate_fn', staticmethod(self.collate_by_batch_generation))
 
 
     def pad_collate_tensor_list(self, tensor_list, max_seq_len = -1):
@@ -119,10 +126,10 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
         :return: DataDict({'sequences', 'sequences_length', 'targets', 'masks', 'num_subsequences'}), with:
 
             - sequences: [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
-            - sequences_length: random value between self.min_sequence_length and self.max_sequence_length [BATCH_SIZE] 
+            - sequences_length: [BATCH_SIZE, 1] (the same random value between self.min_sequence_length and self.max_sequence_length)
             - targets: [BATCH_SIZE, , 2*SEQ_LENGTH+2, DATA_BITS]
             - masks: [BATCH_SIZE, 2*SEQ_LENGTH+2, 1]
-            - num_subsequences: [BATCH_SIZE]
+            - num_subsequences: [BATCH_SIZE, 1]
 
         """
         # Set sequence length
@@ -178,25 +185,28 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
         return data_dict
 
 
-    def __getitem__(self, index):
+    def generate_sample_ignore_index(self, index):
         """
-        Returns one individual sample generated on-the-fly
+        Returns one individual sample generated on-the-fly.
 
         .. note::
 
             The sequence length is drawn randomly between ``self.min_sequence_length`` and \
             ``self.max_sequence_length``.
 
+        .. warning::
 
-        :param index: index of the sample to return.
+            As the name of the method suggests, ''the index'' will in fact be ignored during generation.
 
-        :return: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}), with:
+        :param index: index of the sample to returned (IGNORED).
+
+        :return: DataDict({'sequences', 'sequences_length', 'targets', 'masks', 'num_subsequences'}), with:
 
             - sequences: [2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS],
-            - **sequences_length: random value between self.min_sequence_length and self.max_sequence_length**
-            - targets: [2*SEQ_LENGTH+2, DATA_BITS],
+            - sequences_length: [1] (random value between self.min_sequence_length and self.max_sequence_length)
+            - targets: [2*SEQ_LENGTH+2, DATA_BITS]
             - masks: [2*SEQ_LENGTH+2]
-            - num_subsequences: 1
+            - num_subsequences: [1]
 
         """
         # Generate batch of size 1.
@@ -204,58 +214,44 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
 
         # Squeeze the batch dimension.
         for key in self.data_definitions.keys():
-            print(key)
-            print(type(data_dict[key]))
             data_dict[key] = data_dict[key].squeeze(0)
 
         return data_dict
 
 
 
-    def collate_fn(self, batch_of_dicts):
+    def collate_samples_from_batch(self, batch_of_dicts):
         """
         Generates a batch of samples on-the-fly
-
-        .. warning::
-            Because of the fact that the sequence length is randomly drawn between ``self.min_sequence_length`` and \
-            ``self.max_sequence_length`` and then fixed for one given batch (**but varies between batches**), \
-            we cannot follow the scheme `merge together individuals samples that can be retrieved in parallel with\
-            several workers.` Indeed, each sample could have a different sequence length, and merging them together\
-            would then not be possible (we cannot have variable-sequence-length samples within one batch \
-            without padding).
-            Hence, ``collate_fn`` generates on-the-fly a batch of samples, all having the same length (initially\
-            randomly selected).
-            The samples created by ``__getitem__`` are simply not used in this function.
-
 
         :param batch_of_dicts: Should be a list of DataDict retrieved by `__getitem__`, each containing tensors, numbers,\
         dicts or lists. --> **Not Used Here!**
 
-        :return: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}), with:
+        :return: DataDict({'sequences', 'sequences_length', 'targets', 'masks', 'num_subsequences'}), with:
 
-            - sequences: [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS],
-            - **sequences_length: random value between self.min_sequence_length and self.max_sequence_length**
-            - targets: [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],
-            - mask: [BATCH_SIZE, [2*SEQ_LENGTH+2]
-            - num_subsequences: 1
+            - sequences: [BATCH_SIZE, 2*MAX_SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS],
+            - sequences_length: [BATCH_SIZE, 1] (random values between self.min_sequence_length and self.max_sequence_length)
+            - targets: [BATCH_SIZE, 2*MAX_SEQ_LENGTH+2, DATA_BITS],
+            - mask: [BATCH_SIZE, [2*MAX_SEQ_LENGTH+2]
+            - num_subsequences: [BATCH_SIZE, 1]
 
         """
-        # Get batch size.
-        batch_size = len(batch_of_dicts)
-
         # Get max total (input+markers+output) length.
         max_batch_total_len = max([d['sequences'].shape[0] for d in batch_of_dicts])
 
         # Collate sequences - add padding to each of them separatelly.
-        collated_sequences = self.pad_collate_tensor_list([d['sequences'] for d in batch_of_dicts])
+        collated_sequences = self.pad_collate_tensor_list(
+            [d['sequences'] for d in batch_of_dicts], max_batch_total_len)
         print(collated_sequences.shape)
 
         # Collate masks.
-        collated_masks = self.pad_collate_tensor_list([d['masks'] for d in batch_of_dicts])
+        collated_masks = self.pad_collate_tensor_list(
+            [d['masks'] for d in batch_of_dicts], max_batch_total_len)
         print(collated_masks.shape)
 
         # Collate targets.
-        collated_targets = self.pad_collate_tensor_list([d['targets'] for d in batch_of_dicts])
+        collated_targets = self.pad_collate_tensor_list(
+            [d['targets'] for d in batch_of_dicts], max_batch_total_len)
         print(collated_targets.shape)
 
         # Collate lengths.
@@ -275,6 +271,52 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
         data_dict['num_subsequences'] = collated_num_subsequences
 
         return data_dict        
+
+
+    def do_not_generate_sample(self, index):
+        """
+        Method used as __getitem__ in "optimized" mode.
+        It simply returns back the received index.
+        Whole generation is made in  ''collate_fn'' (i.e. collate_by_generation_batch'')
+
+        .. warning::
+
+            As the name of the method suggests, the method does not generate the sample.
+
+        :param index: index of the sample to returned (IGNORED).
+
+        :return: index
+
+        """
+        return index
+
+
+
+    def collate_by_batch_generation(self, batch):
+        """
+        Generates a batch of samples on-the-fly.
+
+        .. warning::
+            The samples created by ``__getitem__`` are simply not used in this function.
+            As``collate_fn`` generates on-the-fly a batch of samples relying on the underlying ''generate_batch''\
+            method, all having the same length (randomly selected thought).
+
+        :param batch: **Not Used Here!**
+
+        :return: DataDict({'sequences', 'sequences_length', 'targets', 'masks', 'num_subsequences'}), with:
+
+            - sequences: [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
+            - sequences_length: [BATCH_SIZE, 1] (the same random value between self.min_sequence_length and self.max_sequence_length)
+            - targets: [BATCH_SIZE, , 2*SEQ_LENGTH+2, DATA_BITS]
+            - masks: [BATCH_SIZE, 2*SEQ_LENGTH+2, 1]
+            - num_subsequences: [BATCH_SIZE, 1]
+
+        """
+        # Generate batch of size 1.
+        data_dict = self.generate_batch(len(batch))
+
+        return data_dict
+
 
 
     # method for changing the maximum length, used mainly during curriculum
