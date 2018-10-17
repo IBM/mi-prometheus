@@ -88,7 +88,8 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
                                'max_sequence_length': self.max_sequence_length
                                }
 
-        # TODO: Should derive the actual theoretical limit instead of a arbitrary limit.
+        # Set the default size of the dataset.
+        # TODO: Should derive the actual theoretical limit instead of an arbitrary limit.
         params.add_default_params({'size': 1000})
         # Read value from registry - if it was set in config file, it will override the above default value.
         self.length = params['size']
