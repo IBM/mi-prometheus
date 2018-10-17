@@ -78,7 +78,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
                                  'sequences_length': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'mask': {'size': [-1, -1], 'type': [torch.Tensor]},
+                                 'masks': {'size': [-1, -1], 'type': [torch.Tensor]},
                                  'num_subsequences': {'size': [-1], 'type': [torch.Tensor]},
                                  }
 
