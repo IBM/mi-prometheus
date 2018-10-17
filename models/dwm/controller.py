@@ -54,7 +54,7 @@ class Controller(nn.Module):
         self.output_units = output_units
 
         # State layer dictionary
-        self.controller_type = 'rnn'
+        self.controller_type = 'RNNController'
         self.non_linearity = 'sigmoid'
 
         controller_params = {

@@ -53,7 +53,7 @@ class ThalnetModule(nn.Module):
         # Parameters needed for the controller
         self.input_context_size = self.input_size + self.context_size
         self.controller_hidden_size = self.output_size + self.center_size_per_module
-        self.controller_type = 'ffgru'
+        self.controller_type = 'FFGRUController'
         self.non_linearity = ''
 
         # Set module
