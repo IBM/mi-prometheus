@@ -18,10 +18,10 @@ model:
     pass_cell_state: True
     # Controller parameters.
     controller:
-        name: rnn
+        name: 'RNNController'
         hidden_state_size: 20
         num_layers: 1
-        non_linearity: sigmoid
+        non_linearity: 'sigmoid'
     # Interface
     mae_interface:
         shift_size: 3

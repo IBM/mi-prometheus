@@ -11,12 +11,12 @@ model:
     num_reads: 1
     # Addressing parameters.
     shift_size: 3
-    controller_type: lstm
+    controller_type: 'LSTMController'
     use_ntm_write: False
     use_ntm_read: False
     use_ntm_order: False
     use_extra_write_gate: False
-    non_linearity: sigmoid
+    non_linearity: 'sigmoid'
     # active the plotting of the memory and attention
     plot_memory: False
 
