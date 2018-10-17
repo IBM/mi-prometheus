@@ -1,12 +1,10 @@
 # Problem parameters:
 training:
-    #cuda: True
     #seed_numpy: 4354
     #seed_torch: 2452
     problem:
         name: &name MNIST
-        # Size of generated input: [batch_size x sequence_length x number of control and data bits].
-        batch_size: 64
+        batch_size: &b 64
         start_index: 0
         stop_index: 54999
         use_train_data: True
@@ -15,25 +13,22 @@ training:
         up_scaling: &scale False # if up_scale true the image is resized to 224 x 224
     # optimizer parameters:
     optimizer:
-        # Exact name of the pytorch optimizer function
         name: Adam
-        # Function arguments of the optimizer, by name
         lr: 0.01
     # settings parameters
     terminal_conditions:
         loss_stop: 1.0e-5
-        max_episodes: 50000
-        max_epochs: 10
+        episode_limit: 50000
+        epochs_limit: 10
 
 # Problem parameters:
 validation:
     problem:
         name: *name
-        # batch size
-        batch_size: 5000
+        batch_size: *b
         start_index: 55000
         stop_index: 59999
-        use_train_data: True
+        use_train_data: True  # True because we are splitting the training set to: validation and training
         padding: *p
         root_dir: '~/data/mnist'
         up_scaling: *scale
@@ -42,8 +37,7 @@ validation:
 testing:
     problem:
         name: *name
-        # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-        batch_size: 10000
+        batch_size: *b
         start_index: 0
         stop_index: 9999
         use_train_data: False
@@ -54,13 +48,18 @@ testing:
 
 # Model parameters:
 model:
-    name: SimpleConvNet   # simple convolutional neural network
-    # Input bits = [control_bits, data_bits]
-    # Output bits = [data_bits]
-    out_channels_conv1: 10
-    out_channels_conv2: 20
-    filter_size_conv1: 6
-    filter_size_conv2: 6
-    kernel_size_pooling: 2
-    conv_padding: 0
-    conv_stride: 1
+    name: SimpleConvNet
+    conv1:
+        out_channels: 6
+        kernel_size: 5
+        stride: 1
+        padding: 0
+    conv2:
+        out_channels: 16
+        kernel_size: 5
+        stride: 1
+        padding: 0
+    maxpool1:
+        kernel_size: 2
+    maxpool2:
+        kernel_size: 2

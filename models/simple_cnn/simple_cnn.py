@@ -20,7 +20,7 @@ simple_cnn: a simple Convolutional Neural Network (CNN) designed specifically to
  To be taken as an illustrative example.
  """
 
-__author__ = "Younes Bouhadjar"
+__author__ = "Younes Bouhadjar & Vincent Marois"
 
 import torch
 import numpy as np
@@ -32,7 +32,7 @@ from models.model import Model
 
 class SimpleConvNet(Model):
     """
-    A simple 2 layers CNN designed specifically to solve ``MNIST`` &`` CIFAR10`` datasets. \
+    A simple 2 layers CNN designed specifically to solve ``MNIST`` & ``CIFAR10`` datasets. \
     The parameters here are not hardcoded so the user can adjust them for his application, \
     and see their impact on the model's behavior.
     """
@@ -41,20 +41,31 @@ class SimpleConvNet(Model):
         """
         Constructor of the ``SimpleConvNet``. \
 
-        The overall structure of this CNN is as follows. We indicate also the parameters that the user can change:
+        The overall structure of this CNN is as follows:
 
             Conv1 -> MaxPool1 -> ReLu -> Conv2 -> MaxPool2 -> ReLu (-> flatten) -> Linear1 -> Linear2 -> Linear3
 
-        For Conv1 & Conv2: number of output channels, kernel size, stride and padding.
-        For MaxPool1 & MaxPool2: Kernel size
-        For Linear3: The number of classes is read from ``problem_default_values_``. The number of output nodes for \
-        Linear1 is set to 120, and Linear2 is fixed to 120 -> 84 for now.
+        The parameters that the user can change are:
+
+         - For Conv1 & Conv2: number of output channels, kernel size, stride and padding.
+         - For MaxPool1 & MaxPool2: Kernel size
+         - For Linear3: The number of classes is read from ``problem_default_values_``. The number of output nodes for \
+           Linear1 is set to 120, and Linear2 is fixed to 120 -> 84 for now. Linear3 is 84 -> nb_classes.
+
+
+        .. note::
+
+            We are using the default values of ``dilatation``, ``groups`` & ``bias`` for ``nn.Conv2D``.
+
+            Similarly for the ``stride``, ``padding``, ``dilatation``, ``return_indices`` & ``ceil_mode`` of \
+            ``nn.MaxPool2D``.
+
 
         The size of the images (width, height, number of channels) are read from ``problem_default_values_``. \
         Also, it is possible that the images are padded (with 0s) by the ``Problem`` class. The padding values \
         (e.g. [2,2,2,2]) should be indicated in ``problem_default_values_``, so that we can adjust the width & height.
 
-        .. warning::
+        .. note::
 
             The images will be upscaled to [224, 224] (which is the input size of AlexNet, so this would \
             allow for comparison) if ``problem_default_values_['up_scaling']`` is ``True``.
@@ -67,18 +78,25 @@ class SimpleConvNet(Model):
 
         """
         # call base constructor.
-        super(SimpleConvNet, self).__init__(params)
+        super(SimpleConvNet, self).__init__(params, problem_default_values_)
 
-        # retrieve the cnn parameters from the configuration
-        self.depth_conv1 = params['out_channels_conv1']
-        self.depth_conv2 = params['out_channels_conv2']
+        # retrieve the Conv1 parameters
+        self.out_channels_conv1 = params['conv1']['out_channels']
+        self.kernel_size_conv1 = params['conv1']['kernel_size']
+        self.stride_conv1 = params['conv1']['stride']
+        self.padding_conv1 = params['conv1']['padding']
 
-        self.filter_size_conv1 = params['filter_size_conv1']
-        self.filter_size_conv2 = params['filter_size_conv2']
+        # retrieve the Conv2 parameters
+        self.out_channels_conv2 = params['conv2']['out_channels']
+        self.kernel_size_conv2 = params['conv2']['kernel_size']
+        self.stride_conv2 = params['conv2']['stride']
+        self.padding_conv2 = params['conv2']['padding']
 
-        self.kernel_size_pooling = params['kernel_size_pooling']
+        # retrieve the MaxPool1 parameter
+        self.kernel_size_maxpool1 = params['maxpool1']['kernel_size']
 
-        self.conv_stride = params['conv_stride']
+        # retrieve the MaxPool2 parameter
+        self.kernel_size_maxpool2 = params['maxpool2']['kernel_size']
 
         # model name
         self.name = 'SimpleConvNet'
@@ -87,9 +105,14 @@ class SimpleConvNet(Model):
         try:
             self.num_channels = problem_default_values_['num_channels']  # number of channels
 
-            # upscale the image to [224, 224] if indicated
-            self.height = 224 if problem_default_values_['up_scaling'] else problem_default_values_['height']
-            self.width = 224 if problem_default_values_['up_scaling'] else problem_default_values_['width']
+            # upscale the image to [224, 224] if indicated.
+            if problem_default_values_['up_scaling']:
+                self.height = 224
+                self.width = 224
+                self.logger.warning('Upscaling the images to [224, 224].')
+            else:
+                self.height = problem_default_values_['height']
+                self.width = problem_default_values_['width']
 
             # padding to use if specified.
             self.padding = problem_default_values_['padding']
@@ -100,46 +123,101 @@ class SimpleConvNet(Model):
         except BaseException:
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
-        self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width],
-                                            'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
-                                 }
-
         # take into account the padding.
         self.height_padded = self.height + sum(self.padding[0:2])
         self.width_padded = self.width + sum(self.padding[2:4])
+
+        self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height_padded, self.width_padded],
+                                            'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
+                                 }
 
         # We can compute the spatial size of the output volume as a function of the input volume size (W),
         # the receptive field size of the Conv Layer neurons (F), the stride with which they are applied (S),
         # and the amount of zero padding used (P) on the border.
         # The corresponding equation is conv_size = ((W−F+2P)/S)+1.
 
+        # doc for nn.Conv2D: https://pytorch.org/docs/stable/nn.html#torch.nn.Conv2d
+        # doc for nn.MaxPool2D: https://pytorch.org/docs/stable/nn.html#torch.nn.MaxPool2d
+
+        # Conv1
+        self.conv1 = nn.Conv2d(in_channels=self.num_channels,
+                               out_channels=self.out_channels_conv1,
+                               kernel_size=self.kernel_size_conv1,
+                               stride=self.stride_conv1,
+                               padding=self.padding_conv1,
+                               dilation=1,
+                               groups=1,
+                               bias=True)
+
         self.width_features_conv1 = np.floor(
-            ((self.width - self.filter_size_conv1 + sum(self.padding[2:4])) / self.conv_stride) + 1)
+            ((self.width_padded - self.kernel_size_conv1 + 2*self.padding_conv1) / self.stride_conv1) + 1)
         self.height_features_conv1 = np.floor(
-            ((self.height - self.filter_size_conv1 + sum(self.padding[0:2])) / self.conv_stride) + 1)
+            ((self.height_padded - self.kernel_size_conv1 + 2*self.padding_conv1) / self.stride_conv1) + 1)
+
+        # ----------------------------------------------------
+
+        # MaxPool1
+        self.maxpool1 = nn.MaxPool2d(kernel_size=self.kernel_size_maxpool1)
+
+        self.width_features_maxpool1 = np.floor(
+            ((self.width_features_conv1 - self.maxpool1.kernel_size + 2 * self.maxpool1.padding) / self.maxpool1.stride) + 1)
+
+        self.height_features_maxpool1 = np.floor(
+            ((self.height_features_conv1 - self.maxpool1.kernel_size + 2 * self.maxpool1.padding) / self.maxpool1.stride) + 1)
+
+        # ----------------------------------------------------
+
+        # Conv2
+        self.conv2 = nn.Conv2d(in_channels=self.out_channels_conv1,
+                               out_channels=self.out_channels_conv2,
+                               kernel_size=self.kernel_size_conv2,
+                               stride=self.stride_conv2,
+                               padding=self.padding_conv2,
+                               dilation=1,
+                               groups=1,
+                               bias=True)
 
         self.width_features_conv2 = np.floor(
-            ((self.width_features_conv1 - self.filter_size_conv2) + 1) / self.num_pooling)
+            ((self.width_features_maxpool1 - self.kernel_size_conv2 + 2*self.padding_conv2) / self.stride_conv2) + 1)
         self.height_features_conv2 = np.floor(
-            ((self.height_features_conv1 - self.filter_size_conv2) + 1) / self.num_pooling)
+            ((self.height_features_maxpool1 - self.kernel_size_conv2 + 2*self.padding_conv2) / self.stride_conv2) + 1)
 
-        self.conv1 = nn.Conv2d(
-            self.num_channels,
-            self.depth_conv1,
-            kernel_size=self.filter_size_conv1)
-        self.conv2 = nn.Conv2d(
-            self.depth_conv1,
-            self.depth_conv2,
-            kernel_size=self.filter_size_conv2)
+        # ----------------------------------------------------
 
-        self.fc1 = nn.Linear(
-            self.depth_conv2 *
-            self.width_features_conv2 *
-            self.height_features_conv2,
-            120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, self.nb_classes)
+        # MaxPool2
+        self.maxpool2 = nn.MaxPool2d(kernel_size=self.kernel_size_maxpool2)
+
+        self.width_features_maxpool2 = np.floor(
+            ((self.width_features_conv2 - self.maxpool2.kernel_size + 2 * self.maxpool2.padding) / self.maxpool2.stride) + 1)
+        self.height_features_maxpool2 = np.floor(
+            ((self.height_features_conv2 - self.maxpool2.kernel_size + 2 * self.maxpool2.padding) / self.maxpool2.stride) + 1)
+
+        # ----------------------------------------------------
+
+        # Linear layers
+
+        self.linear1 = nn.Linear(in_features=self.out_channels_conv2 * self.width_features_maxpool2 * self.height_features_maxpool2,
+                                 out_features=120)
+        self.linear2 = nn.Linear(in_features=120, out_features=84)
+        self.linear3 = nn.Linear(in_features=84, out_features=self.nb_classes)
+
+        # log some info.
+        self.logger.info('Computed output shape of each layer:')
+        self.logger.info('Input: [N, {}, {}, {}]'.format(self.num_channels, self.width_padded, self.height_padded))
+        self.logger.info('Conv1: [N, {}, {}, {}]'.format(self.out_channels_conv1, self.width_features_conv1,
+                                                      self.height_features_conv1))
+        self.logger.info('MaxPool1: [N, {}, {}, {}]'.format(self.out_channels_conv1, self.width_features_maxpool1,
+                                                      self.height_features_maxpool1))
+        self.logger.info('Conv2: [N, {}, {}, {}]'.format(self.out_channels_conv2, self.width_features_conv2,
+                                                      self.height_features_conv2))
+        self.logger.info('MaxPool2: [N, {}, {}, {}]'.format(self.out_channels_conv2, self.width_features_maxpool2,
+                                                         self.height_features_maxpool2))
+        self.logger.info('Flatten: [N, {}]'.format(self.out_channels_conv2 * self.width_features_maxpool2 *
+                                                   self.height_features_maxpool2))
+        self.logger.info('Linear1: [N, {}]'.format(self.linear1.out_features))
+        self.logger.info('Linear2: [N, {}]'.format(self.linear2.out_features))
+        self.logger.info('Linear3: [N, {}]'.format(self.linear3.out_features))
 
         if self.app_state.visualize:
             self.output_conv1 = []
@@ -147,7 +225,7 @@ class SimpleConvNet(Model):
 
     def forward(self, data_dict):
         """
-        forward pass of SimpleConvNet model.
+        forward pass of the ``SimpleConvNet`` model.
 
         :param data_dict: DataDict({'images','targets', 'targets_label'}), where:
 
@@ -157,42 +235,48 @@ class SimpleConvNet(Model):
         :return: Predictions [batch_size, num_classes]
 
         """
-        # unpack data_dict
-        images, _, _ = data_dict.values()
+        # get images
+        images = data_dict['images']
 
         # apply Convolutional layer 1
-        x1 = self.conv1(images)
+        out_conv1 = self.conv1(images)
         if self.app_state.visualize:
-            self.output_conv1 = x1
+            self.output_conv1 = out_conv1
 
         # apply max_pooling and relu
-        x1_max_pool = F.relu(F.max_pool2d(x1, self.num_pooling))
+        out_maxpool1 = F.relu(self.maxpool1(out_conv1))
 
         # apply Convolutional layer 2
-        x2 = self.conv2(x1_max_pool)
+        out_conv2 = self.conv2(out_maxpool1)
         if self.app_state.visualize:
-            self.output_conv2 = x2
+            self.output_conv2 = out_conv2
 
         # apply max_pooling and relu
-        x2_max_pool = F.relu(F.max_pool2d(x2, self.num_pooling))
+        out_maxpool2 = F.relu(self.maxpool2(out_conv2))
 
-        x = x2_max_pool.view(-1, self.depth_conv2 *
-                             self.width_features_conv2 * self.height_features_conv2)
+        # flatten for the linear layers
+        x = out_maxpool2.view(-1, self.out_channels_conv2 * self.width_features_maxpool2 * self.height_features_maxpool2)
 
         # apply 3 linear layers
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.relu(self.linear1(x))
+        x = F.relu(self.linear2(x))
+        x = self.linear3(x)
 
         return x
 
     def plot(self, data_dict, predictions, sample_number=0):
         """
-        Simple plot - shows MNIST image with target and actual predicted class.
+        Simple plot - shows the ``Problem``'s images with the target & actual predicted class.\
 
         :param data_dict: DataDict({'images','targets', 'targets_label'})
-        :param predictions: Prediction.
-        :param sample_number: Number of sample in batch (DEFAULT: 0)
+        :type data_dict: utils.DataDict
+
+        :param predictions: Predictions of the ``SimpleConvNet``.
+        :type predictions: torch.tensor
+
+        :param sample_number: Index of the sample in batch (DEFAULT: 0).
+        :type sample_number: int
+
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
@@ -201,7 +285,8 @@ class SimpleConvNet(Model):
         import matplotlib.gridspec as gridspec
 
         # unpack data_dict
-        images, targets, targets_label = data_dict.values()
+        images = data_dict['images']
+        targets = data_dict['targets']
 
         # Get sample.
         image = images[sample_number].cpu().detach().numpy()
@@ -213,32 +298,34 @@ class SimpleConvNet(Model):
             # This is single channel image - get rid of that dimension
             image = np.squeeze(image, axis=0)
         else:
-            # More channels - move channels to axis2, according to matplotilb doc it should be ok
+            # More channels - move channels to axis2
             # (X : array_like, shape (n, m) or (n, m, 3) or (n, m, 4))
             image = image.transpose(1, 2, 0)
 
         # Show data.
-        plt.title('Prediction: {} (Target: {})'.format(
+        plt.title('Prediction: Class # {} (Target: Class # {})'.format(
             np.argmax(prediction), target))
         plt.imshow(image, interpolation='nearest', aspect='auto')
 
-        # feature layer 2
-        f = plt.figure()
-        grid_size = int(np.sqrt(self.depth_conv1)) + 1
+        # Show the feature maps of Conv1
+        f1 = plt.figure()
+        grid_size = int(np.sqrt(self.out_channels_conv1)) + 1
         gs = gridspec.GridSpec(grid_size, grid_size)
 
-        for i in range(self.depth_conv1):
+        for i in range(self.out_channels_conv1):
             ax = plt.subplot(gs[i])
             ax.imshow(self.output_conv1[0, i].detach().numpy())
+        f1.suptitle('feature maps of Conv1')
 
-        # feature layer 1
-        f = plt.figure()
-        grid_size = int(np.sqrt(self.depth_conv2)) + 1
+        # Show the feature maps of Conv2
+        f2 = plt.figure()
+        grid_size = int(np.sqrt(self.out_channels_conv2)) + 1
         gs = gridspec.GridSpec(grid_size, grid_size)
 
-        for i in range(self.depth_conv2):
+        for i in range(self.out_channels_conv2):
             ax = plt.subplot(gs[i])
             ax.imshow(self.output_conv2[0, i].detach().numpy())
+        f2.suptitle('feature maps of Conv2')
 
         # Plot!
         plt.show()
@@ -252,45 +339,48 @@ if __name__ == '__main__':
     from utils.param_interface import ParamInterface
     from torch.utils.data.dataloader import DataLoader
     from problems.image_to_class.mnist import MNIST
-    from problems.image_to_class.cifar10 import CIFAR10
 
     problem_params = ParamInterface()
-    problem_params.add_custom_params({'use_train_data': True,
-                                      'root_dir': '~/data/cifar10',
+    problem_params.add_config_params({'use_train_data': True,
+                                      'root_dir': '~/data/mnist',
                                       'padding': [0, 0, 0, 0],
                                       'up_scaling': False})
     batch_size = 64
 
     # create problem
-    dataset = CIFAR10(problem_params)
-    print('Problem {} instantiated.'.format(dataset.name))
+    problem = MNIST(problem_params)
+    print('Problem {} instantiated.'.format(problem.name))
 
     # instantiate DataLoader object
-    problem = DataLoader(dataset, batch_size=batch_size, collate_fn=dataset.collate_fn)
+    dataloader = DataLoader(problem, batch_size=batch_size, collate_fn=problem.collate_fn)
 
     # Test base model.
     from utils.param_interface import ParamInterface
     model_params = ParamInterface()
-    model_params.add_custom_params({
-        'depth_conv1': 10,
-        'depth_conv2': 20,
-        'filter_size_conv1': 5,
-        'filter_size_conv2': 5,
-        'num_pooling': 2})
+    model_params.add_config_params({'conv1': {'out_channels': 6,
+                                              'kernel_size': 5,
+                                              'stride': 1,
+                                              'padding': 0},
+                                    'conv2': {'out_channels': 16,
+                                              'kernel_size': 5,
+                                              'stride': 1,
+                                              'padding': 0},
+                                    'maxpool1': {'kernel_size': 2},
+                                    'maxpool2': {'kernel_size': 2}})
 
     # model
-    model = SimpleConvNet(model_params, dataset.default_values)
+    model = SimpleConvNet(model_params, problem.default_values)
     print('Model {} instantiated.'.format(model.name))
 
     # perform handshaking between MAC & CLEVR
-    model.handshake_definitions(dataset.data_definitions)
+    model.handshake_definitions(problem.data_definitions)
 
     # generate a batch
-    for i_batch, sample in enumerate(problem):
+    for i_batch, sample in enumerate(dataloader):
         print('Sample # {} - {}'.format(i_batch, sample['images'].shape), type(sample))
         logits = model(sample)
         print(logits.shape)
 
         # Plot it and check whether window was closed or not.
-        #if model.plot(sample, logits):
-        #    break
+        if model.plot(sample, logits):
+            break

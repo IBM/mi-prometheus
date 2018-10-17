@@ -15,13 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""cifar10.py: contains code for loading the `CIFAR10` dataset using ``torchvision``."""
+"""
+cifar10.py: contains code for loading the `CIFAR10` dataset using ``torchvision``.
+"""
 __author__ = "Younes Bouhadjar & Vincent Marois"
 
-import numpy as np
 import torch
-from torchvision import datasets, transforms
+import numpy as np
 import torch.nn.functional as F
+from torchvision import datasets, transforms
+
 
 from problems.problem import DataDict
 from problems.image_to_class.image_to_class_problem import ImageToClassProblem
@@ -68,7 +71,7 @@ class CIFAR10(ImageToClassProblem):
                 - ``self.data_definitions`` :
 
                     >>> self.data_definitions = {'images': {'size': [-1, 3, self.height, self.width], 'type': [torch.Tensor]},
-                    >>>                          'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                    >>>                          'targets': {'size': [-1], 'type': [torch.Tensor]},
                     >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
                     >>>                         }
 
@@ -111,7 +114,7 @@ class CIFAR10(ImageToClassProblem):
         self.width = 224 if self.up_scaling else self.default_values['width']
 
         self.data_definitions = {'images': {'size': [-1, 3, self.height, self.width], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
 
@@ -128,7 +131,6 @@ class CIFAR10(ImageToClassProblem):
         # -> inherits from torch.utils.data.Dataset
 
         self.length = len(self.dataset)
-
         # Class names.
         self.labels = 'Airplane Automobile Bird Cat Deer Dog Frog Horse Shipe Truck'.split(
             ' ')
@@ -208,7 +210,6 @@ if __name__ == "__main__":
 
     # get a sample
     sample = cifar10[0]
-    print(repr(sample))
     print('__getitem__ works.\n')
 
     # wrap DataLoader on top of this Dataset subclass
