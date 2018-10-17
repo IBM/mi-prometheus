@@ -90,7 +90,7 @@ class AlexnetWrapper(Model):
             # inputs_size = (batch_size, num_channel, numb_columns, num_rows)
             num_channel = 3
             inputs_size = (images.size(0), num_channel, images.size(2), images.size(3))
-            inputs = torch.zeros(inputs_size)
+            inputs = torch.zeros(inputs_size).type(self.app_state.dtype)
 
             for i in range(num_channel):
                 inputs[:, None, i, :, :] = images
