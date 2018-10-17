@@ -60,9 +60,9 @@ class ShapeColorQuery(SortOfCLEVR):
         self.data_definitions = {'images': {'size': [-1, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
                                  'questions': {'size': [-1, 3, self.NUM_QUESTIONS],
                                                'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, self.NUM_COLORS + self.NUM_SHAPES + 2],
+                                 'targets_classes': {'size': [-1, self.NUM_COLORS + self.NUM_SHAPES + 2],
                                              'type': [torch.Tensor]},
-                                 'targets_index': {'size': [-1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'scenes_description': {'size': [-1, -1], 'type': [list, str]},
                                  }
 

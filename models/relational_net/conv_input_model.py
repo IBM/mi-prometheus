@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""conv_input_model.py: contains CNN model for the Relational Network."""
+"""conv_input_model.py: contains CNN model for the ``RelationalNetwork``."""
 __author__ = "Vincent Marois"
 
 import torch
@@ -25,18 +25,32 @@ import torch.nn.functional as F
 
 from utils.app_state import AppState
 
+
 class ConvInputModel(nn.Module):
     """
-    Simple 4 layers CNN for image encoding in the Relational Network model.
+    Simple 4 layers CNN for image encoding in the ``RelationalNetwork`` model.
+
     """
 
     def __init__(self):
+        """
+        Constructor.
+
+        Defines the 4 convolutional layers and batch normalization layers.
+
+        This implementation is inspired from the description in the section \
+        'Supplementary Material - CLEVR from pixels' in the reference paper \
+        (https://arxiv.org/pdf/1706.01427.pdf).
+
+
+        """
 
         # call base constructor
         super(ConvInputModel, self).__init__()
 
         # Note: formula for computing the output size is O = floor((W - K + 2P)/S + 1)
         # W is the input height/length, K is the filter size, P is the padding, and S is the stride
+
         # define layers
         # input image size is indicated as 128 x 128 in the paper for this
         # model
@@ -57,6 +71,10 @@ class ConvInputModel(nn.Module):
     def forward(self, img):
         """
         Forward pass of the CNN.
+        :param img: images to pass through the CNN layers. Should be of size [N, 3, 128, 128].
+        :type img: torch.tensor
+
+        :return: output of the CNN. Should be of size [N, 24, 8, 8].
         """
         x = self.conv1(img)
         x = self.batchNorm1(x)
@@ -79,7 +97,7 @@ class ConvInputModel(nn.Module):
 
 if __name__ == '__main__':
     """
-    Unit Test for the ConvInputModel.
+    Unit Test for the ``ConvInputModel``.
     """
 
     # "Image" - batch x channels x width x height

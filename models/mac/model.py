@@ -108,9 +108,9 @@ class MACNetwork(Model):
 
         self.output_unit = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
 
-        self.data_definitions = {'img': {'size': [-1, 1024, 14, 14], 'type': [np.ndarray]},
-                                 'question': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'question_length': {'size': [-1], 'type': [list, int]},
+        self.data_definitions = {'images': {'size': [-1, 1024, 14, 14], 'type': [np.ndarray]},
+                                 'questions': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'questions_length': {'size': [-1], 'type': [list, int]},
                                  'targets': {'size': [-1, self.nb_classes], 'type': [torch.Tensor]}
                                  }
 
@@ -137,9 +137,9 @@ class MACNetwork(Model):
             self.mac_unit.cell_state_history = []
 
         # unpack data_dict
-        images = data_dict['img']
-        questions = data_dict['question']
-        questions_length = data_dict['question_length']
+        images = data_dict['images']
+        questions = data_dict['questions']
+        questions_length = data_dict['questions_length']
 
         # input unit
         img, kb_proj, lstm_out, h = self.input_unit(
@@ -212,8 +212,8 @@ class MACNetwork(Model):
         question & feature maps. Dynamic visualization throughout the reasoning \
         steps is possible.
 
-        :param data_dict: DataDict({'img','question', 'question_length', 'question_string', 'question_type', \
-        'targets', 'targets_string', 'index','imgfile', 'prediction_string'})
+        :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', \
+        'targets', 'targets_string', 'index','imgfiles', 'prediction_string'})
         :type data_dict: utils.DataDict
 
         :param logits: Prediction of the model.
@@ -236,11 +236,11 @@ class MACNetwork(Model):
             self.plotWindow = TimePlot()
 
         # unpack data_dict
-        s_questions = data_dict['question_string']
-        question_type = data_dict['question_type']
+        s_questions = data_dict['questions_string']
+        question_type = data_dict['questions_type']
         answer_string = data_dict['targets_string']
-        imgfiles = data_dict['imgfile']
-        prediction_string = data_dict['prediction_string']
+        imgfiles = data_dict['imgfiles']
+        prediction_string = data_dict['predictions_string']
         clevr_dir = data_dict['clevr_dir']
 
         # needed for nltk.word.tokenize
@@ -381,7 +381,7 @@ if __name__ == '__main__':
 
     # generate a batch
     for i_batch, sample in enumerate(problem):
-        print('Sample # {} - {}'.format(i_batch, sample['img'].shape), type(sample))
+        print('Sample # {} - {}'.format(i_batch, sample['images'].shape), type(sample))
         logits = model(sample)
         clevr_dataset.plot_preprocessing(sample, logits)
         model.plot(sample, logits)

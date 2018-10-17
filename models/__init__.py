@@ -6,7 +6,7 @@ from .encoder_solver import *
 from .mac import *
 #from .multi_hops_attention import *
 #from .ntm import *
-#from .relational_net import *
+from .relational_net import *
 #from .seq2seqlstm import *
 #from .stacked_attention_vqa import *
 #from .text2text import *

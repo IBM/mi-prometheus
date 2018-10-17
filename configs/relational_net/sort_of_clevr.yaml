@@ -1,15 +1,13 @@
 training:
-    cuda: True
     # Problem parameters:
     problem:
-        name: &name sort_of_clevr
+        name: &name SortOfCLEVR
         batch_size: &b 64
         data_folder: '~/data/sort-of-clevr/'
-        data_filename: 'training.hy'
+        split: 'train'
         dataset_size: &ds 12000
+        regenerate: False
         img_size: &imgs 128
-        regenerate: True
-        use_train_data: True
     # Set optimizer.
     optimizer:
         name: Adam
@@ -17,43 +15,33 @@ training:
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     # Terminal condition parameters:
-    terminal_condition:
+    terminal_conditions:
         loss_stop: 0.1
-        max_episodes: 100000
+        episode_limit: 100000
+        epoch_limit: 10
 
 testing:
-    cuda: True
     # Problem parameters:
     problem:
         name: *name
         batch_size: *b
         data_folder: '~/data/sort-of-clevr/'
-        data_filename: 'training.hy'
         dataset_size: *ds
+        split: 'test'
         img_size: *imgs
         regenerate: False
-        use_train_data: False
 
 validation:
-    cuda: True
     # Problem parameters:
     problem:
         name: *name
         batch_size: *b
         data_folder: '~/data/sort-of-clevr/'
-        data_filename: 'training.hy'
+        split: 'val'
         dataset_size: *ds
         img_size: *imgs
         regenerate: False
-        use_train_data: False
-
 
 # Model parameters:
 model:
-    name: relational_network
-    #parameters for the pairwise comparison network (g_theta in the paper)
-    pair_net:
-      input_size: 65 # (24 + 2) * 2 + 13
-    #parameters for the sum analysis network (f_phi in the paper)
-    sum_net:
-      output_size: 10
+    name: RelationalNetwork

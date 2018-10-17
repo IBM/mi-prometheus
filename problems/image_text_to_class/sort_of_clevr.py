@@ -133,13 +133,17 @@ class SortOfCLEVR(ImageTextToClassProblem):
         data_filename = '{}_{}_{}.hy'.format(params['split'], str(self.dataset_size), str(self.img_size))
 
         # define the default_values dict: holds parameters values that a model may need.
-        self.default_values = {'img_size': self.img_size}
+        self.default_values = {'height': self.img_size,
+                               'width': self.img_size,
+                               'num_channels': 3,
+                               'num_classes': 10,
+                               'question_size': 13}
 
         # define the data_definitions dict: holds a description of the DataDict content
         self.data_definitions = {'images': {'size': [-1, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
                                  'questions': {'size': [-1, self.NUM_COLORS+self.NUM_QUESTIONS], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, self.NUM_COLORS+self.NUM_SHAPES+2], 'type': [torch.Tensor]},
-                                 'targets_index': {'size': [-1], 'type': [torch.Tensor]},
+                                 'targets_classes': {'size': [-1, self.NUM_COLORS+self.NUM_SHAPES+2], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'scenes_description': {'size': [-1, -1], 'type': [list, str]},
                                  }
 
@@ -261,8 +265,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
         data_dict['images'] = (sample['image'].value / 255).transpose(2, 1, 0)
         data_dict['questions'] = sample['question'].value.astype(np.float32)
-        data_dict['targets'] = sample['answer'].value.astype(np.float32)
-        data_dict['targets_index'] = np.argmax(data_dict['targets'])
+        data_dict['targets_classes'] = sample['answer'].value.astype(np.float32)
+        data_dict['targets'] = np.argmax(data_dict['targets_classes'])
         data_dict['scenes_description'] = sample['scene_description'].value
 
         return data_dict

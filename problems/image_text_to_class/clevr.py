@@ -175,17 +175,17 @@ class CLEVR(ImageTextToClassProblem):
         self.default_values = {'nb_classes': 28}
 
         # define the data_definitions dict: holds a description of the DataDict content
-        self.data_definitions = {'img': {'size': [-1, 3, 480, 320] if params['images']['raw_images']
+        self.data_definitions = {'images': {'size': [-1, 3, 480, 320] if params['images']['raw_images']
                                                                    else [-1, 1024, 14, 14],
-                                         'type': [np.ndarray]},
-                                 'question': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'question_length': {'size': [-1], 'type': [list, int]},
-                                 'question_string': {'size': [-1, -1], 'type': [list, str]},
-                                 'question_type': {'size': [-1, -1], 'type': [list, str]},
+                                            'type': [np.ndarray]},
+                                 'questions': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'questions_length': {'size': [-1], 'type': [list, int]},
+                                 'questions_string': {'size': [-1, -1], 'type': [list, str]},
+                                 'questions_type': {'size': [-1, -1], 'type': [list, str]},
                                  'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets_string': {'size': [-1, -1], 'type': [list, str]},
                                  'index': {'size': [-1], 'type': [list, int]},
-                                 'imgfile': {'size': [-1, -1], 'type': [list, str]}
+                                 'imgfiles': {'size': [-1, -1], 'type': [list, str]}
                                  }
 
         # to compute the accuracy per family
@@ -532,18 +532,18 @@ class CLEVR(ImageTextToClassProblem):
 
         :param index: index of the sample to return.
 
-        :return: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
-        'targets_string', 'index','imgfile'}), with:
+        :return: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', 'targets', \
+        'targets_string', 'index','imgfiles'}), with:
 
-            - img: extracted feature maps from the raw image
-            - question: tensor of word indexes
-            - question_length: len(question)
-            - question_string: original question string
-            - question_type: category of the question (query, count...)
+            - images: extracted feature maps from the raw image
+            - questions: tensor of word indexes
+            - questions_length: len(question)
+            - questions_string: original question string
+            - questions_type: category of the question (query, count...)
             - targets: index of the answer in the answers dictionary
             - targets_string: None for now
             - index: index of the sample
-            - imgfile: image filename
+            - imgfiles: image filename
 
         """
         # load tokenized_question, answer, string_question, image_filename from self.data
@@ -575,15 +575,15 @@ class CLEVR(ImageTextToClassProblem):
         # return everything
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
 
-        data_dict['img'] = img
-        data_dict['question'] = question
-        data_dict['question_length'] = question_length
-        data_dict['question_string'] = question_string
-        data_dict['question_type'] = question_type
+        data_dict['images'] = img
+        data_dict['questions'] = question
+        data_dict['questions_length'] = question_length
+        data_dict['questions_string'] = question_string
+        data_dict['questions_type'] = question_type
         data_dict['targets'] = answer
         # leave data_dict['target_string'] as None
         data_dict['index'] = index
-        data_dict['imgfile'] = imgfile
+        data_dict['imgfiles'] = imgfile
 
         return data_dict
 
@@ -603,16 +603,16 @@ class CLEVR(ImageTextToClassProblem):
         :param batch: list of individual samples to combine
         :type batch: list
 
-        :return: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
-        'targets_string', 'index','imgfile'})
+        :return: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', 'targets', \
+        'targets_string', 'index','imgfiles'})
 
         """
         batch_size = len(batch)
 
         # get max question length, create tensor of shape [batch_size x maxQuestionLength] & sort questions by
         # decreasing length
-        max_len = max(map(lambda x: x['question_length'], batch))
-        sort_by_len = sorted(batch, key=lambda x: x['question_length'], reverse=True)
+        max_len = max(map(lambda x: x['questions_length'], batch))
+        sort_by_len = sorted(batch, key=lambda x: x['questions_length'], reverse=True)
 
         # create tensor containing the embedded questions
         questions = torch.zeros(batch_size, max_len, self.embedding_dim).type(torch.FloatTensor)
@@ -620,18 +620,18 @@ class CLEVR(ImageTextToClassProblem):
         # construct the DataDict and fill it with the batch
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
 
-        data_dict['img'] = torch.stack([elt['img'] for elt in sort_by_len]).type(torch.FloatTensor)
-        data_dict['question_length'] = [elt['question_length'] for elt in sort_by_len]
+        data_dict['images'] = torch.stack([elt['images'] for elt in sort_by_len]).type(torch.FloatTensor)
+        data_dict['questions_length'] = [elt['questions_length'] for elt in sort_by_len]
         data_dict['targets'] = torch.tensor([elt['targets'] for elt in sort_by_len]).type(torch.LongTensor)
-        data_dict['question_string'] = [elt['question_string'] for elt in sort_by_len]
+        data_dict['questions_string'] = [elt['questions_string'] for elt in sort_by_len]
         data_dict['index'] = [elt['index'] for elt in sort_by_len]
-        data_dict['imgfile'] = [elt['imgfile'] for elt in sort_by_len]
-        data_dict['question_type'] = [elt['question_type'] for elt in sort_by_len]
+        data_dict['imgfiles'] = [elt['imgfiles'] for elt in sort_by_len]
+        data_dict['questions_type'] = [elt['questions_type'] for elt in sort_by_len]
 
-        for i, length in enumerate(data_dict['question_length']):  # only way to do this?
-            questions[i, :length, :] = sort_by_len[i]['question']
+        for i, length in enumerate(data_dict['questions_length']):  # only way to do this?
+            questions[i, :length, :] = sort_by_len[i]['questions']
 
-        data_dict['question'] = questions
+        data_dict['questions'] = questions
 
         return data_dict
 
@@ -661,14 +661,15 @@ class CLEVR(ImageTextToClassProblem):
         the number of correct predictions & questions per family in self.correct_pred_families (saved
         to file).
 
-        :param data_dict: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
-            'targets_string', 'index','imgfile'})
+        :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', 'targets', \
+            'targets_string', 'index','imgfiles'})
 
         :param logits: network predictions.
 
         """
         # unpack the DataDict
-        _, _, _, _, question_types, targets, _, _, _ = data_dict.values()
+        question_types = data_dict['questions_type']
+        targets = data_dict['targets']
 
         # get correct predictions
         pred = logits.max(1, keepdim=True)[1]
@@ -702,8 +703,8 @@ class CLEVR(ImageTextToClassProblem):
 
         Show a sample of the current DataDict.
 
-        :param data_dict: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
-        'targets_string', 'index','imgfile'})
+        :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', 'targets', \
+        'targets_string', 'index','imgfiles'})
         :type data_dict: DataDict
 
         :param sample: sample index to visualize.
@@ -713,7 +714,10 @@ class CLEVR(ImageTextToClassProblem):
         plt.figure(1)
 
         # unpack data_dict
-        _, _, _, questions_string, question_types, answers, _, _, imgfiles = data_dict.values()
+        questions_string = data_dict['questions_string']
+        question_types = data_dict['questions_type']
+        answers = data_dict['targets']
+        imgfiles = data_dict['imgfiles']
 
         question = questions_string[sample]
         answer = answers[sample]
@@ -738,8 +742,8 @@ class CLEVR(ImageTextToClassProblem):
         Recover the predicted answer (as a string) from the logits and adds it to the current DataDict.
         Will be used in ``models.model.Model.plot()``.
 
-        :param data_dict: DataDict({'img','question', 'question_length', 'question_string', 'question_type', 'targets', \
-        'targets_string', 'index','imgfile'})
+        :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', 'targets', \
+        'targets_string', 'index','imgfiles'})
 
         :param logits: Predictions of the model.
         :type logits: Tensor
@@ -753,7 +757,7 @@ class CLEVR(ImageTextToClassProblem):
         """
 
         # unpack data_dict
-        _, _, _, _, _, answers, _, _, _ = data_dict.values()
+        answers = data_dict['targets']
 
         batch_size = logits.size(0)
 
@@ -767,7 +771,7 @@ class CLEVR(ImageTextToClassProblem):
                 answers[batch_num].data)] for batch_num in range(batch_size)]
 
         data_dict['targets_string'] = answer_string
-        data_dict['prediction_string'] = prediction_string
+        data_dict['predictions_string'] = prediction_string
         data_dict['clevr_dir'] = self.data_folder
 
         return data_dict, logits
