@@ -18,8 +18,8 @@
 """
 classic_trainer.py:
 
-    - This file contains the implementation of the ``ClassicTrainer``, which inherits from ``Trainer``. \
-    The ``ClassicTrainer`` is based on epochs.
+    - This file contains the implementation of the ``OffLineTrainer``, which inherits from ``Trainer``. \
+    The ``OffLineTrainer`` is based on epochs.
 
 """
 __author__ = "Vincent Marois, Tomasz Kornuta"
@@ -30,41 +30,41 @@ from torch.nn.utils import clip_grad_value_
 from workers.trainer import Trainer
 
 
-class ClassicTrainer(Trainer):
+class OffLineTrainer(Trainer):
     """
-    Implementation for the epoch-based ``ClassicTrainer``.
+    Implementation for the epoch-based ``OffLineTrainer``.
 
     ..note::
 
-        The default ``ClassicTrainer`` is based on epochs. \
+        The default ``OffLineTrainer`` is based on epochs. \
         An epoch is defined as passing through all samples of a finite-size dataset.\
-        The ``ClassicTrainer`` allows to loop over all samples from the training set many times i.e. in many epochs. \
+        The ``OffLineTrainer`` allows to loop over all samples from the training set many times i.e. in many epochs. \
         When an epochs finishes, it performs a similar step for the validation set and collects the statistics.
 
 
     """
 
-    def __init__(self, name="ClassicTrainer"):
+    def __init__(self, name="OffLineTrainer"):
         """
         Only calls the ``Trainer`` constructor as the initialization phase is identical to the ``Trainer``.
 
-       :param name: Name of the worker (DEFAULT: "ClassicTrainer").
+       :param name: Name of the worker (DEFAULT: "OffLineTrainer").
        :type name: str
 
         """ 
         # Call base constructor to set up app state, registry and add default params.
-        super(ClassicTrainer, self).__init__(name)
+        super(OffLineTrainer, self).__init__(name)
 
     def setup_experiment(self):
         """
-        Sets up an experiment for the ``ClassicTrainer``:
+        Sets up an experiment for the ``OffLineTrainer``:
 
             - Calls base class setup_experiment to parse the command line arguments,
             - Sets up the terminal conditions (loss threshold, episodes (optional) & epochs limits).
 
         """
         # Call base method to parse all command line arguments, load configuration, create problems and model etc.
-        super(ClassicTrainer, self).setup_experiment()
+        super(OffLineTrainer, self).setup_experiment()
 
         ################# TERMINAL CONDITIONS ################# 
         self.logger.info('Terminal conditions:\n' + '='*80)
@@ -86,7 +86,7 @@ class ClassicTrainer(Trainer):
         self.params["training"]["terminal_conditions"].add_default_params({'epoch_limit': 10})
         self.epoch_limit = self.params["training"]["terminal_conditions"]["epoch_limit"]
         if self.epoch_limit <= 0:
-            self.logger.error("Classic Trainer relies on epochs, thus Epoch Limit must be a positive number!")
+            self.logger.error("OffLine Trainer relies on epochs, thus Epoch Limit must be a positive number!")
             exit(-5)
         else:
             self.logger.info("Setting the Epoch Limit to: {}".format(self.epoch_limit))
@@ -352,7 +352,7 @@ class ClassicTrainer(Trainer):
 
 if __name__ == '__main__':
 
-    trainer = ClassicTrainer()
+    trainer = OffLineTrainer()
     # parse args, load configuration and create all required objects.
     trainer.setup_experiment()
     # GO!

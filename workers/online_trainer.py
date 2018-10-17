@@ -16,9 +16,9 @@
 # limitations under the License.
 
 """
-flexible_trainer.py:
+online_trainer.py:
 
-    - This file contains the implementation of the ``FlexibleTrainer``, which inherits from ``Trainer``.
+    - This file contains the implementation of the ``OnLineTrainer``, which inherits from ``Trainer``.
 
 """
 __author__ = "Vincent Marois, Tomasz Kornuta"
@@ -29,9 +29,9 @@ from torch.nn.utils import clip_grad_value_
 from workers.trainer import Trainer
 
 
-class FlexibleTrainer(Trainer):
+class OnLineTrainer(Trainer):
     """
-    Implementation for the episode-based ``FlexibleTrainer``.
+    Implementation for the episode-based ``OnLineTrainer``.
 
     ..note::
 
@@ -39,22 +39,22 @@ class FlexibleTrainer(Trainer):
         it makes less sense for problems which have a very large, almost infinite, dataset (like algorithmic \
         tasks, which generate random data on-the-fly). \
          
-        This is why this FlexibleTrainer was implemented. Instead of looping on epochs, it iterates directly on \
+        This is why this OnLineTrainer was implemented. Instead of looping on epochs, it iterates directly on \
         episodes (we call an iteration on a single batch an episode).
 
 
     """
 
-    def __init__(self, name="FlexibleTrainer"):
+    def __init__(self, name="OnLineTrainer"):
         """
         Only calls the ``Trainer`` constructor as the initialization phase is identical to the ``Trainer``.
 
-       :param name: Name of the worker (DEFAULT: "FlexibleTrainer").
+       :param name: Name of the worker (DEFAULT: "OnLineTrainer").
        :type name: str
 
         """ 
         # Call base constructor to set up app state, registry and add default params.
-        super(FlexibleTrainer, self).__init__(name)
+        super(OnLineTrainer, self).__init__(name)
 
     def setup_experiment(self):
         """
@@ -65,7 +65,7 @@ class FlexibleTrainer(Trainer):
 
         """
         # Call base method to parse all command line arguments, load configuration, create problems and model etc.
-        super(FlexibleTrainer, self).setup_experiment()
+        super(OnLineTrainer, self).setup_experiment()
 
         ################# TERMINAL CONDITIONS ################# 
         self.logger.info('Terminal conditions:\n' + '='*80)
@@ -102,7 +102,7 @@ class FlexibleTrainer(Trainer):
         self.params["training"]["terminal_conditions"].add_default_params({'episode_limit': 100000})
         self.episode_limit = self.params['training']['terminal_conditions']['episode_limit']
         if self.episode_limit <= 0:
-            self.logger.error("Flexible Trainer relies on episodes, thus Episode Limit must be a positive number!")
+            self.logger.error("OnLine Trainer relies on episodes, thus Episode Limit must be a positive number!")
             exit(-5)
         else:
             self.logger.info("Setting the Episode Limit to: {}".format(self.episode_limit))
@@ -110,7 +110,7 @@ class FlexibleTrainer(Trainer):
 
     def run_experiment(self):
         """
-        Main function of the ``FlexibleTrainer``, runs the experiment.
+        Main function of the ``OnLineTrainer``, runs the experiment.
 
         Iterates over the (cycled) DataLoader (one iteration = one episode).
 
@@ -350,7 +350,7 @@ class FlexibleTrainer(Trainer):
 
 if __name__ == '__main__':
 
-    trainer = FlexibleTrainer()
+    trainer = OnLineTrainer()
     # parse args, load configuration and create all required objects.
     trainer.setup_experiment()
     # GO!

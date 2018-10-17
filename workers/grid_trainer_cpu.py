@@ -46,7 +46,7 @@ class GridTrainerCPU(GridWorker):
 
     """
 
-    def __init__(self, name="GridTrainerCPU"):
+    def __init__(self, name="GridTrainerCPU", use_gpu=False):
         """
         Constructor for the ``GridTrainerCPU``:
 
@@ -56,9 +56,12 @@ class GridTrainerCPU(GridWorker):
         :param name: Name of the worker (DEFAULT: "GridTrainerCPU").
         :type name: str
 
+        :param use_gpu: Indicates whether the worker should use GPU or not.
+        :type use_gpu: bool
+
         """
         # call base constructor
-        super(GridTrainerCPU, self).__init__(name=name)
+        super(GridTrainerCPU, self).__init__(name=name,use_gpu=use_gpu)
 
         # add one command line argument
         self.parser.add_argument('--config',
@@ -68,10 +71,10 @@ class GridTrainerCPU(GridWorker):
                                  help='Name of the configuration file(s) to be loaded. '
                                       'If specifying more than one file, they must be separated with coma ",".')
 
-        self.parser.add_argument('--flexible_trainer',
-                                 dest='flexible_trainer',
+        self.parser.add_argument('--online_trainer',
+                                 dest='online_trainer',
                                  action='store_true',
-                                 help='Select the FlexibleTrainer instead of the default ClassicTrainer.')
+                                 help='Select the OnLineTrainer instead of the default OffLineTrainer.')
 
         self.parser.add_argument('--tensorboard',
                                  action='store',
@@ -83,7 +86,7 @@ class GridTrainerCPU(GridWorker):
                                       "2: Add the histograms of the model's biases & weights gradients "
                                       "(Warning: Even slower).")
 
-    def setup_grid_experiment(self, cuda=False):
+    def setup_grid_experiment(self):
         """
         Setups a specific experiment.
 
@@ -98,11 +101,8 @@ class GridTrainerCPU(GridWorker):
         - Creates the output dir.
 
 
-        :param cuda: Whether to use cuda or not. Default to ``False``.
-        :type cuda: bool
-
         """
-        super(GridTrainerCPU, self).setup_grid_experiment(cuda=cuda)
+        super(GridTrainerCPU, self).setup_grid_experiment()
 
         # Check if config file was selected.
         if self.flags.config == '':
@@ -226,16 +226,21 @@ class GridTrainerCPU(GridWorker):
 
         """
         # set the command to be executed using the indicated Trainer
-        if self.flags.flexible_trainer:
-            command_str = "{}python3 workers/flexible_trainer.py".format(prefix)
+        if self.flags.online_trainer:
+            command_str = "{}python3 workers/online_trainer.py".format(prefix)
         else:
-            command_str = "{}python3 workers/classic_trainer.py".format(prefix)
+            command_str = "{}python3 workers/offline_trainer.py".format(prefix)
 
-        # add experiment config
+        # Add gpu flag if required.
+        if self.app_state.use_CUDA:
+            command_str += " --gpu "
+
+        # Add experiment config(s).
         command_str = command_str + " --c {0} --outdir " + self.outdir_str + ' --li ' + str(self.flags.logging_interval) \
                       + ' --ll ' + str(self.flags.log_level)
         command_str = command_str.format(experiment_configs)
 
+        # Add tensorboard flag.
         if self.flags.tensorboard is not None:
             command_str += " --t " + str(self.flags.tensorboard)
 
@@ -244,7 +249,7 @@ class GridTrainerCPU(GridWorker):
             result = subprocess.run(command_str.split(" "), stdout=devnull)
         self.experiments_done += 1
         self.logger.info("Finished: {}".format(command_str))
-        print()
+
         self.logger.info('Number of experiments done: {}/{}.'.format(self.experiments_done, len(self.experiments_list)))
 
         if result.returncode != 0:
@@ -276,7 +281,7 @@ if __name__ == '__main__':
     grid_trainer_cpu = GridTrainerCPU()
 
     # parse args, load configuration and create all required objects.
-    grid_trainer_cpu.setup_grid_experiment(cuda=False)
+    grid_trainer_cpu.setup_grid_experiment()
 
     # GO!
     grid_trainer_cpu.run_grid_experiment()

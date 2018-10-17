@@ -47,7 +47,7 @@ class GridAnalyzer(GridWorker):
     TODO: complete doc
     """
 
-    def __init__(self, name="GridAnalyzer"):
+    def __init__(self, name="GridAnalyzer", use_gpu=False):
         """
         Constructor for the ``GridAnalyzer``:
 
@@ -57,12 +57,14 @@ class GridAnalyzer(GridWorker):
         :param name: Name of the worker (DEFAULT: "GridAnalyzer").
         :type name: str
 
+        :param use_gpu: Indicates whether the worker should use GPU or not.
+        :type use_gpu: bool
 
         """
         # call base constructor
-        super(GridAnalyzer, self).__init__(name=name)
+        super(GridAnalyzer, self).__init__(name=name,use_gpu=use_gpu)
 
-    def setup_grid_experiment(self, cuda=False):
+    def setup_grid_experiment(self):
         """
         Setups the overall experiment:
 
@@ -71,12 +73,8 @@ class GridAnalyzer(GridWorker):
         - Recursively creates the paths to the experiments folders, verifying that they are valid (e.g. \
         contain `training_statistics.csv`, `validation_statistics.csv` and `testing_statistics.csv`).
 
-
-        :param cuda: Whether to use cuda or not. Default to ``False``.
-        :type cuda: bool
-
         """
-        super(GridAnalyzer, self).setup_grid_experiment(cuda=cuda)
+        super(GridAnalyzer, self).setup_grid_experiment()
 
         # Check if experiments directory was indicated.
         if self.flags.outdir == '':
@@ -242,7 +240,7 @@ if __name__ == '__main__':
     grid_analyzer = GridAnalyzer()
 
     # parse args, load configuration and create all required objects.
-    grid_analyzer.setup_grid_experiment(cuda=False)
+    grid_analyzer.setup_grid_experiment()
 
     # GO!
     grid_analyzer.run_grid_experiment()

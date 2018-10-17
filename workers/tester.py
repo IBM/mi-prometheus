@@ -174,7 +174,7 @@ class Tester(Worker):
         self.set_random_seeds(self.params['testing'], 'testing')
 
         # Check if CUDA is available, if yes turn it on.
-        self.check_and_set_cuda(self.params['testing'])
+        self.check_and_set_cuda(self.flags.use_gpu)
 
         ################# TESTING PROBLEM ################# 
 
