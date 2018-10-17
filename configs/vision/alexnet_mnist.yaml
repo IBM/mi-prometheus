@@ -9,7 +9,7 @@ training:
         use_train_data: True
         padding: &p [0,0,0,0] # ex: (x1, x2, x3, x4) pad last dim by (x1, x2) and 2nd to last by (x3, x4)
         root_dir: '~/data/mnist'
-        up_scaling: &scale True # if up_scale true the image is resized to 224 x 224
+        up_scaling: &scale True # if up_scale true, the image is resized to 224 x 224
     # optimizer parameters:
     optimizer:
         name: Adam

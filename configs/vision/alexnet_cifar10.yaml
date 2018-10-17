@@ -1,5 +1,7 @@
 # Problem parameters:
 training:
+    #seed_numpy: 4354
+    #seed_torch: 2452
     problem:
         name: &name CIFAR10
         batch_size: &b 64

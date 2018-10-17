@@ -67,7 +67,7 @@ class AlexnetWrapper(Model):
 
         self.name = 'AlexNetWrapper'
 
-        self.data_definitions = {'images': {'size': [-1, 3, 224, 224],
+        self.data_definitions = {'images': {'size': [-1, -1, 224, 224],
                                             'type': [torch.Tensor]},
                                  'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
                                  }
