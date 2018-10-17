@@ -46,7 +46,7 @@ class Trainer(Worker):
 
     Iterates over epochs on the dataset.
 
-    All other types of trainers (e.g. ``ClassicTrainer`` & ``FlexibleTrainer``) should subclass it.
+    All other types of trainers (e.g. ``OnlineTrainer`` & ``OfflineTrainer``) should subclass it.
 
     """
 
@@ -56,7 +56,7 @@ class Trainer(Worker):
 
             - Adds default trainer command line arguments
 
-        :param name: Name of the worker (DEFAULT: ''Trainer'').
+        :param name: Name of the worker (DEFAULT: "Trainer").
         :type name: str
 
         """ 
@@ -201,7 +201,7 @@ class Trainer(Worker):
         self.set_random_seeds(self.params['training'], 'training')
 
         # Check if CUDA is available, if yes turn it on.
-        self.check_and_set_cuda(self.params['training'])
+        self.check_and_set_cuda(self.flags.use_gpu)
 
         ################# TRAINING PROBLEM ################# 
 

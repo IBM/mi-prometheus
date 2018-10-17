@@ -54,7 +54,7 @@ class GridTesterCPU(GridWorker):
         :type name: str
 
         :param use_gpu: Indicates whether the worker should use GPU or not.
-        :type name: bool
+        :type use_gpu: bool
 
         """
         # call base constructor
@@ -135,7 +135,7 @@ class GridTesterCPU(GridWorker):
                                                                                        self.flags.logging_interval,
                                                                                        self.flags.log_level)
             # Add gpu flag if required.
-            if (self.app_state.use_CUDA):
+            if self.app_state.use_CUDA:
                 command_str += " --gpu "
 
             self.logger.info("Starting: {}".format(command_str))

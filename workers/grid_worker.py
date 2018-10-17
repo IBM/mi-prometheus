@@ -65,7 +65,7 @@ class GridWorker(object):
 
         :param use_gpu: Indicates whether the worker should use GPU or not. Value coming from the subclasses \
          (e.g. ``GridTrainerCPU`` vs ``GridTrainerGPU``) (DEFAULT: False).
-        :type name: bool
+        :type use_gpu: bool
 
         """
         # Call base constructor.

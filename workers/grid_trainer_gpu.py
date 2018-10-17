@@ -54,7 +54,7 @@ class GridTrainerGPU(GridTrainerCPU):
         :type name: str
 
         :param use_gpu: Indicates whether the worker should use GPU or not.
-        :type name: bool
+        :type use_gpu: bool
 
         """
         # call base constructor
