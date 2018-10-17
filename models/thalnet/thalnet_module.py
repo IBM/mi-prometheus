@@ -66,7 +66,7 @@ class ThalnetModule(nn.Module):
             "ff_output_size": center_size_per_module
         }
 
-        self.controller = ControllerFactory.build_model(controller_params)
+        self.controller = ControllerFactory.build_controller(controller_params)
 
     def init_state(self, batch_size):
         """

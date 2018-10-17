@@ -66,7 +66,7 @@ class Controller(nn.Module):
         }
 
         # State layer
-        self.i2s = ControllerFactory.build_model(controller_params)
+        self.i2s = ControllerFactory.build_controller(controller_params)
 
         # Update layer
         self.i2u = nn.Linear(self.ctrl_in_state_dim, self.update_size)
