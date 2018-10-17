@@ -5,8 +5,7 @@ training:
     problem:
         name: &name MNIST
         batch_size: &b 64
-        start_index: 0
-        stop_index: 54999
+        index: [0, 54999]
         use_train_data: True
         padding: &p [0,0,0,0] # ex: (x1, x2, x3, x4) pad last dim by (x1, x2) and 2nd to last by (x3, x4)
         root_dir: '~/data/mnist'
@@ -26,8 +25,7 @@ validation:
     problem:
         name: *name
         batch_size: *b
-        start_index: 55000
-        stop_index: 59999
+        index: [54999, 59999]
         use_train_data: True  # True because we are splitting the training set to: validation and training
         padding: *p
         root_dir: '~/data/mnist'
@@ -38,8 +36,6 @@ testing:
     problem:
         name: *name
         batch_size: *b
-        start_index: 0
-        stop_index: 9999
         use_train_data: False
         padding: *p
         root_dir: '~/data/mnist'
