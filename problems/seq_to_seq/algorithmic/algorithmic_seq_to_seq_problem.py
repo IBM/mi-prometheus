@@ -352,11 +352,12 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         #print("\nnum_subsequences:", data_dict['num_subsequences'])
 
         # show data.
-        ax1.imshow(np.transpose(data_dict['sequences'][sample, :, :], [
-                   1, 0]), interpolation='nearest', aspect='auto')
-        ax2.imshow(np.transpose(data_dict['targets'][sample, :, :], [
-                   1, 0]), interpolation='nearest', aspect='auto')
-        ax3.imshow(data_dict['mask'][sample:sample + 1, :], interpolation='nearest', aspect='auto')
+        ax1.imshow(np.transpose(data_dict['sequences'][sample, :, :], [1, 0]),
+                interpolation='nearest', aspect='auto')
+        ax2.imshow(np.transpose(data_dict['targets'][sample, :, :], [1, 0]),
+                interpolation='nearest', aspect='auto')
+        ax3.imshow(np.transpose(data_dict['masks'][sample, :, :], [1, 0]), 
+                interpolation='nearest', aspect='auto')
         # Plot!
         plt.tight_layout()
         plt.show()
