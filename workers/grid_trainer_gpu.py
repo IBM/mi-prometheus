@@ -27,13 +27,10 @@ grid_trainer_gpu.py:
 
 __author__ = "Alexis Asseman, Younes Bouhadjar, Vincent Marois"
 
-import argparse
 from time import sleep
 from functools import partial
 from multiprocessing.pool import ThreadPool
 
-import workers.worker as worker
-import workers.grid_trainer_cpu as gtc
 from workers.grid_trainer_cpu import GridTrainerCPU
 
 
@@ -41,42 +38,37 @@ class GridTrainerGPU(GridTrainerCPU):
     """
     Grid Worker managing several training experiments on GPUs.
 
-    Reuses the ``Trainer`` (can specify the base one or the episode one) to start one experiment.
+    Reuses a ``Trainer`` (can specify the ``classic`` one or the ``flexible`` one) to start one experiment.
 
-    Inherits from ``GridTrainerCPU`` as the constructor is identical.
+    Inherits from ``GridTrainerCPU`` as the constructor & ``setup_grid_experiment`` are identical.
 
     """
-    def __init__(self, flags: argparse.Namespace, cuda=True):
+    def __init__(self, name="GridTrainerGPU", use_gpu=True):
         """
         Constructor for the ``GridTrainerGPU``:
 
             - Calls the constructor of ``GridTrainerCPU`` as it is identical.
 
 
-        :param flags: Parsed arguments from the parser.
+        :param name: Name of the worker (DEFAULT: "GridTrainerGPU").
+        :type name: str
 
-        :param cuda: Whether or not to use CUDA (cf ``GridTrainerCPU``). Default to True.
-        :type cuda: bool
+        :param use_gpu: Indicates whether the worker should use GPU or not.
+        :type use_gpu: bool
 
         """
         # call base constructor
-        super(GridTrainerGPU, self).__init__(flags, cuda)
+        super(GridTrainerGPU, self).__init__(name=name,use_gpu=use_gpu)
 
-        # set logger name
-        self.name = 'GridTrainerGPU'
-        self.set_logger_name(self.name)
-
-    def forward(self, flags: argparse.Namespace):
+    def run_grid_experiment(self):
         """
         Main function of the ``GridTrainerGPU``.
 
         Maps the grid experiments to CUDA devices in the limit of the maximum concurrent runs allowed.
 
-        :param flags: Parsed arguments from the parser.
-
         """
         # Ask for confirmation - optional.
-        if flags.confirm:
+        if self.flags.confirm:
             input('Press any key to continue')
 
         # Run in as many threads as there are GPUs available to the script
@@ -85,8 +77,7 @@ class GridTrainerGPU(GridTrainerCPU):
             thread_results = []
 
             for task in self.experiments_list:
-                func = partial(GridTrainerGPU.run_experiment, self, flags.episode_trainer, self.outdir_str,
-                               prefix="cuda-gpupick -n1 ")
+                func = partial(GridTrainerGPU.run_experiment, self, prefix="cuda-gpupick -n1 ")
                 thread_results.append(pool.apply_async(func, (task,)))
 
                 # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
@@ -102,17 +93,10 @@ class GridTrainerGPU(GridTrainerCPU):
 
 
 if __name__ == '__main__':
-    # Create parser with list of  runtime arguments.
-    argp = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    grid_trainer_gpu = GridTrainerGPU()
 
-    # add default arguments
-    worker.add_arguments(argp)
+    # parse args, load configuration and create all required objects.
+    grid_trainer_gpu.setup_grid_experiment()
 
-    # add grid trainers-specific arguments
-    gtc.add_arguments(argp)
-
-    # Parse arguments.
-    FLAGS, unparsed = argp.parse_known_args()
-
-    grid_trainer_gpu = GridTrainerGPU(FLAGS, cuda=True)
-    grid_trainer_gpu.forward(FLAGS)
+    # GO!
+    grid_trainer_gpu.run_grid_experiment()

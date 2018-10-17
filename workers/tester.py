@@ -27,19 +27,16 @@ __author__ = "Vincent Marois, Tomasz Kornuta, Younes Bouhadjar"
 
 import os
 import torch
-import numpy as np
 from time import sleep
 from datetime import datetime
 from torch.utils.data.dataloader import DataLoader
 
 from workers.worker import Worker
+from utils.worker_utils import handshake
 from models.model_factory import ModelFactory
 from problems.problem_factory import ProblemFactory
-
 from utils.statistics_collector import StatisticsCollector
 from utils.statistics_aggregator import StatisticsAggregator
-
-from utils.worker_utils import handshake
 
 
 class Tester(Worker):
@@ -177,7 +174,7 @@ class Tester(Worker):
         self.set_random_seeds(self.params['testing'], 'testing')
 
         # Check if CUDA is available, if yes turn it on.
-        self.check_and_set_cuda(self.params['testing'])
+        self.check_and_set_cuda(self.flags.use_gpu)
 
         ################# TESTING PROBLEM ################# 
 
@@ -333,9 +330,12 @@ class Tester(Worker):
                                                      self.testing_stat_col, self.testing_stat_agg, episode,
                                                      '[Full Test]')
 
-        except SystemExit:
+        except SystemExit as e:
             # the training did not end properly
-            self.logger.warning('Experiment interrupted!')
+            self.logger.error('Experiment interrupted because {}'.format(e))
+        except KeyboardInterrupt:
+            # the training did not end properly
+            self.logger.error('Experiment interrupted!')
         finally:
             # Finalize statistics collection.
             self.finalize_statistics_collection()

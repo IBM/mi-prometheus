@@ -2,8 +2,6 @@ training:
     # Set random seeds that will be used during training (and validation). When not present using random values.
     #seed_numpy: -1
     #seed_torch: -1
-    # Use cuda.
-    cuda: True
     problem:
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
         control_bits: &cbits 3
@@ -35,8 +33,6 @@ testing:
     # Set random seeds that will be used during training (and validation). When not present using random values.
     #seed_numpy: -1
     #seed_torch: -1
-    # Use cuda.
-    cuda: True
     # Problem definition.
     problem:
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].

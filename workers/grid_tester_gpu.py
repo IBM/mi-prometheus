@@ -29,19 +29,16 @@ grid_tester_gpu.py:
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import torch
-import argparse
 from time import sleep
 from functools import partial
 from multiprocessing.pool import ThreadPool
 
-import workers.worker as worker
-import workers.grid_tester_cpu as gtc
 from workers.grid_tester_cpu import GridTesterCPU
 
 
 class GridTesterGPU(GridTesterCPU):
     """
-    Implementation of the Grid Tester running on GPUs.
+    Implementation of the ``GridTester`` running on GPUs.
 
     Reuses the ``Tester`` to start one test experiment.
 
@@ -49,35 +46,33 @@ class GridTesterGPU(GridTesterCPU):
 
     """
 
-    def __init__(self, flags: argparse.Namespace):
+    def __init__(self, name="GridTesterGPU", use_gpu=True):
         """
         Constructor for the ``GridTesterGPU``:
 
-            - Calls the constructor of ``GridTrainerCPU`` as it is identical.
+            - Calls the constructor of ``GridTesterCPU`` as it is identical.
 
 
-        :param flags: Parsed arguments from the parser.
+        :param name: Name of the worker (DEFAULT: "GridTesterGPU").
+        :type name: str
+
+        :param use_gpu: Indicates whether the worker should use GPU or not.
+        :type use_gpu: bool
 
         """
         # call base constructor
-        super(GridTesterGPU, self).__init__(flags)
+        super(GridTesterGPU, self).__init__(name=name,use_gpu=use_gpu)
 
-        # set logger name
-        self.name = 'GridTrainerGPU'
-        self.set_logger_name(self.name)
-
-    def forward(self, flags: argparse.Namespace):
+    def run_grid_experiment(self):
         """
-        Main function of the ``GridTesterCPU``.
+        Main function of the ``GridTesterGPU``.
 
         Maps the grid experiments to CPU cores in the limit of the maximum concurrent runs allowed or maximum\
          available cores.
 
-        :param flags: Parsed arguments from the parser.
-
         """
         # Ask for confirmation - optional.
-        if flags.confirm:
+        if self.flags.confirm:
             input('Press any key to continue')
 
         # Run in as many threads as there are GPUs available to the script
@@ -102,17 +97,10 @@ class GridTesterGPU(GridTesterCPU):
 
 
 if __name__ == '__main__':
-    # Create parser with list of  runtime arguments.
-    argp = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    grid_tester_gpu = GridTesterGPU()
 
-    # add default arguments
-    worker.add_arguments(argp)
+    # parse args, load configuration and create all required objects.
+    grid_tester_gpu.setup_grid_experiment()
 
-    # add grid trainers-specific arguments
-    gtc.add_arguments(argp)
-
-    # Parse arguments.
-    FLAGS, unparsed = argp.parse_known_args()
-
-    grid_tester_gpu = GridTesterGPU(FLAGS)
-    grid_tester_gpu.forward(FLAGS)
+    # GO!
+    grid_tester_gpu.run_grid_experiment()

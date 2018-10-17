@@ -93,6 +93,10 @@ class AppState(metaclass=SingletonMetaClass):
         self.IntTensor = torch.IntTensor
         self.LongTensor = torch.LongTensor
 
+        # force pointers to update
+        self.set_dtype('float')
+        self.set_itype('int')
+
     def convert_cuda_types(self):
         """
         Sets all tensor types to cuda data types.
@@ -107,3 +111,25 @@ class AppState(metaclass=SingletonMetaClass):
         self.ShortTensor = torch.cuda.ShortTensor
         self.IntTensor = torch.cuda.IntTensor
         self.LongTensor = torch.cuda.LongTensor
+
+        # force pointers to update
+        self.set_dtype('float')
+        self.set_itype('int')
+
+
+if __name__ == '__main__':
+
+    app_state = AppState()
+    print('app_state.FloatTensor: {}'.format(app_state.FloatTensor))
+    print('&app_state.FloatTensor: {}'.format(hex(id(app_state.FloatTensor))))
+
+    print('app_state.dtype: {}'.format(app_state.dtype))
+    print('&app_state.dtype: {}\n'.format(hex(id(app_state.dtype))))
+
+    print('app_state.convert_cuda_types()')
+    app_state.convert_cuda_types()
+    print('app_state.FloatTensor: {}'.format(app_state.FloatTensor))
+    print('&app_state.FloatTensor: {}'.format(hex(id(app_state.FloatTensor))))
+
+    print('app_state.dtype: {}'.format(app_state.dtype))
+    print('&app_state.dtype: {}'.format(hex(id(app_state.dtype))))

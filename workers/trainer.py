@@ -46,7 +46,7 @@ class Trainer(Worker):
 
     Iterates over epochs on the dataset.
 
-    All other types of trainers (e.g. ``ClassicTrainer`` & ``FlexibleTrainer``) should subclass it.
+    All other types of trainers (e.g. ``OnlineTrainer`` & ``OfflineTrainer``) should subclass it.
 
     """
 
@@ -56,7 +56,7 @@ class Trainer(Worker):
 
             - Adds default trainer command line arguments
 
-        :param name: Name of the worker (DEFAULT: ''Trainer'').
+        :param name: Name of the worker (DEFAULT: "Trainer").
         :type name: str
 
         """ 
@@ -201,7 +201,7 @@ class Trainer(Worker):
         self.set_random_seeds(self.params['training'], 'training')
 
         # Check if CUDA is available, if yes turn it on.
-        self.check_and_set_cuda(self.params['training'])
+        self.check_and_set_cuda(self.flags.use_gpu)
 
         ################# TRAINING PROBLEM ################# 
 
@@ -260,7 +260,10 @@ class Trainer(Worker):
                                                 worker_init_fn=self.validation_problem.worker_init_fn)
 
         # Generate a single batch used for partial validation.
+        #self.validation_batch = self.validation_problem.collate_fn(next(iter(self.validation_problem)))
         self.validation_batch = next(iter(self.validation_dataloader))
+        #print(self.validation_batch['sequences'].shape )
+        #exit(1)
 
         ################# MODEL PROBLEM ################# 
         
@@ -513,4 +516,4 @@ class Trainer(Worker):
 
 if __name__ == '__main__':
     print("The trainer.py file contains only the abstract Trainer class. "
-          "Use classic_trainer or flexible_trainer for training.")
+          "Use offline_trainer or online_trainer for training.")

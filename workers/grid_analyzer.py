@@ -28,51 +28,60 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 import os
 import csv
 import yaml
-import argparse
 import numpy as np
 import pandas as pd
 from datetime import datetime
 from functools import partial
 from multiprocessing.pool import ThreadPool
 
-import workers.worker as worker
-from workers.worker import Worker
-import workers.grid_tester_cpu as gtc
+from workers.grid_worker import GridWorker
 
 
-class GridAnalyzer(Worker):
+class GridAnalyzer(GridWorker):
     """
     Implementation of the Grid Analyzer. Post-processes the test results of a grid of experiments and gather them in\
      a csv file.
 
-    Inherits from ``Worker``.
+    Inherits from ``GridWorker``.
 
     TODO: complete doc
     """
 
-    def __init__(self, flags: argparse.Namespace):
+    def __init__(self, name="GridAnalyzer", use_gpu=False):
         """
         Constructor for the ``GridAnalyzer``:
 
             - TODO: complete doc
 
 
-        :param flags: Parsed arguments from the parser.
+        :param name: Name of the worker (DEFAULT: "GridAnalyzer").
+        :type name: str
+
+        :param use_gpu: Indicates whether the worker should use GPU or not.
+        :type use_gpu: bool
 
         """
         # call base constructor
-        super(GridAnalyzer, self).__init__(flags)
+        super(GridAnalyzer, self).__init__(name=name,use_gpu=use_gpu)
 
-        # set logger name
-        self.name = 'GridAnalyzer'
-        self.set_logger_name(self.name)
+    def setup_grid_experiment(self):
+        """
+        Setups the overall experiment:
+
+        - Calls the ``super(self).setup_experiment()`` to parse arguments,
+
+        - Recursively creates the paths to the experiments folders, verifying that they are valid (e.g. \
+        contain `training_statistics.csv`, `validation_statistics.csv` and `testing_statistics.csv`).
+
+        """
+        super(GridAnalyzer, self).setup_grid_experiment()
 
         # Check if experiments directory was indicated.
-        if flags.outdir == '':
+        if self.flags.outdir == '':
             print('Please pass the experiments directory as --outdir')
             exit(-1)
 
-        self.directory_chckpnts = flags.outdir
+        self.directory_chckpnts = self.flags.outdir
 
         # get all sub-directories paths in outdir
         self.experiments_list = []
@@ -83,11 +92,11 @@ class GridAnalyzer(Worker):
 
         # Keep only the folders that contain validation.csv and training.csv
         self.experiments_list = [elem for elem in self.experiments_list if os.path.isfile(
-            elem + '/validation.csv') and os.path.isfile(elem + '/training.csv')]
+            elem + '/validation_statistics.csv') and os.path.isfile(elem + '/training_statistics.csv')]
 
         # check if the files are empty except for the first line
         self.experiments_list = [elem for elem in self.experiments_list if os.stat(
-            elem + '/validation.csv').st_size > 24 and os.stat(elem + '/training.csv').st_size > 24]
+            elem + '/validation_statistics.csv').st_size > 24 and os.stat(elem + '/training_statistics.csv').st_size > 24]
 
         # the following is to detect how many tests runs have been done for each experiment,
         # and asserting that the number is the same for all experiment
@@ -99,10 +108,10 @@ class GridAnalyzer(Worker):
                     experiments_tests.append(os.path.join(root, name))
 
             # Keep only the folders that contain `testing.csv`
-            experiments_tests = [elem for elem in experiments_tests if os.path.isfile(elem + '/testing.csv')]
+            experiments_tests = [elem for elem in experiments_tests if os.path.isfile(elem + '/testing_statistics.csv')]
 
             # check if that the `testing.csv` files are not empty
-            experiments_tests = [elem for elem in experiments_tests if os.stat(elem + '/testing.csv').st_size > 24]
+            experiments_tests = [elem for elem in experiments_tests if os.stat(elem + '/testing_statistics.csv').st_size > 24]
             number_of_test.append(len(experiments_tests))
 
         assert len(set(number_of_test)) == 1, 'Not all experiments have the same number of tests'
@@ -149,13 +158,13 @@ class GridAnalyzer(Worker):
                 experiments_tests.append(os.path.join(root, name))
 
         # Keep only the folders that contain `testing.csv`
-        experiments_tests = [elem for elem in experiments_tests if os.path.isfile(elem + '/testing.csv')]
+        experiments_tests = [elem for elem in experiments_tests if os.path.isfile(elem + '/testing_statistics.csv')]
 
         # check if that the `testing.csv` files are not empty
-        experiments_tests = [elem for elem in experiments_tests if os.stat(elem + '/testing.csv').st_size > 24]
+        experiments_tests = [elem for elem in experiments_tests if os.stat(elem + '/testing_statistics.csv').st_size > 24]
 
-        valid_csv = pd.read_csv(experiment_path + '/validation.csv', delimiter=',', header=0)
-        train_csv = pd.read_csv(experiment_path + '/training.csv', delimiter=',', header=0)
+        valid_csv = pd.read_csv(experiment_path + '/validation_statistics.csv', delimiter=',', header=0)
+        train_csv = pd.read_csv(experiment_path + '/training_statistics.csv', delimiter=',', header=0)
 
         # get best train point
         train_episode = train_csv.episode.values.astype(int)
@@ -185,7 +194,7 @@ class GridAnalyzer(Worker):
         # get test statistics
         for test_idx, experiment in zip(range(1, self.nb_tests+1), experiments_tests):
 
-            test_csv = pd.read_csv(experiment + '/testing.csv', delimiter=',', header=0)
+            test_csv = pd.read_csv(experiment + '/testing_statistics.csv', delimiter=',', header=0)
             # get average test loss
             nb_episode = test_csv.episode.values.astype(int)[-1]+1
             losses = test_csv.loss.values.astype(float)
@@ -200,14 +209,12 @@ class GridAnalyzer(Worker):
 
         return r
 
-    def forward(self, flags: argparse.Namespace):
+    def run_grid_experiment(self):
         """
-        Constructor for the ``GridAnalyzer``:
+        Constructor for the ``GridAnalyzer``.
 
-            - TODO: complete doc
+        Maps the grid analysis to CPU cores in the limit of the available cores.
 
-
-        :param flags: Parsed arguments from the parser.
 
         """
         # Run in as many threads as there are CPUs available to the script
@@ -230,17 +237,10 @@ class GridAnalyzer(Worker):
 
 
 if __name__ == '__main__':
-    # Create parser with list of  runtime arguments.
-    argp = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    grid_analyzer = GridAnalyzer()
 
-    # add default arguments
-    worker.add_arguments(argp)
+    # parse args, load configuration and create all required objects.
+    grid_analyzer.setup_grid_experiment()
 
-    # add grid_tester arguments
-    gtc.add_arguments(argp)
-
-    # Parse arguments.
-    FLAGS, unparsed = argp.parse_known_args()
-
-    grid_analyzer = GridAnalyzer(FLAGS)
-    grid_analyzer.forward(FLAGS)
+    # GO!
+    grid_analyzer.run_grid_experiment()
