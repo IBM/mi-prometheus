@@ -256,7 +256,7 @@ class Problem(Dataset):
         """
         self.loss_function = loss_function
 
-    def collate_fn(self, batch):
+    #def collate_fn(self, batch):
         """
         Generates a batch of samples from a list of individuals samples retrieved by ``__getitem__``.
 
@@ -278,9 +278,9 @@ class Problem(Dataset):
         :return: DataDict containing the created batch.
 
         """
-        return default_collate(batch)
+        #return default_collate(batch)
 
-    def __getitem__(self, index):
+    #def __getitem__(self, index):
         """
         Getter that returns an individual sample from the problem's associated dataset (that can be generated \
         `on-the-fly`, or retrieved from disk. It can also possibly be composed of several files.).
@@ -326,7 +326,7 @@ class Problem(Dataset):
         :return: Empty ``DataDict``, having the same key as ``self.data_definitions``.
 
         """
-        return DataDict({key: None for key in self.data_definitions.keys()})
+        #return DataDict({key: None for key in self.data_definitions.keys()})
 
     def worker_init_fn(self, worker_id):
         """
