@@ -15,13 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""cifar10.py: contains code for loading the `CIFAR10` dataset using ``torchvision``."""
+"""
+cifar10.py: contains code for loading the `CIFAR10` dataset using ``torchvision``.
+"""
 __author__ = "Younes Bouhadjar & Vincent Marois"
 
-import numpy as np
 import torch
-from torchvision import datasets, transforms
+import numpy as np
 import torch.nn.functional as F
+from torchvision import datasets, transforms
+
 
 from problems.problem import DataDict
 from problems.image_to_class.image_to_class_problem import ImageToClassProblem
@@ -35,7 +38,7 @@ class CIFAR10(ImageToClassProblem):
 
     .. warning::
 
-        The dataset is not originally split into a training set, validation set and test set; only\
+        The dataset is not originally split into a training set, validation set and test set; only \
         training and test set. It is recommended to use a validation set.
 
         ``torch.utils.data.SubsetRandomSampler`` is recommended.
@@ -49,12 +52,13 @@ class CIFAR10(ImageToClassProblem):
             - Calls ``problems.problem.ImageToClassProblem`` class constructor,
             - Sets following attributes using the provided ``params``:
 
-                - ``self.root_dir`` (`string`) : Root directory of dataset where the directory\
+                - ``self.root_dir`` (`string`) : Root directory of dataset where the directory \
                  ``cifar-10-batches-py`` will be saved,
                 - ``self.use_train_data`` (`bool`, `optional`) : If ``True``, creates dataset from training set, \
                     otherwise creates from test set,
-                - ``self.padding`` : possibility to pad the images. e.g. ``self.padding = [0, 0, 0, 0]``,
-                - ``self.upscale`` : upscale the images to `[224, 224]` if ``True``,
+                - ``self.upscale`` : upscale the images to `[224, 224]` (input size of ``AlexNet``) if ``True``,
+                - ``self.padding`` : possibility to pad the images. e.g. ``self.padding = [0, 0, 0, 0]``. If \
+                padding upscaled images, the padding is applied after upscaling the images.
                 - ``self.defaut_values`` :
 
                     >>> self.default_values = {'nb_classes': 10,
@@ -67,9 +71,15 @@ class CIFAR10(ImageToClassProblem):
                 - ``self.data_definitions`` :
 
                     >>> self.data_definitions = {'images': {'size': [-1, 3, self.height, self.width], 'type': [torch.Tensor]},
-                    >>>                          'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                    >>>                          'targets': {'size': [-1], 'type': [torch.Tensor]},
                     >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
                     >>>                         }
+
+        .. warning::
+
+            Upscaling the images to [224, 224] will cause a significant slow down in the batches generation.
+            If padding upscaled images, the padding is applied after upscaling the images.
+
 
         :param params: Dictionary of parameters (read from configuration ``.yaml``file).
 
@@ -89,6 +99,9 @@ class CIFAR10(ImageToClassProblem):
         # up scaling the image to 224, 224 if True
         self.up_scaling = params['up_scaling']
 
+        if self.up_scaling:
+            self.logger.warning('Upscaling the images to [224, 224]. Slows down batches generation.')
+
         # define the default_values dict: holds parameters values that a model may need.
         self.default_values = {'nb_classes': 10,
                                'num_channels': 3,
@@ -101,14 +114,14 @@ class CIFAR10(ImageToClassProblem):
         self.width = 224 if self.up_scaling else self.default_values['width']
 
         self.data_definitions = {'images': {'size': [-1, 3, self.height, self.width], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
 
         self.name = 'CIFAR10'
 
         # Define transforms: takes in an PIL image and returns a transformed version
-        transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(
+        transform = transforms.Compose([transforms.Resize((self.height, self.width)), transforms.ToTensor(
         )]) if self.up_scaling else transforms.Compose([transforms.ToTensor()])
 
         # load the dataset
@@ -118,7 +131,6 @@ class CIFAR10(ImageToClassProblem):
         # -> inherits from torch.utils.data.Dataset
 
         self.length = len(self.dataset)
-
         # Class names.
         self.labels = 'Airplane Automobile Bird Cat Deer Dog Frog Horse Shipe Truck'.split(
             ' ')
@@ -143,7 +155,7 @@ class CIFAR10(ImageToClassProblem):
         target = torch.tensor(target)
 
         # pad img
-        img = F.pad(img, self.padding, 'constant', 0)
+        img = F.pad(input=img, pad=self.padding, mode='constant', value=0)
 
         label = self.labels[target.data]
 
@@ -186,27 +198,25 @@ if __name__ == "__main__":
     # Load parameters.
     from utils.param_interface import ParamInterface 
     params = ParamInterface()
-    params.add_default_params({
-                                'batch_size': 64,
-                                'use_train_data': True,
-                                'root_dir': '~/data/cifar10',
-                                'padding': [0, 0, 0, 0],
-                                'up_scaling': True
+    params.add_default_params({'use_train_data': True,
+                               'root_dir': '~/data/cifar10',
+                               'padding': [0, 0, 0, 0],
+                               'up_scaling': False
                                 })
+    batch_size = 64
 
     # Create problem.
     cifar10 = CIFAR10(params)
 
     # get a sample
     sample = cifar10[0]
-    print(repr(sample))
     print('__getitem__ works.\n')
 
     # wrap DataLoader on top of this Dataset subclass
     from torch.utils.data.dataloader import DataLoader
 
     dataloader = DataLoader(dataset=cifar10, collate_fn=cifar10.collate_fn,
-                            batch_size=params['batch_size'], shuffle=True, num_workers=4)
+                            batch_size=batch_size, shuffle=True, num_workers=4)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
     import time
@@ -215,7 +225,7 @@ if __name__ == "__main__":
         print('Batch # {} - {}'.format(i, type(batch)))
 
     print('Number of workers: {}'.format(dataloader.num_workers))
-    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(params['batch_size'], time.time() - s))
+    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
     batch = next(iter(dataloader))

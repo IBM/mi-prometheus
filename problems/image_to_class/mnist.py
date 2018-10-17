@@ -15,11 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""mnist.py: contains code for loading the `MNIST` dataset using ``torchvision``."""
+"""
+mnist.py: contains code for loading the `MNIST` dataset using ``torchvision``.
+"""
 __author__ = "Younes Bouhadjar & Vincent Marois"
 import torch
-from torchvision import datasets, transforms
 import torch.nn.functional as F
+from torchvision import datasets, transforms
 
 from problems.problem import DataDict
 from problems.image_to_class.image_to_class_problem import ImageToClassProblem
@@ -65,7 +67,7 @@ class MNIST(ImageToClassProblem):
                 - ``self.data_definitions`` :
 
                     >>> self.data_definitions = {'images': {'size': [-1, 1, self.height, self.width], 'type': [torch.Tensor]},
-                    >>>                          'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                    >>>                          'targets': {'size': [-1], 'type': [torch.Tensor]},
                     >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
                     >>>                         }
 
@@ -80,9 +82,14 @@ class MNIST(ImageToClassProblem):
         self.use_train_data = params['use_train_data']
         self.root_dir = params['root_dir']
 
+        # possibility to pad the image
         self.padding = params['padding']
+
         # up scaling the image to 224, 224 if True
         self.up_scaling = params['up_scaling']
+
+        if self.up_scaling:
+            self.logger.warning('Upscaling the images to [224, 224]. Slows down batches generation.')
 
         # define the default_values dict: holds parameters values that a model may need.
         self.default_values = {'nb_classes': 10,
