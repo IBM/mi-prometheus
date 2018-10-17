@@ -260,10 +260,11 @@ class Trainer(Worker):
                                                 worker_init_fn=self.validation_problem.worker_init_fn)
 
         # Generate a single batch used for partial validation.
-        self.validation_batch = next(iter(self.validation_dataloader))
         #self.validation_batch = self.validation_problem.collate_fn(next(iter(self.validation_problem)))
-        #print(next(iter(self.validation_problem))['sequences'].shape )
+        self.validation_batch = next(iter(self.validation_dataloader))
+        #print(self.validation_batch['sequences'].shape )
         #exit(1)
+
         ################# MODEL PROBLEM ################# 
         
         # Build the model using the loaded configuration and the default values of the problem.
