@@ -10,7 +10,7 @@ from .relational_net import *
 #from .seq2seqlstm import *
 #from .stacked_attention_vqa import *
 #from .text2text import *
-#from .thalnet import *
+from .thalnet import *
 from .vision import *
 
 from .model import Model

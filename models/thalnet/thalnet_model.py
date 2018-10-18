@@ -15,12 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""thalnet_model: Main class of the ThalNet paper: https://arxiv.org/abs/1706.05744. It calls the ThalNet cell on each word of the input"""
+"""
+thalnet_model.py: Contains the Main class of the ThalNet model.
 
-__author__ = "Younes Bouhadjar"
+
+See the reference paper here: https://arxiv.org/pdf/1706.05744.pdf.
+"""
+
+__author__ = "Younes Bouhadjar & Vincent Marois"
 
 import torch
-import logging
 import numpy as np
 
 from models.sequential_model import SequentialModel
@@ -29,26 +33,32 @@ from models.thalnet.thalnet_cell import ThalNetCell
 
 class ThalNetModel(SequentialModel):
     """
-    ThalNet model consists of recurrent neural modules that send features
-    through a routing center, it was proposed in the following paper
-    https://arxiv.org/pdf/1706.05744.pdf.
+    ``ThalNet`` is a deep learning model inspired by neocortical communication \
+    via the thalamus. This model consists of recurrent neural modules that send features \
+    through a routing center, endowing the modules with the flexibility to share features \
+    over multiple time steps.
+
+    See the reference paper here: https://arxiv.org/pdf/1706.05744.pdf.
     """
 
-    def __init__(self, params):
+    def __init__(self, params, problem_default_values_={}):
         """
-        Constructor of the ThalNetModel.
+        Constructor of the ``ThalNetModel``. Instantiates the ``ThalNetCell``.
 
-        :param params: Parameters read from configuration file.
+        :param params: dictionary of parameters (read from the ``.yaml`` configuration file.)
+
+        :param problem_default_values_: default values coming from the ``Problem`` class.
+        :type problem_default_values_: dict
 
         """
         # Call base class initialization.
-        super(ThalNetModel, self).__init__(params)
+        super(ThalNetModel, self).__init__(params, problem_default_values_)
 
+        # get the parameters values
         self.context_input_size = params['context_input_size']
         self.input_size = params['input_size']
         self.output_size = params['output_size']
-        self.center_size = params['num_modules'] * \
-            params['center_size_per_module']
+        self.center_size = params['num_modules'] * params['center_size_per_module']
         self.center_size_per_module = params['center_size_per_module']
         self.num_modules = params['num_modules']
         self.output_center_size = self.output_size + self.center_size_per_module
@@ -64,16 +74,26 @@ class ThalNetModel(SequentialModel):
             self.center_size_per_module,
             self.num_modules)
 
-    def forward(self, data_tuple):  # x : batch_size, seq_len, input_size
+        # model name
+        self.name = 'ThalNetModel'
+
+        # Expected content of the inputs
+        self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]}
+                                 }
+
+    def forward(self, data_dict):  # x : batch_size, seq_len, input_size
         """
         Forward run of the ThalNetModel model.
 
-        :param data_tuple: (inputs [batch_size, sequence_length, input_size], targets[batch_size, sequence_length, output_size])
+        :param data_dict: DataDict({'sequences', **}) where 'sequences' is of shape \
+         [batch_size, sequence_length, input_size]
+        :type data_dict: utils.DataDict
 
-        :returns: output: prediction [batch_size, sequence_length, output_size]
+        :returns: Predictions [batch_size, sequence_length, output_size]
 
         """
-        (inputs, _) = data_tuple
+        inputs = data_dict['sequences']
 
         if self.app_state.visualize:
             self.cell_state_history = []
@@ -110,6 +130,12 @@ class ThalNetModel(SequentialModel):
         return output
 
     def generate_figure_layout(self):
+        """
+        Generate a figure layout which will be used in ``self.plot()``.
+
+        :return: figure layout.
+
+        """
         from matplotlib.figure import Figure
         import matplotlib.ticker as ticker
         from matplotlib import rc
@@ -122,7 +148,7 @@ class ThalNetModel(SequentialModel):
         # Create figure object.
         fig = Figure()
 
-        # Create a specific grid for NTM .
+        # Create a specific grid
         gs = gridspec.GridSpec(4, 3)
 
         # modules & centers subplots
@@ -169,7 +195,22 @@ class ThalNetModel(SequentialModel):
         # Return figure.
         return fig
 
-    def plot(self, data_tuple, logits, sample_number=0):
+    def plot(self, data_dict, logits, sample=0):
+        """
+        Plots specific information on the model's behavior.
+
+        :param data_dict: DataDict({'sequences', **})
+        :type data_dict: utils.DataDict
+
+        :param logits: Predictions of the model
+        :type logits: torch.tensor
+
+        :param sample: Index of the sample to visualize. Default to 0.
+        :type sample: int
+
+        :return: ``True`` if the user pressed stop, else ``False``.
+
+        """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
             return False
@@ -179,12 +220,12 @@ class ThalNetModel(SequentialModel):
             from utils.time_plot import TimePlot
             self.plotWindow = TimePlot()
 
-        (inputs, _) = data_tuple
+        inputs = data_dict['sequences']
         inputs = inputs.cpu().detach().numpy()
         predictions_seq = logits.cpu().detach().numpy()
 
-        input_seq = inputs[sample_number, 0] if len(
-            inputs.shape) == 4 else inputs[sample_number]
+        input_seq = inputs[sample, 0] if len(
+            inputs.shape) == 4 else inputs[sample]
 
         # Create figure template.
         fig = self.generate_figure_layout()
@@ -214,15 +255,12 @@ class ThalNetModel(SequentialModel):
         center_state_displayed_4 = np.zeros(
             (self.cell_state_history[0][0].shape[-1], input_seq.shape[-2]))
 
-        #modules_plot = [module_state_displayed for _ in range(self.num_modules)]
-        #center_plot = [center_state_displayed for _ in range(self.num_modules)]
-
         # Set initial values of memory and attentions.
         # Unpack initial state.
 
         # Log sequence length - so the user can understand what is going on.
-        logger = logging.getLogger('ModelBase')
-        logger.info(
+
+        self.logger.info(
             "Generating dynamic visualization of {} figures, please wait...".format(
                 input_seq.shape[0]))
 
@@ -235,7 +273,7 @@ class ThalNetModel(SequentialModel):
             # Display information every 10% of figures.
             if (input_seq.shape[0] > 10) and (i %
                                               (input_seq.shape[0] // 10) == 0):
-                logger.info(
+                self.logger.info(
                     "Generating figure {}/{}".format(i, input_seq.shape[0]))
 
             # Update displayed values on adequate positions.
@@ -245,28 +283,28 @@ class ThalNetModel(SequentialModel):
             artists = [None] * len(fig.axes)
 
             # centers state
-            center_state_displayed_1[:, i] = state_tuple[0][sample_number, :]
+            center_state_displayed_1[:, i] = state_tuple[0][sample, :]
             entity = fig.axes[0]
             artists[0] = entity.imshow(
                 center_state_displayed_1,
                 interpolation='nearest',
                 aspect='auto')
 
-            center_state_displayed_2[:, i] = state_tuple[1][sample_number, :]
+            center_state_displayed_2[:, i] = state_tuple[1][sample, :]
             entity = fig.axes[1]
             artists[1] = entity.imshow(
                 center_state_displayed_2,
                 interpolation='nearest',
                 aspect='auto')
 
-            center_state_displayed_3[:, i] = state_tuple[2][sample_number, :]
+            center_state_displayed_3[:, i] = state_tuple[2][sample, :]
             entity = fig.axes[2]
             artists[2] = entity.imshow(
                 center_state_displayed_3,
                 interpolation='nearest',
                 aspect='auto')
 
-            center_state_displayed_4[:, i] = state_tuple[3][sample_number, :]
+            center_state_displayed_4[:, i] = state_tuple[3][sample, :]
             entity = fig.axes[3]
             artists[3] = entity.imshow(
                 center_state_displayed_4,
@@ -274,49 +312,33 @@ class ThalNetModel(SequentialModel):
                 aspect='auto')
 
             # module state
-            module_state_displayed_1[:, i] = state_tuple[4][sample_number, :]
+            module_state_displayed_1[:, i] = state_tuple[4][sample, :]
             entity = fig.axes[4]
             artists[4] = entity.imshow(
                 module_state_displayed_1,
                 interpolation='nearest',
                 aspect='auto')
 
-            module_state_displayed_2[:, i] = state_tuple[5][sample_number, :]
+            module_state_displayed_2[:, i] = state_tuple[5][sample, :]
             entity = fig.axes[5]
             artists[5] = entity.imshow(
                 module_state_displayed_2,
                 interpolation='nearest',
                 aspect='auto')
 
-            module_state_displayed_3[:, i] = state_tuple[6][sample_number, :]
+            module_state_displayed_3[:, i] = state_tuple[6][sample, :]
             entity = fig.axes[6]
             artists[6] = entity.imshow(
                 module_state_displayed_3,
                 interpolation='nearest',
                 aspect='auto')
 
-            module_state_displayed_4[:, i] = state_tuple[7][sample_number, :]
+            module_state_displayed_4[:, i] = state_tuple[7][sample, :]
             entity = fig.axes[7]
             artists[7] = entity.imshow(
                 module_state_displayed_4,
                 interpolation='nearest',
                 aspect='auto')
-
-            # h = 0
-            # for j, state in enumerate(state_tuple):
-            #     # Get attention of head 0.
-            #
-            #     # "Show" data on "axes".
-            #     entity = fig.axes[j]
-            #     if self.num_modules <= h < 2 * self.num_modules :
-            #         modules_plot[j - self.num_modules][:, i] = state[sample_number, :]
-            #         artists[j] = entity.imshow(modules_plot[j - self.num_modules], interpolation='nearest', aspect='auto')
-            #
-            #     else:
-            #         center_plot[j][:, i] = state[sample_number, :]
-            #         artists[j] = entity.imshow(center_plot[j], interpolation='nearest', aspect='auto')
-            #
-            #     h += 1
 
             entity = fig.axes[2 * self.num_modules]
             artists[2 * self.num_modules] = entity.imshow(
@@ -331,13 +353,15 @@ class ThalNetModel(SequentialModel):
             # Add "frame".
             frames.append(artists)
 
-        # print("--- %s seconds ---" % (time.time() - start_time))
         # Update time plot fir generated list of figures.
         self.plotWindow.update(fig, frames)
+
         return self.plotWindow.is_closed
 
 
 if __name__ == "__main__":
+    """ Unit test of the Thalnet Model.
+    """
     input_size = 28
     params_dict = {
         'context_input_size': 32,
@@ -349,29 +373,30 @@ if __name__ == "__main__":
 
     # Initialize the application state singleton.
     from utils.app_state import AppState
+    from utils.data_dict import DataDict
     app_state = AppState()
     app_state.visualize = True
 
     from utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_custom_params(params_dict)
+    params.add_config_params(params_dict)
     model = ThalNetModel(params)
 
     seq_length = 10
     batch_size = 2
 
     # Check for different seq_lengts and batch_sizes.
-    for i in range(1):
+    for i in range(62):
         # Create random Tensors to hold inputs and outputs
         x = torch.randn(batch_size, 1, input_size, input_size)
         logits = torch.randn(batch_size, 1, params_dict['output_size'])
         y = x
-        data_tuple = (x, y)
+        data_dict = DataDict({'sequences': x, 'targets': y})
 
         # Test forward pass.
-        y_pred = model(data_tuple)
+        y_pred = model(data_dict)
 
-        if model.plot(data_tuple, logits):
+        if model.plot(data_dict, logits):
             break
 
         # Change batch size and seq_length.

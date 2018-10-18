@@ -2,7 +2,7 @@
 training:
     cuda: True
     problem:
-        name: &name serial_recall
+        name: &name SerialRecall
         # Size of generated input: [batch_size x sequence_length x number of control and data bits].
         control_bits: &cbits 2
         data_bits: &dbits 8
@@ -17,37 +17,39 @@ training:
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     # Terminal condition parameters:
-    terminal_condition:
+    terminal_conditions:
         loss_stop: 0.0001
-        max_episodes: 100000
+        episode_limit: 100000
 
 # Problem parameters:
 testing:
-    name: *name
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: *cbits
-    data_bits: *dbits
-    batch_size: 64
-    # Parameters denoting min and max lengths.
-    min_sequence_length: 1000
-    max_sequence_length: 1000
-    bias: 0.5
+    problem:
+        name: *name
+        # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+        control_bits: *cbits
+        data_bits: *dbits
+        batch_size: 64
+        # Parameters denoting min and max lengths.
+        min_sequence_length: 1000
+        max_sequence_length: 1000
+        bias: 0.5
 
 # Problem parameters:
 validation:
-    name: *name
-    # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-    control_bits: *cbits
-    data_bits: *dbits
-    batch_size: 64
-    # Parameters denoting min and max lengths.
-    min_sequence_length: 100
-    max_sequence_length: 100
-    bias: 0.5
+    problem:
+        name: *name
+        # Size of generated input: [batch_size x sequence_length x number of control + data bits].
+        control_bits: *cbits
+        data_bits: *dbits
+        batch_size: 64
+        # Parameters denoting min and max lengths.
+        min_sequence_length: 100
+        max_sequence_length: 100
+        bias: 0.5
 
 # Model parameters:
 model:
-    name: thalnet
+    name: ThalNetModel
     # Controller parameters.
     context_input_size: 32
     input_size: 10  # row_size
