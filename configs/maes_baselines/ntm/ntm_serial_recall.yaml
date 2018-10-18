@@ -1,6 +1,6 @@
 # Load the following (default) configs first.
 default_configs: 
-    configs/maes_baselines/default_ntm.yaml, 
+    configs/maes_baselines/ntm/default_ntm.yaml,
     configs/maes_baselines/default_problem.yaml, 
     configs/maes_baselines/default_training.yaml
 
@@ -8,6 +8,7 @@ default_configs:
 training:
     problem:
         name: &name SerialRecallCommandLines
+
 validation:
     problem:
         name: *name 

@@ -21,8 +21,9 @@ __author__ = "Tomasz Kornuta"
 from enum import Enum
 import torch
 from torch import nn
-from models.sequential_model import SequentialModel
 
+from utils.data_dict import DataDict
+from models.sequential_model import SequentialModel
 
 class EncoderSolverLSTM(SequentialModel):
     """

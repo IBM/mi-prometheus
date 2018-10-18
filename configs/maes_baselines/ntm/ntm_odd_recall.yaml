@@ -1,13 +1,13 @@
 # Load the following (default) configs first.
 default_configs: 
-    configs/maes_baselines/default_ntm.yaml,
+    configs/maes_baselines/ntm/default_ntm.yaml,
     configs/maes_baselines/default_problem.yaml, 
     configs/maes_baselines/default_training.yaml
 
 # Then overwrite problem name(s).
 training:
     problem:
-        name: &name maes_baselines/skip_recall_cl
+        name: &name SkipRecallCommandLines
         # Skip params.
         seq_start: &start 0
         skip_step: &skip 2
@@ -24,9 +24,4 @@ testing:
         seq_start: *start
         skip_step: *skip
 
-model:
-    # Save/load encoder.
-    #save_encoder: True
-    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180702_132024/models/encoder_episode_09400.pth.tar
-    #freeze_encoder: True
 

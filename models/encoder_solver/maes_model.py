@@ -21,7 +21,7 @@ __author__ = "Tomasz Kornuta"
 from enum import Enum
 import torch
 
-from problems.problem import DataDict
+from utils.data_dict import DataDict
 from models.sequential_model import SequentialModel
 
 from models.encoder_solver.mae_cell import MAECell
