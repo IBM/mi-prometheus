@@ -1,0 +1,15 @@
+# Load the following (default) configs first.
+default_configs:
+    configs/vqa_baselines/default_sort_of_clevr.yaml
+
+# Model parameters:
+model:
+    name: CNN_LSTM
+    use_question_encoding: True
+    lstm:
+        hidden_size: 64
+        num_layers: 1
+        bidirectional: False
+        dropout: 0
+    classifier:
+        nb_hidden_nodes: 256

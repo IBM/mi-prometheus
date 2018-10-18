@@ -15,9 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""thalnet_module.py: defines a class of a module in the ThalNet architecture"""
+"""
+thalnet_module.py: defines a module in the ThalNet architecture"""
 
-__author__ = "Younes Bouhadjar"
+__author__ = "Younes Bouhadjar & Vincent Marois"
 
 import torch
 from torch import nn
@@ -28,7 +29,8 @@ from models.controllers.controller_factory import ControllerFactory
 
 class ThalnetModule(nn.Module):
     """
-    Implements a Thalnet module.
+    Implements a ``ThalNet`` module.
+
     """
 
     def __init__(self,
@@ -37,6 +39,24 @@ class ThalnetModule(nn.Module):
                  center_size_per_module,
                  input_size,
                  output_size):
+        """
+        Constructor of the ``ThalnetModule``.
+
+        :param input_size: size of the input sequences
+        :type input_size: int
+
+        :param output_size: size of the produced output sequences
+        :type output_size: int
+
+        :param center_size: Size of the center of the model.
+        :type center_size: int
+
+        :param center_size_per_module:  Size of the center slot allocated to each module.
+        :type center_size_per_module: int
+
+
+        """
+        # call base constructor
         super(ThalnetModule, self).__init__()
 
         self.center_size = center_size
@@ -70,9 +90,11 @@ class ThalnetModule(nn.Module):
 
     def init_state(self, batch_size):
         """
-        Initialize state of ThalNet module state.
+        Initialize the state of a ``ThalNet`` module.
 
         :param batch_size: batch size
+        :type batch_size: int
+
         :return: center_state_per_module, tuple_controller_states
 
         """
@@ -90,16 +112,24 @@ class ThalnetModule(nn.Module):
 
     def forward(self, inputs, prev_center_state, prev_tuple_controller_state):
         """
+        Forward pass of a ``ThalnetModule``.
 
-        :param inputs: inputs
+        :param inputs: input sequences.
+        :type inputs: torch.tensor
+
         :param prev_center_state: previous center state
+        :type prev_center_state: torch.tensor
+
         :param prev_tuple_controller_state: previous tuple controller state
+        :type prev_tuple_controller_state: tuple
+
         :return: output, center_feature_output, tuple_ctrl_state
+
         """
         if inputs is not None:
             if len(inputs.size()) <= 1 or len(inputs.size()) >= 4:
-                print('check inputs size of thalnet cell')
-                exit(-1)
+                self.logger.error('The input size is not the one expected.')
+                raise SystemExit('The input size is not the one expected.')
 
             if len(inputs.size()) == 3:
                 # inputs_size : [batch_size, num_channel, input_size]

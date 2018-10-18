@@ -15,8 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""thalnet_cell: The cell of the ThalNet modules. It operates on a single word"""
-__author__ = "Younes Bouhadjar"
+"""
+thalnet_cell: A ThalNetCell, constituted of ThalNet modules. It operates on a single word.
+"""
+__author__ = "Younes Bouhadjar & Vincent Marois"
 
 import torch
 from torch import nn
@@ -25,24 +27,35 @@ from models.thalnet.thalnet_module import ThalnetModule
 
 class ThalNetCell(nn.Module):
     """
-    Implementation of the ThalNetCell, it takes one element of the input
-    sequence at a time.
+    Implementation of the ``ThalNetCell``, iterating over one sequence element at a time.
+
+    It is constituted of several ``ThalNetModule``.
+
     """
 
     def __init__(self,
-                 input_size,
-                 output_size,
-                 context_input_size,
-                 center_size_per_module,
-                 num_modules):
+                 input_size: int,
+                 output_size: int,
+                 context_input_size: int,
+                 center_size_per_module: int,
+                 num_modules: int):
         """
-        Constrcutor of ThalNetCell class.
+        Constructor of the ``ThalNetCell`` class.
 
-        :param input_size: input size
-        :param output_size: output size
+        :param input_size: size of the input sequences
+        :type input_size: int
+
+        :param output_size: size of the produced output sequences
+        :type output_size: int
+
         :param context_input_size: context input size
-        :param center_size_per_module:  center size per module
-        :param num_modules: number of modules
+        :type context_input_size: int
+
+        :param center_size_per_module:  Size of the center slot allocated to each module.
+        :type center_size_per_module: int
+
+        :param num_modules: number of modules to constitute the cell.
+        :type num_modules: int
 
         """
         # Call base class inits here.
@@ -80,10 +93,12 @@ class ThalNetCell(nn.Module):
 
     def init_state(self, batch_size):
         """
-        Initialize the state of ThalNet.
+        Initialize the state of ``ThalNet``.
 
         :param batch_size: batch size
-        :return: states of the ThalNet cell
+        :type batch_size: int
+
+        :return: Initialized states of the ThalNet cell.
 
         """
 
@@ -95,12 +110,18 @@ class ThalNetCell(nn.Module):
 
     def forward(self, inputs, prev_state):
         """
-        forward run of the ThalNetCell.
+        forward run of the ``ThalNetCell``.
 
-        :param inputs: input at time t [batch_size, input_size]
+        :param inputs: inputs at time t, [batch_size, input_size]
+        :type inputs: torch.tensor
+
         :param prev_state: previous state [batch_size, state_size]
-        :return: states: states [batch_size, state_size]
-        :return: ouput: prediction [batch_size, output_size]
+        :type prev_state: torch.tensor
+
+        :return:
+
+            - states [batch_size, state_size]
+            - prediction [batch_size, output_size]
 
         """
         prev_center_states = [prev_state[i][0]

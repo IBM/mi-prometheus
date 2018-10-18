@@ -58,9 +58,9 @@ class SequentialPixelMNIST(VideoToClassProblem):
 
                 - ``self.data_definitions`` :
 
-                    >>> self.data_definitions = {'images': {'size': [-1, 28*28], 'type': [torch.Tensor]},
+                    >>> self.data_definitions = {'sequences': {'size': [-1, 28*28], 'type': [torch.Tensor]},
                     >>>                          'mask': {'size': [-1, 28*28], 'type': [torch.Tensor]},
-                    >>>                          'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                    >>>                          'targets': {'size': [-1], 'type': [torch.Tensor]},
                     >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
                     >>>                         }
 
@@ -82,9 +82,9 @@ class SequentialPixelMNIST(VideoToClassProblem):
                                'length': 28*28
                                }
 
-        self.data_definitions = {'images': {'size': [-1, 28*28], 'type': [torch.Tensor]},
+        self.data_definitions = {'sequences': {'size': [-1, 28*28], 'type': [torch.Tensor]},
                                  'mask': {'size': [-1, 28*28], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
 
@@ -110,9 +110,9 @@ class SequentialPixelMNIST(VideoToClassProblem):
         :param index: index of the sample to return.
         :type index: int
 
-        :return: ``DataDict({'images','targets', 'targets_label'})``, with:
+        :return: ``DataDict({'sequences','targets', 'targets_label'})``, with:
 
-            - images: Image,
+            - sequences: sequences of pixel,
             - mask
             - targets: Index of the target class
 
@@ -128,7 +128,7 @@ class SequentialPixelMNIST(VideoToClassProblem):
         mask[-1] = 1
 
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
-        data_dict['images'] = img
+        data_dict['sequences'] = img
         data_dict['mask'] = mask
         data_dict['targets'] = target
         data_dict['targets_label'] = label
@@ -148,7 +148,7 @@ class SequentialPixelMNIST(VideoToClassProblem):
 
         :param batch: list of individual ``DataDict`` samples to combine.
 
-        :return: ``DataDict({'images','targets', 'targets_label'})`` containing the batch.
+        :return: ``DataDict({'sequences','targets', 'targets_label'})`` containing the batch.
 
         """
 
@@ -194,7 +194,7 @@ if __name__ == "__main__":
     batch = next(iter(dataloader))
 
     # reshape image for display
-    batch['images'] = batch['images'].view(batch_size, 1, problem.num_columns, problem.num_rows)
+    batch['sequences'] = batch['sequences'].view(batch_size, 1, problem.num_columns, problem.num_rows)
 
     problem.show_sample(batch, 0)
 

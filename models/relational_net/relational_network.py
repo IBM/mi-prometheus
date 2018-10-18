@@ -15,60 +15,104 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""relational_network.py: contains the implementation of the Relational Network."""
+"""
+relational_network.py: contains the implementation of the Relational Network model from DeepMind.
+See the reference paper here: https://arxiv.org/pdf/1706.01427.pdf.
+"""
 __author__ = "Vincent Marois"
+
+import torch
+
+from models.model import Model
 
 from models.relational_net.conv_input_model import ConvInputModel
 from models.relational_net.functions import PairwiseRelationNetwork, SumOfPairsAnalysisNetwork
 
-import torch
-import numpy as np
-
-from models.model import Model
-from utils.app_state import AppState
-
-
 
 class RelationalNetwork(Model):
     """
-    Implementation of the Relational Network model.
+    Implementation of the Relational Network (RN) model.
 
-    Reference paper: https://arxiv.org/abs/1706.01427 The CNN model used
-    for the image encoding is located in .conv_input_model.py The MLPs
-    (g_theta & f_phi) are in .functions.
+    Questions are processed with an LSTM to produce a question embedding, and images are processed \
+    with a CNN to produce a set of objects for the RN. 'Objects' are constructed using feature-map vectors \
+    from the convolved image.  The RN considers relations across all pairs of objects, conditioned on the
+    question embedding, and integrates all these relations to answer the question.
+
+    Reference paper: https://arxiv.org/abs/1706.01427.
+
+    The CNN model used for the image encoding is located in ``conv_input_model.py``.
+
+    The MLPs (g_theta & f_phi) are in ``functions.py``.
+
+    .. warning:
+
+        This implementation has only been tested on the ``SortOfCLEVR`` problem class proposed in this \
+        framework and will require modification to work on the CLEVR dataset (also proposed in this framework).\
+
+        This should be addressed in a future release.
+
 
     """
 
-    def __init__(self, params):
+    def __init__(self, params, problem_default_values_={}):
         """
         Constructor.
 
-        :param params: dict of parameters.
+        Instantiates the CNN model (4 layers), and the 2 Multi Layer Perceptrons.
+
+        :param params: dictionary of parameters (read from the ``.yaml`` configuration file.)
+
+        :param problem_default_values_: default values coming from the ``Problem`` class.
+        :type problem_default_values_: dict.
 
         """
 
         # call base constructor
-        super(RelationalNetwork, self).__init__(params)
+        super(RelationalNetwork, self).__init__(params, problem_default_values_)
+
+        self.name = 'RelationalNetwork'
 
         # instantiate conv input model for image encoding
         self.cnn_model = ConvInputModel()
 
+        try:
+            # get image information from the problem class
+            self.num_channels = problem_default_values_['num_channels']  # number of channels
+            self.height = problem_default_values_['height']
+            self.width = problem_default_values_['width']
+            self.question_size = problem_default_values_['question_size']
+
+            # number of output nodes
+            self.nb_classes = problem_default_values_['num_classes']
+
+        except BaseException:
+            self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
+
+        # compute the length of the input to the g_theta MLP:
+        input_size = ( self.cnn_model.conv4.out_channels + 2) *2 + self.question_size
         # instantiate network to compare regions pairwise
-        self.pair_network = PairwiseRelationNetwork(params['pair_net'])
+        self.pair_network = PairwiseRelationNetwork(input_size=input_size)
 
         # instantiate network to analyse the sum of the pairs
-        self.sum_network = SumOfPairsAnalysisNetwork(params['sum_net'])
+        self.sum_network = SumOfPairsAnalysisNetwork(output_size=self.nb_classes)
 
-        # TODO: Anything else??
+        self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width],
+                                            'type': [torch.Tensor]},
+                                 'questions': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
+                                 }
 
     def build_coord_tensor(self, batch_size, d):
         """
-        Create the tensor containing the spatial relative coordinate of each
-        region (1 pixel) in the feature maps of the ConvInputModel. These
+        Create the tensor containing the spatial relative coordinate of each \
+        region (1 pixel) in the feature maps of the ``ConvInputModel``. These \
         spatial relative coordinates are used to 'tag' the regions.
 
         :param batch_size: batch size
+        :type batch_size: int
+
         :param d: size of 1 feature map
+        :type d: int
 
         :return: tensor of shape [batch_size x d x d x 2]
 
@@ -76,7 +120,7 @@ class RelationalNetwork(Model):
         coords = torch.linspace(-1 / 2., 1 / 2., d)
         x = coords.unsqueeze(0).repeat(d, 1)
         y = coords.unsqueeze(1).repeat(1, d)
-        ct = torch.stack((x, y))  # [2 x d x d]
+        ct = torch.stack((x, y)).type(self.app_state.dtype)  # [2 x d x d]
 
         # broadcast to all batches
         # [batch_size x 2 x d x d]
@@ -84,21 +128,28 @@ class RelationalNetwork(Model):
 
         # indicate that we do not track gradient for this tensor
         ct.requires_grad = False
-        ct = ct.type(app_state.dtype)
 
         return ct
 
-    def forward(self, data_tuple):
+    def forward(self, data_dict):
         """
-        Runs the RelationalNetwork model.
+        Runs the ``RelationalNetwork`` model.
 
-        :param data_tuple: Tuple containing images [batch_size, num_channels, height, width] and questions [batch_size, question_size]
-        :returns: output [batch_size, nb_classes]
+        :param data_dict: DataDict({'images', 'questions', **}) containing:
+
+            - images [batch_size, num_channels, height, width],
+            - questions [batch_size, question_size]
+
+
+        :type data_dict: utils.DataDict
+
+        :returns: Predictions of the model [batch_size, nb_classes]
 
         """
 
-        # unpack datatuple
-        (images, questions), _ = data_tuple
+        images = data_dict['images'].type(self.app_state.dtype)
+        questions = data_dict['questions']
+
         question_size = questions.shape[-1]
 
         # step 1 : encode images
@@ -158,23 +209,44 @@ class RelationalNetwork(Model):
 
 
 if __name__ == '__main__':
+    """Unit test for the RelationalNetwork on SortOfCLEVR"""
+    from utils.app_state import AppState
+    from utils.param_interface import ParamInterface
+    from torch.utils.data.dataloader import DataLoader
+    app_state = AppState()
 
-    question_size = 13
-    input_size = (24 + 2) * 2 + question_size
-    output_size = 29
-    params = {'g_theta': {'input_size': input_size},
-              'f_phi': {'output_size': output_size}}
+    from problems.image_text_to_class.sort_of_clevr import SortOfCLEVR
+    problem_params = ParamInterface()
+    problem_params.add_config_params({'data_folder': '~/data/sort-of-clevr/',
+                                      'split': 'train',
+                                      'regenerate': False,
+                                      'dataset_size': 10000,
+                                      'img_size': 128})
 
-    batch_size = 128
-    img_size = 128
-    images = np.random.binomial(1, 0.5, (batch_size, 3, img_size, img_size))
-    images = torch.from_numpy(images).type(AppState().dtype)
+    # create problem
+    sort_of_clevr = SortOfCLEVR(problem_params)
+    print('Problem {} instantiated.'.format(sort_of_clevr.name))
 
-    questions = np.random.binomial(1, 0.5, (batch_size, question_size))
-    questions = torch.from_numpy(questions).type(AppState().dtype)
+    # instantiate DataLoader object
+    batch_size = 64
+    problem = DataLoader(sort_of_clevr, batch_size=batch_size, collate_fn=sort_of_clevr.collate_fn)
 
-    targets = None
+    model_params = ParamInterface()
+    model_params.add_config_params({})
 
-    net = RelationalNetwork(params)
+    model = RelationalNetwork(model_params, sort_of_clevr.default_values)
+    print('Model {} instantiated.'.format(model.name))
+    model.app_state.visualize = True
 
-    net(((images, questions), targets))
+    # perform handshaking between RN & SortOfCLEVR
+    model.handshake_definitions(sort_of_clevr.data_definitions)
+
+    # generate a batch
+    for i_batch, sample in enumerate(problem):
+        print('Sample # {} - {}'.format(i_batch, sample['images'].shape), type(sample))
+        logits = model(sample)
+        sort_of_clevr.plot_preprocessing(sample, logits)
+        model.plot(sample, logits)
+        print(logits.shape)
+
+    print('Unit test completed.')
