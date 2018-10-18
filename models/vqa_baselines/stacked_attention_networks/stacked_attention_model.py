@@ -60,6 +60,10 @@ class StackedAttentionNetwork(Model):
         - the question model (LSTM based),
         - the stacked attention model.
 
+    .. warning::
+
+        This implementation has only been tested on ``SortOfCLEVR`` so far.
+
     """
 
     def __init__(self, params, problem_default_values_):
@@ -186,30 +190,43 @@ class StackedAttentionNetwork(Model):
 
         return logits
 
-    def plot(self, data_tuple, predictions, sample_number=0):
+    def plot(self, data_dict, predictions, sample=0):
         """
-        :param data_tuple: Data tuple containing input and target batches.
+        Displays the image, the predicted & ground truth answers.
+
+        :param data_dict: DataDict({'images', 'questions', 'targets'}) where:
+
+            - images: [batch_size, num_channels, height, width],
+            - questions: [batch_size, size_question_encoding]
+            - targets: [batch_size]
+
+        :type data_dict: utils.DataDict
+
         :param predictions: Prediction.
-        :param sample_number: Number of sample in batch (DEFAULT: 0)
+        :type predictions: torch.tensor
+
+        :param sample: Index of sample in batch (DEFAULT: 0).
+        :type sample:int
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
             return False
         import matplotlib.pyplot as plt
 
-        # Unpack tuples.
-        (images, questions), targets = data_tuple
+        images = data_dict['images']
+        questions = data_dict['questions']
+        targets = data_dict['targets']
 
         # Get sample.
-        image = images[sample_number]
-        target = targets[sample_number]
-        prediction = predictions[sample_number]
-        question = questions[sample_number]
+        image = images[sample]
+        target = targets[sample]
+        prediction = np.argmax(predictions[sample].detach().numpy())
+        question = questions[sample]
 
         # Show data.
         plt.title('Prediction: {} (Target: {})'.format(prediction, target))
         plt.xlabel('Q: {} )'.format(question))
-        plt.imshow(image.transpose(1, 2, 0),
+        plt.imshow(image.permute(1, 2, 0),
                    interpolation='nearest', aspect='auto')
 
         f = plt.figure()
@@ -219,9 +236,9 @@ class StackedAttentionNetwork(Model):
             np.sqrt(self.apply_attention.visualize_attention.size(-2)))
 
         # get the attention of the 2 layers of stacked attention
-        attention_visualize_layer1 = self.apply_attention.visualize_attention[sample_number, :, 0].detach(
+        attention_visualize_layer1 = self.apply_attention.visualize_attention[sample, :, 0].detach(
         ).numpy()
-        attention_visualize_layer2 = self.apply_attention.visualize_attention[sample_number, :, 1].detach(
+        attention_visualize_layer2 = self.apply_attention.visualize_attention[sample, :, 1].detach(
         ).numpy()
 
         # reshape to get a 2D plot
@@ -242,7 +259,6 @@ class StackedAttentionNetwork(Model):
 
         # Plot!
         plt.show()
-        exit()
 
 
 if __name__ == '__main__':
@@ -250,6 +266,9 @@ if __name__ == '__main__':
 
     # "Loaded parameters".
     from utils.param_interface import ParamInterface
+    from utils.app_state import AppState
+    app_state = AppState()
+    app_state.visualize = True
     from problems.image_text_to_class.sort_of_clevr import SortOfCLEVR
     problem_params = ParamInterface()
     problem_params.add_config_params({'data_folder': '~/data/sort-of-clevr/',
@@ -270,10 +289,10 @@ if __name__ == '__main__':
                             batch_size=batch_size, shuffle=True, num_workers=4)
 
     model_params = ParamInterface()
-    model_params.add_config_params({'use_pretrained_cnn': True,
+    model_params.add_config_params({'use_pretrained_cnn': False,
 
                                     'pretrained_cnn': {'name': 'resnet18', 'num_layers': 2},
-
+    
                                     'lstm': {'hidden_size': 64, 'num_layers': 1, 'bidirectional': False,
                                              'dropout': 0},
                                     'attention_layer': {'nb_nodes': 128},

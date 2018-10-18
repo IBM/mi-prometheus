@@ -201,7 +201,7 @@ class CNN_LSTM(Model):
 
             - images: [batch_size, num_channels, height, width],
             - questions: [batch_size, size_question_encoding]
-            - targets: [batch_dize]
+            - targets: [batch_size]
 
         :type data_dict: utils.DataDict
 
@@ -224,7 +224,7 @@ class CNN_LSTM(Model):
         # Get sample.
         image = images[sample]
         target = targets[sample]
-        prediction = np.argmax(predictions[sample])
+        prediction = np.argmax(predictions[sample].detach().numpy())
         question = questions[sample]
 
         # Show data.
@@ -243,6 +243,9 @@ if __name__ == '__main__':
 
     # "Loaded parameters".
     from utils.param_interface import ParamInterface
+    from utils.app_state import AppState
+    app_state = AppState()
+    app_state.visualize = True
     from problems.image_text_to_class.sort_of_clevr import SortOfCLEVR
     problem_params = ParamInterface()
     problem_params.add_config_params({'data_folder': '~/data/sort-of-clevr/',
