@@ -19,7 +19,7 @@
 serial_recall_cl.py: Contains definition of serial recall problem with control markers and command lines
 
 """
-__author__ = "Ryan McAvoy, Tomasz Kornuta, Vincent Marois"
+__author__ = "Tomasz Kornuta, Ryan McAvoy, Vincent Marois"
 
 import torch
 import numpy as np
