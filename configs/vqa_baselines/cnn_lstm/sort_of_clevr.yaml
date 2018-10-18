@@ -1,46 +1,6 @@
-training:
-    # Problem parameters:
-    problem:
-        name: &name SortOfCLEVR
-        batch_size: &b 64
-        data_folder: '~/data/sort-of-clevr/'
-        split: 'train'
-        dataset_size: &ds 12000
-        regenerate: False
-        img_size: &imgs 128
-    # Set optimizer.
-    optimizer:
-        name: Adam
-        lr: 0.005
-    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
-    gradient_clipping: 10
-    # Terminal condition parameters:
-    terminal_conditions:
-        loss_stop: 0.0001
-        episode_limit: 100000
-        epoch_limit: 20
-
-testing:
-    # Problem parameters:
-    problem:
-        name: *name
-        batch_size: *b
-        data_folder: '~/data/sort-of-clevr/'
-        dataset_size: *ds
-        split: 'test'
-        img_size: *imgs
-        regenerate: False
-
-validation:
-    # Problem parameters:
-    problem:
-        name: *name
-        batch_size: *b
-        data_folder: '~/data/sort-of-clevr/'
-        split: 'val'
-        dataset_size: *ds
-        img_size: *imgs
-        regenerate: False
+# Load the following (default) configs first.
+default_configs:
+    configs/vqa_baselines/default_sort_of_clevr.yaml
 
 # Model parameters:
 model:

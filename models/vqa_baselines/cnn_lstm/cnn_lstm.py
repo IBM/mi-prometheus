@@ -39,7 +39,7 @@ Inspiration drawn partially from the following paper:
   bibsource = {dblp computer science bibliography, https://dblp.org}}
 
 """
-__author__ = "Younes Bouhadjar & Vincent Marois"
+__author__ = "Vincent Marois & Younes Bouhadjar"
 
 import torch
 import numpy as np
@@ -152,7 +152,7 @@ class CNN_LSTM(Model):
 
     def forward(self, data_dict):
         """
-        Runs the ``CNN_LSTM`` model and plots if necessary.
+        Runs the ``CNN_LSTM`` model.
 
         :param data_dict: DataDict({'images', 'questions', **}) where:
 
