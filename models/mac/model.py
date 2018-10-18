@@ -75,6 +75,8 @@ class MACNetwork(Model):
         :param params: dict of parameters (read from configuration ``.yaml`` file).
         :type params: utils.ParamInterface
 
+        :param problem_default_values_: default values coming from the ``Problem`` class.
+        :type problem_default_values_: dict
         """
 
         # call base constructor
