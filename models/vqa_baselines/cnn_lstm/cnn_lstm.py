@@ -67,6 +67,8 @@ class CNN_LSTM(Model):
         Altough the cited paper above mentions GoogLeNet & VGG as other CNN models, they are not supported \
         for now. It is planned in a future release to add support for ``torchvision`` models.
 
+        This implementation has only been tested on ``SortOfCLEVR`` for now.
+
 
     """
 
