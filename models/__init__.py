@@ -2,7 +2,7 @@ from .controllers import *
 #from .dnc import *
 from .dwm import *
 from .encoder_solver import *
-#from .lstm import *
+from .lstm import *
 from .mac import *
 #from .multi_hops_attention import *
 #from .ntm import *

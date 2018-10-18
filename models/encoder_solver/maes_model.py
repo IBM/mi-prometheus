@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""maes_module.py: File containing Memory Augmented Encoder-Solver model class."""
+"""maes_model.py: File containing Memory Augmented Encoder-Solver model class."""
 __author__ = "Tomasz Kornuta"
 
 from enum import Enum
@@ -32,9 +32,10 @@ class MAES(SequentialModel):
     """
     Class implementing the Memory Augmented Encoder-Solver (MAES) model.
 
-    Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences
-    becoming input to encoder is of the same length (ends at the same item).
-    The same goes to subsequences being input to decoder.
+    ..warning:
+        Class assumes, that the whole batch has the same length, i.e. batch of subsequences
+        becoming input to encoder is of the same length (ends at the same item).
+        The same goes to subsequences being input to decoder.
 
     """
 
@@ -43,7 +44,9 @@ class MAES(SequentialModel):
         Constructor. Initializes parameters on the basis of dictionary passed
         as argument.
 
-        :param params: Dictionary of parameters.
+        :param params: Local view to the Parameter Regsitry ''model'' section.
+
+        :param problem_default_values_: Dictionary containing key-values received from problem.
 
         """
         # Call base constructor.
@@ -101,8 +104,7 @@ class MAES(SequentialModel):
                                  'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]}
                                  }
 
-        # TODO: Not sure if some of the params above are coming from the Problem class. If yes -> use \
-        # problems_default_values_
+
 
     def save(self, model_dir, stat_col):
         """
@@ -127,13 +129,11 @@ class MAES(SequentialModel):
 
     def forward(self, data_dict):
         """
-        Forward function accepts a tuple consisting of:
+        Forward function requires that the data_dict will contain at least:
 
-            - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and
-            - a tensor of targets
+            - "sequence": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
 
-
-        :param data_dict: DataDict containing inputs and targets.
+        :param data_dict: DataDict containing inputs.
 
         :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
 

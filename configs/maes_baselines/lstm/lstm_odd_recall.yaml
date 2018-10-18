@@ -1,13 +1,13 @@
 # Load the following (default) configs first.
 default_configs: 
-    configs/maes_baselines/default_lstm.yaml, 
+    configs/maes_baselines/lstm/default_lstm.yaml, 
     configs/maes_baselines/default_problem.yaml, 
     configs/maes_baselines/default_training.yaml
 
 # Then overwrite problem name(s).
 training:
     problem:
-        name: &name maes_baselines/skip_recall_cl
+        name: &name SkipRecallCommandLines
         # Skip params.
         seq_start: &start 0
         skip_step: &skip 2
