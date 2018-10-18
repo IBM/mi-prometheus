@@ -128,8 +128,8 @@ class ThalnetModule(nn.Module):
         """
         if inputs is not None:
             if len(inputs.size()) <= 1 or len(inputs.size()) >= 4:
-                print('check inputs size of thalnet cell')
-                exit(-1)
+                self.logger.error('The input size is not the one expected.')
+                raise SystemExit('The input size is not the one expected.')
 
             if len(inputs.size()) == 3:
                 # inputs_size : [batch_size, num_channel, input_size]

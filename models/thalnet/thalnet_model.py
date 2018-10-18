@@ -39,6 +39,14 @@ class ThalNetModel(SequentialModel):
     over multiple time steps.
 
     See the reference paper here: https://arxiv.org/pdf/1706.05744.pdf.
+
+    .. warning:
+
+        The reference paper indicates that the ``Thalnet`` model works on the Sequential MNIST problem. \
+        This implementation does not for the moment, and has only been tested on the SerialRecall task so far.
+
+        This should be adressed in a future release.
+
     """
 
     def __init__(self, params, problem_default_values_={}):
