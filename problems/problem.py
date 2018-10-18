@@ -135,6 +135,16 @@ class Problem(Dataset):
         # Get access to AppState: for dtype, visualization flag etc.
         self.app_state = AppState()
 
+    def create_data_dict(self):
+        """
+        Returns a DataDict object with keys created on the problem data_definitions and empty values (None).
+
+        :return: new DataDict object.
+
+        """
+        return DataDict({key: None for key in self.data_definitions.keys()})
+
+
     def handshake_definitions(self, model_data_definitions_):
         """
         Proceeds to the handshake between what the Model produces as predictions and what the Problem expects to compute\

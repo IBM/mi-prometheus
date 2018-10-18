@@ -262,7 +262,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         #print(collated_num_subsequences)
 
         # Return data_dict.
-        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+        data_dict = self.create_data_dict()
         data_dict['sequences'] = collated_sequences
         data_dict['sequences_length'] = collated_lengths
         data_dict['targets'] = collated_targets
@@ -317,19 +317,13 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         return data_dict
 
 
-
-    # method for changing the maximum length, used mainly during curriculum
-    # learning
-    def set_max_length(self, max_length):
-        self.max_sequence_length = max_length
-
-
     def set_max_length(self, max_length):
         """ Sets maximum sequence lenth (property).
 
         :param max_length: Length to be saved as max.
         """
         self.max_sequence_length = max_length
+
 
     def curriculum_learning_initialize(self, curriculum_params):
         """

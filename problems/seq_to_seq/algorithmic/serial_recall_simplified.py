@@ -123,7 +123,7 @@ class SerialRecallSimplified(AlgorithmicSeqToSeqProblem):
         pttargets = torch.from_numpy(targets).type(self.app_state.dtype)
 
         # Return data_dict.
-        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+        data_dict = self.create_data_dict()
         data_dict['sequences'] = ptinputs
         data_dict['targets'] = pttargets
         data_dict['masks'] = ptmasks
