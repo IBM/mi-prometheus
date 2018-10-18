@@ -90,15 +90,30 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         self.control_bits = params['control_bits']
         self.data_bits = params['data_bits']
 
+        # Set main two bits: store and recall.
+        self.store_bit = 0
+        self.recall_bit = 1
+
         # Min and max lengths of a single subsequence (number of elements).
         self.min_sequence_length = params['min_sequence_length']
         self.max_sequence_length = params['max_sequence_length']
 
-        # Add parameter denoting 0-1 distribution (DEFAULT: 0.5 i.e. equal).
-        self.params.add_default_params({'bias': 0.5})
-        self.bias = params['bias']
+        # Set default values for all Algorithmic Seq2Seq problems.
+        self.default_values = {
+            # Size of the input item, in this case it is number of bits.
+            'input_item_size': self.control_bits + self.data_bits,
+            # Size of the output item.
+            # Valid for most algorithmic tasks, must be overwritten by e.g. equality/symmetry, 
+            # which for every input item return single bit of information.
+            'output_item_size': self.data_bits,
+            # Number of bit that indicates beginning of input sequence (store).
+            'store_bit': self.store_bit,
+            # Number of bit that indicates beginning of target sequence (recall).
+            'recall_bit': self.recall_bit,
+            }
 
-        # Set default data_definitions dict for all Algorithmic Seq2Seq problems.
+
+        # Set data_definitions dict for all Algorithmic Seq2Seq problems.
         self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
                                  'masks': {'size': [-1, -1, 1], 'type': [torch.Tensor]},
@@ -106,24 +121,17 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
                                  'num_subsequences': {'size': [-1, 1], 'type': [torch.Tensor]},
                                  }
 
-        self.default_values = {
-            # Size of the input item, in this case it is number of bits.
-            'input_item_size': self.control_bits + self.data_bits,
-            # Size of the output item.
-            # Valid for most algorithmic tasks, must be overwritten by e.g. equality/symmetry, 
-            # which for every input item return single bit of information.
-            'output_item_size': self.data_bits 
-            }
-
         # Set the default size of the dataset.
         # TODO: Should derive the actual theoretical limit instead of an arbitrary limit.
         self.params.add_default_params({'size': 1000})
-        # Read value from registry - if it was set in config file, it will override the above default value.
         self.length = params['size']
+
+        # Add parameter denoting 0-1 distribution (DEFAULT: 0.5 i.e. equal).
+        self.params.add_default_params({'bias': 0.5})
+        self.bias = params['bias']
 
         # Set default data generation mode.
         self.params.add_default_params({'generation_mode': 'optimized'})
-
         gen_mode = params['generation_mode']
         if gen_mode == 'optimized':
             # "Attach" the "__getitem__" and "collate_fn" functions - generates whole batch at once, optimized.

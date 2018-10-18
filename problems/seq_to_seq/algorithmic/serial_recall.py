@@ -106,14 +106,14 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
                            self.control_bits + self.data_bits],
                           dtype=np.float32)
 
-        # Set start control marker.
-        inputs[:, 0, 0] = 1  # Memorization bit.
+        # Set control marker with store bit.
+        inputs[:, 0, self.store_bit] = 1 
 
         # Set bit sequence.
         inputs[:, 1:seq_length + 1, self.control_bits:self.control_bits + self.data_bits] = bit_seq
 
-        # Set end control marker.
-        inputs[:, seq_length + 1, 1] = 1  # Recall bit.
+        # Set control marker with recall bit.
+        inputs[:, seq_length + 1, self.recall_bit] = 1  
 
         # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS] (only data bits!)
         targets = np.zeros([batch_size, 2 * seq_length + 2,

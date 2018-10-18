@@ -55,7 +55,10 @@ class MAES(SequentialModel):
         # Parse default values received from problem.
         self.params.add_default_params({
             'input_item_size': problem_default_values_['input_item_size'],
-            'output_item_size': problem_default_values_['output_item_size']})
+            'output_item_size': problem_default_values_['output_item_size'],
+            'encoding_bit': problem_default_values_['store_bit'],
+            'solving_bit': problem_default_values_['recall_bit']
+            })
 
         # Indices of control bits triggering encoding/decoding.
         self.encoding_bit = params['encoding_bit']  # Def: 0

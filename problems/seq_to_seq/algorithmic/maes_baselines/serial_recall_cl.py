@@ -108,11 +108,13 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
             else:
                 ctrl_aux[self.control_bits - 1] = 1
 
-        # Markers.
+        # Store marker.
         marker_start_main = np.zeros(self.control_bits)
-        marker_start_main[0] = 1  # [1, 0, 0]
+        marker_start_main[self.store_bit] = 1  # [1, 0, 0]
+
+        # Recall marker.
         marker_start_aux = np.zeros(self.control_bits)
-        marker_start_aux[1] = 1  # [0, 1, 0]
+        marker_start_aux[self.recall_bit] = 1  # [0, 1, 0]
 
         # Set sequence length.
         seq_length = np.random.randint(
