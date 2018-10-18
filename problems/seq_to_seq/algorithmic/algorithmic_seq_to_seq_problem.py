@@ -106,9 +106,14 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
                                  'num_subsequences': {'size': [-1], 'type': [torch.Tensor]},
                                  }
 
-        self.default_values = {'input_size': self.control_bits + self.data_bits,
-                               'output_size': self.data_bits # Valid for most tasks, overwritten by equality/symmetry.
-                               }
+        self.default_values = {
+            # Size of the input item, in this case it is number of bits.
+            'input_item_size': self.control_bits + self.data_bits,
+            # Size of the output item.
+            # Valid for most algorithmic tasks, must be overwritten by e.g. equality/symmetry, 
+            # which for every input item return single bit of information.
+            'output_item_size': self.data_bits 
+            }
 
         # Set the default size of the dataset.
         # TODO: Should derive the actual theoretical limit instead of an arbitrary limit.

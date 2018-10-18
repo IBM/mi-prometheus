@@ -302,7 +302,7 @@ if __name__ == "__main__":
     from torch.utils.data.dataloader import DataLoader
 
     problem = DataLoader(dataset=dataset, batch_size=batch_size, collate_fn=dataset.collate_fn,
-                         shuffle=False, num_workers=4, worker_init_fn=dataset.worker_init_fn)
+                         shuffle=False, num_workers=0, worker_init_fn=dataset.worker_init_fn)
 
     # Measure generation time.
     print("Measuring generation time. Please wait...") 

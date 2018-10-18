@@ -66,30 +66,25 @@ class SerialRecallSimplified(AlgorithmicSeqToSeqProblem):
 
     def generate_batch(self, batch_size):
         """
-        Generates a batch of samples on-the-fly
+        Generates a batch of samples of size ''batch_size'' on-the-fly.
 
-        .. warning::
-            Because of the fact that the sequence length is randomly drawn between ``self.min_sequence_length`` and \
-            ``self.max_sequence_length`` and then fixed for one given batch (**but varies between batches**), \
-            we cannot follow the scheme `merge together individuals samples that can be retrieved in parallel with\
-            several workers.` Indeed, each sample could have a different sequence length, and merging them together\
-            would then not be possible (we cannot have variable-sequence-length samples within one batch \
-            without padding).
-            Hence, ``collate_fn`` generates on-the-fly a batch of samples, all having the same length (initially\
-            randomly selected).
-            The samples created by ``__getitem__`` are simply not used in this function.
+       .. note::
 
+            The sequence length is drawn randomly between ``self.min_sequence_length`` and \
+            ``self.max_sequence_length``.
 
-        :param batch: Should be a list of DataDict retrieved by `__getitem__`, each containing tensors, numbers,\
-        dicts or lists. --> **Not Used Here!**
+       .. warning::
+            All the samples within the batch will have the same sequence lengt.
 
-        :return: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}), with:
+        :param batch_size: Size of the batch to be returned. 
 
-            - sequences: [BATCH_SIZE, 2*SEQ_LENGTH, CONTROL_BITS+DATA_BITS],
-            - **sequences_length: random value between self.min_sequence_length and self.max_sequence_length**
-            - targets: [BATCH_SIZE, 2*SEQ_LENGTH, DATA_BITS],
-            - mask: [BATCH_SIZE, [2*SEQ_LENGTH]
-            - num_subsequences: 1
+        :return: DataDict({'sequences', 'sequences_length', 'targets', 'masks', 'num_subsequences'}), with:
+
+            - sequences: [BATCH_SIZE, 2*SEQ_LENGTH, CONTROL_BITS+DATA_BITS]
+            - sequences_length: [BATCH_SIZE] (random value between self.min_sequence_length and self.max_sequence_length)
+            - targets: [BATCH_SIZE, 2*SEQ_LENGTH, DATA_BITS]
+            - masks: [BATCH_SIZE, [2*SEQ_LENGTH, 1]
+            - num_subsequences: [BATCH_SIZE, 1]
 
         """
 
@@ -118,14 +113,10 @@ class SerialRecallSimplified(AlgorithmicSeqToSeqProblem):
         ptmasks = torch.zeros([batch_size, 2 * seq_length, 1]).type(self.app_state.ByteTensor)
         ptmasks[:, seq_length:] = 1
 
-        # PyTorch variables.
-        ptinputs = torch.from_numpy(inputs).type(self.app_state.dtype)
-        pttargets = torch.from_numpy(targets).type(self.app_state.dtype)
-
         # Return data_dict.
         data_dict = self.create_data_dict()
-        data_dict['sequences'] = ptinputs
-        data_dict['targets'] = pttargets
+        data_dict['sequences'] = torch.from_numpy(inputs).type(self.app_state.dtype)
+        data_dict['targets'] = torch.from_numpy(targets).type(self.app_state.dtype)
         data_dict['masks'] = ptmasks
         data_dict['sequences_length'] = torch.ones([batch_size,1]).type(torch.CharTensor) * seq_length
         data_dict['num_subsequences'] = torch.ones([batch_size, 1]).type(torch.CharTensor)
@@ -163,7 +154,8 @@ if __name__ == "__main__":
 
     s = time.time()
     for i, batch in enumerate(problem):
-        print('Batch # {} - {}'.format(i, type(batch)))
+        #print('Batch # {} - {}'.format(i, type(batch)))
+        pass
 
     print('Number of workers: {}'.format(problem.num_workers))
     print('time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'

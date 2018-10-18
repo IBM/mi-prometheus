@@ -506,7 +506,7 @@ if __name__ == "__main__":
     from utils.param_interface import ParamInterface
 
     params = ParamInterface()
-    params.add_custom_params({'control_bits': 4,
+    params.add_config_params({'control_bits': 4,
                               'data_bits': 8,
                               # 'predict_inverse': False,
                               'min_sequence_length': 1,
@@ -530,7 +530,7 @@ if __name__ == "__main__":
 
 
     problem = DataLoader(dataset=seqcompcl, batch_size=batch_size, collate_fn=seqcompcl.collate_fn,
-                         shuffle=False, num_workers=4, worker_init_fn=init_fn)
+                         shuffle=False, num_workers=0, worker_init_fn=init_fn)
 
     # generate a batch
     import time

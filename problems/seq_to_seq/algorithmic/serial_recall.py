@@ -126,15 +126,11 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
         ptmasks = torch.zeros([batch_size, 2 * seq_length + 2, 1]
                            ).type(torch.ByteTensor)
         ptmasks[:, seq_length + 2:, 0] = 1
-
-        # PyTorch variables.
-        ptinputs = torch.from_numpy(inputs).type(self.app_state.dtype)
-        pttargets = torch.from_numpy(targets).type(self.app_state.dtype)
-
+        
         # Return data_dict.
         data_dict = self.create_data_dict()
-        data_dict['sequences'] = ptinputs
-        data_dict['targets'] = pttargets
+        data_dict['sequences'] = torch.from_numpy(inputs).type(self.app_state.dtype)
+        data_dict['targets'] = torch.from_numpy(targets).type(self.app_state.dtype)
         data_dict['masks'] = ptmasks
         data_dict['sequences_length'] = torch.ones([batch_size,1]).type(torch.CharTensor) * seq_length
         data_dict['num_subsequences'] = torch.ones([batch_size, 1]).type(torch.CharTensor)
@@ -152,7 +148,7 @@ if __name__ == "__main__":
                               'min_sequence_length': 1,
                               'max_sequence_length': 10,
                               'generation_mode': 'optimized'})
-    batch_size = 10
+    batch_size = 64
 
     # Create problem object.
     serialrecall = SerialRecall(params)
