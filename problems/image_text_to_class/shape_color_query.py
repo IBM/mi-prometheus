@@ -71,7 +71,8 @@ class ShapeColorQuery(SortOfCLEVR):
                                'width': self.img_size,
                                'num_channels': 3,
                                'num_classes': 10,
-                               'question_size': 7}
+                               'question_size': 7,  # 'encoding' size of the shape, color & query
+                               'seq_length': 3}  # nb of elts in the question: shape, color, query
 
     def question2str(self, encoded_question):
         """

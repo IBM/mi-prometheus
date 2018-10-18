@@ -156,7 +156,7 @@ class AttentionLayer(nn.Module):
         # Get the key
         key = self.ff_image(encoded_image)
 
-        # Get the query, unsqueeze to be able to add the query to all channels
+        # Get the query, unsqueeze to be able to add the query to all channel
         query = self.ff_ques(encoded_question).unsqueeze(dim=1)
         weighted_key_query = F.tanh(key + query)
 

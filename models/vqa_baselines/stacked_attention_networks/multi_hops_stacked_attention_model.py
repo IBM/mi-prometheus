@@ -16,25 +16,26 @@
 # limitations under the License.
 
 """
-stacked_attention_model.py: Implementation of a Stacked Attention Network (SAN). \
+multi_hops_stacked_attention_model.py: Implementation of a Stacked Attention Network (SAN).
+
+This is a variant of the Stacked Attention Network model, in which several attention hops are done over the \
+question words.
 
 Inspiration drawn partially from the following paper:
 
-@article{DBLP:journals/corr/YangHGDS15,
-  author    = {Zichao Yang and
-               Xiaodong He and
-               Jianfeng Gao and
-               Li Deng and
-               Alexander J. Smola},
-  title     = {Stacked Attention Networks for Image Question Answering},
+@article{DBLP:journals/corr/KazemiE17,
+  author    = {Vahid Kazemi and
+               Ali Elqursh},
+  title     = {Show, Ask, Attend, and Answer: {A} Strong Baseline For Visual Question
+               Answering},
   journal   = {CoRR},
-  volume    = {abs/1511.02274},
-  year      = {2015},
-  url       = {http://arxiv.org/abs/1511.02274},
+  volume    = {abs/1704.03162},
+  year      = {2017},
+  url       = {http://arxiv.org/abs/1704.03162},
   archivePrefix = {arXiv},
-  eprint    = {1511.02274},
-  timestamp = {Mon, 13 Aug 2018 16:47:25 +0200},
-  biburl    = {https://dblp.org/rec/bib/journals/corr/YangHGDS15},
+  eprint    = {1704.03162},
+  timestamp = {Mon, 13 Aug 2018 16:47:10 +0200},
+  biburl    = {https://dblp.org/rec/bib/journals/corr/KazemiE17},
   bibsource = {dblp computer science bibliography, https://dblp.org}
 }
 
@@ -50,29 +51,27 @@ from models.model import Model
 from models.vqa_baselines.stacked_attention_networks.stacked_attention_layer import StackedAttentionLayer
 
 
-class StackedAttentionNetwork(Model):
+class MultiHopsStackedAttentionNetwork(Model):
     """
-    Implementation of a Stacked Attention Networks (SAN).
+    Implementation of a Stacked Attention Networks (SAN), with several attention hops over the \
+    question words.
 
-    The three major components of SAN are:
-
-        - the image model (CNN model, possibly pretrained),
-        - the question model (LSTM based),
-        - the stacked attention model.
+    The implementation details are very similar to the `StackedAttentionNetwork``, to the difference that \
+    it uses an LSTMCell instead of an LSTM.
 
     .. warning::
 
-        This implementation has only been tested on ``SortOfCLEVR`` so far.
+        This implementation has only been tested on ``ShapeColorQuery`` so far.
 
     """
 
     def __init__(self, params, problem_default_values_):
         """
-        Constructor class of ``StackedAttentionNetwork`` model.
+        Constructor class of ``MultiHopsStackedAttentionNetwork`` model.
 
         - Parses the parameters,
         - Instantiates the CNN model: A simple, 4-layers one, or a pretrained one,
-        - Instantiates an LSTM for the questions encoding,
+        - Instantiates an LSTMCell for the questions encoding,
         - Instantiates a 3-layers MLP as classifier.
 
         :param params: dict of parameters (read from configuration ``.yaml`` file).
@@ -83,7 +82,7 @@ class StackedAttentionNetwork(Model):
 
         """
         # call base constructor
-        super(StackedAttentionNetwork, self).__init__(params, problem_default_values_)
+        super(MultiHopsStackedAttentionNetwork, self).__init__(params, problem_default_values_)
 
         # Parse default values received from problem.
         try:
@@ -95,10 +94,13 @@ class StackedAttentionNetwork(Model):
 
             self.nb_classes = problem_default_values_['num_classes']
 
+            self.num_words = problem_default_values_['seq_length']
+
         except BaseException:
+            self.num_words = params['default_nb_hops']
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
-        self.name = 'StackedAttentionNetwork'
+        self.name = 'MultiHopsStackedAttentionNetwork'
 
         # Instantiate CNN for image encoding
         if params['use_pretrained_cnn']:
@@ -112,50 +114,50 @@ class StackedAttentionNetwork(Model):
             self.image_encoding_channels = self.cnn.get_output_nb_filters()
 
         # Instantiate LSTM for question encoding
-        self.hidden_size = params['lstm']['hidden_size']
-        self.num_layers = params['lstm']['num_layers']
+        self.hidden_size = self.image_encoding_channels
 
-        self.bidirectional = params['lstm']['bidirectional']
-        if self.bidirectional:
-            self.num_dir = 2
-        else:
-            self.num_dir = 1
-
-        self.lstm = nn.LSTM(input_size=self.question_encoding_size,
-                            hidden_size=self.hidden_size,
-                            num_layers=self.num_layers,
-                            bias=True,
-                            batch_first=True,
-                            dropout=params['lstm']['dropout'],
-                            bidirectional=self.bidirectional)
-
-        output_question_dim = self.num_dir * self.hidden_size
+        self.lstm = nn.LSTMCell(input_size=self.question_encoding_size,
+                                hidden_size=self.hidden_size,
+                                bias=True)
 
         # Retrieve attention layer parameters
         self.mid_features_attention = params['attention_layer']['nb_nodes']
-
-        # Question encoding
-        self.ffn = nn.Linear(in_features=output_question_dim, out_features=self.image_encoding_channels)
 
         # Instantiate class for attention
         self.apply_attention = StackedAttentionLayer(question_image_encoding_size=self.image_encoding_channels,
                                                      key_query_size=self.mid_features_attention)
 
         # Instantiate MLP for classifier
-        input_size = self.image_encoding_channels
+        input_size = (self.num_words + 1) *self.image_encoding_channels
 
         self.fc1 = nn.Linear(in_features=input_size, out_features=params['classifier']['nb_hidden_nodes'])
         self.fc2 = nn.Linear(params['classifier']['nb_hidden_nodes'], params['classifier']['nb_hidden_nodes'])
         self.fc3 = nn.Linear(params['classifier']['nb_hidden_nodes'], self.nb_classes)
 
-        self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width], 'type': [torch.Tensor]},
-                                 'questions': {'size': [-1, self.question_encoding_size], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, self.nb_classes], 'type': [torch.Tensor]}
-                                 }
+        self.data_definitions = {
+            'images': {'size': [-1, self.num_channels, self.height, self.width], 'type': [torch.Tensor]},
+            'questions': {'size': [-1, 3, self.question_encoding_size], 'type': [torch.Tensor]},
+            'targets': {'size': [-1, self.nb_classes], 'type': [torch.Tensor]}
+            }
+
+    def init_hidden_states(self, batch_size):
+        """
+        Initialize the hidden and cell states of the LSTM to 0.
+
+        :param batch_size: Size of the batch.
+        :type batch_size: int
+
+        :return: hx, cx: hidden and cell states initialized to 0.
+
+        """
+        hx = torch.zeros(batch_size, self.hidden_size).type(self.app_state.dtype)
+        cx = torch.zeros(batch_size, self.hidden_size).type(self.app_state.dtype)
+
+        return hx, cx
 
     def forward(self, data_dict):
         """
-        Runs the ``StackedAttentionNetwork`` model.
+        Runs the ``MultiHopsStackedAttentionNetwork`` model.
 
         :param data_dict: DataDict({'images', 'questions', **}) where:
 
@@ -170,25 +172,34 @@ class StackedAttentionNetwork(Model):
         images = data_dict['images'].type(self.app_state.dtype)
         questions = data_dict['questions']
 
+        # get batch size
+        batch_size = images.shape[0]
+
         # 1. Encode the images
         encoded_images = self.cnn(images)
-
         # flatten the images
         encoded_images = encoded_images.view(encoded_images.size(0), encoded_images.size(1), -1).transpose(1, 2)
 
         # 2. Encode the questions
+        v_features = None
 
-        # (h_0, c_0) are not provided -> default to zero
-        encoded_question, _ = self.lstm(questions.unsqueeze(1))
-        # take layer's last output
-        encoded_question = encoded_question[:, -1, :]
+        # initialize the LSTM states
+        hx, cx = self.init_hidden_states(batch_size)
 
-        # 3. Go through the ``StackedAttentionLayer``.
-        encoded_question = self.ffn(encoded_question)
-        encoded_attention = self.apply_attention(encoded_images, encoded_question)
+        for i in range(questions.size(1)):
 
-        # 4. Classify based on the result of the stacked attention layer
-        x = F.relu(self.fc1(encoded_attention))
+            hx, cx = self.lstm(questions[:, i, :], (hx, cx))
+            # 3. Go through the ``StackedAttentionLayer``.
+            v = self.apply_attention(encoded_images, hx.squeeze(1))
+
+            if v_features is None:
+                v_features = v
+            else:
+                v_features = torch.cat((v_features, v), dim=-1)
+
+                # 4. Classify based on the result of the stacked attention layer
+        combined = torch.cat([v_features, hx], dim=1)
+        x = F.relu(self.fc1(combined))
         x = F.relu(self.fc2(x))
         x = F.dropout(x)  # p=0.5
         logits = self.fc3(x)
@@ -231,35 +242,8 @@ class StackedAttentionNetwork(Model):
         # Show data.
         plt.title('Prediction: {} (Target: {})'.format(prediction, target))
         plt.xlabel('Q: {} )'.format(question))
+        print(type(image))
         plt.imshow(image.permute(1, 2, 0),
-                   interpolation='nearest', aspect='auto')
-
-        f = plt.figure()
-        plt.title('Attention')
-
-        width_height_attention = int(
-            np.sqrt(self.apply_attention.visualize_attention.size(-2)))
-
-        # get the attention of the 2 layers of stacked attention
-        attention_visualize_layer1 = self.apply_attention.visualize_attention[sample, :, 0].detach(
-        ).numpy()
-        attention_visualize_layer2 = self.apply_attention.visualize_attention[sample, :, 1].detach(
-        ).numpy()
-
-        # reshape to get a 2D plot
-        attention_visualize_layer1 = attention_visualize_layer1.reshape(
-            width_height_attention, width_height_attention)
-        attention_visualize_layer2 = attention_visualize_layer2.reshape(
-            width_height_attention, width_height_attention)
-
-        plt.title('1st attention layer')
-        plt.imshow(attention_visualize_layer1,
-                   interpolation='nearest', aspect='auto')
-
-        f = plt.figure()
-
-        plt.title('2nd attention layer')
-        plt.imshow(attention_visualize_layer2,
                    interpolation='nearest', aspect='auto')
 
         # Plot!
@@ -267,30 +251,30 @@ class StackedAttentionNetwork(Model):
 
 
 if __name__ == '__main__':
-    """ Tests StackedAttentionNetwork on SortOfCLEVR"""
+    """ Tests MultiHopsStackedAttentionNetwork on ShapeColorQuery"""
 
     # "Loaded parameters".
     from utils.param_interface import ParamInterface
     from utils.app_state import AppState
     app_state = AppState()
-    app_state.visualize = True
-    from problems.image_text_to_class.sort_of_clevr import SortOfCLEVR
+    app_state.visualize = False
+    from problems.image_text_to_class.shape_color_query import ShapeColorQuery
     problem_params = ParamInterface()
-    problem_params.add_config_params({'data_folder': '~/data/sort-of-clevr/',
+    problem_params.add_config_params({'data_folder': '~/data/shape-color-query/',
                                       'split': 'train',
                                       'regenerate': False,
                                       'dataset_size': 10000,
                                       'img_size': 128})
 
     # create problem
-    sortofclevr = SortOfCLEVR(problem_params)
+    shapecolorquery = ShapeColorQuery(problem_params)
 
     batch_size = 64
 
     # wrap DataLoader on top of this Dataset subclass
     from torch.utils.data.dataloader import DataLoader
 
-    dataloader = DataLoader(dataset=sortofclevr, collate_fn=sortofclevr.collate_fn,
+    dataloader = DataLoader(dataset=shapecolorquery, collate_fn=shapecolorquery.collate_fn,
                             batch_size=batch_size, shuffle=True, num_workers=4)
 
     model_params = ParamInterface()
@@ -298,13 +282,12 @@ if __name__ == '__main__':
 
                                     'pretrained_cnn': {'name': 'resnet18', 'num_layers': 2},
 
-                                    'lstm': {'hidden_size': 64, 'num_layers': 1, 'bidirectional': False,
-                                             'dropout': 0},
                                     'attention_layer': {'nb_nodes': 128},
-                                    'classifier': {'nb_hidden_nodes': 256}})
+                                    'classifier': {'nb_hidden_nodes': 256},
+                                    'default_nb_hops': 3})
 
     # create model
-    model = StackedAttentionNetwork(model_params, sortofclevr.default_values)
+    model = MultiHopsStackedAttentionNetwork(model_params, shapecolorquery.default_values)
 
     for batch in dataloader:
         logits = model(batch)
