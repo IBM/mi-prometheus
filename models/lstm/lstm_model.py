@@ -83,6 +83,7 @@ class LSTM(SequentialModel):
         # Unpack dict.
         inputs_BxSxI = data_dict['sequences']
 
+        # Get batch size.
         batch_size = inputs_BxSxI.size(0)
 
         # Create the hidden state tensors

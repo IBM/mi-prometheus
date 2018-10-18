@@ -1,4 +1,4 @@
-#from .es_lstm_model import EncoderSolverLSTM
+from .es_lstm_model import EncoderSolverLSTM
 #from .es_ntm_model import EncoderSolverNTM
 #from .mae2s_model import MAE2S
 from .mae_cell import MAECellStateTuple, MAECell
@@ -8,7 +8,7 @@ from .mas_cell import MASCellStateTuple, MASCell
 from .mas_interface import MASInterfaceStateTuple, MASInterface
 
 __all__ = [
-    #'EncoderSolverLSTM',
+    'EncoderSolverLSTM',
     #'EncoderSolverNTM',
     #'MAE2S',
     'MAECellStateTuple',
