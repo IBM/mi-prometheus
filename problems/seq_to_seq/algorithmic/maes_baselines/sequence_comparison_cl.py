@@ -143,7 +143,7 @@ class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
 
         # Check if items in the second subsequence have to be equal.
         leave_items = np.random.random_sample( (batch_size, seq_length, 1) ) < 0.5
-        print(leave_items)
+        #print(leave_items)
 
          # Generate scambler mask.
         scrambler_mask = np.random.binomial(1, self.bias,
@@ -172,7 +172,7 @@ class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
 
         # Check if items are equal.
         are_items_equal = np.logical_not(np.sum(aux_bit_seq != bit_seq, axis=2) > 0)
-        print(are_items_equal)
+        #print(are_items_equal)
 
         # Set only last output item.
         # Check equality/inequality mode.

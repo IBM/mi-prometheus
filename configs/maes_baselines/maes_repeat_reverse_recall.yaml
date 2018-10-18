@@ -7,7 +7,7 @@ default_configs:
 # Then overwrite problem name(s).
 training:
     problem:
-        name: &name maes_baselines/repeat_reverse_recall_cl
+        name: &name RepeatReverseRecallCommandLines
         # Number of repetitions.
         min_recall_number: 1
         max_recall_number: 4
