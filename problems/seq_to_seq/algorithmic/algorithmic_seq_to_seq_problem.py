@@ -467,7 +467,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         start_dummy = self.add_ctrl(
             np.zeros((seq.shape[0], 1, seq.shape[2])), ctrl_dummy, pos)
-        ctrl_data_select = np.ones(len(ctrl_data))
+        ctrl_data_select = np.zeros(len(ctrl_data))
         dummy = self.add_ctrl(np.zeros_like(seq), ctrl_data_select, pos)
 
         if add_marker_dummy:

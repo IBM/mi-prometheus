@@ -59,6 +59,10 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
 
         :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
         """
+        # Set default number of bits for a given problem.
+        params.add_default_params({
+            'control_bits': 2,
+            'data_bits': 8 })
         # Call parent constructor - sets e.g. the loss function, dtype.
         # Additionally it extracts "standard" list of parameters for
         # algorithmic tasks, like batch_size, numbers of bits, sequences etc.
@@ -67,7 +71,7 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
         self.name = 'SerialRecall'
 
         assert self.control_bits >= 2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
-        assert self.data_bits >= 2, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+        assert self.data_bits >= 1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
 
 
     def generate_batch(self, batch_size):
@@ -144,8 +148,8 @@ if __name__ == "__main__":
     # "Loaded parameters".
     from utils.param_interface import ParamInterface 
     params = ParamInterface()
-    params.add_config_params({'control_bits': 2,
-                              'data_bits': 8,
+    params.add_config_params({#'control_bits': 2,
+                              #'data_bits': 8,
                               'min_sequence_length': 1,
                               'max_sequence_length': 10}),
                               #'generation_mode': 'optimized'})

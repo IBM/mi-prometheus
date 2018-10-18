@@ -17,7 +17,7 @@
 
 """scratch_pad.py: contains code of scratch recall data generation
 """
-__author__ = "Younes Bouhadjar & Vincent Marois"
+__author__ = "Younes Bouhadjar, Vincent Marois, Tomasz Kornuta"
 
 import torch
 import numpy as np
@@ -78,13 +78,12 @@ class ScratchPad(AlgorithmicSeqToSeqProblem):
         """
 
         # define control channel markers
-        pos = [0, 0]
         ctrl_data = [0, 0]
-        ctrl_dummy = [0, 1]
-        ctrl_inter = [0, 1]
+        ctrl_store = [1, 0]
+        ctrl_recall = [0, 1]
 
         # assign markers
-        markers = ctrl_data, ctrl_dummy, pos
+        markers = ctrl_data, ctrl_store, ctrl_data
 
         # number sub sequences
         num_sub_seq = np.random.randint(self.num_subseq_min, self.num_subseq_max + 1)
@@ -102,7 +101,7 @@ class ScratchPad(AlgorithmicSeqToSeqProblem):
         targets = np.concatenate((dummies_target, x[-1]), axis=1)
 
         # data of x and dummies
-        xx = [self.augment(seq, markers, ctrl_start=[1, 0],
+        xx = [self.augment(seq, markers, ctrl_start=ctrl_store,
                            add_marker_data=True,
                            add_marker_dummy=False) for seq in x]
 
@@ -110,7 +109,7 @@ class ScratchPad(AlgorithmicSeqToSeqProblem):
         data_1 = [arr for a in xx for arr in a[:-1]]
 
         # this is a marker between sub sequence x and dummies
-        inter_seq = self.add_ctrl(np.zeros((batch_size, 1, self.data_bits)), ctrl_inter, pos)
+        inter_seq = self.add_ctrl(np.zeros((batch_size, 1, self.data_bits)), ctrl_recall, ctrl_data)
 
         # dummies of x
         data_2 = [xx[-1][-1]]

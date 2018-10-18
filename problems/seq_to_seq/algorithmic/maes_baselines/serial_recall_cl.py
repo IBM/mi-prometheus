@@ -44,9 +44,6 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
 
     4. Minor modification II: generator returns a mask, which can be used for filtering important elements of the output.
 
-
-    TODO: sequences of different lengths in batch (filling with zeros?)
-
     """
 
     def __init__(self, params):
@@ -56,16 +53,24 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
 
         :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
         """
+        # Set default number of bits for a given problem.
+        # This has to be done before calling base class constructor!
+        params.add_default_params({
+            'control_bits': 2,
+            'data_bits': 8 })
         # Call parent constructor - sets e.g. the loss function, dtype.
         # Additionally it extracts "standard" list of parameters for
         # algorithmic tasks, like batch_size, numbers of bits, sequences etc.
         super(SerialRecallCommandLines, self).__init__(params)
 
-        assert self.control_bits >= 3, "Problem requires at least 3 control bits (currently %r)" % self.control_bits
+        assert self.control_bits >= 2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
         assert self.data_bits >= 1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
 
         self.name = 'SerialRecallCommandLines'
 
+        # Use "additional" control lines.
+        self.params.add_default_params({'use_control_lines': True})
+        self.use_control_lines = params['use_control_lines']
         # Random control lines.
         self.params.add_default_params({'randomize_control_lines': True})
         self.randomize_control_lines = params['randomize_control_lines']
@@ -93,21 +98,6 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
             - num_subsequences: [BATCH_SIZE, 1]
 
         """
-        # Define control channel bits.
-        # ctrl_main = [0, 0, 0] # not really used.
-
-        # ctrl_aux[2:self.control_bits] = 1 #[0, 0, 1]
-        ctrl_aux = np.zeros(self.control_bits)
-        if self.control_bits == 3:
-            ctrl_aux[2] = 1  # [0, 0, 1]
-        else:
-            if self.randomize_control_lines:
-                # Randomly pick one of the bits to be set.
-                ctrl_bit = np.random.randint(2, self.control_bits)
-                ctrl_aux[ctrl_bit] = 1
-            else:
-                ctrl_aux[self.control_bits - 1] = 1
-
         # Store marker.
         marker_start_main = np.zeros(self.control_bits)
         marker_start_main[self.store_bit] = 1  # [1, 0, 0]
@@ -115,6 +105,19 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         # Recall marker.
         marker_start_aux = np.zeros(self.control_bits)
         marker_start_aux[self.recall_bit] = 1  # [0, 1, 0]
+
+        # Define control lines.
+        ctrl_aux = np.zeros(self.control_bits)
+        if self.use_control_lines:
+            if  self.control_bits >= 3:
+                if self.randomize_control_lines:
+                    # Randomly pick one of the bits to be set.
+                    ctrl_bit = np.random.randint(2, self.control_bits)
+                    ctrl_aux[ctrl_bit] = 1
+                else:
+                    # Set last.
+                    ctrl_aux[self.control_bits - 1] = 1
+        # Else: no control lines!
 
         # Set sequence length.
         seq_length = np.random.randint(
@@ -132,22 +135,21 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
                            self.control_bits + self.data_bits],
                           dtype=np.float32)
 
-        # Set start main control marker.
+        # Set store control marker.
         inputs[:, 0, 0:self.control_bits] = np.tile(
             marker_start_main, (batch_size, 1))
 
-        # Set bit sequence.
+        # Set input items.
         inputs[:, 1:seq_length + 1,
-        self.control_bits:self.control_bits + self.data_bits] = bit_seq
-        # inputs[:, 1:seq_length+1, 0:self.control_bits] = np.tile(ctrl_main,
-        # (self.batch_size, seq_length,1)) # not used as ctrl_main is all
-        # zeros.
+            self.control_bits:self.control_bits + self.data_bits] = bit_seq
 
-        # Set start aux control marker.
-        inputs[:, seq_length + 1, 0:self.control_bits] = np.tile(marker_start_aux,
-                                       (batch_size, 1))
-        inputs[:, seq_length + 2:2 * seq_length + 2, 0:self.control_bits] = np.tile(ctrl_aux,
-                                       (batch_size, seq_length, 1))
+        # Set recall control marker.
+        inputs[:,seq_length + 1, 0:self.control_bits] = np.tile(
+            marker_start_aux, (batch_size, 1))
+
+        # Set control lines for recall items.   
+        inputs[:,seq_length + 2:2 * seq_length + 2,0:self.control_bits] = np.tile(
+            ctrl_aux,(batch_size,seq_length,1))
 
         # 2. Generate targets.
         # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS] (only data
@@ -180,9 +182,10 @@ if __name__ == "__main__":
     # "Loaded parameters".
     from utils.param_interface import ParamInterface 
     params = ParamInterface()
-    params.add_config_params({'control_bits': 4,
-                              'data_bits': 8,
-                              # 'randomize_control_lines': False,
+    params.add_config_params({#'control_bits': 4,
+                              #'data_bits': 8,
+                              #'randomize_control_lines': False,
+                              #'use_control_lines': False,
                               'min_sequence_length': 2,
                               'max_sequence_length': 5})
     batch_size = 64
