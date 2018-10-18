@@ -15,72 +15,91 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""cnn_lstm_vqa.py: Simple design to solve VQA problem using a CNN for image encoding and LSTM for question encoding
-https://arxiv.org/pdf/1512.02167.pdf """
+"""stacked_attention_vqa.py: implements stacked attention model https://arxiv.org/abs/1511.02274 """
 __author__ = "Younes Bouhadjar"
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+
+from models.vqa_baselines.stacked_attention_vqa.image_encoding import ImageEncoding, PretrainedImageEncoding
+from models.vqa_baselines.stacked_attention_vqa import StackedAttention
+from models.model import Model
+
 from utils.param_interface import ParamInterface
 
 
-from models.cnn_lstm_vqa.image_encoding import ImageEncoding
-from models.model import Model
-
-
-class CNNLSTMVQA(Model):
+class StackedAttentionVQA(Model):
     """
-    Implementation of simple vqa model, it performs the following steps:
+    Implementation of simple vqa model with attention, it performs the
+    following steps:
 
     step1: image encoding \n
     step2: question encoding if needed \n
-    step3: classifier, create the probabilities
+    step3: apply attention, the question is used as a query and image as key \n
+    step4: classifier, create the probabilities
 
     """
 
     def __init__(self, params):
         """
-        Constructor of the CNNLSTMVQA model.
+        Constructor class of StackedAttentionVQA model.
 
-        :param params dictionary of inputs
+        :param params: Dictionary of parameters
 
         """
 
-        super(CNNLSTMVQA, self).__init__(params)
+        super(StackedAttentionVQA, self).__init__(params)
 
-        # Retrieve attention and image parameters
-        self.question_encoding_size = 13
+        # Retrieve attention and image/questions parameters
+        self.encoded_question_size = 13
         self.num_channels_image = 3
-        self.mid_features = 256
+        self.mid_features_attention = 64
+        # TODO: use `image_encoding_channels` when calling class ImageEncoding
+        # For the pretrained cnn the `image_encoding_channels` will be fixed by
+        # the cnn_pretrained_model used
+        self.image_encoding_channels = 128
 
-        # LSTM parameters
-        self.hidden_size = self.question_encoding_size
-        self.word_embedded_size = 7
-        self.num_layers = 2
+        # LSTM parameters (if use_question_encoding is True)
+        self.hidden_size = self.encoded_question_size
+        self.word_embedded_size = params['word_embedded_size']
+        self.num_layers = 3
         self.use_question_encoding = params['use_question_encoding']
 
         # Instantiate class for image encoding
-        self.image_encoding = ImageEncoding()
+        if params['use_pretrained_cnn']:
+            self.image_encoding = PretrainedImageEncoding(
+                params['pretrained_cnn_model'], params['num_blocks'])
+        else:
+            self.image_encoding = ImageEncoding()
 
         # Instantiate class for question encoding
-        self.question_encoding = nn.LSTM(
+        self.lstm = nn.LSTM(
             self.word_embedded_size,
             self.hidden_size,
             self.num_layers,
             batch_first=True)
 
-        # Instantiate class for classifier
-        self.classifier = Classifier(
-            in_features=1536 + self.question_encoding_size,
-            mid_features=self.mid_features,
-            out_features=10,
+        # Question encoding
+        self.ffn = nn.Linear(self.encoded_question_size,
+                             self.image_encoding_channels)
+
+        # Instantiate class for attention
+        self.apply_attention = StackedAttention(
+            question_image_encoding_size=self.image_encoding_channels,
+            key_query_size=self.mid_features_attention
         )
+
+        # Instantiate classifier class
+        self.classifier = Classifier(
+            in_features=self.image_encoding_channels,  # + self.encoded_question_size,
+            mid_features=256,
+            out_features=10)
 
     def forward(self, data_tuple):
         """
-        Runs the cnn_lstm model and plots if necessary.
+        Runs the stacked_attention model and plots if necessary.
 
         :param data_tuple: Tuple containing images [batch_size, num_channels, height, width] and questions [batch_size, size_question_encoding]
         :returns: output [batch_size, output_classes]
@@ -92,23 +111,22 @@ class CNNLSTMVQA(Model):
         # step1 : encode image
         encoded_images = self.image_encoding(images)
 
-        batch_size = images.size(0)
         # step2 : encode question
         if self.use_question_encoding:
-            # Initial hidden_state for question encoding
+            batch_size = images.size(0)
             hx, cx = self.init_hidden_states(batch_size)
-            encoded_question, _ = self.question_encoding(questions, (hx, cx))
-            # take layer's last output
+            encoded_question, _ = self.lstm(questions, (hx, cx))
             encoded_question = encoded_question[:, -1, :]
         else:
             encoded_question = questions
 
-        # step 3: classifying based in the encoded questions and image
-        encoded_image_flattened = encoded_images.view(batch_size, -1)
+        # step3 : apply attention
+        encoded_question = self.ffn(encoded_question)
+        encoded_attention = self.apply_attention(
+            encoded_images, encoded_question)
 
-        combined = torch.cat(
-            [encoded_image_flattened, encoded_question], dim=1)
-        answer = self.classifier(combined)
+        # step 4: classifying based in the encoded questions and attention
+        answer = self.classifier(encoded_attention)
 
         return answer
 
@@ -122,7 +140,7 @@ class CNNLSTMVQA(Model):
 
         """
 
-        dtype = self.app_state.dtype
+        dtype = AppState().dtype
         hx = torch.randn(self.num_layers, batch_size,
                          self.hidden_size).type(dtype)
         cx = torch.randn(self.num_layers, batch_size,
@@ -142,7 +160,6 @@ class CNNLSTMVQA(Model):
         if not self.app_state.visualize:
             return False
         import matplotlib.pyplot as plt
-        import matplotlib.gridspec as gridspec
 
         # Unpack tuples.
         (images, questions), targets = data_tuple
@@ -156,7 +173,35 @@ class CNNLSTMVQA(Model):
         # Show data.
         plt.title('Prediction: {} (Target: {})'.format(prediction, target))
         plt.xlabel('Q: {} )'.format(question))
-        plt.imshow(image.permute(1, 2, 0),
+        plt.imshow(image.transpose(1, 2, 0),
+                   interpolation='nearest', aspect='auto')
+
+        f = plt.figure()
+        plt.title('Attention')
+
+        width_height_attention = int(
+            np.sqrt(self.apply_attention.visualize_attention.size(-2)))
+
+        # get the attention of the 2 layers of stacked attention
+        attention_visualize_layer1 = self.apply_attention.visualize_attention[sample_number, :, 0].detach(
+        ).numpy()
+        attention_visualize_layer2 = self.apply_attention.visualize_attention[sample_number, :, 1].detach(
+        ).numpy()
+
+        # reshape to get a 2D plot
+        attention_visualize_layer1 = attention_visualize_layer1.reshape(
+            width_height_attention, width_height_attention)
+        attention_visualize_layer2 = attention_visualize_layer2.reshape(
+            width_height_attention, width_height_attention)
+
+        plt.title('1st attention layer')
+        plt.imshow(attention_visualize_layer1,
+                   interpolation='nearest', aspect='auto')
+
+        f = plt.figure()
+
+        plt.title('2nd attention layer')
+        plt.imshow(attention_visualize_layer2,
                    interpolation='nearest', aspect='auto')
 
         # Plot!
@@ -175,6 +220,7 @@ class Classifier(nn.Sequential):
         :param out_features: output size
 
         """
+
         super(Classifier, self).__init__()
 
         self.fc1 = nn.Linear(in_features, mid_features)
@@ -200,16 +246,18 @@ class Classifier(nn.Sequential):
 
 if __name__ == '__main__':
     # Set visualization.
-    from utils.app_state import AppState
     AppState().visualize = True
 
     # Test base model.
-    # "Loaded parameters".
     params = ParamInterface()
-    params.add_custom_params({'use_question_encoding': False})
+    params.add_custom_params({'use_question_encoding': False,
+                              'pretrained_cnn_model': 'resnet18',
+                              'num_blocks': 2,
+                              'use_pretrained_cnn': True,
+                              'word_embedded_size': 7})
 
     # model
-    model = CNNLSTMVQA(params)
+    model = StackedAttentionVQA(params)
 
     while True:
         # Generate new sequence.

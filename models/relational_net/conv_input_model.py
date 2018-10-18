@@ -68,6 +68,47 @@ class ConvInputModel(nn.Module):
         # output shape should be [24 x 8 x 8]
         self.batchNorm4 = nn.BatchNorm2d(24)
 
+    def get_output_nb_filters(self):
+        """
+        :return: The number of filters of the last conv layer.
+        """
+        return self.conv4.out_channels
+
+    def get_output_shape(self, height, width):
+        """
+        Getter method which computes the output height & width of the features maps.
+
+        :param height: Input image height.
+        :type height: int
+
+        :param width: Input image width.
+        :type width: int
+
+        :return: height, width of the produced feature maps.
+
+        """
+        def get_output_dim(dim, kernel_size, stride, padding):
+            """
+            Using the convolution formula to compute the output dim with the specified kernel_size, stride, padding.
+
+            Assuming dilatation=1.
+            """
+            return np.floor(((dim + 2*padding - kernel_size)/stride) + 1)
+
+        height1 = get_output_dim(height, self.conv1.kernel_size[0], self.conv1.stride[0], self.conv1.padding[0])
+        width1 = get_output_dim(width, self.conv1.kernel_size[1], self.conv1.stride[1], self.conv1.padding[1])
+
+        height2 = get_output_dim(height1, self.conv2.kernel_size[0], self.conv2.stride[0], self.conv2.padding[0])
+        width2 = get_output_dim(width1, self.conv2.kernel_size[1], self.conv2.stride[1], self.conv2.padding[1])
+
+        height3 = get_output_dim(height2, self.conv3.kernel_size[0], self.conv3.stride[0], self.conv3.padding[0])
+        width3 = get_output_dim(width2, self.conv3.kernel_size[1], self.conv3.stride[1], self.conv3.padding[1])
+
+        height4 = get_output_dim(height3, self.conv4.kernel_size[0], self.conv4.stride[0], self.conv4.padding[0])
+        width4 = get_output_dim(width3, self.conv4.kernel_size[1], self.conv4.stride[1], self.conv4.padding[1])
+
+        return height4, width4
+
     def forward(self, img):
         """
         Forward pass of the CNN.
@@ -111,3 +152,4 @@ if __name__ == '__main__':
 
     feature_maps = cnn(image)
     print('feature_maps:', feature_maps.shape)
+    print('Computed output height, width:', cnn.get_output_shape(img_size, img_size))

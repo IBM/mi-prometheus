@@ -1,16 +1,13 @@
 training:
-    cuda: True
     # Problem parameters:
     problem:
-        name: &name sort_of_clevr
-        batch_size: 64
+        name: &name SortOfCLEVR
+        batch_size: &b 64
         data_folder: '~/data/sort-of-clevr/'
-        data_filename: 'training.hy'
+        split: 'train'
         dataset_size: &ds 12000
-        img_size: 128
-        regenerate: True
-        cuda: True
-        use_train_data: True
+        regenerate: False
+        img_size: &imgs 128
     # Set optimizer.
     optimizer:
         name: Adam
@@ -18,37 +15,41 @@ training:
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     # Terminal condition parameters:
-    terminal_condition:
+    terminal_conditions:
         loss_stop: 0.0001
-        max_episodes: 100000
+        episode_limit: 100000
+        epoch_limit: 20
 
 testing:
-    cuda: True
     # Problem parameters:
     problem:
         name: *name
-        batch_size: 64
+        batch_size: *b
         data_folder: '~/data/sort-of-clevr/'
-        data_filename: 'training.hy'
         dataset_size: *ds
-        img_size: 128
+        split: 'test'
+        img_size: *imgs
         regenerate: False
-        use_train_data: False
 
 validation:
-    cuda: True
     # Problem parameters:
     problem:
         name: *name
-        batch_size: 64
+        batch_size: *b
         data_folder: '~/data/sort-of-clevr/'
-        data_filename: 'training.hy'
+        split: 'val'
         dataset_size: *ds
-        img_size: 128
+        img_size: *imgs
         regenerate: False
-        use_train_data: False
 
 # Model parameters:
 model:
-    name: cnn_lstm_vqa   # simple visual question answering
-    use_question_encoding: False
+    name: CNN_LSTM
+    use_question_encoding: True
+    lstm:
+        hidden_size: 64
+        num_layers: 1
+        bidirectional: False
+        dropout: 0
+    classifier:
+        nb_hidden_nodes: 256

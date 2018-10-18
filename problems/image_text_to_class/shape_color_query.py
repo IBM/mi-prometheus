@@ -66,6 +66,13 @@ class ShapeColorQuery(SortOfCLEVR):
                                  'scenes_description': {'size': [-1, -1], 'type': [list, str]},
                                  }
 
+        # define the default_values dict: holds parameters values that a model may need.
+        self.default_values = {'height': self.img_size,
+                               'width': self.img_size,
+                               'num_channels': 3,
+                               'num_classes': 10,
+                               'question_size': 7}
+
     def question2str(self, encoded_question):
         """
         Decodes the question, i.e. produces a human-understandable string.
