@@ -128,21 +128,16 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
         ptmasks[:, seq_length + 2:, 0] = 1
 
         # PyTorch variables.
-        ptinputs = torch.from_numpy(inputs).type(torch.DoubleTensor)
-        pttargets = torch.from_numpy(targets).type(torch.DoubleTensor)
-
-        # Set seqnence length - all have the same length.
-        ptseq_length = torch.ones([batch_size,1]).type(torch.CharTensor) * seq_length
-        
+        ptinputs = torch.from_numpy(inputs).type(self.app_state.dtype)
+        pttargets = torch.from_numpy(targets).type(self.app_state.dtype)
 
         # Return data_dict.
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
         data_dict['sequences'] = ptinputs
-        data_dict['sequences_length'] = ptseq_length
         data_dict['targets'] = pttargets
         data_dict['masks'] = ptmasks
+        data_dict['sequences_length'] = torch.ones([batch_size,1]).type(torch.CharTensor) * seq_length
         data_dict['num_subsequences'] = torch.ones([batch_size, 1]).type(torch.CharTensor)
-
         return data_dict
 
 

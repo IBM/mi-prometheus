@@ -38,6 +38,29 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
     Provides some basic features useful in all problems of such nature.
 
+    ..info:
+
+        All derived classes will provide two operation modes:
+            - "optimized": "__getitem__" in fact does nothing (returns index), \
+            whereas "collate_fn" generates the whole batch. 
+
+            - "not_optimized": "__getitem__" generates a single sample, while \
+            "collate_fn" collates them.
+
+    Advantage of the "not_optimized" mode is that a single batch will contain sequences of varying length.
+    This mode is around 10 times slower though.
+
+    ..warning:
+
+        In both cases the derived classes will work as true data generators, \
+        and not really care about the indices provided from the list. As a result,\
+        each epoch will contain newly generated, thus different samples (for the same indices).
+
+    ..warning:
+
+        "optimized" mode is not suited to be used with many dataloader workers, i.e. \
+        setting num_workers > 0 will in fact slow the whole generation (by 3-4 times!).
+
     """
 
     def __init__(self, params):
@@ -98,7 +121,6 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         gen_mode = params['generation_mode']
         if gen_mode == 'optimized':
-
             # "Attach" the "__getitem__" and "collate_fn" functions - generates whole batch at once, optimized.
             setattr(self.__class__, '__getitem__', staticmethod(self.do_not_generate_sample))
             setattr(self.__class__, 'collate_fn', staticmethod(self.collate_by_batch_generation))
