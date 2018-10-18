@@ -67,6 +67,10 @@ class SequenceSymmetryCommandLines(AlgorithmicSeqToSeqProblem):
         self.params.add_default_params({'antisymmetry': False})
         self.antisymmetry = params['antisymmetry']
 
+        # Level "Hard": scrambles only single sample instead of the whole batch.  
+        self.params.add_default_params({'hard': False})
+        self.hard = params['hard']
+
 
     def generate_batch(self, batch_size):
         """
@@ -145,28 +149,49 @@ class SequenceSymmetryCommandLines(AlgorithmicSeqToSeqProblem):
             ctrl_aux,(batch_size,seq_length,1))
 
         # Check if second subsequence has to be symmetrical.
-        is_symmetrical = np.random.random_sample(batch_size) < 0.5
-        #print(is_symmetrical)
+        batch_symmetrical = np.random.random_sample(batch_size) < 0.5
+        #print("batch_symmetrical =\n",batch_symmetrical)
 
-        # Generate scambler of size.
+        # Generate scambler mask.
         scrambler_mask = np.random.binomial(1, self.bias,
             (batch_size, seq_length, self.data_bits))
-        scrambler_mask[is_symmetrical, :, :] = 1
         #print(scrambler_mask)
+
+        # Create the second bit sequence.                
+        aux_bit_seq = np.copy(np.fliplr(bit_seq))
+        # Iterate through samples (sequences) in batch.
+        for i, symmetrical in enumerate(batch_symmetrical):
+            if not symmetrical:
+                if self.hard:
+                    # Pick one item from sequence.
+                    item_number = np.random.random_integers(0, seq_length-1) 
+                    # Scramble it.
+                    aux_bit_seq[i, item_number, : ] = np.logical_xor(
+                        aux_bit_seq[i, item_number, : ], scrambler_mask[i, item_number, : ])
+                else:
+                    # Scramble the whole sequence.
+                    aux_bit_seq[i, :, : ] = np.logical_xor(
+                        aux_bit_seq[i, :, : ], scrambler_mask[i, :, : ])
+        #print(aux_bit_seq)
 
         # Set bit sequence.
         inputs[:, seq_length + 2:2 * seq_length + 2, 
-            self.control_bits:self.control_bits + self.data_bits] = np.fliplr(bit_seq) * scrambler_mask
+            self.control_bits:self.control_bits + self.data_bits] = aux_bit_seq
 
         # 2. Generate targets.
         # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, 1] (only 1 bit!)
         targets = np.zeros([batch_size, 2 * seq_length + 2, 1], dtype=np.float32)
-        
+
+        # Check once again if all items/sequences are equal - just in case.
+        are_items_different = np.sum(aux_bit_seq != np.fliplr(bit_seq), axis=2) > 0
+        batch_symmetrical = np.sum(are_items_different, axis=1) == 0
+        #print("batch_symmetrical =\n",batch_symmetrical)
+
         # Set only last output item.
         # Check symmetry/antisimmetry mode.
         if self.antisymmetry:
-             is_symmetrical = [not x for x in is_symmetrical]
-        targets[:, -1, 0] = is_symmetrical
+             batch_symmetrical = np.logical_not(batch_symmetrical)
+        targets[:, -1, 0] = batch_symmetrical
 
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2, 1]
         ptmasks = torch.zeros([batch_size, 2 * seq_length + 2, 1]
@@ -193,9 +218,10 @@ if __name__ == "__main__":
     params.add_config_params({#'control_bits': 2,
                               #'data_bits': 8,
                               #'antisymmetry': True,
+                              'hard' : True,
                               'min_sequence_length': 3,
                               'max_sequence_length': 5})
-    batch_size = 2
+    batch_size = 64
 
     # Create problem object.
     seqsymcl = SequenceSymmetryCommandLines(params)

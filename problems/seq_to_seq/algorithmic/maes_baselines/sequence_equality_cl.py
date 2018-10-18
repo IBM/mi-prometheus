@@ -63,6 +63,9 @@ class SequenceEqualityCommandLines(AlgorithmicSeqToSeqProblem):
         self.params.add_default_params({'inequality': False})
         self.inequality = params['inequality']
 
+        # Level "Hard": scrambles only single sample instead of the whole batch.  
+        self.params.add_default_params({'hard': False})
+        self.hard = params['hard']
 
     def generate_batch(self, batch_size):
         """
@@ -140,29 +143,50 @@ class SequenceEqualityCommandLines(AlgorithmicSeqToSeqProblem):
         inputs[:,seq_length + 2:2 * seq_length + 2,0:self.control_bits] = np.tile(
             ctrl_aux,(batch_size,seq_length,1))
 
-        # Check if second subsequence has to be symmetrical.
-        is_equal = np.random.random_sample(batch_size) < 0.5
-        #print(is_equal)
+        # Check if second subsequence has to be equal.
+        batch_equal = np.random.random_sample(batch_size) < 0.5
+        #print("batch_equal =\n",batch_equal)
 
-        # Generate scambler of size.
+        # Generate scambler mask.
         scrambler_mask = np.random.binomial(1, self.bias,
             (batch_size, seq_length, self.data_bits))
-        scrambler_mask[is_equal, :, :] = 1
         #print(scrambler_mask)
+
+        # Create the second bit sequence.                
+        aux_bit_seq = np.copy(bit_seq)
+        # Iterate through samples (sequences) in batch.
+        for i, equal in enumerate(batch_equal):
+            if not equal:
+                if self.hard:
+                    # Pick one item from sequence.
+                    item_number = np.random.random_integers(0, seq_length-1) 
+                    # Scramble it.
+                    aux_bit_seq[i, item_number, : ] = np.logical_xor(
+                        aux_bit_seq[i, item_number, : ], scrambler_mask[i, item_number, : ])
+                else:
+                    # Scramble the whole sequence.
+                    aux_bit_seq[i, :, : ] = np.logical_xor(
+                        aux_bit_seq[i, :, : ], scrambler_mask[i, :, : ])
+        #print(aux_bit_seq)
 
         # Set bit sequence.
         inputs[:, seq_length + 2:2 * seq_length + 2, 
-            self.control_bits:self.control_bits + self.data_bits] = bit_seq * scrambler_mask
+            self.control_bits:self.control_bits + self.data_bits] = aux_bit_seq
 
         # 2. Generate targets.
         # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, 1] (only 1 bit!)
         targets = np.zeros([batch_size, 2 * seq_length + 2, 1], dtype=np.float32)
         
-        # Set only last output item.
+        # Check once again if all items/sequences are equal - just in case.
+        are_items_different = np.sum(aux_bit_seq != bit_seq, axis=2) > 0
+        batch_equal = np.sum(are_items_different, axis=1) == 0
+        #print("batch_equal =\n",batch_equal)
+
         # Check equality/inequality mode.
         if self.inequality:
-             is_equal = [not x for x in is_equal]
-        targets[:, -1, 0] = is_equal
+             batch_equal = np.logical_not(batch_equal)
+        # Set only last output item.
+        targets[:, -1, 0] = batch_equal
 
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2, 1]
         ptmasks = torch.zeros([batch_size, 2 * seq_length + 2, 1]
@@ -186,9 +210,10 @@ if __name__ == "__main__":
     from utils.param_interface import ParamInterface
 
     params = ParamInterface()
-    params.add_config_params({'control_bits': 2,
-                              'data_bits': 8,
-                              # 'inequality': True,
+    params.add_config_params({#'control_bits': 2,
+                              #'data_bits': 8,
+                              #'inequality': True,
+                              'hard' : True,
                               'min_sequence_length': 2,
                               'max_sequence_length': 5})
     batch_size = 64
