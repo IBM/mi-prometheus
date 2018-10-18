@@ -43,11 +43,3 @@ testing:
         min_sequence_length: 100
         max_sequence_length: 100
         size: 64
-
-    
-# Model parameters:
-model:
-    # Input bits = [command_bits, data_bits]
-    # Output bits = [data_bits]
-    control_bits: *cbits
-    data_bits: *dbits

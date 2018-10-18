@@ -134,6 +134,7 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
         data_dict['masks'] = ptmasks
         data_dict['sequences_length'] = torch.ones([batch_size,1]).type(torch.CharTensor) * seq_length
         data_dict['num_subsequences'] = torch.ones([batch_size, 1]).type(torch.CharTensor)
+
         return data_dict
 
 
@@ -146,8 +147,8 @@ if __name__ == "__main__":
     params.add_config_params({'control_bits': 2,
                               'data_bits': 8,
                               'min_sequence_length': 1,
-                              'max_sequence_length': 10,
-                              'generation_mode': 'optimized'})
+                              'max_sequence_length': 10}),
+                              #'generation_mode': 'optimized'})
     batch_size = 64
 
     # Create problem object.

@@ -43,12 +43,13 @@ class SeqToSeqProblem(Problem):
         # "Default" problem name.
         self.name = 'SeqToSeqProblem'
 
-        # set default data_definitions dict
+        # Set default data_definitions dict for all Seq2Seq problems.
         self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'sequences_length': {'size': [-1, 1], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'mask': {'size': [-1, 1], 'type': [torch.Tensor]}
+                                 'masks': {'size': [-1, -1, 1], 'type': [torch.Tensor]},
+                                 'sequences_length': {'size': [-1, 1], 'type': [torch.Tensor]}
                                  }
+
 
         # Check if predictions/targets should be masked (DEFAULT: True).
         params.add_default_params({'use_mask': True})
@@ -67,7 +68,7 @@ class SeqToSeqProblem(Problem):
         # function.
         if self.use_mask:
             loss = self.loss_function(
-                logits, data_dict['targets'], data_dict['mask'])
+                logits, data_dict['targets'], data_dict['masks'])
         else:
             loss = self.loss_function(logits, data_dict['targets'])
 

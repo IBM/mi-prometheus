@@ -52,11 +52,16 @@ class MAES(SequentialModel):
         # Model name.
         self.name = 'MAES'
 
-        # Parse parameters.
+        # Parse default values received from problem.
+        self.params.add_default_params({
+            'input_item_size': problem_default_values_['input_item_size'],
+            'output_item_size': problem_default_values_['output_item_size']})
+
         # Indices of control bits triggering encoding/decoding.
         self.encoding_bit = params['encoding_bit']  # Def: 0
         self.solving_bit = params['solving_bit']  # Def: 1
 
+        # Parse parameters.
         # Check if we want to pass the whole cell state or only the memory.
         self.pass_cell_state = params.get('pass_cell_state', True)
 
@@ -134,7 +139,7 @@ class MAES(SequentialModel):
         dtype = self.app_state.dtype
 
         # Unpack dict.
-        inputs_BxSxI, _, _, _, _ = data_dict.values()
+        inputs_BxSxI = data_dict['sequences']
 
         batch_size = inputs_BxSxI.size(0)
 
@@ -211,7 +216,7 @@ if __name__ == "__main__":
     # "Loaded parameters".
     from utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_default_params({'num_control_bits': 3, 'num_data_bits': 8,  # input and output size
+    params.add_default_params({
               'encoding_bit': 0, 'solving_bit': 1,
               # controller parameters
               'controller': {'name': 'rnn', 'hidden_state_size': 20, 'num_layers': 1, 'non_linearity': 'sigmoid'},
@@ -222,14 +227,22 @@ if __name__ == "__main__":
               'visualization_mode': 2
               })
 
-    input_size = params["num_control_bits"] + params["num_data_bits"]
-    output_size = params["num_data_bits"]
-
+    num_control_bits= 3
+    num_data_bits = 8
     seq_length = 1
     batch_size = 2
 
+    # "Default values from problem".
+    problem_default_values = {
+        'input_item_size': num_control_bits + num_data_bits,
+        'output_item_size': num_data_bits 
+        }
+
+    input_size = problem_default_values['input_item_size']
+    output_size = problem_default_values['output_item_size']
+
     # Construct our model by instantiating the class defined above.
-    model = MAES(params)
+    model = MAES(params, problem_default_values)
     model.logger.debug("params: {}".format(params))
 
     # Check for different seq_lengths and batch_sizes.
@@ -246,7 +259,7 @@ if __name__ == "__main__":
         # Output
         y = torch.randn(batch_size, 2 + 2 * seq_length, output_size)
 
-        dt = DataDict({'inputs': x, 'targets': y})
+        dt = DataDict({'sequences': x, 'targets': y})
 
         # Test forward pass.
         model.logger.info("------- forward -------")

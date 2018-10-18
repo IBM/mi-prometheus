@@ -8,21 +8,15 @@ default_configs:
 training:
     problem:
         name: &name SerialRecallCommandLines
-    #dataloader:
-        #num_workers: 8
+
 
 validation:
     problem:
         name: *name
-        length: 1000
-    #dataloader:
-        #num_workers: 8
 
 testing:
     problem:
         name: *name
-    #dataloader:
-        #num_workers: 8
 
 # And overwrite model parameters.
 #model:

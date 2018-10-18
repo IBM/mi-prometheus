@@ -98,12 +98,12 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         self.params.add_default_params({'bias': 0.5})
         self.bias = params['bias']
 
-        # set default data_definitions dict
+        # Set default data_definitions dict for all Algorithmic Seq2Seq problems.
         self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'sequences_length': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'masks': {'size': [-1, -1], 'type': [torch.Tensor]},
-                                 'num_subsequences': {'size': [-1], 'type': [torch.Tensor]},
+                                 'masks': {'size': [-1, -1, 1], 'type': [torch.Tensor]},
+                                 'sequences_length': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'num_subsequences': {'size': [-1, 1], 'type': [torch.Tensor]},
                                  }
 
         self.default_values = {
@@ -403,7 +403,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         # Check if mask should be is used - if so, apply.
         if self.use_mask:
             return self.loss_function.masked_accuracy(
-                logits, data_dict['targets'], data_dict['mask'])
+                logits, data_dict['targets'], data_dict['masks'])
         else:
             return (1 - torch.abs(torch.round(F.sigmoid(logits)) - data_dict['targets'])).mean()
 
@@ -502,7 +502,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         super(AlgorithmicSeqToSeqProblem, self).collect_statistics(stat_col, data_dict, logits)
 
         stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
-        stat_col['seq_length'] = data_dict['sequences_length']
+        stat_col['seq_length'] = max(data_dict['sequences_length']).item()
         #stat_col['num_subseq'] = data_dict['num_subsequences']
         stat_col['max_seq_length'] = self.max_sequence_length
         stat_col['batch_size'] = logits.shape[0] # Batch major.
