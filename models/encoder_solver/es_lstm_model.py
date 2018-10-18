@@ -40,8 +40,10 @@ class EncoderSolverLSTM(SequentialModel):
         :param problem_default_values_: Dictionary containing key-values received from problem.
 
         """
-        # Call base constructor.
-        super(EncoderSolverLSTM, self).__init__(params)
+        # Call base constructor. Sets up default values etc.
+        super(EncoderSolverLSTM, self).__init__(params, problem_default_values_)
+        # Model name.
+        self.name = 'EncoderSolverLSTM'
 
         # Parse default values received from problem.
         self.params.add_default_params({
@@ -94,11 +96,10 @@ class EncoderSolverLSTM(SequentialModel):
 
     def forward(self, data_dict):
         """
-        Forward function requires that the data_dict will contain at least:
+        Forward function requires that the data_dict will contain at least "sequences"
 
-            - "sequence": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
-
-        :param data_dict: DataDict containing inputs.
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
 
         :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
 

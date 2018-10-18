@@ -49,13 +49,12 @@ class MAES(SequentialModel):
         :param problem_default_values_: Dictionary containing key-values received from problem.
 
         """
-        # Call base constructor.
+        # Call base constructor. Sets up default values etc.
         super(MAES, self).__init__(params, problem_default_values_)
-
         # Model name.
         self.name = 'MAES'
 
-        # Parse default values received from problem.
+        # Parse default values received from problem and add them to registry.
         self.params.add_default_params({
             'input_item_size': problem_default_values_['input_item_size'],
             'output_item_size': problem_default_values_['output_item_size'],
@@ -99,11 +98,6 @@ class MAES(SequentialModel):
         # Operation modes.
         self.modes = Enum('Modes', ['Encode', 'Solve'])
 
-        # Expected content of the inputs
-        self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]}
-                                 }
-
 
 
     def save(self, model_dir, stat_col):
@@ -129,11 +123,10 @@ class MAES(SequentialModel):
 
     def forward(self, data_dict):
         """
-        Forward function requires that the data_dict will contain at least:
+        Forward function requires that the data_dict will contain at least "sequences"
 
-            - "sequence": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
-
-        :param data_dict: DataDict containing inputs.
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
 
         :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
 
@@ -143,7 +136,8 @@ class MAES(SequentialModel):
 
         # Unpack dict.
         inputs_BxSxI = data_dict['sequences']
-
+        
+        # Get batch size.
         batch_size = inputs_BxSxI.size(0)
 
         # "Data-driven memory size".
@@ -222,7 +216,7 @@ if __name__ == "__main__":
     params.add_default_params({
               'encoding_bit': 0, 'solving_bit': 1,
               # controller parameters
-              'controller': {'name': 'rnn', 'hidden_state_size': 20, 'num_layers': 1, 'non_linearity': 'sigmoid'},
+              'controller': {'name': 'RNNController', 'hidden_state_size': 20, 'num_layers': 1, 'non_linearity': 'sigmoid'},
               'mae_interface': {'shift_size': 3},  # encoder interface parameters
               'mas_interface': {'shift_size': 3},  # solver interface parameters
               # memory parameters
@@ -238,7 +232,9 @@ if __name__ == "__main__":
     # "Default values from problem".
     problem_default_values = {
         'input_item_size': num_control_bits + num_data_bits,
-        'output_item_size': num_data_bits 
+        'output_item_size': num_data_bits,
+        'store_bit': 0,
+        'recall_bit': 1
         }
 
     input_size = problem_default_values['input_item_size']

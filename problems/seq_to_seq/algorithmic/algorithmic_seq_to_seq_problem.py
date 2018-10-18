@@ -360,8 +360,8 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         self.curriculum_params = curriculum_params
         # Inform the user.
         epoch_size = self.get_epoch_size(self.params["batch_size"])
-        self.logger.info("Initializing curriculum learning! Will activate when all samples are exhausted \
-            (every {} episodes when using batch of size {})".format(epoch_size, self.params["batch_size"]))
+        self.logger.info("Initializing curriculum learning! Will activate when all samples are exhausted" + \
+            "(every {} episodes when using batch of size {})".format(epoch_size, self.params["batch_size"]))
 
     def curriculum_learning_update_params(self, episode):
         """

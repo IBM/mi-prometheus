@@ -68,16 +68,15 @@ class LSTM(SequentialModel):
 
     def forward(self, data_dict):
         """
-        Forward function requires that the data_dict will contain at least:
+        Forward function requires that the data_dict will contain at least "sequences"
 
-            - "sequence": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
-
-        :param data_dict: DataDict containing inputs.
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
 
         :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
 
         """
-        # Get dtype.
+         # Get dtype.
         dtype = self.app_state.dtype
 
         # Unpack dict.
