@@ -23,6 +23,9 @@ __author__ = "Tomasz Kornuta, Younes Bouhadjar, Vincent Marois"
 
 import torch
 import numpy as np
+
+from types import MethodType
+
 from problems.problem import DataDict
 from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem
 
@@ -56,6 +59,10 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
 
         :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
         """
+        # Set default number of bits for a given problem.
+        params.add_default_params({
+            'control_bits': 2,
+            'data_bits': 8 })
         # Call parent constructor - sets e.g. the loss function, dtype.
         # Additionally it extracts "standard" list of parameters for
         # algorithmic tasks, like batch_size, numbers of bits, sequences etc.
@@ -64,105 +71,32 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
         self.name = 'SerialRecall'
 
         assert self.control_bits >= 2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
-        assert self.data_bits >= 2, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
+        assert self.data_bits >= 1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
 
-    def __getitem__(self, index):
+
+    def generate_batch(self, batch_size):
         """
-        Getter that returns one individual sample generated on-the-fly
+        Generates a batch of samples of size ''batch_size'' on-the-fly.
 
-        .. note::
+       .. note::
 
             The sequence length is drawn randomly between ``self.min_sequence_length`` and \
             ``self.max_sequence_length``.
 
+       .. warning::
+            All the samples within the batch will have the same sequence lengt.
 
-        :param index: index of the sample to return.
+        :param batch_size: Size of the batch to be returned. 
 
-        :return: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}), with:
+        :return: DataDict({'sequences', 'sequences_length', 'targets', 'masks', 'num_subsequences'}), with:
 
-            - sequences: [2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS],
-            - **sequences_length: random value between self.min_sequence_length and self.max_sequence_length**
-            - targets: [2*SEQ_LENGTH+2, DATA_BITS],
-            - mask: [2*SEQ_LENGTH+2]
-            - num_subsequences: 1
-
-
-        """
-        '''
-        # Set sequence length
-        seq_length = np.random.randint(self.min_sequence_length, self.max_sequence_length + 1)
-
-        # Generate batch of random bit sequences [SEQ_LENGTH X DATA_BITS]
-        bit_seq = np.random.binomial(1, self.bias, (seq_length, self.data_bits))
-
-        # Generate input:  [2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
-        inputs = np.zeros([2 * seq_length + 2, self.control_bits + self.data_bits], dtype=np.float32)
-
-        # Set start control marker.
-        inputs[0, 0] = 1  # Memorization bit.
-
-        # Set bit sequence.
-        inputs[1:seq_length + 1, self.control_bits:self.control_bits + self.data_bits] = bit_seq
-
-        # Set end control marker.
-        inputs[seq_length + 1, 1] = 1  # Recall bit.
-
-        # Generate target:  [2*SEQ_LENGTH+2, DATA_BITS] (only data bits!)
-        targets = np.zeros([2 * seq_length + 2, self.data_bits], dtype=np.float32)
-
-        # Set bit sequence.
-        targets[seq_length + 2:, :] = bit_seq
-
-        # Generate target mask: [2*SEQ_LENGTH+2]
-        mask = torch.zeros([2 * seq_length + 2]).type(self.app_state.ByteTensor)
-        mask[seq_length + 2:] = 1
-
-        # PyTorch variables.
-        ptinputs = torch.from_numpy(inputs).type(self.app_state.dtype)
-        pttargets = torch.from_numpy(targets).type(self.app_state.dtype)
-
-        # Return data_dict.
-        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
-        data_dict['sequences'] = ptinputs
-        data_dict['sequences_length'] = seq_length
-        data_dict['targets'] = pttargets
-        data_dict['mask'] = mask
-        data_dict['num_subsequences'] = 1
-        '''
-
-        return {} #data_dict
-
-    def collate_fn(self, batch):
-        """
-        Generates a batch of samples on-the-fly
-
-        .. warning::
-            Because of the fact that the sequence length is randomly drawn between ``self.min_sequence_length`` and \
-            ``self.max_sequence_length`` and then fixed for one given batch (**but varies between batches**), \
-            we cannot follow the scheme `merge together individuals samples that can be retrieved in parallel with\
-            several workers.` Indeed, each sample could have a different sequence length, and merging them together\
-            would then not be possible (we cannot have variable-sequence-length samples within one batch \
-            without padding).
-            Hence, ``collate_fn`` generates on-the-fly a batch of samples, all having the same length (initially\
-            randomly selected).
-            The samples created by ``__getitem__`` are simply not used in this function.
-
-
-        :param batch: Should be a list of DataDict retrieved by `__getitem__`, each containing tensors, numbers,\
-        dicts or lists. --> **Not Used Here!**
-
-        :return: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}), with:
-
-            - sequences: [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS],
-            - **sequences_length: random value between self.min_sequence_length and self.max_sequence_length**
-            - targets: [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS],
-            - mask: [BATCH_SIZE, [2*SEQ_LENGTH+2]
-            - num_subsequences: 1
+            - sequences: [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
+            - sequences_length: [BATCH_SIZE, 1] (the same random value between self.min_sequence_length and self.max_sequence_length)
+            - targets: [BATCH_SIZE, , 2*SEQ_LENGTH+2, DATA_BITS]
+            - masks: [BATCH_SIZE, 2*SEQ_LENGTH+2, 1]
+            - num_subsequences: [BATCH_SIZE, 1]
 
         """
-        # get the batch_size
-        batch_size = len(batch)
-
         # Set sequence length
         seq_length = np.random.randint(self.min_sequence_length,
                                        self.max_sequence_length + 1)
@@ -176,14 +110,14 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
                            self.control_bits + self.data_bits],
                           dtype=np.float32)
 
-        # Set start control marker.
-        inputs[:, 0, 0] = 1  # Memorization bit.
+        # Set control marker with store bit.
+        inputs[:, 0, self.store_bit] = 1 
 
         # Set bit sequence.
         inputs[:, 1:seq_length + 1, self.control_bits:self.control_bits + self.data_bits] = bit_seq
 
-        # Set end control marker.
-        inputs[:, seq_length + 1, 1] = 1  # Recall bit.
+        # Set control marker with recall bit.
+        inputs[:, seq_length + 1, self.recall_bit] = 1  
 
         # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, DATA_BITS] (only data bits!)
         targets = np.zeros([batch_size, 2 * seq_length + 2,
@@ -192,29 +126,20 @@ class SerialRecall(AlgorithmicSeqToSeqProblem):
         # Set bit sequence.
         targets[:, seq_length + 2:, :] = bit_seq
 
-        # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
-        mask = torch.zeros([batch_size, 2 * seq_length + 2]
+        # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2, 1]
+        ptmasks = torch.zeros([batch_size, 2 * seq_length + 2, 1]
                            ).type(torch.ByteTensor)
-        mask[:, seq_length + 2:] = 1
-
-        # PyTorch variables.
-        ptinputs = torch.from_numpy(inputs).type(self.app_state.dtype)
-        pttargets = torch.from_numpy(targets).type(self.app_state.dtype)
-
+        ptmasks[:, seq_length + 2:, 0] = 1
+        
         # Return data_dict.
-        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
-        data_dict['sequences'] = ptinputs
-        data_dict['sequences_length'] = seq_length
-        data_dict['targets'] = pttargets
-        data_dict['mask'] = mask
-        data_dict['num_subsequences'] = 1
+        data_dict = self.create_data_dict()
+        data_dict['sequences'] = torch.from_numpy(inputs).type(self.app_state.dtype)
+        data_dict['targets'] = torch.from_numpy(targets).type(self.app_state.dtype)
+        data_dict['masks'] = ptmasks
+        data_dict['sequences_length'] = torch.ones([batch_size,1]).type(torch.CharTensor) * seq_length
+        data_dict['num_subsequences'] = torch.ones([batch_size, 1]).type(torch.CharTensor)
 
         return data_dict
-
-    # method for changing the maximum length, used mainly during curriculum
-    # learning
-    def set_max_length(self, max_length):
-        self.max_sequence_length = max_length
 
 
 if __name__ == "__main__":
@@ -223,10 +148,11 @@ if __name__ == "__main__":
     # "Loaded parameters".
     from utils.param_interface import ParamInterface 
     params = ParamInterface()
-    params.add_custom_params({'control_bits': 2,
-                              'data_bits': 8,
+    params.add_config_params({#'control_bits': 2,
+                              #'data_bits': 8,
                               'min_sequence_length': 1,
-                              'max_sequence_length': 10})
+                              'max_sequence_length': 10}),
+                              #'generation_mode': 'optimized'})
     batch_size = 64
 
     # Create problem object.
@@ -240,21 +166,22 @@ if __name__ == "__main__":
     # wrap DataLoader on top
     from torch.utils.data.dataloader import DataLoader
     problem = DataLoader(dataset=serialrecall, batch_size=batch_size, collate_fn=serialrecall.collate_fn,
-                         shuffle=False, num_workers=4, worker_init_fn=serialrecall.worker_init_fn)
+                         shuffle=False, num_workers=0, worker_init_fn=serialrecall.worker_init_fn)
 
     # generate a batch
     import time
 
     s = time.time()
     for i, batch in enumerate(problem):
-        print('Batch # {} - {}'.format(i, type(batch)))
+        #print('Batch # {} - {}'.format(i, type(batch)))
+        pass
 
     print('Number of workers: {}'.format(problem.num_workers))
     print('time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
           .format(serialrecall.__len__(), batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
-    #batch = next(iter(problem))
-    #serialrecall.show_sample(batch, 0)
+    batch = next(iter(problem))
+    serialrecall.show_sample(batch, 0)
     print('Unit test completed.')
 

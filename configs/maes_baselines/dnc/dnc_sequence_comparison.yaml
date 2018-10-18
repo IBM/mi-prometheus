@@ -1,25 +1,18 @@
 # Load the following (default) configs first.
 default_configs: 
-    configs/maes_baselines/default_dnc.yaml, 
+    configs/maes_baselines/dnc/default_dnc.yaml, 
     configs/maes_baselines/default_problem.yaml, 
-    configs/maes_baselines/dnc_default_training.yaml
+    configs/maes_baselines/dnc/dnc_default_training.yaml
 
 # Then overwrite problem name(s).
 training:
     problem:
         name: &name maes_baselines/sequence_comparison_cl
-        #output_bits: &obits 1
 
 validation:
     problem:
         name: *name 
-        #output_bits: *obits
 
 testing:
     problem:
         name: *name 
-        #output_bits: *obits
-
-# And overwrite model parameters.
-model:
-    output_bits: 1 # *obits

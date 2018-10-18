@@ -25,6 +25,7 @@ trainer.py:
 __author__ = "Vincent Marois, Tomasz Kornuta"
 
 import os
+import yaml
 import torch
 from time import sleep
 from random import randrange
@@ -154,25 +155,31 @@ class Trainer(Worker):
             print('Loaded configuration from file {}'.format(config))
 
         # -> At this point, the Param Registry contains the configuration loaded (and overwritten) from several files.
+        # Log the resulting training configuration.
+        conf_str = 'Loaded (initial) configuration:\n'
+        conf_str += '='*80 + '\n'
+        conf_str += yaml.safe_dump(self.params.to_dict(), default_flow_style=False)
+        conf_str += '='*80 + '\n'
+        print(conf_str)
 
         # Get training problem name.
         try:
             training_problem_name = self.params['training']['problem']['name']
-        except KeyError:
+        except:
             print("Error: Couldn't retrieve the problem name from the 'training' section in the loaded configuration")
             exit(-1)
 
         # Get validation problem name
         try:
             _ = self.params['validation']['problem']['name']
-        except KeyError:
+        except:
             print("Error: Couldn't retrieve the problem name from the 'validation' section in the loaded configuration")
             exit(-1)
 
         # Get model name.
         try:
             model_name = self.params['model']['name']
-        except KeyError:
+        except:
             print("Error: Couldn't retrieve the model name from the loaded configuration")
             exit(-1)
 

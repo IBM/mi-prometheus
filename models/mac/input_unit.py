@@ -39,28 +39,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""input_unit.py: Implementation of the input unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the
-                reference paper."""
+"""
+input_unit.py: Implementation of the input unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for \
+the reference paper.
+"""
 __author__ = "Vincent Marois"
 
-
+from torch import nn
 from models.mac.utils_mac import linear
 from models.mac.image_encoding import ImageProcessing
-
-from torch import nn
 
 
 class InputUnit(nn.Module):
     """
-    Implementation of the input unit of the MAC network.
+    Implementation of the ``InputUnit`` of the MAC network.
     """
 
     def __init__(self, dim, embedded_dim):
         """
-        Constructor for the input unit.
+        Constructor for the ``InputUnit``.
 
         :param dim: global 'd' hidden dimension
+        :type dim: int
+
         :param embedded_dim: dimension of the word embeddings.
+        :type embedded_dim: int
 
         """
 
@@ -85,15 +88,23 @@ class InputUnit(nn.Module):
 
     def forward(self, questions, questions_len, feature_maps):
         """
-        Forward pass of the input unit.
+        Forward pass of the ``InputUnit``.
 
-        :param questions: tensor of the questions words, shape [batch_size x maxQuestionLength x embedded_dim]
-        :param questions_len: list of the unpadded questions length.
-        :param feature_maps: [batch_size x nb_kernels x feat_H x feat_W] coming from ResNet101.
+        :param questions: tensor of the questions words, shape [batch_size x maxQuestionLength x embedded_dim].
+        :type questions: torch.tensor
 
-        :return: question encodings: [batch_size x 2*dim],
-                word encodings: [batch_size x maxQuestionLength x dim]
-                images_encodings: [batch_size x nb_kernels x (H*W)]
+        :param questions_len: Unpadded questions length.
+        :type questions_len: list
+
+        :param feature_maps: [batch_size x nb_kernels x feat_H x feat_W] coming from `ResNet101`.
+        :type feature_maps: torch.tensor
+
+        :return:
+
+            - question encodings: [batch_size x 2*dim] (torch.tensor),
+            - word encodings: [batch_size x maxQuestionLength x dim] (torch.tensor),
+            - images_encodings: [batch_size x nb_kernels x (H*W)] (torch.tensor).
+
 
         """
         batch_size = feature_maps.shape[0]

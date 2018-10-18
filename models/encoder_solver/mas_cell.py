@@ -63,11 +63,8 @@ class MASCell(torch.nn.Module):
 
         # Parse parameters.
         # Set input and output sizes.
-        self.input_size = params["num_control_bits"] + params["num_data_bits"]
-        try:
-            self.output_size = params['num_output_bits']
-        except KeyError:
-            self.output_size = params['num_data_bits']
+        self.input_size = params['input_item_size']
+        self.output_size = params['output_item_size']
 
         # Get controller hidden state size.
         self.controller_hidden_state_size = params['controller'][

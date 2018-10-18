@@ -15,6 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""lstm_model.py: File containing Long Short-Term Memory model class."""
+__author__ = "Alexis Asseman, Tomasz Kornuta"
+
 import torch
 from torch import nn
 
@@ -22,57 +25,86 @@ from models.sequential_model import SequentialModel
 
 
 class LSTM(SequentialModel):
-    def __init__(self, params):
+    """
+    Class implementing the Long Short-Term Memory model.
 
+    """
+    def __init__(self, params, problem_default_values_={}):
+        """
+        Constructor. Initializes parameters on the basis of dictionary passed
+        as argument.
+
+        :param params: Local view to the Parameter Regsitry ''model'' section.
+
+        :param problem_default_values_: Dictionary containing key-values received from problem.
+
+        """
         super(LSTM, self).__init__(params)
 
-        self.tm_in_dim = params["control_bits"] + params["data_bits"]
-        self.data_bits = params["data_bits"]
-        try:
-            self.output_units = params['output_bits']
-        except KeyError:
-            self.output_units = params['data_bits']
+        # Parse default values received from problem.
+        self.params.add_default_params({
+            'input_item_size': problem_default_values_['input_item_size'],
+            'output_item_size': problem_default_values_['output_item_size']
+            })
 
-        self.hidden_state_dim = params["hidden_state_dim"]
+        self.input_item_size = params["input_item_size"]
+        self.output_item_size = params["output_item_size"]
+
+        self.hidden_state_size = params["hidden_state_size"]
         self.num_layers = params["num_layers"]
         assert self.num_layers > 0, "Number of LSTM layers should be > 0"
 
-        # Create the LSTM layers
+        # Create the stacked LSTM.
         self.lstm_layers = nn.ModuleList()
+        # First layer.
         self.lstm_layers.append(nn.LSTMCell(
-            self.tm_in_dim, self.hidden_state_dim))
+            self.input_item_size, self.hidden_state_size))
+        # Following, stacked layers.
         self.lstm_layers.extend(
-            [nn.LSTMCell(self.hidden_state_dim, self.hidden_state_dim)
+            [nn.LSTMCell(self.hidden_state_size, self.hidden_state_size)
              for _ in range(1, self.num_layers)])
+        # Output linear layer.
+        self.linear = nn.Linear(self.hidden_state_size, self.output_item_size)
 
-        self.linear = nn.Linear(self.hidden_state_dim, self.output_units)
+    def forward(self, data_dict):
+        """
+        Forward function requires that the data_dict will contain at least "sequences"
 
-    def forward(self, data_tuple):
-        (x, targets) = data_tuple
-        # Check if the class has been converted to cuda (through .cuda()
-        # method)
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
+
+        :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
+
+        """
+         # Get dtype.
         dtype = self.app_state.dtype
+
+        # Unpack dict.
+        inputs_BxSxI = data_dict['sequences']
+
+        # Get batch size.
+        batch_size = inputs_BxSxI.size(0)
 
         # Create the hidden state tensors
         h = [
             torch.zeros(
-                x.size(0),
-                self.hidden_state_dim,
-                requires_grad=False).type(dtype) for _ in range(
-                self.num_layers)]
+                batch_size,
+                self.hidden_state_size,
+                requires_grad=False).type(dtype) 
+            for _ in range(self.num_layers)]
 
         # Create the internal state tensors
         c = [
             torch.zeros(
-                x.size(0),
-                self.hidden_state_dim,
+                batch_size,
+                self.hidden_state_size,
                 requires_grad=False).type(dtype) for _ in range(
                 self.num_layers)]
 
         outputs = []
-
-        for x_t in x.chunk(x.size(1), dim=1):
-            h[0], c[0] = self.lstm_layers[0](x_t.squeeze(1), (h[0], c[0]))
+        # Process items one-by-one.
+        for item in inputs_BxSxI.chunk(inputs_BxSxI.size(1), dim=1):
+            h[0], c[0] = self.lstm_layers[0](item.squeeze(1), (h[0], c[0]))
             for i in range(1, self.num_layers):
                 h[i], c[i] = self.lstm_layers[i](h[i - 1], (h[i], c[i]))
 

@@ -254,7 +254,7 @@ if __name__ == "__main__":
     from utils.param_interface import ParamInterface
 
     params = ParamInterface()
-    params.add_custom_params({'control_bits': 2,
+    params.add_config_params({'control_bits': 2,
                               'data_bits': 8,
                               'batch_size': 2,
                               'min_sequence_length': 1,
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     from torch.utils.data.dataloader import DataLoader
 
     problem = DataLoader(dataset=readingspan, batch_size=batch_size, collate_fn=readingspan.collate_fn,
-                         shuffle=False, num_workers=4)
+                         shuffle=False, num_workers=0)
 
     # generate a batch
     import time

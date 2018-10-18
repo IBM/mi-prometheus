@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__author__ = "Ryan McAvoy & Vincent Marois"
+__author__ = "Tomasz Kornuta, Ryan McAvoy, Vincent Marois"
 
 import torch
 import numpy as np
@@ -25,10 +25,12 @@ from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import Algor
 
 class SequenceEqualityCommandLines(AlgorithmicSeqToSeqProblem):
     """
-    # TODO: THE DOCUMENTATION NEEDS TO BE UPDATED
+        Class generating sequences of random bit-patterns and targets forcing the
+        system to learn sequence symmetry task. Two sequences x1 and x2 are
+        symmetric if x2 == x1.
 
-    Class generating sequences of random bit-patterns and targets forcing the
-    system to learn scratch pad problem (overwrite the memory).
+        ..note:
+            Can also work in ''inequality'' mode, i.e. return 1 when x1 != x2.
 
     """
 
@@ -39,478 +41,166 @@ class SequenceEqualityCommandLines(AlgorithmicSeqToSeqProblem):
 
         :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
         """
+        # Set default number of bits for a given problem.
+        # This has to be done before calling base class constructor!
+        params.add_default_params({
+            'control_bits': 2,
+            'data_bits': 8 })
         # Call parent constructor - sets e.g. the loss function, dtype.
         # Additionally it extracts "standard" list of parameters for
         # algorithmic tasks, like batch_size, numbers of bits, sequences etc.
         super(SequenceEqualityCommandLines, self).__init__(params)
-
         self.name = 'SequenceEqualityCommandLines'
 
-        assert self.control_bits >= 3, "Problem requires at least 3 control bits (currently %r)" % self.control_bits
+        # Overwrite default value of output item size to 1!
+        self.default_values['output_item_size'] = 1
+
+        assert self.control_bits >= 2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
         assert self.data_bits >= 1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
 
         # The bit that indicates whether we want to return true when sequences
-        # are equal or not equal.
-        self.predict_inverse = params.get('predict_inverse', True)
+        # are symmetric or not.
+        self.params.add_default_params({'inequality': False})
+        self.inequality = params['inequality']
 
-    def __getitem__(self, index):
+        # Level "Hard": scrambles only single sample instead of the whole batch.  
+        self.params.add_default_params({'hard': False})
+        self.hard = params['hard']
+
+    def generate_batch(self, batch_size):
         """
-        Getter that returns one individual sample generated on-the-fly.
+        Generates a batch of samples of size ''batch_size'' on-the-fly.
 
-        .. note::
+       .. note::
 
-            The sequence length is drawn randomly between ``selg.min_sequence_length`` and \
+            The sequence length is drawn randomly between ``self.min_sequence_length`` and \
             ``self.max_sequence_length``.
 
+       .. warning::
+            All the samples within the batch will have the same sequence lengt.
 
-        :param index: index of the sample to return.
+        :param batch_size: Size of the batch to be returned. 
 
-        :return: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}), with:
+        :return: DataDict({'sequences', 'sequences_length', 'targets', 'masks', 'num_subsequences'}), with:
 
-            - sequences: [2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS. Additional elements of sequence are  start and\
-                stop control markers, stored in additional bits.
-
-            - **sequences_length: random value between self.min_sequence_length and self.max_sequence_length**
-            - targets: [2*SEQ_LENGTH+2, DATA_BITS],
-            - mask: [2*SEQ_LENGTH+2]
-            - num_subsequences: 1
-
-          pattern of inputs: x1, x2, ...xn d
-          pattern of target: d, d,   ...d xn
-          mask: used to mask the data part of the target
-          xi, d: sub sequences, dummies
-
-        # TODO: THE DOCUMENTATION NEEDS TO BE UPDATED
-        # TODO: This is commented for now to avoid the issue with `add_ctrl` and `augment` in AlgorithmicSeqToSeqProblem
-        # TODO: NOT SURE THAT THIS FN IS WORKING WELL (WITHOUT THE PRESENCE OF THE BATCH DIMENSION)
+            - sequences: [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
+            - sequences_length: [BATCH_SIZE, 1] (the same random value between self.min_sequence_length and self.max_sequence_length)
+            - targets: [BATCH_SIZE, , 2*SEQ_LENGTH+2, DATA_BITS]
+            - masks: [BATCH_SIZE, 2*SEQ_LENGTH+2, 1]
+            - num_subsequences: [BATCH_SIZE, 1]
 
         """
-        '''
-        # define control channel markers
-        # pos = [0, 0, 0]
-        pos = np.zeros(self.control_bits)  # [0, 0, 0]
+        # Store marker.
+        marker_start_main = np.zeros(self.control_bits)
+        marker_start_main[self.store_bit] = 1  # [1, 0, 0]
 
-        # ctrl_data = [0, 0, 0]
-        ctrl_data = np.zeros(self.control_bits)  # [0, 0, 0]
+        # Recall marker.
+        marker_start_aux = np.zeros(self.control_bits)
+        marker_start_aux[self.recall_bit] = 1  # [0, 1, 0]
 
-        # ctrl_dummy = [0, 0, 0 ]
-        ctrl_dummy = np.zeros(self.control_bits)
+        # Define control lines.
+        ctrl_aux = np.zeros(self.control_bits)
+        if self.use_control_lines:
+            if  self.control_bits >= 3:
+                if self.randomize_control_lines:
+                    # Randomly pick one of the bits to be set.
+                    ctrl_bit = np.random.randint(2, self.control_bits)
+                    ctrl_aux[ctrl_bit] = 1
+                else:
+                    # Set last.
+                    ctrl_aux[self.control_bits - 1] = 1
+        # Else: no control lines!
 
-        # ctrl_inter = [0, 1, 0]
-        ctrl_inter = np.zeros(self.control_bits)
-        ctrl_inter[1] = 1  # [0, 1, 0]
-
-        # ctrl_y = [0, 0, 1]
-        ctrl_y = np.zeros(self.control_bits)
-        ctrl_y[2] = 1  # [0, 1, 0]
-
-        # ctrl_start = [1, 0, 0]
-        ctrl_start = np.zeros(self.control_bits)
-        ctrl_start[0] = 1  # [1, 0, 0]
-
-        # assign markers
-        markers = ctrl_data, ctrl_dummy, pos
-
-        # set the sequence length of each marker
+        # Set sequence length.
         seq_length = np.random.randint(
-            low=self.min_sequence_length, high=self.max_sequence_length + 1)
+            self.min_sequence_length, self.max_sequence_length + 1)
 
-        #  generate subsequences for x and y
-        x = [np.array(np.random.binomial(
-            1, self.bias, (seq_length, self.data_bits)))]
+        # Generate batch of random bit sequences [BATCH_SIZE x SEQ_LENGTH X
+        # DATA_BITS]
+        bit_seq = np.random.binomial(
+            1, self.bias, (batch_size, seq_length, self.data_bits))
 
-        # Generate the second sequence which is either a scrambled version of the first
-        # or exactly identical with approximately 50% probability (technically the scrambling
-        # allows them to be the same with a very low chance)
+        # 1. Generate inputs.
+        # Generate input:  [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
+        inputs = np.zeros([batch_size,
+                           2 * seq_length + 2,
+                           self.control_bits + self.data_bits],
+                          dtype=np.float32)
 
-        # First generate a random binomial of the same size as x, this will be
-        # used be used with an xor operation to scamble x to get y
-        xor_scrambler = np.array(np.random.binomial(1, self.bias, x[0].shape))
+        # Set store control marker.
+        inputs[:, 0, 0:self.control_bits] = np.tile(
+            marker_start_main, (batch_size, 1))
 
-        # Create a mask that will set entire batches of the xor_scrambler to zero. The batches that are zero
-        # will force the xor to return the original x for that batch
-        scrambler_mask = np.array(np.random.binomial(
-            1, self.bias, ()))
-        xor_scrambler = np.array(
-            xor_scrambler * scrambler_mask[np.newaxis, np.newaxis])
+        # Set input items.
+        inputs[:, 1:seq_length + 1,
+            self.control_bits:self.control_bits + self.data_bits] = bit_seq
 
-        aux_seq = np.array(np.logical_xor(x[0], xor_scrambler))
+        # Set recall control marker.
+        inputs[:,seq_length + 1, 0:self.control_bits] = np.tile(
+            marker_start_aux, (batch_size, 1))
 
-        # if the xor scambler is all zeros then x and y will be the same so
-        # target will be true
-        actual_target = np.array(np.any(xor_scrambler, axis=(1, 2)))
+        # Set control lines for recall items.   
+        inputs[:,seq_length + 2:2 * seq_length + 2,0:self.control_bits] = np.tile(
+            ctrl_aux,(batch_size,seq_length,1))
 
-        if self.predict_inverse:
-            # if the xor scambler is all zeros then x and y will be the same so
-            # target will be true
-            actual_target = actual_target[np.newaxis, np.newaxis]
-        else:
-            actual_target = np.logical_not(
-                actual_target[np.newaxis, np.newaxis])
+        # Check if second subsequence has to be equal.
+        batch_equal = np.random.random_sample(batch_size) < 0.5
+        #print("batch_equal =\n",batch_equal)
 
-        # create the target
-        seq_length_tdummies = 2 * seq_length + 1
-        dummies_target = np.zeros(
-            [seq_length_tdummies, 1], dtype=np.float32)
-        target = np.concatenate((dummies_target, actual_target), axis=0)
+        # Generate scambler mask.
+        scrambler_mask = np.random.binomial(1, self.bias,
+            (batch_size, seq_length, self.data_bits))
+        #print(scrambler_mask)
 
-        # data of x and dummies
-        xx = [
-            self.augment(
-                seq,
-                markers,
-                ctrl_start=ctrl_start,
-                add_marker_data=True,
-                add_marker_dummy=False) for seq in x]
+        # Create the second bit sequence.                
+        aux_bit_seq = np.copy(bit_seq)
+        # Iterate through samples (sequences) in batch.
+        for i, equal in enumerate(batch_equal):
+            if not equal:
+                if self.hard:
+                    # Pick one item from sequence.
+                    item_number = np.random.random_integers(0, seq_length-1) 
+                    # Scramble it.
+                    aux_bit_seq[i, item_number, : ] = np.logical_xor(
+                        aux_bit_seq[i, item_number, : ], scrambler_mask[i, item_number, : ])
+                else:
+                    # Scramble the whole sequence.
+                    aux_bit_seq[i, :, : ] = np.logical_xor(
+                        aux_bit_seq[i, :, : ], scrambler_mask[i, :, : ])
+        #print(aux_bit_seq)
 
-        # data of x
-        data_1 = [arr for a in xx for arr in a[:-1]]
+        # Set bit sequence.
+        inputs[:, seq_length + 2:2 * seq_length + 2, 
+            self.control_bits:self.control_bits + self.data_bits] = aux_bit_seq
 
-        # this is a marker between sub sequence x and dummies
-        inter_seq = [self.add_ctrl(
-            np.zeros((1, self.data_bits)), ctrl_inter, pos)]
-        # Second Sequence for comparison
+        # 2. Generate targets.
+        # Generate target:  [BATCH_SIZE, 2*SEQ_LENGTH+2, 1] (only 1 bit!)
+        targets = np.zeros([batch_size, 2 * seq_length + 2, 1], dtype=np.float32)
+        
+        # Check once again if all items/sequences are equal - just in case.
+        are_items_different = np.sum(aux_bit_seq != bit_seq, axis=2) > 0
+        batch_equal = np.sum(are_items_different, axis=1) == 0
+        #print("batch_equal =\n",batch_equal)
 
-        markers2 = ctrl_y, ctrl_dummy, pos
-        yy = [self.augment(aux_seq, markers2, ctrl_start=ctrl_y,
-                           add_marker_data=False, add_marker_dummy=False)]
-        data_2 = [arr for a in yy for arr in a[:-1]]
-        data_2[0][:, -1, 0:self.control_bits] = np.ones(len(ctrl_dummy))
+        # Check equality/inequality mode.
+        if self.inequality:
+             batch_equal = np.logical_not(batch_equal)
+        # Set only last output item.
+        targets[:, -1, 0] = batch_equal
 
-        recall_seq = [self.add_ctrl(
-            np.zeros((1, self.data_bits)), ctrl_dummy, pos)]
-        dummy_data = [
-            self.add_ctrl(
-                np.zeros(
-                    (1, self.data_bits)), np.ones(
-                    len(ctrl_dummy)), pos)]
-
-        inputs = np.concatenate(data_1 + inter_seq + data_2, axis=0)
-
-        # PyTorch variables
-        inputs = torch.from_numpy(inputs).type(self.app_state.dtype)
-        target = torch.from_numpy(target).type(self.app_state.dtype)
-        # TODO: batch might have different sequence lengths
-        mask_all = inputs[..., 0:self.control_bits] == 1
-        mask = mask_all[..., 0]
-        for i in range(self.control_bits):
-            mask = mask_all[..., i] * mask
-
-        # TODO: fix the batch indexing
-        # rest channel values of data dummies
-        inputs[:, mask[0], 0:self.control_bits] = torch.tensor(ctrl_y).type(self.app_state.dtype)
+        # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2, 1]
+        ptmasks = torch.zeros([batch_size, 2 * seq_length + 2, 1]
+                           ).type(self.app_state.ByteTensor)
+        ptmasks[:, -1] = 1
 
         # Return data_dict.
-        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
-        data_dict['sequences'] = inputs
-        data_dict['sequences_length'] = seq_length
-        data_dict['targets'] = target
-        data_dict['mask'] = mask
-        data_dict['num_subsequences'] = 1
-        '''
-        return DataDict({key: None for key in self.data_definitions.keys()})  # data_dict
-
-    def collate_fn(self, batch):
-        """
-        Generates a batch of samples on-the-fly
-
-        .. warning::
-            Because of the fact that the sequence length is randomly drawn between ``self.min_sequence_length`` and \
-            ``self.max_sequence_length`` and then fixed for one given batch (**but varies between batches**), \
-            we cannot follow the scheme `merge together individuals samples that can be retrieved in parallel with\
-            several workers.` Indeed, each sample could have a different sequence length, and merging them together\
-            would then not be possible (we cannot have variable-sequence-length samples within one batch \
-            without padding).
-            Hence, ``collate_fn`` generates on-the-fly a batch of samples, all having the same length (initially\
-            randomly selected). Having several workers does help though, almost cutting the time needed to generate\
-            a batch in half according to our experiments.
-            The samples created by ``__getitem__`` are simply not used.
-
-
-        :param batch: Should be a list of DataDict retrieved by `__getitem__`, each containing tensors, numbers,\
-        dicts or lists. --> **Not Used Here!**
-
-        :return: DataDict({'sequences', 'sequences_length', 'targets', 'mask', 'num_subsequences'}), with:
-
-            - sequences: [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS],
-            - **sequences_length: random value between self.min_sequence_length and self.max_sequence_length**
-            - targets: [BATCH_SIZE, SEQ_LENGTH, DATA_BITS],
-            - mask: [BATCH_SIZE, SEQ_LENGTH]
-            - num_subsequences: 1
-
-            pattern of inputs: x1, x2, ...xn d
-            pattern of target: d, d,   ...d xn
-            mask: used to mask the data part of the target
-            xi, d: sub sequences, dummies
-
-        # TODO: THE DOCUMENTATION NEEDS TO BE UPDATED
-        """
-        # get the batch_size
-        batch_size = len(batch)
-
-        # define control channel markers
-        # pos = [0, 0, 0]
-        pos = np.zeros(self.control_bits)  # [0, 0, 0]
-
-        # ctrl_data = [0, 0, 0]
-        ctrl_data = np.zeros(self.control_bits)  # [0, 0, 0]
-
-        # ctrl_dummy = [0, 0, 0 ]
-        ctrl_dummy = np.zeros(self.control_bits)
-
-        # ctrl_inter = [0, 1, 0]
-        ctrl_inter = np.zeros(self.control_bits)
-        ctrl_inter[1] = 1  # [0, 1, 0]
-
-        # ctrl_y = [0, 0, 1]
-        ctrl_y = np.zeros(self.control_bits)
-        ctrl_y[2] = 1  # [0, 1, 0]
-
-        # ctrl_start = [1, 0, 0]
-        ctrl_start = np.zeros(self.control_bits)
-        ctrl_start[0] = 1  # [1, 0, 0]
-
-        # assign markers
-        markers = ctrl_data, ctrl_dummy, pos
-
-        # set the sequence length of each marker
-        seq_length = np.random.randint(
-            low=self.min_sequence_length, high=self.max_sequence_length + 1)
-
-        #  generate subsequences for x and y
-        x = [np.array(np.random.binomial(
-            1, self.bias, (batch_size, seq_length, self.data_bits)))]
-
-        # Generate the second sequence which is either a scrambled version of the first
-        # or exactly identical with approximately 50% probability (technically the scrambling
-        # allows them to be the same with a very low chance)
-
-        # First generate a random binomial of the same size as x, this will be
-        # used be used with an xor operation to scamble x to get y
-        xor_scrambler = np.array(np.random.binomial(1, self.bias, x[0].shape))
-
-        # Create a mask that will set entire batches of the xor_scrambler to zero. The batches that are zero
-        # will force the xor to return the original x for that batch
-        scrambler_mask = np.array(np.random.binomial(
-            1, self.bias, (batch_size,)))
-        xor_scrambler = np.array(
-            xor_scrambler * scrambler_mask[:, np.newaxis, np.newaxis])
-
-        aux_seq = np.array(np.logical_xor(x[0], xor_scrambler))
-
-        # if the xor scambler is all zeros then x and y will be the same so
-        # target will be true
-        actual_target = np.array(np.any(xor_scrambler, axis=(1, 2)))
-
-        if self.predict_inverse:
-            # if the xor scambler is all zeros then x and y will be the same so
-            # target will be true
-            actual_target = actual_target[:, np.newaxis, np.newaxis]
-        else:
-            actual_target = np.logical_not(
-                actual_target[:, np.newaxis, np.newaxis])
-
-        # create the target
-        seq_length_tdummies = 2 * seq_length + 1
-        dummies_target = np.zeros(
-            [batch_size, seq_length_tdummies, 1], dtype=np.float32)
-        target = np.concatenate((dummies_target, actual_target), axis=1)
-
-        # data of x and dummies
-        xx = [
-            self.augment(
-                seq,
-                markers,
-                ctrl_start=ctrl_start,
-                add_marker_data=True,
-                add_marker_dummy=False) for seq in x]
-
-        # data of x
-        data_1 = [arr for a in xx for arr in a[:-1]]
-
-        # this is a marker between sub sequence x and dummies
-        inter_seq = [self.add_ctrl(
-            np.zeros((batch_size, 1, self.data_bits)), ctrl_inter, pos)]
-        # Second Sequence for comparison
-
-        markers2 = ctrl_y, ctrl_dummy, pos
-        yy = [self.augment(aux_seq, markers2, ctrl_start=ctrl_y,
-                           add_marker_data=False, add_marker_dummy=False)]
-        data_2 = [arr for a in yy for arr in a[:-1]]
-        data_2[0][:, -1, 0:self.control_bits] = np.ones(len(ctrl_dummy))
-
-        recall_seq = [self.add_ctrl(
-            np.zeros((batch_size, 1, self.data_bits)), ctrl_dummy, pos)]
-        dummy_data = [
-            self.add_ctrl(
-                np.zeros(
-                    (batch_size, 1, self.data_bits)), np.ones(
-                    len(ctrl_dummy)), pos)]
-
-        inputs = np.concatenate(data_1 + inter_seq + data_2, axis=1)
-
-        # PyTorch variables
-        inputs = torch.from_numpy(inputs).type(self.app_state.dtype)
-        target = torch.from_numpy(target).type(self.app_state.dtype)
-
-        # TODO: batch might have different sequence lengths
-        mask_all = inputs[..., 0:self.control_bits] == 1
-        mask = mask_all[..., 0]
-        for i in range(self.control_bits):
-            mask = mask_all[..., i] * mask
-
-        # TODO: fix the batch indexing
-        # rest channel values of data dummies
-        inputs[:, mask[0], 0:self.control_bits] = torch.tensor(ctrl_y).type(self.app_state.dtype)
-
-        # Return data_dict.
-        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
-        data_dict['sequences'] = inputs
-        data_dict['sequences_length'] = seq_length
-        data_dict['targets'] = target
-        data_dict['mask'] = mask
-        data_dict['num_subsequences'] = 1
-
+        data_dict = self.create_data_dict()
+        data_dict['sequences'] = torch.from_numpy(inputs).type(self.app_state.dtype)
+        data_dict['targets'] = torch.from_numpy(targets).type(self.app_state.dtype)
+        data_dict['masks'] = ptmasks
+        data_dict['sequences_length'] = torch.ones([batch_size,1]).type(torch.CharTensor) * seq_length
+        data_dict['num_subsequences'] = torch.ones([batch_size, 1]).type(torch.CharTensor)
         return data_dict
-
-    def generate_batch(self):
-        """
-        Generates a batch  of size [BATCH_SIZE, SEQ_LENGTH,
-        CONTROL_BITS+DATA_BITS]. SEQ_LENGTH depends on number of sub-sequences
-        and its lengths.
-
-        :returns: Tuple consisting of: input, output and mask
-                  pattern of inputs: x1, x2, ...xn d
-                  pattern of target: d, d,   ...d xn
-                  mask: used to mask the data part of the target
-                  xi, d: sub sequences, dummies
-
-        """
-        # define control channel markers
-        # pos = [0, 0, 0]
-        pos = np.zeros(self.control_bits)  # [0, 0, 0]
-
-        # ctrl_data = [0, 0, 0]
-        ctrl_data = np.zeros(self.control_bits)  # [0, 0, 0]
-
-        # ctrl_dummy = [0, 0, 0 ]
-        ctrl_dummy = np.zeros(self.control_bits)
-
-        # ctrl_inter = [0, 1, 0]
-        ctrl_inter = np.zeros(self.control_bits)
-        ctrl_inter[1] = 1  # [0, 1, 0]
-
-        # ctrl_y = [0, 0, 1]
-        ctrl_y = np.zeros(self.control_bits)
-        ctrl_y[2] = 1  # [0, 1, 0]
-
-        # ctrl_start = [1, 0, 0]
-        ctrl_start = np.zeros(self.control_bits)
-        ctrl_start[0] = 1  # [1, 0, 0]
-
-        # assign markers
-        markers = ctrl_data, ctrl_dummy, pos
-
-        # set the sequence length of each marker
-        seq_length = np.random.randint(
-            low=self.min_sequence_length, high=self.max_sequence_length + 1)
-
-        #  generate subsequences for x and y
-        x = [np.array(np.random.binomial(
-            1, self.bias, (self.batch_size, seq_length, self.data_bits)))]
-
-        # Generate the second sequence which is either a scrambled version of the first
-        # or exactly identical with approximately 50% probability (technically the scrambling
-        # allows them to be the same with a very low chance)
-
-        # First generate a random binomial of the same size as x, this will be
-        # used be used with an xor operation to scamble x to get y
-        xor_scrambler = np.array(np.random.binomial(1, self.bias, x[0].shape))
-
-        # Create a mask that will set entire batches of the xor_scrambler to zero. The batches that are zero
-        # will force the xor to return the original x for that batch
-        scrambler_mask = np.array(np.random.binomial(
-            1, self.bias, (self.batch_size,)))
-        xor_scrambler = np.array(
-            xor_scrambler * scrambler_mask[:, np.newaxis, np.newaxis])
-
-        aux_seq = np.array(np.logical_xor(x[0], xor_scrambler))
-
-        # if the xor scambler is all zeros then x and y will be the same so
-        # target will be true
-        actual_target = np.array(np.any(xor_scrambler, axis=(1, 2)))
-
-        if self.predict_inverse:
-            # if the xor scambler is all zeros then x and y will be the same so
-            # target will be true
-            actual_target = actual_target[:, np.newaxis, np.newaxis]
-        else:
-            actual_target = np.logical_not(
-                actual_target[:, np.newaxis, np.newaxis])
-
-        # create the target
-        seq_length_tdummies = 2 * seq_length + 1
-        dummies_target = np.zeros(
-            [self.batch_size, seq_length_tdummies, 1], dtype=np.float32)
-        target = np.concatenate((dummies_target, actual_target), axis=1)
-
-        # data of x and dummies
-        xx = [
-            self.augment(
-                seq,
-                markers,
-                ctrl_start=ctrl_start,
-                add_marker_data=True,
-                add_marker_dummy=False) for seq in x]
-
-        # data of x
-        data_1 = [arr for a in xx for arr in a[:-1]]
-
-        # this is a marker between sub sequence x and dummies
-        inter_seq = [self.add_ctrl(
-            np.zeros((self.batch_size, 1, self.data_bits)), ctrl_inter, pos)]
-        # Second Sequence for comparison
-
-        markers2 = ctrl_y, ctrl_dummy, pos
-        yy = [self.augment(aux_seq, markers2, ctrl_start=ctrl_y,
-                           add_marker_data=False, add_marker_dummy=False)]
-        data_2 = [arr for a in yy for arr in a[:-1]]
-        data_2[0][:, -1, 0:self.control_bits] = np.ones(len(ctrl_dummy))
-
-        recall_seq = [self.add_ctrl(
-            np.zeros((self.batch_size, 1, self.data_bits)), ctrl_dummy, pos)]
-        dummy_data = [
-            self.add_ctrl(
-                np.zeros(
-                    (self.batch_size, 1, self.data_bits)), np.ones(
-                    len(ctrl_dummy)), pos)]
-
-        inputs = np.concatenate(data_1 + inter_seq + data_2, axis=1)
-
-        # PyTorch variables
-        inputs = torch.from_numpy(inputs).type(self.dtype)
-        target = torch.from_numpy(target).type(self.dtype)
-        # TODO: batch might have different sequence lengths
-        mask_all = inputs[..., 0:self.control_bits] == 1
-        mask = mask_all[..., 0]
-        for i in range(self.control_bits):
-            mask = mask_all[..., i] * mask
-
-        # TODO: fix the batch indexing
-        # rest channel values of data dummies
-        inputs[:, mask[0], 0:self.control_bits] = torch.tensor(
-            ctrl_y).type(self.dtype)
-
-        # Return tuples.
-        data_tuple = DataTuple(inputs, target)
-        aux_tuple = AlgSeqAuxTuple(mask, seq_length, 1)
-
-        return data_tuple, aux_tuple
-
-    # method for changing the maximum length, used mainly during curriculum
-    # learning
-    def set_max_length(self, max_length):
-        self.max_sequence_length = max_length
 
 
 if __name__ == "__main__":
@@ -520,11 +210,12 @@ if __name__ == "__main__":
     from utils.param_interface import ParamInterface
 
     params = ParamInterface()
-    params.add_custom_params({'control_bits': 4,
-                              'data_bits': 8,
-                              # 'predict_inverse': False,
-                              'min_sequence_length': 1,
-                              'max_sequence_length': 2})
+    params.add_config_params({#'control_bits': 2,
+                              #'data_bits': 8,
+                              #'inequality': True,
+                              'hard' : True,
+                              'min_sequence_length': 2,
+                              'max_sequence_length': 5})
     batch_size = 64
 
     # Create problem object.
@@ -544,14 +235,15 @@ if __name__ == "__main__":
 
 
     problem = DataLoader(dataset=seqequacl, batch_size=batch_size, collate_fn=seqequacl.collate_fn,
-                         shuffle=True, num_workers=4, worker_init_fn=init_fn)
+                         shuffle=True, num_workers=0, worker_init_fn=init_fn)
 
     # generate a batch
     import time
 
     s = time.time()
     for i, batch in enumerate(problem):
-        print('Batch # {} - {}'.format(i, type(batch)))
+        #print('Batch # {} - {}'.format(i, type(batch)))
+        pass
 
     print('Number of workers: {}'.format(problem.num_workers))
     print('time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'

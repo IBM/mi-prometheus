@@ -15,13 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""maes_module.py: File containing Memory Augmented Encoder-Solver model class."""
+"""maes_model.py: File containing Memory Augmented Encoder-Solver model class."""
 __author__ = "Tomasz Kornuta"
 
 from enum import Enum
 import torch
 
-from problems.problem import DataDict
+from utils.data_dict import DataDict
 from models.sequential_model import SequentialModel
 
 from models.encoder_solver.mae_cell import MAECell
@@ -32,9 +32,10 @@ class MAES(SequentialModel):
     """
     Class implementing the Memory Augmented Encoder-Solver (MAES) model.
 
-    Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences
-    becoming input to encoder is of the same length (ends at the same item).
-    The same goes to subsequences being input to decoder.
+    ..warning:
+        Class assumes, that the whole batch has the same length, i.e. batch of subsequences
+        becoming input to encoder is of the same length (ends at the same item).
+        The same goes to subsequences being input to decoder.
 
     """
 
@@ -43,20 +44,29 @@ class MAES(SequentialModel):
         Constructor. Initializes parameters on the basis of dictionary passed
         as argument.
 
-        :param params: Dictionary of parameters.
+        :param params: Local view to the Parameter Regsitry ''model'' section.
+
+        :param problem_default_values_: Dictionary containing key-values received from problem.
 
         """
-        # Call base constructor.
+        # Call base constructor. Sets up default values etc.
         super(MAES, self).__init__(params, problem_default_values_)
-
         # Model name.
         self.name = 'MAES'
 
-        # Parse parameters.
+        # Parse default values received from problem and add them to registry.
+        self.params.add_default_params({
+            'input_item_size': problem_default_values_['input_item_size'],
+            'output_item_size': problem_default_values_['output_item_size'],
+            'encoding_bit': problem_default_values_['store_bit'],
+            'solving_bit': problem_default_values_['recall_bit']
+            })
+
         # Indices of control bits triggering encoding/decoding.
         self.encoding_bit = params['encoding_bit']  # Def: 0
         self.solving_bit = params['solving_bit']  # Def: 1
 
+        # Parse parameters.
         # Check if we want to pass the whole cell state or only the memory.
         self.pass_cell_state = params.get('pass_cell_state', True)
 
@@ -88,13 +98,7 @@ class MAES(SequentialModel):
         # Operation modes.
         self.modes = Enum('Modes', ['Encode', 'Solve'])
 
-        # Expected content of the inputs
-        self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]}
-                                 }
 
-        # TODO: Not sure if some of the params above are coming from the Problem class. If yes -> use \
-        # problems_default_values_
 
     def save(self, model_dir, stat_col):
         """
@@ -119,13 +123,10 @@ class MAES(SequentialModel):
 
     def forward(self, data_dict):
         """
-        Forward function accepts a tuple consisting of:
+        Forward function requires that the data_dict will contain at least "sequences"
 
-            - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and
-            - a tensor of targets
-
-
-        :param data_dict: DataDict containing inputs and targets.
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
 
         :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
 
@@ -134,8 +135,9 @@ class MAES(SequentialModel):
         dtype = self.app_state.dtype
 
         # Unpack dict.
-        inputs_BxSxI, _, _, _, _ = data_dict.values()
-
+        inputs_BxSxI = data_dict['sequences']
+        
+        # Get batch size.
         batch_size = inputs_BxSxI.size(0)
 
         # "Data-driven memory size".
@@ -211,10 +213,10 @@ if __name__ == "__main__":
     # "Loaded parameters".
     from utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_default_params({'num_control_bits': 3, 'num_data_bits': 8,  # input and output size
+    params.add_default_params({
               'encoding_bit': 0, 'solving_bit': 1,
               # controller parameters
-              'controller': {'name': 'rnn', 'hidden_state_size': 20, 'num_layers': 1, 'non_linearity': 'sigmoid'},
+              'controller': {'name': 'RNNController', 'hidden_state_size': 20, 'num_layers': 1, 'non_linearity': 'sigmoid'},
               'mae_interface': {'shift_size': 3},  # encoder interface parameters
               'mas_interface': {'shift_size': 3},  # solver interface parameters
               # memory parameters
@@ -222,14 +224,24 @@ if __name__ == "__main__":
               'visualization_mode': 2
               })
 
-    input_size = params["num_control_bits"] + params["num_data_bits"]
-    output_size = params["num_data_bits"]
-
+    num_control_bits= 3
+    num_data_bits = 8
     seq_length = 1
     batch_size = 2
 
+    # "Default values from problem".
+    problem_default_values = {
+        'input_item_size': num_control_bits + num_data_bits,
+        'output_item_size': num_data_bits,
+        'store_bit': 0,
+        'recall_bit': 1
+        }
+
+    input_size = problem_default_values['input_item_size']
+    output_size = problem_default_values['output_item_size']
+
     # Construct our model by instantiating the class defined above.
-    model = MAES(params)
+    model = MAES(params, problem_default_values)
     model.logger.debug("params: {}".format(params))
 
     # Check for different seq_lengths and batch_sizes.
@@ -246,7 +258,7 @@ if __name__ == "__main__":
         # Output
         y = torch.randn(batch_size, 2 + 2 * seq_length, output_size)
 
-        dt = DataDict({'inputs': x, 'targets': y})
+        dt = DataDict({'sequences': x, 'targets': y})
 
         # Test forward pass.
         model.logger.info("------- forward -------")

@@ -1,0 +1,61 @@
+# Problem parameters:
+training:
+    #seed_numpy: 4354
+    #seed_torch: 2452
+    problem:
+        name: &name MNIST
+        batch_size: &b 64
+        index: [0, 54999]
+        use_train_data: True
+        padding: &p [0,0,0,0] # ex: (x1, x2, x3, x4) pad last dim by (x1, x2) and 2nd to last by (x3, x4)
+        root_dir: '~/data/mnist'
+        up_scaling: &scale False # if up_scale true, the image is resized to 224 x 224
+    # optimizer parameters:
+    optimizer:
+        name: Adam
+        lr: 0.01
+    # settings parameters
+    terminal_conditions:
+        loss_stop: 1.0e-5
+        episode_limit: 50000
+        epochs_limit: 10
+
+# Problem parameters:
+validation:
+    problem:
+        name: *name
+        batch_size: *b
+        index: [54999, 59999]
+        use_train_data: True  # True because we are splitting the training set to: validation and training
+        padding: *p
+        root_dir: '~/data/mnist'
+        up_scaling: *scale
+
+# Problem parameters:
+testing:
+    problem:
+        name: *name
+        batch_size: *b
+        use_train_data: False
+        padding: *p
+        root_dir: '~/data/mnist'
+        up_scaling: *scale
+
+
+# Model parameters:
+model:
+    name: SimpleConvNet
+    conv1:
+        out_channels: 6
+        kernel_size: 5
+        stride: 1
+        padding: 0
+    conv2:
+        out_channels: 16
+        kernel_size: 5
+        stride: 1
+        padding: 0
+    maxpool1:
+        kernel_size: 2
+    maxpool2:
+        kernel_size: 2

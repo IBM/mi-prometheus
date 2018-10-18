@@ -22,25 +22,35 @@ import torch
 import logging
 import numpy as np
 
+from problems.problem import DataDict
 from models.sequential_model import SequentialModel
 from models.ntm.ntm_cell import NTMCell
-from problems.problem import DataTuple
 
 class NTM(SequentialModel):
     """
     Class representing the Neural Turing Machine module.
     """
 
-    def __init__(self, params):
+    def __init__(self, params, problem_default_values_={}):
         """
-        Constructor. Initializes parameters on the basis of dictionary of
-        parameters passed as argument.
+        Constructor. Initializes parameters on the basis of dictionary passed
+        as argument.
 
-        :param params: Dictionary of parameters.
+        :param params: Local view to the Parameter Regsitry ''model'' section.
+
+        :param problem_default_values_: Dictionary containing key-values received from problem.
 
         """
-        # Call constructor of base class.
-        super(NTM, self).__init__(params)
+        # Call base constructor. Sets up default values etc.
+        super(NTM, self).__init__(params, problem_default_values_)
+        # Model name.
+        self.name = 'NTM'
+
+        # Parse default values received from problem and add them to registry.
+        self.params.add_default_params({
+            'input_item_size': problem_default_values_['input_item_size'],
+            'output_item_size': problem_default_values_['output_item_size']
+            })
 
         # Parse parameters.
         # It is stored here, but will we used ONLY ONCE - for initialization of
@@ -63,20 +73,23 @@ class NTM(SequentialModel):
              # I.e. show default vizualization.
             pass
 
-    def forward(self, data_tuple):
+    def forward(self, data_dict):
         """
-        Forward function accepts a tuple consisting of :
+        Forward function requires that the data_dict will contain at least "sequences"
 
-        - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and
-        - a tensor of targets
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
 
-               :return: Predictions being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE] .
+        :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
 
         """
+         # Get dtype.
         dtype = self.app_state.dtype
 
-        # Unpack data tuple.
-        (inputs_BxSxI, targets) = data_tuple
+        # Unpack dict.
+        inputs_BxSxI = data_dict['sequences']
+        
+        # Get batch size.
         batch_size = inputs_BxSxI.size(0)
 
         # "Data-driven memory size".
@@ -185,7 +198,7 @@ class NTM(SequentialModel):
         return fig
 
     def plot_memory_attention_sequence(
-            self, data_tuple, predictions, sample_number=0):
+            self, data_dict, predictions, sample_number=0):
         """
         Creates list of figures used in interactive visualization, with a
         slider enabling to move forth and back along the time axis (iteration
@@ -194,10 +207,12 @@ class NTM(SequentialModel):
         state tuples collected during the experiment for displaying the memory
         state, read and write attentions.
 
-        :param data_tuple: Data tuple containing
-           - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and
-           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
+            - "targets": a tensor of targets of size  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+
         :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+
         :param sample_number: Number of sample in batch (DEFAULT: 0)
 
         """
@@ -219,8 +234,8 @@ class NTM(SequentialModel):
          ax_inputs, ax_targets, ax_predictions) = fig.axes
 
         # Unpack data tuple.
-        inputs_seq = data_tuple.inputs[sample_number].cpu().detach().numpy()
-        targets_seq = data_tuple.targets[sample_number].cpu().detach().numpy()
+        inputs_seq = data_dict["sequences"][sample_number].cpu().detach().numpy()
+        targets_seq = data_dict["targets"][sample_number].cpu().detach().numpy()
         predictions_seq = predictions[sample_number].cpu().detach().numpy()
 
         # Set intial values of displayed  inputs, targets and predictions -
@@ -396,7 +411,7 @@ class NTM(SequentialModel):
         return fig
 
     def plot_memory_all_model_params_sequence(
-            self, data_tuple, predictions, sample_number=0):
+            self, data_dict, predictions, sample_number=0):
         """
         Creates list of figures used in interactive visualization, with a
         slider enabling to move forth and back along the time axis (iteration
@@ -405,10 +420,12 @@ class NTM(SequentialModel):
         state tuples collected during the experiment for displaying the memory
         state, read and write attentions; and gating params.
 
-        :param data_tuple: Data tuple containing
-           - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and
-           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
+            - "targets": a tensor of targets of size  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+
         :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        
         :param sample_number: Number of sample in batch (DEFAULT: 0)
 
         """
@@ -440,8 +457,9 @@ class NTM(SequentialModel):
          ax_predictions) = fig.axes
 
         # Unpack data tuple.
-        inputs_seq = data_tuple.inputs[sample_number].cpu().detach().numpy()
-        targets_seq = data_tuple.targets[sample_number].cpu().detach().numpy()
+        inputs_seq = data_dict["sequences"][sample_number].cpu().detach().numpy()
+        targets_seq = data_dict["targets"][sample_number].cpu().detach().numpy()
+
         predictions_seq = predictions[sample_number].cpu().detach().numpy()
 
         # Set intial values of displayed  inputs, targets and predictions -
@@ -591,9 +609,9 @@ if __name__ == "__main__":
     # "Loaded parameters".
     from utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_default_params({'num_control_bits': 2, 'num_data_bits': 8,  # input and output size
+    params.add_default_params({
               # controller parameters
-              'controller': {'name': 'ffgru', 'hidden_state_size': 5, 'num_layers': 1, 'non_linearity': 'none', 'ff_output_size': 5},
+              'controller': {'name': 'GRUController', 'hidden_state_size': 5, 'num_layers': 1, 'non_linearity': 'none', 'output_size': 5},
               # interface parameters
               'interface': {'num_read_heads': 2, 'shift_size': 3},
               # memory parameters
@@ -602,21 +620,31 @@ if __name__ == "__main__":
               })
     logger.debug("params: {}".format(params))
 
-    input_size = params["num_control_bits"] + params["num_data_bits"]
-    output_size = params["num_data_bits"]
-
+    num_control_bits= 3
+    num_data_bits = 8
     seq_length = 1
     batch_size = 2
 
+    # "Default values from problem".
+    problem_default_values = {
+        'input_item_size': num_control_bits + num_data_bits,
+        'output_item_size': num_data_bits,
+        'store_bit': 0,
+        'recall_bit': 1
+        }
+    input_size = problem_default_values['input_item_size']
+    output_size = problem_default_values['output_item_size']
+
     # Construct our model by instantiating the class defined above
-    model = NTM(params)
+    model = NTM(params, problem_default_values)
 
     # Check for different seq_lengts and batch_sizes.
     for i in range(2):
         # Create random Tensors to hold inputs and outputs
         x = torch.randn(batch_size, seq_length, input_size)
         y = torch.randn(batch_size, seq_length, output_size)
-        dt = DataTuple(x, y)
+
+        dt = DataDict({'sequences': x, 'targets': y})
 
         # Test forward pass.
         logger.info("------- forward -------")

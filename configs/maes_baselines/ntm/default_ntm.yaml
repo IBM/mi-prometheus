@@ -1,0 +1,20 @@
+# Model parameters:
+model:
+    name: NTM
+    # Optional parameter: visualization.
+    visualization_mode: 2
+    # Controller parameters.
+    controller:
+        name: RNNController
+        hidden_state_size: 20
+        num_layers: 1
+        non_linearity: sigmoid
+    # Interface
+    interface:
+        num_read_heads: 1
+        shift_size: 3
+        use_content_based_addressing: True
+    # Memory parameters.
+    memory:
+        num_content_bits: 15
+        num_addresses: -1

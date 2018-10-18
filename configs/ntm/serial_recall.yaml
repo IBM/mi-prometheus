@@ -1,18 +1,18 @@
 # Problem parameters:
 training:
     problem:
-        name: serial_recall
+        name: SerialRecallCommandLines
         # Size of generated input: [batch_size x sequence_length x number of command and data bits].
-        data_bits: &dbits 8
-        control_bits: &cbits 2
-        batch_size: &bs 10
+        batch_size: &bs 64
         # Parameters denoting min and max lengths.
-        min_sequence_length: &min_seq_len 2
-        max_sequence_length: &max_seq_len 20
+        min_sequence_length: 2
+        max_sequence_length: 20
+        size: 32000 # i.e. every 500 episodes = 1 epoch
+
     #Curriculum learning - optional.
     curriculum_learning:
-        interval: 500
-        initial_max_sequence_length: 3
+        initial_max_sequence_length: 5
+        must_finish: false
 
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
@@ -22,18 +22,17 @@ training:
         name: Adam
         lr: 0.01
 
-    terminal_condition:
-        loss_stop: 0.0001
-        max_episodes: 10000
+    # Terminal condition parameters:
+    terminal_conditions:
+        loss_stop: 1.0e-4
+        episode_limit: 10000
 
 
 # Problem parameters:
 validation:
     problem:
-        name: serial_recall
+        name: SerialRecallCommandLines
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-        control_bits: *cbits
-        data_bits: *dbits
         batch_size: 64
         # Parameters denoting min and max lengths.
         min_sequence_length: 21
@@ -43,10 +42,8 @@ validation:
 # Problem parameters:
 testing:
     problem:
-        name: serial_recall
+        name: SerialRecallCommandLines
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-        control_bits: *cbits
-        data_bits: *dbits
         batch_size: 64
         # Parameters denoting min and max lengths.
         min_sequence_length: 100
@@ -54,19 +51,15 @@ testing:
 
 # Model parameters:
 model:
-    name: ntm
+    name: NTM
     # Optional parameter: visualization.
     visualization_mode: 2
-    # Input bits = [command_bits, data_bits]
-    # Output bits = [data_bits]
-    num_control_bits: *cbits
-    num_data_bits: *dbits
     # Controller parameters.
     controller:
-        name: 'RNNController'
+        name: RNNController
         hidden_state_size: 20
         num_layers: 1
-        non_linearity: 'sigmoid'
+        non_linearity: sigmoid
     # Interface
     interface:
         num_read_heads: 1

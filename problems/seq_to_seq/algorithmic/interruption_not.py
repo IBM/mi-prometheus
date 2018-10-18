@@ -353,7 +353,7 @@ if __name__ == "__main__":
     from utils.param_interface import ParamInterface
 
     params = ParamInterface()
-    params.add_custom_params({'name': 'serial_recall_original',
+    params.add_config_params({'name': 'serial_recall_original',
                               'control_bits': 4,
                               'data_bits': 8,
                               'min_sequence_length': 1,
@@ -374,7 +374,7 @@ if __name__ == "__main__":
     from torch.utils.data.dataloader import DataLoader
 
     problem = DataLoader(dataset=interruptnot, batch_size=batch_size, collate_fn=interruptnot.collate_fn,
-                         shuffle=False, num_workers=4)
+                         shuffle=False, num_workers=0)
 
     # generate a batch
     import time
