@@ -159,13 +159,8 @@ class ReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         data_dict['masks'] = ptmasks
         data_dict['sequences_length'] = torch.ones([batch_size,1]).type(torch.CharTensor) * seq_length
         data_dict['num_subsequences'] = torch.ones([batch_size, 1]).type(torch.CharTensor)
-
         return data_dict
 
-    # method for changing the maximum length, used mainly during curriculum
-    # learning
-    def set_max_length(self, max_length):
-        self.max_sequence_length = max_length
 
 
 if __name__ == "__main__":
@@ -209,7 +204,7 @@ if __name__ == "__main__":
     for i, batch in enumerate(problem):
         #print('Batch # {} - {}'.format(i, type(batch)))
         pass
-        
+
     print('Number of workers: {}'.format(problem.num_workers))
     print('time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
           .format(len(reverserecallcl), batch_size, time.time() - s))

@@ -53,6 +53,9 @@ class SequenceComparisonCommandLines(AlgorithmicSeqToSeqProblem):
         super(SequenceComparisonCommandLines, self).__init__(params)
         self.name = 'SequenceComparisonCommandLines'
 
+        # Overwrite default value of output item size to 1!
+        self.default_values['output_item_size'] = 1
+
         assert self.control_bits >= 2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
         assert self.data_bits >= 1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
 
