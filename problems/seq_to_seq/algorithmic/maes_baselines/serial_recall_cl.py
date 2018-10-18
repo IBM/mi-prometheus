@@ -62,18 +62,11 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         # Additionally it extracts "standard" list of parameters for
         # algorithmic tasks, like batch_size, numbers of bits, sequences etc.
         super(SerialRecallCommandLines, self).__init__(params)
+        self.name = 'SerialRecallCommandLines'
 
         assert self.control_bits >= 2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
         assert self.data_bits >= 1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
 
-        self.name = 'SerialRecallCommandLines'
-
-        # Use "additional" control lines.
-        self.params.add_default_params({'use_control_lines': True})
-        self.use_control_lines = params['use_control_lines']
-        # Random control lines.
-        self.params.add_default_params({'randomize_control_lines': True})
-        self.randomize_control_lines = params['randomize_control_lines']
 
     def generate_batch(self, batch_size):
         """

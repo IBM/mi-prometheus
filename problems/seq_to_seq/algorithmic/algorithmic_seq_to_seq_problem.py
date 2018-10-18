@@ -130,6 +130,13 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         self.params.add_default_params({'bias': 0.5})
         self.bias = params['bias']
 
+        # Use "additional" control lines.
+        self.params.add_default_params({'use_control_lines': True})
+        self.use_control_lines = params['use_control_lines']
+        # Random control lines.
+        self.params.add_default_params({'randomize_control_lines': True})
+        self.randomize_control_lines = params['randomize_control_lines']
+
         # Set default data generation mode.
         self.params.add_default_params({'generation_mode': 'optimized'})
         gen_mode = params['generation_mode']

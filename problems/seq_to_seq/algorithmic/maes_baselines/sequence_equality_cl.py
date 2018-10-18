@@ -23,6 +23,7 @@ from problems.problem import DataDict
 from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem
 
 
+class SequenceEqualityCommandLines(AlgorithmicSeqToSeqProblem):
     """
         Class generating sequences of random bit-patterns and targets forcing the
         system to learn sequence symmetry task. Two sequences x1 and x2 are
@@ -30,8 +31,8 @@ from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import Algor
 
         ..note:
             Can also work in ''inequality'' mode, i.e. return 1 when x1 != x2.
-    """
 
+    """
 
     def __init__(self, params):
         """
@@ -49,11 +50,10 @@ from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import Algor
         # Additionally it extracts "standard" list of parameters for
         # algorithmic tasks, like batch_size, numbers of bits, sequences etc.
         super(SequenceEqualityCommandLines, self).__init__(params)
+        self.name = 'SequenceEqualityCommandLines'
 
         # Overwrite default value of output item size to 1!
         self.default_values['output_item_size'] = 1
-
-        self.name = 'SequenceEqualityCommandLines'
 
         assert self.control_bits >= 2, "Problem requires at least 2 control bits (currently %r)" % self.control_bits
         assert self.data_bits >= 1, "Problem requires at least 1 data bit (currently %r)" % self.data_bits
@@ -63,12 +63,6 @@ from problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import Algor
         self.params.add_default_params({'inequality': False})
         self.inequality = params['inequality']
 
-        # Use "additional" control lines.
-        self.params.add_default_params({'use_control_lines': True})
-        self.use_control_lines = params['use_control_lines']
-        # Random control lines.
-        self.params.add_default_params({'randomize_control_lines': True})
-        self.randomize_control_lines = params['randomize_control_lines']
 
     def generate_batch(self, batch_size):
         """
