@@ -207,8 +207,9 @@ if __name__ == "__main__":
 
     s = time.time()
     for i, batch in enumerate(problem):
-        print('Batch # {} - {}'.format(i, type(batch)))
-
+        #print('Batch # {} - {}'.format(i, type(batch)))
+        pass
+        
     print('Number of workers: {}'.format(problem.num_workers))
     print('time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
           .format(len(reverserecallcl), batch_size, time.time() - s))
