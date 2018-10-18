@@ -24,10 +24,9 @@ testing:
         seq_start: *start
         skip_step: *skip
 
-# And overwrite model parameters.
-#model:
-    # Interface
-    #interface:
-        #num_read_heads: 1
-        #shift_size: 3
-        #use_content_based_addressing: False
+model:
+    # Save/load encoder.
+    #save_encoder: True
+    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180702_132024/models/encoder_episode_09400.pth.tar
+    #freeze_encoder: True
+

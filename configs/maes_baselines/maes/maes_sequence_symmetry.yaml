@@ -1,13 +1,14 @@
 # Load the following (default) configs first.
 default_configs: 
-    configs/maes_baselines/default_ntm.yaml, 
+    configs/maes_baselines/maes/default_maes.yaml, 
     configs/maes_baselines/default_problem.yaml, 
     configs/maes_baselines/default_training.yaml
 
 # Then overwrite problem name(s).
 training:
     problem:
-        name: &name SerialRecallCommandLines
+        name: &name SequenceSymmetryCommandLines
+
 validation:
     problem:
         name: *name 
@@ -16,10 +17,9 @@ testing:
     problem:
         name: *name 
 
-# And overwrite model parameters.
 #model:
-    # Interface
-    #interface:
-        #num_read_heads: 1
-        #shift_size: 3
-        #use_content_based_addressing: False
+    # Save/load encoder.
+    #save_encoder: True
+    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180702_132024/models/encoder_episode_09400.pth.tar
+    #freeze_encoder: True
+

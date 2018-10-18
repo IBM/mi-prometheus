@@ -229,7 +229,7 @@ class Worker(object):
             self.logger.warning(flags_str)
 
         # Log the resulting training configuration.
-        conf_str = 'Final parameters configuration:\n'
+        conf_str = 'Final parameter registry configuration:\n'
         conf_str += '='*80 + '\n'
         conf_str += yaml.safe_dump(self.params.to_dict(), default_flow_style=False)
         conf_str += '='*80 + '\n'

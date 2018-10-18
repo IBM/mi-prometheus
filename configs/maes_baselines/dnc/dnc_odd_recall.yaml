@@ -1,8 +1,8 @@
 # Load the following (default) configs first.
 default_configs: 
-    configs/maes_baselines/default_dnc.yaml, 
+    configs/maes_baselines/dnc/default_dnc.yaml, 
     configs/maes_baselines/default_problem.yaml, 
-    configs/maes_baselines/dnc_default_training.yaml
+    configs/maes_baselines/dnc/dnc_default_training.yaml
 
 # Then overwrite problem name(s).
 training:
@@ -23,11 +23,3 @@ testing:
         name: *name 
         seq_start: *start
         skip_step: *skip
-
-# And overwrite model parameters.
-#model:
-    # Interface
-    #interface:
-        #num_read_heads: 1
-        #shift_size: 3
-        #use_content_based_addressing: False

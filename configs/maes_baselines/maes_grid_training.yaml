@@ -1,7 +1,7 @@
 # Lists of tasks that will be executed in batch.
 grid_tasks:
   -
-    default_configs: configs/maes_baselines/maes_sequence_comparison.yaml
+    default_configs: configs/maes_baselines/maes/maes_sequence_comparison.yaml
     # Parameters that will be overwritten for a given task.
     overwrite:
       testing:
@@ -9,50 +9,48 @@ grid_tasks:
           min_sequence_length: 99
           max_sequence_length: 99
   -
-    default_configs: configs/maes_baselines/maes_sequence_equality.yaml
+    default_configs: configs/maes_baselines/maes/maes_sequence_equality.yaml
   - 
-    default_configs: configs/maes_baselines/maes_sequence_symmetry.yaml
+    default_configs: configs/maes_baselines/maes/maes_sequence_symmetry.yaml
   - 
-    default_configs: configs/maes_baselines/maes_odd_recall.yaml
+    default_configs: configs/maes_baselines/maes/maes_odd_recall.yaml
   -
-    default_configs: configs/maes_baselines/maes_serial_recall.yaml
+    default_configs: configs/maes_baselines/maes/maes_serial_recall.yaml
   -
-    default_configs: configs/maes_baselines/maes_reverse_recall.yaml
+    default_configs: configs/maes_baselines/maes/maes_reverse_recall.yaml
 
 # Parameters that will be overwritten for all tasks.
 grid_overwrite:
   # Model configuration.
   model:
-    num_control_bits: &cbits 3
-    num_data_bits: &dbits 8
     num_content_bits: 15
     
   # Training configuration.
   training:
     problem:
       min_sequence_length: 3
-      max_sequence_length: 21
-      control_bits: *cbits
-      data_bits: *dbits    
+      max_sequence_length: 20
+      control_bits:  &cbits 3
+      data_bits: &dbits 8  
     # Curriculum learning - optional.
     curriculum_learning:
       interval: 500
       initial_max_sequence_length: 5
       must_finish: false
-    # How often the model will be validated/saved.
-    validation_interval: 1000
     # Terminal condition parameters:
-    terminal_condition:
+    terminal_conditions:
       loss_stop: 1.0e-5
-      max_episodes: 100
+      episodes_limit: 100
 
   # Validation configuration.
   validation:
+    # How often the model will be validated/saved.
+    partial_validation_interval: 1000
     problem:
       control_bits: *cbits
       data_bits: *dbits
-      min_sequence_length: 22
-      max_sequence_length: 22
+      min_sequence_length: 21
+      max_sequence_length: 21
       
   # Testing configuration.
   testing:
