@@ -114,7 +114,7 @@ class Problem(Dataset):
         self.name = 'Problem'
 
         # initialize the logger.
-        self.logger = logging.Logger(self.name)
+        self.logger = logging.getLogger(self.name)
 
         # data_definitions: this is used for defining the DataDict keys.
 
