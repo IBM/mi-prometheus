@@ -7,7 +7,7 @@ default_configs:
 # Then overwrite problem name(s).
 training:
     problem:
-        name: &name maes_baselines/serial_recall_cl
+        name: &name SerialRecallCommandLines
 
 validation:
     problem:
@@ -16,11 +16,3 @@ validation:
 testing:
     problem:
         name: *name 
-
-# And overwrite model parameters.
-#model:
-    # Interface
-    #interface:
-        #num_read_heads: 1
-        #shift_size: 3
-        #use_content_based_addressing: False

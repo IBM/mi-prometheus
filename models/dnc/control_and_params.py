@@ -41,11 +41,11 @@ class ControlParams(nn.Module):
 
         # Parse parameters.
         # Set input and hidden  dimensions.
-        self.input_size = params["control_bits"] + params["data_bits"]
+        self.input_size = params["input_item_size"]
 
         ctrl_in_dim = self.input_size + self.read_size
 
-        self.hidden_state_size = params['hidden_state_dim']
+        self.hidden_state_size = params['hidden_state_size']
         # Get memory parameters.
         self.num_memory_bits = params['memory_content_size']
 
