@@ -8,8 +8,9 @@ build:
 python:
   version: 3.6
   use_system_site_packages: true
+  requirements_file: docs/requirements_docs.txt
   #setup_py_install: true
-  #requirements_file: docs/requirements_docs.txt
+
 
 # Don't build any extra formats
 formats: []
