@@ -13,6 +13,7 @@ __all__ = [
     'ControlParams',
     'NTMCellStateTuple',
     'DNCCell',
+    'DNC',
     'InterfaceStateTuple',
     'Interface',
     'Memory',

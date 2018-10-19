@@ -7,7 +7,7 @@ default_configs:
 # Then overwrite problem name(s).
 training:
     problem:
-        name: &name maes_baselines/skip_recall_cl
+        name: &name SkipRecallCommandLines
         # Skip params.
         seq_start: &start 0
         skip_step: &skip 2

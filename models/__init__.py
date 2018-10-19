@@ -2,7 +2,7 @@
 from .controllers import *
 
 # MANN models.
-#from .dnc import *
+from .dnc import *
 #from .dwm import *
 from .encoder_solver import *
 from .lstm import *

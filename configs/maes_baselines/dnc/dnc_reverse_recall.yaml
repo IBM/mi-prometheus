@@ -7,7 +7,7 @@ default_configs:
 # Then overwrite problem name(s).
 training:
     problem:
-        name: &name maes_baselines/reverse_recall_cl
+        name: &name ReverseRecallCommandLines
 
 validation:
     problem:

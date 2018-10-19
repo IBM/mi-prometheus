@@ -2,7 +2,6 @@
 training:
     # Curriculum learning - optional.
     curriculum_learning:
-        interval: 2000
         initial_max_sequence_length: 5
 
     # Optimizer parameters:
@@ -20,6 +19,8 @@ training:
     length_loss: 10
 
     # Terminal condition parameters:
-    terminal_condition:
+    terminal_conditions:
         loss_stop: 1.0e-5
-        max_episodes: 100000
+        #early_stop_delta: 1.0e-5
+        episode_limit: 100000
+        #epoch_limit: 100
