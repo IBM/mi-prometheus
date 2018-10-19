@@ -234,7 +234,7 @@ Documentation is created using `Sphinx`. In order to generate it, you can run th
 
 This script requires that the `Python` packages Sphinx & sphinx_rtd_theme are installed in the environment.
 You should also ensure that the dependencies of MI-Prometheus are also present, as Sphinx imports the packages & modules to pull the docstrings.
- 
+
 ## Maintainers
 
 * Tomasz Kornuta (tkornut@us.ibm.com)
