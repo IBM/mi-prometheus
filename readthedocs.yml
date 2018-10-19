@@ -1,6 +1,19 @@
 # .readthedocs.yml
+
+# build image specification
 build:
     image: latest
+
+# Python configuration
 python:
   version: 3.6
-requirements_file: docs/requirements_docs.txt
+  use_system_site_packages: true
+  #setup_py_install: true
+  #requirements_file: docs/requirements_docs.txt
+
+# Don't build any extra formats
+formats: []
+
+# Configuring conda environment support
+conda:
+  file: environment.yml
