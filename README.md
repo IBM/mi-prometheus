@@ -20,10 +20,14 @@ A project of the Machine Intelligence team, IBM Research, Almaden.
 
 ## Core features
 
-   * Configuration management based on yaml files
-   * Automatization of training/validation/testing pipelines
-   * Integration with TensorBoard
-   * Advanced Visualization with matplotlib
+   * A configuration management relying on (optionally nested) human-readable YAML files,
+   * Standardization of the interfaces of the components needed in a typical deep learning system: problems, models architectures, training/test procedures etc.,
+   * Reusable scripts unifying the training & test procedures, enabling reproducible experiments, 
+   * Automated tools for collecting statistics and logging the results of the experiments,
+   * A set of scripts for running a number ("grid") of experiments on collections of CPUs/GPUs,
+   * A collection of diverse problems, currently covering most of the actively explored domains,
+   * A collection of (often state-of-the-art) models,
+   * A set of tools to analyze the models during training and test (displaying model statistics and graph, dynamic visualizations, export of data to TensorBoard).
 
 ## Dependencies
 
@@ -31,139 +35,210 @@ A project of the Machine Intelligence team, IBM Research, Almaden.
    * MatPlotLib
    * TorchVision
    * TensorBoardX
+   * Torchtext
+   * Pyyaml
+   * Sphinx
+   * Sphinx_rtd_theme
+   * Progressbar2
+   * NLTK
+   * H5PY
+   * Pandas
+   * Pillow
+   * Six
+   * PyQT
+   
 
 ### Installation of the dependencies/required tools
 
-Installing Pytorch from Scratch (Ubuntu 16.14)
+PyTorch is the main library used by MI-Prometheus for tensors computations.
+Please refer to the [official installation guide for PyTorch](https://github.com/pytorch/pytorch#installation) to install it.
+We do not support PyTorch >= v0.4.1 (especially the v1.0 preview), but intend to.
 
-    #!/bin/bash -x
+For the other dependencies, we mostly use [conda]() as the packages & virtual environment manager.
+We recommend using it to install the other libraries which MI-Prometheus is using.
 
-    apt-get update && \
-        apt-get install -y --no-install-recommends \
-            cmake \
-            build-essential \
-            g++ \
-            git \
-            wget \
-            ca-certificates && \
-            apt-get clean 
-            sudo apt install build-essential
-            wget --quiet https://repo.anaconda.com/archive/Anaconda3-5.2.0-Linux-x86_64.sh -O ~/anaconda.sh
-           chmod +x ~/anaconda.sh
-           rm -rf /opt/conda
-           ~/anaconda.sh -b -p /opt/conda
-           rm ~/anaconda.sh
-    /opt/conda/bin/python3 -m pip install --user virtualenv
-    /opt/conda/bin/python3 -m virtualenv env
+Installing requirements for MI-Prometheus (tested on Ubuntu 16.14):
+    
+    # not available in conda
+    pip install torchtext tensorboardX
+    
+    conda install matplotlib pyyaml ffmpeg sphinx sphinx_rtd_theme tqdm progressbar2 nltk h5py pandas pillow six pyqt -y
 
-    echo "export PATH=/opt/conda/bin:$PATH" >> env/bin/activate
-
-    source env/bin/activate
-
-    /opt/conda/bin/conda install numpy pyyaml setuptools mkl mkl-include cmake cffi typing
-    /opt/conda/bin/conda clean -ya
-
-    rm -rf pytorch
-    export  && \
-        git clone --recursive https://github.com/pytorch/pytorch && \
-        cd pytorch && \
-        git checkout v0.4.0 && \
-        git submodule init && \
-        git submodule update && \
-        CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
-        CFLAGS="-march=native" CXXFLAGS="-O3 -march=native" /opt/conda/bin/python3 setup.py install
-    cd ..
-    rm -rf pytorch
-
-Installing requirements for MI-Prometheus (Ubuntu 16.14, assumes you have an python virtualenv named env in home )
-
-    #!/bin/bash -x
-
-    echo "export PYTHONPATH='${PYTHONPATH}:~/mi-prometheus/'" >> ~/env/bin/activate
-
-    conda install -c conda-forge torchvision
-    pip install torchtext
-    conda install -c conda-forge tensorboardX
-    conda install pyyaml matplotlib ffmpeg
-    conda install sphinx sphinx_rtd_theme
-    conda install tqdm
-    conda install progressbar2
-
-    #seems to come by default but doesn't hurt to be sure
-    conda install nltk
-    conda install h5py
-    conda install pandas
-    conda install pillow
-    conda install six
-
+A `setup.py` script should be coming soon.
 ## Main workers
 
-   * trainer - application for model training.
+   * Offline Trainer - A traditional trainer, epoch-based and well-suited for traditional supervised training.
 
 ```console
-foo@bar:~$ python trainer.py --h
-usage: trainer.py [-h] [--agree] [--config CONFIG] [--savetag SAVETAG]
-                  [--outdir OUTDIR] [--tensorboard {0,1,2}]
-                  [--lf LOGGING_FREQUENCY]
-                  [--log {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                  [--visualize {0,1,2,3}]
+foo@bar:~$ python workers/offline_trainer.py --h
+usage: offline_trainer.py [-h] [--config CONFIG] [--model MODEL] [--gpu]
+                          [--outdir OUTDIR] [--savetag SAVETAG]
+                          [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                          [--li LOGGING_INTERVAL] [--agree]
+                          [--tensorboard {0,1,2}] [--visualize {-1,0,1,2,3}]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --agree               Request user confirmation just after loading the settings, before starting training  (Default: False)
-  --config CONFIG       Name of the configuration file(s) to be loaded (more than one file must be separated with coma ",")
+  --config CONFIG       Name of the configuration file(s) to be loaded. If specifying more than one file, they must be separated with coma ",".
+  --model MODEL         Path to the file containing the saved parameters of the model to load (model checkpoint, should end with a .pt extension.)
+  --gpu                 The current worker will move the computations on GPU devices, if available in the system. (Default: False)
+  --outdir OUTDIR       Path to the output directory where the experiment(s) folders will be stored. (DEFAULT: ./experiments)
   --savetag SAVETAG     Tag for the save directory
-  --outdir OUTDIR       Path to output directory where the experiments will be stored (DEFAULT: ./experiments)
-  --tensorboard {0,1,2}
-                        If present, log to TensorBoard. Log levels:
-                        0: Just log the loss, accuracy, and seq_len
-                        1: Add histograms of biases and weights (Warning: slow)
-                        2: Add histograms of biases and weights gradients (Warning: even slower)
-  --lf LOGGING_FREQUENCY
-                        TensorBoard logging frequency (Default: 100, i.e. logs every 100 episodes)
-  --log {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+  --ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
                         Log level. (Default: INFO)
-  --visualize {0,1,2,3}
-                        Activate dynamic visualization:
-                        0: Only during training
-                        1: During both training and validation
-                        2: Only during validation
-                        3: Only during last validation, after training is completed
+  --li LOGGING_INTERVAL
+                        Statistics logging interval. Will impact logging to the logger and exporting to TensorBoard. Writing to the csv file is not impacted (interval of 1). (Default: 100, i.e. logs every 100 episodes).
+  --agree               Request user confirmation just after loading the settings, before starting training  (Default: False)
+  --tensorboard {0,1,2}
+                        If present, enable logging to TensorBoard. Available log levels:
+                        0: Log the collected statistics.
+                        1: Add the histograms of the model's biases & weights (Warning: Slow).
+                        2: Add the histograms of the model's biases & weights gradients (Warning: Even slower).
+  --visualize {-1,0,1,2,3}
+                        Activate dynamic visualization (Warning: will require user interaction):
+                        -1: disabled (DEFAULT)
+                        0: Only during training episodes.
+                        1: During both training and validation episodes.
+                        2: Only during validation episodes.
+                        3: Only during the last validation, after the training is completed.
+
 ```
 
-   * tester - application that loads the pretrained models and tests them on a given problem.
+   * Online Trainer - A different type of trainer, more flexible and well-suited for problems generating samples _on-the-fly_.
 
 ```console
-foo@bar:~$ python tester.py --h
-usage: tester.py [-h] [--model MODEL] [--savetag SAVETAG]
-                 [--log {critical,error,warning,info,debug,notset}]
-                 [--visualize]
+foo@bar:~$ python workers/online_trainer.py --h
+usage: online_trainer.py [-h] [--config CONFIG] [--model MODEL] [--gpu]
+                         [--outdir OUTDIR] [--savetag SAVETAG]
+                         [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                         [--li LOGGING_INTERVAL] [--agree]
+                         [--tensorboard {0,1,2}] [--visualize {-1,0,1,2,3}]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --model MODEL         Path to and name of the file containing the saved
-                        parameters of the model (model checkpoint)
+  --config CONFIG       Name of the configuration file(s) to be loaded. If specifying more than one file, they must be separated with coma ",".
+  --model MODEL         Path to the file containing the saved parameters of the model to load (model checkpoint, should end with a .pt extension.)
+  --gpu                 The current worker will move the computations on GPU devices, if available in the system. (Default: False)
+  --outdir OUTDIR       Path to the output directory where the experiment(s) folders will be stored. (DEFAULT: ./experiments)
   --savetag SAVETAG     Tag for the save directory
-  --log {critical,error,warning,info,debug,notset}
-                        Log level. Default is INFO.
+  --ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                        Log level. (Default: INFO)
+  --li LOGGING_INTERVAL
+                        Statistics logging interval. Will impact logging to the logger and exporting to TensorBoard. Writing to the csv file is not impacted (interval of 1). (Default: 100, i.e. logs every 100 episodes).
+  --agree               Request user confirmation just after loading the settings, before starting training  (Default: False)
+  --tensorboard {0,1,2}
+                        If present, enable logging to TensorBoard. Available log levels:
+                        0: Log the collected statistics.
+                        1: Add the histograms of the model's biases & weights (Warning: Slow).
+                        2: Add the histograms of the model's biases & weights gradients (Warning: Even slower).
+  --visualize {-1,0,1,2,3}
+                        Activate dynamic visualization (Warning: will require user interaction):
+                        -1: disabled (DEFAULT)
+                        0: Only during training episodes.
+                        1: During both training and validation episodes.
+                        2: Only during validation episodes.
+                        3: Only during the last validation, after the training is completed.
+
+
+```
+   
+   * Tester - A worker which loads a pretrained model and tests it on a given problem.
+
+```console
+foo@bar:~$ python workers/tester.py --h
+usage: tester.py [-h] [--config CONFIG] [--model MODEL] [--gpu]
+                 [--outdir OUTDIR] [--savetag SAVETAG]
+                 [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                 [--li LOGGING_INTERVAL] [--agree] [--visualize]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --config CONFIG       Name of the configuration file(s) to be loaded. If specifying more than one file, they must be separated with coma ",".
+  --model MODEL         Path to the file containing the saved parameters of the model to load (model checkpoint, should end with a .pt extension.)
+  --gpu                 The current worker will move the computations on GPU devices, if available in the system. (Default: False)
+  --outdir OUTDIR       Path to the output directory where the experiment(s) folders will be stored. (DEFAULT: ./experiments)
+  --savetag SAVETAG     Tag for the save directory
+  --ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                        Log level. (Default: INFO)
+  --li LOGGING_INTERVAL
+                        Statistics logging interval. Will impact logging to the logger and exporting to TensorBoard. Writing to the csv file is not impacted (interval of 1). (Default: 100, i.e. logs every 100 episodes).
+  --agree               Request user confirmation just after loading the settings, before starting training  (Default: False)
   --visualize           Activate dynamic visualization
+
 ```
 
+## Grid workers
 
-# How to Run the code: 
-   * Training: ```python trainer.py --v 1 --c configs/dwm/serial_recall.yaml```
+Grid Workers manage several experiments ("_grids_") by reusing the base workers, such as OfflineTrainer \& Tester.
+There are 3 types of Grid Workers:
 
-   * Testing:  ```python tester.py --m path_to_model --v 1```
+- Grid Trainers, which span several trainings in parallel. Two versions are available: One for CPU cores (GridTrainerCPU) and one for GPUs (CUDA) (GridTrainerGPU),
+- Grid Testers, which test several trained models in parallel. The same two versions are available: GridTesterCPU & GridTesterGPU,
+- GridAnalyzer,which summarizes the results of several trainings & tests into one csv file.
+
+ * Grid Trainer(s):
+
+```console
+foo@bar:~$ python workers/grid_trainer_cpu.py --h
+usage: grid_trainer_cpu.py [-h] [--outdir OUTDIR] [--savetag SAVETAG]
+                           [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                           [--li LOGGING_INTERVAL] [--agree] [--config CONFIG]
+                           [--online_trainer] [--tensorboard {0,1,2}]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --outdir OUTDIR       Path to the global output directory where the experiments folders will be / are stored. Affects all grid experiments. (DEFAULT: ./experiments)
+  --savetag SAVETAG     Additional tag for the global output directory.
+  --ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                        Log level for the experiments. (Default: INFO)
+  --li LOGGING_INTERVAL
+                        Statistics logging interval. Will impact logging to the logger and exporting to TensorBoard for the experiments. Do not affect the grid worker. Writing to the csv file is not impacted (interval of 1). (Default: 100, i.e. logs every 100 episodes).
+  --agree               Request user confirmation before starting the grid experiment.  (Default: False)
+  --config CONFIG       Name of the configuration file(s) to be loaded. If specifying more than one file, they must be separated with coma ",".
+  --online_trainer      Select the OnLineTrainer instead of the default OffLineTrainer.
+  --tensorboard {0,1,2}
+                        If present, enable logging to TensorBoard. Available log levels:
+                        0: Log the collected statistics.
+                        1: Add the histograms of the model's biases & weights (Warning: Slow).
+                        2: Add the histograms of the model's biases & weights gradients (Warning: Even slower).
+```
+
+ * Grid Tester(s):
+
+```console
+foo@bar:~$ python workers/grid_tester_cpu.py --h
+usage: grid_tester_cpu.py [-h] [--outdir OUTDIR] [--savetag SAVETAG]
+                          [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                          [--li LOGGING_INTERVAL] [--agree] [--n NUM_TESTS]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --outdir OUTDIR       Path to the global output directory where the experiments folders will be / are stored. Affects all grid experiments. (DEFAULT: ./experiments)
+  --savetag SAVETAG     Additional tag for the global output directory.
+  --ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                        Log level for the experiments. (Default: INFO)
+  --li LOGGING_INTERVAL
+                        Statistics logging interval. Will impact logging to the logger and exporting to TensorBoard for the experiments. Do not affect the grid worker. Writing to the csv file is not impacted (interval of 1). (Default: 100, i.e. logs every 100 episodes).
+  --agree               Request user confirmation before starting the grid experiment.  (Default: False)
+  --n NUM_TESTS         Number of test experiments to run for each model.
+```
+
+ * Grid Analyzer: Similar options.
 
 
 ## Documentation
 
-In order to generate a "living" documentation of the code please use Sphinx. (to appear in gh-pages soon)
+Documentation is created using `Sphinx`. In order to generate it, you can run the following command:
 
+    /mi-prometheus/scripts/docgen.sh
+
+This script requires that the `Python` packages Sphinx & sphinx_rtd_theme are installed in the environment.
+You should also ensure that the dependencies of MI-Prometheus are also present, as Sphinx imports the packages & modules to pull the docstrings.
+ 
 ## Maintainers
 
 * Tomasz Kornuta (tkornut@us.ibm.com)
-* Vincent Marois
+* Vincent Marois (vincent.marois@protonmail.com)
 * Ryan L. McAvoy
 * Younes Bouhadjar (younes.bouhadjy@gmail.com)
 * Alexis Asseman
