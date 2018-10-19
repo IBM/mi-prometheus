@@ -40,7 +40,7 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
 
     2. For other elements of the sequence the command bits are set to zero
 
-    3. Minor modification I: the target contains only data bits (command bits are skipped)
+    3. Minor modification I: the target contains may contain random command lines.
 
     4. Minor modification II: generator returns a mask, which can be used for filtering important elements of the output.
 
