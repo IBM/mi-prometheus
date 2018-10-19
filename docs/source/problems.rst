@@ -191,7 +191,7 @@ Algorithmic SequenceToSequence Problems
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-.. automodule:: problems.seq_to_seq.algorithmic.recall.scratch_pad
+.. automodule:: problems.seq_to_seq.algorithmic.recall.scratch_pad_cl
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
