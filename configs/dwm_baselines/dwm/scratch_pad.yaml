@@ -5,22 +5,13 @@ default_configs:
 
 # Then overwrite problem name(s).
 training:
-    cuda: False
     problem:
-        name: &name scratch_pad
-        control_bits: &cbits 2
+        name: &name ScratchPadCommandLines
 
 validation:
-    cuda: False
     problem:
         name: *name 
-        control_bits: *cbits
 
 testing:
-    cuda: False
     problem:
         name: *name 
-        control_bits: *cbits
-
-model:
-    control_bits: *cbits

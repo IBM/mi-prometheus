@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """dwm_model.py: Main class of the Differentiable Working Memory. It calls the DWM cell on each word of the input"""
-__author__ = "Younes Bouhadjar"
+__author__ = "Younes Bouhadjar, T.S. Jayram, Tomasz Kornuta"
 
 import torch
 import logging
@@ -37,31 +37,38 @@ class DWM(SequentialModel):
 
     """
 
-    def __init__(self, params):
+    def __init__(self, params, problem_default_values_={}):
         """
-        " Constructor. Initializes parameters on the basis of dictionary of
-        parameters passed as argument.
+        Constructor. Initializes parameters on the basis of dictionary passed
+        as argument.
 
-        :param params: Dictionary of parameters.
+        :param params: Local view to the Parameter Regsitry ''model'' section.
+
+        :param problem_default_values_: Dictionary containing key-values received from problem.
 
         """
-        # Call base class initialization.
-        super(DWM, self).__init__(params)
+        # Call base constructor. Sets up default values etc.
+        super(DWM, self).__init__(params, problem_default_values_)
+        # Model name.
+        self.name = "Differentiable Working Memory (DWM)"
 
-        self.in_dim = params["control_bits"] + params["data_bits"]
+        # Parse default values received from problem and add them to registry.
+        self.params.add_default_params({
+            'input_item_size': problem_default_values_['input_item_size'],
+            'output_item_size': problem_default_values_['output_item_size']
+            })
 
-        try:
-            self.output_units = params['output_bits']
-        except KeyError:
-            self.output_units = params['data_bits']
 
-        self.state_units = params["hidden_state_dim"]
+        self.in_dim = params["input_item_size"]
+        self.output_units = params['output_item_size']
+
+        self.state_units = params["hidden_state_size"]
+
         self.num_heads = params["num_heads"]
         self.is_cam = params["use_content_addressing"]
         self.num_shift = params["shift_size"]
         self.M = params["memory_content_size"]
         self.memory_addresses_size = params["memory_addresses_size"]
-        self.name = "Differentiable Working Memory (DWM)" # params["name"]
 
         # This is for the time plot
         self.cell_state_history = None
@@ -76,16 +83,14 @@ class DWM(SequentialModel):
             self.num_shift,
             self.M)
 
-    def forward(self, data_tuple):
+    def forward(self, data_dict):
         """
-        Forward function of the DWM model.
+        Forward function requires that the data_dict will contain at least "sequences"
 
-        :param data_tuple: contains (inputs, targets)
-        :param data_tuple.inputs: tensor containing the data sequences of the batch [batch, sequence_length, input_size]
-        :param data_tuple.targets: tensor containing the target sequences of the batch [batch, sequence_length, output_size]
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
 
         :returns: output: logits which represent the prediction of DWM [batch, sequence_length, output_size]
-
 
         Example:
 
@@ -96,8 +101,15 @@ class DWM(SequentialModel):
         >>> output = dwm(data_tuple)
 
         """
-        # Unpack tuple.
-        (inputs, targets) = data_tuple
+         # Get dtype.
+        #dtype = self.app_state.dtype
+
+        # Unpack dict.
+        inputs = data_dict['sequences']
+        
+        # Get batch size and seq length.
+        batch_size = inputs.size(0)
+        seq_length = inputs.size(-2)
 
         if self.app_state.visualize:
             self.cell_state_history = []
@@ -106,9 +118,6 @@ class DWM(SequentialModel):
         # TODO
         if len(inputs.size()) == 4:
             inputs = inputs[:, 0, :, :]
-
-        batch_size = inputs.size(0)
-        seq_length = inputs.size(-2)
 
         # The length of the memory is set to be equal to the input length in
         # case ```self.memory_addresses_size == -1```
@@ -166,7 +175,7 @@ class DWM(SequentialModel):
         # fig.tight_layout()
         fig.subplots_adjust(left=0.07, right=0.96, top=0.88, bottom=0.15)
         
-        gs0 = gridspec.GridSpec(1, 2, figure=fig, width_ratios=[5.0, 3.0])
+        gs0 = gridspec.GridSpec(1, 2, width_ratios=[5.0, 3.0])
 
         # Create a specific grid for DWM .
         gs00 = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs0[0],
@@ -218,15 +227,17 @@ class DWM(SequentialModel):
 
         return fig
 
-    def plot(self, data_tuple, predictions, sample_number=0):
+    def plot(self, data_dict, predictions, sample_number=0):
         """
         Interactive visualization, with a slider enabling to move forth and
         back along the time axis (iteration in a given episode).
 
-        :param data_tuple: Data tuple containing
-           - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and
-           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
+            - "targets": a tensor of targets of size  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+
         :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+
         :param sample_number: Number of sample in batch (DEFAULT: 0)
 
         """
@@ -241,10 +252,10 @@ class DWM(SequentialModel):
 
         # import time
         # start_time = time.time()
-        inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
-        targets_seq = data_tuple.targets[0].cpu().detach().numpy()
+        inputs_seq = data_dict["sequences"][sample_number].cpu().detach().numpy()
+        targets_seq = data_dict["targets"][sample_number].cpu().detach().numpy()
         predictions_seq = predictions[0].cpu().detach()
-        predictions_seq = torch.sigmoid(predictions_seq).numpy()
+        #predictions_seq = torch.sigmoid(predictions_seq).numpy()
 
         # temporary for data with additional channel
         if len(inputs_seq.shape) == 3:
