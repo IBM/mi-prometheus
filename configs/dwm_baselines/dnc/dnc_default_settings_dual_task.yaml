@@ -1,10 +1,7 @@
 # Problem parameters:
 training: 
-    cuda: True
     problem:
         # Size of generated input: [batch_size x sequence_length x number of control and data bits].
-        control_bits: &cbits 4
-        data_bits: &dbits 8
         batch_size: 64
         # Parameters denoting min and max lengths.
         min_sequence_length: 1
@@ -18,17 +15,14 @@ training:
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     # Terminal condition parameters:
-    terminal_condition:
+    terminal_conditions:
         loss_stop: 0.0001
-        max_episodes: 100000
+        eposides_limit: 100000
 
 # Problem parameters:
 testing:
-    cuda: True
     problem:
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-        control_bits: *cbits
-        data_bits: *dbits
         batch_size: 64
         # Parameters denoting min and max lengths.
         min_sequence_length: 50
@@ -40,18 +34,9 @@ testing:
 validation:
     problem:
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-        control_bits: *cbits
-        data_bits: *dbits
         batch_size: 64
         # Parameters denoting min and max lengths.
         min_sequence_length: 20
         max_sequence_length: 20
         num_subseq_min: 5
         num_subseq_max: 5
-
-# Model parameters:
-model:
-    # Input bits = [command_bits, data_bits]
-    # Output bits = [data_bits]
-    control_bits: *cbits
-    data_bits: *dbits

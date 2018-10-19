@@ -5,19 +5,16 @@ default_configs:
 
 # Then overwrite problem name(s).
 training:
-    cuda: False
     problem:
         name: &name manipulation_spatial_rotation
         num_bits: &nrot 0.5
 
 validation:
-    cuda: False
     problem:
         name: *name 
         num_bits: *nrot
 
 testing:
-    cuda: False
     problem:
         name: *name 
         num_bits: *nrot

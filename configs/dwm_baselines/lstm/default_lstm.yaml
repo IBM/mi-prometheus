@@ -1,6 +1,6 @@
 # Model parameters:
 model:
-    name: lstm
+    name: LSTM
     # Controller parameters.
     num_layers: 3
-    hidden_state_dim: 512
+    hidden_state_size: 512

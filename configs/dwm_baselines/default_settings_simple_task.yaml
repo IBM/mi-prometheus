@@ -1,11 +1,7 @@
 # Problem parameters:
 training: 
-    cuda: True
     problem:
-        name: &name distraction_forget
         # Size of generated input: [batch_size x sequence_length x number of control and data bits].
-        control_bits: &cbits 2
-        data_bits: &dbits 8
         batch_size: 64
         # Parameters denoting min and max lengths.
         min_sequence_length: 1
@@ -17,39 +13,27 @@ training:
     # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
     gradient_clipping: 10
     # Terminal condition parameters:
-    terminal_condition:
+    terminal_conditions:
         loss_stop: 0.0001
-        max_episodes: 100000
+        eposides_limit: 100000
+
 
 # Problem parameters:
 validation:
     problem:
-        name: *name
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-        control_bits: *cbits
-        data_bits: *dbits
         batch_size: 64
         # Parameters denoting min and max lengths.
         min_sequence_length: 100
         max_sequence_length: 100
 
+
 # Problem parameters:
 testing:
-    cuda: True
     problem:
-        name: *name
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
-        control_bits: *cbits
-        data_bits: *dbits
         batch_size: 64
         # Parameters denoting min and max lengths.
         min_sequence_length: 1000
         max_sequence_length: 1000
 
-
-# Model parameters:
-model:
-    # Input bits = [command_bits, data_bits]
-    # Output bits = [data_bits]
-    control_bits: *cbits
-    data_bits: *dbits
