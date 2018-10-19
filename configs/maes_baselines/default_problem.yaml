@@ -2,8 +2,6 @@ training:
     # Set random seeds that will be used during training (and validation). When not present using random values.
     #seed_numpy: -1
     #seed_torch: -1
-    # Use cuda.
-    cuda: True
     problem:
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
         control_bits: &cbits 3
@@ -13,9 +11,13 @@ training:
         # Parameters denoting min and max lengths.
         min_sequence_length: 3
         max_sequence_length: 20
+        # Size of the dataset. Influences how often curriculum learning will be triggered (when the dataset is exhausted!)
+        size: 32000 # i.e. every 500 episodes, as in the paper
 
 # This section is optional.
 validation:
+    # How often the model will be validated/saved.
+    partial_validation_interval: 100
     problem:
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
         control_bits: *cbits
@@ -24,14 +26,13 @@ validation:
         # Parameters denoting min and max lengths.
         min_sequence_length: 21
         max_sequence_length: 21
+        size: 64 # Which means that partial validation = full validation.
 
 
 testing:
     # Set random seeds that will be used during training (and validation). When not present using random values.
     #seed_numpy: -1
     #seed_torch: -1
-    # Use cuda.
-    cuda: True
     # Problem definition.
     problem:
         # Size of generated input: [batch_size x sequence_length x number of control + data bits].
@@ -39,13 +40,6 @@ testing:
         data_bits: *dbits
         batch_size: 64
         # Parameters denoting min and max lengths.
-        min_sequence_length: 1000
-        max_sequence_length: 1000
-
-    
-# Model parameters:
-model:
-    # Input bits = [command_bits, data_bits]
-    # Output bits = [data_bits]
-    control_bits: *cbits
-    data_bits: *dbits
+        min_sequence_length: 100
+        max_sequence_length: 100
+        size: 64

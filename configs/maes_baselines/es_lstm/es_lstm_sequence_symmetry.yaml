@@ -1,0 +1,18 @@
+# Load the following (default) configs first.
+default_configs: 
+    configs/maes_baselines/es_lstm/default_es_lstm.yaml, 
+    configs/maes_baselines/default_problem.yaml, 
+    configs/maes_baselines/default_training.yaml
+
+# Then overwrite problem name(s).
+training:
+    problem:
+        name: &name SequenceSymmetryCommandLines
+
+validation:
+    problem:
+        name: *name 
+
+testing:
+    problem:
+        name: *name 

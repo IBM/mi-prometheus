@@ -1,4 +1,4 @@
-from .text_to_text_problem import TextAuxTuple, TextToTextProblem, Lang
-from .translation import Translation
+from .text_to_text_problem import TextToTextProblem, Lang
+from .translation_anki import TranslationAnki
 
-__all__ = ['TextAuxTuple', 'TextToTextProblem', 'Lang', 'Translation']
+__all__ = ['TextToTextProblem', 'Lang', 'TranslationAnki']

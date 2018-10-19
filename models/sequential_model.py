@@ -16,52 +16,74 @@
 # limitations under the License.
 
 """sequential_model.py: contains base model for all sequential models"""
-__author__ = "Tomasz Kornuta"
+__author__ = "Tomasz Kornuta, Vincent Marois"
 
-import numpy as np
-import logging
 import torch
+import numpy as np
 
 from models.model import Model
-from problems.problem import DataTuple
+from problems.problem import DataDict
 
 
 class SequentialModel(Model):
     """
-    Class representing base class for all sequential models.
+    Class representing base class for all Sequential Models.
 
-    Provides basic plotting functionality.
+    Inherits from models.model.Model as most features are the same.
+
+    Should be derived by all sequential models.
 
     """
 
-    def __init__(self, params):
+    def __init__(self, params, problem_default_values_={}):
         """
-        Initializes application state and sets plot if visualization flag is
-        turned on.
+        Mostly calls the base ``models.model.Model`` constructor.
 
-        :param params: Parameters read from configuration file.
+        Specifies a better structure for ``self.data_definitions``.
+
+        :param params: Parameters read from configuration ``.yaml`` file.
+
+        :param problem_default_values_: dict of parameters values coming from the problem class. One example of such \
+        parameter value is the size of the vocabulary set in a translation problem.
+        :type problem_default_values_: dict
 
         """
-        super(SequentialModel, self).__init__(params)
+        super(SequentialModel, self).__init__(params, problem_default_values_=problem_default_values_)
 
-    def plot(self, data_tuple, predictions, sample_number=0):
+        # "Default" model name.
+        self.name = 'SequentialModel'
+
+        # We can then define a dict that contains a description of the expected (and mandatory) inputs for this model.
+        # This dict should be defined using self.params.
+        self.data_definitions = {'sequences': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, -1, -1], 'type': [torch.Tensor]}
+                                 }
+
+    def plot(self, data_dict, predictions, sample=0):
         """
         Creates a default interactive visualization, with a slider enabling to
-        move forth and back along the time axis (iteration in a given episode).
-        The default visualizatoin contains input, output and target sequences.
-        For more model/problem dependent visualization please overwrite this
+        move forth and back along the time axis (iteration over the sequence elements in a given episode).
+        The default visualization contains the input, output and target sequences.
+
+        For a more model/problem - dependent visualization, please overwrite this
         method in the derived model class.
 
-        :param data_tuple: Data tuple containing
-           - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and
-           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
-        :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
-        :param sample_number: Number of sample in batch (DEFAULT: 0)
+        :param data_dict: DataDict containing
+
+           - input sequences: [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_SIZE],
+           - target sequences:  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_SIZE]
+
+
+        :param predictions: Predicted sequences [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_SIZE]
+        :type predictions: torch.tensor
+
+        :param sample: Number of sample in batch (default: 0)
+        :type sample: int
 
         """
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
-            return False
+            return
 
         # Initialize timePlot window - if required.
         if self.plotWindow is None:
@@ -72,15 +94,14 @@ class SequentialModel(Model):
         import matplotlib.ticker as ticker
 
         # Change fonts globally - for all figures/subsplots at once.
-        #from matplotlib import rc
-        #rc('font', **{'family': 'Times New Roman'})
+        # from matplotlib import rc
+        # rc('font', **{'family': 'Times New Roman'})
         import matplotlib.pylab as pylab
-        params = {
-            # 'legend.fontsize': '28',
-            'axes.titlesize': 'large',
-            'axes.labelsize': 'large',
-            'xtick.labelsize': 'medium',
-            'ytick.labelsize': 'medium'}
+        params = {# 'legend.fontsize': '28',
+                  'axes.titlesize': 'large',
+                  'axes.labelsize': 'large',
+                  'xtick.labelsize': 'medium',
+                  'ytick.labelsize': 'medium'}
         pylab.rcParams.update(params)
 
         # Create a single "figure layout" for all displayed frames.
@@ -105,9 +126,9 @@ class SequentialModel(Model):
         fig.set_tight_layout(True)
 
         # Detach a sample from batch and copy it to CPU.
-        inputs_seq = data_tuple.inputs[sample_number].cpu().detach().numpy()
-        targets_seq = data_tuple.targets[sample_number].cpu().detach().numpy()
-        predictions_seq = predictions[sample_number].cpu().detach().numpy()
+        inputs_seq = data_dict['sequences'][sample].cpu().detach().numpy()
+        targets_seq = data_dict['targets'][sample].cpu().detach().numpy()
+        predictions_seq = predictions[sample].cpu().detach().numpy()
 
         # Create empty matrices.
         x = np.transpose(np.zeros(inputs_seq.shape))
@@ -115,8 +136,7 @@ class SequentialModel(Model):
         z = np.transpose(np.zeros(targets_seq.shape))
 
         # Log sequence length - so the user can understand what is going on.
-        logger = logging.getLogger('ModelBase')
-        logger.info(
+        self.logger.info(
             "Generating dynamic visualization of {} figures, please wait...".format(
                 inputs_seq.shape[0]))
 
@@ -129,7 +149,7 @@ class SequentialModel(Model):
             # Display information every 10% of figures.
             if (inputs_seq.shape[0] > 10) and (i %
                                                (inputs_seq.shape[0] // 10) == 0):
-                logger.info(
+                self.logger.info(
                     "Generating figure {}/{}".format(i, inputs_seq.shape[0]))
 
             # Add words to adequate positions.
@@ -140,7 +160,7 @@ class SequentialModel(Model):
             # Create "Artists" drawing data on "ImageAxes".
             artists = [None] * len(fig.axes)
 
-            # Tell artists what to do;)
+            # Tell artists what to do
             artists[0] = axes[0].imshow(
                 x, interpolation='nearest', aspect='auto')
             artists[1] = axes[1].imshow(
@@ -154,19 +174,22 @@ class SequentialModel(Model):
         # Plot figure and list of frames.
         self.plotWindow.update(fig, frames)
 
-        # Return True if user closed the window.
-        return self.plotWindow.is_closed
-
 
 if __name__ == '__main__':
-    # Set logging level.
-    logging.basicConfig(level=logging.DEBUG)
+    """Unit test of the SequentialModel"""
+
+    from utils.param_interface import ParamInterface
+    from utils.app_state import AppState
 
     # Set visualization.
     AppState().visualize = True
 
     # Test sequential model.
-    test = SequentialModel()
+    sequential_model = SequentialModel(ParamInterface())
+
+    # Set logging level.
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
 
     while True:
         # Generate new sequence.
@@ -178,7 +201,8 @@ if __name__ == '__main__':
         x = torch.from_numpy(x).type(torch.FloatTensor)
         y = torch.from_numpy(y).type(torch.FloatTensor)
         z = torch.from_numpy(z).type(torch.FloatTensor)
-        dt = DataTuple(x, y)
+        dt = DataDict({'sequences': x, 'targets': y})
+
         # Plot it and check whether window was closed or not.
-        if test.plot(dt, z):
+        if sequential_model.plot(dt, z):
             break

@@ -58,11 +58,8 @@ class NTMCell(torch.nn.Module):
 
         # Parse parameters.
         # Set input and output sizes.
-        self.input_size = params["num_control_bits"] + params["num_data_bits"]
-        try:
-            self.output_size = params['num_output_bits']
-        except KeyError:
-            self.output_size = params['num_data_bits']
+        self.input_size = params['input_item_size']
+        self.output_size = params['output_item_size']
 
         # Get controller hidden state size.
         self.controller_hidden_state_size = params['controller'][
@@ -86,7 +83,7 @@ class NTMCell(torch.nn.Module):
             "output_size": self.controller_hidden_state_size
         })
         # Build the controller.
-        self.controller = ControllerFactory.build_model(controller_params)
+        self.controller = ControllerFactory.build_controller(controller_params)
         # Interface - entity responsible for accessing the memory.
         self.interface = NTMInterface(params)
 

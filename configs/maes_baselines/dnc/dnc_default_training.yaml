@@ -1,0 +1,26 @@
+# Problem parameters:
+training:
+    # Curriculum learning - optional.
+    curriculum_learning:
+        initial_max_sequence_length: 5
+
+    # Optimizer parameters:
+    optimizer:
+        # Exact name of the pytorch optimizer function
+        name: Adam
+        # Function arguments of the optimizer, by name
+        lr: 0.0005
+
+    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
+    gradient_clipping: 10
+    # How often the model will be validated/saved.
+    validation_interval: 100
+    # Optional parameters denoting number of - used when validation section is not present.
+    length_loss: 10
+
+    # Terminal condition parameters:
+    terminal_conditions:
+        loss_stop: 1.0e-5
+        #early_stop_delta: 1.0e-5
+        episode_limit: 100000
+        #epoch_limit: 100

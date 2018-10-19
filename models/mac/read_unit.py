@@ -39,27 +39,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""read_unit.py: Implementation of the Read Unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the
-                reference paper."""
+"""
+read_unit.py: Implementation of the ``ReadUnit`` for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the \
+reference paper.
+"""
 __author__ = "Vincent Marois"
 
-
-from models.mac.utils_mac import linear
 import torch
 from torch import nn
 import torch.nn.functional as F
+from models.mac.utils_mac import linear
 
 
 class ReadUnit(nn.Module):
     """
-    Implementation of the Read Unit of the MAC network.
+    Implementation of the ``ReadUnit`` of the MAC network.
     """
 
     def __init__(self, dim):
         """
-        Constructor for the read unit.
+        Constructor for the ``ReadUnit``.
 
         :param dim: global 'd' hidden dimension
+        :type dim: int
 
         """
 
@@ -77,12 +79,18 @@ class ReadUnit(nn.Module):
 
     def forward(self, memory_states, knowledge_base, ctrl_states, kb_proj):
         """
-        Forward pass of the read unit. Assuming 1 scalar attention weight per
+        Forward pass of the ``ReadUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
 
         :param memory_states: list of all previous memory states, each of shape [batch_size x mem_dim]
+        :type memory_states: torch.tensor
+
         :param knowledge_base: image representation (output of CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
-        :param ctrl_states: list of all previous control state, each of shape [batch_size x ctrl_dim]
+        :type knowledge_base: torch.tensor
+
+        :param ctrl_states: All previous control state, each of shape [batch_size x ctrl_dim].
+        :type ctrl_states: list
+
 
         :return: current read vector, shape [batch_size x read_dim]
 

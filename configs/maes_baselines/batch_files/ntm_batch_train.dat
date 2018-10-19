@@ -1,6 +1,0 @@
-configs/maes_baselines/ntm_sequence_comparison.yaml
-configs/maes_baselines/ntm_sequence_equality.yaml
-configs/maes_baselines/ntm_sequence_symmetry.yaml
-configs/maes_baselines/ntm_odd_recall.yaml
-configs/maes_baselines/ntm_serial_recall.yaml
-configs/maes_baselines/ntm_reverse_recall.yaml

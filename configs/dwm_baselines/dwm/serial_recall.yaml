@@ -5,16 +5,13 @@ default_configs:
 
 # Then overwrite problem name(s).
 training:
-    cuda: False
     problem:
-        name: &name serial_recall
+        name: &name SerialRecallCommandLines
 
 validation:
-    cuda: False
     problem:
         name: *name 
 
 testing:
-    cuda: False
     problem:
         name: *name 

@@ -1,6 +1,0 @@
-experiments/maes_baselines/sequence_comparison/lstm
-experiments/maes_baselines/sequence_equality/lstm
-experiments/maes_baselines/sequence_symmetry/lstm
-experiments/maes_baselines/odd_recall/lstm
-experiments/maes_baselines/serial_recall/lstm
-experiments/maes_baselines/reverse_recall/lstm

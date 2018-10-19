@@ -7,18 +7,11 @@ default_configs:
 training:
     problem:
         name: &name reading_span
-        control_bits: &cbits 2
 
 validation:
     problem:
         name: *name 
-        control_bits: *cbits
 
 testing:
     problem:
         name: *name 
-        control_bits: *cbits
-
-# Model parameters:
-model:
-    control_bits: *cbits

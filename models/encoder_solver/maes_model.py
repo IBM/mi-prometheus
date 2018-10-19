@@ -15,15 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""maes_module.py: File containing Memory Augmented Encoder-Solver model class."""
+"""maes_model.py: File containing Memory Augmented Encoder-Solver model class."""
 __author__ = "Tomasz Kornuta"
 
 from enum import Enum
 import torch
-import logging
-logger = logging.getLogger('MAES-Model')
 
-from problems.problem import DataTuple
+from utils.data_dict import DataDict
 from models.sequential_model import SequentialModel
 
 from models.encoder_solver.mae_cell import MAECell
@@ -34,29 +32,41 @@ class MAES(SequentialModel):
     """
     Class implementing the Memory Augmented Encoder-Solver (MAES) model.
 
-    Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences
-    becoming input to encoder is of the same length (ends at the same item).
-    The same goes to subsequences being input to decoder.
+    ..warning:
+        Class assumes, that the whole batch has the same length, i.e. batch of subsequences
+        becoming input to encoder is of the same length (ends at the same item).
+        The same goes to subsequences being input to decoder.
 
     """
 
-    def __init__(self, params):
+    def __init__(self, params, problem_default_values_={}):
         """
         Constructor. Initializes parameters on the basis of dictionary passed
         as argument.
 
-        :param params: Dictionary of parameters.
+        :param params: Local view to the Parameter Regsitry ''model'' section.
+
+        :param problem_default_values_: Dictionary containing key-values received from problem.
 
         """
-        # Call base constructor.
-        super(MAES, self).__init__(params)
+        # Call base constructor. Sets up default values etc.
+        super(MAES, self).__init__(params, problem_default_values_)
         # Model name.
         self.name = 'MAES'
 
-        # Parse parameters.
+        # Parse default values received from problem and add them to registry.
+        self.params.add_default_params({
+            'input_item_size': problem_default_values_['input_item_size'],
+            'output_item_size': problem_default_values_['output_item_size'],
+            'encoding_bit': problem_default_values_['store_bit'],
+            'solving_bit': problem_default_values_['recall_bit']
+            })
+
         # Indices of control bits triggering encoding/decoding.
         self.encoding_bit = params['encoding_bit']  # Def: 0
         self.solving_bit = params['solving_bit']  # Def: 1
+
+        # Parse parameters.
         # Check if we want to pass the whole cell state or only the memory.
         self.pass_cell_state = params.get('pass_cell_state', True)
 
@@ -68,6 +78,7 @@ class MAES(SequentialModel):
         # Save/load encoder.
         # params['encoder']['save'].add_default_params(False)
         self.save_encoder = params.get('save_encoder', False)
+
         # Path+filename to encoder.
         self.load_encoder = params.get('load_encoder', '')
         self.freeze_encoder = params.get('freeze_encoder', False)
@@ -87,12 +98,16 @@ class MAES(SequentialModel):
         # Operation modes.
         self.modes = Enum('Modes', ['Encode', 'Solve'])
 
+
+
     def save(self, model_dir, stat_col):
         """
         Method saves the model and encoder to file.
 
         :param model_dir: Directory where the model will be saved.
+        
         :param stat_col: Statistics collector that contain current loss and episode number (and other statistics).
+
         :return: True if this is the best model that is found till now (considering loss).
 
         """
@@ -106,22 +121,23 @@ class MAES(SequentialModel):
 
         return is_best_model
 
-    def forward(self, data_tuple):
+    def forward(self, data_dict):
         """
-        Forward function accepts a tuple consisting of:
+        Forward function requires that the data_dict will contain at least "sequences"
 
-         - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and
-         - a tensor of targets
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
 
-        :param data_tuple: Tuple containing inputs and targets.
-                :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
+        :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
 
         """
         # Get dtype.
         dtype = self.app_state.dtype
 
-        # Unpack tuple.
-        (inputs_BxSxI, _) = data_tuple
+        # Unpack dict.
+        inputs_BxSxI = data_dict['sequences']
+        
+        # Get batch size.
         batch_size = inputs_BxSxI.size(0)
 
         # "Data-driven memory size".
@@ -187,7 +203,7 @@ class MAES(SequentialModel):
 
 if __name__ == "__main__":
     # Set logging level.
-    logger = logging.getLogger('MAES')
+    import logging
     logging.basicConfig(level=logging.DEBUG)
 
     # Set visualization.
@@ -197,28 +213,38 @@ if __name__ == "__main__":
     # "Loaded parameters".
     from utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_default_params({'num_control_bits': 3, 'num_data_bits': 8,  # input and output size
+    params.add_default_params({
               'encoding_bit': 0, 'solving_bit': 1,
               # controller parameters
-              'controller': {'name': 'rnn', 'hidden_state_size': 20, 'num_layers': 1, 'non_linearity': 'sigmoid'},
+              'controller': {'name': 'RNNController', 'hidden_state_size': 20, 'num_layers': 1, 'non_linearity': 'sigmoid'},
               'mae_interface': {'shift_size': 3},  # encoder interface parameters
               'mas_interface': {'shift_size': 3},  # solver interface parameters
               # memory parameters
               'memory': {'num_addresses': -1, 'num_content_bits': 11},
               'visualization_mode': 2
               })
-    logger.debug("params: {}".format(params))
 
-    input_size = params["num_control_bits"] + params["num_data_bits"]
-    output_size = params["num_data_bits"]
-
+    num_control_bits= 3
+    num_data_bits = 8
     seq_length = 1
     batch_size = 2
 
-    # Construct our model by instantiating the class defined above.
-    model = MAES(params)
+    # "Default values from problem".
+    problem_default_values = {
+        'input_item_size': num_control_bits + num_data_bits,
+        'output_item_size': num_data_bits,
+        'store_bit': 0,
+        'recall_bit': 1
+        }
 
-    # Check for different seq_lengts and batch_sizes.
+    input_size = problem_default_values['input_item_size']
+    output_size = problem_default_values['output_item_size']
+
+    # Construct our model by instantiating the class defined above.
+    model = MAES(params, problem_default_values)
+    model.logger.debug("params: {}".format(params))
+
+    # Check for different seq_lengths and batch_sizes.
     for i in range(2):
         # Create random Tensors to hold inputs and outputs
         enc = torch.zeros(batch_size, 1, input_size)
@@ -231,16 +257,17 @@ if __name__ == "__main__":
         x = torch.cat([enc, data, dec, dummy], dim=1)
         # Output
         y = torch.randn(batch_size, 2 + 2 * seq_length, output_size)
-        dt = DataTuple(x, y)
+
+        dt = DataDict({'sequences': x, 'targets': y})
 
         # Test forward pass.
-        logger.info("------- forward -------")
+        model.logger.info("------- forward -------")
         y_pred = model(dt)
 
-        logger.info("------- result -------")
-        logger.info("input {}:\n {}".format(x.size(), x))
-        logger.info("target.size():\n {}".format(y.size()))
-        logger.info("prediction {}:\n {}".format(y_pred.size(), y_pred))
+        model.logger.info("------- result -------")
+        model.logger.info("input {}:\n {}".format(x.size(), x))
+        model.logger.info("target.size():\n {}".format(y.size()))
+        model.logger.info("prediction {}:\n {}".format(y_pred.size(), y_pred))
 
         # Plot it and check whether window was closed or not.
         if model.plot(dt, y_pred):

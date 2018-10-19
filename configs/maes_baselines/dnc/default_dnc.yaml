@@ -1,0 +1,22 @@
+# Model parameters:
+model:
+    name: DNC   # differential neural computer
+    # Controller hidden state.
+    hidden_state_size: 20
+    # Memory (?).
+    memory_content_size: 15
+    memory_addresses_size: -1
+    # Number of heads.
+    num_writes: 1
+    num_reads: 1
+    # Addressing parameters.
+    shift_size: 3
+    controller_type: LSTMController
+    use_ntm_write: False
+    use_ntm_read: False
+    use_ntm_order: False
+    use_extra_write_gate: False
+    non_linearity: sigmoid
+    # active the plotting of the memory and attention
+    plot_memory: False
+

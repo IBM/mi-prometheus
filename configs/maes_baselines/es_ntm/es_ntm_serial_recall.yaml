@@ -1,0 +1,40 @@
+# Load the following (default) configs first.
+default_configs: 
+    configs/maes_baselines/default_problem.yaml, 
+    configs/maes_baselines/default_training.yaml
+
+# Then overwrite problem name(s).
+training:
+    problem:
+        name: &name SerialRecallCommandLines
+
+validation:
+    problem:
+        name: *name 
+
+testing:
+    problem:
+        name: *name 
+
+# Model parameters:
+model:
+    name: EncoderSolverNTM
+    # Optional parameter: visualization.
+    #visualization_mode: 2
+    # Pass the whole state from encoder to solver cell.
+    pass_cell_state: True
+    # Controller parameters.
+    controller:
+        name: RNNController
+        hidden_state_size: 20
+        num_layers: 1
+        non_linearity: sigmoid
+    # Interface
+    interface:
+        shift_size: 3
+        num_read_heads: 1
+        use_content_based_addressing: False
+    # Memory parameters.
+    memory:
+        num_content_bits: 15
+        num_addresses: -1

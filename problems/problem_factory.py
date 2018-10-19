@@ -15,86 +15,86 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""problem_factory.py: Factory building problems"""
-__author__ = "Tomasz Kornuta"
+"""
+problem_factory.py: Utility constructing a problem class using specified parameters.
 
-import sys
-import inspect
+"""
+__author__ = "Tomasz Kornuta & Vincent Marois"
+
 import os.path
-import glob
 import logging
-logger = logging.getLogger('ProblemFactory')
+import inspect
+
+import problems
 
 
 class ProblemFactory(object):
     """
-    Class returning concrete problem/generator depending on the name provided
-    in the list of parameters.
+    ProblemFactory: Class instantiating the specified problem class using the passed params.
     """
 
     @staticmethod
     def build_problem(params):
         """
-        Static method returning particular problem, depending on the name
+        Static method returning a particular problem, depending on the name \
         provided in the list of parameters.
 
-        :param params: Dictionary of parameters (in particular containing 'name' which is equivalend to problem name)
-        :returns: Instance of a given problem.
+        :param params: Parameters used to instantiate the Problem class.
+        :type params: ``utils.param_interface.ParamInterface``
+
+        ..note::
+
+            ``params`` should contains the exact (case-sensitive) class name of the Problem to instantiate.
+
+
+        :return: Instance of a given problem.
 
         """
-        # Check name
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger('ProblemFactory')
+
+        # Check presence of the name
         if 'name' not in params:
-            logger.error(
-                "Problem parameter dictionary does not contain the key 'name'")
-            raise KeyError
-        # Try to load model
+            logger.error("Problem configuration section does not contain the key 'name'")
+            exit(-1)
+
+        # Get the class name.
         name = os.path.basename(params['name'])
 
-        # search recursively the name of the problem
-        for filename in glob.iglob('problems/**/*.py', recursive=True):
-            if os.path.basename(filename) == name + '.py':
-                # append system path
-                sys.path.append(os.path.dirname(filename))
+        # Get the actual class.
+        problem_class = getattr(problems, name)
 
-        # Import module
-        module = __import__(name)
-        # Get classes from that module.
+        # Check if class is derived (even indirectly) from Problem.
+        inherits = False
+        for c in inspect.getmro(problem_class):
+            if c.__name__ == problems.Problem.__name__:
+                inherits = True
+                break
+        if not inherits:
+            logger.error("The specified class '{}' is not derived from the Problem class".format(name))
+            exit(-1)
 
-        def is_class_member(member): return inspect.isclass(
-            member) and member.__module__ == name
-        clsmembers = inspect.getmembers(sys.modules[name], is_class_member)
-        # Assert there is only one class.
-
-        assert len(clsmembers) == 1
-        class_name = clsmembers[0][0]
-
-        # Get problem class
-        problem_class = getattr(module, class_name)
-        logger.info('Loading the {} problem from {}'.format(class_name, name))
-        # Create problem object.
+        # Ok, proceed.
+        logger.info('Loading the {} problem from {}'.format(name, problem_class.__module__))
+        # return the instantiated problem class
         return problem_class(params)
 
 
 if __name__ == "__main__":
     """
-    Tests problem factory.
+    Tests ProblemFactory.
     """
-    # Problem name
-    params = {
-        'name': 'serial_recall',
-        'control_bits': 3,
-        'data_bits': 8,
-        'batch_size': 1,
-        'min_sequence_length': 1,
-        'max_sequence_length': 10,
-        'num_subseq_min': 1,
-        'num_subseq_max': 5,
-        'bias': 0.5}
+    from utils.param_interface import ParamInterface
+    params = ParamInterface()
+    params.add_default_params({'name': 'SerialRecall',
+                               'control_bits': 3,
+                               'data_bits': 8,
+                               'batch_size': 1,
+                               'min_sequence_length': 1,
+                               'max_sequence_length': 10,
+                               'num_subseq_min': 1,
+                               'num_subseq_max': 5,
+                               'bias': 0.5})
 
     problem = ProblemFactory.build_problem(params)
-    # Get generator
-    generator = problem.return_generator()
-    # Get batch.
-    (x, y, mask) = next(generator)
-    # Display single sample (0) from batch.
-    problem.show_sample(x, y, mask)
+    print(type(problem))

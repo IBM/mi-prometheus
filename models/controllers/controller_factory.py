@@ -15,46 +15,87 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""controller_factory.py: Factory building controllers for MANNs"""
-__author__ = "Ryan L. McAvoy"
+"""
+controller_factory.py: Factory building controllers for MANNs.
+
+"""
+__author__ = "Ryan L. McAvoy & Vincent Marois"
+import logging
+import inspect
+import models.controllers
+from torch.nn import Module
 
 
 class ControllerFactory(object):
     """
-    Class returning concrete controller depending on the name provided in the
+    Class returning concrete controller depending on the name provided in the \
     list of parameters.
     """
 
     @staticmethod
-    def build_model(params):
+    def build_controller(params):
         """
-        Static method returning particular controller, depending on the name
+        Static method returning particular controller, depending on the name \
         provided in the list of parameters.
 
-        :param params: Dictionary of parameters (in particular containing 'name' which is equivalend to controller name)
-        :returns: Instance of a given model.
+        :param params: Parameters used to instantiate the controller.
+        :type params: ``utils.param_interface.ParamInterface``
 
+        ..note::
+
+            ``params`` should contains the exact (case-sensitive) class name of the controller to instantiate.
+
+        :return: Instance of a given controller.
         """
-        # Check name
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger('ControllerFactory')
+
+        # Check presence of the name attribute.
         if 'name' not in params:
-            print("Model Controller parameter dictionary does not contain 'name'")
-            raise ValueError
-        # Try to load model
+            logger.error("Controller configuration section does not contain the key 'name'")
+            exit(-1)
+
+        # Get the class name.
         name = params['name']
-        if name == 'lstm':
-            from models.controllers.lstm_controller import LSTMController
-            return LSTMController(params)
-        elif name == 'rnn':
-            from models.controllers.rnn_controller import RNNController
-            return RNNController(params)
-        elif name == 'ffn':
-            from models.controllers.feedforward_controller import FeedforwardController
-            return FeedforwardController(params)
-        elif name == 'gru':
-            from models.controllers.gru_controller import GRUController
-            return GRUController(params)
-        elif name == 'ffgru':
-            from models.controllers.ffgru_controller import FFGRUController
-            return FFGRUController(params)
-        else:
-            raise ValueError
+
+        # Verify that the specified class is in the controller package.
+        if name not in dir(models.controllers):
+            logger.error("Could not find the specified class '{}' in the controllers package.".format(name))
+            exit(-1)
+
+        # Get the actual class.
+        controller_class = getattr(models.controllers, name)
+
+        # Check if class is derived (even indirectly) from nn.Module.
+        inherits = False
+        for c in inspect.getmro(controller_class):
+            if c.__name__ == Module.__name__:
+                inherits = True
+                break
+        if not inherits:
+            logger.error("The specified class '{}' is not derived from the nn.Module class".format(name))
+            exit(-1)
+
+        # Ok, proceed.
+        logger.info('Loading the {} controller from {}'.format(name, controller_class.__module__))
+
+        # return the instantiated controller class
+        return controller_class(params)
+
+
+if __name__ == "__main__":
+    """
+    Tests ControllerFactory.
+    """
+    from utils.param_interface import ParamInterface
+
+    controller_params = ParamInterface()
+    controller_params.add_default_params({'name': 'RNNController',
+                                          'input_size': 11,
+                                          'output_size': 11,
+                                          'hidden_state_size': 20,
+                                          'num_layers': 1,
+                                          'non_linearity': 'sigmoid'})
+
+    controller = ControllerFactory.build_controller(controller_params)
+    print(type(controller))

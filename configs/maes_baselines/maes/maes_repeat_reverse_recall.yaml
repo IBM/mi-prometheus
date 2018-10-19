@@ -1,0 +1,35 @@
+# Load the following (default) configs first.
+default_configs: 
+    configs/maes_baselines/maes/default_maes.yaml, 
+    configs/maes_baselines/default_problem.yaml, 
+    configs/maes_baselines/default_training.yaml
+
+# Then overwrite problem name(s).
+training:
+    problem:
+        name: &name RepeatReverseRecallCommandLines
+        # Number of repetitions.
+        min_recall_number: 1
+        max_recall_number: 4
+
+validation:
+    problem:
+        name: *name 
+        # Number of repetitions.
+        min_recall_number: 5
+        max_recall_number: 5
+
+testing:
+    problem:
+        name: *name 
+        # Number of repetitions.
+        min_recall_number: 10
+        max_recall_number: 10
+
+# And overwrite model parameters.
+#model:
+    # Save/load encoder.
+    #save_encoder: True
+    #load_encoder: ./experiments/maes_baselines/serial_recall_cl/maes/20180702_132024/models/encoder_episode_09400.pth.tar
+    #freeze_encoder: True
+

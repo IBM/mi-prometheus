@@ -15,39 +15,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""image_text_to_class_problem.py: contains abstract base class for VQA problems"""
-__author__ = "Tomasz Kornuta & Vincent Albouy"
+"""image_text_to_class_problem.py: contains abstract base class for Visual Question Answering problems."""
+__author__ = "Tomasz Kornuta & Vincent Marois"
 
-import collections
+
+import torch
 import torch.nn as nn
-from problems.problem import Problem, DataTuple
+from problems.problem import Problem, DataDict
 
 
-_ImageTextTuple = collections.namedtuple('ImageTextTuple', ('images', 'texts'))
-
-
-class ImageTextTuple(_ImageTextTuple):
+class ObjectRepresentation(object):
     """
-    Tuple used by storing batches of image-text pairs by e.g. VQA problems.
-    """
-    __slots__ = ()
+    Class storing some features representing an object being present in a given scene.
 
+    Used in ShapeColorQuery and SortOfCLEVR.
 
-_SceneDescriptionTuple = collections.namedtuple(
-    '_SceneDescriptionTuple', ('scene_descriptions'))
-
-
-class SceneDescriptionTuple(_SceneDescriptionTuple):
-    """Tuple used by storing batches of scene descriptions - as strings. """
-    __slots__ = ()
-
-
-class ObjectRepresentation:
-    """
-    Class storing features of the object being present in a given scene.
     """
 
     def __init__(self, x, y, color, shape):
+        """
+        Represents an object.
+
+        :param x: x coordinate.
+        :param y: y coordinate.
+        :param color: Color of the object.
+        :param shape: Shape of the object.
+
+        """
         self.x = x
         self.y = y
         self.color = color
@@ -56,38 +50,60 @@ class ObjectRepresentation:
 
 class ImageTextToClassProblem(Problem):
     """
-    Abstract base class for VQA  (Visual Question Answering) problems.
+    Abstract base class for VQA (`Visual Question Answering`) problems.
 
-    Provides some basic functionality usefull in all problems of such
-    type
+    Problem classes like CLEVR inherits from it.
+
+    Provides some basic features useful in all problems of such type.
 
     """
-
     def __init__(self, params):
         """
-        Initializes problem, calls base class initialization. Set loss function
-        to CrossEntropy.
+        Initializes problem:
 
-        :param params: Dictionary of parameters (read from configuration file).
+            - Calls ``problems.problem.Problem`` class constructor,
+            - Sets loss function to ``CrossEntropy``,
+            - sets ``self.data_definitions`` to:
+
+                >>>         self.data_definitions = {'texts': {'size': [-1, -1], 'type': [torch.Tensor]},
+                >>>                                  'images': {'size': [-1, -1, -1, 3], 'type': [torch.Tensor]},
+                >>>                                  'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
+                >>>                                 }
+
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
         """
         # Call base class constructors.
         super(ImageTextToClassProblem, self).__init__(params)
 
+        # set default loss function
         self.loss_function = nn.CrossEntropyLoss()
 
-    def calculate_accuracy(self, data_tuple, logits, _):
-        """ Calculates accuracy equal to mean number of correct answers in a given batch.
-        WARNING: Applies mask (from aux_tuple) to logits!
+        # set default data_definitions dict
+        self.data_definitions = {'texts': {'size': [-1, -1], 'type': [torch.Tensor]},
+                                 'images': {'size': [-1, -1, -1, 3], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
+                                 }
 
-        :param logits: Logits being output of the model.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param _: auxiliary tuple (aux_tuple) is not used in this function.
+        # "Default" problem name.
+        self.name = 'ImageTextToClassProblem'
+
+    def calculate_accuracy(self, data_dict, logits):
+        """
+        Calculates the accuracy as the mean number of correct answers in a given batch.
+
+        :param data_dict: DataDict containing the targets.
+        :type data_dict: DataDict
+
+        :param logits: Predictions of the model.
+
+        :return: Accuracy.
+
         """
 
         # Get the index of the max log-probability.
         pred = logits.max(1, keepdim=True)[1]
-        correct = pred.eq(data_tuple.targets.view_as(pred)).sum().item()
+        correct = pred.eq(data_dict['targets'].view_as(pred)).sum().item()
 
         # Calculate the accuracy.
         batch_size = logits.size(0)
@@ -97,42 +113,33 @@ class ImageTextToClassProblem(Problem):
 
     def add_statistics(self, stat_col):
         """
-        Add accuracy statistic to collector.
+        Add accuracy statistic to ``StatisticsCollector``.
 
-        :param stat_col: Statistics collector.
+        :param stat_col: ``StatisticsCollector``.
 
         """
         stat_col.add_statistic('acc', '{:12.10f}')
 
-    def collect_statistics(self, stat_col, data_tuple, logits, _):
+    def collect_statistics(self, stat_col, data_dict, logits):
         """
         Collects accuracy.
 
-        :param stat_col: Statistics collector.
-        :param data_tuple: Data tuple containing inputs and targets.
-        :param logits: Logits being output of the model.
-        :param _: auxiliary tuple (aux_tuple) is not used in this function.
+        :param stat_col: ``StatisticsCollector``.
+
+        :param data_dict: DataDict containing the targets and the mask.
+        :type data_dict: DataDict
+
+        :param logits: Predictions of the model.
 
         """
-        stat_col['acc'] = self.calculate_accuracy(data_tuple, logits, _)
+        stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
 
-    def turn_on_cuda(self, data_tuple, aux_tuple):
-        """ Enables computations on GPU - copies the input and target matrices (from DataTuple) to GPU.
-        This method has to be overwritten in derived class if one decides to copy other matrices as well.
 
-        :param data_tuple: Data tuple.
-        :param aux_tuple: Auxiliary tuple (WARNING: Values stored in that variable will remain in CPU)
-        :returns: Pair of Data and Auxiliary tuples (Data on GPU, Aux on CPU).
-        """
-        # Unpack tuples and copy data to GPU.
-        images, texts = data_tuple.inputs
-        gpu_images = images.cuda()
-        gpu_texts = texts.cuda()
-        gpu_targets = data_tuple.targets.cuda()
+if __name__ == '__main__':
 
-        gpu_inputs = ImageTextTuple(gpu_images, gpu_texts)
+    from utils.param_interface import ParamInterface
 
-        # Pack matrices to tuples.
-        data_tuple = DataTuple(gpu_inputs, gpu_targets)
+    sample = ImageTextToClassProblem(ParamInterface())[0]
+    # equivalent to ImageTextToClassProblem(params={}).__getitem__(index=0)
 
-        return data_tuple, aux_tuple
+    print(repr(sample))

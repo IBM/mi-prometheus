@@ -1,0 +1,44 @@
+training:
+    # Problem parameters:
+    cuda: True
+    problem:
+        name: &name ShapeColorQuery
+        batch_size: &b 64
+        data_folder: '~/data/shape-color-query/'
+        split: 'train'
+        dataset_size: &ds 12000
+        regenerate: False
+        img_size: &imgs 128
+
+    # Set optimizer.
+    optimizer:
+        name: Adam
+        lr: 0.005
+    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
+    gradient_clipping: 10
+    # Terminal condition parameters:
+    terminal_condition:
+        loss_stop: 0.0001
+        max_episodes: 100000
+
+testing:
+    # Problem parameters:
+    problem:
+        name: *name
+        batch_size: *b
+        data_folder: '~/data/shape-color-query/'
+        split: 'test'
+        dataset_size: *ds
+        regenerate: False
+        img_size: *imgs
+
+validation:
+    # Problem parameters:
+    problem:
+        name: *name
+        batch_size: *b
+        data_folder: '~/data/shape-color-query/'
+        split: 'val'
+        dataset_size: *ds
+        regenerate: False
+        img_size: *imgs

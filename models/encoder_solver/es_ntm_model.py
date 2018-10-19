@@ -22,7 +22,7 @@ from enum import Enum
 import torch
 import logging
 
-from problems.problem import DataTuple
+from utils.data_dict import DataDict
 from models.sequential_model import SequentialModel
 from models.ntm.ntm_cell import NTMCell
 
@@ -30,27 +30,36 @@ from models.ntm.ntm_cell import NTMCell
 class EncoderSolverNTM(SequentialModel):
     """
     Class implementing the Encoder-Solver NTM model.
-    """
+    The model has two NTM cells, that are used in two distinctive modes. 
 
-    def __init__(self, params):
+    """
+    def __init__(self, params, problem_default_values_={}):
         """
         Constructor. Initializes parameters on the basis of dictionary passed
         as argument.
 
-        Warning: Class assumes, that the whole batch has the same length, i.e. batch of subsequences
-        becoming input to encoder is of the same length (ends at the same item), the same goes to
-        subsequences being input to decoder.
+        :param params: Local view to the Parameter Regsitry ''model'' section.
 
-        :param params: Dictionary of parameters.
+        :param problem_default_values_: Dictionary containing key-values received from problem.
 
         """
-        # Call base constructor.
-        super(EncoderSolverNTM, self).__init__(params)
+        # Call base constructor. Sets up default values etc.
+        super(EncoderSolverNTM, self).__init__(params, problem_default_values_)
+        # Model name.
+        self.name = 'EncoderSolverNTM'
 
-        # Parse parameters.
+        # Parse default values received from problem and add them to registry.
+        self.params.add_default_params({
+            'input_item_size': problem_default_values_['input_item_size'],
+            'output_item_size': problem_default_values_['output_item_size'],
+            'encoding_bit': problem_default_values_['store_bit'],
+            'solving_bit': problem_default_values_['recall_bit']
+            })
+
         # Indices of control bits triggering encoding/decoding.
         self.encoding_bit = params['encoding_bit']  # Def: 0
         self.solving_bit = params['solving_bit']  # Def: 1
+
         # Check if we want to pass the whole cell state or only the memory.
         self.pass_cell_state = params.get('pass_cell_state', False)
 
@@ -68,22 +77,23 @@ class EncoderSolverNTM(SequentialModel):
         # Operation modes.
         self.modes = Enum('Modes', ['Encode', 'Solve'])
 
-    def forward(self, data_tuple):
+    def forward(self, data_dict):
         """
-        Forward function accepts a tuple consisting of:
+        Forward function requires that the data_dict will contain at least "sequences"
 
-         - a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE] and
-         - a tensor of targets
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
 
-        :param data_tuple: Tuple containing inputs and targets.
-                :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
+        :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
 
         """
         # Get dtype.
         dtype = self.app_state.dtype
 
-        # Unpack tuple.
-        (inputs_BxSxI, _) = data_tuple
+        # Unpack dict.
+        inputs_BxSxI = data_dict['sequences']
+        
+        # Get batch size.
         batch_size = inputs_BxSxI.size(0)
 
         # "Data-driven memory size".
@@ -157,10 +167,9 @@ if __name__ == "__main__":
 
     # "Loaded parameters".
     params = ParamInterface()
-    params.add_default_params({'num_control_bits': 3, 'num_data_bits': 8,  # input and output size
-              'encoding_bit': 0, 'solving_bit': 1,
+    params.add_default_params({
               # controller parameters
-              'controller': {'name': 'rnn', 'hidden_state_size': 20, 'num_layers': 1, 'non_linearity': 'sigmoid'},
+              'controller': {'name': 'RNNController', 'hidden_state_size': 20, 'num_layers': 1, 'non_linearity': 'sigmoid'},
               # interface parameters
               'interface': {'num_read_heads': 1, 'shift_size': 3},
               # memory parameters
@@ -169,14 +178,24 @@ if __name__ == "__main__":
               })
     logger.debug("params: {}".format(params))
 
-    input_size = params["num_control_bits"] + params["num_data_bits"]
-    output_size = params["num_data_bits"]
-
+    num_control_bits= 3
+    num_data_bits = 8
     seq_length = 1
     batch_size = 2
 
+    # "Default values from problem".
+    problem_default_values = {
+        'input_item_size': num_control_bits + num_data_bits,
+        'output_item_size': num_data_bits,
+        'store_bit': 0,
+        'recall_bit': 1
+        }
+
+    input_size = problem_default_values['input_item_size']
+    output_size = problem_default_values['output_item_size']
+
     # Construct our model by instantiating the class defined above.
-    model = EncoderSolverNTM(params)
+    model = EncoderSolverNTM(params, problem_default_values)
 
     # Check for different seq_lengts and batch_sizes.
     for i in range(2):
@@ -191,7 +210,8 @@ if __name__ == "__main__":
         x = torch.cat([enc, data, dec, dummy], dim=1)
         # Output
         y = torch.randn(batch_size, 2 + 2 * seq_length, output_size)
-        dt = DataTuple(x, y)
+
+        dt = DataDict({'sequences': x, 'targets': y})
 
         # Test forward pass.
         logger.info("------- forward -------")

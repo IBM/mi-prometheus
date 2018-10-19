@@ -10,11 +10,7 @@ handlers:
         level: INFO
         formatter: simple
         stream: ext://sys.stdout
-    file:
-        (): __main__.logfile
-        level: DEBUG
-        formatter: simple
 root:
     level: DEBUG
-    handlers: [console, file]
+    handlers: [console]
 

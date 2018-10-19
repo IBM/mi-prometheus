@@ -1,8 +1,8 @@
 # Model parameters:
 model:
-    name: dwm   # dynamic_working_memory
+    name: DWM   # dynamic_working_memory
     # Controller hidden state.
-    hidden_state_dim: 5
+    hidden_state_size: 5
     # Memory (?).
     memory_content_size: 10
     memory_addresses_size: -1

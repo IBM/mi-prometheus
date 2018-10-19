@@ -5,19 +5,16 @@ default_configs:
 
 # Then overwrite problem name(s).
 training:
-    cuda: False
     problem:
         name: &name interruption_swap_recall
         num_rotation: &nrot 0.5
 
 validation:
-    cuda: False
     problem:
         name: *name 
         num_rotation: *nrot
 
 testing:
-    cuda: False
     problem:
         name: *name 
         num_rotation: *nrot

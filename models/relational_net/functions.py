@@ -30,17 +30,26 @@ class PairwiseRelationNetwork(nn.Module):
     """
     Implementation of the g_theta MLP used in the Relational Network model.
 
-    For recall, the role of g_theta is to infer the ways in which 2
-    regions of the CNN feature maps are related, or if they are even
-    related at all
+    For recall, the role of g_theta is to infer the ways in which 2 \
+    regions of the CNN feature maps are related, or if they are even \
+    related at all.
 
     """
 
-    def __init__(self, params):
+    def __init__(self, input_size):
+        """
+       Constructor for the f_phi MLP.
+
+        Instantiates 4 linear layers, having 256 nodes per layers.
+
+        :param input_size: input size.
+        :type input_size: int
+
+        """
         # call base constructor
         super(PairwiseRelationNetwork, self).__init__()
 
-        self.input_size = params['input_size']
+        self.input_size = input_size
 
         self.g_fc1 = nn.Linear(in_features=self.input_size, out_features=256)
         self.g_fc2 = nn.Linear(in_features=256, out_features=256)
@@ -51,10 +60,10 @@ class PairwiseRelationNetwork(nn.Module):
         """
         forward pass of the g_theta MLP.
 
-        :param inputs: tensor of shape [batch_size, input_size], should represent the pairs of regions (in the CNN
+        :param inputs: tensor of shape [batch_size, *, input_size], should represent the pairs of regions (in the CNN \
         feature maps) cat with the question encoding.
 
-        :return: tensor of shape [batch_size, 256]
+        :return: tensor of shape [batch_size, *, 256].
 
         """
 
@@ -82,11 +91,20 @@ class SumOfPairsAnalysisNetwork(nn.Module):
 
     """
 
-    def __init__(self, params):
+    def __init__(self, output_size):
+        """
+        Constructor for the f_phi MLP.
+
+        Instantiates 3 linear layers, having 256 nodes per layers.
+
+        :param output_size: number of classes for the last layer.
+        :type output_size: int
+
+        """
         # call base constructor
         super(SumOfPairsAnalysisNetwork, self).__init__()
 
-        self.output_size = params['output_size']
+        self.output_size = output_size
 
         self.f_fc1 = nn.Linear(in_features=256, out_features=256)
         self.f_fc2 = nn.Linear(in_features=256, out_features=256)
@@ -96,10 +114,10 @@ class SumOfPairsAnalysisNetwork(nn.Module):
         """
         forward pass of the f_phi MLP.
 
-        :param inputs: tensor of shape [batch_size, 256], should represent the element-wise sum of the outputs of
+        :param inputs: tensor of shape [batch_size, *, 256], should represent the element-wise sum of the outputs of \
         g_theta.
 
-        :return: tensor of shape [batch_size, 256]
+        :return: Predictions over the available classes, tensor of shape [batch_size, *, output_size]
 
         """
 
@@ -124,15 +142,13 @@ if __name__ == '__main__':
     inputs = np.random.binomial(1, 0.5, (batch_size, 3, input_size))
     inputs = torch.from_numpy(inputs).type(AppState().dtype)
 
-    params_g = {'input_size': input_size}
-    g_theta = PairwiseRelationNetwork(params_g)
+    g_theta = PairwiseRelationNetwork(input_size=input_size)
 
     g_outputs = g_theta(inputs)
     print('g_outputs:', g_outputs.shape)
 
-    output_size = 29
-    params_f = {'output_size': output_size}
-    f_phi = SumOfPairsAnalysisNetwork(params_f)
+    output_size = 10
+    f_phi = SumOfPairsAnalysisNetwork(output_size=output_size)
 
     f_outputs = f_phi(g_outputs)
     print('f_outputs:', f_outputs.shape)

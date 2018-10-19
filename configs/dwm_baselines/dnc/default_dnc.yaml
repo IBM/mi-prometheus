@@ -1,8 +1,8 @@
 # Model parameters:
 model:
-    name: dnc   # differential neural computer
+    name: DNC   # differential neural computer
     # Controller hidden state.
-    hidden_state_dim: 20
+    hidden_state_size: 20
     # Memory (?).
     memory_content_size: 10
     memory_addresses_size: -1
@@ -11,7 +11,7 @@ model:
     num_reads: 1
     # Addressing parameters.
     shift_size: 3
-    controller_type: lstm
+    controller_type: LSTMController
     use_ntm_write: False
     use_ntm_read: False
     use_ntm_order: False

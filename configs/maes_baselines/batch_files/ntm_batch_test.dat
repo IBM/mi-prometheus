@@ -1,6 +1,0 @@
-experiments/maes_baselines/sequence_comparison/ntm
-experiments/maes_baselines/sequence_equality/ntm
-experiments/maes_baselines/sequence_symmetry/ntm
-experiments/maes_baselines/odd_recall/ntm
-experiments/maes_baselines/serial_recall/ntm
-experiments/maes_baselines/reverse_recall/ntm

@@ -1,0 +1,22 @@
+# Load the following (default) configs first.
+default_configs:
+    configs/vqa_baselines/default_shape_color_query.yaml
+
+# Model parameters:
+model:
+    name: StackedAttentionNetwork
+    use_pretrained_cnn: True
+    pretrained_cnn:
+        name: 'resnet18'
+        num_layers: 2
+    lstm:
+        hidden_size: 64
+        num_layers: 1
+        bidirectional: False
+        dropout: 0
+    attention_layer:
+        nb_nodes: 128
+    classifier:
+        nb_hidden_nodes: 256
+
+

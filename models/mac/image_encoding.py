@@ -39,22 +39,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""image_encoding.py: Implementation of the image processing done by the input unit in the MAC network. See
-                https://arxiv.org/pdf/1803.03067.pdf for the reference paper.
+"""
+image_encoding.py: Implementation of the image processing done by the input unit in the MAC network. See \
+https://arxiv.org/pdf/1803.03067.pdf for the reference paper.
+
 """
 __author__ = "Vincent Marois"
 
-
-
-import torch.nn as nn
 import torch
+import torch.nn as nn
+
 from torch.nn.init import kaiming_uniform_
 
 
 class ImageProcessing(nn.Module):
     """
-    Image encoding using a 2-layers CNN assuming the images have been already
-    preprocessed by ResNet101.
+    Image encoding using a 2-layers CNN assuming the images have been already \
+    preprocessed by `ResNet101`.
     """
 
     def __init__(self, dim):
@@ -62,6 +63,7 @@ class ImageProcessing(nn.Module):
         Constructor for the 2-layers CNN.
 
         :param dim: global 'd' hidden dimension
+        :type dim: int
 
         """
 
@@ -80,11 +82,12 @@ class ImageProcessing(nn.Module):
 
     def forward(self, feature_maps):
         """
-        Apply the constructed CNN model on the feature maps (coming from
-        ResNet101).
+        Apply the constructed CNN model on the feature maps (coming from \
+        `ResNet101`).
 
-        :param feature_maps: [batch_size x nb_kernels x feat_H x feat_W] coming from ResNet101.
-               Should have [nb_kernels x feat_H x feat_W] = [1024 x 14 x 14]
+        :param feature_maps: [batch_size x nb_kernels x feat_H x feat_W] coming from `ResNet101`. \
+               Should have [nb_kernels x feat_H x feat_W] = [1024 x 14 x 14].
+        :type feature_maps: torch.tensor
 
         :return feature_maps: feature map, shape [batch_size, dim, new_height, new_width]
 
