@@ -33,7 +33,6 @@ from datetime import datetime
 from torch.utils.data.dataloader import DataLoader
 
 from workers.worker import Worker
-from utils.worker_utils import handshake
 from models.model_factory import ModelFactory
 from problems.problem_factory import ProblemFactory
 
@@ -291,14 +290,6 @@ class Trainer(Worker):
 
         # Log the model summary.
         self.logger.info(self.model.summarize())
-
-        # perform 2-way handshake between Model and Training Problem
-        handshake(model=self.model, problem=self.training_problem, logger=self.logger)
-        # no error thrown, so handshake succeeded
-
-        # perform 2-way handshake between Model and Validation Problem
-        handshake(model=self.model, problem=self.validation_problem, logger=self.logger)
-        # no error thrown, so handshake succeeded
 
         ################# OPTIMIZER ################# 
 

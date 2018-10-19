@@ -32,7 +32,6 @@ from datetime import datetime
 from torch.utils.data.dataloader import DataLoader
 
 from workers.worker import Worker
-from utils.worker_utils import handshake
 from models.model_factory import ModelFactory
 from problems.problem_factory import ProblemFactory
 from utils.statistics_collector import StatisticsCollector
@@ -229,10 +228,6 @@ class Tester(Worker):
 
         # Log the model summary.
         self.logger.info(self.model.summarize())
-
-        # perform 2-way handshake between Model and Problem
-        handshake(model=self.model, problem=self.problem, logger=self.logger)
-        # no error thrown, so handshake succeeded
 
     def initialize_statistics_collection(self):
         """
