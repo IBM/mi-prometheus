@@ -3,6 +3,17 @@
 
 #### Bringing (Py)Torch To Mankind
 
+|   |  |
+| --- | --- |
+| Version | 0.2 |
+| Authors | Tomasz Kornuta, Vincent Marois, Ryan L. McAvoy, Younes Bouhadjar, Alexis Asseman, Vincent Albouy, T.S. Jayram, Ahmet S. Ozcan |
+| Web site | https://github.com/IBM/mi-prometheus |
+| Documentation | _Coming soon._ |
+| Copyright | This document has been placed in the public domain. |
+| License | Mi-Prometheus is released under the Apache 2.0 License. |
+
+[![GitHub license](https://img.shields.io/github/license/IBM/mi-prometheus.svg)](https://github.com/IBM/mi-prometheus/blob/master/LICENSE)
+
 ## Description
 
 MI-Prometheus (Machine Intelligence – Prometheus), an open-source framework built on top of PyTorch, enabling rapid development and comparison of diverse neural network-based models. In MI-Prometheus training and testing mechanisms are no longer pinned to a specific model or problem, whereas build-in mechanisms for configuration management facilitate running experiments combining different models with problems.
