@@ -8,7 +8,7 @@
 | Version | 0.2 |
 | Authors | Tomasz Kornuta, Vincent Marois, Ryan L. McAvoy, Younes Bouhadjar, Alexis Asseman, Vincent Albouy, T.S. Jayram, Ahmet S. Ozcan |
 | Web site | https://github.com/IBM/mi-prometheus |
-| Documentation | _Coming soon._ |
+| Documentation | http://mi-prometheus.readthedocs.io/ |
 | Copyright | This document has been placed in the public domain. |
 | License | Mi-Prometheus is released under the Apache 2.0 License. |
 
