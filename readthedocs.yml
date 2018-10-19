@@ -7,9 +7,9 @@ build:
 # Python configuration
 python:
   version: 3.6
-  use_system_site_packages: true
-  requirements_file: docs/requirements_docs.txt
-  #setup_py_install: true
+  #use_system_site_packages: true
+  requirements_file: requirements.txt
+  setup_py_install: false
 
 # Don't build any extra formats
 formats: []

@@ -7,6 +7,7 @@
 !Readme.md
 !readthedocs.yml
 !environment.yml
+!requirements.txt
 !__init__.py
 !/configs/**
 !/configuration/**
