@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """dnc_model.py: Main class of the Differentiable Neural Computer. It calls the DNC cell on each word of the input"""
-__author__ = " Ryan L. McAvoy"
+__author__ = "Ryan L. McAvoy, Tomasz Kornuta"
 
 import numpy as np
 import torch
@@ -27,22 +27,36 @@ from models.dnc.dnc_cell import DNCCell
 
 
 class DNC(SequentialModel):
-    """ @Ryan CLASS DESCRIPTION HERE """
+    """
+        Implementation of Differentiable Neural Computer (DNC)
 
-    def __init__(self, params):
+        Graves, Alex, et al. "Hybrid computing using a neural network with dynamic external memory."
+        Nature 538.7626 (2016): 471. doi:10.1038/nature20101
+    """
+
+    def __init__(self, params, problem_default_values_={}):
         """
-        Initialize an DNC Layer.
+        Constructor. Initializes parameters on the basis of dictionary passed
+        as argument.
 
-        :param params: dictionary of inputs.
+        :param params: Local view to the Parameter Regsitry ''model'' section.
+
+        :param problem_default_values_: Dictionary containing key-values received from problem.
 
         """
-        # Call base class initialization.
-        super(DNC, self).__init__(params)
+        # Call base constructor. Sets up default values etc.
+        super(DNC, self).__init__(params, problem_default_values_)
+        # Model name.
+        self.name = 'DNC'
 
-        try:
-            self.output_units = params['output_bits']
-        except KeyError:
-            self.output_units = params['data_bits']
+        # Parse default values received from problem and add them to registry.
+        self.params.add_default_params({
+            'input_item_size': problem_default_values_['input_item_size'],
+            'output_item_size': problem_default_values_['output_item_size']
+            })
+
+        self.output_units = params['output_item_size']
+
 
         self.memory_addresses_size = params["memory_addresses_size"]
         self.label = params["name"]
@@ -55,26 +69,31 @@ class DNC(SequentialModel):
         # Create the DNC components
         self.DNCCell = DNCCell(self.output_units, params)
 
-    def forward(self, data_tuple):       # inputs : batch_size, seq_len, input_size
+    def forward(self, data_dict):
         """
-        Runs the DNC cell and plots if necessary.
+        Forward function requires that the data_dict will contain at least "sequences"
 
-        :param data_tuple: Tuple containing inputs and targets
-        :returns: output [batch_size, seq_len, output_size]
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
+
+        :returns: Predictions (logits) being a tensor of size  [BATCH_SIZE x LENGTH_SIZE x OUTPUT_SIZE].
 
         """
-
-        (inputs, targets) = data_tuple
-
+         # Get dtype.
         dtype = self.app_state.dtype
+
+        # Unpack dict.
+        inputs = data_dict['sequences']
+        
+        # Get batch size and seq length.
+        batch_size = inputs.size(0)
+        seq_length = inputs.size(1)
 
         output = None
 
         if self.app_state.visualize:
             self.cell_state_history = []
 
-        batch_size = inputs.size(0)
-        seq_length = inputs.size(1)
 
         memory_addresses_size = self.memory_addresses_size
 
@@ -114,18 +133,23 @@ class DNC(SequentialModel):
 
         return output
 
-    def plot_memory_attention(self, data_tuple, predictions, sample_number=0):
+    def plot_memory_attention(self, data_dict, predictions, sample_number=0):
         """
         Plots memory and attention TODO: fix.
 
-        :param data_tuple: Data tuple containing input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
+            - "targets": a tensor of targets of size  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+
         :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+
         :param sample_number: Number of sample in batch (DEFAULT: 0)
 
         """
         # plot attention/memory
 
         from models.dnc.plot_data import plot_memory_attention
+        self.logger.warning("DNC 'plot_memory_attention' method not implemented!")
         #plot_memory_attention(output, states[2], states[1][0], states[1][1], states[1][2], self.label)
 
     def generate_figure_layout(self):
@@ -205,14 +229,15 @@ class DNC(SequentialModel):
         #fig.subplots_adjust(left = 0)
         return fig
 
-    def plot(self, data_tuple, predictions, sample_number=0):
+    def plot(self, data_dict, predictions, sample_number=0):
         """
         Interactive visualization, with a slider enabling to move forth and
         back along the time axis (iteration in a given episode).
 
-        :param data_tuple: Data tuple containing
-           - input [BATCH_SIZE x SEQUENCE_LENGTH x INPUT_DATA_SIZE] and
-           - target sequences  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+        :param data_dict: DataDict containing at least:
+            - "sequences": a tensor of input data of size [BATCH_SIZE x LENGTH_SIZE x INPUT_SIZE]
+            - "targets": a tensor of targets of size  [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
+
         :param predictions: Prediction sequence [BATCH_SIZE x SEQUENCE_LENGTH x OUTPUT_DATA_SIZE]
         :param sample_number: Number of sample in batch (DEFAULT: 0)
 
@@ -228,8 +253,8 @@ class DNC(SequentialModel):
 
         # import time
         # start_time = time.time()
-        inputs_seq = data_tuple.inputs[0].cpu().detach().numpy()
-        targets_seq = data_tuple.targets[0].cpu().detach().numpy()
+        inputs_seq = data_dict["sequences"][sample_number].cpu().detach().numpy()
+        targets_seq = data_dict["targets"][sample_number].cpu().detach().numpy()
         predictions_seq = predictions[0].cpu().detach().numpy()
 
         # temporary for data with additional channel

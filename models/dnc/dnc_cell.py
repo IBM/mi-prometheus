@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """dnc_cell.py: The cell of the DNC. It operates on a single word"""
-__author__ = " Ryan L. McAvoy"
+__author__ = "Ryan L. McAvoy, Tomasz Kornuta"
 
 
 import torch
@@ -43,6 +43,9 @@ class NTMCellStateTuple(_NTMCellStateTuple):
 
 
 class DNCCell(nn.Module):
+    """
+    Class representing a single cell of the DNC.
+    """
     def __init__(self, output_size, params):
         """
         Initialize an DNC cell.
