@@ -8,6 +8,7 @@
 !readthedocs.yml
 !environment.yml
 !requirements.txt
+!setup.py
 !__init__.py
 !/configs/**
 !/configuration/**
