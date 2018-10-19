@@ -23,18 +23,18 @@ Trainer
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-FlexibleTrainer
+OnlineTrainer
 ----------------------------
 
-.. automodule:: workers.flexible_trainer
+.. automodule:: workers.online_trainer
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-ClassicTrainer
+OfflineTrainer
 ----------------------------
 
-.. automodule:: workers.classic_trainer
+.. automodule:: workers.offline_trainer
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__

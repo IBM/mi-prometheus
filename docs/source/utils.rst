@@ -15,6 +15,14 @@ AppState
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+DataDict
+----------
+
+.. autoclass:: DataDict
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
 ParamInterface
 -----------------
 
@@ -31,15 +39,12 @@ ParamRegistry
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-.. autoclass:: ParamRegistry
+.. autoclass:: SingletonMetaClass
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-Singleton
--------------
-
-.. autoclass:: SingletonMetaClass
+.. autoclass:: ParamRegistry
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -52,6 +57,14 @@ StatisticsCollector
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+StatisticsAggregator
+-----------------------
+
+.. autoclass:: StatisticsAggregator
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
 TimePlot
 ----------
 
@@ -60,11 +73,36 @@ TimePlot
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-Language
+Losses
 ----------
 
-.. autoclass:: Language
+:hidden:`Masked BCEWithLogitsLoss`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: MaskedBCEWithLogitsLoss
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+:hidden:`Masked CrossEntropyLoss`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: MaskedCrossEntropyLoss
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+Problems
+----------
+
+:hidden:`GenerateFeatureMaps`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: GenerateFeatureMaps
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+:hidden:`Language`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: Language
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__

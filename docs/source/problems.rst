@@ -15,6 +15,14 @@ Base Problem
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+ProblemFactory
+-----------------
+.. currentmodule:: problems
+.. autoclass:: ProblemFactory
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
 ImageTextToClass Problems
 ----------------------------
 
@@ -26,16 +34,6 @@ ImageTextToClass Problems
 :hidden:`CLEVR`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: problems.image_text_to_class.clevr
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-.. automodule:: problems.image_text_to_class.clevr_dataset
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-.. automodule:: problems.image_text_to_class.generate_feature_maps
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -93,11 +91,6 @@ Algorithmic SequenceToSequence Problems
 
 :hidden:`MAES baselines`
 `````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.maes_baselines.dual_serial_reverse_recall_cl
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
 .. automodule:: problems.seq_to_seq.algorithmic.maes_baselines.repeat_reverse_recall_cl
     :members:
     :special-members:
@@ -138,10 +131,6 @@ Algorithmic SequenceToSequence Problems
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-.. automodule:: problems.seq_to_seq.algorithmic.maes_baselines.sequence_symmetry_cl
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
 
 :hidden:`Distraction Carry`
 `````````````````````````````
@@ -241,13 +230,6 @@ Algorithmic SequenceToSequence Problems
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Serial Recall Simplified`
-```````````````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.serial_recall_simplified
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
 TextToText Problems
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: problems.seq_to_seq.text2text.text_to_text_problem
@@ -257,7 +239,7 @@ TextToText Problems
 
 :hidden:`Translation`
 `````````````````````````````
-.. automodule:: problems.seq_to_seq.text2text.translation
+.. automodule:: problems.seq_to_seq.text2text.translation_anki
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -279,20 +261,6 @@ VideoToClass Problems
     :exclude-members: __dict__,__weakref__
 
 .. automodule:: problems.video_to_class.seq_mnist_to_class.sequential_pixel_mnist
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-.. automodule:: problems.video_to_class.seq_mnist_to_class.sequential_row_mnist
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-
-ProblemFactory
------------------
-.. currentmodule:: problems
-.. autoclass:: ProblemFactory
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__

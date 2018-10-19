@@ -15,16 +15,27 @@ Model
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`CNN_LSTM_VQA`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.cnn_lstm_vqa
+ModelFactory
+--------------------
+
+.. autoclass:: ModelFactory
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Controllers`
+Visual Question Answering baselines
+----------------------------------------
+
+:hidden:`CNN + LSTM`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.controllers
+.. automodule:: models.vqa_baselines.cnn_lstm
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+:hidden:`Stacked Attention Networks`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. automodule:: models.vqa_baselines.stacked_attention_networks
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -36,41 +47,29 @@ Model
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`StackedAttentionVQA`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.stacked_attention_vqa
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-:hidden:`SimpleConvNet`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.vision
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-:hidden:`AlexNet Wrapper`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.vision
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-:hidden:`Relational Network`
+:hidden:`Relational Networks`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: models.relational_net
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`MultiHopsAttention`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.multi_hops_attention
+
+Image Classification models
+------------------------------
+.. automodule:: models.vision
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+
+
+Controllers for MANNs models
+------------------------------
+.. automodule:: models.controllers
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
 
 SequentialModel
 ----------------------
@@ -115,31 +114,11 @@ SequentialModel
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Text2Text`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.text2text
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
 
-:hidden:`Seq2SeqLSTM`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.seq2seqlstm
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-:hidden:`EncoderSolver`
+:hidden:`Encoder-Solver models`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: models.encoder_solver
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-ModelFactory
------------------
-.. currentmodule:: models
-.. autoclass:: ModelFactory
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
