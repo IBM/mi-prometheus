@@ -33,9 +33,9 @@ class OnLineTrainer(Trainer):
     """
     Implementation for the episode-based ``OnLineTrainer``.
 
-    ..note::
+    ..note ::
 
-        The ``ClassicTrainer`` is based on epochs. While an epoch can be defined for all finite-size datasets, \
+        The ``OfflineTrainer`` is based on epochs. While an epoch can be defined for all finite-size datasets, \
         it makes less sense for problems which have a very large, almost infinite, dataset (like algorithmic \
         tasks, which generate random data on-the-fly). \
          

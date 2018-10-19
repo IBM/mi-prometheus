@@ -89,146 +89,118 @@ Algorithmic SequenceToSequence Problems
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`MAES baselines`
+:hidden:`Dual Comparison`
 `````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.maes_baselines.repeat_reverse_recall_cl
+.. automodule:: problems.seq_to_seq.algorithmic.dual_comparison.sequence_comparison_cl
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-.. automodule:: problems.seq_to_seq.algorithmic.maes_baselines.repeat_serial_recall_cl
+.. automodule:: problems.seq_to_seq.algorithmic.dual_comparison.sequence_equality_cl
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-.. automodule:: problems.seq_to_seq.algorithmic.maes_baselines.reverse_recall_cl
+.. automodule:: problems.seq_to_seq.algorithmic.dual_comparison.sequence_symmetry_cl
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-.. automodule:: problems.seq_to_seq.algorithmic.maes_baselines.sequence_comparison_cl
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-.. automodule:: problems.seq_to_seq.algorithmic.maes_baselines.sequence_equality_cl
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-.. automodule:: problems.seq_to_seq.algorithmic.maes_baselines.sequence_symmetry_cl
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-.. automodule:: problems.seq_to_seq.algorithmic.maes_baselines.serial_recall_cl
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-.. automodule:: problems.seq_to_seq.algorithmic.maes_baselines.skip_recall_cl
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-
-:hidden:`Distraction Carry`
+:hidden:`Dual Distraction`
 `````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.distraction_carry
+.. automodule:: problems.seq_to_seq.algorithmic.dual_distraction.distraction_carry
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Distraction Forget`
+.. automodule:: problems.seq_to_seq.algorithmic.dual_distraction.distraction_forget
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+.. automodule:: problems.seq_to_seq.algorithmic.dual_distraction.distraction_ignore
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+:hidden:`Dual Ignore`
 `````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.distraction_forget
+.. automodule:: problems.seq_to_seq.algorithmic.dual_ignore.interruption_not
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Distraction Ignore`
+.. automodule:: problems.seq_to_seq.algorithmic.dual_ignore.interruption_reverse_recall
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+.. automodule:: problems.seq_to_seq.algorithmic.dual_ignore.interruption_swap_recall
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+:hidden:`Manipulation Spatial`
+`````````````````````````````````
+.. automodule:: problems.seq_to_seq.algorithmic.manipulation_spatial.manipulation_spatial_not
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+.. automodule:: problems.seq_to_seq.algorithmic.manipulation_spatial.manipulation_spatial_rotation
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+:hidden:`Manipulation Temporal`
+`````````````````````````````````
+.. automodule:: problems.seq_to_seq.algorithmic.manipulation_temporal.manipulation_temporal_swap
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+.. automodule:: problems.seq_to_seq.algorithmic.manipulation_temporal.skip_recall_cl
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+:hidden:`Recall`
 `````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.distraction_ignore
+.. automodule:: problems.seq_to_seq.algorithmic.recall.operation_span
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Interruption Not`
-`````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.interruption_not
+.. automodule:: problems.seq_to_seq.algorithmic.recall.reading_span
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Interruption Reverse Recall`
-```````````````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.interruption_reverse_recall
+.. automodule:: problems.seq_to_seq.algorithmic.recall.repeat_reverse_recall_cl
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Interruption Swap Recall`
-```````````````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.interruption_swap_recall
+.. automodule:: problems.seq_to_seq.algorithmic.recall.repeat_serial_recall_cl
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Manipulation Spatial Not`
-```````````````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.manipulation_spatial_not
+.. automodule:: problems.seq_to_seq.algorithmic.recall.reverse_recall_cl
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Manipulation Spatial Rotation`
-```````````````````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.manipulation_spatial_rotation
+.. automodule:: problems.seq_to_seq.algorithmic.recall.scratch_pad
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Manipulation Temporal Swap`
-```````````````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.manipulation_temporal_swap
+.. automodule:: problems.seq_to_seq.algorithmic.recall.serial_recall_cl
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Operation Span`
-```````````````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.operation_span
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-:hidden:`Reading Span`
-```````````````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.reading_span
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-:hidden:`Reverse Recall`
-```````````````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.reverse_recall
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-:hidden:`Scrath Pad`
-```````````````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.scratch_pad
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-:hidden:`Serial Recall`
-```````````````````````````````````````
-.. automodule:: problems.seq_to_seq.algorithmic.serial_recall
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
 
 TextToText Problems
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
