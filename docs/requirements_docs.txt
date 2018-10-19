@@ -1,0 +1,18 @@
+# This file is used to compile docs
+torch==0.4.0
+torchvision
+torchtext
+tensorboardX
+sphinx
+sphinx_rtd_theme
+numpy
+matplotlib
+PyYAML
+tqdm
+progressbar2
+nltk
+h5py
+pandas
+pillow
+six
+pyqt
