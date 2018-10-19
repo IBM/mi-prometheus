@@ -64,7 +64,7 @@ class Worker(object):
 
                 >>> self.logger = logging.getLogger(name=self.name)
 
-            - Creates parser and adds default worker command line arguments
+            - Creates parser and adds default worker command line arguments.
 
         :param name: Name of the worker (DEFAULT: "Worker").
 
@@ -157,7 +157,7 @@ class Worker(object):
 
             - Parses command line arguments.
 
-            - Sets the 3 default sections (training / validation / tes)and sets their dataloaders params.
+            - Sets the 3 default sections (training / validation / test) and sets their dataloaders params.
 
         .. note::
 
@@ -252,8 +252,8 @@ class Worker(object):
 
     def add_aggregators(self, stat_agg):
         """
-        Adds basic statistical aggregators to ``StatisticsAggregator``: episode,
-            episodes_aggregated and loss derivatives.
+        Adds basic statistical aggregators to ``StatisticsAggregator``: episode, \
+        episodes_aggregated and loss derivatives.
 
         :param stat_agg: ``StatisticsAggregator``.
 
@@ -279,7 +279,7 @@ class Worker(object):
             Only computes the min, max, mean, std of the loss as these are basic statistical aggregator by default.
 
             Given that the ``StatisticsAggregator`` uses the statistics collected by the ``StatisticsCollector``, \
-            we should ensure that these statistics are correctly collected (i.e. use of ``self.add_statistics()`` \
+            It should be ensured that these statistics are correctly collected (i.e. use of ``self.add_statistics()`` \
             and ``collect_statistics()``).
 
         :param stat_col: ``StatisticsCollector``
@@ -537,7 +537,7 @@ class Worker(object):
     def cycle(self, iterable):
         """
         Cycle an iterator to prevent its exhaustion.
-        This function is used in the (episodic) trainer to reuse the same ``DataLoader`` for a number of episodes\
+        This function is used in the (online) trainer to reuse the same ``DataLoader`` for a number of episodes\
         > len(dataset)/batch_size.
 
         :param iterable: iterable.

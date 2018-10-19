@@ -340,8 +340,13 @@ class Trainer(Worker):
 
     def initialize_statistics_collection(self):
         """
-        Function initializes all statistics collectors and aggregators used by a given worker, \
-        creates output files etc.
+        - Initializes all ``StatisticsCollectors`` and ``StatisticsAggregators`` used by a given worker: \
+
+            - For training statistics (adds the statistics of the model & problem),
+            - For validation statistics (adds the statistics of the model & problem).
+
+        - Creates the output files (csv).
+
         """
         # TRAINING.
         # Create statistics collector for training.
@@ -379,7 +384,7 @@ class Trainer(Worker):
 
     def finalize_statistics_collection(self):
         """
-        Finalizes statistics collection, closes all files etc.
+        Finalizes the statistics collection by closing the csv files.
 
         """
         # Close all files.
@@ -390,7 +395,7 @@ class Trainer(Worker):
 
     def initialize_tensorboard(self):
         """
-        Initializes TensorBoard writers, and log directories.
+        Initializes the TensorBoard writers, and log directories.
 
         """
         # Create TensorBoard outputs - if TensorBoard is supposed to be used.
@@ -415,7 +420,7 @@ class Trainer(Worker):
 
     def finalize_tensorboard(self):
         """ 
-        Finalizes operation of TensorBoard writers.
+        Finalizes the operation of TensorBoard writers by closing them.
         """
         # Close the TensorBoard writers.
         if self.training_batch_writer is not None:
