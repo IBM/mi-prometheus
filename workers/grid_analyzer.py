@@ -236,7 +236,7 @@ class GridAnalyzer(GridWorker):
         self.logger.info('Results stored in {}.'.format(results_file))
 
 
-if __name__ == '__main__':
+def main():
     grid_analyzer = GridAnalyzer()
 
     # parse args, load configuration and create all required objects.
@@ -244,3 +244,8 @@ if __name__ == '__main__':
 
     # GO!
     grid_analyzer.run_grid_experiment()
+
+
+if __name__ == '__main__':
+
+    main()

@@ -336,10 +336,14 @@ class Tester(Worker):
             self.finalize_statistics_collection()
 
 
-if __name__ == '__main__':
-
+def main():
     tester = Tester()
     # parse args, load configuration and create all required objects.
     tester.setup_experiment()
     # GO!
     tester.run_experiment()
+
+
+if __name__ == '__main__':
+
+    main()

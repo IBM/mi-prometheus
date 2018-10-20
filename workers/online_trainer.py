@@ -351,10 +351,14 @@ class OnLineTrainer(Trainer):
             self.finalize_tensorboard()
 
 
-if __name__ == '__main__':
-
+def main():
     trainer = OnLineTrainer()
     # parse args, load configuration and create all required objects.
     trainer.setup_experiment()
     # GO!
     trainer.run_experiment()
+
+
+if __name__ == '__main__':
+
+    main()

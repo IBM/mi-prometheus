@@ -92,7 +92,7 @@ class GridTrainerGPU(GridTrainerCPU):
         self.logger.info('Grid training experiments finished.')
 
 
-if __name__ == '__main__':
+def main():
     grid_trainer_gpu = GridTrainerGPU()
 
     # parse args, load configuration and create all required objects.
@@ -100,3 +100,8 @@ if __name__ == '__main__':
 
     # GO!
     grid_trainer_gpu.run_grid_experiment()
+
+
+if __name__ == '__main__':
+
+    main()

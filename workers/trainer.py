@@ -515,8 +515,3 @@ class Trainer(Worker):
 
         # Return the average validation loss.
         return self.validation_stat_agg['loss']
-
-
-if __name__ == '__main__':
-    print("The trainer.py file contains only the abstract Trainer class. "
-          "Use offline_trainer or online_trainer for training.")
