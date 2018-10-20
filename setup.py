@@ -164,7 +164,7 @@ setup(
                       'pandas',
                       'pillow>=4.1.1',  # for torchvision
                       'six',
-                      'pyqt5==5.10.1'
+                      'pyqt5==5.10.1'  # to avoid PyQt5.sip being separated
                       ],
 
     # List additional groups of dependencies here (e.g. development

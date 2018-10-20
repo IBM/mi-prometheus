@@ -354,6 +354,10 @@ class OffLineTrainer(Trainer):
 
 
 def main():
+    """
+    Entry point function for the ``OfflineTrainer``.
+
+    """
     trainer = OffLineTrainer()
     # parse args, load configuration and create all required objects.
     trainer.setup_experiment()

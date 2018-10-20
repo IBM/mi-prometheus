@@ -237,6 +237,10 @@ class GridAnalyzer(GridWorker):
 
 
 def main():
+    """
+    Entry point function for the ``GridAnalyzer``.
+
+    """
     grid_analyzer = GridAnalyzer()
 
     # parse args, load configuration and create all required objects.

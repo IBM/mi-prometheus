@@ -171,6 +171,10 @@ class GridTesterCPU(GridWorker):
 
 
 def main():
+    """
+    Entry point function for the ``GridTesterCPU``.
+
+    """
     grid_tester_cpu = GridTesterCPU()
 
     # parse args, load configuration and create all required objects.

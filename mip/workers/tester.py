@@ -337,6 +337,10 @@ class Tester(Worker):
 
 
 def main():
+    """
+    Entry point function for the ``Tester``.
+
+    """
     tester = Tester()
     # parse args, load configuration and create all required objects.
     tester.setup_experiment()

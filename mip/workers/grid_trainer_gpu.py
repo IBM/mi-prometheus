@@ -93,6 +93,10 @@ class GridTrainerGPU(GridTrainerCPU):
 
 
 def main():
+    """
+    Entry point function for the ``GridTrainerGPU``.
+
+    """
     grid_trainer_gpu = GridTrainerGPU()
 
     # parse args, load configuration and create all required objects.

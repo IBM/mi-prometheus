@@ -278,6 +278,10 @@ class GridTrainerCPU(GridWorker):
 
 
 def main():
+    """
+    Entry point function for the ``GridTrainerCPU``.
+
+    """
     grid_trainer_cpu = GridTrainerCPU()
 
     # parse args, load configuration and create all required objects.

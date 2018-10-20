@@ -352,6 +352,10 @@ class OnLineTrainer(Trainer):
 
 
 def main():
+    """
+    Entry point function for the ``OnlineTrainer``.
+
+    """
     trainer = OnLineTrainer()
     # parse args, load configuration and create all required objects.
     trainer.setup_experiment()

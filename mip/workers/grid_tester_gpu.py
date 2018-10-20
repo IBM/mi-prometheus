@@ -97,6 +97,10 @@ class GridTesterGPU(GridTesterCPU):
 
 
 def main():
+    """
+    Entry point function for the ``GridTesterGPU``.
+
+    """
     grid_tester_gpu = GridTesterGPU()
 
     # parse args, load configuration and create all required objects.
