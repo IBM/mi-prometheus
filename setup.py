@@ -150,7 +150,7 @@ setup(
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     # Should not pin down version
-    install_requires=['torch',  # Can't install pytorch with pip, use conda
+    install_requires=['torch==0.4.0',  # Can't install pytorch with pip, use conda
                       'torchvision',
                       'torchtext',
                       'tensorboardX',
@@ -164,7 +164,7 @@ setup(
                       'pandas',
                       'Pillow',
                       'six',
-                      'pyqt5'
+                      'pyqt5==5.10.1'
                       ],
 
     # List additional groups of dependencies here (e.g. development
