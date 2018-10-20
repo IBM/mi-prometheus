@@ -162,7 +162,7 @@ setup(
                       'nltk',
                       'h5py',
                       'pandas',
-                      'Pillow',
+                      'pillow>=4.1.1',  # for torchvision
                       'six',
                       'pyqt5==5.10.1'
                       ],
