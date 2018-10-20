@@ -206,14 +206,14 @@ setup(
     # executes the function `main` from this package when invoked:
     entry_points={  # Optional
          'console_scripts': [
-             'mip-offlinetrainer=workers.offline_trainer:main',
-             'mip-onlinetrainer=workers.online_trainer:main',
-             'mip-tester=workers.tester:main',
-             'mip-gridtrainer-cpu=workers.grid_trainer_cpu:main',
-             'mip-gridtrainer-gpu=workers.grid_trainer_gpu:main',
-             'mip-gridtester-cpu=workers.grid_tester_cpu:main',
-             'mip-gridtester-gpu=workers.grid_tester_gpu:main',
-             'mip-gridanalyser=workers.grid_analyzer:main',
+             'mip-offlinetrainer=mip.workers.offline_trainer:main',
+             'mip-onlinetrainer=mip.workers.online_trainer:main',
+             'mip-tester=mip.workers.tester:main',
+             'mip-gridtrainer-cpu=mip.workers.grid_trainer_cpu:main',
+             'mip-gridtrainer-gpu=mip.workers.grid_trainer_gpu:main',
+             'mip-gridtester-cpu=mip.workers.grid_tester_cpu:main',
+             'mip-gridtester-gpu=mip.workers.grid_tester_gpu:main',
+             'mip-gridanalyser=mip.workers.grid_analyzer:main',
          ],
      },
 

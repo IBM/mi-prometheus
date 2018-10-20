@@ -11,13 +11,9 @@
 !setup.py
 !__init__.py
 !/configs/**
-!/configuration/**
 !/docs/**
-!/models/**
-!/problems/**
 !/scripts/**
-!/utils/**
-!/workers/**
+!/mip/**
 
 # You can be specific with these rules
 __pycache__*
