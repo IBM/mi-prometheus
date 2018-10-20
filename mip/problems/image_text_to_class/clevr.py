@@ -57,7 +57,7 @@ import pickle
 from PIL import Image
 from torchvision.transforms import ToTensor
 
-from mip.utils.problems.language import Language
+from mip.utils.problems_utils.language import Language
 from mip.utils.data_dict import DataDict
 
 from mip.problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem
@@ -491,7 +491,7 @@ class CLEVR(ImageTextToClassProblem):
 
         """
         # import lines
-        from mip.utils.problems import GenerateFeatureMaps
+        from mip.utils.problems_utils.generate_feature_maps import GenerateFeatureMaps
         from torch.utils.data import DataLoader
         import tqdm
         from torchvision import transforms

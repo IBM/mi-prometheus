@@ -6,5 +6,6 @@ from .statistics_collector import StatisticsCollector
 from .statistics_aggregator import StatisticsAggregator
 from .time_plot import TimePlot
 from .data_dict import DataDict
+
 from .loss import *
-from .problems import *
+from .problems_utils import *
