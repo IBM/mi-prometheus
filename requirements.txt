@@ -1,2 +1,0 @@
-# This file is used to compile docs
-torchtext
