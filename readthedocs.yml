@@ -8,12 +8,12 @@ build:
 python:
   version: 3.6
   #use_system_site_packages: true
-  requirements_file: requirements.txt
-  setup_py_install: false
+  #requirements_file: requirements.txt
+  setup_py_install: true
 
 # Don't build any extra formats
 formats: []
 
 # Configuring conda environment support
-conda:
-  file: environment.yml
+#conda:
+#  file: environment.yml
