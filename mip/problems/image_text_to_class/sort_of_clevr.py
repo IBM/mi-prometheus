@@ -24,7 +24,7 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 import h5py
 import numpy as np
 from PIL import Image, ImageDraw
-import progressbar
+import tqdm
 import os
 
 import torch
@@ -192,9 +192,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
         # open the HDF5 file.
         file = h5py.File(filename, 'w')
         # progress bar
-        bar = progressbar.ProgressBar(maxval=100, widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
-        bar.start()
-
+        t = tqdm.tqdm(total=self.dataset_size, unit=" samples", unit_scale=True, unit_divisor=1000)  # Initialise
+        t.set_postfix(file=self.filename, refresh=False)
         count = 0
 
         while count < self.dataset_size:
@@ -222,17 +221,14 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
                 # Increment counter.
                 count += 1
-
-                # Update progress bar.
-                if count % (self.dataset_size / 100) == 0:
-                    bar.update(count / (self.dataset_size / 100))
+                t.update()
 
                 # Check whether we generated the required number of samples
                 if count >= self.dataset_size:
                     break
 
         # Finalize the generation.
-        bar.finish()
+        t.close()
         file.close()
         self.logger.info('Generated dataset with {} samples and saved to {}'.format(self.dataset_size, self.filename))
 
