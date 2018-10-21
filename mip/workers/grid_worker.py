@@ -82,9 +82,22 @@ class GridWorker(object):
         self.params = ParamInterface()
 
         # Load the default logger configuration.
-        with open('logger_config.yaml', 'rt') as f:
-            config = yaml.load(f.read())
-            logging.config.dictConfig(config)
+        logger_config = {'version': 1,
+                         'disable_existing_loggers': False,
+                         'formatters': {
+                             'simple': {
+                                 'format': '[%(asctime)s] - %(levelname)s - %(name)s >>> %(message)s',
+                                 'datefmt': '%Y-%m-%d %H:%M:%S'}},
+                         'handlers': {
+                             'console': {
+                                 'class': 'logging.StreamHandler',
+                                 'level': 'INFO',
+                                 'formatter': 'simple',
+                                 'stream': 'ext://sys.stdout'}},
+                         'root': {'level': 'DEBUG',
+                                  'handlers': ['console']}}
+
+        logging.config.dictConfig(logger_config)
 
         # Create the Logger, set its label and logging level.
         self.logger = logging.getLogger(name=self.name)
