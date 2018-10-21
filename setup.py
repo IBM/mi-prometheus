@@ -165,8 +165,8 @@ setup(
                       'nltk',
                       'h5py',
                       'six',
+                      'pyqt5==5.10.1',  # to avoid PyQt5.sip being separated
                       # 'pillow>=4.1.1',  # for torchvision
-                      # 'pyqt5==5.10.1'  # to avoid PyQt5.sip being separated
                       ],
 
     # List additional groups of dependencies here (e.g. development
