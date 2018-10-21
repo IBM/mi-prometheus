@@ -150,7 +150,11 @@ setup(
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     # Should not pin down version
-    install_requires=['torch==0.4.0',  # Can't install pytorch with pip, use conda
+    # It is not considered best practice to use install_requires to pin
+    # dependencies to specific versions, or to specify sub-dependencies
+    # (i.e. dependencies of your dependencies). This is overly-restrictive,
+    # and prevents the user from gaining the benefit of dependency upgrades.
+    install_requires=['torch==0.4.0',
                       'torchvision',
                       'torchtext',
                       'tensorboardX',
@@ -160,9 +164,9 @@ setup(
                       'tqdm',
                       'nltk',
                       'h5py',
-                      'pillow>=4.1.1',  # for torchvision
                       'six',
-                      'pyqt5==5.10.1'  # to avoid PyQt5.sip being separated
+                      # 'pillow>=4.1.1',  # for torchvision
+                      # 'pyqt5==5.10.1'  # to avoid PyQt5.sip being separated
                       ],
 
     # List additional groups of dependencies here (e.g. development
