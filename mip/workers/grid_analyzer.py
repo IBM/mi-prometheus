@@ -29,7 +29,6 @@ import os
 import csv
 import yaml
 import numpy as np
-import pandas as pd
 from datetime import datetime
 from functools import partial
 from multiprocessing.pool import ThreadPool
@@ -163,8 +162,11 @@ class GridAnalyzer(GridWorker):
         # check if that the `testing.csv` files are not empty
         experiments_tests = [elem for elem in experiments_tests if os.stat(elem + '/testing_statistics.csv').st_size > 24]
 
-        valid_csv = pd.read_csv(experiment_path + '/validation_statistics.csv', delimiter=',', header=0)
-        train_csv = pd.read_csv(experiment_path + '/training_statistics.csv', delimiter=',', header=0)
+        with open(os.path.join(experiment_path, '/validation_statistics.csv'), mode='r') as f:
+            valid_csv = csv.reader(f, delimiter=',')
+
+        with open(os.path.join(experiment_path, '/training_statistics.csv'), mode='r') as f:
+            train_csv = csv.reader(f, delimiter=',')
 
         # get best train point
         train_episode = train_csv.episode.values.astype(int)
@@ -194,7 +196,9 @@ class GridAnalyzer(GridWorker):
         # get test statistics
         for test_idx, experiment in zip(range(1, self.nb_tests+1), experiments_tests):
 
-            test_csv = pd.read_csv(experiment + '/testing_statistics.csv', delimiter=',', header=0)
+            with open(os.path.join(experiment_path, '/testing_statistics.csv'), mode='r') as f:
+                test_csv = csv.reader(f, delimiter=',')
+
             # get average test loss
             nb_episode = test_csv.episode.values.astype(int)[-1]+1
             losses = test_csv.loss.values.astype(float)

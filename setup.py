@@ -157,10 +157,9 @@ setup(
                       'matplotlib',
                       'numpy',
                       'PyYAML',
-                      'tqdm',   
+                      'tqdm',
                       'nltk',
                       'h5py',
-                      'pandas',
                       'pillow>=4.1.1',  # for torchvision
                       'six',
                       'pyqt5==5.10.1'  # to avoid PyQt5.sip being separated
