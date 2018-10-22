@@ -438,7 +438,9 @@ class CLEVR(ImageTextToClassProblem):
         answer_index = 0
 
         self.logger.info('Constructing {} {} words dictionary:'.format(self.dataset, set))
-        for question in tqdm.tqdm(data['questions'], size=len(data['questions'], unit='questions')):
+        # progress bar
+        t = tqdm.tqdm(total=len(data['questions']), unit=" questions", unit_scale=True, unit_divisor=1000)  # Initialize
+        for question in data['questions']:
             words = nltk.word_tokenize(question['question'])
             question_token = []
 
@@ -467,6 +469,8 @@ class CLEVR(ImageTextToClassProblem):
             result.append({'tokenized_question': question_token, 'answer': answer,
                            'string_question': question['question'], 'imgfile': question['image_filename'],
                            'question_type': question_type})
+            t.update()
+        t.close()
 
         self.logger.info('Done: constructed words dictionary of length {}, and answers dictionary of length {}'.format(len(word_dic),
                                                                                                             len(answer_dic)))
