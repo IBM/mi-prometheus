@@ -320,7 +320,7 @@ class CLEVR(ImageTextToClassProblem):
 
         # get the set descriptor
         self.set = params['settings']['set']
-        assert self.set in ['train', 'val', 'test' 'trainA', 'valA', 'valB'], "self.set must be in" \
+        assert self.set in ['train', 'val', 'test', 'trainA', 'valA', 'valB'], "self.set must be in" \
                                                      " ['train', 'val', 'test' 'trainA', 'valA', 'valB'], got {}".format(self.set)
 
         # We don't handle the creation of the test set for now since the ground truth answers are not distributed.
