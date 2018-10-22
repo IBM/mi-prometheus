@@ -231,6 +231,5 @@ setup(
         'Documentation': 'https://mi-prometheus.readthedocs.io/en/latest/',
         'Source': 'https://github.com/IBM/mi-prometheus/',
         'Bug Reports': 'https://github.com/IBM/mi-prometheus/issues',
-        'Funding': 'https://donate.pypi.org',
     },
 )
