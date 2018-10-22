@@ -154,8 +154,7 @@ setup(
     # dependencies to specific versions, or to specify sub-dependencies
     # (i.e. dependencies of your dependencies). This is overly-restrictive,
     # and prevents the user from gaining the benefit of dependency upgrades.
-    install_requires=['torch==0.4.0',
-                      'torchvision',
+    install_requires=['torchvision<0.2.0',  # to avoid AttributeError: module 'PIL.Image' has no attribute 'LANCZOS' in torchvision.transforms
                       'torchtext',
                       'tensorboardX',
                       'matplotlib',
@@ -166,7 +165,7 @@ setup(
                       'h5py',
                       'six',
                       'pyqt5==5.10.1',  # to avoid PyQt5.sip being separated
-                      # 'pillow>=4.1.1',  # for torchvision
+                      # 'torch==0.4.0',  # can't install pytorch from pip, use conda
                       ],
 
     # List additional groups of dependencies here (e.g. development
