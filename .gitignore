@@ -11,7 +11,7 @@
 !/configs/**
 !/docs/**
 !/scripts/**
-!/mip/**
+!/miprometheus/**
 
 # You can be specific with these rules
 __pycache__*

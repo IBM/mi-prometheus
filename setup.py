@@ -35,7 +35,7 @@ setup(
     # There are some restrictions on what makes a valid project name
     # specification here:
     # https://packaging.python.org/specifications/core-metadata/#name
-    name='mip',  # Required
+    name='miprometheus',  # Required
 
     # Versions should comply with PEP 440:
     # https://www.python.org/dev/peps/pep-0440/
@@ -187,7 +187,7 @@ setup(
     # If using Python 2.6 or earlier, then these have to be included in
     # MANIFEST.in as well.
     package_data={  # Optional
-        # 'mip.config': ['default_config.yaml'],
+        # 'miprometheus.config': ['default_config.yaml'],
         # we should list here some configs.yaml files that will be copied over with the data.
     },
 
@@ -207,14 +207,14 @@ setup(
     # executes the function `main` from this package when invoked:
     entry_points={  # Optional
          'console_scripts': [
-             'mip-offlinetrainer=mip.workers.offline_trainer:main',
-             'mip-onlinetrainer=mip.workers.online_trainer:main',
-             'mip-tester=mip.workers.tester:main',
-             'mip-gridtrainer-cpu=mip.workers.grid_trainer_cpu:main',
-             'mip-gridtrainer-gpu=mip.workers.grid_trainer_gpu:main',
-             'mip-gridtester-cpu=mip.workers.grid_tester_cpu:main',
-             'mip-gridtester-gpu=mip.workers.grid_tester_gpu:main',
-             'mip-gridanalyser=mip.workers.grid_analyzer:main',
+             'miprometheus-offlinetrainer=miprometheus.workers.offline_trainer:main',
+             'miprometheus-onlinetrainer=miprometheus.workers.online_trainer:main',
+             'miprometheus-tester=miprometheus.workers.tester:main',
+             'miprometheus-gridtrainer-cpu=miprometheus.workers.grid_trainer_cpu:main',
+             'miprometheus-gridtrainer-gpu=miprometheus.workers.grid_trainer_gpu:main',
+             'miprometheus-gridtester-cpu=miprometheus.workers.grid_tester_cpu:main',
+             'miprometheus-gridtester-gpu=miprometheus.workers.grid_tester_gpu:main',
+             'miprometheus-gridanalyser=miprometheus.workers.grid_analyzer:main',
          ],
      },
 
