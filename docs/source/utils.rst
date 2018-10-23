@@ -4,8 +4,8 @@
 Utilities
 ===================================
 
-.. automodule:: mip.utils
-.. currentmodule:: mip.utils
+.. automodule:: miprometheus.utils
+.. currentmodule:: miprometheus.utils
 
 AppState
 ----------
