@@ -518,4 +518,4 @@ class Trainer(Worker):
 
 if __name__ == '__main__':
     print("The trainer.py file contains only an abstract base class. Please try to use the \
-online_trainer (mip-onlinetrainer) or  offline_trainer (mip-offlinetrainer) instead.")
+online_trainer (mip-onlinetrainer) or offline_trainer (mip-offlinetrainer) instead.")
