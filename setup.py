@@ -129,7 +129,7 @@ setup(
     # project page. What does your project relate to?
     #
     # Note that this is a string of words separated by whitespace, not a list.
-    keywords='mi-prometheus machine-learning model problem grid-worker',  # Optional
+    keywords='mi-prometheus machine-learning model problem worker grid-worker',  # Optional
 
     # You can just specify package directories manually here if your project is
     # simple. Or you can use find_packages().
