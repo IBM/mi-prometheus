@@ -61,8 +61,12 @@ class GridTesterGPU(GridTesterCPU):
         :type use_gpu: bool
 
         """
-        # call base constructor
+        # Call the base constructor.
         super(GridTesterGPU, self).__init__(name=name,use_gpu=use_gpu)
+        # Check the presence of the CUDA-compatible devices.
+        if (torch.cuda.device_count() == 0):
+            self.logger.error("Cannot use GPU as there are no CUDA-compatible devices present in the system!")
+            exit(-1)
 
     def run_grid_experiment(self):
         """
