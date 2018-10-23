@@ -28,6 +28,7 @@ grid_tester_gpu.py:
 
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
+import shutil
 import torch
 from time import sleep
 from functools import partial
@@ -75,13 +76,20 @@ class GridTesterGPU(GridTesterCPU):
         if self.flags.confirm:
             input('Press any key to continue')
 
+        # Check the presence of cuda-gpupick
+        if shutil.which('cuda-gpupick') is not None:
+            prefix_str = "cuda-gpupick -n1 "
+        else:
+            self.logger.warning("Cannot localize the 'cuda-gpupick' script, disabling it")
+            prefix_str = ''
+
         # Run in as many threads as there are GPUs available to the script
         with ThreadPool(processes=torch.cuda.device_count()) as pool:
             # This contains a list of `AsyncResult` objects. To check if completed and get result.
             thread_results = []
 
             for task in self.experiments_list:
-                func = partial(GridTesterGPU.run_experiment, self, prefix="cuda-gpupick -n1 ")
+                func = partial(GridTesterGPU.run_experiment, self, prefix=prefix_str)
                 thread_results.append(pool.apply_async(func, (task,)))
 
                 # Check every 3 seconds if there is a (supposedly) free GPU to start a task on

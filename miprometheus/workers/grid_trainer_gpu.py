@@ -27,6 +27,7 @@ grid_trainer_gpu.py:
 
 __author__ = "Alexis Asseman, Younes Bouhadjar, Vincent Marois"
 
+import shutil
 from time import sleep
 from functools import partial
 from multiprocessing.pool import ThreadPool
@@ -71,13 +72,20 @@ class GridTrainerGPU(GridTrainerCPU):
         if self.flags.confirm:
             input('Press any key to continue')
 
+        # Check the presence of cuda-gpupick
+        if shutil.which('cuda-gpupick') is not None:
+            prefix_str = "cuda-gpupick -n1 "
+        else:
+            self.logger.warning("Cannot localize the 'cuda-gpupick' script, disabling it")
+            prefix_str = ''
+
         # Run in as many threads as there are GPUs available to the script
         with ThreadPool(processes=self.max_concurrent_run) as pool:
             # This contains a list of `AsyncResult` objects. To check if completed and get result.
             thread_results = []
 
             for task in self.experiments_list:
-                func = partial(GridTrainerGPU.run_experiment, self, prefix="cuda-gpupick -n1 ")
+                func = partial(GridTrainerGPU.run_experiment, self, prefix=prefix_str)
                 thread_results.append(pool.apply_async(func, (task,)))
 
                 # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
