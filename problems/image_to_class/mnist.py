@@ -147,11 +147,11 @@ class MNIST(ImageToClassProblem):
 
         label = self.labels[target.data]
 
-        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+        # Return data_dict.
+        data_dict = self.create_data_dict()
         data_dict['images'] = img
         data_dict['targets'] = target
         data_dict['targets_label'] = label
-
         return data_dict
 
     def collate_fn(self, batch):
@@ -201,13 +201,14 @@ if __name__ == "__main__":
     # wrap DataLoader on top of this Dataset subclass
     from torch.utils.data.dataloader import DataLoader
     dataloader = DataLoader(dataset=mnist, collate_fn=mnist.collate_fn,
-                            batch_size=batch_size, shuffle=True, num_workers=8)
+                            batch_size=batch_size, shuffle=True, num_workers=4)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
     import time
     s = time.time()
     for i, batch in enumerate(dataloader):
-        print('Batch # {} - {}'.format(i, type(batch)))
+        #print('Batch # {} - {}'.format(i, type(batch)))
+        pass
 
     print('Number of workers: {}'.format(dataloader.num_workers))
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
