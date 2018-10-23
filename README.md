@@ -14,6 +14,7 @@
 
 [![GitHub license](https://img.shields.io/github/license/IBM/mi-prometheus.svg?&style=flat-square)](https://github.com/IBM/mi-prometheus/blob/master/LICENSE)
 [![Documentation Status](https://readthedocs.org/projects/mi-prometheus/badge/?version=latest&style=flat-square)](https://mi-prometheus.readthedocs.io/en/latest/?badge=latest)
+[![GitHub version](https://badge.fury.io/gh/IBM%2Fmi-prometheus.svg?&style=flat-square)](https://badge.fury.io/gh/IBM%2Fmi-prometheus)
 ## Description
 
 MI-Prometheus (Machine Intelligence – Prometheus), an open-source framework built on top of PyTorch, enabling rapid development and comparison of diverse neural network-based models. In MI-Prometheus training and testing mechanisms are no longer pinned to a specific model or problem, whereas build-in mechanisms for configuration management facilitate running experiments combining different models with problems.
