@@ -4,8 +4,8 @@
 Utilities
 ===================================
 
-.. automodule:: utils
-.. currentmodule:: utils
+.. automodule:: mip.utils
+.. currentmodule:: mip.utils
 
 AppState
 ----------
@@ -90,8 +90,8 @@ Losses
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-Problems
-----------
+Problems Utils
+--------------------
 
 :hidden:`GenerateFeatureMaps`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -1,0 +1,15 @@
+# .readthedocs.yml
+
+# build image specification
+build:
+    image: latest
+
+# Python configuration
+python:
+  version: 3.6
+  setup_py_install: true
+
+#requirements_file: requirements_docs.txt
+
+# Don't build any extra formats
+formats: []

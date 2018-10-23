@@ -4,13 +4,13 @@
 Workers
 ============
 
-.. automodule:: workers
-.. currentmodule:: workers
+.. automodule:: mip.workers
+.. currentmodule:: mip.workers
 
 Worker
 --------------
 
-.. automodule:: workers.worker
+.. automodule:: mip.workers.worker
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -18,7 +18,7 @@ Worker
 Trainer
 ----------------------------
 
-.. automodule:: workers.trainer
+.. automodule:: mip.workers.trainer
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -26,7 +26,7 @@ Trainer
 OnlineTrainer
 ----------------------------
 
-.. automodule:: workers.online_trainer
+.. automodule:: mip.workers.online_trainer
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -34,7 +34,7 @@ OnlineTrainer
 OfflineTrainer
 ----------------------------
 
-.. automodule:: workers.offline_trainer
+.. automodule:: mip.workers.offline_trainer
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -42,7 +42,7 @@ OfflineTrainer
 Tester
 ----------------------------
 
-.. automodule:: workers.tester
+.. automodule:: mip.workers.tester
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -50,7 +50,7 @@ Tester
 GridTrainerCPU
 --------------
 
-.. automodule:: workers.grid_trainer_cpu
+.. automodule:: mip.workers.grid_trainer_cpu
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -58,7 +58,7 @@ GridTrainerCPU
 GridTrainerGPU
 --------------
 
-.. automodule:: workers.grid_trainer_gpu
+.. automodule:: mip.workers.grid_trainer_gpu
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -66,7 +66,7 @@ GridTrainerGPU
 GridTesterCPU
 --------------
 
-.. automodule:: workers.grid_tester_cpu
+.. automodule:: mip.workers.grid_tester_cpu
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -74,7 +74,7 @@ GridTesterCPU
 GridTesterGPU
 --------------
 
-.. automodule:: workers.grid_tester_gpu
+.. automodule:: mip.workers.grid_tester_gpu
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -82,7 +82,7 @@ GridTesterGPU
 GridAnalyzer
 --------------
 
-.. automodule:: workers.grid_analyzer
+.. automodule:: mip.workers.grid_analyzer
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__

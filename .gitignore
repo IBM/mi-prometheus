@@ -5,15 +5,13 @@
 # Recursively allow files under subtree
 
 !Readme.md
+!readthedocs.yml
+!setup.py
 !__init__.py
 !/configs/**
-!/configuration/**
 !/docs/**
-!/models/**
-!/problems/**
 !/scripts/**
-!/utils/**
-!/workers/**
+!/miprometheus/**
 
 # You can be specific with these rules
 __pycache__*

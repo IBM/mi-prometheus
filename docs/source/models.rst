@@ -4,8 +4,8 @@
 Models
 ========
 
-.. automodule:: models
-.. currentmodule:: models
+.. automodule:: mip.models
+.. currentmodule:: mip.models
 
 Model
 ----------
@@ -28,28 +28,28 @@ Visual Question Answering baselines
 
 :hidden:`CNN + LSTM`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.vqa_baselines.cnn_lstm
+.. automodule:: mip.models.vqa_baselines.cnn_lstm
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`Stacked Attention Networks`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.vqa_baselines.stacked_attention_networks
+.. automodule:: mip.models.vqa_baselines.stacked_attention_networks
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`MAC`
 ~~~~~~~~~~~~~~~~
-.. automodule:: models.mac
+.. automodule:: mip.models.mac
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`Relational Networks`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.relational_net
+.. automodule:: mip.models.relational_net
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -57,7 +57,7 @@ Visual Question Answering baselines
 
 Image Classification models
 ------------------------------
-.. automodule:: models.vision
+.. automodule:: mip.models.vision
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -66,14 +66,14 @@ Image Classification models
 
 Controllers for MANNs models
 ------------------------------
-.. automodule:: models.controllers
+.. automodule:: mip.models.controllers
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 SequentialModel
 ----------------------
-..  currentmodule:: models
+..  currentmodule:: mip.models
 .. autoclass:: SequentialModel
     :members:
     :special-members:
@@ -81,35 +81,35 @@ SequentialModel
 
 :hidden:`DWM`
 ~~~~~~~~~~~~~~~~
-.. automodule:: models.dwm
+.. automodule:: mip.models.dwm
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`DNC`
 ~~~~~~~~~~~~~~~~
-.. automodule:: models.dnc
+.. automodule:: mip.models.dnc
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`NTM`
 ~~~~~~~~~~~~~~~~
-.. automodule:: models.ntm
+.. automodule:: mip.models.ntm
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`LSTM`
 ~~~~~~~~~~~~~~~~
-.. automodule:: models.lstm
+.. automodule:: mip.models.lstm
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`ThalNet`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.thalnet
+.. automodule:: mip.models.thalnet
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -117,7 +117,7 @@ SequentialModel
 
 :hidden:`Encoder-Solver models`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: models.encoder_solver
+.. automodule:: mip.models.encoder_solver
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
