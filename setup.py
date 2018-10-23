@@ -214,7 +214,7 @@ setup(
              'mip-gridtrainer-gpu=miprometheus.workers.grid_trainer_gpu:main',
              'mip-gridtester-cpu=miprometheus.workers.grid_tester_cpu:main',
              'mip-gridtester-gpu=miprometheus.workers.grid_tester_gpu:main',
-             'mip-gridanalyser=miprometheus.workers.grid_analyzer:main',
+             'mip-gridanalyzer=miprometheus.workers.grid_analyzer:main',
          ],
      },
 
