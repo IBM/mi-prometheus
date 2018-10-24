@@ -1,5 +1,5 @@
 training:
-    cuda: True
+
     # Problem parameters:
     problem:
         name: &name CLEVR
@@ -33,7 +33,6 @@ training:
     seed_numpy: 0
 
 testing:
-    cuda: True
     # Problem parameters:
     problem:
         name: *name
@@ -52,7 +51,6 @@ testing:
                 embedding_dim: 300
 
 validation:
-    cuda: True
     partial_validation_interval: 200
     # Problem parameters:
     problem:

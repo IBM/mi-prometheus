@@ -3,90 +3,96 @@
 
 #### Bringing (Py)Torch To Mankind
 
-|   |  |
-| --- | --- |
-| Version | 0.2 |
-| Authors | Tomasz Kornuta, Vincent Marois, Ryan L. McAvoy, Younes Bouhadjar, Alexis Asseman, Vincent Albouy, T.S. Jayram, Ahmet S. Ozcan |
-| Web site | https://github.com/IBM/mi-prometheus |
-| Documentation | http://mi-prometheus.readthedocs.io/ |
-| Copyright | This document has been placed in the public domain. |
-| License | Mi-Prometheus is released under the Apache 2.0 License. |
 
 [![GitHub license](https://img.shields.io/github/license/IBM/mi-prometheus.svg)](https://github.com/IBM/mi-prometheus/blob/master/LICENSE)
 [![Documentation Status](https://readthedocs.org/projects/mi-prometheus/badge/?version=latest)](https://mi-prometheus.readthedocs.io/en/latest/?badge=latest)
+[![GitHub version](https://badge.fury.io/gh/IBM%2Fmi-prometheus.svg)](https://badge.fury.io/gh/IBM%2Fmi-prometheus)
+
+
+- [Description](#description)
+- [Installation](#installation)
+- [Core ideas](#core-ideas)
+- [Core features](#core-features)
+    - [Base Workers](#base-workers)
+    - [Grid Workers](#grid-workers)
+- [Documentation](#documentation)
+- [Getting Started](#getting-started)
+- [Contributing](#contributing)
+- [The Team](#the-team)
+
+
 ## Description
 
-MI-Prometheus (Machine Intelligence – Prometheus), an open-source framework built on top of PyTorch, enabling rapid development and comparison of diverse neural network-based models. In MI-Prometheus training and testing mechanisms are no longer pinned to a specific model or problem, whereas build-in mechanisms for configuration management facilitate running experiments combining different models with problems.
+MI-Prometheus (Machine Intelligence - Prometheus), an open-source framework aiming at _accelerating Machine Learning Research_, by fostering the rapid development of diverse neural network-based models and facilitating their comparison. 
+In its core, to _accelerate the computations_ on their own, MI-Prometheus relies on PyTorch and extensively uses its mechanisms for the distribution of computations on CPUs/GPUs.
+
+In MI-Prometheus, the training & testing mechanisms are no longer pinned to a specific model or problem, and built-in mechanisms for easy configuration management & statistics collection facilitate running experiments combining different models with problems.
 
 A project of the Machine Intelligence team, IBM Research, Almaden.
 
 
+### Installation
+
+PyTorch is the main library used by MI-Prometheus for tensors computations.
+Please refer to the [official installation guide for PyTorch](https://github.com/pytorch/pytorch#installation) to install it.
+We currently do not officially support PyTorch >= v0.4.1 (especially the v1.0 preview), but intend to in the near future.
+
+To install MI-Prometheus, you can use the `setup.py` script with the following command:
+
+    python setup.py install
+
+We will upload MI-prometheus to [PyPI](https://pypi.org/) in the near future.
+
+The dependencies of MI-prometheus are: 
+
+   * pytorch (v. 0.4.0)
+   * numpy
+   * torchvision (v. 0.2.0)
+   * torchtext
+   * tensorboardx
+   * matplotlib 
+   * PyYAML
+   * tqdm
+   * nltk
+   * h5py
+   * six
+   * pyqt5 (v. 5.10.1)
+
+
 ## Core ideas
 
-   * Problem: a dataset or a data generator, returning a batch of inputs and ground truth labels used for a model training/validation/test,
-   * Model: a trainable model (i.e. a neural network),
-   * Worker: a specialized application that instantiates the Problem \& Model objects and controls the interactions between them.
-   * Configuration file(s): YAML file(s) containing the parameters of the Problem, Model and training procedure (e.g. terminal conditions, curriculum learning parameters),
-   * Experiment: a single run (training or test) of a given Model on a given Problem, using a specific Worker and Configuration file(s).
+   * **Problem**: A dataset or a data generator, returning a batch of inputs and ground truth labels used for a model training/validation/test,
+   * **Model**: A trainable model (i.e. a neural network),
+   * **Worker**: A specialized application that instantiates the Problem \& Model objects and controls the interactions between them,
+   * **Configuration file(s)**: YAML file(s) containing the parameters of the Problem, Model and training procedure (e.g. terminal conditions, random seeds), divided into several sections,
+   * **Experiment**: A single run (training & validation or test) of a given Model on a given Problem, using a specific Worker and Configuration file(s). Such an Experiment also collects and logs diverse statistics during its execution.
 
 ## Core features
 
    * A configuration management relying on (optionally nested) human-readable YAML files,
-   * Standardization of the interfaces of the components needed in a typical deep learning system: problems, models architectures, training/test procedures etc.,
    * Reusable scripts unifying the training & test procedures, enabling reproducible experiments, 
    * Automated tools for collecting statistics and logging the results of the experiments,
    * A set of scripts for running a number ("grid") of experiments on collections of CPUs/GPUs,
    * A collection of diverse problems, currently covering most of the actively explored domains,
    * A collection of (often state-of-the-art) models,
    * A set of tools to analyze the models during training and test (displaying model statistics and graph, dynamic visualizations, export of data to TensorBoard).
-
-## Dependencies
-
-   * PyTorch (v. 0.4)
-   * MatPlotLib
-   * TorchVision
-   * TensorBoardX
-   * Torchtext
-   * Pyyaml
-   * Sphinx
-   * Sphinx_rtd_theme
-   * Progressbar2
-   * NLTK
-   * H5PY
-   * Pandas
-   * Pillow
-   * Six
-   * PyQT
    
 
-### Installation of the dependencies/required tools
 
-PyTorch is the main library used by MI-Prometheus for tensors computations.
-Please refer to the [official installation guide for PyTorch](https://github.com/pytorch/pytorch#installation) to install it.
-We do not support PyTorch >= v0.4.1 (especially the v1.0 preview), but intend to.
 
-For the other dependencies, we mostly use [conda]() as the packages & virtual environment manager.
-We recommend using it to install the other libraries which MI-Prometheus is using.
+### Base workers
 
-Installing requirements for MI-Prometheus (tested on Ubuntu 16.14):
-    
-    # not available in conda
-    pip install torchtext tensorboardX
-    
-    conda install matplotlib pyyaml ffmpeg sphinx sphinx_rtd_theme tqdm progressbar2 nltk h5py pandas pillow six pyqt -y
-
-A `setup.py` script should be coming soon.
-## Main workers
+The base workers are the main way you will use MI-Prometheus. They are parameterizable, OOP-designed scripts which will execute a specific task related to the supervised training or test of a Model on a Problem, following a Configuration.
 
    * Offline Trainer - A traditional trainer, epoch-based and well-suited for traditional supervised training.
 
 ```console
-foo@bar:~$ python workers/offline_trainer.py --h
-usage: offline_trainer.py [-h] [--config CONFIG] [--model MODEL] [--gpu]
-                          [--outdir OUTDIR] [--savetag SAVETAG]
-                          [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                          [--li LOGGING_INTERVAL] [--agree]
-                          [--tensorboard {0,1,2}] [--visualize {-1,0,1,2,3}]
+foo@bar:~$ mip-offline-trainer --h
+usage: mip-offline-trainer [-h] [--config CONFIG] [--model MODEL] [--gpu]
+                           [--outdir OUTDIR] [--savetag SAVETAG]
+                           [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                           [--li LOGGING_INTERVAL] [--agree]
+                           [--tensorboard {0,1,2}] [--visualize {-1,0,1,2,3}]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -118,12 +124,12 @@ optional arguments:
    * Online Trainer - A different type of trainer, more flexible and well-suited for problems generating samples _on-the-fly_.
 
 ```console
-foo@bar:~$ python workers/online_trainer.py --h
-usage: online_trainer.py [-h] [--config CONFIG] [--model MODEL] [--gpu]
-                         [--outdir OUTDIR] [--savetag SAVETAG]
-                         [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                         [--li LOGGING_INTERVAL] [--agree]
-                         [--tensorboard {0,1,2}] [--visualize {-1,0,1,2,3}]
+foo@bar:~$ mip-online-trainer --h
+usage: mip-online-trainer [-h] [--config CONFIG] [--model MODEL] [--gpu]
+                          [--outdir OUTDIR] [--savetag SAVETAG]
+                          [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                          [--li LOGGING_INTERVAL] [--agree]
+                          [--tensorboard {0,1,2}] [--visualize {-1,0,1,2,3}]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -156,11 +162,11 @@ optional arguments:
    * Tester - A worker which loads a pretrained model and tests it on a given problem.
 
 ```console
-foo@bar:~$ python workers/tester.py --h
-usage: tester.py [-h] [--config CONFIG] [--model MODEL] [--gpu]
-                 [--outdir OUTDIR] [--savetag SAVETAG]
-                 [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                 [--li LOGGING_INTERVAL] [--agree] [--visualize]
+foo@bar:~$ mip-tester --h
+usage: mip-tester [-h] [--config CONFIG] [--model MODEL] [--gpu]
+                  [--outdir OUTDIR] [--savetag SAVETAG]
+                  [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                  [--li LOGGING_INTERVAL] [--agree] [--visualize]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -178,20 +184,20 @@ optional arguments:
 
 ```
 
-## Grid workers
+### Grid workers
 
 Grid Workers manage several experiments ("_grids_") by reusing the base workers, such as OfflineTrainer \& Tester.
 There are 3 types of Grid Workers:
 
-- Grid Trainers, which span several trainings in parallel. Two versions are available: One for CPU cores (GridTrainerCPU) and one for GPUs (CUDA) (GridTrainerGPU),
-- Grid Testers, which test several trained models in parallel. The same two versions are available: GridTesterCPU & GridTesterGPU,
-- GridAnalyzer,which summarizes the results of several trainings & tests into one csv file.
+- mip-grid-trainer-*, which span several trainings in parallel. Two versions are available: One for CPU cores (`GridTrainerCPU`) and one for GPUs (CUDA) (`GridTrainerGPU`),
+- mip-grid-tester-*, which test several trained models in parallel. The same two versions are available: `GridTesterCPU` & `GridTesterGPU`,
+- mip-grid-analyzer, which summarizes the results of several trainings & tests into one csv file.
 
  * Grid Trainer(s):
 
 ```console
-foo@bar:~$ python workers/grid_trainer_cpu.py --h
-usage: grid_trainer_cpu.py [-h] [--outdir OUTDIR] [--savetag SAVETAG]
+foo@bar:~$ mip-grid-trainer-cpu --h
+usage: mip-grid-trainer-cpu [-h] [--outdir OUTDIR] [--savetag SAVETAG]
                            [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                            [--li LOGGING_INTERVAL] [--agree] [--config CONFIG]
                            [--online_trainer] [--tensorboard {0,1,2}]
@@ -217,8 +223,8 @@ optional arguments:
  * Grid Tester(s):
 
 ```console
-foo@bar:~$ python workers/grid_tester_cpu.py --h
-usage: grid_tester_cpu.py [-h] [--outdir OUTDIR] [--savetag SAVETAG]
+foo@bar:~$ mip-grid-tester-cpu --h
+usage: mip-grid-tester-cpu [-h] [--outdir OUTDIR] [--savetag SAVETAG]
                           [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                           [--li LOGGING_INTERVAL] [--agree] [--n NUM_TESTS]
 
@@ -236,17 +242,26 @@ optional arguments:
 
  * Grid Analyzer: Similar options.
 
+**NOTES**: 
+* We primarily test MI-Prometheus on CUDA devices, as they are our main hardware setup and PyTorch mainly supports CUDA as a backend.
+* We currently are using a utility called [cuda-gpupick](https://github.com/aasseman/cuda-gpupick) to  pick unused CUDA devices (in a topology-aware fashion) for the GPU versions of the Grid Workers.
+While this utility is easily installable and usable, we understand that this is a supplementary constraint, which we will work on to relax it.
 
+   
 ## Documentation
 
-Documentation is created using `Sphinx`. In order to generate it, you can run the following command:
+Documentation is created using `Sphinx`, and is available on [readthedocs.io](https://mi-prometheus.readthedocs.io/en/latest/).
 
-    /mi-prometheus/scripts/docgen.sh
+## Getting Started
 
-This script requires that the `Python` packages Sphinx & sphinx_rtd_theme are installed in the environment.
-You should also ensure that the dependencies of MI-Prometheus are also present, as Sphinx imports the packages & modules to pull the docstrings.
+- [Tutorials: get you started with understanding and using MI-prometheus](): Coming soon!
+- [The API Reference](https://mi-prometheus.readthedocs.io/en/latest/)
 
-## Maintainers
+## Contributing
+
+You are encouraged if you would like to contribute! Please use the [issues](https://github.com/IBM/mi-prometheus/issues) if you want to request a new feature or a fix, so that we can discuss it first.
+
+## The Team
 
 * Tomasz Kornuta (tkornut@us.ibm.com)
 * Vincent Marois (vincent.marois@protonmail.com)
