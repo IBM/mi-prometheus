@@ -27,6 +27,7 @@ grid_trainer_cpu.py:
 __author__ = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta, Vincent Marois"
 
 import os
+import shutil
 import yaml
 import subprocess
 from time import sleep
@@ -123,19 +124,27 @@ class GridTrainerCPU(GridWorker):
             print('yaml.YAMLERROR:', e)
             exit(-3)
 
+        # Check the presence of mip-*-trainer scripts.
+        if self.flags.online_trainer:
+            if shutil.which('mip-online-trainer') is None:
+                self.logger.error("Cannot localize the 'mip-online-trainer' script! (hints: please use setup.py to install it)")
+                exit(-4)
+        else:
+            if shutil.which('mip-offline-trainer') is None:
+                self.logger.error("Cannot localize the 'mip-offline-trainer' script! (hints: please use setup.py to install it)")
+                exit(-4)
+
         # Get grid settings.
         try:
             experiment_repetitions = grid_dict['grid_settings']['experiment_repetitions']
-            self.max_concurrent_run = grid_dict['grid_settings']['max_concurrent_runs']
-
+            self.max_concurrent_runs = grid_dict['grid_settings']['max_concurrent_runs']
         except KeyError:
             print("Error: The 'grid_settings' section must define 'experiment_repetitions' and 'max_concurrent_runs'.")
-            exit(-4)
+            exit(-5)
 
         # Check the presence of grid_overwrite section.
         if 'grid_overwrite' not in grid_dict:
             grid_overwrite_filename = None
-
         else:
             # Create temporary file with settings that will be overwritten for all tasks.
             grid_overwrite_file = NamedTemporaryFile(mode='w', delete=False)
@@ -145,7 +154,7 @@ class GridTrainerCPU(GridWorker):
         # Check the presence of the tasks section.
         if 'grid_tasks' not in grid_dict:
             print("Error: Grid configuration is lacking the 'grid_tasks' section.")
-            exit(-5)
+            exit(-6)
 
         # Create temporary file
         param_interface_file = NamedTemporaryFile(mode='w', delete=False)
@@ -180,7 +189,7 @@ class GridTrainerCPU(GridWorker):
 
         # at this point, configs should contains the str of config file(s) corresponding to the grid_tasks.
 
-        # Create list of experiments
+        # Create list of experiments, repeat the ones that are required.
         self.experiments_list = []
         for _ in range(experiment_repetitions):
             self.experiments_list.extend(configs)
@@ -203,6 +212,35 @@ class GridTrainerCPU(GridWorker):
                 sleep(1)
             else:
                 break
+
+
+    def run_grid_experiment(self):
+        """
+        Main function of the ``GridTrainerCPU``.
+
+        Maps the grid experiments to CPU cores in the limit of the maximum concurrent runs allowed or maximum\
+         available cores.
+
+        """
+        # Ask for confirmation - optional.
+        if self.flags.confirm:
+            input('Press any key to continue')
+
+        # Check max number of child processes. 
+        if self.max_concurrent_runs <= 0: # We need at least one proces!
+            max_processes = len(os.sched_getaffinity(0))
+        else:    
+            # Take into account the minimum value.
+            max_processes = min(len(os.sched_getaffinity(0)), self.max_concurrent_runs)
+        self.logger.info('Spanning experiments using {} CPU(s) concurrently.'.format(max_processes))
+
+        # Run in as many threads as there are CPUs available to the script.
+        with ThreadPool(processes=max_processes) as pool:
+            func = partial(GridTrainerCPU.run_experiment, self, prefix="")
+            pool.map(func, self.experiments_list)
+
+        self.logger.info('Grid training experiments finished.')
+
 
     def run_experiment(self, experiment_configs: str, prefix=""):
         """
@@ -227,9 +265,9 @@ class GridTrainerCPU(GridWorker):
         """
         # set the command to be executed using the indicated Trainer
         if self.flags.online_trainer:
-            command_str = "{}python3 workers/online_trainer.py".format(prefix)
+            command_str = "{}mip-online-trainer".format(prefix)
         else:
-            command_str = "{}python3 workers/offline_trainer.py".format(prefix)
+            command_str = "{}mip-offline-trainer".format(prefix)
 
         # Add gpu flag if required.
         if self.app_state.use_CUDA:
@@ -254,27 +292,6 @@ class GridTrainerCPU(GridWorker):
 
         if result.returncode != 0:
             self.logger.info("Training exited with code: {}".format(result.returncode))
-
-    def run_grid_experiment(self):
-        """
-        Main function of the ``GridTrainerCPU``.
-
-        Maps the grid experiments to CPU cores in the limit of the maximum concurrent runs allowed or maximum\
-         available cores.
-
-        """
-        # Ask for confirmation - optional.
-        if self.flags.confirm:
-            input('Press any key to continue')
-
-        # Run in as many threads as there are CPUs available to the script
-        max_processes = min(len(os.sched_getaffinity(0)), self.max_concurrent_run)
-
-        with ThreadPool(processes=max_processes) as pool:
-            func = partial(GridTrainerCPU.run_experiment, self, prefix="")
-            pool.map(func, self.experiments_list)
-
-        self.logger.info('Grid training experiments finished.')
 
 
 def main():

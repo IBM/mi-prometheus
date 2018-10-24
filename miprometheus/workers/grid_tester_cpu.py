@@ -28,6 +28,7 @@ grid_tester_cpu.py:
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import os
+import shutil
 import subprocess
 from functools import partial
 from multiprocessing.pool import ThreadPool
@@ -60,12 +61,23 @@ class GridTesterCPU(GridWorker):
         # call base constructor
         super(GridTesterCPU, self).__init__(name=name,use_gpu=use_gpu)
 
-        # get number_of_repetitions
-        self.parser.add_argument('--n',
-                                 dest='num_tests',
+        # Get number_of_repetitions
+        self.parser.add_argument('--r',
+                                 dest='experiment_repetitions',
                                  type=int,
                                  default=1,
-                                 help='Number of test experiments to run for each model.')
+                                 help='Number of experiment repetitions to run for each model.'
+                                 ' (DEFAULT=1)')
+
+        # Get number_of_repetitions
+        self.parser.add_argument('--m',
+                                 dest='max_concurrent_runs',
+                                 type=int,
+                                 default=-1,
+                                 help='Value limiting the number of concurently running experiments.'
+                                    'The set limit will be truncated by number of available CPUs/GPUs.'
+                                    ' (DEFAULT=-1, meaning that it will be set to the number of CPUs/GPUs)')
+
 
     def setup_grid_experiment(self):
         """
@@ -83,13 +95,20 @@ class GridTesterCPU(GridWorker):
         """
         super(GridTesterCPU, self).setup_grid_experiment()
 
+        # Check the presence of mip-tester script.
+        if shutil.which('mip-tester') is None:
+            self.logger.error("Cannot localize the 'mip-tester' script! (hints: please use setup.py to install it)")
+            exit(-1)
+
         directory_chckpnts = self.flags.outdir
-        num_tests = self.flags.num_tests
+        # Get grid settings.
+        experiment_repetitions = self.flags.experiment_repetitions
+        self.max_concurrent_runs = self.flags.max_concurrent_runs
 
         # get all sub-directories paths in outdir, repeating according to flags.num
         self.experiments_list = []
 
-        for _ in range(num_tests):
+        for _ in range(experiment_repetitions):
             for root, dirs, files in os.walk(directory_chckpnts, topdown=True):
                 for name in dirs:
                     self.experiments_list.append(os.path.join(root, name))
@@ -104,6 +123,35 @@ class GridTesterCPU(GridWorker):
 
         self.logger.info('Number of experiments to run: {}'.format(len(self.experiments_list)))
         self.experiments_done = 0
+
+
+    def run_grid_experiment(self):
+        """
+        Main function of the ``GridTesterCPU``.
+
+        Maps the grid experiments to CPU cores in the limit of the maximum concurrent runs allowed or maximum\
+         available cores.
+
+        """
+        # Ask for confirmation - optional.
+        if self.flags.confirm:
+            input('Press any key to continue')
+
+        # Check max number of child processes. 
+        if self.max_concurrent_runs <= 0: # We need at least one proces!
+            max_processes = len(os.sched_getaffinity(0))
+        else:    
+            # Take into account the minimum value.
+            max_processes = min(len(os.sched_getaffinity(0)), self.max_concurrent_runs)
+        self.logger.info('Spanning experiments using {} CPU(s) concurrently.'.format(max_processes))
+
+        # Run in as many threads as there are CPUs available to the script.
+        with ThreadPool(processes=max_processes) as pool:
+            func = partial(GridTesterCPU.run_experiment, self, prefix="")
+            pool.map(func, self.experiments_list)
+
+        self.logger.info('Grid test experiments finished.')
+
 
     def run_experiment(self, experiment_path: str, prefix=""):
         """
@@ -131,7 +179,7 @@ class GridTesterCPU(GridWorker):
         else:
 
             # Run the test
-            command_str = "{}python3 workers/tester.py --model {} --li {} --ll {}".format(prefix, path_to_model,
+            command_str = "{}mip-tester --model {} --li {} --ll {}".format(prefix, path_to_model,
                                                                                        self.flags.logging_interval,
                                                                                        self.flags.log_level)
             # Add gpu flag if required.
@@ -149,25 +197,6 @@ class GridTesterCPU(GridWorker):
 
             if result.returncode != 0:
                 self.logger.info("Testing exited with code: {}".format(result.returncode))
-
-    def run_grid_experiment(self):
-        """
-        Main function of the ``GridTesterCPU``.
-
-        Maps the grid experiments to CPU cores in the limit of the maximum concurrent runs allowed or maximum\
-         available cores.
-
-        """
-        # Ask for confirmation - optional.
-        if self.flags.confirm:
-            input('Press any key to continue')
-
-        # Run in as many threads as there are CPUs available to the script
-        with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
-            func = partial(GridTesterCPU.run_experiment, self, prefix="")
-            pool.map(func, self.experiments_list)
-
-        self.logger.info('Grid test experiments finished.')
 
 
 def main():

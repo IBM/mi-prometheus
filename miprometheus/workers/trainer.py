@@ -144,6 +144,11 @@ class Trainer(Worker):
             print('Please pass configuration file(s) as --c parameter')
             exit(-1)
 
+        # Check the presence of the CUDA-compatible devices.
+        if self.flags.use_gpu and (torch.cuda.device_count() == 0):
+            self.logger.error("Cannot use GPU as there are no CUDA-compatible devices present in the system!")
+            exit(-2)
+            
         # Get the list of configurations which need to be loaded.
         configs_to_load = self.recurrent_config_parse(self.flags.config, [])
 
@@ -515,3 +520,7 @@ class Trainer(Worker):
 
         # Return the average validation loss.
         return self.validation_stat_agg['loss']
+
+if __name__ == '__main__':
+    print("The trainer.py file contains only an abstract base class. Please try to use the \
+online_trainer (mip-onlinetrainer) or  offline_trainer (mip-offlinetrainer) instead.")

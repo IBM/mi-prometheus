@@ -126,6 +126,11 @@ class Tester(Worker):
             print('Config file {} does not exist'.format(config_file))
             exit(-3)
 
+        # Check the presence of the CUDA-compatible devices.
+        if self.flags.use_gpu and (torch.cuda.device_count() == 0):
+            self.logger.error("Cannot use GPU as there are no CUDA-compatible devices present in the system!")
+            exit(-4)
+
         # Get the list of configurations which need to be loaded.
         configs_to_load = self.recurrent_config_parse(config_file, [])
 
