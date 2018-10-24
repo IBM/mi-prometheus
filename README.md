@@ -10,11 +10,11 @@
 
 
 - [Description](#description)
+- [Installation](#installation)
 - [Core ideas](#core-ideas)
 - [Core features](#core-features)
-- [Installation](#installation)
-- [Main Workers](#main-workers)
-- [Grid Workers](#grid-workers)
+    - [Main Workers](#main-workers)
+    - [Grid Workers](#grid-workers)
 - [Documentation](#documentation)
 - [Getting Started](#getting-started)
 - [Contributing](#contributing)
@@ -26,29 +26,10 @@
 MI-Prometheus (Machine Intelligence - Prometheus), an open-source framework aiming at _accelerating Machine Learning Research_, by fostering the rapid development of diverse neural network-based models and facilitating their comparison. 
 In its core, to _accelerate the computations_ on their own, MI-Prometheus relies on PyTorch and extensively uses its mechanisms for the distribution of computations on CPUs/GPUs.
 
-In MI-Prometheus, the training & testing mechanisms are no longer pinned to a specific model or problem, and build-in mechanisms for easy configuration management & statistics collection facilitate running experiments combining different models with problems.
+In MI-Prometheus, the training & testing mechanisms are no longer pinned to a specific model or problem, and built-in mechanisms for easy configuration management & statistics collection facilitate running experiments combining different models with problems.
 
 A project of the Machine Intelligence team, IBM Research, Almaden.
 
-
-## Core ideas
-
-   * **Problem**: A dataset or a data generator, returning a batch of inputs and ground truth labels used for a model training/validation/test,
-   * **Model**: A trainable model (i.e. a neural network),
-   * **Worker**: A specialized application that instantiates the Problem \& Model objects and controls the interactions between them,
-   * **Configuration file(s)**: YAML file(s) containing the parameters of the Problem, Model and training procedure (e.g. terminal conditions, random seeds), divided into several sections,
-   * **Experiment**: A single run (training & validation or test) of a given Model on a given Problem, using a specific Worker and Configuration file(s). Such an Experiment also collects and logs diverse statistics during its execution.
-
-## Core features
-
-   * A configuration management relying on (optionally nested) human-readable YAML files,
-   * Reusable scripts unifying the training & test procedures, enabling reproducible experiments, 
-   * Automated tools for collecting statistics and logging the results of the experiments,
-   * A set of scripts for running a number ("grid") of experiments on collections of CPUs/GPUs,
-   * A collection of diverse problems, currently covering most of the actively explored domains,
-   * A collection of (often state-of-the-art) models,
-   * A set of tools to analyze the models during training and test (displaying model statistics and graph, dynamic visualizations, export of data to TensorBoard).
-   
 
 ### Installation
 
@@ -77,7 +58,31 @@ The dependencies of MI-prometheus are:
    * six
    * pyqt5 (v. 5.10.1)
 
-## Main workers
+
+## Core ideas
+
+   * **Problem**: A dataset or a data generator, returning a batch of inputs and ground truth labels used for a model training/validation/test,
+   * **Model**: A trainable model (i.e. a neural network),
+   * **Worker**: A specialized application that instantiates the Problem \& Model objects and controls the interactions between them,
+   * **Configuration file(s)**: YAML file(s) containing the parameters of the Problem, Model and training procedure (e.g. terminal conditions, random seeds), divided into several sections,
+   * **Experiment**: A single run (training & validation or test) of a given Model on a given Problem, using a specific Worker and Configuration file(s). Such an Experiment also collects and logs diverse statistics during its execution.
+
+## Core features
+
+   * A configuration management relying on (optionally nested) human-readable YAML files,
+   * Reusable scripts unifying the training & test procedures, enabling reproducible experiments, 
+   * Automated tools for collecting statistics and logging the results of the experiments,
+   * A set of scripts for running a number ("grid") of experiments on collections of CPUs/GPUs,
+   * A collection of diverse problems, currently covering most of the actively explored domains,
+   * A collection of (often state-of-the-art) models,
+   * A set of tools to analyze the models during training and test (displaying model statistics and graph, dynamic visualizations, export of data to TensorBoard).
+   
+
+
+
+### Base workers
+
+The base workers are the main way you will use MI-Prometheus. They are parameterizable, OOP-designed scripts which will execute a specific task related to the supervised training or test of a Model on a Problem, following a Configuration.
 
    * Offline Trainer - A traditional trainer, epoch-based and well-suited for traditional supervised training.
 
@@ -179,7 +184,7 @@ optional arguments:
 
 ```
 
-## Grid workers
+### Grid workers
 
 Grid Workers manage several experiments ("_grids_") by reusing the base workers, such as OfflineTrainer \& Tester.
 There are 3 types of Grid Workers:
