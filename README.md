@@ -13,7 +13,7 @@
 - [Installation](#installation)
 - [Core ideas](#core-ideas)
 - [Core features](#core-features)
-    - [Main Workers](#base-workers)
+    - [Base Workers](#base-workers)
     - [Grid Workers](#grid-workers)
 - [Documentation](#documentation)
 - [Getting Started](#getting-started)
