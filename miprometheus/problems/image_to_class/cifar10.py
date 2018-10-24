@@ -20,6 +20,7 @@ cifar10.py: contains code for loading the `CIFAR10` dataset using ``torchvision`
 """
 __author__ = "Younes Bouhadjar & Vincent Marois"
 
+import os
 import torch
 import numpy as np
 import torch.nn.functional as F
@@ -87,11 +88,15 @@ class CIFAR10(ImageToClassProblem):
 
         # Call base class constructors.
         super(CIFAR10, self).__init__(params)
+        self.name = 'CIFAR10'
 
         # Retrieve parameters from the dictionary.
-
         self.use_train_data = params['use_train_data']
-        self.root_dir = params['root_dir']
+
+        # Set default folder.
+        params.add_default_params({"data_folder":"~/data/cifar10"})
+        # Get absolute path.
+        data_folder = os.path.expanduser(params['data_folder'])
 
         # possibility to pad the image
         self.padding = params['padding']
@@ -117,15 +122,13 @@ class CIFAR10(ImageToClassProblem):
                                  'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
-
-        self.name = 'CIFAR10'
-
+        
         # Define transforms: takes in an PIL image and returns a transformed version
         transform = transforms.Compose([transforms.Resize((self.height, self.width)), transforms.ToTensor(
         )]) if self.up_scaling else transforms.Compose([transforms.ToTensor()])
 
         # load the dataset
-        self.dataset = datasets.CIFAR10(root=self.root_dir, train=self.use_train_data,
+        self.dataset = datasets.CIFAR10(root=data_folder, train=self.use_train_data,
                                         download=True, transform=transform)
         # type(self.train_dataset) = <class 'torchvision.datasets.cifar.CIFAR10'>
         # -> inherits from torch.utils.data.Dataset
@@ -199,7 +202,6 @@ if __name__ == "__main__":
     from miprometheus.utils.param_interface import ParamInterface
     params = ParamInterface()
     params.add_default_params({'use_train_data': True,
-                               'root_dir': '~/data/cifar10',
                                'padding': [0, 0, 0, 0],
                                'up_scaling': False
                                 })
