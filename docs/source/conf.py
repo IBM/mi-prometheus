@@ -33,12 +33,6 @@ import sphinx_rtd_theme
 # source code directory, relative to this file, for sphinx-build
 sys.path.insert(0, os.path.abspath('../..'))
 
-# These lines should not be needed, but keeping them around for now.
-# sys.path.insert(0, os.path.abspath('../'))
-# sys.path.insert(0, os.path.abspath('../../utils/'))
-# sys.path.insert(0, os.path.abspath('../../problems/'))
-# sys.path.insert(0, os.path.abspath('../../models/'))
-
 # -- Project information -----------------------------------------------------
 
 project = 'MI-Prometheus'

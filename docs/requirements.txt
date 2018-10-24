@@ -1,0 +1,2 @@
+# this is needed to build the doc
+torchvision=0.2.0
