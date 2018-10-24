@@ -63,10 +63,22 @@ class GridTesterGPU(GridTesterCPU):
         """
         # Call the base constructor.
         super(GridTesterGPU, self).__init__(name=name,use_gpu=use_gpu)
+
+    def setup_grid_experiment(self):
+        """
+        Setups a specific experiment.
+
+        - Calls the ``super(self).setup_experiment()`` to parse arguments, parse config files etc.
+
+        - Checks the presence of CUDA-compatible devices.
+
+        """
+        super(GridTesterGPU, self).setup_grid_experiment()
         # Check the presence of the CUDA-compatible devices.
         if (torch.cuda.device_count() == 0):
             self.logger.error("Cannot use GPU as there are no CUDA-compatible devices present in the system!")
             exit(-1)
+
 
     def run_grid_experiment(self):
         """
@@ -87,8 +99,16 @@ class GridTesterGPU(GridTesterCPU):
             self.logger.warning("Cannot localize the 'cuda-gpupick' script, disabling it")
             prefix_str = ''
 
-        # Run in as many threads as there are GPUs available to the script
-        with ThreadPool(processes=torch.cuda.device_count()) as pool:
+        # Check max number of child processes. 
+        if self.max_concurrent_runs <= 0: # We need at least one proces!
+            max_processes = torch.cuda.device_count()
+        else:    
+            # Take into account the minimum value.
+            max_processes = min(torch.cuda.device_count(), self.max_concurrent_runs)
+        self.logger.info('Spanning concurrent processes on {} GPU(s).'.format(max_processes))
+
+        # Run in as many threads as there are GPUs available to the script.
+        with ThreadPool(processes=max_processes) as pool:
             # This contains a list of `AsyncResult` objects. To check if completed and get result.
             thread_results = []
 
