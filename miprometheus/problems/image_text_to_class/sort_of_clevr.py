@@ -21,11 +21,11 @@ sort_of_clevr.py: ``Sort-of-CLEVR`` is a simplified version of the ``CLEVR`` dat
 """
 __author__ = "Tomasz Kornuta & Vincent Marois"
 
+import os
 import h5py
 import numpy as np
 from PIL import Image, ImageDraw
 import tqdm
-import os
 
 import torch
 from miprometheus.utils.data_dict import DataDict
@@ -669,7 +669,8 @@ if __name__ == "__main__":
 
     s = time.time()
     for i, batch in enumerate(dataloader):
-        print('Batch # {} - {}'.format(i, type(batch)))
+        #print('Batch # {} - {}'.format(i, type(batch)))
+        pass 
 
     print('Number of workers: {}'.format(dataloader.num_workers))
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))

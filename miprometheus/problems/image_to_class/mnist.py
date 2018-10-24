@@ -19,6 +19,8 @@
 mnist.py: contains code for loading the `MNIST` dataset using ``torchvision``.
 """
 __author__ = "Younes Bouhadjar & Vincent Marois"
+
+import os
 import torch
 import torch.nn.functional as F
 from torchvision import datasets, transforms
@@ -80,7 +82,11 @@ class MNIST(ImageToClassProblem):
 
         # Retrieve parameters from the dictionary.
         self.use_train_data = params['use_train_data']
-        self.root_dir = params['root_dir']
+
+        # Set default folder.
+        params.add_default_params({'data_folder': '~/data/mnist'})
+        # Get absolute path.
+        data_folder = os.path.expanduser(params['data_folder'])
 
         # possibility to pad the image
         self.padding = params['padding']
@@ -114,7 +120,7 @@ class MNIST(ImageToClassProblem):
             if self.up_scaling else transforms.Compose([transforms.ToTensor()])
 
         # load the dataset
-        self.dataset = datasets.MNIST(root=self.root_dir, train=self.use_train_data, download=True,
+        self.dataset = datasets.MNIST(root=data_folder, train=self.use_train_data, download=True,
                                             transform=transform)
         # type(self.train_dataset) = <class 'torchvision.datasets.mnist.MNIST'>
         # -> inherits from torch.utils.data.Dataset
@@ -183,7 +189,6 @@ if __name__ == "__main__":
     params = ParamInterface()
     params.add_default_params({
                                 'use_train_data': True,
-                                'root_dir': '~/data/mnist',
                                 'padding': [4, 4, 3, 3],
                                 'up_scaling': False
                                 })
