@@ -159,7 +159,7 @@ class Worker(object):
                                  dest='confirm',
                                  action='store_true',
                                  help='Request user confirmation just after loading the settings, '
-                                      'before starting training  (Default: False)')
+                                      'before starting training. (Default: False)')
 
     def setup_experiment(self):
         """

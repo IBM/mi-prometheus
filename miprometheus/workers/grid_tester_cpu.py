@@ -67,7 +67,7 @@ class GridTesterCPU(GridWorker):
                                  type=int,
                                  default=1,
                                  help='Number of experiment repetitions to run for each model.'
-                                 '(DEFAULT=1)')
+                                 ' (DEFAULT=1)')
 
         # Get number_of_repetitions
         self.parser.add_argument('--m',
@@ -76,7 +76,7 @@ class GridTesterCPU(GridWorker):
                                  default=-1,
                                  help='Value limiting the number of concurently running experiments.'
                                     'The set limit will be truncated by number of available CPUs/GPUs.'
-                                    '(DEFAULT=-1, meaning that it will be set to the number of CPUs/GPUs)')
+                                    ' (DEFAULT=-1, meaning that it will be set to the number of CPUs/GPUs)')
 
 
     def setup_grid_experiment(self):
