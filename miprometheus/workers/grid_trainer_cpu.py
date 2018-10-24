@@ -232,7 +232,7 @@ class GridTrainerCPU(GridWorker):
         else:    
             # Take into account the minimum value.
             max_processes = min(len(os.sched_getaffinity(0)), self.max_concurrent_runs)
-        self.logger.info('Spanning concurrent processes on {} CPU(s).'.format(max_processes))
+        self.logger.info('Spanning experiments using {} CPU(s) concurrently.'.format(max_processes))
 
         # Run in as many threads as there are CPUs available to the script.
         with ThreadPool(processes=max_processes) as pool:

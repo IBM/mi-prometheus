@@ -103,7 +103,7 @@ class GridTrainerGPU(GridTrainerCPU):
         else:    
             # Take into account the minimum value.
             max_processes = min(torch.cuda.device_count(), self.max_concurrent_runs)
-        self.logger.info('Spanning concurrent processes on {} GPU(s).'.format(max_processes))
+        self.logger.info('Spanning experiments using {} GPU(s) concurrently.'.format(max_processes))
 
         # Run in as many threads as there are GPUs available to the script.
         with ThreadPool(processes=max_processes) as pool:
