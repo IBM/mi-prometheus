@@ -5,7 +5,7 @@
 
 
 [![GitHub license](https://img.shields.io/github/license/IBM/mi-prometheus.svg)](https://github.com/IBM/mi-prometheus/blob/master/LICENSE)
-[![Documentation Status](https://readthedocs.org/projects/mi-prometheus/badge/?version=latest)](https://mi-prometheus.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/mi-prometheus/badge/?version=latest)](https://mi-prometheus.readthedocs.io/en/latest/?badge=stable)
 [![GitHub version](https://badge.fury.io/gh/IBM%2Fmi-prometheus.svg)](https://badge.fury.io/gh/IBM%2Fmi-prometheus)
 
 
@@ -250,7 +250,7 @@ While this utility is easily installable and usable, we understand that this is 
    
 ## Documentation
 
-Documentation is created using `Sphinx`, and is available on [readthedocs.io](https://mi-prometheus.readthedocs.io/en/latest/).
+Documentation is created using `Sphinx`, and is available on [readthedocs.io](https://mi-prometheus.readthedocs.io/en/stable/).
 
 ## Getting Started
 
