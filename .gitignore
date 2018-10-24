@@ -11,6 +11,7 @@
 !/configs/**
 !/docs/**
 !/miprometheus/**
+!.github/**
 
 # You can be specific with these rules
 __pycache__*
