@@ -154,7 +154,7 @@ setup(
     # dependencies to specific versions, or to specify sub-dependencies
     # (i.e. dependencies of your dependencies). This is overly-restrictive,
     # and prevents the user from gaining the benefit of dependency upgrades.
-    install_requires=['torchvision<0.2.0',  # to avoid AttributeError: module 'PIL.Image' has no attribute 'LANCZOS' in torchvision.transforms
+    install_requires=['torchvision',  # v0.2.0 is needed for the doc build, but we are specifying it in docs/requirements.txt
                       'torchtext',
                       'tensorboardX',
                       'matplotlib',

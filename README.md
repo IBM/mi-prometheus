@@ -50,7 +50,7 @@ The dependencies of MI-prometheus are:
 
    * pytorch (v. 0.4.0)
    * numpy
-   * torchvision (v. 0.2.0)
+   * torchvision
    * torchtext
    * tensorboardx
    * matplotlib 
