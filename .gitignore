@@ -19,8 +19,5 @@ __pycache__*
 *.vector_cache
 !.gitignore
 
-# not sure if those are needed
-problems/.DS_Store
-problems/image_text_to_class/.DS_Store
-problems/image_text_to_class/CLEVR_v1.0
-CLEVR_v1.0/
+# Ignore every DS_Store
+**/.DS_Store
