@@ -48,7 +48,7 @@ author = 'Tomasz Kornuta, Vincent Marois, Ryan L. McAvoy, Younes Bouhadjar, Alex
          'T.S. Jayram, Ahmet S. Ozcan'
 
 # The short X.Y version
-version = '0.1'
+version = '0.2.1'
 # The full version, including alpha/beta/rc tags
 release = 'master'
 
@@ -110,7 +110,7 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    'canonical_url': 'https://github.ibm.com/ai-c-working-memory/mi-prometheus/docs/',
+    'canonical_url': 'https://github.com/IBM/mi-prometheus',
     'collapse_navigation': False,
     'sticky_navigation': True,
     'navigation_depth': -1,
