@@ -265,9 +265,9 @@ class GridTrainerCPU(GridWorker):
         """
         # set the command to be executed using the indicated Trainer
         if self.flags.online_trainer:
-            command_str = "{}workers/online_trainer.py".format(prefix)
+            command_str = "{}mip-online-trainer".format(prefix)
         else:
-            command_str = "{}workers/offline_trainer.py".format(prefix)
+            command_str = "{}mip-offline-trainer".format(prefix)
 
         # Add gpu flag if required.
         if self.app_state.use_CUDA:
