@@ -8,6 +8,8 @@
 [![GitHub license](https://img.shields.io/github/license/IBM/mi-prometheus.svg)](https://github.com/IBM/mi-prometheus/blob/master/LICENSE)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/IBM/mi-prometheus.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/IBM/mi-prometheus/alerts/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/IBM/mi-prometheus.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/IBM/mi-prometheus/context:python)
+[![Maintainability](https://api.codeclimate.com/v1/badges/84d1a013d1bd15bee324/maintainability)](https://codeclimate.com/github/IBM/mi-prometheus/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/84d1a013d1bd15bee324/test_coverage)](https://codeclimate.com/github/IBM/mi-prometheus/test_coverage)
 [![Documentation Status](https://readthedocs.org/projects/mi-prometheus/badge/?version=latest)](https://mi-prometheus.readthedocs.io/en/latest/?badge=stable)
 
 - [Description](#description)
