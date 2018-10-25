@@ -34,7 +34,7 @@ class ProblemFactory(object):
     """
 
     @staticmethod
-    def build_problem(params):
+    def build(params):
         """
         Static method returning a particular problem, depending on the name \
         provided in the list of parameters.

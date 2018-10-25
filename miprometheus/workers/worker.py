@@ -218,10 +218,10 @@ class Worker(object):
         """
 
         # Build the validation problem.
-        problem = ProblemFactory.build_problem(params['problem'])
+        problem = ProblemFactory.build(params['problem'])
 
         # Try to build the sampler.
-        sampler = SamplerFactory.build_sampler(params['dataloader']['sampler'])
+        sampler = SamplerFactory.build(problem, params['dataloader']['sampler'])
         if sampler is not None:
             # Set shuffle to False - REQUIRED as those two are exclusive.
             params['dataloader'].add_config_params({'shuffle': False})

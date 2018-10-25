@@ -253,7 +253,7 @@ class Trainer(Worker):
         ################# MODEL PROBLEM ################# 
         
         # Build the model using the loaded configuration and the default values of the problem.
-        self.model = ModelFactory.build_model(self.params['model'], self.training_problem.default_values)
+        self.model = ModelFactory.build(self.params['model'], self.training_problem.default_values)
 
         # load the indicated pretrained model checkpoint if the argument is valid
         if self.flags.model != "":

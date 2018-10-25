@@ -182,21 +182,9 @@ class Tester(Worker):
 
         ################# TESTING PROBLEM ################# 
 
-        # Build problem.
-        self.problem = ProblemFactory.build_problem(self.params['testing']['problem'])
-
-        # build the DataLoader on top of the Problem class
-        self.dataloader = DataLoader(dataset=self.problem,
-                                     batch_size=self.params['testing']['problem']['batch_size'],
-                                     shuffle=self.params['testing']['dataloader']['shuffle'],
-                                     sampler=self.params['testing']['dataloader']['sampler'],
-                                     batch_sampler=self.params['testing']['dataloader']['batch_sampler'],
-                                     num_workers=self.params['testing']['dataloader']['num_workers'],
-                                     collate_fn=self.problem.collate_fn,
-                                     pin_memory=self.params['testing']['dataloader']['pin_memory'],
-                                     drop_last=self.params['testing']['dataloader']['drop_last'],
-                                     timeout=self.params['testing']['dataloader']['timeout'],
-                                     worker_init_fn=self.problem.worker_init_fn)
+        # Build test problem and dataloader.
+        self.problem, self.dataloader = \
+            self.build_problem_and_dataloader(self.params['testing']) 
 
         # check if the maximum number of episodes is specified, if not put a
         # default equal to the size of the dataset (divided by the batch size)
@@ -219,7 +207,7 @@ class Tester(Worker):
         ################# MODEL #################
 
         # Create model object.
-        self.model = ModelFactory.build_model(self.params['model'], self.problem.default_values)
+        self.model = ModelFactory.build(self.params['model'], self.problem.default_values)
 
         # Load parameters from checkpoint.
         self.model.load(self.flags.model)
