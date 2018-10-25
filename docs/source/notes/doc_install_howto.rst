@@ -1,86 +1,54 @@
-How to install pytorch and prometheus from scratch ?
-====================================================
-@author: Ryan L. McAvoy
- 
-Guidelines & examples 
--------------------------------------------
+Installation
+===================
+`@author: Vincent Marois`
 
 
-Installing on an empty server (Ubuntu 16.04). 
+To use Mi-Prometheus, we need to first install PyTorch. Refer to the official installation guide_ of PyTorch for its installation.
+It is easily installable via conda_, or you can compile it from source to optimize it for your machine.
 
-The following are examples and should be modified to suit your preferences.
+.. _guide: https://github.com/pytorch/pytorch#installation
 
-In the home directory, make an executable bash script containing following and then run it.
+Mi-Prometheus is not yet available as a pip_ package, or on conda_. We are currently working on it, but would like to ensure a
+certain stability first. The `setup.py` script is available and should be used for installation of Mi-Prometheus.
 
-::
+.. _conda: https://pypi.org/
+.. _pip: https://pypi.org/
 
-    #!/bin/bash -x
-    
-    apt-get update && \
-        apt-get install -y --no-install-recommends \
-            cmake \
-            build-essential \
-            g++ \
-            git \
-            wget \
-            ca-certificates && \
-        apt-get clean
-    
-    sudo apt install build-essential
-    
-    wget --quiet https://repo.anaconda.com/archive/Anaconda3-5.2.0-Linux-x86_64.sh -O ~/anaconda.sh
-    
-    chmod +x ~/anaconda.sh
-    
-    rm -rf /opt/conda
-    ~/anaconda.sh -b -p /opt/conda
-    rm ~/anaconda.sh
-    
-    /opt/conda/bin/python3 -m pip install --user virtualenv
-    
-    /opt/conda/bin/python3 -m virtualenv env
-    
-    echo "export PATH=/opt/conda/bin:$PATH" >> env/bin/activate
-    
-    source env/bin/activate
-    
-    /opt/conda/bin/conda install numpy pyyaml setuptools mkl mkl-include cmake cffi typing
-    /opt/conda/bin/conda clean -ya
-    
-    rm -rf pytorch
-    export  && \
-        git clone --recursive https://github.com/pytorch/pytorch && \
-        cd pytorch && \
-        git checkout v0.4.0 && \
-        git submodule init && \
-        git submodule update && \
-        CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
-        CFLAGS="-march=native" CXXFLAGS="-O3 -march=native" /opt/conda/bin/python3 setup.py install
-    cd ..
-    rm -rf pytorch
+So you can clone the repository, checkout out a particular branch if wanted and run `python setup.py install`.
+This command will install all dependencies of Mi-Prometheus via pip_.
 
+**Please note that it will not install PyTorch**, as we have observed inconsistent and erratic errors when we were installing it from pip_.
+Use conda_, or compile from source instead. The indicated way by the PyTorch team is conda_.
 
-In the home directory, git clone mi-prometheus from the github repository. Run the following script. 
-If you did not run the previous script then you will need to modify the echo command so that it appends to either a different activate file or the .bashrc
+The `setup.py` will register Mi-Prometheus as a package in your `Python` environment so that you will be able to `import` it:
 
-::
+  >>> import miprometheus as mip
 
-    #!/bin/bash -x
-    
-    echo "export PYTHONPATH='${PYTHONPATH}:~/mi-prometheus/'" >> ~/env/bin/activate
-    
-    conda install -c conda-forge torchvision
-    pip install torchtext
-    conda install -c conda-forge tensorboardX
-    conda install pyyaml matplotlib ffmpeg
-    conda install sphinx sphinx_rtd_theme
-    conda install tqdm
-    conda install progressbar2
-    
-    #seems to come by default but doesn't hurt to be sure
-    conda install nltk
-    conda install h5py
-    conda install pandas
-    conda install pillow
-    conda install six
+And then you will be able to access the API as regular:
+
+  >>> datadict = mip.utils.DataDict()
+
+etc.
+
+The `setup.py` also creates aliases for the workers, so that you can use them as regular commands:
+
+  >>> mip-offline-trainer --c path/to/your/config/file
+
+The available commands are:
+
+    - mip-offline-trainer
+    - mip-online-trainer
+    - mip-tester
+    - mip-grid-trainer-cpu
+    - mip-grid-trainer-gpu
+    - mip-grid-tester-cpu
+    - mip-grid-tester-gpu
+    - mip-grid-analyzer
+
+Each command executes the worker of the same name. Use `--h` to see the available flags for each command.
+
+You can then delete the cloned repository and use these commands to run a particular worker with your configurations files.
+
+**Please note** that we provide multiple configuration files in `configs/` (which we use daily for our research & development).
+Feel free to copy this folder somewhere and use these files as you would like. We are investigating on how we could make these files usable in an easier way.
 

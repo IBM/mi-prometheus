@@ -1,14 +1,14 @@
-.. Machine2Intelligence documentation master file, created by
+.. Mi-Prometheus documentation master file, created by
    sphinx-quickstart on Wed Apr 25 11:52:47 2018.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-:github_url: https://github.ibm.com/ai-c-working-memory/mi-prometheus
+:github_url: https://github.com/IBM/mi-prometheus
 
 MI Prometheus documentation
 ===================================
 
-MI Prometheus is an open source Deep Learning Python library, built using Pytorch, that standardizes the interface that connects together the components needed in a machine learning system: problems, models architectures, and training/testing configurations.
+MI Prometheus is an open source Python library, built using Pytorch, that enables reproducible Machine Learning research
 
 .. toctree::
    :glob:
@@ -31,13 +31,6 @@ MI Prometheus is an open source Deep Learning Python library, built using Pytorc
    Models <models>
    Problems <problems>
    Utilities <utils>
-
-.. toctree::
-   :glob:
-   :maxdepth: 1
-   :caption: Code Coverage
-
-   Code Coverage <python>
 
 
 Indices and tables
