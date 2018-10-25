@@ -1,6 +1,6 @@
 Workers Explained
 ===================
-`@author: Vincent Marois`
+`@author: Tomasz Kornuta & Vincent Marois`
 
 
 Our framework currently offers eight different types of Workers, divided into two classes: Base Workers and Grid Workers.
@@ -28,14 +28,16 @@ The Offline Trainer is based on epochs and validates the model on the validation
 While an epoch seems natural for all finite-size datasets, it makes less sense for problems which have a very large, almost infinite dataset (like algorithmic tasks, which generate data `on-the-fly`).
 This is why we also developed the Online Trainer, which, instead of looping on epochs, iterates directly on episodes (we call an iteration on a single batch an episode).
 
-By default, the Online Trainer validates the model every `n` episodes on a subset of the validation set, whereas Offline Trainer validates the model on the whole validation set at the end of every epoch. The Offline Trainer can also validates the model every `n` episodes on a subset of the validation set (we refer to this as partial validation), and both trainers validate the model on the whole validation set at the end of training.
+By default, the Online Trainer validates the model every `n` episodes on a subset of the validation set, whereas Offline Trainer validates the model on the whole validation set at the end of every epoch.
+The Offline Trainer can also validates the model every `n` episodes on a subset of the validation set (we refer to this as partial validation), and both trainers validate the model on the whole validation set at the end of training.
 
 Tester
 ^^^^^^^^^^
 
 The third Base Worker is Tester, which loads a trained model and iterates over the test set once, collecting all the specified statistics (mean loss, accuracy etc.).
 
-Both the Trainers and the Tester share a similar logic of operation. They both also support CPU and GPU working modes. The user can activate this by passing the `––gpu` argument when running a given worker from the command line, which will result in moving the tensors to GPU (e.g. `torch.FloatTensor` to `torch.cuda.FloatTensor`), thus allowing the Model to use CUDA and perform its computations on GPU.
+Both the Trainers and the Tester share a similar logic of operation. They both also support CPU and GPU working modes.
+The user can activate this by passing the `––gpu` argument when running a given worker from the command line, which will result in moving the tensors to GPU (e.g. `torch.FloatTensor` to `torch.cuda.FloatTensor`), thus allowing the Model to use CUDA and perform its computations on GPU.
 
 
 We can distinguish two main phases of functioning for the base workers: the initialization and the iteration over the batches of samples (each such iteration on a single batch is called an Episode) produced by the model.
@@ -46,7 +48,8 @@ After loading the configuration file(s) in the Parameter Registry, the worker in
 
 Next, it instantiates the problem and model classes using specialized factories. At that point, the Tester also loads the model weights from the checkpoints file indicated by one of the command line arguments (which is optional for the Trainers).
 
-In order to ensure that the Problem and the Model are compatible, both basic workers perform an automated handshaking, to check whether the definitions (i.e. name, type and shape when relevant) of the inputs produced by the Problem match the required definitions of the Model inputs. They also verify if the definitions of the model’s predictions match the definitions of the Problem targets and are compatible with the used loss function.
+In order to ensure that the Problem and the Model are compatible, both basic workers perform an automated handshaking, to check whether the definitions (i.e. name, type and shape when relevant) of the inputs produced by the Problem match the required definitions of the Model inputs.
+They also verify if the definitions of the model’s predictions match the definitions of the Problem targets and are compatible with the used loss function.
 
 .. figure:: ../img/initialization_sequence_diagram.png
    :scale: 50 %
@@ -94,9 +97,11 @@ The Grid Trainers and Testers in fact spawn several instances of base Trainers a
 The CPU & GPU versions execute different operations, i.e. the CPUs grid workers assign one processor for each child, whereas the GPUs ones assigns a single GPU instead.
 
 Fig. 7 presents the most important sections of the grid trainer configuration files. Section grid tasks defines the grid of experiments that need to be executed, reusing the mechanism of default configuration nesting.
-Additionally, in grid settings, the user needs to define the number of repetitions of each experiment, as well as the maximum number of authorized concurrent runs (which later on will be compared to the number of available CPUs/GPUs). Optionally, the user might overwrite some parameters of a given experiment (in the overwrite section) or all experiments at once (grid overwrite).
+Additionally, in grid settings, the user needs to define the number of repetitions of each experiment, as well as the maximum number of authorized concurrent runs (which later on will be compared to the number of available CPUs/GPUs).
+Optionally, the user might overwrite some parameters of a given experiment (in the `overwrite` section) or all experiments at once (`grid_overwrite`).
 
-As a result of running these Grid Trainers and Testers, the user ends up with an experiment directory containing several models and statistics collected during several training, validation and test repetitions. The role of the last script, Grid Analyzer, is to iterate through those directories, collecting all statistics and merging them into a single file that facilitates a further analysis of results, the comparison of the models performance, etc.
+As a result of running these Grid Trainers and Testers, the user ends up with an experiment directory containing several models and statistics collected during several training, validation and test repetitions.
+The role of the last script, Grid Analyzer, is to iterate through those directories, collecting all statistics and merging them into a single file that facilitates a further analysis of results, the comparison of the models performance, etc.
 
 .. figure:: ../img/worker_grid_class_diagram.png
    :scale: 50 %

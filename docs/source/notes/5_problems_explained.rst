@@ -1,6 +1,6 @@
 Problems Explained
 ===================
-`@author: Vincent Marois`
+`@author: Tomasz Kornuta & Vincent Marois`
 
 
 A Problem class generalizes the idea of a dataset (a limited set of samples, already generated) with a data generator (a potentially unlimited set of samples, generated `on-the-fly`).
@@ -16,9 +16,10 @@ and limits the amount of code to write.
 
 It is also straight-forward to impact all problem classes (e.g. adding a new feature) by implementing it in the base Problem class.
 
-It is worth noting that the abstract base Problem class is derived from the PyTorch Dataset class.
+It is worth noting that the abstract base Problem class is derived from the PyTorch Dataset_ class.
 This enables to incorporate the usage of concurrent data loading workers (through the use of PyTorch’s DataLoader_).
 
+.. _Dataset: https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset
 .. _DataLoader: https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
 
 This feature works with all MI-Prometheus problem classes by default.
@@ -28,20 +29,15 @@ Hence, every problem class defines (through inheritance or directly) several met
     - The used loss function and a method `evaluate_loss`,
     - A definition of the inputs that it expects/accepts,
     - Getter & setter functions for the collected statistics.
+    - Getter & setter methods for the statistics which are `aggregated` based on the collected statistics.
 
 .. figure:: ../img/problem_class_diagram_wide.png
    :scale: 50 %
    :alt: Class diagram of the problems.
    :align: center
 
-   The class inheritance of the problems.
+   The class inheritance of the problems. For clarity, we present only the most important fields and methods of the base Problem class.
 
-Fig. 9 presents a class diagram with a subset of problems that
-are currently present in the framework, starting from clas-
-sical image classification (such as MNIST and CIFAR10),
-machine translation (TranslationAnki) or Visual Question
-Answering (e.g. CLEVR (Johnson et al., 2017) and SortOf-
-CLEVR (Santoro et al., 2017)). It also contains several
-algorithmic problems such as SerialRecall and ReverseRe-
-call used in (Graves et al., 2014). For clarity we present
-only the most
+The figure above presents a class diagram with a subset of problems that are currently present in the framework, starting from classical image classification (such as MNIST and CIFAR10), machine translation (TranslationAnki)
+or Visual Question Answering (e.g. CLEVR (Johnson et al., 2017) and SortOf-CLEVR (Santoro et al., 2017)).
+It also contains several algorithmic problems such as SerialRecall and ReverseRecall used in (Graves et al., 2014).

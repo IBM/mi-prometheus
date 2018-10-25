@@ -17,6 +17,13 @@ MI Prometheus is an open source Python library, built using Pytorch, that enable
 
    notes/*
 
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: Tutorials
+
+   tutorials/*
+
 
 .. toctree::
    :maxdepth: 4

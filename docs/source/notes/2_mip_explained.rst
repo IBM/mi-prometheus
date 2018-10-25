@@ -1,6 +1,6 @@
-MI-Prometheus detailed architecture
-=====================================
-`@author: Vincent Marois`
+MI-Prometheus Explained
+================================
+`@author: Tomasz Kornuta & Vincent Marois`
 
 This page dives deep into MI-Prometheus and its inner workings.
 
@@ -26,7 +26,7 @@ This typical workflow led us to the formalization of the core concepts of the fr
     - **Model**: a trainable model (i.e. a neural network),
     - **Worker**: a specialized application that instantiates the Problem & Model objects and controls the interactions between them.
     - **Configuration file(s)**: YAML file(s) containing the parameters of the Problem, Model and training procedure,
-    - **Experiment**: a single run (training or test) of a given Model on a given Problem, using a specific Worker and Configuration file(s).
+    - **Experiment**: a single run (training & validation or test) of a given Model on a given Problem, using a specific Worker and Configuration file(s).
 
 
 .. figure:: ../img/core_concepts.png
@@ -68,9 +68,12 @@ Configuration management is one of the fundamental features of the MI-Prometheus
 
 
 Command line arguments are parsed at the beginning of the execution of a given worker and include important settings for a worker configuration, such as the name(s) of the configuration file(s) that the worker should load, the output directory etc.
-The other two sources of parameters are collected into a unified registry called the Parameter Registry, implemented on the basis of a singleton design pattern, making it shareable between all models, problems and other dependent classes. The Parameter Registry is initialized with a list of configuration files, resulting in a tree-like structure of key-value pairs, where a particular value can be a nested subtree on its own.
+The other two sources of parameters are collected into a unified registry called the Parameter Registry, implemented on the basis of a singleton design pattern, making it shareable between all models, problems and other dependent classes.
+The Parameter Registry is initialized with a list of configuration files, resulting in a tree-like structure of key-value pairs, where a particular value can be a nested subtree on its own.
 
-In order to enable loose coupling between the several components of the system, we created a view-based mechanism, where a given component receives access to a particular subtree, without being aware of its location (and locations of other, external subtrees) in the Parameter Registry tree. When a worker needs to instantiate a given model or problem, it passes aview of the adequate subtree to a factory. After finding the file containing the required class, the factory initializes a new object of this type, passing it the same view. This mechanism enables a given component to override the default values (i.e. initialized in the code) of certain variables with values loaded from the configuration file, disregarding the absolute location of a given parameter in the Parameter Registry tree.
+In order to enable loose coupling between the several components of the system, we created a view-based mechanism, where a given component receives access to a particular subtree, without being aware of its location (and locations of other, external subtrees) in the Parameter Registry tree.
+When a worker needs to instantiate a given model or problem, it passes a view of the adequate subtree to a factory. After finding the file containing the required class, the factory initializes a new object of this type, passing it the same view.
+This mechanism enables a given component to override the default values (i.e. initialized in the code) of certain variables with values loaded from the configuration file, disregarding the absolute location of a given parameter in the Parameter Registry tree.
 
 .. figure:: ../img/parameter_registry_tree.png
    :scale: 50 %
@@ -82,9 +85,11 @@ In order to enable loose coupling between the several components of the system, 
 Another important feature of the configuration management is that the resulting content of the Parameter Registry tree can come from merging several configuration files. This can be realized in two different ways:
 
 	- By passing more than one filename as a command line argument when executing a worker,
-	- By storing the list of filenames in the default configs key of the configuration file.
+	- By storing the list of filenames in the `default_configs` key of the configuration file.
 
-The latter case allows the nesting of several configuration files, i.e. composing new configuration files from existing ones, thus increasing their reusability. The developed mechanism first recursively parses the values of the default configs key of every configuration file one by one, creating a list of configuration filenames and then loads them in reverse order. As a result, the parameter values from the last indicated configuration will overwrite the ones from previously indicated configurations. The resulting configura- tion will overwrite the default parameters values initialized in the code.
+The latter case allows the nesting of several configuration files, i.e. composing new configuration files from existing ones, thus increasing their reusability.
+The developed mechanism first recursively parses the values of the default configs key of every configuration file one by one, creating a list of configuration filenames and then loads them in reverse order.
+As a result, the parameter values from the last indicated configuration will overwrite the ones from previously indicated configurations. The resulting configuration will overwrite the default parameters values initialized in the code.
 
 .. figure:: ../img/configuration_sections.png
    :scale: 50 %
@@ -100,4 +105,5 @@ This is supported by the fact that both Trainers combine training with validatio
 Finally, as the Model usually keeps the same parameters during both training and testing, this resulted in four mandatory sections (which can be imported from other configuration files).
 
 Additionally, it is possible to use optional parameters and subsections.
-For example, training can be terminated using early stopping (i.e. stopping if no improvement has been observed for a specified number of episodes/epochs) if the user adds the early_stop_delta key to the terminal_conditions section. Similarly, one can use curriculum learning by adding the adequate subsection to the training section.
+For example, training can be terminated using early stopping (i.e. stopping if no improvement has been observed for a specified number of episodes/epochs) if the user adds the `early_stop_delta` key to the `terminal_conditions` section (`coming soon`).
+Similarly, one can use curriculum learning by adding the adequate subsection to the training section.

@@ -1,6 +1,6 @@
 Models Explained
 ===================
-`@author: Vincent Marois`
+`@author: Tomasz Kornuta & Vincent Marois`
 
 
 From the application point of view, the models are the most important components of the system, as the main goal of
