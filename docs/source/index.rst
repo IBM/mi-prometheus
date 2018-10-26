@@ -8,7 +8,7 @@
 MI Prometheus documentation
 ===================================
 
-MI Prometheus is an open source Python library, built using Pytorch, that enables reproducible Machine Learning research
+MI Prometheus is an open source Python library, built using PyTorch, that enables reproducible Machine Learning research.
 
 .. toctree::
    :glob:
@@ -26,13 +26,13 @@ MI Prometheus is an open source Python library, built using Pytorch, that enable
 
 
 .. toctree::
-   :maxdepth: 4
-   :caption: API Reference
+   :maxdepth: 1
+   :caption: Package Reference
 
-   Workers <workers>
-   Models <models>
-   Problems <problems>
-   Utilities <utils>
+   workers
+   models
+   problems
+   utils
 
 
 Indices and tables
