@@ -67,13 +67,13 @@ class SamplerFactory(object):
 
             # Verify that the specified class is in the controller package.
             if name not in dir(torch.utils.data.sampler):
-                raise Exception("Could not find the specified class '{}' in the controllers package".format(name))
+                raise Exception("Could not find the specified class '{}' in the samplers package".format(name))
 
             # Get the actual class.
             sampler_class = getattr(torch.utils.data.sampler, name)
 
             # Ok, proceed.
-            logger.info('Loading the {} controller from {}'.format(name, sampler_class.__module__))
+            logger.info('Loading the {} sampler from {}'.format(name, sampler_class.__module__))
 
             # Handle "special" case.
             if sampler_class.__name__ == 'SubsetRandomSampler':
@@ -97,7 +97,7 @@ class SamplerFactory(object):
                     except Exception:
                         # Ok, this is not a file.
                         pass
-                    if  type(indices) != list:
+                    if type(indices) != list:
                         # Then still try to process it as a string.
                         # If indices are already square brackets [].
                         if indices[0] == '[' and indices[-1] == ']':
@@ -122,7 +122,7 @@ class SamplerFactory(object):
                 sampler = sampler_class(indices)
             elif sampler_class.__name__ in ['WeightedRandomSampler', 'BatchSampler', 'DistributedSampler']:
                 # Sorry, don't support those. Yet;)
-                logger.error("Sampler Sampler Factory does not support {} sampler. Please pick one of the ohers "
+                logger.error("Sampler Sampler Factory does not support {} sampler. Please pick one of the others "
                             "or use defaults random sampling.".format(sampler_class.__name__))
                 exit(-2)
             else:
