@@ -22,7 +22,6 @@ sampler_factory.py: Factory building samplers used by PyTorch's DataLoaders.
 __author__ = "Tomasz Kornuta"
 
 import os
-import inspect
 import logging
 import torch.utils.data.sampler
 
@@ -77,23 +76,24 @@ class SamplerFactory(object):
             logger.info('Loading the {} controller from {}'.format(name, sampler_class.__module__))
 
             # Handle "special" case.
-            if name == 'SubsetRandomSampler':
-                indices  = params['indices']
+            if sampler_class.__name__ == 'SubsetRandomSampler':
+
+                indices = params['indices']
+
                 # Analyze the type.
                 if type(indices) == str:
-                    # If indices are file - relative path.
-                    filename = indices
-                    if indices[0] == '~':
-                        # Turn to absolute path.
-                        filename = os.path.expanduser(filename)
+
                     # Try to open the file.
-                    try: 
-                        file = open(filename, "r")
+                    try:
+                        # from expanduser()'s doc: If the expansion fails or if the path does not begin
+                        # with a tilde, the path is returned unchanged. -> So operation below should be safe.
+                        file = open(os.path.expanduser(indices), "r")
                         # Read the file.
                         indices = file.readline() 
                         # Truncate the last "enter"
                         indices = indices[:-1]
-                        file.close()	
+                        file.close()
+
                     except Exception:
                         # Ok, this is not a file.
                         pass
@@ -106,20 +106,22 @@ class SamplerFactory(object):
                     # Get digits.
                     digits = indices.split()
                     if len(digits) == 2:
-                        # Creat simple range.
-                        indices = range( int(digits[0]), int(digits[1]) )
+                        # Create simple range.
+                        indices = range(int(digits[0]), int(digits[1]))
                     else:
                         # Use them as a list.
                         indices = [int(x) for x in digits]
 
                 # Check if there aren't too many indices.
-                #if len(indices) > len(problem):
+                # if len(indices) > len(problem):
                 #    logger.error("Length of indices if greater than the number of samples in the problem!")
                 #    exit(-1)
+
                 # Check if indices are within range.
                 if max(indices) >= len(problem):
-                    logger.error("SubsetRandomSampler cannot work properly when indices are out of range ({}) " \
-                        "considering that there are {} samples in the problem!".format(max(indices), len(problem)))
+                    logger.error("SubsetRandomSampler cannot work properly when indices are out of range ({}) "
+                                 "considering that there are {} samples in the problem!".format(max(indices),
+                                                                                                len(problem)))
                     exit(-2)
                 sampler = sampler_class(indices)
             else:
@@ -144,7 +146,9 @@ if __name__ == "__main__":
     class TestProblem(object):
         def __len__(self):
             return 50
-    # All samplers operate on TestProblem only, whereas SubsetRandomSampler additinally accepts 'incidces' with three options.
+
+    # All samplers operate on TestProblem only,
+    # whereas SubsetRandomSampler additionally accepts 'indices' with three options.
     # Option 1: range.
     indices = range(20)
     # Option 2: range as str.
@@ -156,12 +160,10 @@ if __name__ == "__main__":
 
     params = ParamInterface()
     params.add_default_params({'name': 'SubsetRandomSampler',
-                                'indices': filename})
+                               'indices': indices})
 
     sampler = SamplerFactory.build(TestProblem(), params)
     print(type(sampler))
 
     for i, index in enumerate(sampler):
         print('{}: index {}'.format(i, index))
-        pass
-
