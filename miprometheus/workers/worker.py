@@ -19,7 +19,7 @@
 worker.py:
 
     - Contains the definition of the ``Worker`` class, representing the base of the basic workers, such as \
-    ``ClassicTrainer`` and ``Tester``.
+    ``OnlineTrainer`` and ``Tester``.
 
 
 """
@@ -30,9 +30,9 @@ import yaml
 
 import torch
 import logging
+#import logging.config
 import argparse
 import numpy as np
-import logging.config
 from random import randrange
 from abc import abstractmethod
 
@@ -51,7 +51,7 @@ class Worker(object):
     All base workers should subclass it and override the relevant methods.
     """
 
-    def __init__(self, name="Worker"):
+    def __init__(self, name):
         """
         Base constructor for all workers:
 
@@ -69,7 +69,7 @@ class Worker(object):
 
             - Creates parser and adds default worker command line arguments.
 
-        :param name: Name of the worker (DEFAULT: "Worker").
+        :param name: Name of the worker.
 
         """
         # Call base constructor.
@@ -84,26 +84,8 @@ class Worker(object):
         # Initialize parameter interface/registry.
         self.params = ParamInterface()
 
-        # Load the default logger configuration.
-        logger_config = {'version': 1,
-                         'disable_existing_loggers': False,
-                         'formatters': {
-                             'simple': {
-                                 'format': '[%(asctime)s] - %(levelname)s - %(name)s >>> %(message)s',
-                                 'datefmt': '%Y-%m-%d %H:%M:%S'}},
-                         'handlers': {
-                             'console': {
-                                 'class': 'logging.StreamHandler',
-                                 'level': 'INFO',
-                                 'formatter': 'simple',
-                                 'stream': 'ext://sys.stdout'}},
-                         'root': {'level': 'DEBUG',
-                                  'handlers': ['console']}}
-
-        logging.config.dictConfig(logger_config)
-
-        # Create the Logger, set its label and logging level.
-        self.logger = logging.getLogger(name=self.name)
+        # Initialize logger using the configuration.
+        self.initialize_logger()
 
         # Create parser with a list of runtime arguments.
         self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
@@ -164,6 +146,54 @@ class Worker(object):
                                  action='store_true',
                                  help='Request user confirmation just after loading the settings, '
                                       'before starting training. (Default: False)')
+
+
+    def initialize_logger(self):
+        ''' Method initializes logger.'''
+        # Load the default logger configuration.
+        logger_config = {'version': 1,
+                         'disable_existing_loggers': False,
+                         'formatters': {
+                             'simple': {
+                                 'format': '[%(asctime)s] - %(levelname)s - %(name)s >>> %(message)s',
+                                 'datefmt': '%Y-%m-%d %H:%M:%S'}},
+                         'handlers': {
+                             'console': {
+                                 'class': 'logging.StreamHandler',
+                                 'level': 'INFO',
+                                 'formatter': 'simple',
+                                 'stream': 'ext://sys.stdout'}},
+                         'root': {'level': 'DEBUG',
+                                  'handlers': ['console']}}
+
+        logging.config.dictConfig(logger_config)
+
+        # Create the Logger, set its label and logging level.
+        self.logger = logging.getLogger(name=self.name)
+
+
+    def display_parsing_results(self):
+        '''
+            Diplats results of parsing, i.e. list of parsed arguments. 
+            If there are any other, unparsed arguments, it displays them as well.
+        '''
+        # Log the parsed flags.
+        flags_str = 'Properly parsed command line arguments: \n'
+        flags_str += '='*80 + '\n'
+        for arg in vars(self.flags): 
+            flags_str += "{}= {} \n".format(arg, getattr(self.flags, arg))
+        flags_str += '='*80 + '\n'
+        self.logger.info(flags_str)
+
+        # Log the unparsed flags.
+        if self.unparsed:
+            flags_str = 'Invalid command line arguments: \n'
+            flags_str += '='*80 + '\n'
+            for arg in self.unparsed: 
+                flags_str += "{} \n".format(arg)
+            flags_str += '='*80 + '\n'
+            self.logger.warning(flags_str)
+
 
     def setup_experiment(self):
         """
@@ -259,26 +289,8 @@ class Worker(object):
         """
         # -> At this point, all configuration for experiment is complete.
 
-        # Save the resulting configuration into a .yaml settings file, under log_dir
-        with open(log_dir + filename, 'w') as yaml_backup_file:
-            yaml.dump(self.params.to_dict(), yaml_backup_file, default_flow_style=False)
-
-        # Log the parsed flags.
-        flags_str = 'Properly parsed command line arguments: \n'
-        flags_str += '='*80 + '\n'
-        for arg in vars(self.flags): 
-            flags_str += "{}= {} \n".format(arg, getattr(self.flags, arg))
-        flags_str += '='*80 + '\n'
-        self.logger.info(flags_str)
-
-        # Log the unparsed flags.
-        if self.unparsed:
-            flags_str = 'Invalid command line arguments: \n'
-            flags_str += '='*80 + '\n'
-            for arg in self.unparsed: 
-                flags_str += "{} \n".format(arg)
-            flags_str += '='*80 + '\n'
-            self.logger.warning(flags_str)
+        # Display results of parsing.
+        self.display_parsing_results()
 
         # Log the resulting training configuration.
         conf_str = 'Final parameter registry configuration:\n'
