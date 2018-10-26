@@ -34,7 +34,7 @@ class ModelFactory(object):
     """
 
     @staticmethod
-    def build_model(params, problem_default_values_={}):
+    def build(params, problem_default_values_={}):
         """
         Static method returning a particular model, depending on the name \
         provided in the list of parameters.

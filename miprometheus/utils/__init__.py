@@ -1,6 +1,7 @@
 from .app_state import AppState
 from .param_interface import ParamInterface
 from .param_registry import MetaSingletonABC, ParamRegistry
+from .sampler_factory import SamplerFactory
 from .singleton import SingletonMetaClass
 from .statistics_collector import StatisticsCollector
 from .statistics_aggregator import StatisticsAggregator

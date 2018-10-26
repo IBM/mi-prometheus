@@ -30,11 +30,9 @@ import torch
 from time import sleep
 from random import randrange
 from datetime import datetime
-from torch.utils.data.dataloader import DataLoader
 
 from miprometheus.workers.worker import Worker
 from miprometheus.models.model_factory import ModelFactory
-from miprometheus.problems.problem_factory import ProblemFactory
 
 from miprometheus.utils.statistics_collector import StatisticsCollector
 from miprometheus.utils.statistics_aggregator import StatisticsAggregator
@@ -216,22 +214,10 @@ class Trainer(Worker):
 
         ################# TRAINING PROBLEM ################# 
 
-        # Build the problem for the training
-        self.training_problem = ProblemFactory.build_problem(self.params['training']['problem'])
-
-        # build the DataLoader on top of the Problem class, using the associated configuration section.
-        self.training_dataloader = DataLoader(dataset=self.training_problem,
-                                              batch_size=self.params['training']['problem']['batch_size'],
-                                              shuffle=self.params['training']['dataloader']['shuffle'],
-                                              sampler=self.params['training']['dataloader']['sampler'],
-                                              batch_sampler=self.params['training']['dataloader']['batch_sampler'],
-                                              num_workers=self.params['training']['dataloader']['num_workers'],
-                                              collate_fn=self.training_problem.collate_fn,
-                                              pin_memory=self.params['training']['dataloader']['pin_memory'],
-                                              drop_last=self.params['training']['dataloader']['drop_last'],
-                                              timeout=self.params['training']['dataloader']['timeout'],
-                                              worker_init_fn=self.training_problem.worker_init_fn)
-
+        # Build training problem and dataloader.
+        self.training_problem, self.training_dataloader = \
+            self.build_problem_and_dataloader(self.params['training']) 
+        
         # parse the curriculum learning section in the loaded configuration.
         if 'curriculum_learning' in self.params['training']:
 
@@ -254,21 +240,9 @@ class Trainer(Worker):
 
         ################# VALIDATION PROBLEM ################# 
         
-        # Build the validation problem.
-        self.validation_problem = ProblemFactory.build_problem(self.params['validation']['problem'])
-
-        # build the DataLoader on top of the validation problem
-        self.validation_dataloader = DataLoader(dataset=self.validation_problem,
-                                                batch_size=self.params['validation']['problem']['batch_size'],
-                                                shuffle=self.params['validation']['dataloader']['shuffle'],
-                                                sampler=self.params['validation']['dataloader']['sampler'],
-                                                batch_sampler=self.params['validation']['dataloader']['batch_sampler'],
-                                                num_workers=self.params['validation']['dataloader']['num_workers'],
-                                                collate_fn=self.validation_problem.collate_fn,
-                                                pin_memory=self.params['validation']['dataloader']['pin_memory'],
-                                                drop_last=self.params['validation']['dataloader']['drop_last'],
-                                                timeout=self.params['validation']['dataloader']['timeout'],
-                                                worker_init_fn=self.validation_problem.worker_init_fn)
+        # Build validation problem and dataloader.
+        self.validation_problem, self.validation_dataloader = \
+            self.build_problem_and_dataloader(self.params['validation']) 
 
         # Generate a single batch used for partial validation.
         #self.validation_batch = self.validation_problem.collate_fn(next(iter(self.validation_problem)))
@@ -279,7 +253,7 @@ class Trainer(Worker):
         ################# MODEL PROBLEM ################# 
         
         # Build the model using the loaded configuration and the default values of the problem.
-        self.model = ModelFactory.build_model(self.params['model'], self.training_problem.default_values)
+        self.model = ModelFactory.build(self.params['model'], self.training_problem.default_values)
 
         # load the indicated pretrained model checkpoint if the argument is valid
         if self.flags.model != "":
