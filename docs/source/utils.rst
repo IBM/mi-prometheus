@@ -1,7 +1,7 @@
 .. role:: hidden
     :class: hidden-section
 
-Utilities
+miprometheus.utils
 ===================================
 
 .. automodule:: miprometheus.utils

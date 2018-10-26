@@ -1,8 +1,8 @@
 .. role:: hidden
     :class: hidden-section
 
-Models
-========
+miprometheus.models
+===================================
 
 .. automodule:: miprometheus.models
 .. currentmodule:: miprometheus.models
@@ -11,6 +11,14 @@ Model
 ----------
 
 .. autoclass:: Model
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+SequentialModel
+--------------------
+
+.. autoclass:: SequentialModel
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -71,13 +79,9 @@ Controllers for MANNs models
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-SequentialModel
-----------------------
-..  currentmodule:: miprometheus.models
-.. autoclass:: SequentialModel
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
+
+Memory-Augmented Neural Network (MANN) models
+------------------------------------------------------------
 
 :hidden:`DWM`
 ~~~~~~~~~~~~~~~~
@@ -100,6 +104,17 @@ SequentialModel
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+:hidden:`Encoder-Solver models`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. automodule:: miprometheus.models.encoder_solver
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+
+Others Models
+------------------------------
+
 :hidden:`LSTM`
 ~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.lstm
@@ -115,10 +130,4 @@ SequentialModel
     :exclude-members: __dict__,__weakref__
 
 
-:hidden:`Encoder-Solver models`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: miprometheus.models.encoder_solver
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
 
