@@ -97,33 +97,34 @@ class SamplerFactory(object):
                     except Exception:
                         # Ok, this is not a file.
                         pass
-
-                    # If indices are already square brackets [].
-                    if indices[0] == '[' and indices[-1] == ']':
-                        # Remove the brackets.
-                        indices = indices.replace("[", "").replace("]", "")
-
-                    # Get digits.
-                    digits = indices.split()
-                    if len(digits) == 2:
-                        # Create simple range.
-                        indices = range(int(digits[0]), int(digits[1]))
-                    else:
-                        # Use them as a list.
+                    if  type(indices) != list:
+                        # Then still try to process it as a string.
+                        # If indices are already square brackets [].
+                        if indices[0] == '[' and indices[-1] == ']':
+                            # Remove the brackets.
+                            indices = indices.replace("[", "").replace("]", "")
+                        # Get the digits.
+                        digits = indices.split()
                         indices = [int(x) for x in digits]
 
-                # Check if there aren't too many indices.
-                # if len(indices) > len(problem):
-                #    logger.error("Length of indices if greater than the number of samples in the problem!")
-                #    exit(-1)
+                    # Finally, we got the list of digits.
+                    if len(digits) == 2:
+                        # Create a range.
+                        indices = range(int(digits[0]), int(digits[1]))
+                    # Else: use them as they are
 
                 # Check if indices are within range.
                 if max(indices) >= len(problem):
                     logger.error("SubsetRandomSampler cannot work properly when indices are out of range ({}) "
-                                 "considering that there are {} samples in the problem!".format(max(indices),
+                                "considering that there are {} samples in the problem!".format(max(indices),
                                                                                                 len(problem)))
-                    exit(-2)
+                    exit(-1)
                 sampler = sampler_class(indices)
+            elif sampler_class.__name__ in ['WeightedRandomSampler', 'BatchSampler', 'DistributedSampler']:
+                # Sorry, don't support those. Yet;)
+                logger.error("Sampler Sampler Factory does not support {} sampler. Please pick one of the ohers "
+                            "or use defaults random sampling.".format(sampler_class.__name__))
+                exit(-2)
             else:
                 # Create "regular" sampler.
                 sampler = sampler_class(problem)
@@ -141,6 +142,7 @@ if __name__ == "__main__":
     Tests the factory.
     """
     from miprometheus.utils.param_interface import ParamInterface
+    import yaml
 
     # Problem.
     class TestProblem(object):
@@ -154,13 +156,15 @@ if __name__ == "__main__":
     # Option 2: range as str.
     range_str = '[0 10]'
     # Option 3: list of indices.
-    range_str2 = '[0 2 5 10]'
-    # Option 4: name of the file containing indices.
+    indices_str = '[0, 2 5 10]'
+    # Option 4: list of indices.
+    yaml_list = yaml.load('[0, 2, 5, 10]')
+    # Option 5: name of the file containing indices.
     filename = "~/data/mnist/training_indices.txt"
 
     params = ParamInterface()
     params.add_default_params({'name': 'SubsetRandomSampler',
-                               'indices': indices})
+                               'indices': yaml_list})
 
     sampler = SamplerFactory.build(TestProblem(), params)
     print(type(sampler))
