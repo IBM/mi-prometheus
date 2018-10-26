@@ -18,7 +18,7 @@
 """
 online_trainer.py:
 
-    - This file contains the implementation of the ``OnLineTrainer``, which inherits from ``Trainer``.
+    - This file contains the implementation of the ``OnlineTrainer``, which inherits from ``Trainer``.
 
 """
 __author__ = "Vincent Marois, Tomasz Kornuta"
@@ -29,9 +29,9 @@ from torch.nn.utils import clip_grad_value_
 from miprometheus.workers.trainer import Trainer
 
 
-class OnLineTrainer(Trainer):
+class OnlineTrainer(Trainer):
     """
-    Implementation for the episode-based ``OnLineTrainer``.
+    Implementation for the episode-based ``OnlineTrainer``.
 
     ..note ::
 
@@ -39,22 +39,22 @@ class OnLineTrainer(Trainer):
         it makes less sense for problems which have a very large, almost infinite, dataset (like algorithmic \
         tasks, which generate random data on-the-fly). \
          
-        This is why this OnLineTrainer was implemented. Instead of looping on epochs, it iterates directly on \
+        This is why this OnlineTrainer was implemented. Instead of looping on epochs, it iterates directly on \
         episodes (we call an iteration on a single batch an episode).
 
 
     """
 
-    def __init__(self, name="OnLineTrainer"):
+    def __init__(self, name="OnlineTrainer"):
         """
         Only calls the ``Trainer`` constructor as the initialization phase is identical to the ``Trainer``.
 
-       :param name: Name of the worker (DEFAULT: "OnLineTrainer").
+       :param name: Name of the worker (DEFAULT: "OnlineTrainer").
        :type name: str
 
         """ 
         # Call base constructor to set up app state, registry and add default params.
-        super(OnLineTrainer, self).__init__(name)
+        super(OnlineTrainer, self).__init__(name)
 
     def setup_experiment(self):
         """
@@ -65,7 +65,7 @@ class OnLineTrainer(Trainer):
 
         """
         # Call base method to parse all command line arguments, load configuration, create problems and model etc.
-        super(OnLineTrainer, self).setup_experiment()
+        super(OnlineTrainer, self).setup_experiment()
 
         ################# TERMINAL CONDITIONS ################# 
         self.logger.info('Terminal conditions:\n' + '='*80)
@@ -110,7 +110,7 @@ class OnLineTrainer(Trainer):
 
     def run_experiment(self):
         """
-        Main function of the ``OnLineTrainer``, runs the experiment.
+        Main function of the ``OnlineTrainer``, runs the experiment.
 
         Iterates over the (cycled) DataLoader (one iteration = one episode).
 
@@ -356,7 +356,7 @@ def main():
     Entry point function for the ``OnlineTrainer``.
 
     """
-    trainer = OnLineTrainer()
+    trainer = OnlineTrainer()
     # parse args, load configuration and create all required objects.
     trainer.setup_experiment()
     # GO!

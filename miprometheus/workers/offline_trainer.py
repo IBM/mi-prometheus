@@ -18,8 +18,8 @@
 """
 classic_trainer.py:
 
-    - This file contains the implementation of the ``OffLineTrainer``, which inherits from ``Trainer``. \
-    The ``OffLineTrainer`` is based on epochs.
+    - This file contains the implementation of the ``OfflineTrainer``, which inherits from ``Trainer``. \
+    The ``OfflineTrainer`` is based on epochs.
 
 """
 __author__ = "Vincent Marois, Tomasz Kornuta"
@@ -30,41 +30,41 @@ from torch.nn.utils import clip_grad_value_
 from miprometheus.workers.trainer import Trainer
 
 
-class OffLineTrainer(Trainer):
+class OfflineTrainer(Trainer):
     """
-    Implementation for the epoch-based ``OffLineTrainer``.
+    Implementation for the epoch-based ``OfflineTrainer``.
 
     ..note::
 
-        The default ``OffLineTrainer`` is based on epochs. \
+        The default ``OfflineTrainer`` is based on epochs. \
         An epoch is defined as passing through all samples of a finite-size dataset.\
-        The ``OffLineTrainer`` allows to loop over all samples from the training set many times i.e. in many epochs. \
+        The ``OfflineTrainer`` allows to loop over all samples from the training set many times i.e. in many epochs. \
         When an epochs finishes, it performs a similar step for the validation set and collects the statistics.
 
 
     """
 
-    def __init__(self, name="OffLineTrainer"):
+    def __init__(self, name="OfflineTrainer"):
         """
         Only calls the ``Trainer`` constructor as the initialization phase is identical to the ``Trainer``.
 
-       :param name: Name of the worker (DEFAULT: "OffLineTrainer").
+       :param name: Name of the worker (DEFAULT: "OfflineTrainer").
        :type name: str
 
         """ 
         # Call base constructor to set up app state, registry and add default params.
-        super(OffLineTrainer, self).__init__(name)
+        super(OfflineTrainer, self).__init__(name)
 
     def setup_experiment(self):
         """
-        Sets up an experiment for the ``OffLineTrainer``:
+        Sets up an experiment for the ``OfflineTrainer``:
 
             - Calls base class setup_experiment to parse the command line arguments,
             - Sets up the terminal conditions (loss threshold, episodes (optional) & epochs limits).
 
         """
         # Call base method to parse all command line arguments, load configuration, create problems and model etc.
-        super(OffLineTrainer, self).setup_experiment()
+        super(OfflineTrainer, self).setup_experiment()
 
         ################# TERMINAL CONDITIONS ################# 
         self.logger.info('Terminal conditions:\n' + '='*80)
@@ -358,7 +358,7 @@ def main():
     Entry point function for the ``OfflineTrainer``.
 
     """
-    trainer = OffLineTrainer()
+    trainer = OfflineTrainer()
     # parse args, load configuration and create all required objects.
     trainer.setup_experiment()
     # GO!
