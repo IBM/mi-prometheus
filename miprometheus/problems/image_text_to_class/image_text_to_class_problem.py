@@ -138,6 +138,7 @@ class ImageTextToClassProblem(Problem):
         # Collect basic statistics.
         super(ImageTextToClassProblem, self).collect_statistics(stat_col, data_dict, logits)
         stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
+        stat_col['batch_size'] = logits.shape[0] # Batch major.
 
     def add_aggregators(self, stat_agg):
         """
