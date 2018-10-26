@@ -52,9 +52,16 @@ class ShapeColorQuery(SortOfCLEVR):
 
         # Call base class constructors.
         super(ShapeColorQuery, self).__init__(params)
-
         # problem name
         self.name = 'Shape-Color-Query'
+
+        # Add defeault values of parameters.
+        self.params.add_default_params({'data_folder': '~/data/shape-color-query/',
+                               'split': 'train',
+                               'regenerate': False,
+                               'size': 10000,
+                               'img_size': 128})
+
 
         # define the data_definitions dict: holds a description of the DataDict content
         self.data_definitions = {'images': {'size': [-1, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
@@ -144,11 +151,11 @@ if __name__ == "__main__":
     from miprometheus.utils.param_interface import ParamInterface
 
     params = ParamInterface()
-    params.add_default_params({'data_folder': '~/data/shape-color-query/',
-                               'split': 'train',
-                               'regenerate': False,
-                               'dataset_size': 10000,
-                               'img_size': 128})
+    #params.add_config_params({'data_folder': '~/data/shape-color-query/',
+    #                           'split': 'train',
+    #                           'regenerate': False,
+    #                           'size': 10000,
+    #                           'img_size': 128})
 
     # create problem
     shapecolorquery = ShapeColorQuery(params)
@@ -165,7 +172,7 @@ if __name__ == "__main__":
     from torch.utils.data.dataloader import DataLoader
 
     dataloader = DataLoader(dataset=shapecolorquery, collate_fn=shapecolorquery.collate_fn,
-                            batch_size=batch_size, shuffle=True, num_workers=8)
+                            batch_size=batch_size, shuffle=True, num_workers=0)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
     import time

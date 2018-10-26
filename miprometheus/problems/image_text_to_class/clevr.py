@@ -314,6 +314,23 @@ class CLEVR(ImageTextToClassProblem):
 
 
         """
+        # Set default parameters.
+        params.add_default_params({
+        'settings': {
+                'data_folder': '~data/CLEVR_v1.0',
+                'set': 'train',
+                'dataset_variant': 'CLEVR',
+            },
+        'images': {
+            'raw_images': 'True'
+            },
+        'questions':{
+            'embedding_type': 'random',
+            'embedding_dim': 300
+            }
+        })
+
+
 
         # get the data_folder
         self.data_folder = os.path.expanduser(params['settings']['data_folder'])
@@ -786,7 +803,7 @@ if __name__ == "__main__":
 
     from miprometheus.utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_default_params({'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
+    params.add_config_params({'settings': {'data_folder': '~/data/CLEVR_v1.0',
                                'set': 'train',
                                'dataset_variant': 'CLEVR'},
 
@@ -808,7 +825,7 @@ if __name__ == "__main__":
 
     # instantiate DataLoader object
     problem = DataLoader(clevr_dataset, batch_size=batch_size, shuffle=False, collate_fn=clevr_dataset.collate_fn,
-                         num_workers=8)
+                         num_workers=0)
 
     import time
     s = time.time()
