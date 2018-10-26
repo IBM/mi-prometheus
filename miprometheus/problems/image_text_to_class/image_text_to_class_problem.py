@@ -118,7 +118,10 @@ class ImageTextToClassProblem(Problem):
         :param stat_col: ``StatisticsCollector``.
 
         """
+        # Add basic statistics.
+        super(ImageTextToClassProblem, self).add_statistics(stat_col)
         stat_col.add_statistic('acc', '{:12.10f}')
+        stat_col.add_statistic('batch_size', '{:06d}')
 
     def collect_statistics(self, stat_col, data_dict, logits):
         """
@@ -132,7 +135,43 @@ class ImageTextToClassProblem(Problem):
         :param logits: Predictions of the model.
 
         """
+        # Collect basic statistics.
+        super(ImageTextToClassProblem, self).collect_statistics(stat_col, data_dict, logits)
         stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
+
+    def add_aggregators(self, stat_agg):
+        """
+        Adds problem-dependent statistical aggregators to ``StatisticsAggregator``.
+
+        :param stat_agg: ``StatisticsAggregator``.
+
+        """
+        # Add basic aggregators.
+        super(ImageTextToClassProblem, self).add_aggregators(stat_agg)
+
+        stat_agg.add_aggregator('acc', '{:12.10f}')  # represents the average accuracy
+        stat_agg.add_aggregator('acc_min', '{:12.10f}')
+        stat_agg.add_aggregator('acc_max', '{:12.10f}')
+        stat_agg.add_aggregator('acc_std', '{:12.10f}')
+        stat_agg.add_aggregator('samples_aggregated', '{:06d}')
+
+    def aggregate_statistics(self, stat_col, stat_agg):
+        """
+        Aggregates the statistics collected by ``StatisticsCollector`` and adds the results to ``StatisticsAggregator``.
+
+        :param stat_col: ``StatisticsCollector``.
+
+        :param stat_agg: ``StatisticsAggregator``.
+
+        """
+        # Aggregate base statistics.
+        super(ImageTextToClassProblem, self).aggregate_statistics(stat_col, stat_agg)
+
+        stat_agg['acc_min'] = min(stat_col['acc'])
+        stat_agg['acc_max'] = max(stat_col['acc'])
+        stat_agg['acc'] = torch.mean(torch.tensor(stat_col['acc']))
+        stat_agg['acc_std'] = 0.0 if len(stat_col['acc']) <= 1 else torch.std(torch.tensor(stat_col['acc']))
+        stat_agg['samples_aggregated'] = sum(stat_col['batch_size'])
 
 
 if __name__ == '__main__':
