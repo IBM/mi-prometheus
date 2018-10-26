@@ -6,9 +6,8 @@ training:
     #    must_finish: false
 
     # Sampler.
-    dataloader:
-        sampler:
-            name: RandomSampler
+    sampler:
+        name: RandomSampler
 
     # Optimizer parameters:
     optimizer:

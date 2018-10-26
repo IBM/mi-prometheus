@@ -195,12 +195,13 @@ class Worker(object):
 
         # set a default configuration section for the DataLoaders
         dataloader_config = {'dataloader': {'shuffle': True,  # shuffle set by default.
-                                            'sampler': {},  # not using sampler by default
                                             'batch_sampler': None,
                                             'num_workers': 0,  # Do not use multiprocessing by default - for now.
                                             'pin_memory': False,
                                             'drop_last': False,
-                                            'timeout': 0}}
+                                            'timeout': 0},
+                            'sampler': {},  # not using sampler by default
+                            }
 
         self.params["training"].add_default_params(dataloader_config)
         self.params["validation"].add_default_params(dataloader_config)
@@ -221,7 +222,7 @@ class Worker(object):
         problem = ProblemFactory.build(params['problem'])
 
         # Try to build the sampler.
-        sampler = SamplerFactory.build(problem, params['dataloader']['sampler'])
+        sampler = SamplerFactory.build(problem, params['sampler'])
         if sampler is not None:
             # Set shuffle to False - REQUIRED as those two are exclusive.
             params['dataloader'].add_config_params({'shuffle': False})

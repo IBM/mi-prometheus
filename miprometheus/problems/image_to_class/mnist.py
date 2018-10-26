@@ -187,8 +187,9 @@ if __name__ == "__main__":
     # Load parameters.
     from miprometheus.utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_default_params({
+    params.add_config_params({
                                 'use_train_data': True,
+                                #'data_folder': '/home/tkornuta/data/mnist1/',
                                 'padding': [4, 4, 3, 3],
                                 'up_scaling': False
                                 })
