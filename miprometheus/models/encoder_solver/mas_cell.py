@@ -83,7 +83,7 @@ class MASCell(torch.nn.Module):
             "num_layers": params['controller']['num_layers']
         }
         # Build the controller.
-        self.controller = ControllerFactory.build_controller(controller_params)
+        self.controller = ControllerFactory.build(controller_params)
 
         # Interface - entity responsible for accessing the memory.
         self.interface = MASInterface(params)

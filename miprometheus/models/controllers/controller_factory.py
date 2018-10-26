@@ -34,7 +34,7 @@ class ControllerFactory(object):
     """
 
     @staticmethod
-    def build_controller(params):
+    def build(params):
         """
         Static method returning particular controller, depending on the name \
         provided in the list of parameters.

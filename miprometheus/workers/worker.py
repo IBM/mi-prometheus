@@ -36,6 +36,10 @@ import logging.config
 from random import randrange
 from abc import abstractmethod
 
+from torch.utils.data.dataloader import DataLoader
+from miprometheus.utils.sampler_factory import SamplerFactory
+from miprometheus.problems.problem_factory import ProblemFactory
+
 # Import utils.
 from miprometheus.utils.app_state import AppState
 from miprometheus.utils.param_interface import ParamInterface
@@ -191,16 +195,52 @@ class Worker(object):
 
         # set a default configuration section for the DataLoaders
         dataloader_config = {'dataloader': {'shuffle': True,  # shuffle set by default.
-                                            'sampler': None,  # not using sampler by default
                                             'batch_sampler': None,
                                             'num_workers': 0,  # Do not use multiprocessing by default - for now.
                                             'pin_memory': False,
                                             'drop_last': False,
-                                            'timeout': 0}}
+                                            'timeout': 0},
+                            'sampler': {},  # not using sampler by default
+                            }
 
         self.params["training"].add_default_params(dataloader_config)
         self.params["validation"].add_default_params(dataloader_config)
         self.params["testing"].add_default_params(dataloader_config)
+
+
+    def build_problem_and_dataloader(self, params):
+        """
+        Builds and returns problem and dataloader.
+        Builds also the sampler if required.
+
+        :param params: 'ParameterInterface' object, refering to one of main sections (training/validation/testing).
+
+        :return: problem instance, dataloader instance.
+        """
+
+        # Build the validation problem.
+        problem = ProblemFactory.build(params['problem'])
+
+        # Try to build the sampler.
+        sampler = SamplerFactory.build(problem, params['sampler'])
+        if sampler is not None:
+            # Set shuffle to False - REQUIRED as those two are exclusive.
+            params['dataloader'].add_config_params({'shuffle': False})
+
+        # build the DataLoader on top of the validation problem
+        dataloader = DataLoader(dataset=problem,
+                                batch_size=params['problem']['batch_size'],
+                                shuffle=params['dataloader']['shuffle'],
+                                sampler=sampler,
+                                batch_sampler=params['dataloader']['batch_sampler'],
+                                num_workers=params['dataloader']['num_workers'],
+                                collate_fn=problem.collate_fn,
+                                pin_memory=params['dataloader']['pin_memory'],
+                                drop_last=params['dataloader']['drop_last'],
+                                timeout=params['dataloader']['timeout'],
+                                worker_init_fn=problem.worker_init_fn)
+        return problem, dataloader
+
 
     def export_experiment_configuration(self, log_dir, filename, user_confirm):
         """
