@@ -824,8 +824,17 @@ if __name__ == "__main__":
     print('__getitem__ works.')
 
     # instantiate DataLoader object
+    from miprometheus.utils import SamplerFactory
+    # Option 5: name of the file containing indices.
+    filename = "~/mi-prometheus/val_set_indices.txt"
+
+    params = ParamInterface()
+    params.add_default_params({'name': 'SubsetRandomSampler',
+                               'indices': filename})
+
+    sampler = SamplerFactory.build(clevr_dataset, params)
     problem = DataLoader(clevr_dataset, batch_size=batch_size, shuffle=False, collate_fn=clevr_dataset.collate_fn,
-                         num_workers=0)
+                         num_workers=0, sampler=sampler)
 
     import time
     s = time.time()
