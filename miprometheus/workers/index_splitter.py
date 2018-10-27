@@ -28,8 +28,8 @@ import os
 import yaml
 
 import argparse
-#import numpy as np
-#from random import randrange
+import numpy as np
+from numpy.random import permutation
 
 from miprometheus.workers import Worker
 from miprometheus.problems.problem_factory import ProblemFactory
@@ -70,15 +70,7 @@ class IndexSplitter(Worker):
 
         """
         # Call base constructor to set up app state, registry and add default params.
-        super(IndexSplitter, self).__init__()
-        # Set name.
-        self.name = name
-
-        # Initialize logger using the configuration.
-        self.initialize_logger()
-
-        # Create parser with a list of runtime arguments.
-        self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+        super(IndexSplitter, self).__init__(name=name, add_default_parser_args=False)
 
         # Add arguments to the specific parser.
         # These arguments will be shared by all basic workers.
@@ -109,11 +101,11 @@ class IndexSplitter(Worker):
                                       'Value from 1 to length-2 are accepted. The two border cases mean that one '
                                       'or the other split will contain a single index)')
 
-        self.parser.add_argument('--random_sampling',
-                                 dest='random_sampline',
-                                 type=bool,
-                                 default=True,
-                                 help='When on, both files will contain (exclusive) random lists of indices.'
+        self.parser.add_argument('--random_sampling_off',
+                                 dest='random_sampling_off',
+                                 default=False,
+                                 action='store_true',
+                                 help='When on, both files will contain (exclusive) random lists of indices. '
                                        'When off, both files will contain ranges, i.e. [0, split-1] and [split, length-1] respectivelly')
 
 
@@ -160,12 +152,42 @@ class IndexSplitter(Worker):
 
         # Build the problem.
         if self.flags.problem_name !='':
-            problem = ProblemFactory.build(self.flags.problem_name )
+            self.params.add_default_params({'name': self.flags.problem_name})
+            problem = ProblemFactory.build(self.params )
             length = len(problem)
         else:
             length = self.flags.length
+
+        # Check the splitting.
+        if split < 1 or split > length-1:
+            self.logger.error("Split must lie within 1 to {}-2 range, which are border cases when one or the other split will contain a single index".format(length))
+            exit(-4)
+
         self.logger.info("Splitting dataset of length {} into splits of size {} and {}".format(length, split, length - split))
-        
+
+        if self.flags.random_sampling_off:
+            self.logger.info('Splitting into two ranges without random sampling')
+            # Split into two ranges.
+            split_a = np.asarray([0,split-1], dtype=int)
+            split_b = np.asarray([split,length-1], dtype=int)
+        else:
+            self.logger.info('Using random sampling')
+            # Random indices.
+            indices = permutation(length)
+            # Split into two pieces.
+            split_a = indices[0:split]
+            split_b = indices[split:length]
+
+        # Write splits to files.
+        name_a = os.path.expanduser(self.flags.outdir)+'/split_a.txt'
+        split_a.tofile(name_a, sep=",", format="%s")
+
+        # Write splits to files.
+        name_b = os.path.expanduser(self.flags.outdir)+'/split_b.txt'
+        split_b.tofile(name_b, sep=",", format="%s")
+
+        self.logger.info("Splits written to {} ({} indices) and {} ({} indices)".format(name_a, len(split_a), name_b, len(split_b)))
+        # Finished.
 
 
 def main():

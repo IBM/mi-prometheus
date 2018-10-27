@@ -30,7 +30,7 @@ import yaml
 
 import torch
 import logging
-#import logging.config
+import logging.config
 import argparse
 import numpy as np
 from random import randrange
@@ -51,7 +51,7 @@ class Worker(object):
     All base workers should subclass it and override the relevant methods.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, add_default_parser_args = True):
         """
         Base constructor for all workers:
 
@@ -70,6 +70,8 @@ class Worker(object):
             - Creates parser and adds default worker command line arguments.
 
         :param name: Name of the worker.
+
+        :param add_default_parser_args: If set, adds default parser arguments (DEFAULT: True)
 
         """
         # Call base constructor.
@@ -91,62 +93,63 @@ class Worker(object):
         self.parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
         # Add arguments to the specific parser.
-        # These arguments will be shared by all basic workers.
-        self.parser.add_argument('--config',
-                                 dest='config',
-                                 type=str,
-                                 default='',
-                                 help='Name of the configuration file(s) to be loaded. '
-                                      'If specifying more than one file, they must be separated with coma ",".')
+        if add_default_parser_args:
+            # These arguments will be shared by all basic workers.
+            self.parser.add_argument('--config',
+                                    dest='config',
+                                    type=str,
+                                    default='',
+                                    help='Name of the configuration file(s) to be loaded. '
+                                        'If specifying more than one file, they must be separated with coma ",".')
 
-        self.parser.add_argument('--model',
-                                 type=str,
-                                 default='',
-                                 dest='model',
-                                 help='Path to the file containing the saved parameters'
-                                      ' of the model to load (model checkpoint, should end with a .pt extension.)')
+            self.parser.add_argument('--model',
+                                    type=str,
+                                    default='',
+                                    dest='model',
+                                    help='Path to the file containing the saved parameters'
+                                        ' of the model to load (model checkpoint, should end with a .pt extension.)')
 
-        self.parser.add_argument('--gpu',
-                                 dest='use_gpu',
-                                 action='store_true',
-                                 help='The current worker will move the computations on GPU devices, if available in '
-                                      'the system. (Default: False)')
+            self.parser.add_argument('--gpu',
+                                    dest='use_gpu',
+                                    action='store_true',
+                                    help='The current worker will move the computations on GPU devices, if available in '
+                                        'the system. (Default: False)')
 
-        self.parser.add_argument('--outdir',
-                                 dest='outdir',
-                                 type=str,
-                                 default="./experiments",
-                                 help='Path to the output directory where the experiment(s) folders will be stored.'
-                                      ' (DEFAULT: ./experiments)')
+            self.parser.add_argument('--outdir',
+                                    dest='outdir',
+                                    type=str,
+                                    default="./experiments",
+                                    help='Path to the output directory where the experiment(s) folders will be stored.'
+                                        ' (DEFAULT: ./experiments)')
 
-        self.parser.add_argument('--savetag',
-                                 dest='savetag',
-                                 type=str,
-                                 default='',
-                                 help='Tag for the save directory')
+            self.parser.add_argument('--savetag',
+                                    dest='savetag',
+                                    type=str,
+                                    default='',
+                                    help='Tag for the save directory')
 
-        self.parser.add_argument('--ll',
-                                 action='store',
-                                 dest='log_level',
-                                 type=str,
-                                 default='INFO',
-                                 choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
-                                 help="Log level. (Default: INFO)")
+            self.parser.add_argument('--ll',
+                                    action='store',
+                                    dest='log_level',
+                                    type=str,
+                                    default='INFO',
+                                    choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
+                                    help="Log level. (Default: INFO)")
 
-        self.parser.add_argument('--li',
-                                 dest='logging_interval',
-                                 default=100,
-                                 type=int,
-                                 help='Statistics logging interval. Will impact logging to the logger and exporting to '
-                                      'TensorBoard. Writing to the csv file is not impacted (interval of 1).'
-                                      ' (Default: 100, i.e. logs every 100 episodes).')
+            self.parser.add_argument('--li',
+                                    dest='logging_interval',
+                                    default=100,
+                                    type=int,
+                                    help='Statistics logging interval. Will impact logging to the logger and exporting to '
+                                        'TensorBoard. Writing to the csv file is not impacted (interval of 1).'
+                                        ' (Default: 100, i.e. logs every 100 episodes).')
 
-        self.parser.add_argument('--agree',
-                                 dest='confirm',
-                                 action='store_true',
-                                 help='Request user confirmation just after loading the settings, '
-                                      'before starting training. (Default: False)')
-
+            self.parser.add_argument('--agree',
+                                    dest='confirm',
+                                    action='store_true',
+                                    help='Request user confirmation just after loading the settings, '
+                                        'before starting training. (Default: False)')
+    
 
     def initialize_logger(self):
         ''' Method initializes logger.'''
