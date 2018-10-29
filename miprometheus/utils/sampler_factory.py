@@ -104,7 +104,7 @@ class SamplerFactory(object):
                             # Remove the brackets.
                             indices = indices.replace("[", "").replace("]", "")
                         # Get the digits.
-                        digits = indices.split()
+                        digits = indices.split(',')
                         indices = [int(x) for x in digits]
 
                     # Finally, we got the list of digits.
@@ -120,6 +120,7 @@ class SamplerFactory(object):
                                                                                                 len(problem)))
                     exit(-1)
                 sampler = sampler_class(indices)
+                print(len(sampler))
             elif sampler_class.__name__ in ['WeightedRandomSampler', 'BatchSampler', 'DistributedSampler']:
                 # Sorry, don't support those. Yet;)
                 logger.error("Sampler Sampler Factory does not support {} sampler. Please pick one of the others "
