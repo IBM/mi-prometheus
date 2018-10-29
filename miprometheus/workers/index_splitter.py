@@ -18,19 +18,18 @@
 """
 index_splitter.py:
 
-    - Contains the definition of a new ``Worker`` class, .
-
+    - Contains the definition of a new ``Helper`` class, called IndexSplitter.
 
 """
-__author__ = "Tomasz Kornuta,"
+__author__ = "Tomasz Kornuta"
 
 import os
 import yaml
 
 import argparse
 import numpy as np
-from numpy.random import permutation
 
+from miprometheus.utils.split_indices import split_indices
 from miprometheus.workers import Worker
 from miprometheus.problems.problem_factory import ProblemFactory
 
@@ -109,8 +108,7 @@ class IndexSplitter(Worker):
                                        'When off, both files will contain ranges, i.e. [0, split-1] and [split, length-1] respectivelly')
 
 
-
-    def split(self):
+    def run(self):
         """
         Creates two files with splits.
 
@@ -165,25 +163,15 @@ class IndexSplitter(Worker):
 
         self.logger.info("Splitting dataset of length {} into splits of size {} and {}".format(length, split, length - split))
 
-        if self.flags.random_sampling_off:
-            self.logger.info('Splitting into two ranges without random sampling')
-            # Split into two ranges.
-            split_a = np.asarray([0,split-1], dtype=int)
-            split_b = np.asarray([split,length-1], dtype=int)
-        else:
-            self.logger.info('Using random sampling')
-            # Random indices.
-            indices = permutation(length)
-            # Split into two pieces.
-            split_a = indices[0:split]
-            split_b = indices[split:length]
+        # Split the indices.
+        split_a, split_b = split_indices(length, split, self.logger, self.flags.random_sampling_off == False)
 
         # Write splits to files.
-        name_a = os.path.expanduser(self.flags.outdir)+'/split_a.txt'
+        name_a = os.path.expanduser(self.flags.outdir)+'split_a.txt'
         split_a.tofile(name_a, sep=",", format="%s")
 
         # Write splits to files.
-        name_b = os.path.expanduser(self.flags.outdir)+'/split_b.txt'
+        name_b = os.path.expanduser(self.flags.outdir)+'split_b.txt'
         split_b.tofile(name_b, sep=",", format="%s")
 
         self.logger.info("Splits written to {} ({} indices) and {} ({} indices)".format(name_a, len(split_a), name_b, len(split_b)))
@@ -197,7 +185,7 @@ def main():
     """
     worker = IndexSplitter()
     # parse args and do the splitting.
-    worker.split()
+    worker.run()
 
 
 if __name__ == '__main__':
