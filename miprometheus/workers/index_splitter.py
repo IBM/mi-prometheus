@@ -24,11 +24,6 @@ index_splitter.py:
 __author__ = "Tomasz Kornuta"
 
 import os
-import yaml
-
-import argparse
-import numpy as np
-
 from miprometheus.utils.split_indices import split_indices
 from miprometheus.workers import Worker
 from miprometheus.problems.problem_factory import ProblemFactory
