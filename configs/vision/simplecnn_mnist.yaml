@@ -43,6 +43,9 @@ testing:
         use_train_data: False
         padding: *p
         up_scaling: *scale
+    sampler:
+        name: SubsetRandomSampler
+        indices: [5000, 10000]
 
 
 # Model parameters:

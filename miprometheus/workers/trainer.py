@@ -215,8 +215,8 @@ class Trainer(Worker):
         ################# TRAINING PROBLEM ################# 
 
         # Build training problem and dataloader.
-        self.training_problem, self.training_dataloader = \
-            self.build_problem_and_dataloader(self.params['training']) 
+        self.training_problem, self.training_sampler, self.training_dataloader = \
+            self.build_problem_sampler_loader(self.params['training']) 
         
         # parse the curriculum learning section in the loaded configuration.
         if 'curriculum_learning' in self.params['training']:
@@ -241,8 +241,8 @@ class Trainer(Worker):
         ################# VALIDATION PROBLEM ################# 
         
         # Build validation problem and dataloader.
-        self.validation_problem, self.validation_dataloader = \
-            self.build_problem_and_dataloader(self.params['validation']) 
+        self.validation_problem, self.validations_sampler, self.validation_dataloader = \
+            self.build_problem_sampler_loader(self.params['validation']) 
 
         # Generate a single batch used for partial validation.
         #self.validation_batch = self.validation_problem.collate_fn(next(iter(self.validation_problem)))
@@ -461,8 +461,12 @@ class Trainer(Worker):
 
 
         """
+        if self.validations_sampler is not None:
+            num_samples = len(self.validations_sampler)
+        else:
+            num_samples = len(self.validation_problem)
         self.logger.info('Validating over the entire validation set ({} samples in {} episodes)'.format(
-            len(self.validation_problem), len(self.validation_dataloader)))
+            num_samples, len(self.validation_dataloader)))
 
         # Turn on evaluation mode.
         self.model.eval()

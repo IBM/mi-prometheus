@@ -257,7 +257,7 @@ class Worker(object):
         self.params["validation"].add_default_params(dataloader_config)
         self.params["testing"].add_default_params(dataloader_config)
 
-    def build_problem_and_dataloader(self, params):
+    def build_problem_sampler_loader(self, params):
         """
         Builds and returns the Problem class, alongside its DataLoader.
 
@@ -280,7 +280,7 @@ class Worker(object):
             params['dataloader'].add_config_params({'shuffle': False})
 
         # build the DataLoader on top of the validation problem
-        dataloader = DataLoader(dataset=problem,
+        loader = DataLoader(dataset=problem,
                                 batch_size=params['problem']['batch_size'],
                                 shuffle=params['dataloader']['shuffle'],
                                 sampler=sampler,
@@ -292,7 +292,8 @@ class Worker(object):
                                 timeout=params['dataloader']['timeout'],
                                 worker_init_fn=problem.worker_init_fn)
 
-        return problem, dataloader
+        # Return sampler - even if it is none :]
+        return problem, sampler, loader
 
     def export_experiment_configuration(self, log_dir, filename, user_confirm):
         """

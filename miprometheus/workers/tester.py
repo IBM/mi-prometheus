@@ -183,8 +183,8 @@ class Tester(Worker):
         ################# TESTING PROBLEM ################# 
 
         # Build test problem and dataloader.
-        self.problem, self.dataloader = \
-            self.build_problem_and_dataloader(self.params['testing']) 
+        self.problem, self.sampler, self.dataloader = \
+            self.build_problem_sampler_loader(self.params['testing']) 
 
         # check if the maximum number of episodes is specified, if not put a
         # default equal to the size of the dataset (divided by the batch size)
@@ -276,8 +276,14 @@ class Tester(Worker):
         # Set visualization.
         self.app_state.visualize = self.flags.visualize
 
+        # Get number of samples - depending whether using sampler or not.
+        if self.sampler is not None:
+            num_samples = len(self.sampler)
+        else:
+            num_samples = len(self.problem)
+
         self.logger.info('Testing over the entire test set ({} samples in {} episodes)'.format(
-            len(self.problem), len(self.dataloader)))
+            num_samples, len(self.dataloader)))
 
         try:
             # Run test
