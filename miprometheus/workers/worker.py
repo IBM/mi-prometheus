@@ -292,10 +292,6 @@ class Worker(object):
         """
         # -> At this point, all configuration for experiment is complete.
 
-        # Save the resulting configuration into a .yaml settings file, under log_dir
-        with open(log_dir + filename, 'w') as yaml_backup_file:
-            yaml.dump(self.params.to_dict(), yaml_backup_file, default_flow_style=False)
-
         # Display results of parsing.
         self.display_parsing_results()
 
@@ -305,6 +301,10 @@ class Worker(object):
         conf_str += yaml.safe_dump(self.params.to_dict(), default_flow_style=False)
         conf_str += '='*80 + '\n'
         self.logger.info(conf_str)
+
+        # Save the resulting configuration into a .yaml settings file, under log_dir
+        with open(log_dir + filename, 'w') as yaml_backup_file:
+            yaml.dump(self.params.to_dict(), yaml_backup_file, default_flow_style=False)
 
         # Ask for confirmation - optional.
         if user_confirm:

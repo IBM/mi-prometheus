@@ -222,6 +222,10 @@ class Tester(Worker):
         # Log the model summary.
         self.logger.info(self.model.summarize())
 
+        # Export and log configuration, optionally asking the user for confirmation.
+        self.export_experiment_configuration(self.log_dir, "testing_configuration.yaml",self.flags.confirm)
+
+
     def initialize_statistics_collection(self):
         """
         Function initializes all statistics collectors and aggregators used by a given worker,
@@ -266,9 +270,6 @@ class Tester(Worker):
 
 
         """
-        # Export and log configuration, optionally asking the user for confirmation.
-        self.export_experiment_configuration(self.log_dir, "testing_configuration.yaml",self.flags.confirm)
-
         # Initialize tensorboard and statistics collection.
         self.initialize_statistics_collection()
 

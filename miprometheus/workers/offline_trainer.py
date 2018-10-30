@@ -106,6 +106,10 @@ class OfflineTrainer(Trainer):
             self.logger.info("Setting the Episode Limit to: {}".format(self.episode_limit))
         self.logger.info('\n' + '='*80)
 
+        # Export and log configuration, optionally asking the user for confirmation.
+        self.export_experiment_configuration(self.log_dir, "training_configuration.yaml", self.flags.confirm)
+
+
     def run_experiment(self):
         """
         Main function of the ``Trainer``.
@@ -155,9 +159,6 @@ class OfflineTrainer(Trainer):
         with optional visualization of a random batch if set (vis. level 3).
 
         """
-        # Export and log configuration, optionally asking the user for confirmation.
-        self.export_experiment_configuration(self.log_dir, "training_configuration.yaml", self.flags.confirm)
-
         # Initialize TensorBoard and statistics collection.
         self.initialize_statistics_collection()
         self.initialize_tensorboard()
