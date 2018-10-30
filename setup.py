@@ -207,15 +207,15 @@ setup(
     # executes the function `main` from this package when invoked:
     entry_points={  # Optional
          'console_scripts': [
+             'mip-grid-trainer-cpu=miprometheus.grid_workers.grid_trainer_cpu:main',
+             'mip-grid-trainer-gpu=miprometheus.grid_workers.grid_trainer_gpu:main',
+             'mip-grid-tester-cpu=miprometheus.grid_workers.grid_tester_cpu:main',
+             'mip-grid-tester-gpu=miprometheus.grid_workers.grid_tester_gpu:main',
+             'mip-grid-analyzer=miprometheus.grid_workers.grid_analyzer:main',
+             'mip-index-splitter=miprometheus.helpers.index_splitter:main',
              'mip-offline-trainer=miprometheus.workers.offline_trainer:main',
              'mip-online-trainer=miprometheus.workers.online_trainer:main',
              'mip-tester=miprometheus.workers.tester:main',
-             'mip-index-splitter=miprometheus.workers.index_splitter:main',
-             'mip-grid-trainer-cpu=miprometheus.workers.grid_trainer_cpu:main',
-             'mip-grid-trainer-gpu=miprometheus.workers.grid_trainer_gpu:main',
-             'mip-grid-tester-cpu=miprometheus.workers.grid_tester_cpu:main',
-             'mip-grid-tester-gpu=miprometheus.workers.grid_tester_gpu:main',
-             'mip-grid-analyzer=miprometheus.workers.grid_analyzer:main',
          ],
      },
 
