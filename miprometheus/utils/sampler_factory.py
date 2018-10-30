@@ -106,21 +106,19 @@ class SamplerFactory(object):
                     except Exception:
                         # Ok, this is not a file.
                         pass
-                    if type(indices) != list:
-                        # Then still try to process it as a string.
-                        # If indices are already square brackets [].
-                        if indices[0] == '[' and indices[-1] == ']':
-                            # Remove the brackets.
-                            indices = indices.replace("[", "").replace("]", "")
+                    finally:
+                        # Try to process it as a string.
                         # Get the digits.
                         digits = indices.split(',')
                         indices = [int(x) for x in digits]
+                        # Else: assume that type(indices) is a list of ints.
 
-                    # Finally, we got the list of digits.
-                    if len(digits) == 2:
-                        # Create a range.
-                        indices = range(int(digits[0]), int(digits[1]))
-                    # Else: use them as they are
+                # Finally, we got the list of digits.
+                if len(digits) == 2:
+                    # Create a range.
+                    indices = range(int(digits[0]), int(digits[1]))
+                # Else: use them as they are
+
 
                 # Check if indices are within range.
                 if max(indices) >= len(problem):
@@ -128,8 +126,9 @@ class SamplerFactory(object):
                                 "considering that there are {} samples in the problem!".format(max(indices),
                                                                                                 len(problem)))
                     exit(-1)
+                # Create the sampler object.
                 sampler = sampler_class(indices)
-                print(len(sampler))
+
             elif sampler_class.__name__ in ['WeightedRandomSampler', 'BatchSampler', 'DistributedSampler']:
                 # Sorry, don't support those. Yet;)
                 logger.error("Sampler Sampler Factory does not support {} sampler. Please pick one of the others "
