@@ -292,6 +292,10 @@ class Worker(object):
         """
         # -> At this point, all configuration for experiment is complete.
 
+        # Save the resulting configuration into a .yaml settings file, under log_dir
+        with open(log_dir + filename, 'w') as yaml_backup_file:
+            yaml.dump(self.params.to_dict(), yaml_backup_file, default_flow_style=False)
+
         # Display results of parsing.
         self.display_parsing_results()
 
