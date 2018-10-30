@@ -82,7 +82,18 @@ class CIFAR10(ImageToClassProblem):
             If padding upscaled images, the padding is applied after upscaling the images.
 
 
+        .. note::
+
+            The following is set by default:
+
+            >>> params = {'data_folder': '~/data/cifar10',
+            >>>           'use_train_data': True,
+            >>>           'padding': [0, 0, 0, 0],
+            >>>           'up_scaling': False}
+
+
         :param params: Dictionary of parameters (read from configuration ``.yaml``file).
+        :type params: miprometheus.utils.ParamInterface
 
         """
 
@@ -91,12 +102,10 @@ class CIFAR10(ImageToClassProblem):
         self.name = 'CIFAR10'
 
         # Set default parameters.
-        params.add_default_params(
-            {'data_folder': '~/data/cifar10',
-            'use_train_data': True,
-            'padding': [0, 0, 0, 0],
-            'up_scaling': False
-            })
+        params.add_default_params({'data_folder': '~/data/cifar10',
+                                   'use_train_data': True,
+                                   'padding': [0, 0, 0, 0],
+                                   'up_scaling': False})
 
         # Get absolute path.
         data_folder = os.path.expanduser(params['data_folder'])
@@ -206,11 +215,8 @@ if __name__ == "__main__":
 
     # Load parameters.
     from miprometheus.utils.param_interface import ParamInterface
-    params = ParamInterface()
-    #params.add_config_params({'use_train_data': True,
-    #                           'padding': [0, 0, 0, 0],
-    #                           'up_scaling': False
-    #                            })
+    params = ParamInterface()  # using the default values
+
     batch_size = 64
 
     # Create problem.

@@ -34,22 +34,26 @@ class IndexSplitter(Worker):
     Defines the ``IndexSplitter`` class.
 
     The class is responsible for generation of files with indices splitting given dataset into two.
-    Those files can later be used in training/verification testing when using 'SubsetRandomSampler'.
+
+    Those files can later be used in training/verification testing when using ``SubsetRandomSampler``.
 
     .. note::
+
         General usage:
 
-            -- user provides the output dir where files with indices will be created (--o)
+            -- user provides the output dir where files with indices will be created (`--o`)
 
-            -- user provides the problem name (--p) OR length of the dataset (--l)
+            -- user provides the problem name (`--p`) OR length of the dataset (`--l`)
         
-            -- user provides split --s (value from 1 to l-2, which are border cases when one or the other split will contain a single index)
+            -- user provides split `--s` (value from 1 to l-2, which are border cases when one or the other \
+            split will contain a single index)
         
-        Additionally, the user migh turn random sampling on or off  by --r (DEFAULT: true)
+        Additionally, the user might turn random sampling on or off  by --r (DEFAULT: ``True``)
 
             -- when random_sampling is on, both files will contain (exclusive) random lists of indices
 
-            -- when off, both files will contain ranges, i.e. [0, s-1] and [s, l-1] respectivelly
+            -- when off, both files will contain ranges, i.e. [0, s-1] and [s, l-1] respectively.
+
  
     """
     def __init__(self, name="IndexSplitter"):
@@ -100,8 +104,8 @@ class IndexSplitter(Worker):
                                  default=False,
                                  action='store_true',
                                  help='When on, both files will contain (exclusive) random lists of indices. '
-                                       'When off, both files will contain ranges, i.e. [0, split-1] and [split, length-1] respectivelly')
-
+                                      'When off, both files will contain ranges, i.e. [0, split-1] and '
+                                      '[split, length-1] respectively')
 
     def run(self):
         """
@@ -129,34 +133,36 @@ class IndexSplitter(Worker):
 
         # Check if we can estimate length.
         if self.flags.problem_name == '' and self.flags.length == -1:
-            self.logger.error('Indes splitter operates on length (size) of the problem, please set problem (--p) or its length (--l)')
+            self.logger.error('Index splitter operates on length (size) of the problem, '
+                              'please set problem (--p) or its length (--l).')
             exit(-1)
 
         # Check if user pointed only one of them.
         if self.flags.problem_name != '' and self.flags.length != -1:
-            self.logger.error('Flags problem (--p) and length (--l) are exclusive, please use one of them')
+            self.logger.error('Flags problem (--p) and length (--l) are exclusive, please use only one of them.')
             exit(-2)
 
         # Check if user set the split.
         if self.flags.split == -1:
-            self.logger.error('Please set the split (--s)')
+            self.logger.error('Please set the split (--s).')
             exit(-3)
         split = self.flags.split
 
         # Build the problem.
-        if self.flags.problem_name !='':
+        if self.flags.problem_name != '':
             self.params.add_default_params({'name': self.flags.problem_name})
-            problem = ProblemFactory.build(self.params )
+            problem = ProblemFactory.build(self.params)
             length = len(problem)
         else:
             length = self.flags.length
 
         # Check the splitting.
         if split < 1 or split > length-1:
-            self.logger.error("Split must lie within 1 to {}-2 range, which are border cases when one or the other split will contain a single index".format(length))
+            self.logger.error("Split must lie within 1 to {}-2 range, which are border cases "
+                              "when one or the other split will contain a single index.".format(length))
             exit(-4)
 
-        self.logger.info("Splitting dataset of length {} into splits of size {} and {}".format(length, split, length - split))
+        self.logger.info("Splitting dataset of length {} into splits of size {} and {}.".format(length, split, length - split))
 
         # Split the indices.
         split_a, split_b = split_indices(length, split, self.logger, self.flags.random_sampling_off == False)
@@ -169,7 +175,7 @@ class IndexSplitter(Worker):
         name_b = os.path.expanduser(self.flags.outdir)+'split_b.txt'
         split_b.tofile(name_b, sep=",", format="%s")
 
-        self.logger.info("Splits written to {} ({} indices) and {} ({} indices)".format(name_a, len(split_a), name_b, len(split_b)))
+        self.logger.info("Splits written to {} ({} indices) and {} ({} indices).".format(name_a, len(split_a), name_b, len(split_b)))
         # Finished.
 
 

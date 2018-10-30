@@ -36,7 +36,7 @@ class SamplerFactory(object):
     def build(problem, params):
         """
         Static method returning particular sampler, depending on the name \
-        provided in the list of parameters.
+        provided in the list of parameters & the specified problem class.
 
         :param problem: Instance of an object derived from the Problem class.
         :type problem: ``problems.Problem``
@@ -48,24 +48,33 @@ class SamplerFactory(object):
 
             ``params`` should contains the exact (case-sensitive) class name of the sampler to instantiate.
 
-        :return: Instance of a given sampler or None if section not present (None) or coudn't build the sampler.
+
+        .. warning::
+
+            ``torch.utils.data.sampler.WeightedRandomSampler``, ``torch.utils.data.sampler.BatchSampler``, \
+            ``torch.utils.data.sampler.DistributedSampler`` are not yet supported.
+
+
+        :return: Instance of a given sampler or ``None`` if the section not present or couldn't build the sampler.
+
         """
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger('SamplerFactory')
 
         # Check if sampler is required, i.e. 'sampler' section is empty.
         if not params:
+            logger.info('The sampler configuration section is not present.')
             return None
 
         try: 
             # Check presence of the name attribute.
             if 'name' not in params:
-                raise Exception("Sampler configuration section does not contain the key 'name'")
+                raise Exception("The sampler configuration section does not contain the key 'name'.")
 
             # Get the class name.
             name = params['name']
 
-            # Verify that the specified class is in the controller package.
+            # Verify that the specified class is in the samplers package.
             if name not in dir(torch.utils.data.sampler):
                 raise Exception("Could not find the specified class '{}' in the samplers package".format(name))
 

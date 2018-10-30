@@ -70,8 +70,10 @@ class Worker(object):
             - Creates parser and adds default worker command line arguments.
 
         :param name: Name of the worker.
+        :type name: str
 
-        :param add_default_parser_args: If set, adds default parser arguments (DEFAULT: True)
+        :param add_default_parser_args: If set, adds default parser arguments (DEFAULT: True).
+        :type add_default_parser_args: bool
 
         """
         # Call base constructor.
@@ -96,37 +98,37 @@ class Worker(object):
         if add_default_parser_args:
             # These arguments will be shared by all basic workers.
             self.parser.add_argument('--config',
-                                    dest='config',
-                                    type=str,
-                                    default='',
-                                    help='Name of the configuration file(s) to be loaded. '
-                                        'If specifying more than one file, they must be separated with coma ",".')
+                                     dest='config',
+                                     type=str,
+                                     default='',
+                                     help='Name of the configuration file(s) to be loaded. '
+                                          'If specifying more than one file, they must be separated with coma ",".')
 
             self.parser.add_argument('--model',
-                                    type=str,
-                                    default='',
-                                    dest='model',
-                                    help='Path to the file containing the saved parameters'
-                                        ' of the model to load (model checkpoint, should end with a .pt extension.)')
+                                     type=str,
+                                     default='',
+                                     dest='model',
+                                     help='Path to the file containing the saved parameters'
+                                          ' of the model to load (model checkpoint, should end with a .pt extension.)')
 
             self.parser.add_argument('--gpu',
-                                    dest='use_gpu',
-                                    action='store_true',
-                                    help='The current worker will move the computations on GPU devices, if available in '
-                                        'the system. (Default: False)')
+                                     dest='use_gpu',
+                                     action='store_true',
+                                     help='The current worker will move the computations on GPU devices, if available '
+                                          'in the system. (Default: False)')
 
             self.parser.add_argument('--outdir',
-                                    dest='outdir',
-                                    type=str,
-                                    default="./experiments",
-                                    help='Path to the output directory where the experiment(s) folders will be stored.'
-                                        ' (DEFAULT: ./experiments)')
+                                     dest='outdir',
+                                     type=str,
+                                     default="./experiments",
+                                     help='Path to the output directory where the experiment(s) folders will be stored.'
+                                          ' (DEFAULT: ./experiments)')
 
             self.parser.add_argument('--savetag',
-                                    dest='savetag',
-                                    type=str,
-                                    default='',
-                                    help='Tag for the save directory')
+                                     dest='savetag',
+                                     type=str,
+                                     default='',
+                                     help='Tag for the save directory.')
 
             self.parser.add_argument('--ll',
                                     action='store',
@@ -137,22 +139,39 @@ class Worker(object):
                                     help="Log level. (Default: INFO)")
 
             self.parser.add_argument('--li',
-                                    dest='logging_interval',
-                                    default=100,
-                                    type=int,
-                                    help='Statistics logging interval. Will impact logging to the logger and exporting to '
-                                        'TensorBoard. Writing to the csv file is not impacted (interval of 1).'
-                                        ' (Default: 100, i.e. logs every 100 episodes).')
+                                     dest='logging_interval',
+                                     default=100,
+                                     type=int,
+                                     help='Statistics logging interval. Will impact logging to the logger and '
+                                          'exporting to TensorBoard. Writing to the csv file is not impacted '
+                                          '(interval of 1).(Default: 100, i.e. logs every 100 episodes).')
 
             self.parser.add_argument('--agree',
-                                    dest='confirm',
-                                    action='store_true',
-                                    help='Request user confirmation just after loading the settings, '
-                                        'before starting training. (Default: False)')
-    
+                                     dest='confirm',
+                                     action='store_true',
+                                     help='Request user confirmation just after loading the settings, '
+                                          'before starting training. (Default: False)')
 
     def initialize_logger(self):
-        ''' Method initializes logger.'''
+        """
+        Initializes the logger, with a specific configuration:
+
+        >>> logger_config = {'version': 1,
+        >>>                  'disable_existing_loggers': False,
+        >>>                  'formatters': {
+        >>>                      'simple': {
+        >>>                          'format': '[%(asctime)s] - %(levelname)s - %(name)s >>> %(message)s',
+        >>>                          'datefmt': '%Y-%m-%d %H:%M:%S'}},
+        >>>                  'handlers': {
+        >>>                      'console': {
+        >>>                          'class': 'logging.StreamHandler',
+        >>>                          'level': 'INFO',
+        >>>                          'formatter': 'simple',
+        >>>                          'stream': 'ext://sys.stdout'}},
+        >>>                  'root': {'level': 'DEBUG',
+        >>>                           'handlers': ['console']}}
+
+        """
         # Load the default logger configuration.
         logger_config = {'version': 1,
                          'disable_existing_loggers': False,
@@ -174,12 +193,11 @@ class Worker(object):
         # Create the Logger, set its label and logging level.
         self.logger = logging.getLogger(name=self.name)
 
-
     def display_parsing_results(self):
-        '''
-            Diplats results of parsing, i.e. list of parsed arguments. 
-            If there are any other, unparsed arguments, it displays them as well.
-        '''
+        """
+        Displays the properly & improperly parsed arguments (if any).
+
+        """
         # Log the parsed flags.
         flags_str = 'Properly parsed command line arguments: \n'
         flags_str += '='*80 + '\n'
@@ -188,7 +206,7 @@ class Worker(object):
         flags_str += '='*80 + '\n'
         self.logger.info(flags_str)
 
-        # Log the unparsed flags.
+        # Log the unparsed flags if any.
         if self.unparsed:
             flags_str = 'Invalid command line arguments: \n'
             flags_str += '='*80 + '\n'
@@ -196,7 +214,6 @@ class Worker(object):
                 flags_str += "{} \n".format(arg)
             flags_str += '='*80 + '\n'
             self.logger.warning(flags_str)
-
 
     def setup_experiment(self):
         """
@@ -240,22 +257,24 @@ class Worker(object):
         self.params["validation"].add_default_params(dataloader_config)
         self.params["testing"].add_default_params(dataloader_config)
 
-
     def build_problem_and_dataloader(self, params):
         """
-        Builds and returns problem and dataloader.
-        Builds also the sampler if required.
+        Builds and returns the Problem class, alongside its DataLoader.
 
-        :param params: 'ParameterInterface' object, refering to one of main sections (training/validation/testing).
+        Also builds the sampler if required.
 
-        :return: problem instance, dataloader instance.
+        :param params: 'ParamInterface' object, referring to one of main sections (training/validation/testing).
+        :type params: miprometheus.utils.ParamInterface
+
+        :return: Problem instance & DataLoader instance.
         """
 
-        # Build the validation problem.
+        # Build the problem.
         problem = ProblemFactory.build(params['problem'])
 
         # Try to build the sampler.
         sampler = SamplerFactory.build(problem, params['sampler'])
+
         if sampler is not None:
             # Set shuffle to False - REQUIRED as those two are exclusive.
             params['dataloader'].add_config_params({'shuffle': False})
@@ -272,8 +291,8 @@ class Worker(object):
                                 drop_last=params['dataloader']['drop_last'],
                                 timeout=params['dataloader']['timeout'],
                                 worker_init_fn=problem.worker_init_fn)
-        return problem, dataloader
 
+        return problem, dataloader
 
     def export_experiment_configuration(self, log_dir, filename, user_confirm):
         """

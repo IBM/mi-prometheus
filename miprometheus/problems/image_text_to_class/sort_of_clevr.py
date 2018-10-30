@@ -74,6 +74,17 @@ class SortOfCLEVR(ImageTextToClassProblem):
               already exists or not.
 
 
+    .. note::
+
+        The following is set by default:
+
+        >>> params = {'data_folder': '~/data/sort-of-clevr/',
+        >>>           'split': 'train',
+        >>>           'regenerate': False,
+        >>>           'size': 10000,
+        >>>           'img_size': 128}
+
+
     """
 
     def __init__(self, params):
@@ -93,11 +104,10 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         # Set default parameters.
         self.params.add_default_params({'data_folder': '~/data/sort-of-clevr/',
-                               'split': 'train',
-                               'regenerate': False,
-                               'size': 10000,
-                               'img_size': 128})
-
+                                        'split': 'train',
+                                        'regenerate': False,
+                                        'size': 10000,
+                                        'img_size': 128})
 
         # parse params
         self.img_size = params["img_size"]
@@ -648,12 +658,7 @@ if __name__ == "__main__":
 
     # "Loaded parameters".
     from miprometheus.utils.param_interface import ParamInterface
-    params = ParamInterface()
-    #params.add_config_params({'data_folder': '~/data/sort-of-clevr/',
-    #                           'split': 'train',
-    #                           'regenerate': False,
-    #                           'size': 10000, # Size of the dataset.
-    #                           'img_size': 128})
+    params = ParamInterface()  # using the default values
 
     # create problem
     sortofclevr = SortOfCLEVR(params)
@@ -677,8 +682,7 @@ if __name__ == "__main__":
 
     s = time.time()
     for i, batch in enumerate(dataloader):
-        #print('Batch # {} - {}'.format(i, type(batch)))
-        pass 
+        print('Batch # {} - {}'.format(i, type(batch)))
 
     print('Number of workers: {}'.format(dataloader.num_workers))
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))

@@ -29,18 +29,26 @@ from numpy.random import permutation
 
 def split_indices(length, split, logger, random_sampling=True):
     """
-    Function splits the indices of an array of a given ''length'' into two parts, using the ''split'' as divider.
+    Splits the indices of an array of a given ``length`` into two parts, using the ``split`` as the divider.
+
     Random sampling is used by default, but can be turned off.
 
     :param length: Length (size) of the dataset.
+    :type length: int
 
-    :param split: Determines how many indices will belong to subset a and supset b.
+    :param split: Determines how many indices will belong to subset a and subset b.
+    :type split: int
 
     :param logger: Logging utility.
+    :type logger: logging.Logger
 
-    :param random_sampling: Use random sampling (DEFAULT: True). If set to false, will return two ranges instead of lists with indices.
+    :param random_sampling: Use random sampling (DEFAULT: ``True``). If set to ``False``, will return two ranges \
+    instead of lists with indices.
+    :type random_sampling: bool
 
-    :returns: Two lists with indices (when random_sampling is True), or two lists bith two elements - ranges (when false).
+    :return: Two lists with indices (when random_sampling is ``True``), or two lists with two elements - \
+    ranges (when ``False``).
+
     """  
     if random_sampling:
         logger.info('Using random sampling')
@@ -54,4 +62,5 @@ def split_indices(length, split, logger, random_sampling=True):
         # Split into two ranges.
         split_a = np.asarray([0,split-1], dtype=int)
         split_b = np.asarray([split,length-1], dtype=int)
+
     return split_a, split_b

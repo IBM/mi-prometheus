@@ -23,5 +23,5 @@ __pycache__*
 # Ignore every DS_Store
 **/.DS_Store
 
-# Ignore build
+# Ignore build directory
 /build/** 

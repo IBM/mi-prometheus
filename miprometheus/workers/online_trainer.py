@@ -111,7 +111,6 @@ class OnlineTrainer(Trainer):
         # Export and log configuration, optionally asking the user for confirmation.
         self.export_experiment_configuration(self.log_dir, "training_configuration.yaml", self.flags.confirm)
 
-
     def run_experiment(self):
         """
         Main function of the ``OnlineTrainer``, runs the experiment.
