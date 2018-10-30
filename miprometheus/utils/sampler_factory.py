@@ -87,11 +87,14 @@ class SamplerFactory(object):
             # Handle "special" case.
             if sampler_class.__name__ == 'SubsetRandomSampler':
 
+                # Check presence of the name attribute.
+                if 'indices' not in params:
+                    raise Exception("The sampler configuration section does not contain the key 'indices' required by SubsetRandomSampler.")
+
                 indices = params['indices']
 
                 # Analyze the type.
                 if type(indices) == str:
-
                     # Try to open the file.
                     try:
                         # from expanduser()'s doc: If the expansion fails or if the path does not begin
@@ -99,8 +102,6 @@ class SamplerFactory(object):
                         file = open(os.path.expanduser(indices), "r")
                         # Read the file.
                         indices = file.readline() 
-                        # Truncate the last "enter"
-                        indices = indices[:-1]
                         file.close()
 
                     except Exception:
@@ -111,7 +112,9 @@ class SamplerFactory(object):
                         # Get the digits.
                         digits = indices.split(',')
                         indices = [int(x) for x in digits]
-                        # Else: assume that type(indices) is a list of ints.
+                else:
+                 # Else: assume that type(indices) is a list of ints.
+                    digits = indices
 
                 # Finally, we got the list of digits.
                 if len(digits) == 2:
@@ -126,6 +129,7 @@ class SamplerFactory(object):
                                 "considering that there are {} samples in the problem!".format(max(indices),
                                                                                                 len(problem)))
                     exit(-1)
+
                 # Create the sampler object.
                 sampler = sampler_class(indices)
 

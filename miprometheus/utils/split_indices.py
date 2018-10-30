@@ -60,7 +60,7 @@ def split_indices(length, split, logger, random_sampling=True):
     else:
         logger.info('Splitting into two ranges without random sampling')
         # Split into two ranges.
-        split_a = np.asarray([0,split-1], dtype=int)
-        split_b = np.asarray([split,length-1], dtype=int)
+        split_a = np.asarray([0,split], dtype=int) # outer right indices won't be included!
+        split_b = np.asarray([split,length], dtype=int)
 
     return split_a, split_b
