@@ -78,7 +78,7 @@ class PretrainedImageEncoding(nn.Module):
         try:
             nb_channels = self.model[-1][-1].bn2.num_features
             return nb_channels
-        except:
+        except Exception:
             print('Could not get the number of output channels of the model {}'.format(self.cnn_model))
 
     def forward(self, img):

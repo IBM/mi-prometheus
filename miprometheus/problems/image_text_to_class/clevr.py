@@ -468,7 +468,7 @@ class CLEVR(ImageTextToClassProblem):
             for word in words:
                 try:
                     question_token.append(word_dic[word])
-                except:
+                except Exception:
                     question_token.append(word_index)
                     word_dic[word] = word_index
                     word_index += 1
@@ -476,7 +476,7 @@ class CLEVR(ImageTextToClassProblem):
             answer_word = question['answer']
             try:
                 answer = answer_dic[answer_word]
-            except:
+            except Exception:
                 answer = answer_index
                 answer_dic[answer_word] = answer_index
                 answer_index += 1
@@ -484,7 +484,7 @@ class CLEVR(ImageTextToClassProblem):
             # save sample params as a dict.
             try:
                 question_type = index_to_family[str(question['question_family_index'])]
-            except:
+            except Exception:
                 question_type = None
 
             result.append({'tokenized_question': question_token, 'answer': answer,
@@ -582,7 +582,7 @@ class CLEVR(ImageTextToClassProblem):
             try:
                 img = torch.load(f)  # for feature maps
                 img = torch.from_numpy(img).type(torch.FloatTensor).squeeze()
-            except:
+            except Exception:
                 img = Image.open(f).convert('RGB')  # for the original images
                 img = ToTensor()(img).type(torch.FloatTensor).squeeze()
 

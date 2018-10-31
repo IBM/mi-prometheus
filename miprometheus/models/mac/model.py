@@ -92,7 +92,7 @@ class MACNetwork(Model):
 
         try:
             self.nb_classes = problem_default_values_['nb_classes']
-        except BaseException:
+        except KeyError:
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
         self.name = 'MAC'
