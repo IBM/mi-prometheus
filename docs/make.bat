@@ -9,7 +9,7 @@ if "%SPHINXBUILD%" == "" (
 )
 set SOURCEDIR=.
 set BUILDDIR=_build
-set SPHINXPROJ=Machine2Intelligence
+set SPHINXPROJ=MI-Prometheus
 
 if "%1" == "" goto help
 
