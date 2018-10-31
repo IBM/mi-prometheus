@@ -40,7 +40,7 @@ class InterfaceStateTuple(_InterfaceStateTuple):
     __slots__ = ()
 
 
-class Interface:
+class Interface(object):
     def __init__(self, params):
         """
         Initialize Interface.
