@@ -328,7 +328,13 @@ class Worker(object):
 
         # Ask for confirmation - optional.
         if user_confirm:
-            input('Press <Enter> to start the experiment')
+            try:
+                input('Press <Enter> to confirm and start the experiment\n')
+            except Exception:
+                pass            
+            except KeyboardInterrupt:
+                exit(0)            
+
 
     def add_statistics(self, stat_col):
         """
