@@ -461,6 +461,7 @@ class Trainer(Worker):
 
 
         """
+        # Get number of samples - depending whether using sampler or not.
         if self.validations_sampler is not None:
             num_samples = len(self.validations_sampler)
         else:
