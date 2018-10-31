@@ -54,6 +54,23 @@ class SamplerFactory(object):
             ``torch.utils.data.sampler.WeightedRandomSampler``, ``torch.utils.data.sampler.BatchSampler``, \
             ``torch.utils.data.sampler.DistributedSampler`` are not yet supported.
 
+        .. note::
+
+            ``torch.utils.data.sampler.SubsetRandomSampler`` expects indices to index a subset of the dataset. \
+             Currently, the user can specify these indices using one of the following options:
+
+            - Option 1: range.
+                >>> indices = range(20)
+
+            - Option 2: range as str.
+                >>> range_str = '0, 20'
+
+            - Option 3: list of indices.
+                >>> yaml_list = yaml.load('[0, 2, 5, 10]')
+
+            - Option 4: name of the file containing indices.
+                >>> filename = "~/data/mnist/training_indices.txt"
+
 
         :return: Instance of a given sampler or ``None`` if the section not present or couldn't build the sampler.
 
@@ -89,7 +106,8 @@ class SamplerFactory(object):
 
                 # Check presence of the name attribute.
                 if 'indices' not in params:
-                    raise Exception("The sampler configuration section does not contain the key 'indices' required by SubsetRandomSampler.")
+                    raise Exception("The sampler configuration section does not contain the key 'indices' "
+                                    "required by SubsetRandomSampler.")
 
                 indices = params['indices']
 
@@ -113,7 +131,7 @@ class SamplerFactory(object):
                         digits = indices.split(',')
                         indices = [int(x) for x in digits]
                 else:
-                 # Else: assume that type(indices) is a list of ints.
+                    # Assume that type(indices) is a list of ints.
                     digits = indices
 
                 # Finally, we got the list of digits.
@@ -122,11 +140,10 @@ class SamplerFactory(object):
                     indices = range(int(digits[0]), int(digits[1]))
                 # Else: use them as they are
 
-
                 # Check if indices are within range.
                 if max(indices) >= len(problem):
                     logger.error("SubsetRandomSampler cannot work properly when indices are out of range ({}) "
-                                "considering that there are {} samples in the problem!".format(max(indices),
+                                 "considering that there are {} samples in the problem!".format(max(indices),
                                                                                                 len(problem)))
                     exit(-1)
 
@@ -135,8 +152,8 @@ class SamplerFactory(object):
 
             elif sampler_class.__name__ in ['WeightedRandomSampler', 'BatchSampler', 'DistributedSampler']:
                 # Sorry, don't support those. Yet;)
-                logger.error("Sampler Sampler Factory does not support {} sampler. Please pick one of the others "
-                            "or use defaults random sampling.".format(sampler_class.__name__))
+                logger.error("Sampler Factory currently does not support {} sampler. Please pick one of the others "
+                             "or use defaults random sampling.".format(sampler_class.__name__))
                 exit(-2)
             else:
                 # Create "regular" sampler.
@@ -144,6 +161,7 @@ class SamplerFactory(object):
 
             # Return sampler.
             return sampler
+
         except Exception as e:
             logger.error(e)
             logger.warning("Using default sampling without sampler.")
@@ -163,16 +181,14 @@ if __name__ == "__main__":
             return 50
 
     # All samplers operate on TestProblem only,
-    # whereas SubsetRandomSampler additionally accepts 'indices' with three options.
+    # whereas SubsetRandomSampler additionally accepts 'indices' with the following options:
     # Option 1: range.
     indices = range(20)
     # Option 2: range as str.
-    range_str = '[0 10]'
+    range_str = '0, 20'
     # Option 3: list of indices.
-    indices_str = '[0, 2 5 10]'
-    # Option 4: list of indices.
     yaml_list = yaml.load('[0, 2, 5, 10]')
-    # Option 5: name of the file containing indices.
+    # Option 4: name of the file containing indices.
     filename = "~/data/mnist/training_indices.txt"
 
     params = ParamInterface()

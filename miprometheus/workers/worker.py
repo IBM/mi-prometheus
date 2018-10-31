@@ -281,16 +281,16 @@ class Worker(object):
 
         # build the DataLoader on top of the validation problem
         loader = DataLoader(dataset=problem,
-                                batch_size=params['problem']['batch_size'],
-                                shuffle=params['dataloader']['shuffle'],
-                                sampler=sampler,
-                                batch_sampler=params['dataloader']['batch_sampler'],
-                                num_workers=params['dataloader']['num_workers'],
-                                collate_fn=problem.collate_fn,
-                                pin_memory=params['dataloader']['pin_memory'],
-                                drop_last=params['dataloader']['drop_last'],
-                                timeout=params['dataloader']['timeout'],
-                                worker_init_fn=problem.worker_init_fn)
+                            batch_size=params['problem']['batch_size'],
+                            shuffle=params['dataloader']['shuffle'],
+                            sampler=sampler,
+                            batch_sampler=params['dataloader']['batch_sampler'],
+                            num_workers=params['dataloader']['num_workers'],
+                            collate_fn=problem.collate_fn,
+                            pin_memory=params['dataloader']['pin_memory'],
+                            drop_last=params['dataloader']['drop_last'],
+                            timeout=params['dataloader']['timeout'],
+                            worker_init_fn=problem.worker_init_fn)
 
         # Return sampler - even if it is none :]
         return problem, sampler, loader

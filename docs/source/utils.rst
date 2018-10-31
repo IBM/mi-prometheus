@@ -49,6 +49,14 @@ ParamRegistry
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+SamplerFactory
+-----------------------
+
+.. autoclass:: SamplerFactory
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
 StatisticsCollector
 -----------------------
 
