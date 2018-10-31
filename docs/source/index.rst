@@ -30,6 +30,8 @@ MI Prometheus is an open source Python library, built using PyTorch, that enable
    :caption: Package Reference
 
    workers
+   grid_workers
+   helpers
    models
    problems
    utils

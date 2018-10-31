@@ -73,6 +73,15 @@ class MNIST(ImageToClassProblem):
                     >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
                     >>>                         }
 
+        .. note::
+
+            The following is set by default:
+
+            >>> params = {'data_folder': '~/data/mnist',
+            >>>           'use_train_data': True,
+            >>>           'padding': [0, 0, 0, 0],
+            >>>           'up_scaling': False}
+
         :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
         """
@@ -80,13 +89,18 @@ class MNIST(ImageToClassProblem):
         # Call base class constructors.
         super(MNIST, self).__init__(params)
 
-        # Retrieve parameters from the dictionary.
-        self.use_train_data = params['use_train_data']
+        # Set default parameters.
+        self.params.add_default_params({'data_folder': '~/data/mnist',
+                                        'use_train_data': True,
+                                        'padding': [0, 0, 0, 0],
+                                        'up_scaling': False
+                                        })
 
-        # Set default folder.
-        params.add_default_params({'data_folder': '~/data/mnist'})
         # Get absolute path.
         data_folder = os.path.expanduser(params['data_folder'])
+
+        # Retrieve parameters from the dictionary.
+        self.use_train_data = params['use_train_data']
 
         # possibility to pad the image
         self.padding = params['padding']
@@ -186,13 +200,7 @@ if __name__ == "__main__":
 
     # Load parameters.
     from miprometheus.utils.param_interface import ParamInterface
-    params = ParamInterface()
-    params.add_config_params({
-                                'use_train_data': True,
-                                #'data_folder': '/home/tkornuta/data/mnist1/',
-                                'padding': [4, 4, 3, 3],
-                                'up_scaling': False
-                                })
+    params = ParamInterface()  # using the default values
 
     batch_size = 64
 
@@ -207,14 +215,13 @@ if __name__ == "__main__":
     # wrap DataLoader on top of this Dataset subclass
     from torch.utils.data.dataloader import DataLoader
     dataloader = DataLoader(dataset=mnist, collate_fn=mnist.collate_fn,
-                            batch_size=batch_size, shuffle=True, num_workers=4)
+                            batch_size=batch_size, shuffle=True, num_workers=0)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
     import time
     s = time.time()
     for i, batch in enumerate(dataloader):
-        #print('Batch # {} - {}'.format(i, type(batch)))
-        pass
+        print('Batch # {} - {}'.format(i, type(batch)))
 
     print('Number of workers: {}'.format(dataloader.num_workers))
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))

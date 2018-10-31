@@ -33,7 +33,7 @@ from datetime import datetime
 from functools import partial
 from multiprocessing.pool import ThreadPool
 
-from miprometheus.workers.grid_worker import GridWorker
+from miprometheus.grid_workers.grid_worker import GridWorker
 
 
 class GridAnalyzer(GridWorker):

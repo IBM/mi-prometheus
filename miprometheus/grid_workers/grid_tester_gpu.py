@@ -34,7 +34,7 @@ from time import sleep
 from functools import partial
 from multiprocessing.pool import ThreadPool
 
-from miprometheus.workers.grid_tester_cpu import GridTesterCPU
+from miprometheus.grid_workers.grid_tester_cpu import GridTesterCPU
 
 
 class GridTesterGPU(GridTesterCPU):

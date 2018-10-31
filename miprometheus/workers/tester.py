@@ -183,8 +183,8 @@ class Tester(Worker):
         ################# TESTING PROBLEM ################# 
 
         # Build test problem and dataloader.
-        self.problem, self.dataloader = \
-            self.build_problem_and_dataloader(self.params['testing']) 
+        self.problem, self.sampler, self.dataloader = \
+            self.build_problem_sampler_loader(self.params['testing']) 
 
         # check if the maximum number of episodes is specified, if not put a
         # default equal to the size of the dataset (divided by the batch size)
@@ -221,6 +221,10 @@ class Tester(Worker):
 
         # Log the model summary.
         self.logger.info(self.model.summarize())
+
+        # Export and log configuration, optionally asking the user for confirmation.
+        self.export_experiment_configuration(self.log_dir, "testing_configuration.yaml",self.flags.confirm)
+
 
     def initialize_statistics_collection(self):
         """
@@ -266,17 +270,20 @@ class Tester(Worker):
 
 
         """
-        # Export and log configuration, optionally asking the user for confirmation.
-        self.export_experiment_configuration(self.log_dir, "testing_configuration.yaml",self.flags.confirm)
-
         # Initialize tensorboard and statistics collection.
         self.initialize_statistics_collection()
 
         # Set visualization.
         self.app_state.visualize = self.flags.visualize
 
+        # Get number of samples - depending whether using sampler or not.
+        if self.sampler is not None:
+            num_samples = len(self.sampler)
+        else:
+            num_samples = len(self.problem)
+
         self.logger.info('Testing over the entire test set ({} samples in {} episodes)'.format(
-            len(self.problem), len(self.dataloader)))
+            num_samples, len(self.dataloader)))
 
         try:
             # Run test

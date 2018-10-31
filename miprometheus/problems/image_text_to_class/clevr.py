@@ -70,11 +70,12 @@ class CLEVR(ImageTextToClassProblem):
     See reference here: https://cs.stanford.edu/people/jcjohns/clevr/
 
     :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
+    :type params: miprometheus.utils.ParamInterface
 
 
     Given the relative complexity of this class, ``params`` should follow a specific template. Here are 2 examples:
 
-        >>> params = {'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
+        >>> params = {'settings': {'data_folder': '~/data/CLEVR_v1.0',
         >>>                        'set': 'train',
         >>>                        'dataset_variant': 'CLEVR'},
         >>>           'images': {'raw_images': False,
@@ -82,11 +83,11 @@ class CLEVR(ImageTextToClassProblem):
         >>>                                            'num_blocks': 4}},
         >>>           'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
 
-        >>> params = {'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
+        >>> params = {'settings': {'data_folder': '~/data/CLEVR_v1.0',
         >>>                        'set': 'train',
         >>>                        'dataset_variant': 'CLEVR-Humans'},
         >>>           'images': {'raw_images': True},
-        >>>           'questions': {'embedding_type': 'glove.6B.300d'}})
+        >>>           'questions': {'embedding_type': 'glove.6B.300d'}}
 
 
     ``params`` is separated in 3 sections:
@@ -153,6 +154,16 @@ class CLEVR(ImageTextToClassProblem):
                     - "glove.6B.300d"
 
             - ``embedding_dim``: In the case of a random ``embedding_type``, this is the embedding dimension to use.
+
+    .. note::
+
+        The following is set by default:
+
+        >>> params = {'settings': {'data_folder': '~/data/CLEVR_v1.0',
+        >>>                        'set': 'train',
+        >>>                        'dataset_variant': 'CLEVR'},
+        >>>           'images': {'raw_images': True},
+        >>>           'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
 
 
     """
@@ -250,12 +261,14 @@ class CLEVR(ImageTextToClassProblem):
             # have the same reference.
             if self.set == 'val' or self.set == 'valA' or self.set == 'valB':  # handle CoGenT
                 # first generate the words dic using the training samples
-                self.logger.warning('We need to ensure that we use the same words-to-index & answers-to-index dictionaries '
-                               'for both the train & val samples.')
+                self.logger.warning('We need to ensure that we use the same words-to-index & answers-to-index '
+                                    'dictionaries for both the train & val samples.')
                 self.logger.warning('First, generating the words-to-index & answers-to-index dictionaries from '
-                               'the training samples :')
-                _, self.word_dic, self.answer_dic = self.generate_questions_dics('train' if self.set == 'val' else 'trainA',
-                                                                                 word_dic=None, answer_dic=None)
+                                    'the training samples :')
+                _, self.word_dic, self.answer_dic = self.generate_questions_dics('train' if self.set == 'val' else
+                                                                                 'trainA',
+                                                                                 word_dic=None,
+                                                                                 answer_dic=None)
 
                 # then tokenize the questions using the created dictionaries from the training samples
                 self.logger.warning('We can now tokenize the validation questions using the dictionaries created from '
@@ -265,7 +278,8 @@ class CLEVR(ImageTextToClassProblem):
                                                                                          answer_dic=self.answer_dic)
 
             elif self.set == 'train' or self.set == 'trainA':  # Can directly tokenize the questions
-                self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set, word_dic=None, answer_dic=None)
+                self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set, word_dic=None,
+                                                                                         answer_dic=None)
 
         # --> At this point, self.data contains the processed questions
         self.length = len(self.data)
@@ -309,12 +323,19 @@ class CLEVR(ImageTextToClassProblem):
          (which type of embedding to use), this step is of relative importance.
 
 
-        :param params: parameters tree read from the ``.yaml`` configuration file.
-        :type params: dict
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
+        :type params: miprometheus.utils.ParamInterface
 
 
         """
-
+        # Set default parameters: load the original images & embed questions randomly
+        params.add_default_params({'settings': {'data_folder': '~/data/CLEVR_v1.0',
+                                                'set': 'train',
+                                                'dataset_variant': 'CLEVR'},
+                                   'images': {'raw_images': 'True'},
+                                   'questions': {'embedding_type': 'random',
+                                                 'embedding_dim': 300}
+                                   })
         # get the data_folder
         self.data_folder = os.path.expanduser(params['settings']['data_folder'])
 
@@ -647,7 +668,7 @@ class CLEVR(ImageTextToClassProblem):
         :type epoch: int
 
         """
-        #self.get_acc_per_family()
+        # self.get_acc_per_family()
 
     def initialize_epoch(self, epoch):
         """
@@ -786,15 +807,14 @@ if __name__ == "__main__":
 
     from miprometheus.utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_default_params({'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
-                               'set': 'train',
-                               'dataset_variant': 'CLEVR'},
+    params.add_config_params({'settings': {'data_folder': '~/data/CLEVR_v1.0',
+                                           'set': 'train',
+                                           'dataset_variant': 'CLEVR'},
+                              'images': {'raw_images': False,
+                                         'feature_extractor': {'cnn_model': 'resnet101',
+                                                               'num_blocks': 4}},
 
-                               'images': {'raw_images': False,
-                                          'feature_extractor': {'cnn_model': 'resnet101',
-                                                                'num_blocks': 4}},
-
-                               'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
+                              'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
 
     # create problem
     clevr_dataset = CLEVR(params)
@@ -808,7 +828,7 @@ if __name__ == "__main__":
 
     # instantiate DataLoader object
     problem = DataLoader(clevr_dataset, batch_size=batch_size, shuffle=False, collate_fn=clevr_dataset.collate_fn,
-                         num_workers=8)
+                         num_workers=0, sampler=None)
 
     import time
     s = time.time()
