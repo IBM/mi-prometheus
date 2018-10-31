@@ -26,7 +26,7 @@ Trainer
 OfflineTrainer
 ----------------------------
 
-.. autoclass:: OffLineTrainer
+.. autoclass:: OfflineTrainer
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -34,7 +34,7 @@ OfflineTrainer
 OnlineTrainer
 ----------------------------
 
-.. autoclass:: OnLineTrainer
+.. autoclass:: OnlineTrainer
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
