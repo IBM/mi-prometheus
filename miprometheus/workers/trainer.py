@@ -278,7 +278,7 @@ class Trainer(Worker):
             exit(-5)
         except Exception as e:
             self.logger.error(e)
-            # Exit by following the logic: if user wanted to load the model but failer, then continuing the experiment makes no sense.
+            # Exit by following the logic: if user wanted to load the model but failed, then continuing the experiment makes no sense.
             exit(-6)
 
         # Move the model to CUDA if applicable.
