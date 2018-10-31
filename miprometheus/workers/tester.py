@@ -145,14 +145,14 @@ class Tester(Worker):
         # Get testing problem name.
         try:
             _ = self.params['testing']['problem']['name']
-        except:
+        except KeyError:
             print("Error: Couldn't retrieve the problem name from the 'testing' section in the loaded configuration")
             exit(-1)
 
         # Get model name.
         try:
             _ = self.params['model']['name']
-        except:
+        except KeyError:
             print("Error: Couldn't retrieve the model name from the loaded configuration")
             exit(-1)
 

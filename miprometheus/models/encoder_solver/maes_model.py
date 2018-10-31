@@ -112,7 +112,7 @@ class MAES(SequentialModel):
 
         """
         # Call the case method to save the whole model.
-        is_best_model = super(SequentialModel, self).save(model_dir, stat_col)
+        is_best_model = super(MAES, self).save(model_dir, stat_col)
 
         # Additionally, if flag is set to True, save the encoder.
         if self.save_encoder:
@@ -183,7 +183,7 @@ class MAES(SequentialModel):
                         encoder_state.memory_state, encoder_state.interface_state.attention)
 
             elif x[0, self.encoding_bit] and x[0, self.solving_bit]:
-                logger.error('Two control bits were on:\n {}'.format(x))
+                self.logger.error('Two control bits were on:\n {}'.format(x))
                 exit(-1)
 
             # Run encoder or solver - depending on the state.

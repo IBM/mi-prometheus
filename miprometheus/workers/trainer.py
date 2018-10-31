@@ -167,21 +167,21 @@ class Trainer(Worker):
         # Get training problem name.
         try:
             training_problem_name = self.params['training']['problem']['name']
-        except:
+        except KeyError:
             print("Error: Couldn't retrieve the problem name from the 'training' section in the loaded configuration")
             exit(-1)
 
         # Get validation problem name
         try:
             _ = self.params['validation']['problem']['name']
-        except:
+        except KeyError:
             print("Error: Couldn't retrieve the problem name from the 'validation' section in the loaded configuration")
             exit(-1)
 
         # Get model name.
         try:
             model_name = self.params['model']['name']
-        except:
+        except KeyError:
             print("Error: Couldn't retrieve the model name from the loaded configuration")
             exit(-1)
 
