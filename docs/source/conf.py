@@ -33,7 +33,14 @@ import sphinx_rtd_theme
 # source code directory, relative to this file, for sphinx-build
 sys.path.insert(0, os.path.abspath('../..'))
 
-from unittest.mock import Mock
+from unittest.mock import MagicMock
+
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+
 
 MOCK_MODULES = ['torch',
                 'torchvision',
