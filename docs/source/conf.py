@@ -33,6 +33,11 @@ import sphinx_rtd_theme
 # source code directory, relative to this file, for sphinx-build
 sys.path.insert(0, os.path.abspath('../..'))
 
+# a list of modules to be mocked up.
+# This is useful when some external dependencies are not met at build time and break the building process.
+# You may only specify the root package of the dependencies themselves and omit the sub-modules:
+autodoc_mock_imports = ["torch", "torchvision"]
+
 # -- Project information -----------------------------------------------------
 
 project = 'MI-Prometheus'
