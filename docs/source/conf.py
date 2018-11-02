@@ -29,29 +29,37 @@
 import os
 import sys
 import sphinx_rtd_theme
+from unittest.mock import MagicMock
 
 # source code directory, relative to this file, for sphinx-build
 sys.path.insert(0, os.path.abspath('../..'))
 
-from unittest.mock import MagicMock
 
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         return MagicMock()
 
-MOCK_MODULES = ['torch', 'torch.utils', 'torch.optim', 'torch.nn', 'torch.utils.data', 'torch.utils.data.sampler',
-                'torch.autograd',
-                'matplotlib', 'matplotlib.pyplot',
-                'torchvision',
-                'torchtext',
-                'tensorboardX'
-                'numpy',
+
+MOCK_MODULES = ['torch', 'torch.nn', 'torch.nn.functional', 'torch.nn.init', 'torch.utils.data.dataloader',
+                'torch.optim', 'torch.utils.data.sampler', 'torch.utils.data', 'torch.utils',
+
+                'torchvision', 'torchvision.transforms', 'torchvision.models', 'torchvision.datasets',
+
+                'matplotlib', 'matplotlib.pyplot', 'matplotlib.ticker', 'matplotlib.gridspec', 'matplotlib.figure',
+                'matplotlib.pylab', 'matplotlib.animation', 'matplotlib.backends.qt_compat',
+                'matplotlib.backends.backend_qt5agg', 'matplotlib.backends.backend_qt4agg',
+
+                'torchtext', 'torchtext.vocab',
+
+                'tensorboardX',
+
+                'numpy', 'numpy.random',
+
                 'yaml',
                 'nltk',
                 'h5py',
-                'six',
-                'pyqt5',
+                'six.moves.urllib.request',
                 'tqdm']
 
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
