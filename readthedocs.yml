@@ -10,7 +10,7 @@ python:
   setup_py_install: false
   use_system_site_packages: false
 
-requirements_file: docs/requirements.txt
+#requirements_file: docs/requirements.txt
 
 # Don't build any extra formats
 formats: []
