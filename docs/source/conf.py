@@ -36,8 +36,8 @@ sys.path.insert(0, os.path.abspath('../..'))
 # a list of modules to be mocked up.
 # This is useful when some external dependencies are not met at build time and break the building process.
 # You may only specify the root package of the dependencies themselves and omit the sub-modules:
-autodoc_mock_imports = ["torch", "torchvision"]
-
+autodoc_mock_imports = ["torch", "torchvision", "torchtext", "tensorboardX", "matplotlib",
+                        "numpy", "PyYAML", "tqdm", "nltk", "h5py", "six", "pyqt5"]
 # -- Project information -----------------------------------------------------
 
 project = 'MI-Prometheus'
