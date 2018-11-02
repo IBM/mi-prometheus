@@ -42,7 +42,7 @@ class Mock(MagicMock):
 
 
 MOCK_MODULES = ['torch', 'torch.nn', 'torch.nn.functional', 'torch.nn.init', 'torch.utils.data.dataloader',
-                'torch.optim', 'torch.utils.data.sampler', 'torch.utils.data', 'torch.utils',
+                'torch.optim', 'torch.utils.data.sampler', 'torch.utils.data', 'torch.utils', 'torch.nn.utils'
 
                 'torchvision', 'torchvision.transforms', 'torchvision.models', 'torchvision.datasets',
 
