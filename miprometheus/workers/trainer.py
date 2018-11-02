@@ -255,13 +255,31 @@ class Trainer(Worker):
         # Build the model using the loaded configuration and the default values of the problem.
         self.model = ModelFactory.build(self.params['model'], self.training_problem.default_values)
 
-        # load the indicated pretrained model checkpoint if the argument is valid
-        if self.flags.model != "":
-            if os.path.isfile(self.flags.model):
-                # Load parameters from checkpoint.
-                self.model.load(self.flags.model)
+        # Load the pretrained model from checkpoint.
+        try: 
+            # Check command line arguments, then check load option in config.
+            if self.flags.model != "":
+                model_name = self.flags.model
+                msg = "command line (--m)"
+            elif "load" in self.params['model']:
+                model_name = self.params['model']['load']
+                msg = "model section of the configuration file"
             else:
-                self.logger.error("Couldn't load the checkpoint {} : does not exist on disk.".format(self.flags.model))
+                model_name = ""
+            # Try to load the model.
+            if model_name != "":
+                if os.path.isfile(model_name):
+                    # Load parameters from checkpoint.
+                    self.model.load(model_name)
+                else:
+                    raise Exception("Couldn't load the checkpoint {} indicated in the {}: file does not exist".format(model_name, msg))
+        except KeyError:
+            self.logger.error("File {} indicated in the {} seems not to be a valid model checkpoint".format(model_name, msg))
+            exit(-5)
+        except Exception as e:
+            self.logger.error(e)
+            # Exit by following the logic: if user wanted to load the model but failed, then continuing the experiment makes no sense.
+            exit(-6)
 
         # Move the model to CUDA if applicable.
         if self.app_state.use_CUDA:
@@ -461,6 +479,7 @@ class Trainer(Worker):
 
 
         """
+        # Get number of samples - depending whether using sampler or not.
         if self.validations_sampler is not None:
             num_samples = len(self.validations_sampler)
         else:

@@ -147,15 +147,15 @@ class Tester(Worker):
             _ = self.params['testing']['problem']['name']
         except KeyError:
             print("Error: Couldn't retrieve the problem name from the 'testing' section in the loaded configuration")
-            exit(-1)
+            exit(-5)
 
         # Get model name.
         try:
             _ = self.params['model']['name']
         except KeyError:
             print("Error: Couldn't retrieve the model name from the loaded configuration")
-            exit(-1)
-
+            exit(-6)
+            
         # Prepare output paths for logging
         while True:
             # Dirty fix: if log_dir already exists, wait for 1 second and try again
@@ -209,8 +209,18 @@ class Tester(Worker):
         # Create model object.
         self.model = ModelFactory.build(self.params['model'], self.problem.default_values)
 
-        # Load parameters from checkpoint.
-        self.model.load(self.flags.model)
+        # Load the pretrained model from checkpoint.
+        try: 
+            model_name = self.flags.model
+            # Load parameters from checkpoint.
+            self.model.load(model_name)
+        except KeyError:
+            self.logger.error("File {} indicated in the command line (--m) seems not to be a valid model checkpoint".format(model_name))
+            exit(-5)
+        except Exception as e:
+            self.logger.error(e)
+            # Exit by following the logic: if user wanted to load the model but failed, then continuing the experiment makes no sense.
+            exit(-6)
 
         # Turn on evaluation mode.
         self.model.eval()
