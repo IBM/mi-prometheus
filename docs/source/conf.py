@@ -35,23 +35,10 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 from unittest.mock import MagicMock
 
-
-MOCK_CLASSES = {'Optimizer': 'torch.optim', 'Linear': 'torch.nn', 'Module': 'torch.nn', 'Sequential': 'torch.nn',
-                'Dataset': 'torch.utils.data'}
-
-
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
-        if name in MOCK_CLASSES:
-            # return object  # Sphinx renders object in base classes
-            return type(name, (object,), {'__module__': MOCK_CLASSES[name]})
-        elif name == '__file__':  # Sphinx tries to find source code, but doesn't matter because it's mocked
-            return "FOO"
-        elif name == '__loader__':
-            return "AAAAA"
         return MagicMock()
-
 
 MOCK_MODULES = ['torch', 'torch.utils', 'torch.optim', 'torch.nn', 'torch.utils.data', 'torch.utils.data.sampler',
                 'torch.autograd',
@@ -67,7 +54,7 @@ MOCK_MODULES = ['torch', 'torch.utils', 'torch.optim', 'torch.nn', 'torch.utils.
                 'pyqt5',
                 'tqdm']
 
-sys.modules.update((mod_name, Mock(name=mod_name)) for mod_name in MOCK_MODULES)
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 # -- Project information -----------------------------------------------------
 
 project = 'MI-Prometheus'
