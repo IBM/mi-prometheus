@@ -56,9 +56,8 @@ MOCK_MODULES = ['torch', 'torch.nn', 'torch.nn.functional', 'torch.nn.init', 'to
 
                 'numpy', 'numpy.random',
 
-                'yaml', 'nltk', 'h5py',
-                'six.moves.urllib.request',
-                'tqdm']
+                'yaml', 'nltk', 'h5py', 'tqdm',
+                'six.moves.urllib.request']
 
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 # -- Project information -----------------------------------------------------
