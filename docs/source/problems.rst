@@ -10,7 +10,7 @@ miprometheus.problems
 Problem
 --------------
 
-.. autoclass:: Problem
+.. autoclass:: miprometheus.problems.Problem
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -25,7 +25,7 @@ ProblemFactory
 ImageTextToClass Problems
 ----------------------------
 
-.. autoclass:: ImageTextToClassProblem
+.. autoclass:: miprometheus.problems.ImageTextToClassProblem
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
