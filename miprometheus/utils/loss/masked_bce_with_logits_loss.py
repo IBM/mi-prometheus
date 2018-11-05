@@ -18,12 +18,11 @@
 """masked_bce_with_logits_loss.py: contains masked binary cross entropy loss function"""
 __author__ = "Ryan L. McAvoy"
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+
 from miprometheus.utils.app_state import AppState
 
 
-class MaskedBCEWithLogitsLoss(nn.Module):
+class MaskedBCEWithLogitsLoss(torch.nn.Module):
     """
     Calculates the binary cross entropy for batches with different numbers of
     outputs for the samples.
@@ -31,9 +30,9 @@ class MaskedBCEWithLogitsLoss(nn.Module):
 
     def __init__(self, weight=None):
         super(MaskedBCEWithLogitsLoss, self).__init__()
-        self.loss_function = nn.BCEWithLogitsLoss(reduce=False)
+        self.loss_function = torch.nn.BCEWithLogitsLoss(reduce=False)
         # for pytorch 4.1
-        #self.loss_function = nn.BCELossWithLogits(reduction = "none")
+        # self.loss_function = torch.nn.BCELossWithLogits(reduction = "none")
 
     def forward(self, logits, targets, mask):
         """
@@ -77,7 +76,7 @@ class MaskedBCEWithLogitsLoss(nn.Module):
         """
 
         # calculate the accuracy per bit in the sequences
-        acc_per = 1 - torch.abs(torch.round(F.sigmoid(logits)) - targets)
+        acc_per = 1 - torch.abs(torch.round(torch.nn.functional.sigmoid(logits)) - targets)
 
         mask_float = mask.type(AppState().dtype)
         if len(mask.shape) < len(logits.shape):

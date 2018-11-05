@@ -18,11 +18,11 @@
 """masked_cross_entropy_loss.py: contains masked cross entropy loss function"""
 __author__ = "Ryan L. McAvoy"
 import torch
-import torch.nn as nn
+
 from miprometheus.utils.app_state import AppState
 
 
-class MaskedCrossEntropyLoss(nn.Module):
+class MaskedCrossEntropyLoss(torch.nn.Module):
     """
     Calculates the cross entropy for batches with different numbers of outputs
     per.
@@ -30,9 +30,9 @@ class MaskedCrossEntropyLoss(nn.Module):
 
     def __init__(self, weight=None, ignore_index=-100):
         super(MaskedCrossEntropyLoss, self).__init__()
-        self.loss_function = nn.CrossEntropyLoss(reduce=False)
+        self.loss_function = torch.nn.CrossEntropyLoss(reduce=False)
         # for pytorch 4.1
-        #self.loss_function = nn.CrossEntropyLoss(reduction = "none")
+        # self.loss_function = nn.CrossEntropyLoss(reduction = "none")
 
     def forward(self, logits, targets, mask):
         """
