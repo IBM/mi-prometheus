@@ -35,9 +35,15 @@ from unittest.mock import MagicMock
 sys.path.insert(0, os.path.abspath('../..'))
 
 
+MOCK_CLASSES = {'Dataset': 'torch.utils.data'}
+
+
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
+        if name in MOCK_CLASSES:
+            # return object  # Sphinx renders object in base classes
+            return type(name, (object,), {'__module__': MOCK_CLASSES[name]})
         return MagicMock()
 
 
