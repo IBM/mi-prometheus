@@ -227,7 +227,7 @@ if __name__ == "__main__":
     print('__getitem__ works.\n')
 
     # wrap DataLoader on top of this Dataset subclass
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
 
     dataloader = DataLoader(dataset=cifar10, collate_fn=cifar10.collate_fn,
                             batch_size=batch_size, shuffle=True, num_workers=0)

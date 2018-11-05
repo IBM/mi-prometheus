@@ -212,7 +212,7 @@ if __name__ == '__main__':
     """Unit test for the RelationalNetwork on SortOfCLEVR"""
     from miprometheus.utils.app_state import AppState
     from miprometheus.utils.param_interface import ParamInterface
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
     app_state = AppState()
 
     from miprometheus.problems.image_text_to_class.sort_of_clevr import SortOfCLEVR

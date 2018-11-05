@@ -344,7 +344,7 @@ if __name__ == '__main__':
 
     from miprometheus.utils.app_state import AppState
     from miprometheus.utils.param_interface import ParamInterface
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
     app_state = AppState()
 
     from miprometheus.problems import CLEVR

@@ -23,7 +23,6 @@ import torch
 import logging
 import numpy as np
 from torch.utils.data import Dataset
-from torch.utils.data.dataloader import default_collate
 
 from miprometheus.utils.app_state import AppState
 from miprometheus.utils.data_dict import DataDict
@@ -270,11 +269,11 @@ class Problem(Dataset):
         """
         Generates a batch of samples from a list of individuals samples retrieved by ``__getitem__``.
 
-        The default collate_fn is ``torch.utils.data.default_collate``.
+        The default collate_fn is ``torch.utils.data.dataloader.default_collate``.
 
         .. note::
 
-            This base ``collate_fn`` method only calls the default ``torch.utils.data.default_collate``\
+            This base ``collate_fn`` method only calls the default ``torch.utils.data.dataloader.default_collate``\
             , as it can handle several cases (mainly tensors, numbers, dicts and lists).
 
             If your dataset can yield variable-length samples within a batch, or generate batches `on-the-fly`\
@@ -288,7 +287,7 @@ class Problem(Dataset):
         :return: DataDict containing the created batch.
 
         """
-        return default_collate(batch)
+        return torch.utils.data.dataloader.default_collate(batch)
 
     def __getitem__(self, index):
         """

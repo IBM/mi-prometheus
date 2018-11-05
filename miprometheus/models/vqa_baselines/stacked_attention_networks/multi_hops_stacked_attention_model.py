@@ -272,7 +272,7 @@ if __name__ == '__main__':
     batch_size = 64
 
     # wrap DataLoader on top of this Dataset subclass
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
 
     dataloader = DataLoader(dataset=shapecolorquery, collate_fn=shapecolorquery.collate_fn,
                             batch_size=batch_size, shuffle=True, num_workers=4)

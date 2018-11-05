@@ -338,7 +338,7 @@ if __name__ == '__main__':
     AppState().visualize = True
 
     from miprometheus.utils.param_interface import ParamInterface
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
     from miprometheus.problems.image_to_class.mnist import MNIST
 
     problem_params = ParamInterface()
