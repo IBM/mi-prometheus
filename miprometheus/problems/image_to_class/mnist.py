@@ -44,7 +44,7 @@ class MNIST(ImageToClassProblem):
 
     """
 
-    def __init__(self, params):
+    def __init__(self, params_):
         """
         Initializes MNIST problem:
 
@@ -87,13 +87,13 @@ class MNIST(ImageToClassProblem):
         """
 
         # Call base class constructors.
-        super(MNIST, self).__init__(params)
+        super(MNIST, self).__init__(params_, 'MNIST')
 
         # Set default parameters.
         self.params.add_default_params({'data_folder': '~/data/mnist',
                                         'use_train_data': True,
-                                        'padding': [0, 0, 0, 0],
-                                        'up_scaling': False
+                                        #'resize': [28,28],
+                                        'use_padding': False
                                         })
 
         # Get absolute path.
@@ -102,43 +102,52 @@ class MNIST(ImageToClassProblem):
         # Retrieve parameters from the dictionary.
         self.use_train_data = params['use_train_data']
 
-        # possibility to pad the image
-        self.padding = params['padding']
+        # Add transformations depending on the resizing option.
+        if ('resize' in self.params):
+            # Check the desired size.
+            if len(self.params['resize']) != 2:
+                self.logger.error("'resize' field must contain 2 values: the desired height and width")
+                exit(-1)
 
-        # up scaling the image to 224, 224 if True
-        self.up_scaling = params['up_scaling']
+            # Output image dimensions.
+            self.height = self.params['resize'][0]
+            self.width = self.params['resize'][1]
+            self.num_channels = 1
 
-        if self.up_scaling:
-            self.logger.warning('Upscaling the images to [224, 224]. Slows down batches generation.')
+            # Up-scale and transform to tensors.
+            transform = transforms.Compose([transforms.Resize((self.height, self.width)), transforms.ToTensor()])
 
-        # define the default_values dict: holds parameters values that a model may need.
-        self.default_values = {'nb_classes': 10,
-                               'num_channels': 1,
-                               'width': 28,
-                               'height': 28,
-                               'up_scaling': self.up_scaling,
-                               'padding': self.padding}
+            self.logger.warning('Upscaling the images to [{}, {}]. Slows down batch generation.'.format(
+                self.width, self.height))
 
-        self.height = 224 if self.up_scaling else self.default_values['height']
-        self.width = 224 if self.up_scaling else self.default_values['width']
+        else:
+            # Default MNIST settings.
+            self.width = 28
+            self.height = 28
+            self.num_channels = 1
+            # Simply turn to tensor.
+            transforms.Compose([transforms.ToTensor()])
 
-        self.data_definitions = {'images': {'size': [-1, 1, self.height, self.width], 'type': [torch.Tensor]},
+
+
+        # Define the default_values dict: holds parameters values that a model may need.
+        self.default_values = {'num_classes': 10,
+                               'num_channels': self.num_channels,
+                               'width': self.width,
+                               'height': self.height}
+
+
+        self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
 
-        self.name = 'MNIST'
 
-        # Define transforms: takes in an PIL image and returns a transformed version
-        transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()]) \
-            if self.up_scaling else transforms.Compose([transforms.ToTensor()])
 
         # load the dataset
         self.dataset = datasets.MNIST(root=data_folder, train=self.use_train_data, download=True,
                                             transform=transform)
-        # type(self.train_dataset) = <class 'torchvision.datasets.mnist.MNIST'>
-        # -> inherits from torch.utils.data.Dataset
-
+        # Set length.
         self.length = len(self.dataset)
 
         # Class names.
@@ -160,11 +169,9 @@ class MNIST(ImageToClassProblem):
 
 
         """
+        # Get image and target.
         img, target = self.dataset.__getitem__(index)
-
-        # pad img
-        img = F.pad(img, self.padding, 'constant', 0)
-
+        # Digit label.
         label = self.labels[target.data]
 
         # Return data_dict.
@@ -202,6 +209,14 @@ if __name__ == "__main__":
     from miprometheus.utils.param_interface import ParamInterface
     params = ParamInterface()  # using the default values
 
+    # Test different options.
+    params.add_config_params({'data_folder': '~/data/mnist',
+                                    'use_train_data': True,
+                                    'resize': [64, 32],
+                                    'use_padding': True
+                                    })
+    
+
     batch_size = 64
 
     # Create problem.
@@ -220,10 +235,10 @@ if __name__ == "__main__":
     # try to see if there is a speed up when generating batches w/ multiple workers
     import time
     s = time.time()
-    for i, batch in enumerate(dataloader):
-        print('Batch # {} - {}'.format(i, type(batch)))
-
-    print('Number of workers: {}'.format(dataloader.num_workers))
+    #for i, batch in enumerate(dataloader):
+    #    print('Batch # {} - {}'.format(i, type(batch)))
+    #
+    #print('Number of workers: {}'.format(dataloader.num_workers))
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
 
     # Display single sample (0) from batch.

@@ -34,7 +34,7 @@ class ImageToClassProblem(Problem):
 
     """
 
-    def __init__(self, params):
+    def __init__(self, params_, name_):
         """
         Initializes problem:
 
@@ -47,11 +47,13 @@ class ImageToClassProblem(Problem):
                 >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
                 >>>                         }
 
-        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
+        :param params_: Dictionary of parameters (read from configuration ``.yaml`` file).
+
+        :param name_: Name of the problem.
 
         """
         # Call base class constructors.
-        super(ImageToClassProblem, self).__init__(params)
+        super(ImageToClassProblem, self).__init__(params_, name_)
 
         # set default loss function
         self.loss_function = nn.CrossEntropyLoss()
@@ -61,9 +63,6 @@ class ImageToClassProblem(Problem):
                                  'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
-
-        # "Default" problem name.
-        self.name = 'ImageToClassProblem'
 
     def calculate_accuracy(self, data_dict, logits):
         """
@@ -183,7 +182,7 @@ if __name__ == '__main__':
 
     from miprometheus.utils.param_interface import ParamInterface
 
-    sample = ImageToClassProblem(ParamInterface())[0]
+    sample = ImageToClassProblem(ParamInterface(),'ImageToClassProblem')[0]
     # equivalent to ImageToClassProblem(params={}).__getitem__(index=0)
 
     print(repr(sample))
