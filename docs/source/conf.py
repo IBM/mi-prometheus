@@ -47,26 +47,18 @@ class Mock(MagicMock):
         return MagicMock()
 
 
-MOCK_MODULES = ['torch', 'torch.nn', 'torch.nn.functional', 'torch.nn.init',
-                'torch.optim', 'torch.utils.data.sampler', 'torch.utils.data', 'torch.utils', 'torch.nn.utils',
+MOCK_MODULES = ['torch', 'torch.nn', 'torch.utils', 'torch.optim', 'torch.nn.functional',
+                'torch.utils.data', 'torch.utils.data.sampler',
 
-                'torchvision', 'torchvision.transforms', 'torchvision.models', 'torchvision.datasets',
+                'torchvision', 'torchvision.models',
 
                 'matplotlib', 'matplotlib.pyplot', 'matplotlib.ticker', 'matplotlib.gridspec', 'matplotlib.figure',
                 'matplotlib.pylab', 'matplotlib.animation', 'matplotlib.backends.qt_compat',
                 'matplotlib.backends.backend_qt5agg', 'matplotlib.backends.backend_qt4agg',
 
-                'torchtext', 'torchtext.vocab',
+                'torchtext', 'tensorboardX', 'numpy', 'yaml', 'nltk', 'h5py', 'tqdm',
 
-                'tensorboardX',
-
-                'numpy', 'numpy.random',
-
-                'PIL.Image',
-
-                'yaml', 'nltk', 'h5py',
-                'six.moves.urllib.request',
-                'tqdm']
+                'six.moves.urllib.request']
 
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 # -- Project information -----------------------------------------------------

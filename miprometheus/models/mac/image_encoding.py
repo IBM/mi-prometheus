@@ -47,12 +47,9 @@ https://arxiv.org/pdf/1803.03067.pdf for the reference paper.
 __author__ = "Vincent Marois"
 
 import torch
-import torch.nn as nn
-
-from torch.nn.init import kaiming_uniform_
 
 
-class ImageProcessing(nn.Module):
+class ImageProcessing(torch.nn.Module):
     """
     Image encoding using a 2-layers CNN assuming the images have been already \
     preprocessed by `ResNet101`.
@@ -70,14 +67,14 @@ class ImageProcessing(nn.Module):
         # call base constructor
         super(ImageProcessing, self).__init__()
 
-        self.conv = torch.nn.Sequential(nn.Conv2d(1024, dim, 3, padding=1),
-                                        nn.ELU(),
-                                        nn.Conv2d(dim, dim, 3, padding=1),
-                                        nn.ELU())
+        self.conv = torch.nn.Sequential(torch.nn.Conv2d(1024, dim, 3, padding=1),
+                                        torch.nn.ELU(),
+                                        torch.nn.Conv2d(dim, dim, 3, padding=1),
+                                        torch.nn.ELU())
         # specify weights initialization
-        kaiming_uniform_(self.conv[0].weight)
+        torch.nn.init.kaiming_uniform_(self.conv[0].weight)
         self.conv[0].bias.data.zero_()
-        kaiming_uniform_(self.conv[2].weight)
+        torch.nn.init.kaiming_uniform_(self.conv[2].weight)
         self.conv[2].bias.data.zero_()
 
     def forward(self, feature_maps):
