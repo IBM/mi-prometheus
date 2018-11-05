@@ -5,7 +5,7 @@ miprometheus.problems
 ===================================
 
 .. automodule:: miprometheus.problems
-.. currentmodule:: miprometheus.problems
+
 
 Problem
 --------------
