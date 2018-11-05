@@ -56,6 +56,8 @@ MOCK_MODULES = ['torch', 'torch.nn', 'torch.nn.functional', 'torch.nn.init', 'to
 
                 'numpy', 'numpy.random',
 
+                'PIL.Image',
+
                 'yaml', 'nltk', 'h5py',
                 'six.moves.urllib.request',
                 'tqdm']
