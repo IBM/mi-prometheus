@@ -51,7 +51,7 @@ class Mock(MagicMock):
         return MagicMock()
 
 
-MOCK_MODULES = ['torch', 'torch.nn', 'torch.utils', 'torch.optim', 'torch.nn.functional',
+MOCK_MODULES = ['torch', 'torch.nn', 'torch.utils', 'torch.optim',
                 'torch.utils.data', 'torch.utils.data.sampler',
 
                 'torchvision', 'torchvision.models',

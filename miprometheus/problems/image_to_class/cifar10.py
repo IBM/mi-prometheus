@@ -23,7 +23,6 @@ __author__ = "Younes Bouhadjar & Vincent Marois"
 import os
 import torch
 import numpy as np
-import torch.nn.functional as F
 from torchvision import datasets, transforms
 
 
@@ -173,7 +172,7 @@ class CIFAR10(ImageToClassProblem):
         target = torch.tensor(target)
 
         # pad img
-        img = F.pad(input=img, pad=self.padding, mode='constant', value=0)
+        img = torch.nn.functional.pad(input=img, pad=self.padding, mode='constant', value=0)
 
         label = self.labels[target.data]
 

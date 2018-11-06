@@ -47,9 +47,10 @@ https://arxiv.org/pdf/1803.03067.pdf for the reference paper.
 __author__ = "Vincent Marois"
 
 import torch
+from torch.nn import Module
 
 
-class ImageProcessing(torch.nn.Module):
+class ImageProcessing(Module):
     """
     Image encoding using a 2-layers CNN assuming the images have been already \
     preprocessed by `ResNet101`.

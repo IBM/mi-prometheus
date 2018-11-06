@@ -22,7 +22,6 @@ __author__ = "Younes Bouhadjar & Vincent Marois"
 
 import os
 import torch
-import torch.nn.functional as F
 from torchvision import datasets, transforms
 
 from miprometheus.utils.data_dict import DataDict
@@ -163,7 +162,7 @@ class MNIST(ImageToClassProblem):
         img, target = self.dataset.__getitem__(index)
 
         # pad img
-        img = F.pad(img, self.padding, 'constant', 0)
+        img = torch.nn.functional.pad(img, self.padding, 'constant', 0)
 
         label = self.labels[target.data]
 

@@ -19,7 +19,6 @@
 __author__ = " Younes Bouhadjar, T.S Jayram"
 
 import torch
-import torch.nn.functional as F
 import numpy as np
 import logging
 import collections
@@ -170,17 +169,17 @@ class Interface:
             s, jd, j, γ, erase, add, k, β, g = data_splits
             # Apply Activations
             # key vector used for content-based addressing
-            k = F.tanh(k)
+            k = torch.nn.functional.tanh(k)
             # key strength used for content-based addressing
-            β = F.softplus(β)
-            g = F.sigmoid(g)               # interpolation gate
+            β = torch.nn.functional.softplus(β)
+            g = torch.nn.functional.sigmoid(g)               # interpolation gate
         else:
             s, jd, j, γ, erase, add = data_splits
 
         # shift weighting (determines how the weight is rotated)
-        s = F.softmax(F.softplus(s), dim=-1)
-        γ = 1 + F.softplus(γ)                   # used for weight sharpening
-        erase = F.sigmoid(erase)                # erase memory content
+        s = torch.nn.functional.softmax(torch.nn.functional.softplus(s), dim=-1)
+        γ = 1 + torch.nn.functional.softplus(γ)                   # used for weight sharpening
+        erase = torch.nn.functional.sigmoid(erase)                # erase memory content
 
         # Write to memory
         memory = Memory(mem)
@@ -195,11 +194,11 @@ class Interface:
         wt_address_0[:, :, 0] = 1
 
         # interpolation between wt and wt_d
-        jd = F.sigmoid(jd)
+        jd = torch.nn.functional.sigmoid(jd)
         wt_att_snapshot = (1 - jd) * wt_head_prev + jd * wt_att_snapshot_prev
 
         # interpolation between wt_0 wt_d wt
-        j = F.softmax(j, dim=-1)
+        j = torch.nn.functional.softmax(j, dim=-1)
         j = j[:, :, None, :]
 
         wt_head = j[..., 0] * wt_head_prev \
@@ -211,7 +210,7 @@ class Interface:
             # content addressing ...
             wt_k = memory.content_similarity(k)
             # ... modulated by β
-            wt_β = F.softmax(β * wt_k, dim=-1)
+            wt_β = torch.nn.functional.softmax(β * wt_k, dim=-1)
             # scalar interpolation
             wt_head = g * wt_β + (1 - g) * wt_head
 

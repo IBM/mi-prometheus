@@ -46,10 +46,12 @@ for the reference paper.
 __author__ = "Vincent Marois"
 
 import torch
+from torch.nn import Module
+
 from miprometheus.models.mac.utils_mac import linear
 
 
-class OutputUnit(torch.nn.Module):
+class OutputUnit(Module):
     """
     Implementation of the ``OutputUnit`` of the MAC network.
     """

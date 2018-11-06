@@ -54,7 +54,6 @@ import nltk
 import torch
 import numpy as np
 from PIL import Image
-import torch.nn.functional as F
 from torchvision import transforms
 from miprometheus.models.model import Model
 
@@ -264,7 +263,7 @@ class MACNetwork(Model):
         image = image.permute(1, 2, 0)  # [300, 300, 3]
 
         # get most probable answer -> prediction of the network
-        proba_answers = F.softmax(logits, -1)
+        proba_answers = torch.nn.functional.softmax(logits, -1)
         proba_answer = proba_answers[sample].detach().cpu()
         proba_answer = proba_answer.max().numpy()
 

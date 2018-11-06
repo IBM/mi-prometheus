@@ -20,8 +20,8 @@ __author__ = " Ryan L. McAvoy"
 
 
 import torch
-import torch.nn.functional as F
 import collections
+
 from miprometheus.models.dnc.tensor_utils import circular_conv, normalize
 from miprometheus.models.dnc.memory import Memory
 from miprometheus.models.dnc.memory_usage import MemoryUsage
@@ -174,7 +174,7 @@ class Interface(object):
         """
         # Content addressing using weighted cosine similarity
         similarity = memory.content_similarity(key)
-        content_weights = F.softmax(strength * similarity, dim=-1)
+        content_weights = torch.nn.functional.softmax(strength * similarity, dim=-1)
 
         # Gate between the current weight and the content weights
         attention = gate * content_weights + (1 - gate) * prev_attention
@@ -213,7 +213,7 @@ class Interface(object):
 
         # Content addressing using weighted cosine similarity
         similarity = memory.content_similarity(key)
-        content_weights = F.softmax(strength * similarity, dim=-1)
+        content_weights = torch.nn.functional.softmax(strength * similarity, dim=-1)
 
         # Gate between the allocatable memory and the content weighted memory
         wt = write_gate * (allocation_gate * write_allocation_weights +
@@ -242,7 +242,7 @@ class Interface(object):
         """
         # Content addressing using weighted cosine similarity
         similarity = memory.content_similarity(key)
-        content_weights = F.softmax(strength * similarity, dim=-1)
+        content_weights = torch.nn.functional.softmax(strength * similarity, dim=-1)
 
         # Calculate the weight to go forward and backwards along the links
         # matrix

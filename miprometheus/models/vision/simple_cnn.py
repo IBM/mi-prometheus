@@ -25,7 +25,6 @@ __author__ = "Younes Bouhadjar & Vincent Marois"
 import torch
 import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
 
 from miprometheus.models.model import Model
 
@@ -245,7 +244,7 @@ class SimpleConvNet(Model):
             self.output_conv1 = out_conv1
 
         # apply max_pooling and relu
-        out_maxpool1 = F.relu(self.maxpool1(out_conv1))
+        out_maxpool1 = torch.nn.functional.relu(self.maxpool1(out_conv1))
 
         # apply Convolutional layer 2
         out_conv2 = self.conv2(out_maxpool1)
@@ -253,14 +252,14 @@ class SimpleConvNet(Model):
             self.output_conv2 = out_conv2
 
         # apply max_pooling and relu
-        out_maxpool2 = F.relu(self.maxpool2(out_conv2))
+        out_maxpool2 = torch.nn.functional.relu(self.maxpool2(out_conv2))
 
         # flatten for the linear layers
         x = out_maxpool2.view(-1, self.out_channels_conv2 * self.width_features_maxpool2 * self.height_features_maxpool2)
 
         # apply 3 linear layers
-        x = F.relu(self.linear1(x))
-        x = F.relu(self.linear2(x))
+        x = torch.nn.functional.relu(self.linear1(x))
+        x = torch.nn.functional.relu(self.linear2(x))
         x = self.linear3(x)
 
         return x

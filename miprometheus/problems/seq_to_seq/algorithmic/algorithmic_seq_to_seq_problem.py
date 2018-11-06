@@ -25,7 +25,6 @@ from abc import abstractmethod
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from miprometheus.problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
 from miprometheus.utils.loss.masked_bce_with_logits_loss import MaskedBCEWithLogitsLoss
@@ -419,7 +418,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
             return self.loss_function.masked_accuracy(
                 logits, data_dict['targets'], data_dict['masks'])
         else:
-            return (1 - torch.abs(torch.round(F.sigmoid(logits)) - data_dict['targets'])).mean()
+            return (1 - torch.abs(torch.round(torch.nn.functional.sigmoid(logits)) - data_dict['targets'])).mean()
 
     def add_ctrl(self, seq, ctrl, pos):
         """

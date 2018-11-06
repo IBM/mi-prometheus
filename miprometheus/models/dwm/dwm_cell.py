@@ -19,10 +19,12 @@
 __author__ = "Younes Bouhadjar"
 
 import torch
-from torch import nn
+import collections
+from torch.nn import Module
+
 from miprometheus.models.dwm.controller import Controller
 from miprometheus.models.dwm.interface import Interface
-import collections
+
 from miprometheus.utils.app_state import AppState
 
 # Helper collection type.
@@ -40,7 +42,7 @@ class DWMCellStateTuple(_DWMCellStateTuple):
     __slots__ = ()
 
 
-class DWMCell(nn.Module):
+class DWMCell(Module):
     """
     Applies the DWM cell to an element in the input sequence.
     """

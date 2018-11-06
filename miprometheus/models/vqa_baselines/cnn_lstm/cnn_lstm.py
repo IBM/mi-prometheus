@@ -44,7 +44,6 @@ __author__ = "Vincent Marois & Younes Bouhadjar"
 import torch
 import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
 
 from miprometheus.models.model import Model
 from miprometheus.models.relational_net.conv_input_model import ConvInputModel
@@ -186,9 +185,9 @@ class CNN_LSTM(Model):
         # 3. Classify based on the encodings
         combined = torch.cat([encoded_image_flattened, encoded_question], dim=-1)
 
-        x = F.relu(self.fc1(combined))
-        x = F.relu(self.fc2(x))
-        x = F.dropout(x)  # p=0.5
+        x = torch.nn.functional.relu(self.fc1(combined))
+        x = torch.nn.functional.relu(self.fc2(x))
+        x = torch.nn.functional.dropout(x)  # p=0.5
         logits = self.fc3(x)
 
         return logits
