@@ -304,7 +304,7 @@ class Worker(object):
         return problem, sampler, loader
 
 
-    def get_epoch_size1(self, problem, sampler, batch_size, drop_last):
+    def get_epoch_size(self, problem, sampler, batch_size, drop_last):
         """
         Compute the number of iterations ('episodes') to run given the size of the dataset and the batch size to cover
         the entire dataset once.
