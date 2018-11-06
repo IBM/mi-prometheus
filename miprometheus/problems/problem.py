@@ -456,26 +456,6 @@ class Problem(Dataset):
         """
         pass
         
-    def get_epoch_size(self, batch_size):
-        """
-        Compute the number of iterations ('episodes') to run given the size of the dataset and the batch size to cover
-        the entire dataset once.
-
-        :param batch_size: Batch size.
-        :type batch_size: int
-
-        .. note::
-
-            We are counting the last batch, even though it might be smaller than the other ones if the size of the \
-            dataset is not divisible by the batch size. -> Corresponds to ``drop_last=False`` in ``DataLoader()``.
-
-        :return: Number of iterations to perform to go though the entire dataset once.
-
-        """
-        if (self.length % batch_size) == 0:
-            return self.length // batch_size
-        else:
-            return (self.length // batch_size) + 1
 
     def initialize_epoch(self, epoch):
         """
