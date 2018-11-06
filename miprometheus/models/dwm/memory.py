@@ -23,6 +23,9 @@ from miprometheus.models.dwm.tensor_utils import sim, outer_prod
 
 
 class Memory:
+    """
+    Implementation of the memory of the DWM.
+    """
     def __init__(self, mem_t):
         """
         Initializes the memory.

@@ -20,13 +20,12 @@ __author__ = "Vincent Marois"
 
 import torch
 import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
+from torch.nn import Module
 
 from miprometheus.utils.app_state import AppState
 
 
-class ConvInputModel(nn.Module):
+class ConvInputModel(Module):
     """
     Simple 4 layers CNN for image encoding in the ``RelationalNetwork`` model.
 
@@ -54,19 +53,19 @@ class ConvInputModel(nn.Module):
         # define layers
         # input image size is indicated as 128 x 128 in the paper for this
         # model
-        self.conv1 = nn.Conv2d(
+        self.conv1 =torch.nn.Conv2d(
             in_channels=3, out_channels=24, kernel_size=3, stride=2, padding=1)
         # output shape should be [24 x 64 x 64]
-        self.batchNorm1 = nn.BatchNorm2d(24)
-        self.conv2 = nn.Conv2d(24, 24, 3, stride=2, padding=1)
+        self.batchNorm1 =torch.nn.BatchNorm2d(24)
+        self.conv2 =torch.nn.Conv2d(24, 24, 3, stride=2, padding=1)
         # output shape should be [24 x 32 x 32]
-        self.batchNorm2 = nn.BatchNorm2d(24)
-        self.conv3 = nn.Conv2d(24, 24, 3, stride=2, padding=1)
+        self.batchNorm2 =torch.nn.BatchNorm2d(24)
+        self.conv3 =torch.nn.Conv2d(24, 24, 3, stride=2, padding=1)
         # output shape should be [24 x 16 x 16]
-        self.batchNorm3 = nn.BatchNorm2d(24)
-        self.conv4 = nn.Conv2d(24, 24, 3, stride=2, padding=1)
+        self.batchNorm3 =torch.nn.BatchNorm2d(24)
+        self.conv4 =torch.nn.Conv2d(24, 24, 3, stride=2, padding=1)
         # output shape should be [24 x 8 x 8]
-        self.batchNorm4 = nn.BatchNorm2d(24)
+        self.batchNorm4 =torch.nn.BatchNorm2d(24)
 
     def get_output_nb_filters(self):
         """
@@ -119,19 +118,19 @@ class ConvInputModel(nn.Module):
         """
         x = self.conv1(img)
         x = self.batchNorm1(x)
-        x = F.relu(x)
+        x = torch.nn.functional.relu(x)
 
         x = self.conv2(x)
         x = self.batchNorm2(x)
-        x = F.relu(x)
+        x = torch.nn.functional.relu(x)
 
         x = self.conv3(x)
         x = self.batchNorm3(x)
-        x = F.relu(x)
+        x = torch.nn.functional.relu(x)
 
         x = self.conv4(x)
         x = self.batchNorm4(x)
-        x = F.relu(x)
+        x = torch.nn.functional.relu(x)
 
         return x
 

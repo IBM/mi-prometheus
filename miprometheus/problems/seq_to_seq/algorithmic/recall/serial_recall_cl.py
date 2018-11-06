@@ -186,7 +186,7 @@ if __name__ == "__main__":
     dataset = SerialRecallCommandLines(params)
 
     # wrap DataLoader on top
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
 
     problem = DataLoader(dataset=dataset, batch_size=batch_size, collate_fn=dataset.collate_fn,
                          shuffle=False, num_workers=0, worker_init_fn=dataset.worker_init_fn)

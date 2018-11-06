@@ -19,8 +19,9 @@
 __author__ = "Tomasz Kornuta/Ryan L. McAvoy"
 
 import torch
-from torch import nn
 import collections
+from torch.nn import Module
+
 from miprometheus.utils.app_state import AppState
 
 _LSTMStateTuple = collections.namedtuple(
@@ -34,7 +35,10 @@ class LSTMStateTuple(_LSTMStateTuple):
     __slots__ = ()
 
 
-class LSTMController(nn.Module):
+class LSTMController(Module):
+    """
+    A wrapper class for a LSTM-based controller.
+    """
     def __init__(self, params):
         """
         Constructor.
@@ -51,7 +55,7 @@ class LSTMController(nn.Module):
 
         super(LSTMController, self).__init__()
 
-        self.lstm = nn.LSTMCell(self.input_size, self.ctrl_hidden_state_size)
+        self.lstm = torch.nn.LSTMCell(self.input_size, self.ctrl_hidden_state_size)
 
     def init_state(self, batch_size):
         """

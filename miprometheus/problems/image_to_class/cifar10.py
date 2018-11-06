@@ -23,7 +23,6 @@ __author__ = "Younes Bouhadjar & Vincent Marois"
 import os
 import torch
 import numpy as np
-import torch.nn.functional as F
 from torchvision import datasets, transforms
 
 
@@ -159,7 +158,7 @@ class CIFAR10(ImageToClassProblem):
 
         :return: ``DataDict({'images','targets', 'targets_label'})``, with:
 
-            - images: Image, upscaled if ``self.up_scaling`` and pad if ``self.padding``,
+            - images: Image, resized if indicated in ``params``,
             - targets: Index of the target class
             - targets_label: Label of the target class (cf ``self.labels``)
 
@@ -221,7 +220,7 @@ if __name__ == "__main__":
     print('__getitem__ works.\n')
 
     # wrap DataLoader on top of this Dataset subclass
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
 
     dataloader = DataLoader(dataset=cifar10, collate_fn=cifar10.collate_fn,
                             batch_size=batch_size, shuffle=True, num_workers=0)

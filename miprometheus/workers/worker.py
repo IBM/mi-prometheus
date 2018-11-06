@@ -36,7 +36,7 @@ import numpy as np
 from random import randrange
 from abc import abstractmethod
 
-from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import DataLoader
 from miprometheus.utils.sampler_factory import SamplerFactory
 from miprometheus.problems.problem_factory import ProblemFactory
 
@@ -257,7 +257,7 @@ class Worker(object):
         self.params["validation"].add_default_params(dataloader_config)
         self.params["testing"].add_default_params(dataloader_config)
 
-    def build_problem_sampler_loader(self, params):
+    def build_problem_sampler_loader(self, params, section_name):
         """
         Builds and returns the Problem class, alongside its DataLoader.
 
@@ -265,6 +265,8 @@ class Worker(object):
 
         :param params: 'ParamInterface' object, referring to one of main sections (training/validation/testing).
         :type params: miprometheus.utils.ParamInterface
+
+        :param section_name: name of the section that will be used by logger for display.
 
         :return: Problem instance & DataLoader instance.
         """
@@ -292,8 +294,56 @@ class Worker(object):
                             timeout=params['dataloader']['timeout'],
                             worker_init_fn=problem.worker_init_fn)
 
+        # Display sizes.
+        self.logger.info("Problem for '{}' loaded (size: {})".format(section_name, len(problem)))
+        if (sampler is not None):
+            self.logger.info("Sampler for '{}' created (size: {})".format(section_name, len(sampler)))
+
+
         # Return sampler - even if it is none :]
         return problem, sampler, loader
+
+
+    def get_epoch_size(self, problem, sampler, batch_size, drop_last):
+        """
+        Compute the number of iterations ('episodes') to run given the size of the dataset and the batch size to cover
+        the entire dataset once.
+
+        Takes into account whether one used sampler or not.
+
+        :param problem: Object derived from the ''Problem'' class
+
+        :param sampler: Sampler (may be None)
+
+        :param batch_size: Batch size.
+        :type batch_size: int
+
+        :param drop_last: If True then last batch (if incomplete) will not be counted
+        :type drop_last: bool
+
+        .. note::
+
+            If the last batch is incomplete we are counting it in when ``drop_last`` in ``DataLoader()`` is set to Ttrue.
+
+        .. warning::
+
+            Leaving this method 'just in case', in most cases one might simply use ''len(dataloader)''.
+
+        :return: Number of iterations to perform to go though the entire dataset once.
+
+        """
+        # "Estimate" dataset size.
+        if (sampler is not None):
+            problem_size = len(sampler)
+        else:
+            problem_size = len(problem)
+
+        # If problem_size is a multiciplity of batch_size OR drop last is set.
+        if (problem_size % batch_size) == 0 or drop_last:
+            return problem_size // batch_size
+        else:
+            return (problem_size // batch_size) + 1
+
 
     def export_experiment_configuration(self, log_dir, filename, user_confirm):
         """

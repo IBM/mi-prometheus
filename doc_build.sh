@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 cd docs
+rm -rf build
 
 # create html pages
 sphinx-build -b html source build

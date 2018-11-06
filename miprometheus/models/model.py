@@ -23,15 +23,15 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import torch
 import logging
-import datetime
 import numpy as np
-from torch import nn
+from torch.nn import Module
+from datetime import datetime
 from abc import abstractmethod
 
 from miprometheus.utils.app_state import AppState
 
 
-class Model(nn.Module):
+class Model(Module):
     """
     Class representing base class for all Models.
 
@@ -348,7 +348,7 @@ class Model(nn.Module):
 
         # Checkpoint to be saved.
         chkpt = {'name': self.name,
-                 'timestamp': datetime.datetime.now(),
+                 'timestamp': datetime.now(),
                  'state_dict': self.state_dict(),
                  'stats': statistics
                 }
@@ -484,7 +484,6 @@ class Model(nn.Module):
 
 if __name__ == '__main__':
     """Unit test for the handshake."""
-
     from miprometheus.utils.param_interface import ParamInterface
     params = ParamInterface()
 

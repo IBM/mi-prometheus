@@ -23,8 +23,8 @@ online_trainer.py:
 """
 __author__ = "Vincent Marois, Tomasz Kornuta"
 
+import torch
 import numpy as np
-from torch.nn.utils import clip_grad_value_
 
 from miprometheus.workers.trainer import Trainer
 
@@ -95,8 +95,9 @@ class OnlineTrainer(Trainer):
             self.logger.info("Setting the Epoch Limit to: {}".format(self.epoch_limit))
 
         # Calculate the epoch size in terms of episodes.
-        epoch_size = self.training_problem.get_epoch_size(self.params["training"]["problem"]["batch_size"])
-        self.logger.info('Epoch size in terms of training episodes: {}'.format(epoch_size))
+        #self.epoch_size = self.get_epoch_size(self.training_problem, self.training_sampler,
+        self.epoch_size = len(self.training_dataloader)
+        self.logger.info('Epoch size in terms of training episodes: {}'.format(self.epoch_size))
 
         # Terminal condition III: max episodes. Mandatory.
         self.params["training"]["terminal_conditions"].add_default_params({'episode_limit': 100000})
@@ -191,7 +192,7 @@ class OnlineTrainer(Trainer):
                 try:
                     # if present - clip gradients to a range (-gradient_clipping, gradient_clipping)
                     val = self.params['training']['gradient_clipping']
-                    clip_grad_value_(self.model.parameters(), val)
+                    torch.nn.utils.clip_grad_value_(self.model.parameters(), val)
                 except KeyError:
                     # Else - do nothing.
                     pass
@@ -291,8 +292,7 @@ class OnlineTrainer(Trainer):
                     break
 
                 # Check if we are at the end of the 'epoch': indicate that the DataLoader is now cycling.
-                if ((episode + 1) % self.training_problem.get_epoch_size(
-                        self.params['training']['problem']['batch_size'])) == 0:
+                if ((episode + 1) % self.epoch_size) == 0:
 
                     # Epoch just ended!
                     # Inform the problem class that the epoch has ended.

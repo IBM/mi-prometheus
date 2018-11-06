@@ -46,12 +46,12 @@ for the reference paper.
 __author__ = "Vincent Marois"
 
 import torch
-from torch import nn
-import torch.nn.functional as F
+from torch.nn import Module
+
 from miprometheus.models.mac.utils_mac import linear
 
 
-class WriteUnit(nn.Module):
+class WriteUnit(Module):
     """
     Implementation of the ``WriteUnit`` of the MAC network.
     """
@@ -119,7 +119,7 @@ class WriteUnit(nn.Module):
             # [batch_size x dim x 1] * [batch_size x dim * (i)] -> [batch_size x dim * (i)]
             attn = ctrl_states[-1].unsqueeze(2) * controls_cat
             attn = self.attn(attn.permute(0, 2, 1))  # [batch_size x (i) x 1]
-            attn = F.softmax(attn, dim=1).permute(
+            attn = torch.nn.functional.softmax(attn, dim=1).permute(
                 0, 2, 1)  # [batch_size x 1 x (i)]
 
             # compute weighted sum of the previous memory states (w2.2)
@@ -135,7 +135,7 @@ class WriteUnit(nn.Module):
             # project current control state (w3.1)
             control = self.control(ctrl_states[-1])
             # gating (w3.2)
-            gate = F.sigmoid(control)
+            gate = torch.nn.functional.sigmoid(control)
             next_memory_state = gate * memory_state + \
                 (1 - gate) * next_memory_state
 

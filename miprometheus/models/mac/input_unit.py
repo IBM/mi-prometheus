@@ -44,13 +44,14 @@ input_unit.py: Implementation of the input unit for the MAC network. Cf https://
 the reference paper.
 """
 __author__ = "Vincent Marois"
+import torch
+from torch.nn import Module
 
-from torch import nn
 from miprometheus.models.mac.utils_mac import linear
 from miprometheus.models.mac.image_encoding import ImageProcessing
 
 
-class InputUnit(nn.Module):
+class InputUnit(Module):
     """
     Implementation of the ``InputUnit`` of the MAC network.
     """
@@ -79,12 +80,12 @@ class InputUnit(nn.Module):
         self.kb_proj_layer = linear(dim, dim, bias=True)
 
         # create bidirectional LSTM layer
-        self.lstm = nn.LSTM(input_size=embedded_dim, hidden_size=self.dim,
+        self.lstm = torch.nn.LSTM(input_size=embedded_dim, hidden_size=self.dim,
                             num_layers=1, batch_first=True, bidirectional=True)
 
         # linear layer for projecting the word encodings from 2*dim to dim
         # TODO: linear(2*self.dim, self.dim, bias=True) ?
-        self.lstm_proj = nn.Linear(2 * self.dim, self.dim)
+        self.lstm_proj = torch.nn.Linear(2 * self.dim, self.dim)
 
     def forward(self, questions, questions_len, feature_maps):
         """
@@ -120,14 +121,14 @@ class InputUnit(nn.Module):
             feature_maps.permute(0, 2, 1)).permute(0, 2, 1)
 
         # avoid useless computations on padding elements: pack sequences
-        embed = nn.utils.rnn.pack_padded_sequence(
+        embed = torch.nn.utils.rnn.pack_padded_sequence(
             questions, questions_len, batch_first=True)
 
         # LSTM layer: words & questions encodings
         lstm_out, (h, _) = self.lstm(embed)
 
         # reshape packed sequences to a padded tensor
-        lstm_out, _ = nn.utils.rnn.pad_packed_sequence(
+        lstm_out, _ = torch.nn.utils.rnn.pad_packed_sequence(
             lstm_out, batch_first=True)
 
         # get final words encodings using linear layer
