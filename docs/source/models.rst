@@ -10,7 +10,7 @@ miprometheus.models
 Model
 ----------
 
-.. autoclass:: Model
+.. autoclass:: miprometheus.models.Model
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -18,7 +18,7 @@ Model
 SequentialModel
 --------------------
 
-.. autoclass:: SequentialModel
+.. autoclass:: miprometheus.models.SequentialModel
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
