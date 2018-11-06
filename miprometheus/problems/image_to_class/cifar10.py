@@ -52,21 +52,17 @@ class CIFAR10(ImageToClassProblem):
             - Calls ``problems.problem.ImageToClassProblem`` class constructor,
             - Sets following attributes using the provided ``params``:
 
-                - ``self.root_dir`` (`string`) : Root directory of dataset where the directory \
+                - ``self.data_folder`` (`string`) : Root directory of dataset where the directory \
                  ``cifar-10-batches-py`` will be saved,
                 - ``self.use_train_data`` (`bool`, `optional`) : If ``True``, creates dataset from training set, \
                     otherwise creates from test set,
-                - ``self.upscale`` : upscale the images to `[224, 224]` (input size of ``AlexNet``) if ``True``,
-                - ``self.padding`` : possibility to pad the images. e.g. ``self.padding = [0, 0, 0, 0]``. If \
-                padding upscaled images, the padding is applied after upscaling the images.
+                - ``self.resize`` : (optional) resize the images to `[h, w]` if set,
                 - ``self.defaut_values`` :
 
-                    >>> self.default_values = {'nb_classes': 10,
-                    >>>                        'num_channels': 3,
-                    >>>                        'width': 32,
-                    >>>                        'height': 32,
-                    >>>                        'up_scaling': self.up_scaling,
-                    >>>                        'padding': self.padding}
+                    >>> self.default_values = {'num_classes': 10,
+                    >>>            'num_channels': 3,
+                    >>>            'width': self.width, # (DEFAULT: 32)
+                    >>>            'height': self.height} # DEFAULT: 32)
 
                 - ``self.data_definitions`` :
 
@@ -77,18 +73,14 @@ class CIFAR10(ImageToClassProblem):
 
         .. warning::
 
-            Upscaling the images to [224, 224] will cause a significant slow down in the batches generation.
-            If padding upscaled images, the padding is applied after upscaling the images.
-
+            Resizing images might cause a significant slow down in batch generation.
 
         .. note::
 
             The following is set by default:
 
             >>> params = {'data_folder': '~/data/cifar10',
-            >>>           'use_train_data': True,
-            >>>           'padding': [0, 0, 0, 0],
-            >>>           'up_scaling': False}
+            >>>           'use_train_data': True}
 
 
         :param params: Dictionary of parameters (read from configuration ``.yaml``file).
@@ -97,14 +89,11 @@ class CIFAR10(ImageToClassProblem):
         """
 
         # Call base class constructors.
-        super(CIFAR10, self).__init__(params)
-        self.name = 'CIFAR10'
-
+        super(CIFAR10, self).__init__(params, 'CIFAR10')
+        
         # Set default parameters.
         params.add_default_params({'data_folder': '~/data/cifar10',
-                                   'use_train_data': True,
-                                   'padding': [0, 0, 0, 0],
-                                   'up_scaling': False})
+                                   'use_train_data': True})
 
         # Get absolute path.
         data_folder = os.path.expanduser(params['data_folder'])
@@ -112,34 +101,43 @@ class CIFAR10(ImageToClassProblem):
         # Retrieve parameters from the dictionary.
         self.use_train_data = params['use_train_data']
 
-        # possibility to pad the image
-        self.padding = params['padding']
+        # Add transformations depending on the resizing option.
+        if ('resize' in self.params):
+            # Check the desired size.
+            if len(self.params['resize']) != 2:
+                self.logger.error("'resize' field must contain 2 values: the desired height and width")
+                exit(-1)
 
-        # up scaling the image to 224, 224 if True
-        self.up_scaling = params['up_scaling']
+            # Output image dimensions.
+            self.height = self.params['resize'][0]
+            self.width = self.params['resize'][1]
+            self.num_channels = 3
 
-        if self.up_scaling:
-            self.logger.warning('Upscaling the images to [224, 224]. Slows down batches generation.')
+            # Up-scale and transform to tensors.
+            transform = transforms.Compose([transforms.Resize((self.height, self.width)), transforms.ToTensor()])
 
-        # define the default_values dict: holds parameters values that a model may need.
-        self.default_values = {'nb_classes': 10,
-                               'num_channels': 3,
-                               'width': 32,
-                               'height': 32,
-                               'up_scaling': self.up_scaling,
-                               'padding': self.padding}
+            self.logger.warning('Upscaling the images to [{}, {}]. Slows down batch generation.'.format(
+                self.width, self.height))
 
-        self.height = 224 if self.up_scaling else self.default_values['height']
-        self.width = 224 if self.up_scaling else self.default_values['width']
+        else:
+            # Default MNIST settings.
+            self.width = 32
+            self.height = 32
+            self.num_channels = 3
+            # Simply turn to tensor.
+            transform = transforms.Compose([transforms.ToTensor()])
 
-        self.data_definitions = {'images': {'size': [-1, 3, self.height, self.width], 'type': [torch.Tensor]},
+        # Define the default_values dict: holds parameters values that a model may need.
+        self.default_values = {'num_classes': 10,
+                               'num_channels': self.num_channels,
+                               'width': self.width,
+                               'height': self.height}
+
+
+        self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
-        
-        # Define transforms: takes in an PIL image and returns a transformed version
-        transform = transforms.Compose([transforms.Resize((self.height, self.width)), transforms.ToTensor(
-        )]) if self.up_scaling else transforms.Compose([transforms.ToTensor()])
 
         # load the dataset
         self.dataset = datasets.CIFAR10(root=data_folder, train=self.use_train_data,
@@ -149,8 +147,7 @@ class CIFAR10(ImageToClassProblem):
 
         self.length = len(self.dataset)
         # Class names.
-        self.labels = 'Airplane Automobile Bird Cat Deer Dog Frog Horse Shipe Truck'.split(
-            ' ')
+        self.labels = 'Airplane Automobile Bird Cat Deer Dog Frog Horse Shipe Truck'.split(' ')
 
     def __getitem__(self, index):
         """
@@ -161,7 +158,7 @@ class CIFAR10(ImageToClassProblem):
 
         :return: ``DataDict({'images','targets', 'targets_label'})``, with:
 
-            - images: Image, upscaled if ``self.up_scaling`` and pad if ``self.padding``,
+            - images: Image, resized if indicated in ``params``,
             - targets: Index of the target class
             - targets_label: Label of the target class (cf ``self.labels``)
 
@@ -170,9 +167,6 @@ class CIFAR10(ImageToClassProblem):
 
         img, target = self.dataset.__getitem__(index)
         target = torch.tensor(target)
-
-        # pad img
-        img = torch.nn.functional.pad(input=img, pad=self.padding, mode='constant', value=0)
 
         label = self.labels[target.data]
 
@@ -236,7 +230,6 @@ if __name__ == "__main__":
     s = time.time()
     for i, batch in enumerate(dataloader):
         print('Batch # {} - {}'.format(i, type(batch)))
-
     print('Number of workers: {}'.format(dataloader.num_workers))
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))
 

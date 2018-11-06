@@ -39,17 +39,23 @@ class Problem(Dataset):
 
     """
 
-    def __init__(self, params):
+    def __init__(self, params_, name_ = 'Problem'):
         """
         Initializes problem object.
 
-        :param params: Dictionary of parameters (read from the configuration ``.yaml`` file).
+        :param params_: Dictionary of parameters (read from the configuration ``.yaml`` file).
+
+        :param name_: Problem name (DEFAULT: 'Problem').
 
         This constructor:
 
         - stores a pointer to ``params``:
 
-            >>> self.params = params
+            >>> self.params = params_
+
+        - sets a problem name:
+
+            >>> self.name = name_
 
         - sets a default loss function:
 
@@ -58,10 +64,6 @@ class Problem(Dataset):
         - initializes the size of the dataset:
 
             >>> self.length = None
-
-        - sets a default problem name:
-
-            >>> self.name = 'Problem'
 
         - initializes the logger.
 
@@ -98,7 +100,10 @@ class Problem(Dataset):
 
         """
         # Store pointer to params.
-        self.params = params
+        self.params = params_
+
+        # Problem name.
+        self.name = name_
 
         # Empty curriculum learning params - for now.
         self.curriculum_params = {}
@@ -109,10 +114,7 @@ class Problem(Dataset):
         # Size of the dataset
         self.length = None
 
-        # "Default" problem name.
-        self.name = 'Problem'
-
-        # initialize the logger.
+        # Initialize the logger.
         self.logger = logging.getLogger(self.name)
 
         # data_definitions: this is used for defining the DataDict keys.
@@ -120,8 +122,7 @@ class Problem(Dataset):
         # This dict contains information about the DataDict produced by the current problem class.
         # This object will be used during handshaking between the model and the problem class to ensure that the model
         # can accept the batches produced by the problem.
-        # This dict should at least contains the `targets` field.
-        self.data_definitions = {'targets': {'size': [-1, 1], 'type': [torch.Tensor]}}
+        self.data_definitions = {}
 
         # default_values: this is used to pass missing parameters values to the model.
 
