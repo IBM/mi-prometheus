@@ -44,4 +44,4 @@ testing:
 
 # Model parameters:
 model:
-  name: LeNet5
+    name: LeNet5

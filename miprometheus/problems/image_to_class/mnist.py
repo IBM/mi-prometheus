@@ -51,7 +51,7 @@ class MNIST(ImageToClassProblem):
             - Calls ``problems.problem.ImageToClassProblem`` class constructor,
             - Sets following attributes using the provided ``params``:
 
-                - ``self.root_dir`` (`string`) : Root directory of dataset where ``processed/training.pt``\
+                - ``self.data_folder`` (`string`) : Root directory of dataset where ``processed/training.pt``\
                     and  ``processed/test.pt`` will be saved,
                 - ``self.use_train_data`` (`bool`, `optional`) : If True, creates dataset from ``training.pt``,\
                     otherwise from ``test.pt``
@@ -59,16 +59,20 @@ class MNIST(ImageToClassProblem):
                 - ``self.defaut_values`` :
 
                     >>> self.default_values = {'num_classes': 10,
-                    >>>            'num_channels': self.num_channels,
-                    >>>            'width': self.width,
-                    >>>            'height': self.height}
+                    >>>            'num_channels': 1,
+                    >>>            'width': self.width, # (DEFAULT: 28)
+                    >>>            'height': self.height} # (DEFAULT: 28)
 
                 - ``self.data_definitions`` :
 
-                    >>> self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width], 'type': [torch.Tensor]},
+                    >>> self.data_definitions = {'images': {'size': [-1, 1, self.height, self.width], 'type': [torch.Tensor]},
                     >>>                          'targets': {'size': [-1], 'type': [torch.Tensor]},
                     >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
                     >>>                         }
+
+        .. warning::
+
+            Resizing images might cause a significant slow down in batch generation.
 
         .. note::
 
@@ -121,7 +125,6 @@ class MNIST(ImageToClassProblem):
             # Simply turn to tensor.
             transform = transforms.Compose([transforms.ToTensor()])
 
-
         # Define the default_values dict: holds parameters values that a model may need.
         self.default_values = {'num_classes': 10,
                                'num_channels': self.num_channels,
@@ -133,8 +136,6 @@ class MNIST(ImageToClassProblem):
                                  'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
-
-
 
         # load the dataset
         self.dataset = datasets.MNIST(root=data_folder, train=self.use_train_data, download=True,
@@ -227,9 +228,8 @@ if __name__ == "__main__":
     s = time.time()
     #for i, batch in enumerate(dataloader):
     #    print('Batch # {} - {}'.format(i, type(batch)))
-    #
     #print('Number of workers: {}'.format(dataloader.num_workers))
-    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
+    #print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
 
     # Display single sample (0) from batch.
     batch = next(iter(dataloader))
