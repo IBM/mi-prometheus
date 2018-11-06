@@ -27,6 +27,9 @@ grid_worker.py:
 """
 __author__ = "Vincent Marois & Tomasz Kornuta"
 
+import os
+import psutil
+
 import logging
 import argparse
 from abc import abstractmethod
@@ -194,3 +197,18 @@ class GridWorker(object):
 
 
         """
+
+
+    def get_available_cpus(self):
+        """ Function returns the number of available CPUs """
+        # Check scheduler for number of available cpus - if OS offers that!
+        if hasattr(os, 'sched_getaffinity'):
+            return len(os.sched_getaffinity(0))
+
+        proc = psutil.Process()
+        # cpu_affinity() is only available on Linux, Windows and FreeBSD
+        if hasattr(proc, 'cpu_affinity'):
+            return len(proc.cpu_affinity())
+
+        # Simply return CPU count :]
+        return psutil.cpu_count()

@@ -222,7 +222,7 @@ class GridAnalyzer(GridWorker):
 
         """
         # Run in as many threads as there are CPUs available to the script
-        with ThreadPool(processes=len(os.sched_getaffinity(0))) as pool:
+        with ThreadPool(processes=self.get_available_cpus()) as pool:
             func = partial(GridAnalyzer.run_experiment, self)
             list_dict_exp = pool.map(func, self.experiments_list)
 

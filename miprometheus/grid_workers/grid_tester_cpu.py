@@ -139,10 +139,10 @@ class GridTesterCPU(GridWorker):
 
         # Check max number of child processes. 
         if self.max_concurrent_runs <= 0: # We need at least one proces!
-            max_processes = len(os.sched_getaffinity(0))
+            max_processes = self.get_available_cpus()
         else:    
             # Take into account the minimum value.
-            max_processes = min(len(os.sched_getaffinity(0)), self.max_concurrent_runs)
+            max_processes = min(self.get_available_cpus(), self.max_concurrent_runs)
         self.logger.info('Spanning experiments using {} CPU(s) concurrently.'.format(max_processes))
 
         # Run in as many threads as there are CPUs available to the script.

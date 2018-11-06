@@ -1,0 +1,25 @@
+grid_tasks:
+    -
+        default_configs: configs/vision/lenet5_mnist.yaml
+    -
+        default_configs: configs/vision/simplecnn_mnist.yaml
+
+# Sest exactly the same experiment conditions.
+grid_overwrite:
+    training:
+        # Set the same optimizer parameters.
+        optimizer:
+            name: Adam
+            lr: 0.01
+        # Set the same terminal conditions.
+        terminal_conditions:
+            loss_stop: 1.0e-5
+            episode_limit: 100
+            epochs_limit: 10  
+
+grid_settings:
+    # Set number of repetitions of each experiments.
+    experiment_repetitions: 1
+    # Set number of concurrent running experiments.
+    max_concurrent_runs: 2
+
