@@ -163,24 +163,21 @@ class MACNetwork(Model):
         :return: figure layout.
 
         """
-
+        import matplotlib
         from matplotlib.figure import Figure
-        import matplotlib.ticker as ticker
-        import matplotlib.gridspec as gridspec
-        import matplotlib.pylab as pylab
 
         params = {'axes.titlesize': 'large',
                   'axes.labelsize': 'large',
                   'xtick.labelsize': 'medium',
                   'ytick.labelsize': 'medium'}
-        pylab.rcParams.update(params)
+        matplotlib.pylab.rcParams.update(params)
 
         # Prepare "generic figure template".
         # Create figure object.
         fig = Figure()
 
         # Create a specific grid for MAC.
-        gs = gridspec.GridSpec(6, 2)
+        gs = matplotlib.gridspec.GridSpec(6, 2)
 
         # subplots: original image, attention on image & question, step index
         ax_image = fig.add_subplot(gs[2:6, 0])
@@ -189,19 +186,19 @@ class MACNetwork(Model):
         ax_step = fig.add_subplot(gs[1, 0])
 
         # Set axis ticks
-        ax_image.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_image.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_attention_image.xaxis.set_major_locator(
-            ticker.MaxNLocator(integer=True))
+            matplotlib.ticker.MaxNLocator(integer=True))
         ax_attention_image.yaxis.set_major_locator(
-            ticker.MaxNLocator(integer=True))
+            matplotlib.ticker.MaxNLocator(integer=True))
 
         # question ticks
         ax_attention_question.xaxis.set_major_locator(
-            ticker.MaxNLocator(nbins=40))
+            matplotlib.ticker.MaxNLocator(nbins=40))
 
-        ax_step.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_step.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_step.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_step.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
         fig.set_tight_layout(True)
 

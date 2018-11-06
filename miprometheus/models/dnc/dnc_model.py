@@ -152,28 +152,30 @@ class DNC(SequentialModel):
         #plot_memory_attention(output, states[2], states[1][0], states[1][1], states[1][2], self.label)
 
     def generate_figure_layout(self):
+        """
+        DOCUMENTATION!
+        :return:
+        """
+        import matplotlib
         from matplotlib.figure import Figure
-        import matplotlib.ticker as ticker
-        import matplotlib.gridspec as gridspec
 
         # Change fonts globally - for all figures/subsplots at once.
-        #from matplotlib import rc
-        #rc('font', **{'family': 'Times New Roman'})
-        import matplotlib.pylab as pylab
+        # from matplotlib import rc
+        # rc('font', **{'family': 'Times New Roman'})
         params = {
             # 'legend.fontsize': '28',
             'axes.titlesize': 'large',
             'axes.labelsize': 'large',
             'xtick.labelsize': 'medium',
             'ytick.labelsize': 'medium'}
-        pylab.rcParams.update(params)
+        matplotlib.pylab.rcParams.update(params)
 
         # Prepare "generic figure template".
         # Create figure object.
         fig = Figure()
 
         # Create a specific grid for DWM .
-        gs = gridspec.GridSpec(3, 9)
+        gs = matplotlib.gridspec.GridSpec(3, 9)
 
         # Memory
         ax_memory = fig.add_subplot(gs[:, 0])  # all rows, col 0
@@ -186,22 +188,22 @@ class DNC(SequentialModel):
         ax_predictions = fig.add_subplot(gs[2, 7:])  # row 0, span 2 columns
 
         # Set ticks - for bit axes only (for now).
-        ax_inputs.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_inputs.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_targets.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_targets.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_inputs.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_inputs.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_targets.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_targets.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_predictions.xaxis.set_major_locator(
-            ticker.MaxNLocator(integer=True))
+            matplotlib.ticker.MaxNLocator(integer=True))
         ax_predictions.yaxis.set_major_locator(
-            ticker.MaxNLocator(integer=True))
-        ax_memory.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_memory.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_read.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_read.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_write.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_write.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_usage.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_usage.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            matplotlib.ticker.MaxNLocator(integer=True))
+        ax_memory.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_memory.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_read.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_read.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_write.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_write.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_usage.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_usage.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
         # Set labels.
         ax_inputs.set_title('Inputs')

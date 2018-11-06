@@ -274,7 +274,7 @@ class TranslationAnki(TextToTextProblem):
 
         """
         # import lines
-        from six.moves.urllib.request import Request, urlopen
+        from urllib.request import Request, urlopen
         import zipfile
 
         # check if the files already exist

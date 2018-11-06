@@ -281,8 +281,7 @@ class SimpleConvNet(Model):
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
             return False
-        import matplotlib.pyplot as plt
-        import matplotlib.gridspec as gridspec
+        import matplotlib
 
         # unpack data_dict
         images = data_dict['images']
@@ -303,32 +302,32 @@ class SimpleConvNet(Model):
             image = image.transpose(1, 2, 0)
 
         # Show data.
-        plt.title('Prediction: Class # {} (Target: Class # {})'.format(
+        matplotlib.pyplot.title('Prediction: Class # {} (Target: Class # {})'.format(
             np.argmax(prediction), target))
-        plt.imshow(image, interpolation='nearest', aspect='auto')
+        matplotlib.pyplot.imshow(image, interpolation='nearest', aspect='auto')
 
         # Show the feature maps of Conv1
-        f1 = plt.figure()
+        f1 = matplotlib.pyplot.figure()
         grid_size = int(np.sqrt(self.out_channels_conv1)) + 1
-        gs = gridspec.GridSpec(grid_size, grid_size)
+        gs = matplotlib.gridspec.GridSpec(grid_size, grid_size)
 
         for i in range(self.out_channels_conv1):
-            ax = plt.subplot(gs[i])
+            ax = matplotlib.pyplot.subplot(gs[i])
             ax.imshow(self.output_conv1[0, i].detach().numpy())
         f1.suptitle('feature maps of Conv1')
 
         # Show the feature maps of Conv2
-        f2 = plt.figure()
+        f2 = matplotlib.pyplot.figure()
         grid_size = int(np.sqrt(self.out_channels_conv2)) + 1
-        gs = gridspec.GridSpec(grid_size, grid_size)
+        gs = matplotlib.gridspec.GridSpec(grid_size, grid_size)
 
         for i in range(self.out_channels_conv2):
-            ax = plt.subplot(gs[i])
+            ax = matplotlib.pyplot.subplot(gs[i])
             ax.imshow(self.output_conv2[0, i].detach().numpy())
         f2.suptitle('feature maps of Conv2')
 
         # Plot!
-        plt.show()
+        matplotlib.pyplot.show()
 
 
 if __name__ == '__main__':

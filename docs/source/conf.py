@@ -35,7 +35,8 @@ from unittest.mock import MagicMock
 sys.path.insert(0, os.path.abspath('../..'))
 
 
-MOCK_CLASSES = {'Dataset': 'torch.utils.data', 'Module': 'torch.nn'}
+MOCK_CLASSES = {'Dataset': 'torch.utils.data', 'Module': 'torch.nn',
+                'QtWidgets.QMainWindow': 'matplotlib.backends.qt_compat'}
 
 
 class Mock(MagicMock):
@@ -56,13 +57,11 @@ MOCK_MODULES = ['torch', 'torch.nn', 'torch.utils', 'torch.optim',
 
                 'torchvision', 'torchvision.models',
 
-                'matplotlib', 'matplotlib.pyplot', 'matplotlib.ticker', 'matplotlib.gridspec', 'matplotlib.figure',
-                'matplotlib.pylab', 'matplotlib.animation', 'matplotlib.backends.qt_compat',
+                'matplotlib', 'matplotlib.pyplot', 'matplotlib.figure', 'matplotlib.backends.qt_compat',
                 'matplotlib.backends.backend_qt5agg', 'matplotlib.backends.backend_qt4agg',
+                'matplotlib.backends.qt_compat.QtWidgets',
 
-                'torchtext', 'tensorboardX', 'numpy', 'yaml', 'nltk', 'h5py', 'tqdm',
-
-                'six.moves.urllib.request']
+                'torchtext', 'tensorboardX', 'numpy', 'yaml', 'nltk', 'h5py', 'tqdm']
 
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 # -- Project information -----------------------------------------------------

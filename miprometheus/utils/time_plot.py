@@ -20,22 +20,21 @@ from datetime import datetime
 import numpy as np
 import logging
 
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+import matplotlib
 
-from matplotlib.backends.qt_compat import QtCore, QtWidgets, is_pyqt5
-if is_pyqt5():
+from matplotlib.backends.qt_compat import QtWidgets
+
+if matplotlib.backends.qt_compat.is_pyqt5():
     from matplotlib.backends.backend_qt5agg import (
         FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 else:
     from matplotlib.backends.backend_qt4agg import (
         FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 
-#Qt = QtCore.Qt
-
 
 class TimePlot(QtWidgets.QMainWindow):
     """
+    DOCUMENTATION!
 
     """
     def __init__(self):
@@ -51,7 +50,7 @@ class TimePlot(QtWidgets.QMainWindow):
 
         # Slider stuff
         hbox_timeline = QtWidgets.QHBoxLayout()
-        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider = QtWidgets.QSlider(matplotlib.backends.qt_compat.QtCore.Qt.Horizontal)
         self.slider.setMinimum(0)
         self.slider.valueChanged.connect(self.slider_valuechanged)
         hbox_timeline.addWidget(self.slider)
@@ -85,9 +84,9 @@ class TimePlot(QtWidgets.QMainWindow):
         name_str = 'experiment_run_' + time_str + '.mp4'
 
         # Save the animation.
-        ani = animation.ArtistAnimation(
+        ani = matplotlib.animation.ArtistAnimation(
             self.fig, self.frames, blit=False, interval=1.0)
-        Writer = animation.writers['ffmpeg']
+        Writer = matplotlib.animation.writers['ffmpeg']
         # writer = Writer(fps=1, extra_args=['-r', '25', '-probesize', '10M'])
         # ani.save(name_str, writer=writer, dpi=200)
         writer = Writer(fps=1, bitrate=5000)
@@ -170,7 +169,7 @@ if __name__ == '__main__':
     plot = TimePlot()
 
     # Create a single "figure canvas".
-    fig = plt.figure()
+    fig = matplotlib.pyplot.figure()
     axes = fig.subplots(1, 3, sharey=True)
     axes[0].set_title("input")
     axes[1].set_title("output")

@@ -567,17 +567,16 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         """
 
-        import matplotlib.pyplot as plt
-        import matplotlib.ticker as ticker
+        import matplotlib
 
         # Generate "canvas".
-        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={
+        fig, (ax1, ax2, ax3) = matplotlib.pyplot.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={
             'width_ratios': [data_dict['sequences'].shape[1]], 'height_ratios': [10, 10, 1]})
         # Set ticks.
-        ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax2.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax3.yaxis.set_major_locator(ticker.NullLocator())
+        ax1.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax1.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax2.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax3.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
 
         # Set labels.
         ax1.set_title('Inputs')
@@ -603,8 +602,8 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         ax3.imshow(np.transpose(data_dict['masks'][sample, :, :], [1, 0]), 
                 interpolation='nearest', aspect='auto')
         # Plot!
-        plt.tight_layout()
-        plt.show()
+        matplotlib.pyplot.tight_layout()
+        matplotlib.pyplot.show()
 
 
 if __name__ == '__main__':
