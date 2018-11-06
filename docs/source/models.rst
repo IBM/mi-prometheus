@@ -5,7 +5,7 @@ miprometheus.models
 ===================================
 
 .. automodule:: miprometheus.models
-.. currentmodule:: miprometheus.models
+
 
 Model
 ----------
