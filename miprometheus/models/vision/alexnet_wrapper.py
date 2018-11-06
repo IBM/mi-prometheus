@@ -59,7 +59,7 @@ class AlexnetWrapper(Model):
             # number of output nodes
             self.nb_classes = problem_default_values_['nb_classes']
 
-        except BaseException:
+        except KeyError:
             self.logger.warning("Couldn't retrieve the number of classes from problem_default_values_.")
 
         # set model from torchvision

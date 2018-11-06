@@ -125,8 +125,8 @@ class Model(nn.Module):
             for key in problem_default_values_.keys():
                 self.params.add_custom_params({key: problem_default_values_[key]})
 
-        except BaseException:
-            self.logger.info('No parameter value was parsed from problem_default_values_')
+        except Exception:
+            self.logger.warning('No parameter value was parsed from problem_default_values_')
 
         # --> We assume from here that the model class has all parameters values needed (either from params or
         # problem_default_values_) to be correctly instantiated and contained in self.params.

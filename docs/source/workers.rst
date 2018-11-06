@@ -1,8 +1,8 @@
 .. role:: hidden
     :class: hidden-section
 
-Workers
-============
+miprometheus.workers
+===================================
 
 .. automodule:: miprometheus.workers
 .. currentmodule:: miprometheus.workers
@@ -10,7 +10,7 @@ Workers
 Worker
 --------------
 
-.. automodule:: miprometheus.workers.worker
+.. autoclass:: Worker
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -18,15 +18,7 @@ Worker
 Trainer
 ----------------------------
 
-.. automodule:: miprometheus.workers.trainer
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-OnlineTrainer
-----------------------------
-
-.. automodule:: miprometheus.workers.online_trainer
+.. autoclass:: Trainer
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -34,7 +26,15 @@ OnlineTrainer
 OfflineTrainer
 ----------------------------
 
-.. automodule:: miprometheus.workers.offline_trainer
+.. autoclass:: OfflineTrainer
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+OnlineTrainer
+----------------------------
+
+.. autoclass:: OnlineTrainer
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -42,47 +42,7 @@ OfflineTrainer
 Tester
 ----------------------------
 
-.. automodule:: miprometheus.workers.tester
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-GridTrainerCPU
---------------
-
-.. automodule:: miprometheus.workers.grid_trainer_cpu
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-GridTrainerGPU
---------------
-
-.. automodule:: miprometheus.workers.grid_trainer_gpu
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-GridTesterCPU
---------------
-
-.. automodule:: miprometheus.workers.grid_tester_cpu
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-GridTesterGPU
---------------
-
-.. automodule:: miprometheus.workers.grid_tester_gpu
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-GridAnalyzer
---------------
-
-.. automodule:: miprometheus.workers.grid_analyzer
+.. autoclass:: Tester
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__

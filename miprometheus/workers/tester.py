@@ -145,17 +145,17 @@ class Tester(Worker):
         # Get testing problem name.
         try:
             _ = self.params['testing']['problem']['name']
-        except:
+        except KeyError:
             print("Error: Couldn't retrieve the problem name from the 'testing' section in the loaded configuration")
-            exit(-1)
+            exit(-5)
 
         # Get model name.
         try:
             _ = self.params['model']['name']
-        except:
+        except KeyError:
             print("Error: Couldn't retrieve the model name from the loaded configuration")
-            exit(-1)
-
+            exit(-6)
+            
         # Prepare output paths for logging
         while True:
             # Dirty fix: if log_dir already exists, wait for 1 second and try again
@@ -183,8 +183,8 @@ class Tester(Worker):
         ################# TESTING PROBLEM ################# 
 
         # Build test problem and dataloader.
-        self.problem, self.dataloader = \
-            self.build_problem_and_dataloader(self.params['testing']) 
+        self.problem, self.sampler, self.dataloader = \
+            self.build_problem_sampler_loader(self.params['testing']) 
 
         # check if the maximum number of episodes is specified, if not put a
         # default equal to the size of the dataset (divided by the batch size)
@@ -209,8 +209,18 @@ class Tester(Worker):
         # Create model object.
         self.model = ModelFactory.build(self.params['model'], self.problem.default_values)
 
-        # Load parameters from checkpoint.
-        self.model.load(self.flags.model)
+        # Load the pretrained model from checkpoint.
+        try: 
+            model_name = self.flags.model
+            # Load parameters from checkpoint.
+            self.model.load(model_name)
+        except KeyError:
+            self.logger.error("File {} indicated in the command line (--m) seems not to be a valid model checkpoint".format(model_name))
+            exit(-5)
+        except Exception as e:
+            self.logger.error(e)
+            # Exit by following the logic: if user wanted to load the model but failed, then continuing the experiment makes no sense.
+            exit(-6)
 
         # Turn on evaluation mode.
         self.model.eval()
@@ -221,6 +231,10 @@ class Tester(Worker):
 
         # Log the model summary.
         self.logger.info(self.model.summarize())
+
+        # Export and log configuration, optionally asking the user for confirmation.
+        self.export_experiment_configuration(self.log_dir, "testing_configuration.yaml",self.flags.confirm)
+
 
     def initialize_statistics_collection(self):
         """
@@ -266,17 +280,20 @@ class Tester(Worker):
 
 
         """
-        # Export and log configuration, optionally asking the user for confirmation.
-        self.export_experiment_configuration(self.log_dir, "testing_configuration.yaml",self.flags.confirm)
-
         # Initialize tensorboard and statistics collection.
         self.initialize_statistics_collection()
 
         # Set visualization.
         self.app_state.visualize = self.flags.visualize
 
+        # Get number of samples - depending whether using sampler or not.
+        if self.sampler is not None:
+            num_samples = len(self.sampler)
+        else:
+            num_samples = len(self.problem)
+
         self.logger.info('Testing over the entire test set ({} samples in {} episodes)'.format(
-            len(self.problem), len(self.dataloader)))
+            num_samples, len(self.dataloader)))
 
         try:
             # Run test

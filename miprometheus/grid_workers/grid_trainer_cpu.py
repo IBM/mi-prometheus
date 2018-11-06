@@ -36,7 +36,7 @@ from functools import partial
 from tempfile import NamedTemporaryFile
 from multiprocessing.pool import ThreadPool
 
-from miprometheus.workers.grid_worker import GridWorker
+from miprometheus.grid_workers.grid_worker import GridWorker
 
 
 class GridTrainerCPU(GridWorker):

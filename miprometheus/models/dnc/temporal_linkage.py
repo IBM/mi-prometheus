@@ -37,7 +37,7 @@ class TemporalLinkageState(_TemporalLinkageState):
     __slots__ = ()
 
 
-class TemporalLinkage():
+class TemporalLinkage(object):
     """
     Keeps track of write order for forward and backward addressing. This is a
     pseudo-RNNCore module, whose state is a pair `(link, precedence_weights)`,

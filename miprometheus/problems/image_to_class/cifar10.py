@@ -82,7 +82,18 @@ class CIFAR10(ImageToClassProblem):
             If padding upscaled images, the padding is applied after upscaling the images.
 
 
+        .. note::
+
+            The following is set by default:
+
+            >>> params = {'data_folder': '~/data/cifar10',
+            >>>           'use_train_data': True,
+            >>>           'padding': [0, 0, 0, 0],
+            >>>           'up_scaling': False}
+
+
         :param params: Dictionary of parameters (read from configuration ``.yaml``file).
+        :type params: miprometheus.utils.ParamInterface
 
         """
 
@@ -90,13 +101,17 @@ class CIFAR10(ImageToClassProblem):
         super(CIFAR10, self).__init__(params)
         self.name = 'CIFAR10'
 
-        # Retrieve parameters from the dictionary.
-        self.use_train_data = params['use_train_data']
+        # Set default parameters.
+        params.add_default_params({'data_folder': '~/data/cifar10',
+                                   'use_train_data': True,
+                                   'padding': [0, 0, 0, 0],
+                                   'up_scaling': False})
 
-        # Set default folder.
-        params.add_default_params({"data_folder":"~/data/cifar10"})
         # Get absolute path.
         data_folder = os.path.expanduser(params['data_folder'])
+
+        # Retrieve parameters from the dictionary.
+        self.use_train_data = params['use_train_data']
 
         # possibility to pad the image
         self.padding = params['padding']
@@ -200,11 +215,8 @@ if __name__ == "__main__":
 
     # Load parameters.
     from miprometheus.utils.param_interface import ParamInterface
-    params = ParamInterface()
-    params.add_default_params({'use_train_data': True,
-                               'padding': [0, 0, 0, 0],
-                               'up_scaling': False
-                                })
+    params = ParamInterface()  # using the default values
+
     batch_size = 64
 
     # Create problem.
@@ -218,7 +230,7 @@ if __name__ == "__main__":
     from torch.utils.data.dataloader import DataLoader
 
     dataloader = DataLoader(dataset=cifar10, collate_fn=cifar10.collate_fn,
-                            batch_size=batch_size, shuffle=True, num_workers=4)
+                            batch_size=batch_size, shuffle=True, num_workers=0)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
     import time

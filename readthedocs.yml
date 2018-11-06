@@ -8,6 +8,7 @@ build:
 python:
   version: 3.6
   setup_py_install: false
+  use_system_site_packages: true
 
 requirements_file: docs/requirements.txt
 

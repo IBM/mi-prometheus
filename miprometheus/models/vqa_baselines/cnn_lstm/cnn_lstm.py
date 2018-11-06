@@ -99,7 +99,7 @@ class CNN_LSTM(Model):
 
             self.nb_classes = problem_default_values_['num_classes']
 
-        except BaseException:
+        except KeyError:
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
         self.name = 'CNN_LSTM'

@@ -96,7 +96,7 @@ class MultiHopsStackedAttentionNetwork(Model):
 
             self.num_words = problem_default_values_['seq_length']
 
-        except BaseException:
+        except KeyError:
             self.num_words = params['default_nb_hops']
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
