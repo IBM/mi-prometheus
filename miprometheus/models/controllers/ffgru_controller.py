@@ -19,8 +19,9 @@
 __author__ = "Younes Bouhadjar"
 
 import torch
-from torch import nn
 import collections
+from torch.nn import Module
+
 from miprometheus.utils.app_state import AppState
 
 _FFGRUStateTuple = collections.namedtuple('FFGRUStateTuple', ('hidden_state'))
@@ -33,7 +34,11 @@ class FFGRUStateTuple(_FFGRUStateTuple):
     __slots__ = ()
 
 
-class FFGRUController(nn.Module):
+class FFGRUController(Module):
+    """
+    A wrapper class for a feedforward controller with a GRU cell.
+    """
+
     def __init__(self, params):
         """
         Constructor.
@@ -51,8 +56,8 @@ class FFGRUController(nn.Module):
 
         super(FFGRUController, self).__init__()
 
-        self.ff = nn.Linear(self.input_size, self.ff_output_size)
-        self.gru = nn.GRUCell(self.ff_output_size, self.ctrl_hidden_state_size)
+        self.ff = torch.nn.Linear(self.input_size, self.ff_output_size)
+        self.gru = torch.nn.GRUCell(self.ff_output_size, self.ctrl_hidden_state_size)
 
     def init_state(self, batch_size):
         """

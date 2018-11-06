@@ -35,6 +35,9 @@ else:
 
 
 class TimePlot(QtWidgets.QMainWindow):
+    """
+
+    """
     def __init__(self):
         self.qapp = QtWidgets.QApplication(sys.argv)
         super(TimePlot, self).__init__()

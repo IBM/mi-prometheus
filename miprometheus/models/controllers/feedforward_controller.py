@@ -19,9 +19,10 @@
 __author__ = "Tomasz Kornuta/Ryan L. McAvoy"
 
 import torch
+from torch.nn import Module
 
 
-class FeedforwardController(torch.nn.Module):
+class FeedforwardController(Module):
     """
     A wrapper class for a feedforward controller.
     """
