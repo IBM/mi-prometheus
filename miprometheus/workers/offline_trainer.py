@@ -92,8 +92,8 @@ class OfflineTrainer(Trainer):
             self.logger.info("Setting the Epoch Limit to: {}".format(self.epoch_limit))
 
         # Calculate the epoch size in terms of episodes.
-        epoch_size = self.training_problem.get_epoch_size(self.params["training"]["problem"]["batch_size"])
-        self.logger.info('Epoch size in terms of training episodes: {}'.format(epoch_size))
+        self.epoch_size = len(self.training_dataloader)
+        self.logger.info('Epoch size in terms of training episodes: {}'.format(self.epoch_size))
 
         # Terminal condition III: max episodes. Optional.
         self.params["training"]["terminal_conditions"].add_default_params({'episode_limit': -1})

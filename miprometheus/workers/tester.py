@@ -184,12 +184,12 @@ class Tester(Worker):
 
         # Build test problem and dataloader.
         self.problem, self.sampler, self.dataloader = \
-            self.build_problem_sampler_loader(self.params['testing']) 
+            self.build_problem_sampler_loader(self.params['testing'],'testing') 
 
         # check if the maximum number of episodes is specified, if not put a
         # default equal to the size of the dataset (divided by the batch size)
         # So that by default, we loop over the test set once.
-        max_test_episodes = self.problem.get_epoch_size(self.params['testing']['problem']['batch_size'])
+        max_test_episodes = len(self.dataloader)
 
         self.params['testing']['problem'].add_default_params({'max_test_episodes': max_test_episodes})
         if self.params["testing"]["problem"]["max_test_episodes"] == -1:
@@ -287,7 +287,11 @@ class Tester(Worker):
         self.app_state.visualize = self.flags.visualize
 
         # Get number of samples - depending whether using sampler or not.
-        if self.sampler is not None:
+        if self.params['testing']['dataloader']['drop_last']:
+            # if we are supposed to drop the last (incomplete) batch.
+            num_samples = len(self.dataloader) * \
+                self.params['testing']['problem']['batch_size']
+        elif self.sampler is not None:
             num_samples = len(self.sampler)
         else:
             num_samples = len(self.problem)

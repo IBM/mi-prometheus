@@ -216,7 +216,7 @@ class Trainer(Worker):
 
         # Build training problem and dataloader.
         self.training_problem, self.training_sampler, self.training_dataloader = \
-            self.build_problem_sampler_loader(self.params['training']) 
+            self.build_problem_sampler_loader(self.params['training'], 'training') 
         
         # parse the curriculum learning section in the loaded configuration.
         if 'curriculum_learning' in self.params['training']:
@@ -242,7 +242,7 @@ class Trainer(Worker):
         
         # Build validation problem and dataloader.
         self.validation_problem, self.validations_sampler, self.validation_dataloader = \
-            self.build_problem_sampler_loader(self.params['validation']) 
+            self.build_problem_sampler_loader(self.params['validation'], 'validation') 
 
         # Generate a single batch used for partial validation.
         #self.validation_batch = self.validation_problem.collate_fn(next(iter(self.validation_problem)))
@@ -480,10 +480,15 @@ class Trainer(Worker):
 
         """
         # Get number of samples - depending whether using sampler or not.
-        if self.validations_sampler is not None:
+        if self.params['validation']['dataloader']['drop_last']:
+            # if we are supposed to drop the last (incomplete) batch.
+            num_samples = len(self.validation_dataloader) * \
+                self.params['validation']['problem']['batch_size']
+        elif self.validations_sampler is not None:
             num_samples = len(self.validations_sampler)
         else:
             num_samples = len(self.validation_problem)
+        
         self.logger.info('Validating over the entire validation set ({} samples in {} episodes)'.format(
             num_samples, len(self.validation_dataloader)))
 
