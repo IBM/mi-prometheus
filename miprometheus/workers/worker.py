@@ -36,7 +36,7 @@ import numpy as np
 from random import randrange
 from abc import abstractmethod
 
-from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import DataLoader
 from miprometheus.utils.sampler_factory import SamplerFactory
 from miprometheus.problems.problem_factory import ProblemFactory
 

@@ -20,10 +20,10 @@ __author__ = "Tomasz Kornuta"
 
 
 import torch
-import torch.nn.functional as F
+import logging
 import collections
 import numpy as np
-import logging
+from torch.nn import Module
 # Set logging level.
 logger = logging.getLogger('MAS-Interface')
 # logging.basicConfig(level=logging.DEBUG)
@@ -48,7 +48,7 @@ class MASInterfaceStateTuple(_MASInterfaceStateTuple):
     __slots__ = ()
 
 
-class MASInterface(torch.nn.Module):
+class MASInterface(Module):
     """
     Class realizing interface between MAS controller and memory.
     """
@@ -209,16 +209,16 @@ class MASInterface(torch.nn.Module):
         # transformations.
 
         # Produce gating param.
-        gate_Bx3x1 = F.sigmoid(gate_Bx3).unsqueeze(2)
+        gate_Bx3x1 = torch.nn.functional.sigmoid(gate_Bx3).unsqueeze(2)
         gate0_Bx3x1 = gate_Bx3x1[:, 0, :].unsqueeze(2)
         gate1_Bx3x1 = gate_Bx3x1[:, 1, :].unsqueeze(2)
         gate2_Bx3x1 = gate_Bx3x1[:, 2, :].unsqueeze(2)
         #logger.debug("gate0_Bx2x1 {}:\n {}".format(gate0_Bx2x1.size(), gate0_Bx2x1))
 
         # Produce location-addressing params.
-        shift_BxSx1 = F.softmax(shift_BxS, dim=1).unsqueeze(2)
+        shift_BxSx1 = torch.nn.functional.softmax(shift_BxS, dim=1).unsqueeze(2)
         # Gamma - oneplus.
-        gamma_Bx1x1 = F.softplus(gamma_Bx1).unsqueeze(2) + 1
+        gamma_Bx1x1 = torch.nn.functional.softplus(gamma_Bx1).unsqueeze(2) + 1
 
         # Gating mechanism - choose beetween new attention from CBA or attention from previous iteration. [BATCH_SIZE x ADDRESSES x 1].
         #logger.debug("prev_attention_BxAx1 {}:\n {}".format(prev_attention_BxAx1.size(),  prev_attention_BxAx1))
@@ -324,7 +324,7 @@ class MASInterface(torch.nn.Module):
         # Perform  convolution for every batch-filter pair.
         tmp_attention_list = []
         for b in range(batch_size):
-            tmp_attention_list.append(F.conv1d(ext_att_trans_Bx1xEA.narrow(
+            tmp_attention_list.append(torch.nn.functional.conv1d(ext_att_trans_Bx1xEA.narrow(
                 0, b, 1), shift_trans_Bx1xS.narrow(0, b, 1)))
         # Concatenate list into a single tensor.
         shifted_attention_BxAx1 = torch.transpose(
@@ -359,7 +359,7 @@ class MASInterface(torch.nn.Module):
         #logger.debug("pow_attention_BxAx1 {}:\n {}".format(pow_attention_BxAx1.size(),  pow_attention_BxAx1))
 
         # Normalize along addresses.
-        norm_attention_BxAx1 = F.normalize(pow_attention_BxAx1, p=1, dim=1)
+        norm_attention_BxAx1 = torch.nn.functional.normalize(pow_attention_BxAx1, p=1, dim=1)
         #logger.debug("norm_attention_BxAx1 {}:\n {}".format(norm_attention_BxAx1.size(),  norm_attention_BxAx1))
 
         return norm_attention_BxAx1

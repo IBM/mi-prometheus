@@ -20,6 +20,8 @@ __author__ = "Tomasz Kornuta"
 
 import torch
 import collections
+from torch.nn import Module
+
 
 # Set logging level.
 import logging
@@ -45,7 +47,7 @@ class MAECellStateTuple(_MAECellStateTuple):
     __slots__ = ()
 
 
-class MAECell(torch.nn.Module):
+class MAECell(Module):
     """
     Class representing a single Memory-Augmented Encoder cell.
     """

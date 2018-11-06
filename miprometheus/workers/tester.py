@@ -29,7 +29,6 @@ import os
 import torch
 from time import sleep
 from datetime import datetime
-from torch.utils.data.dataloader import DataLoader
 
 from miprometheus.workers.worker import Worker
 from miprometheus.models.model_factory import ModelFactory

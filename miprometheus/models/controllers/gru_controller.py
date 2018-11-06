@@ -19,8 +19,9 @@
 __author__ = "Tomasz Kornuta/Ryan L. McAvoy/Younes Bouhadjar"
 
 import torch
-from torch import nn
 import collections
+from torch.nn import Module
+
 from miprometheus.utils.app_state import AppState
 
 _GRUStateTuple = collections.namedtuple('GRUStateTuple', ('hidden_state'))
@@ -33,7 +34,10 @@ class GRUStateTuple(_GRUStateTuple):
     __slots__ = ()
 
 
-class GRUController(nn.Module):
+class GRUController(Module):
+    """
+    A wrapper class for a GRU cell-based controller.
+    """
     def __init__(self, params):
         """
         Constructor.
@@ -50,7 +54,7 @@ class GRUController(nn.Module):
 
         super(GRUController, self).__init__()
 
-        self.gru = nn.GRUCell(self.input_size, self.ctrl_hidden_state_size)
+        self.gru = torch.nn.GRUCell(self.input_size, self.ctrl_hidden_state_size)
 
     def init_state(self, batch_size):
         """

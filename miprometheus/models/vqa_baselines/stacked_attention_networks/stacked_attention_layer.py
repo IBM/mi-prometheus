@@ -40,13 +40,12 @@ stacked_attention_layer: Implements the Attention Layer as described in section 
 __author__ = "Vincent Marois & Younes Bouhadjar"
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+from torch.nn import Module
 
 from miprometheus.utils.app_state import AppState
 
 
-class StackedAttentionLayer(nn.Module):
+class StackedAttentionLayer(Module):
     """
     Stacks several layers of ``Attention`` to enable multi-step reasoning.
 
@@ -73,7 +72,7 @@ class StackedAttentionLayer(nn.Module):
         # to visualize attention
         self.visualize_attention = None
 
-        self.san = nn.ModuleList([AttentionLayer(question_image_encoding_size, key_query_size)] * num_att_layers)
+        self.san = torch.nn.ModuleList([AttentionLayer(question_image_encoding_size, key_query_size)] * num_att_layers)
 
     def forward(self, encoded_image, encoded_question):
         """
@@ -104,7 +103,7 @@ class StackedAttentionLayer(nn.Module):
         return u
 
 
-class AttentionLayer(nn.Module):
+class AttentionLayer(Module):
     """
     Implements one layer of the Stacked Attention mechanism.
 
@@ -127,13 +126,13 @@ class AttentionLayer(nn.Module):
         super(AttentionLayer, self).__init__()
 
         # fully connected layer to construct the key
-        self.ff_image = nn.Linear(question_image_encoding_size, key_query_size)
+        self.ff_image = torch.nn.Linear(question_image_encoding_size, key_query_size)
 
         # fully connected layer to construct the query
-        self.ff_ques = nn.Linear(question_image_encoding_size, key_query_size)
+        self.ff_ques = torch.nn.Linear(question_image_encoding_size, key_query_size)
 
         # fully connected layer to construct the attention from the query and key
-        self.ff_attention = nn.Linear(key_query_size, 1)
+        self.ff_attention = torch.nn.Linear(key_query_size, 1)
 
     def forward(self, encoded_image, encoded_question):
         """
@@ -158,11 +157,11 @@ class AttentionLayer(nn.Module):
 
         # Get the query, unsqueeze to be able to add the query to all channel
         query = self.ff_ques(encoded_question).unsqueeze(dim=1)
-        weighted_key_query = F.tanh(key + query)
+        weighted_key_query = torch.nn.functional.tanh(key + query)
 
         # Get attention over the different layers
         weighted_key_query = self.ff_attention(weighted_key_query)
-        attention_prob = F.softmax(weighted_key_query, dim=-2)
+        attention_prob = torch.nn.functional.softmax(weighted_key_query, dim=-2)
 
         vi_attended = (attention_prob * encoded_image).sum(dim=1)
         u = vi_attended + encoded_question

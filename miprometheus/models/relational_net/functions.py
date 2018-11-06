@@ -20,13 +20,12 @@ __author__ = "Vincent Marois"
 
 import torch
 import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
+from torch.nn import Module
 
 from miprometheus.utils.app_state import AppState
 
 
-class PairwiseRelationNetwork(nn.Module):
+class PairwiseRelationNetwork(Module):
     """
     Implementation of the g_theta MLP used in the Relational Network model.
 
@@ -51,10 +50,10 @@ class PairwiseRelationNetwork(nn.Module):
 
         self.input_size = input_size
 
-        self.g_fc1 = nn.Linear(in_features=self.input_size, out_features=256)
-        self.g_fc2 = nn.Linear(in_features=256, out_features=256)
-        self.g_fc3 = nn.Linear(in_features=256, out_features=256)
-        self.g_fc4 = nn.Linear(in_features=256, out_features=256)
+        self.g_fc1 = torch.nn.Linear(in_features=self.input_size, out_features=256)
+        self.g_fc2 = torch.nn.Linear(in_features=256, out_features=256)
+        self.g_fc3 = torch.nn.Linear(in_features=256, out_features=256)
+        self.g_fc4 = torch.nn.Linear(in_features=256, out_features=256)
 
     def forward(self, inputs):
         """
@@ -68,21 +67,21 @@ class PairwiseRelationNetwork(nn.Module):
         """
 
         x = self.g_fc1(inputs)
-        x = F.relu(x)
+        x = torch.nn.functional.relu(x)
 
         x = self.g_fc2(x)
-        x = F.relu(x)
+        x = torch.nn.functional.relu(x)
 
         x = self.g_fc3(x)
-        x = F.relu(x)
+        x = torch.nn.functional.relu(x)
 
         x = self.g_fc4(x)
-        x = F.relu(x)
+        x = torch.nn.functional.relu(x)
 
         return x
 
 
-class SumOfPairsAnalysisNetwork(nn.Module):
+class SumOfPairsAnalysisNetwork(Module):
     """
     Implementation of the f_phi MLP used in the Relational Network model.
 
@@ -106,9 +105,9 @@ class SumOfPairsAnalysisNetwork(nn.Module):
 
         self.output_size = output_size
 
-        self.f_fc1 = nn.Linear(in_features=256, out_features=256)
-        self.f_fc2 = nn.Linear(in_features=256, out_features=256)
-        self.f_fc3 = nn.Linear(in_features=256, out_features=self.output_size)
+        self.f_fc1 = torch.nn.Linear(in_features=256, out_features=256)
+        self.f_fc2 = torch.nn.Linear(in_features=256, out_features=256)
+        self.f_fc3 = torch.nn.Linear(in_features=256, out_features=self.output_size)
 
     def forward(self, inputs):
         """
@@ -122,11 +121,11 @@ class SumOfPairsAnalysisNetwork(nn.Module):
         """
 
         x = self.f_fc1(inputs)
-        x = F.relu(x)
+        x = torch.nn.functional.relu(x)
 
         x = self.f_fc2(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=0.5)
+        x = torch.nn.functional.relu(x)
+        x = torch.nn.functional.dropout(x, p=0.5)
 
         x = self.f_fc3(x)
 

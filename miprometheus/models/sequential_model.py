@@ -90,19 +90,19 @@ class SequentialModel(Model):
             from miprometheus.utils.time_plot import TimePlot
             self.plotWindow = TimePlot()
 
+        import matplotlib
         from matplotlib.figure import Figure
-        import matplotlib.ticker as ticker
 
         # Change fonts globally - for all figures/subsplots at once.
         # from matplotlib import rc
         # rc('font', **{'family': 'Times New Roman'})
-        import matplotlib.pylab as pylab
+
         params = {# 'legend.fontsize': '28',
                   'axes.titlesize': 'large',
                   'axes.labelsize': 'large',
                   'xtick.labelsize': 'medium',
                   'ytick.labelsize': 'medium'}
-        pylab.rcParams.update(params)
+        matplotlib.pylab.rcParams.update(params)
 
         # Create a single "figure layout" for all displayed frames.
         fig = Figure()
@@ -110,10 +110,10 @@ class SequentialModel(Model):
                             'width_ratios': [predictions.shape[0]]})
 
         # Set ticks.
-        axes[0].xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        axes[0].yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        axes[1].yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        axes[2].yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        axes[0].xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        axes[0].yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        axes[1].yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        axes[2].yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
         # Set labels.
         axes[0].set_title('Inputs')

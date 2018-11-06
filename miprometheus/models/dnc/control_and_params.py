@@ -19,13 +19,16 @@
 __author__ = " Ryan L. McAvoy"
 
 import torch
-from torch import nn
+from torch.nn import Module
 from miprometheus.models.dnc.param_gen import Param_Generator
 
 from miprometheus.models.controllers.controller_factory import ControllerFactory
 
 
-class ControlParams(nn.Module):
+class ControlParams(Module):
+    """
+
+    """
     def __init__(self, output_size, read_size, params):
         """
         Initialize an Controller.
@@ -67,7 +70,7 @@ class ControlParams(nn.Module):
 
         self.state_gen = ControllerFactory.build(controller_params)
 
-        self.output_gen = nn.Linear(self.hidden_state_size, output_size)
+        self.output_gen = torch.nn.Linear(self.hidden_state_size, output_size)
 
         # Update layer
         self.param_gen = Param_Generator(

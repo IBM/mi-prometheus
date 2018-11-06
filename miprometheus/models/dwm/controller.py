@@ -19,12 +19,12 @@
 __author__ = "Younes Bouhadjar"
 
 import torch
-from torch import nn
+from torch.nn import Module
 
 from miprometheus.models.controllers.controller_factory import ControllerFactory
 
 
-class Controller(nn.Module):
+class Controller(Module):
     """
     Implementation of the DWM controller.
     """
@@ -69,10 +69,10 @@ class Controller(nn.Module):
         self.i2s = ControllerFactory.build(controller_params)
 
         # Update layer
-        self.i2u = nn.Linear(self.ctrl_in_state_dim, self.update_size)
+        self.i2u = torch.nn.Linear(self.ctrl_in_state_dim, self.update_size)
 
         # Output layer
-        self.i2o = nn.Linear(self.ctrl_in_state_dim, self.output_units)
+        self.i2o = torch.nn.Linear(self.ctrl_in_state_dim, self.output_units)
 
     def init_state(self, batch_size):
         """

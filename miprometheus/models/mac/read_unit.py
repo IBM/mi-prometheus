@@ -46,12 +46,12 @@ reference paper.
 __author__ = "Vincent Marois"
 
 import torch
-from torch import nn
-import torch.nn.functional as F
+from torch.nn import Module
+
 from miprometheus.models.mac.utils_mac import linear
 
 
-class ReadUnit(nn.Module):
+class ReadUnit(Module):
     """
     Implementation of the ``ReadUnit`` of the MAC network.
     """
@@ -118,7 +118,7 @@ class ReadUnit(nn.Module):
         rai = self.attn(concat * ctrl_state.unsqueeze(1)
                         ).squeeze(2)  # [batch_size x (H*W)]
         # This is for the time plot
-        self.rvi = F.softmax(rai, 1).unsqueeze(1)  # [batch_size x 1 x (H*W)]
+        self.rvi = torch.nn.functional.softmax(rai, 1).unsqueeze(1)  # [batch_size x 1 x (H*W)]
 
         # apply attn weights on knowledge base elements & sum on (H*W)
         read_vector = (self.rvi * knowledge_base).sum(2)  # [batch_size x dim]

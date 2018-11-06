@@ -181,7 +181,7 @@ if __name__ == "__main__":
     print('__getitem__ works.')
 
     # wrap DataLoader on top
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
 
     problem = DataLoader(dataset=scratchpad, batch_size=batch_size, collate_fn=scratchpad.collate_fn,
                          shuffle=False, num_workers=0)

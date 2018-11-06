@@ -24,8 +24,8 @@ classic_trainer.py:
 """
 __author__ = "Vincent Marois, Tomasz Kornuta"
 
+import torch
 import numpy as np
-from torch.nn.utils import clip_grad_value_
 
 from miprometheus.workers.trainer import Trainer
 
@@ -205,7 +205,7 @@ class OfflineTrainer(Trainer):
                     try:
                         # if present - clip gradients to a range (-gradient_clipping, gradient_clipping)
                         val = self.params['training']['gradient_clipping']
-                        clip_grad_value_(self.model.parameters(), val)
+                        torch.nn.utils.clip_grad_value_(self.model.parameters(), val)
                     except KeyError:
                         # Else - do nothing.
                         pass

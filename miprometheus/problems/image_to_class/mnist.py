@@ -22,7 +22,6 @@ __author__ = "Younes Bouhadjar & Vincent Marois"
 
 import os
 import torch
-import torch.nn.functional as F
 from torchvision import datasets, transforms
 
 from miprometheus.utils.data_dict import DataDict
@@ -163,7 +162,7 @@ class MNIST(ImageToClassProblem):
         img, target = self.dataset.__getitem__(index)
 
         # pad img
-        img = F.pad(img, self.padding, 'constant', 0)
+        img = torch.nn.functional.pad(img, self.padding, 'constant', 0)
 
         label = self.labels[target.data]
 
@@ -213,7 +212,7 @@ if __name__ == "__main__":
     print('__getitem__ works.')
 
     # wrap DataLoader on top of this Dataset subclass
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
     dataloader = DataLoader(dataset=mnist, collate_fn=mnist.collate_fn,
                             batch_size=batch_size, shuffle=True, num_workers=0)
 

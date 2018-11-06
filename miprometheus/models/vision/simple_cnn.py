@@ -25,7 +25,6 @@ __author__ = "Younes Bouhadjar & Vincent Marois"
 import torch
 import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
 
 from miprometheus.models.model import Model
 
@@ -245,7 +244,7 @@ class SimpleConvNet(Model):
             self.output_conv1 = out_conv1
 
         # apply max_pooling and relu
-        out_maxpool1 = F.relu(self.maxpool1(out_conv1))
+        out_maxpool1 = torch.nn.functional.relu(self.maxpool1(out_conv1))
 
         # apply Convolutional layer 2
         out_conv2 = self.conv2(out_maxpool1)
@@ -253,14 +252,14 @@ class SimpleConvNet(Model):
             self.output_conv2 = out_conv2
 
         # apply max_pooling and relu
-        out_maxpool2 = F.relu(self.maxpool2(out_conv2))
+        out_maxpool2 = torch.nn.functional.relu(self.maxpool2(out_conv2))
 
         # flatten for the linear layers
         x = out_maxpool2.view(-1, self.out_channels_conv2 * self.width_features_maxpool2 * self.height_features_maxpool2)
 
         # apply 3 linear layers
-        x = F.relu(self.linear1(x))
-        x = F.relu(self.linear2(x))
+        x = torch.nn.functional.relu(self.linear1(x))
+        x = torch.nn.functional.relu(self.linear2(x))
         x = self.linear3(x)
 
         return x
@@ -282,8 +281,7 @@ class SimpleConvNet(Model):
         # Check if we are supposed to visualize at all.
         if not self.app_state.visualize:
             return False
-        import matplotlib.pyplot as plt
-        import matplotlib.gridspec as gridspec
+        import matplotlib
 
         # unpack data_dict
         images = data_dict['images']
@@ -304,32 +302,32 @@ class SimpleConvNet(Model):
             image = image.transpose(1, 2, 0)
 
         # Show data.
-        plt.title('Prediction: Class # {} (Target: Class # {})'.format(
+        matplotlib.pyplot.title('Prediction: Class # {} (Target: Class # {})'.format(
             np.argmax(prediction), target))
-        plt.imshow(image, interpolation='nearest', aspect='auto')
+        matplotlib.pyplot.imshow(image, interpolation='nearest', aspect='auto')
 
         # Show the feature maps of Conv1
-        f1 = plt.figure()
+        f1 = matplotlib.pyplot.figure()
         grid_size = int(np.sqrt(self.out_channels_conv1)) + 1
-        gs = gridspec.GridSpec(grid_size, grid_size)
+        gs = matplotlib.gridspec.GridSpec(grid_size, grid_size)
 
         for i in range(self.out_channels_conv1):
-            ax = plt.subplot(gs[i])
+            ax = matplotlib.pyplot.subplot(gs[i])
             ax.imshow(self.output_conv1[0, i].detach().numpy())
         f1.suptitle('feature maps of Conv1')
 
         # Show the feature maps of Conv2
-        f2 = plt.figure()
+        f2 = matplotlib.pyplot.figure()
         grid_size = int(np.sqrt(self.out_channels_conv2)) + 1
-        gs = gridspec.GridSpec(grid_size, grid_size)
+        gs = matplotlib.gridspec.GridSpec(grid_size, grid_size)
 
         for i in range(self.out_channels_conv2):
-            ax = plt.subplot(gs[i])
+            ax = matplotlib.pyplot.subplot(gs[i])
             ax.imshow(self.output_conv2[0, i].detach().numpy())
         f2.suptitle('feature maps of Conv2')
 
         # Plot!
-        plt.show()
+        matplotlib.pyplot.show()
 
 
 if __name__ == '__main__':
@@ -338,7 +336,7 @@ if __name__ == '__main__':
     AppState().visualize = True
 
     from miprometheus.utils.param_interface import ParamInterface
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
     from miprometheus.problems.image_to_class.mnist import MNIST
 
     problem_params = ParamInterface()
