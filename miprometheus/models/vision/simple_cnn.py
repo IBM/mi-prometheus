@@ -104,31 +104,16 @@ class SimpleConvNet(Model):
 
         # get image information from the problem class
         try:
-            self.num_channels = problem_default_values_['num_channels']  # number of channels
-
-            # upscale the image to [224, 224] if indicated.
-            if problem_default_values_['up_scaling']:
-                self.height = 224
-                self.width = 224
-                self.logger.warning('Upscaling the images to [224, 224].')
-            else:
-                self.height = problem_default_values_['height']
-                self.width = problem_default_values_['width']
-
-            # padding to use if specified.
-            self.padding = problem_default_values_['padding']
-
-            # number of output nodes
-            self.nb_classes = problem_default_values_['nb_classes']
+            self.height = problem_default_values_['height']  
+            self.width = problem_default_values_['width'] 
+            self.num_classes = problem_default_values_['num_classes']
+            self.num_channels = problem_default_values_['num_channels'] 
 
         except KeyError:
-            self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
+            self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values")
+            exit(-1)
 
-        # take into account the padding.
-        self.height_padded = self.height + sum(self.padding[0:2])
-        self.width_padded = self.width + sum(self.padding[2:4])
-
-        self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height_padded, self.width_padded],
+        self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width],
                                             'type': [torch.Tensor]},
                                  'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
                                  }
@@ -152,9 +137,9 @@ class SimpleConvNet(Model):
                                bias=True)
 
         self.width_features_conv1 = np.floor(
-            ((self.width_padded - self.kernel_size_conv1 + 2*self.padding_conv1) / self.stride_conv1) + 1)
+            ((self.width - self.kernel_size_conv1 + 2*self.padding_conv1) / self.stride_conv1) + 1)
         self.height_features_conv1 = np.floor(
-            ((self.height_padded - self.kernel_size_conv1 + 2*self.padding_conv1) / self.stride_conv1) + 1)
+            ((self.height - self.kernel_size_conv1 + 2*self.padding_conv1) / self.stride_conv1) + 1)
 
         # ----------------------------------------------------
 
@@ -201,11 +186,11 @@ class SimpleConvNet(Model):
         self.linear1 = nn.Linear(in_features=self.out_channels_conv2 * self.width_features_maxpool2 * self.height_features_maxpool2,
                                  out_features=120)
         self.linear2 = nn.Linear(in_features=120, out_features=84)
-        self.linear3 = nn.Linear(in_features=84, out_features=self.nb_classes)
+        self.linear3 = nn.Linear(in_features=84, out_features=self.num_classes)
 
         # log some info.
         self.logger.info('Computed output shape of each layer:')
-        self.logger.info('Input: [N, {}, {}, {}]'.format(self.num_channels, self.width_padded, self.height_padded))
+        self.logger.info('Input: [N, {}, {}, {}]'.format(self.num_channels, self.width, self.height))
         self.logger.info('Conv1: [N, {}, {}, {}]'.format(self.out_channels_conv1, self.width_features_conv1,
                                                       self.height_features_conv1))
         self.logger.info('MaxPool1: [N, {}, {}, {}]'.format(self.out_channels_conv1, self.width_features_maxpool1,

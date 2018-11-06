@@ -97,10 +97,10 @@ class MNIST(ImageToClassProblem):
                                         })
 
         # Get absolute path.
-        data_folder = os.path.expanduser(params['data_folder'])
+        data_folder = os.path.expanduser(self.params['data_folder'])
 
         # Retrieve parameters from the dictionary.
-        self.use_train_data = params['use_train_data']
+        self.use_train_data = self.params['use_train_data']
 
         # Add transformations depending on the resizing option.
         if ('resize' in self.params):
@@ -126,8 +126,7 @@ class MNIST(ImageToClassProblem):
             self.height = 28
             self.num_channels = 1
             # Simply turn to tensor.
-            transforms.Compose([transforms.ToTensor()])
-
+            transform = transforms.Compose([transforms.ToTensor()])
 
 
         # Define the default_values dict: holds parameters values that a model may need.
@@ -147,12 +146,12 @@ class MNIST(ImageToClassProblem):
         # load the dataset
         self.dataset = datasets.MNIST(root=data_folder, train=self.use_train_data, download=True,
                                             transform=transform)
+
         # Set length.
         self.length = len(self.dataset)
 
         # Class names.
-        self.labels = 'Zero One Two Three Four Five Six Seven Eight Nine'.split(
-            ' ')
+        self.labels = 'Zero One Two Three Four Five Six Seven Eight Nine'.split(' ')
 
     def __getitem__(self, index):
         """
@@ -212,10 +211,9 @@ if __name__ == "__main__":
     # Test different options.
     params.add_config_params({'data_folder': '~/data/mnist',
                                     'use_train_data': True,
-                                    'resize': [64, 32],
+                                    'resize': [32, 32],
                                     'use_padding': True
                                     })
-    
 
     batch_size = 64
 
