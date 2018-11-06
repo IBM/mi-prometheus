@@ -35,7 +35,7 @@ from unittest.mock import MagicMock
 sys.path.insert(0, os.path.abspath('../..'))
 
 
-MOCK_CLASSES = {'Dataset': 'torch.utils.data'}
+MOCK_CLASSES = {'Dataset': 'torch.utils.data', 'Module': 'torch.nn'}
 
 
 class Mock(MagicMock):
