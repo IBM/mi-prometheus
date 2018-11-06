@@ -55,20 +55,17 @@ class MNIST(ImageToClassProblem):
                     and  ``processed/test.pt`` will be saved,
                 - ``self.use_train_data`` (`bool`, `optional`) : If True, creates dataset from ``training.pt``,\
                     otherwise from ``test.pt``
-                - ``self.padding`` : possibility to pad the images. e.g. ``self.padding = [0, 0, 0, 0]``,
-                - ``self.upscale`` : upscale the images to `[224, 224]` if ``True``,
+                - ``self.resize`` : (optional) resize the images to `[h, w]` if set,
                 - ``self.defaut_values`` :
 
-                    >>> self.default_values = {'nb_classes': 10,
-                    >>>                        'num_channels': 1,
-                    >>>                        'width': 28,
-                    >>>                        'height': 28,
-                    >>>                        'up_scaling': self.up_scaling,
-                    >>>                        'padding': self.padding}
+                    >>> self.default_values = {'num_classes': 10,
+                    >>>            'num_channels': self.num_channels,
+                    >>>            'width': self.width,
+                    >>>            'height': self.height}
 
                 - ``self.data_definitions`` :
 
-                    >>> self.data_definitions = {'images': {'size': [-1, 1, self.height, self.width], 'type': [torch.Tensor]},
+                    >>> self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width], 'type': [torch.Tensor]},
                     >>>                          'targets': {'size': [-1], 'type': [torch.Tensor]},
                     >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
                     >>>                         }
@@ -77,10 +74,8 @@ class MNIST(ImageToClassProblem):
 
             The following is set by default:
 
-            >>> params = {'data_folder': '~/data/mnist',
-            >>>           'use_train_data': True,
-            >>>           'padding': [0, 0, 0, 0],
-            >>>           'up_scaling': False}
+            >>> self.params.add_default_params({'data_folder': '~/data/mnist',
+            >>>           'use_train_data': True})
 
         :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
@@ -91,9 +86,7 @@ class MNIST(ImageToClassProblem):
 
         # Set default parameters.
         self.params.add_default_params({'data_folder': '~/data/mnist',
-                                        'use_train_data': True,
-                                        #'resize': [28,28],
-                                        'use_padding': False
+                                        'use_train_data': True
                                         })
 
         # Get absolute path.
@@ -162,7 +155,7 @@ class MNIST(ImageToClassProblem):
 
         :return: ``DataDict({'images','targets', 'targets_label'})``, with:
 
-            - images: Image, upscaled if ``self.up_scaling`` and pad if ``self.padding``,
+            - images: Image, resized if ``self.resize`` is set,
             - targets: Index of the target class
             - targets_label: Label of the target class (cf ``self.labels``)
 
@@ -211,8 +204,7 @@ if __name__ == "__main__":
     # Test different options.
     params.add_config_params({'data_folder': '~/data/mnist',
                                     'use_train_data': True,
-                                    'resize': [32, 32],
-                                    'use_padding': True
+                                    'resize': [32, 32]
                                     })
 
     batch_size = 64
