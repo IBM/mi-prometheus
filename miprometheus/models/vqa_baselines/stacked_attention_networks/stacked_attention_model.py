@@ -232,7 +232,7 @@ class StackedAttentionNetwork(Model):
         plt.imshow(image.permute(1, 2, 0),
                    interpolation='nearest', aspect='auto')
 
-        f = plt.figure()
+        _ = plt.figure()
         plt.title('Attention')
 
         width_height_attention = int(
@@ -254,7 +254,7 @@ class StackedAttentionNetwork(Model):
         plt.imshow(attention_visualize_layer1,
                    interpolation='nearest', aspect='auto')
 
-        f = plt.figure()
+        _ = plt.figure()
 
         plt.title('2nd attention layer')
         plt.imshow(attention_visualize_layer2,
