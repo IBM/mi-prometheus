@@ -24,10 +24,10 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 
 
 import torch
-import torch.nn.functional as F
-from torch.nn import Conv2d, MaxPool2d, Linear
+
 # Import useful MI-Prometheus classes.
 from miprometheus.models.model import Model
+
 
 class LeNet5(Model):
     """
@@ -35,13 +35,12 @@ class LeNet5(Model):
     """ 
     def __init__(self, params_, problem_default_values_):
         """
-        Initializes the LeNet5 model, creates the required layers.
+        Initializes the ``LeNet5`` model, creates the required layers.
 
         :param params: Parameters read from configuration file.
-        :type params: ''ParamInterface''
+        :type params: ``miprometheus.utils.ParamInterface``
 
-        :param problem_default_values_: dict of parameters values coming from the problem class. One example of such \
-        parameter value is the size of the vocabulary set in a translation problem.
+        :param problem_default_values_: dict of parameters values coming from the problem class.
         :type problem_default_values_: dict
 
         """
@@ -49,36 +48,47 @@ class LeNet5(Model):
         self.name = 'LeNet5'
 
         # Create the LeNet-5 layers.
-        self.conv1 = Conv2d(1, 6, kernel_size=(5, 5))
-        self.maxpool1 = MaxPool2d(kernel_size=(2, 2), stride=2)
-        self.conv2 = Conv2d(6, 16, kernel_size=(5, 5))
-        self.maxpool2 = MaxPool2d(kernel_size=(2, 2), stride=2)
-        self.conv3 = Conv2d(16, 120, kernel_size=(5, 5))
-        self.linear1 = Linear(120, 84)
-        self.linear2 = Linear(84, 10)
+        self.conv1 = torch.nn.Conv2D(1, 6, kernel_size=(5, 5))
+        self.maxpool1 = torch.nn.MaxPool2d(kernel_size=(2, 2), stride=2)
+        self.conv2 = torch.nn.Conv2D(6, 16, kernel_size=(5, 5))
+        self.maxpool2 = torch.nn.MaxPool2d(kernel_size=(2, 2), stride=2)
+        self.conv3 = torch.nn.Conv2D(16, 120, kernel_size=(5, 5))
+        self.linear1 = torch.nn.Linear(120, 84)
+        self.linear2 = torch.nn.Linear(84, 10)
 
         # Create Model data definitions - indicate what a given model needs.
         self.data_definitions = {
             'images': {'size': [-1, 1, 32, 32], 'type': [torch.Tensor]}}
 
     def forward(self, data_dict):
+        """
+        Main forward pass of the ``LeNet5`` model.
+
+        :param data_dict: DataDict({'images',**}), where:
+
+            - images: [batch_size, num_channels, width, height]
+
+        :type data_dict: ``miprometheus.utils.DataDict``
+
+        :return: Predictions [batch_size, num_classes]
+
+        """
 
         # Unpack DataDict.
         img = data_dict['images']
 
         # Pass inputs through layers.
         x = self.conv1(img)
-        x = F.relu(x)
+        x = torch.nn.functional.relu(x)
         x = self.maxpool1(x)
         x = self.conv2(x)
-        x = F.relu(x)
+        x = torch.nn.functional.relu(x)
         x = self.maxpool2(x)
         x = self.conv3(x)
-        x = F.relu(x)
+        x = torch.nn.functional.relu(x)
         x = x.view(-1, 120)
         x = self.linear1(x)
-        x = F.relu(x)
+        x = torch.nn.functional.relu(x)
         x = self.linear2(x)
 
         return x  # return logits.
-

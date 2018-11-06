@@ -226,10 +226,10 @@ if __name__ == "__main__":
     # try to see if there is a speed up when generating batches w/ multiple workers
     import time
     s = time.time()
-    #for i, batch in enumerate(dataloader):
-    #    print('Batch # {} - {}'.format(i, type(batch)))
-    #print('Number of workers: {}'.format(dataloader.num_workers))
-    #print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
+    for i, batch in enumerate(dataloader):
+        print('Batch # {} - {}'.format(i, type(batch)))
+    print('Number of workers: {}'.format(dataloader.num_workers))
+    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
 
     # Display single sample (0) from batch.
     batch = next(iter(dataloader))

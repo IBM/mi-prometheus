@@ -48,7 +48,7 @@ class Model(nn.Module):
         Initializes a Model object.
 
         :param params: Parameters read from configuration file.
-        :type params: ''ParamInterface''
+        :type params: ``miprometheus.utils.ParamInterface``
 
         :param problem_default_values_: dict of parameters values coming from the problem class. One example of such \
         parameter value is the size of the vocabulary set in a translation problem.
