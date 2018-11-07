@@ -14,8 +14,8 @@ grid_overwrite:
         # Set the same terminal conditions.
         terminal_conditions:
             loss_stop: 1.0e-5
-            episode_limit: 100
-            epochs_limit: 10  
+            episode_limit: 5000
+            epoch_limit: 5 
 
 grid_settings:
     # Set number of repetitions of each experiments.

@@ -28,6 +28,8 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 import os
 import csv
 import yaml
+import logging
+
 import numpy as np
 from datetime import datetime
 from functools import partial
@@ -46,76 +48,150 @@ class GridAnalyzer(GridWorker):
     TODO: complete doc
     """
 
-    def __init__(self, name="GridAnalyzer", use_gpu=False):
+    def __init__(self, name="GridAnalyzer"):
         """
         Constructor for the ``GridAnalyzer``:
 
-            - TODO: complete doc
-
+            - Calls basic constructor of ''GridWorker''
 
         :param name: Name of the worker (DEFAULT: "GridAnalyzer").
         :type name: str
 
-        :param use_gpu: Indicates whether the worker should use GPU or not.
-        :type use_gpu: bool
-
         """
         # call base constructor
-        super(GridAnalyzer, self).__init__(name=name,use_gpu=use_gpu)
+        super(GridAnalyzer, self).__init__(name=name,use_gpu=False)
+
+    def check_if_file_exists(self, dir_, filename_):
+        """ Function if file in directory exists
+
+        :param dir_: Path to file.
+        :param filename_: Name of the file to be opened and analysed.
+
+        """
+        return os.path.isfile(os.path.join(dir_, filename_))
+
+    def check_file_content(self, dir_, filename_):
+        """ Function checks if the number of lines in the file is > 1.
+
+        :param dir_: Path to file.
+        :param filename_: Name of the file to be opened and analysed.
+
+        """
+        return self.get_lines_number(os.path.join(dir_, filename_)) > 1
+
+    def get_lines_number(self, filename_):
+        """ Function gets number of lines in a given file.
+
+        :param filename_: Name of the file (with path) to be opened and analysed.
+
+        """
+        with open(filename_) as f:
+            return sum(1 for line in f)
+
+    def get_experiment_tests(self, experiment_path_):
+        """ Returns a list of folders with valid experiment tests.
+        
+        :param experiment_path_: Path to experiment (training) folder.
+
+        """
+        experiments_tests = []
+        for root, dirs, _ in os.walk(experiment_path_, topdown=True):
+            for name in dirs:
+                experiments_tests.append(os.path.join(root, name))
+
+        # Keep only the folders that contain `testing.csv`.
+        experiments_tests = [elem for elem in experiments_tests if 
+            self.check_if_file_exists(elem, 'testing_statistics.csv')]
+
+        # Check if the files contain any collected training/validation statistics.
+        experiments_tests = [elem for elem in experiments_tests if 
+            self.check_file_content(elem, 'testing_statistics.csv')]
+        return experiments_tests
 
     def setup_grid_experiment(self):
         """
         Setups the overall experiment:
 
-        - Calls the ``super(self).setup_experiment()`` to parse arguments,
+        - Parses arguments and sets logger level.
 
-        - Recursively creates the paths to the experiments folders, verifying that they are valid (e.g. \
-        contain `training_statistics.csv`, `validation_statistics.csv` and `testing_statistics.csv`).
+        - Recursively creates the paths to the experiments folders, verifying that they contain \
+        basic statistics files, i.e. `training_statistics.csv`, `validation_statistics.csv` and  \
+        `testing_statistics.csv`.
 
+        ..note::
+
+            We also require that those files are valid, i.e. contain at least one line with \
+            collected statistics (excluding the header).
+        
         """
-        super(GridAnalyzer, self).setup_grid_experiment()
+        # Parse arguments.
+        self.flags, self.unparsed = self.parser.parse_known_args()
+
+        # Set logger depending on the settings.
+        self.logger.setLevel(getattr(logging, self.flags.log_level.upper(), None))
 
         # Check if experiments directory was indicated.
         if self.flags.outdir == '':
             print('Please pass the experiments directory as --outdir')
             exit(-1)
 
-        self.directory_chckpnts = self.flags.outdir
+        # Get experiment directory.        
+        self.experiment_rootdir = self.flags.outdir
 
-        # get all sub-directories paths in outdir
+        # Get all sub-directories paths in outdir.
         self.experiments_list = []
 
-        for root, dirs, files in os.walk(self.directory_chckpnts, topdown=True):
+        for root, dirs, _ in os.walk(self.experiment_rootdir, topdown=True):
             for name in dirs:
                 self.experiments_list.append(os.path.join(root, name))
 
         # Keep only the folders that contain validation.csv and training.csv
-        self.experiments_list = [elem for elem in self.experiments_list if os.path.isfile(
-            elem + '/validation_statistics.csv') and os.path.isfile(elem + '/training_statistics.csv')]
+        self.experiments_list = [elem for elem in self.experiments_list if 
+            self.check_if_file_exists(elem, 'validation_statistics.csv') and 
+            self.check_if_file_exists(elem, 'training_statistics.csv')]
 
-        # check if the files are empty except for the first line
-        self.experiments_list = [elem for elem in self.experiments_list if os.stat(
-            elem + '/validation_statistics.csv').st_size > 24 and os.stat(elem + '/training_statistics.csv').st_size > 24]
+        # Check if there are some valid folders.
+        if len(self.experiments_list) == 0:
+            self.logger.error("There are no valid experiments in {} directory!".format(self.experiment_rootdir))
+            exit(-2)
 
-        # the following is to detect how many tests runs have been done for each experiment,
-        # and asserting that the number is the same for all experiment
+        # List folders.
+        exp_str = "Found the following valid experiments in {} directory:\n".format(self.experiment_rootdir)
+        exp_str += '='*80 + '\n'
+        for exp in self.experiments_list:
+            exp_str += " - {}\n".format(exp)
+        exp_str += '='*80 + '\n'
+        self.logger.info(exp_str)
+
+        # Check if the files contain any collected training/validation statistics.
+        self.experiments_list = [elem for elem in self.experiments_list if 
+            self.check_file_content(elem, 'training_statistics.csv') and
+            self.check_file_content(elem, 'validation_statistics.csv')]
+
+        # Detect how many tests runs have been done for each experiments/models.
         number_of_test = []
-        for path in self.experiments_list:
-            experiments_tests = []
-            for root, dirs, files in os.walk(path, topdown=True):
-                for name in dirs:
-                    experiments_tests.append(os.path.join(root, name))
+        for exp_path in self.experiments_list:
+            # Get all tests for a given training experiment.
+            experiments_tests = self.get_experiment_tests(exp_path)
 
-            # Keep only the folders that contain `testing.csv`
-            experiments_tests = [elem for elem in experiments_tests if os.path.isfile(elem + '/testing_statistics.csv')]
-
-            # check if that the `testing.csv` files are not empty
-            experiments_tests = [elem for elem in experiments_tests if os.stat(elem + '/testing_statistics.csv').st_size > 24]
+            # Save number of tests.
             number_of_test.append(len(experiments_tests))
 
-        assert len(set(number_of_test)) == 1, 'Not all experiments have the same number of tests'
-        self.nb_tests = number_of_test[0]
-        self.logger.info('Detected a number of tests per experiment of {}.'.format(self.nb_tests))
+        # Assert that the number is the same for all experiments.
+        if len(set(number_of_test)) != 1:
+            self.logger.error('Not all experiments have the same number of tests statistics collected!')
+            exit(-3)
+        
+        # Get number of tests.
+        self.num_tests = number_of_test[0]
+
+        # Check number of tests.
+        if self.num_tests < 1:
+            self.logger.error('Tests statistics not found! (hint: please use mip-tester/mip-grid-tester to collect them)')
+            exit(-4)
+        # Ok, proceed.
+        self.logger.info('Detected number of tests per experiment: {}'.format(self.num_tests))
+
 
     def run_experiment(self, experiment_path: str):
         """
@@ -126,21 +202,14 @@ class GridAnalyzer(GridWorker):
         :param experiment_path: Path to an experiment folder containing a trained model.
         :type experiment_path: str
 
-
-        ..note::
-
-            Visualization is deactivated to avoid any user interaction.
-
-            TODO: anything else?
-
-
         """
-        r = dict()  # results dictionary
+        # Create results dictionary.
+        r = dict()  
 
         r['timestamp'] = os.path.basename(os.path.normpath(experiment_path))
 
         # Load yaml file. To get model name, problem name and random seeds
-        with open(experiment_path + '/training_configuration.yaml', 'r') as yaml_file:
+        with open(os.path.join(experiment_path, 'training_configuration.yaml'), 'r') as yaml_file:
             params = yaml.load(yaml_file)
 
         r['model'] = params['model']['name']
@@ -149,25 +218,18 @@ class GridAnalyzer(GridWorker):
         r['seed_torch'] = params['training']['seed_torch']
         r['seed_numpy'] = params['training']['seed_numpy']
 
-        # get all sub-directories paths in experiment_path: to detect test experiments paths
-        experiments_tests = []
+        # Get all tests for a given training experiment.
+        experiments_tests = self.get_experiment_tests(experiment_path)
 
-        for root, dirs, files in os.walk(experiment_path, topdown=True):
-            for name in dirs:
-                experiments_tests.append(os.path.join(root, name))
-
-        # Keep only the folders that contain `testing.csv`
-        experiments_tests = [elem for elem in experiments_tests if os.path.isfile(elem + '/testing_statistics.csv')]
-
-        # check if that the `testing.csv` files are not empty
-        experiments_tests = [elem for elem in experiments_tests if os.stat(elem + '/testing_statistics.csv').st_size > 24]
-
-        with open(os.path.join(experiment_path, '/validation_statistics.csv'), mode='r') as f:
+        with open(os.path.join(experiment_path, 'validation_statistics.csv'), mode='r') as f:
             valid_csv = csv.reader(f, delimiter=',')
 
-        with open(os.path.join(experiment_path, '/training_statistics.csv'), mode='r') as f:
+        with open(os.path.join(experiment_path, 'training_statistics.csv'), mode='r') as f:
             train_csv = csv.reader(f, delimiter=',')
 
+            for row in train_csv:
+                print(', '.join(row))
+            exit(1)
         # get best train point
         train_episode = train_csv.episode.values.astype(int)
         train_loss = train_csv.loss.values.astype(float)
@@ -194,9 +256,9 @@ class GridAnalyzer(GridWorker):
             r['best_valid_accuracy'] = valid_accuracy[index_val_loss]
 
         # get test statistics
-        for test_idx, experiment in zip(range(1, self.nb_tests+1), experiments_tests):
+        for test_idx, experiment in zip(range(1, self.num_tests+1), experiments_tests):
 
-            with open(os.path.join(experiment_path, '/testing_statistics.csv'), mode='r') as f:
+            with open(os.path.join(experiment_path, 'testing_statistics.csv'), mode='r') as f:
                 test_csv = csv.reader(f, delimiter=',')
 
             # get average test loss
@@ -229,7 +291,7 @@ class GridAnalyzer(GridWorker):
             exp_values = dict(zip(list_dict_exp[0], zip(*[d.values() for d in list_dict_exp])))
 
             # create results file
-            results_file = os.path.join(self.directory_chckpnts, "{0:%Y%m%d_%H%M%S}_grid_analysis.csv".format(datetime.now()))
+            results_file = os.path.join(self.experiment_rootdir, "{0:%Y%m%d_%H%M%S}_grid_analysis.csv".format(datetime.now()))
 
             with open(results_file, "w") as outfile:
                 writer = csv.writer(outfile, delimiter=',')
