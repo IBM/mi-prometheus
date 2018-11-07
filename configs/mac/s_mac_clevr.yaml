@@ -1,0 +1,11 @@
+# Load the CLEVR config first.
+default_configs:
+    configs/mac/default_clevr.yaml
+
+# Model parameters:
+model:
+    name: sMacNetwork
+    dim: 512
+    embed_hidden: 300
+    max_step: 12
+    dropout: 0.15

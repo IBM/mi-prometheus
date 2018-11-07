@@ -1,0 +1,80 @@
+# Lists of tasks that will be executed in parallel.
+grid_tasks:
+  -
+    default_configs: configs/mac/mac_clevr.yaml  # MAC on CLEVR
+
+    overwrite: # split original training set in 90% / 10%
+      training:
+        sampler:
+          name: 'SubsetRandomSampler'
+          indices: '/home/vmarois/CLEVR_v1.0/clevr_train_set_indices.txt'
+      validation:
+        problem:
+          settings:
+            set: 'train'
+        sampler:
+          name: 'SubsetRandomSampler'
+          indices: '/home/vmarois/CLEVR_v1.0/clevr_val_set_indices.txt'
+  - 
+    default_configs: configs/mac/mac_cogent.yaml   # MAC on CoGenT
+
+    overwrite: # split original training set in 90% / 10%
+      training:
+        sampler:
+          name: 'SubsetRandomSampler'
+          indices: '/home/vmarois/CLEVR_CoGenT_v1.0/cogent_train_set_indices.txt'
+      validation:
+        problem:
+          settings:
+            set: 'trainA'
+        sampler:
+          name: 'SubsetRandomSampler'
+          indices: '/home/vmarois/CLEVR_CoGenT_v1.0/cogent_val_set_indices.txt'
+  -
+    default_configs: configs/mac/s_mac_clevr.yaml  # S-MAC on CLEVR
+
+    overwrite: # split original training set in 90% / 10%
+      training:
+        sampler:
+          name: 'SubsetRandomSampler'
+          indices: '/home/vmarois/CLEVR_v1.0/clevr_train_set_indices.txt'
+      validation:
+        problem:
+          settings:
+            set: 'train'
+        sampler:
+          name: 'SubsetRandomSampler'
+          indices: '/home/vmarois/CLEVR_v1.0/clevr_val_set_indices.txt'
+  -
+    default_configs: configs/mac/s_mac_cogent.yaml  # S-MAC on CoGenT
+
+    overwrite:
+      training:
+        sampler:
+          name: 'SubsetRandomSampler'
+          indices: '/home/vmarois/CLEVR_CoGenT_v1.0/cogent_train_set_indices.txt'
+      validation:
+        problem:
+          settings:
+            set: 'trainA'
+        sampler:
+          name: 'SubsetRandomSampler'
+          indices: '/home/vmarois/CLEVR_CoGenT_v1.0/cogent_val_set_indices.txt'
+
+# Parameters that will be overwritten for all tasks.
+grid_overwrite:
+
+  # Training configuration.
+  #training:
+    # EMA: keep track of exponential moving averages of the models weights
+    #use_EMA: True
+
+    # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0
+  
+grid_settings:
+  # Number of times each task will be repeated.
+  experiment_repetitions: 1
+  # Max runs (that will be limited by the actual number of available CPUs/GPUs)
+  max_concurrent_runs: 7
