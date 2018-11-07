@@ -115,9 +115,9 @@ class GridTrainerGPU(GridTrainerCPU):
                 thread_results.append(pool.apply_async(func, (task,)))
 
                 # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
-                sleep(3)
+                sleep(60)
                 while [r.ready() for r in thread_results].count(False) >= max_processes:
-                    sleep(3)
+                    sleep(60)
 
             # Equivalent of what would usually be called "join" for threads
             for r in thread_results:
