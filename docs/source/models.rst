@@ -55,6 +55,13 @@ Visual Question Answering baselines
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+:hidden:`Simplified MAC`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. automodule:: miprometheus.models.s_mac
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
 :hidden:`Relational Networks`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.relational_net
