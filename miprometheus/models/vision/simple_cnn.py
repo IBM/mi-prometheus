@@ -182,7 +182,7 @@ class SimpleConvNet(Model):
 
         # Linear layers
 
-        self.linear1 = nn.Linear(in_features=self.out_channels_conv2 * self.width_features_maxpool2 * self.height_features_maxpool2,
+        self.linear1 = nn.Linear(in_features=int(self.out_channels_conv2 * self.width_features_maxpool2 * self.height_features_maxpool2),
                                  out_features=120)
         self.linear2 = nn.Linear(in_features=120, out_features=84)
         self.linear3 = nn.Linear(in_features=84, out_features=self.num_classes)
@@ -240,7 +240,7 @@ class SimpleConvNet(Model):
         out_maxpool2 = torch.nn.functional.relu(self.maxpool2(out_conv2))
 
         # flatten for the linear layers
-        x = out_maxpool2.view(-1, self.out_channels_conv2 * self.width_features_maxpool2 * self.height_features_maxpool2)
+        x = out_maxpool2.view(-1, int(self.out_channels_conv2 * self.width_features_maxpool2 * self.height_features_maxpool2))
 
         # apply 3 linear layers
         x = torch.nn.functional.relu(self.linear1(x))
