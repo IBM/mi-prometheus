@@ -247,8 +247,8 @@ class NTM(SequentialModel):
         (ctrl_state, interface_state, memory_state,
          read_vectors) = self.cell_state_initial
 
-       # Initialize "empty" matrices.
-        memory_displayed = memory_state[0]
+        # Initialize "empty" matrices.
+
         read0_attention_displayed = np.zeros(
             (memory_state.shape[1], targets_seq.shape[0]))
         write_attention_displayed = np.zeros(
@@ -472,8 +472,8 @@ class NTM(SequentialModel):
         (write_attention, write_similarity,
          write_gate, write_shift) = write_state_tuple
 
-       # Initialize "empty" matrices.
-        memory_displayed = memory_state[0]
+        # Initialize "empty" matrices.
+
         read0_attention_displayed = np.zeros(
             (memory_state.shape[1], targets_seq.shape[0]))
         read0_similarity_displayed = np.zeros(
