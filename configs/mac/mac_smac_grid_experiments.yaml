@@ -7,14 +7,14 @@ grid_tasks:
       training:
         sampler:
           name: 'SubsetRandomSampler'
-          indices: '/home/vmarois/CLEVR_v1.0/clevr_train_set_indices.txt'
+          indices: '~/data/CLEVR_v1.0/vigil_clevr_train_set_indices.txt'
       validation:
         problem:
           settings:
             set: 'train'
         sampler:
           name: 'SubsetRandomSampler'
-          indices: '/home/vmarois/CLEVR_v1.0/clevr_val_set_indices.txt'
+          indices: '~/data/CLEVR_v1.0/vigil_clevr_val_set_indices.txt'
   - 
     default_configs: configs/mac/mac_cogent.yaml   # MAC on CoGenT
 
@@ -22,14 +22,14 @@ grid_tasks:
       training:
         sampler:
           name: 'SubsetRandomSampler'
-          indices: '/home/vmarois/CLEVR_CoGenT_v1.0/cogent_train_set_indices.txt'
+          indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_train_set_indices.txt'
       validation:
         problem:
           settings:
             set: 'trainA'
         sampler:
           name: 'SubsetRandomSampler'
-          indices: '/home/vmarois/CLEVR_CoGenT_v1.0/cogent_val_set_indices.txt'
+          indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_val_set_indices.txt'
   -
     default_configs: configs/mac/s_mac_clevr.yaml  # S-MAC on CLEVR
 
@@ -37,14 +37,14 @@ grid_tasks:
       training:
         sampler:
           name: 'SubsetRandomSampler'
-          indices: '/home/vmarois/CLEVR_v1.0/clevr_train_set_indices.txt'
+          indices: '~/data/CLEVR_v1.0/vigil_clevr_train_set_indices.txt'
       validation:
         problem:
           settings:
             set: 'train'
         sampler:
           name: 'SubsetRandomSampler'
-          indices: '/home/vmarois/CLEVR_v1.0/clevr_val_set_indices.txt'
+          indices: '~/data/CLEVR_v1.0/vigil_clevr_val_set_indices.txt'
   -
     default_configs: configs/mac/s_mac_cogent.yaml  # S-MAC on CoGenT
 
