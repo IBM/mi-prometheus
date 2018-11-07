@@ -65,9 +65,8 @@ grid_tasks:
 grid_overwrite:
 
   # Training configuration.
-  #training:
-    # EMA: keep track of exponential moving averages of the models weights
-    #use_EMA: True
+  training:
+    #use_EMA: True  # EMA: keep track of exponential moving averages of the models weights
 
     # fix the seeds
     seed_torch: 0
