@@ -165,7 +165,7 @@ class OnlineTrainer(Trainer):
             self.training_problem.initialize_epoch(epoch)
 
             # Set default termination cause.
-            termination_cause = "Episode limit reached"
+            training_status = "Not Converged"
             for training_dict in self.training_dataloader:
 
                 # reset all gradients
@@ -255,7 +255,7 @@ class OnlineTrainer(Trainer):
                     validation_loss = self.validate_on_batch(self.validation_batch, episode, epoch)
 
                     # Save the model using the latest validation statistics.
-                    self.model.save(self.model_dir, self.validation_stat_col)
+                    self.model.save(self.model_dir, training_status, self.validation_stat_agg)
 
                     # Terminal conditions.
                     # I. the loss is < threshold (only when curriculum learning is finished if set.)
@@ -264,31 +264,19 @@ class OnlineTrainer(Trainer):
 
                         # Check the Partial Validation loss.
                         if (validation_loss < self.loss_stop):
-                            termination_cause = "Partial Validation Loss went below Loss Stop " \
-                                                "threshold (model converged)."
+                            training_status = "Model converged (Partial Validation Loss went below " \
+                                "Loss Stop threshold)"
                             break
 
                     # II. Early stopping is set and loss hasn't improved by delta in n epochs.
                     # early_stopping(index=epoch, avg_valid_loss). (TODO: coming in next release)
-                    # termination_cause = 'Early Stopping.'
+                    # training_status = 'Early Stopping.'
 
                 # III. The episodes number limit has been reached.
                 if episode+1 >= self.episode_limit:
                     # If we reach this condition, then it is possible that the model didn't converge correctly
                     # but it currently might get better since last validation.
-
-                    if self.validation_stat_col["episode"] != episode:
-                        # We still must validate and try to save the model as it may perform better during this episode
-                        # (as opposed to the previous II. condition)
-
-                        # Do not visualize.
-                        self.app_state.visualize = False
-                        self.validate_on_batch(self.validation_batch, episode, epoch)
-
-                        # Save the model.
-                        self.model.save(self.model_dir, self.validation_stat_col)
-
-                    termination_cause = "Episode Limit reached."
+                    training_status = "Episode Limit reached"
                     break
 
                 # Check if we are at the end of the 'epoch': indicate that the DataLoader is now cycling.
@@ -307,7 +295,7 @@ class OnlineTrainer(Trainer):
 
                     # IV. Epoch limit has been reached.
                     if epoch+1 >= self.epoch_limit:
-                        termination_cause = "Epoch Limit reached"
+                        training_status = "Epoch Limit reached"
                         # "Finish" the training.
                         break
 
@@ -323,8 +311,21 @@ class OnlineTrainer(Trainer):
             '''
             End of main training and validation loop. Perform final full validation.
             '''
+            # Eventually perform "last" validation on batch.
+            if self.validation_stat_col["episode"] != episode:
+                # We still must validate and try to save the model as it may perform better during this episode.
+
+                # Do not visualize.
+                self.app_state.visualize = False
+
+                # Perform validation.
+                self.validate_on_batch(self.validation_batch, episode, epoch)
+
+                # Save the model using the latest validation statistics.
+                self.model.save(self.model_dir, training_status, self.validation_stat_agg)
+
             self.logger.info('\n' + '='*80)
-            self.logger.info('Training finished because {}'.format(termination_cause))
+            self.logger.info('Training finished because {}'.format(training_status))
             # Check visualization flag - turn on visualization for last validation if needed.
             if self.flags.visualize == 3:
                 self.app_state.visualize = True
@@ -335,7 +336,7 @@ class OnlineTrainer(Trainer):
             self.validate_on_set(episode, epoch)
 
             # Save the model using the average validation loss.
-            self.model.save(self.model_dir, self.validation_stat_agg)
+            self.model.save(self.model_dir, training_status, self.validation_stat_agg)
 
             self.logger.info('Experiment finished!')
 

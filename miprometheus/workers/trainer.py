@@ -420,7 +420,7 @@ class Trainer(Worker):
         if self.validation_set_writer is not None:
             self.validation_set_writer.close()
 
-    def validate_on_batch(self, valid_batch, episode, epoch=None):
+    def validate_on_batch(self, valid_batch, episode, epoch):
         """
         Performs a validation of the model using the provided batch.
 
@@ -447,8 +447,12 @@ class Trainer(Worker):
                                                                      valid_batch, self.validation_stat_col,
                                                                      episode, epoch)
 
-        # Export statistics.
+        # Export  collected statistics.
         self.export_statistics(self.validation_stat_col, '[Partial Validation]')
+
+        # Aggregate statistics, but do not display them in log.
+        self.aggregate_and_export_statistics(self.model, self.validation_problem, 
+                self.validation_stat_col, self.validation_stat_agg, episode, '[Partial Validation]', False)
 
         # Visualization of validation.
         if self.app_state.visualize:
