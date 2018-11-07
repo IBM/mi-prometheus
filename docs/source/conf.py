@@ -207,6 +207,14 @@ man_pages = [
      1)
 ]
 
+# Example configuration for intersphinx: refer to the Python standard library, and others.
+intersphinx_mapping = {
+    'pytorch': ('https://pytorch.org/docs/stable/', None),
+    'torchvision': ('https://pytorch.org/docs/stable/', None),
+    'python': ('https://docs.python.org/3', None),
+    'yaml': ('https://yaml.readthedocs.io/en/latest/', None),
+    'numpy': ('https://numpy.readthedocs.io/en/latest/', None)
+}
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -220,3 +228,7 @@ texinfo_documents = [
 ]
 
 # -- Extension configuration -------------------------------------------------
+
+autodoc_inherit_docstrings = False
+
+autodoc_member_order = 'bysource'

@@ -32,8 +32,8 @@ class Problem(Dataset):
     """
     Class representing base class for all Problems.
 
-    Inherits from torch.utils.data.Dataset as all subclasses will represent a problem with an associated dataset,\
-    and the `worker` will use ``torch.utils.data.dataloader.DataLoader`` to generate batches.
+    Inherits from :py:class:`torch.utils.data.Dataset` as all subclasses will represent a problem with an associated dataset,\
+    and the `worker` will use :py:class:`torch.utils.data.DataLoader` to generate batches.
 
     Implements features & attributes used by all subclasses.
 

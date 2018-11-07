@@ -33,29 +33,36 @@ The `.rst` files are written using the reStructuredText plaintext markup syntax.
     =============================
 
     .. automodule:: miprometheus.models
-    .. currentmodule:: miprometheus.models
+
 
     Model  # this is a subtitle
     ---------------------------------
 
-    .. autoclass:: miprometheus.models.model.Model
+    .. autoclass:: Model
         :members:
+        :special-members:
+        :exclude-members: __dict__,__weakref__
 
-    :hidden:`CNN_LSTM_VQA`  # this is a subsubtitle
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    .. automodule:: miprometheus.models.cnn_lstm_vqa
+    :hidden:`CNN + LSTM` # This is a subsubtitle
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    .. automodule:: miprometheus.models.vqa_baselines.cnn_lstm
         :members:
+        :special-members:
+        :exclude-members: __dict__,__weakref__
 
     SequentialModel # this is a subtitle
     ----------------------------------------
-    ..  currentmodule:: miprometheus.models
-    .. autoclass:: miprometheus.models.sequential_model.SequentialModel
+    .. autoclass:: SequentialModel
         :members:
+        :special-members:
+        :exclude-members: __dict__,__weakref__
 
     :hidden:`DWM` # this is a subsubtitle
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     .. automodule:: miprometheus.models.dwm
         :members:
+        :special-members:
+        :exclude-members: __dict__,__weakref__
 
 
 Do not hesitate to frequently refer to the reStructuredText guide_ for more information on the formatting.
@@ -114,19 +121,17 @@ When adding a new module (`.py` file), class or function in the code base, pleas
 - Finally, we have to rebuild the `.html` pages from the `.rst` files. This is done by readthedocs_ when we do a commit to our repository.
 
 
-**NOTE**: We are not using the `setup.py` to build the documentation, but rather pointing readthedocs_ to a requirements.txt file.
+**NOTE**: We are not using the `setup.py` to build the documentation, but rather using mocking_ to ignore the dependencies.
 The reason is as follows:
 
-    - The installation of the framework (through `python setup.py install`) should require the latest version of torchvision (currently `0.2.1`) as we get an error: AttributeError: module 'torchvision.transforms' has no attribute 'Resize' with `torchvision<=0.2.0`. It's also best if we do not have that version constraint at all.
-    - The documentation build requires `torchvision<=0.2.0` as `0.2.1` seems to cause the error: `AttributeError: module 'PIL.Image' has no attribute 'LANCZOS'`. We believe that the docker environment used for building the docs is causing this.
+    - The installation of the framework (through `python setup.py install`) can be resource intensive and the docker backend of readthedocs is constrained in terms of memory.
+    - The documentation build should be pretty fast. Hence, avoiding dealing with dependencies is better.
 
-
-So the current solution is to not use `python setup.py install` for the doc build (which is not needed at every re-build, as the docker environment is cached), but to instead point to `docs/requirements.txt` which contains `torchvision==0.2.0`.
-This allows to separate these 2 build processes.
 
 Please refer to the `readthedocs.yml` file to see the configuration for the documentation build.
 
 .. _readthedocs: https://readthedocs.org/projects/mi-prometheus/
+.. _mocking: https://docs.python.org/3/library/unittest.mock.html
 
 Some quotes about Code Documentation
 -------------------------------------------

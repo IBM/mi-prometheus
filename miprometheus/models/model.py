@@ -35,7 +35,7 @@ class Model(Module):
     """
     Class representing base class for all Models.
 
-    Inherits from ``torch.nn.Module`` as all subclasses will represent a trainable model.
+    Inherits from :py:class:`torch.nn.Module` as all subclasses will represent a trainable model.
 
     Hence, all subclasses should override the ``forward`` function.
 
