@@ -97,10 +97,10 @@ class GridTesterCPU(GridWorker):
 
         # Check the presence of mip-tester script.
         if shutil.which('mip-tester') is None:
-            self.logger.error("Cannot localize the 'mip-tester' script! (hints: please use setup.py to install it)")
+            self.logger.error("Cannot localize the 'mip-tester' script! (hint: please use setup.py to install it)")
             exit(-1)
 
-        directory_chckpnts = self.flags.outdir
+        self.experiment_rootdir = self.flags.outdir
         # Get grid settings.
         experiment_repetitions = self.flags.experiment_repetitions
         self.max_concurrent_runs = self.flags.max_concurrent_runs
@@ -109,17 +109,27 @@ class GridTesterCPU(GridWorker):
         self.experiments_list = []
 
         for _ in range(experiment_repetitions):
-            for root, dirs, files in os.walk(directory_chckpnts, topdown=True):
+            for root, dirs, _ in os.walk(self.experiment_rootdir, topdown=True):
                 for name in dirs:
                     self.experiments_list.append(os.path.join(root, name))
 
-        # Keep only the folders that contain validation.csv and training.csv
-        self.experiments_list = [elem for elem in self.experiments_list if os.path.isfile(
-            elem + '/validation_statistics.csv') and os.path.isfile(elem + '/training_statistics.csv')]
+        # Keep only the folders that contain best_model.pt in model subdirectory.
+        # We assume that training configuration is there as well.
+        self.experiments_list = [elem for elem in self.experiments_list 
+            if os.path.isfile(elem + '/model_best.pt') ]
 
-        # check if the files are not empty
-        self.experiments_list = [elem for elem in self.experiments_list if os.stat(
-            elem + '/validation_statistics.csv').st_size > 24 and os.stat(elem + '/training_statistics.csv').st_size > 24]
+        # Check if there are some valid folders.
+        if len(self.experiments_list) == 0:
+            self.logger.error("There are no models in {} directory!".format(self.experiment_rootdir))
+            exit(-2)
+
+        # List folders.
+        exp_str = "Found the following models in {} directory:\n".format(self.experiment_rootdir)
+        exp_str += '='*80 + '\n'
+        for exp in self.experiments_list:
+            exp_str += " - {}/model_best.pt\n".format(exp)
+        exp_str += '='*80 + '\n'
+        self.logger.info(exp_str)
 
         self.logger.info('Number of experiments to run: {}'.format(len(self.experiments_list)))
         self.experiments_done = 0
@@ -143,14 +153,14 @@ class GridTesterCPU(GridWorker):
         else:    
             # Take into account the minimum value.
             max_processes = min(self.get_available_cpus(), self.max_concurrent_runs)
-        self.logger.info('Spanning experiments using {} CPU(s) concurrently.'.format(max_processes))
+        self.logger.info('Spanning experiments using {} CPU(s) concurrently'.format(max_processes))
 
         # Run in as many threads as there are CPUs available to the script.
         with ThreadPool(processes=max_processes) as pool:
             func = partial(GridTesterCPU.run_experiment, self, prefix="")
             pool.map(func, self.experiments_list)
 
-        self.logger.info('Grid test experiments finished.')
+        self.logger.info('Grid test experiments finished')
 
 
     def run_experiment(self, experiment_path: str, prefix=""):
@@ -170,33 +180,30 @@ class GridTesterCPU(GridWorker):
              to the used ``Trainer``.
 
         """
-        path_to_model = os.path.join(experiment_path, 'models/model_best.pt')
+        path_to_model = os.path.join(experiment_path, 'model_best.pt')
+        self.logger.warning(path_to_model)
 
-        # check if models list is empty
-        if not os.path.isfile(path_to_model):
-            self.logger.warning('The indicated model {} does not exist on file.'.format(path_to_model))
+        # Run the test
+        command_str = "{}mip-tester --model {} --li {} --ll {}".format(
+            prefix, path_to_model,
+            self.flags.logging_interval,
+            self.flags.log_level)
 
-        else:
+        # Add gpu flag if required.
+        if self.app_state.use_CUDA:
+            command_str += " --gpu "
 
-            # Run the test
-            command_str = "{}mip-tester --model {} --li {} --ll {}".format(prefix, path_to_model,
-                                                                                       self.flags.logging_interval,
-                                                                                       self.flags.log_level)
-            # Add gpu flag if required.
-            if self.app_state.use_CUDA:
-                command_str += " --gpu "
+        self.logger.info("Starting: {}".format(command_str))
+        with open(os.devnull, 'w') as devnull:
+            result = subprocess.run(command_str.split(" "), stdout=devnull)
+        self.experiments_done += 1
+        self.logger.info("Finished: {}".format(command_str))
 
-            self.logger.info("Starting: {}".format(command_str))
-            with open(os.devnull, 'w') as devnull:
-                result = subprocess.run(command_str.split(" "), stdout=devnull)
-            self.experiments_done += 1
-            self.logger.info("Finished: {}".format(command_str))
-            print()
-            self.logger.info(
-                'Number of experiments done: {}/{}.'.format(self.experiments_done, len(self.experiments_list)))
+        self.logger.info(
+            'Number of experiments done: {}/{}.'.format(self.experiments_done, len(self.experiments_list)))
 
-            if result.returncode != 0:
-                self.logger.info("Testing exited with code: {}".format(result.returncode))
+        if result.returncode != 0:
+            self.logger.info("Testing exited with code: {}".format(result.returncode))
 
 
 def main():
