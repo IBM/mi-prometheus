@@ -127,11 +127,11 @@ class GridTrainerCPU(GridWorker):
         # Check the presence of mip-*-trainer scripts.
         if self.flags.online_trainer:
             if shutil.which('mip-online-trainer') is None:
-                self.logger.error("Cannot localize the 'mip-online-trainer' script! (hints: please use setup.py to install it)")
+                self.logger.error("Cannot localize the 'mip-online-trainer' script! (hint: please use setup.py to install it)")
                 exit(-4)
         else:
             if shutil.which('mip-offline-trainer') is None:
-                self.logger.error("Cannot localize the 'mip-offline-trainer' script! (hints: please use setup.py to install it)")
+                self.logger.error("Cannot localize the 'mip-offline-trainer' script! (hint: please use setup.py to install it)")
                 exit(-4)
 
         # Get grid settings.
