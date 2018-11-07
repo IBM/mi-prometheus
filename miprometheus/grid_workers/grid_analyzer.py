@@ -155,18 +155,18 @@ class GridAnalyzer(GridWorker):
             self.logger.error("There are no valid experiments in {} directory!".format(self.experiment_rootdir))
             exit(-2)
 
-        # List folders.
+        # Check if the files contain any collected training/validation statistics.
+        #self.experiments_list = [elem for elem in self.experiments_list if 
+        #    self.check_file_content(elem, 'training_statistics.csv') and
+        #    self.check_file_content(elem, 'validation_statistics.csv')]
+
+        # List folders with "valid" experiments.
         exp_str = "Found the following valid experiments in {} directory:\n".format(self.experiment_rootdir)
         exp_str += '='*80 + '\n'
         for exp in self.experiments_list:
             exp_str += " - {}\n".format(exp)
         exp_str += '='*80 + '\n'
         self.logger.info(exp_str)
-
-        # Check if the files contain any collected training/validation statistics.
-        self.experiments_list = [elem for elem in self.experiments_list if 
-            self.check_file_content(elem, 'training_statistics.csv') and
-            self.check_file_content(elem, 'validation_statistics.csv')]
 
         # Detect how many tests runs have been done for each experiments/models.
         number_of_test = []
@@ -227,9 +227,10 @@ class GridAnalyzer(GridWorker):
         with open(os.path.join(experiment_path, 'training_statistics.csv'), mode='r') as f:
             train_csv = csv.reader(f, delimiter=',')
 
-            for row in train_csv:
-                print(', '.join(row))
-            exit(1)
+            #for row in train_csv:
+                #print(', '.join(row))
+        # Ok, return what we got right now.
+        return r
         # get best train point
         train_episode = train_csv.episode.values.astype(int)
         train_loss = train_csv.loss.values.astype(float)
@@ -283,20 +284,22 @@ class GridAnalyzer(GridWorker):
 
 
         """
-        # Run in as many threads as there are CPUs available to the script
-        with ThreadPool(processes=self.get_available_cpus()) as pool:
-            func = partial(GridAnalyzer.run_experiment, self)
-            list_dict_exp = pool.map(func, self.experiments_list)
+        # Go throught experiments one by one and collect data.
+        list_dict_exp = []
+        for exp in self.experiments_list:
+            print(exp)
+            list_dict_exp.append(self.run_experiment(exp))
 
-            exp_values = dict(zip(list_dict_exp[0], zip(*[d.values() for d in list_dict_exp])))
+        print(list_dict_exp)
+        exp_values = dict(zip(list_dict_exp[0], zip(*[d.values() for d in list_dict_exp])))
 
-            # create results file
-            results_file = os.path.join(self.experiment_rootdir, "{0:%Y%m%d_%H%M%S}_grid_analysis.csv".format(datetime.now()))
+        # create results file
+        results_file = os.path.join(self.experiment_rootdir, "{0:%Y%m%d_%H%M%S}_grid_analysis.csv".format(datetime.now()))
 
-            with open(results_file, "w") as outfile:
-                writer = csv.writer(outfile, delimiter=',')
-                writer.writerow(exp_values.keys())
-                writer.writerows(zip(*exp_values.values()))
+        with open(results_file, "w") as outfile:
+            writer = csv.writer(outfile, delimiter=',')
+            writer.writerow(exp_values.keys())
+            writer.writerows(zip(*exp_values.values()))
 
         self.logger.info('Analysis done.')
         self.logger.info('Results stored in {}.'.format(results_file))
