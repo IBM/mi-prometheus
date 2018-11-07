@@ -165,27 +165,29 @@ class DWM(SequentialModel):
 
     @staticmethod
     def generate_figure_layout():
-        import matplotlib.pyplot as plt
-        import matplotlib.ticker as ticker
-        import matplotlib.gridspec as gridspec
+        """
+        DOCUMENTATION!!
+
+        """
+        import matplotlib
 
         # Prepare "generic figure template".
         # Create figure object.
-        fig = plt.figure(figsize=(16, 9))
+        fig = matplotlib.pyplot.figure(figsize=(16, 9))
         # fig.tight_layout()
         fig.subplots_adjust(left=0.07, right=0.96, top=0.88, bottom=0.15)
         
-        gs0 = gridspec.GridSpec(1, 2, width_ratios=[5.0, 3.0])
+        gs0 = matplotlib.gridspec.GridSpec(1, 2, width_ratios=[5.0, 3.0])
 
         # Create a specific grid for DWM .
-        gs00 = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs0[0],
+        gs00 = matplotlib.gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs0[0],
                                                 width_ratios=[3.0, 4.0, 4.0])
 
         ax_memory = fig.add_subplot(gs00[:, 0])  # all rows, col 0
         ax_attention = fig.add_subplot(gs00[:, 1])  # all rows, col 2-3
         ax_bookmark = fig.add_subplot(gs00[:, 2])  # all rows, col 4-5
 
-        gs01 = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=gs0[1],
+        gs01 = matplotlib.gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=gs0[1],
                                                 hspace=0.5,
                                                 height_ratios=[1.0, 0.8, 0.8])
         ax_inputs = fig.add_subplot(gs01[0, :])  # row 0, span 2 columns
@@ -193,20 +195,20 @@ class DWM(SequentialModel):
         ax_predictions = fig.add_subplot(gs01[2, :])  # row 0, span 2 columns
 
         # Set ticks - for bit axes only (for now).
-        ax_inputs.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_inputs.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_targets.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_targets.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_inputs.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_inputs.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_targets.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_targets.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_predictions.xaxis.set_major_locator(
-            ticker.MaxNLocator(integer=True))
+            matplotlib.ticker.MaxNLocator(integer=True))
         ax_predictions.yaxis.set_major_locator(
-            ticker.MaxNLocator(integer=True))
-        ax_memory.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_memory.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_bookmark.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_bookmark.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_attention.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_attention.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            matplotlib.ticker.MaxNLocator(integer=True))
+        ax_memory.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_memory.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_bookmark.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_bookmark.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_attention.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_attention.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
         # Set labels.
         ax_inputs.set_title('Inputs')

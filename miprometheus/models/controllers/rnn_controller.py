@@ -19,9 +19,9 @@
 __author__ = "Ryan L. McAvoy"
 
 import torch
-from torch import nn
-import torch.nn.functional as F
 import collections
+from torch.nn import Module
+
 from miprometheus.utils.app_state import AppState
 
 _RNNStateTuple = collections.namedtuple('RNNStateTuple', ('hidden_state'))
@@ -34,7 +34,13 @@ class RNNStateTuple(_RNNStateTuple):
     __slots__ = ()
 
 
-class RNNController(nn.Module):
+class RNNController(Module):
+    """
+    A wrapper class for a feedforward controller?
+
+    TODO: Doc needs update!
+
+    """
     def __init__(self, params):
         """
         Constructor for a RNN.
@@ -52,7 +58,7 @@ class RNNController(nn.Module):
 
         super(RNNController, self).__init__()
         full_size = self.input_size + self.ctrl_hidden_state_size
-        self.rnn = nn.Linear(full_size, self.ctrl_hidden_state_size)
+        self.rnn = torch.nn.Linear(full_size, self.ctrl_hidden_state_size)
 
     def init_state(self, batch_size):
         """
@@ -86,10 +92,10 @@ class RNNController(nn.Module):
         hidden_state = self.rnn(combo)
 
         if self.non_linearity == "sigmoid":
-            hidden_state = F.sigmoid(hidden_state)
+            hidden_state = torch.nn.functional.sigmoid(hidden_state)
         elif self.non_linearity == "tanh":
-            hidden_state = F.tanh(hidden_state)
+            hidden_state = torch.nn.functional.tanh(hidden_state)
         elif self.non_linearity == "relu":
-            hidden_state = F.relu(hidden_state)
+            hidden_state = torch.nn.functional.relu(hidden_state)
 
         return hidden_state, RNNStateTuple(hidden_state)

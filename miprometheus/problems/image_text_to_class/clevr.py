@@ -55,7 +55,7 @@ import os
 import csv
 import pickle
 from PIL import Image
-from torchvision.transforms import ToTensor
+from torchvision import transforms
 
 from miprometheus.utils.problems_utils.language import Language
 from miprometheus.utils.data_dict import DataDict
@@ -519,7 +519,6 @@ class CLEVR(ImageTextToClassProblem):
         from miprometheus.utils.problems_utils.generate_feature_maps import GenerateFeatureMaps
         from torch.utils.data import DataLoader
         import tqdm
-        from torchvision import transforms
 
         # create DataLoader of the images dataset.
         dataset = GenerateFeatureMaps(image_dir=os.path.join(self.data_folder, 'images', self.set), set=self.set,
@@ -584,7 +583,7 @@ class CLEVR(ImageTextToClassProblem):
                 img = torch.from_numpy(img).type(torch.FloatTensor).squeeze()
             except Exception:
                 img = Image.open(f).convert('RGB')  # for the original images
-                img = ToTensor()(img).type(torch.FloatTensor).squeeze()
+                img = transforms.ToTensor()(img).type(torch.FloatTensor).squeeze()
 
         # embed question
         if self.embedding_type == 'random':

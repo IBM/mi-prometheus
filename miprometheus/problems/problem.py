@@ -23,7 +23,6 @@ import torch
 import logging
 import numpy as np
 from torch.utils.data import Dataset
-from torch.utils.data.dataloader import default_collate
 
 from miprometheus.utils.app_state import AppState
 from miprometheus.utils.data_dict import DataDict
@@ -33,8 +32,8 @@ class Problem(Dataset):
     """
     Class representing base class for all Problems.
 
-    Inherits from torch.utils.data.Dataset as all subclasses will represent a problem with an associated dataset,\
-    and the `worker` will use ``torch.utils.data.dataloader.DataLoader`` to generate batches.
+    Inherits from :py:class:`torch.utils.data.Dataset` as all subclasses will represent a problem with an associated dataset,\
+    and the `worker` will use :py:class:`torch.utils.data.DataLoader` to generate batches.
 
     Implements features & attributes used by all subclasses.
 
@@ -271,11 +270,11 @@ class Problem(Dataset):
         """
         Generates a batch of samples from a list of individuals samples retrieved by ``__getitem__``.
 
-        The default collate_fn is ``torch.utils.data.default_collate``.
+        The default collate_fn is ``torch.utils.data.dataloader.default_collate``.
 
         .. note::
 
-            This base ``collate_fn`` method only calls the default ``torch.utils.data.default_collate``\
+            This base ``collate_fn`` method only calls the default ``torch.utils.data.dataloader.default_collate``\
             , as it can handle several cases (mainly tensors, numbers, dicts and lists).
 
             If your dataset can yield variable-length samples within a batch, or generate batches `on-the-fly`\
@@ -289,7 +288,7 @@ class Problem(Dataset):
         :return: DataDict containing the created batch.
 
         """
-        return default_collate(batch)
+        return torch.utils.data.dataloader.default_collate(batch)
 
     def __getitem__(self, index):
         """
@@ -457,26 +456,6 @@ class Problem(Dataset):
         """
         pass
         
-    def get_epoch_size(self, batch_size):
-        """
-        Compute the number of iterations ('episodes') to run given the size of the dataset and the batch size to cover
-        the entire dataset once.
-
-        :param batch_size: Batch size.
-        :type batch_size: int
-
-        .. note::
-
-            We are counting the last batch, even though it might be smaller than the other ones if the size of the \
-            dataset is not divisible by the batch size. -> Corresponds to ``drop_last=False`` in ``DataLoader()``.
-
-        :return: Number of iterations to perform to go though the entire dataset once.
-
-        """
-        if (self.length % batch_size) == 0:
-            return self.length // batch_size
-        else:
-            return (self.length // batch_size) + 1
 
     def initialize_epoch(self, epoch):
         """

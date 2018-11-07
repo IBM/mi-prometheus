@@ -25,7 +25,6 @@ from abc import abstractmethod
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from miprometheus.problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
 from miprometheus.utils.loss.masked_bce_with_logits_loss import MaskedBCEWithLogitsLoss
@@ -419,7 +418,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
             return self.loss_function.masked_accuracy(
                 logits, data_dict['targets'], data_dict['masks'])
         else:
-            return (1 - torch.abs(torch.round(F.sigmoid(logits)) - data_dict['targets'])).mean()
+            return (1 - torch.abs(torch.round(torch.nn.functional.sigmoid(logits)) - data_dict['targets'])).mean()
 
     def add_ctrl(self, seq, ctrl, pos):
         """
@@ -568,17 +567,16 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         """
 
-        import matplotlib.pyplot as plt
-        import matplotlib.ticker as ticker
+        import matplotlib
 
         # Generate "canvas".
-        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={
+        fig, (ax1, ax2, ax3) = matplotlib.pyplot.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={
             'width_ratios': [data_dict['sequences'].shape[1]], 'height_ratios': [10, 10, 1]})
         # Set ticks.
-        ax1.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax1.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax2.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax3.yaxis.set_major_locator(ticker.NullLocator())
+        ax1.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax1.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax2.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax3.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
 
         # Set labels.
         ax1.set_title('Inputs')
@@ -604,8 +602,8 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         ax3.imshow(np.transpose(data_dict['masks'][sample, :, :], [1, 0]), 
                 interpolation='nearest', aspect='auto')
         # Plot!
-        plt.tight_layout()
-        plt.show()
+        matplotlib.pyplot.tight_layout()
+        matplotlib.pyplot.show()
 
 
 if __name__ == '__main__':

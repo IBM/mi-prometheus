@@ -25,6 +25,9 @@ from miprometheus.models.dnc.tensor_utils import sim, outer_prod
 
 
 class Memory(object):
+    """
+
+    """
     def __init__(self, mem_t):
         """
         Initializes the memory.

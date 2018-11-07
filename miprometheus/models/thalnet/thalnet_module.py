@@ -21,13 +21,13 @@ thalnet_module.py: defines a module in the ThalNet architecture"""
 __author__ = "Younes Bouhadjar & Vincent Marois"
 
 import torch
-from torch import nn
+from torch.nn import Module
 from miprometheus.utils.app_state import AppState
 
 from miprometheus.models.controllers.controller_factory import ControllerFactory
 
 
-class ThalnetModule(nn.Module):
+class ThalnetModule(Module):
     """
     Implements a ``ThalNet`` module.
 
@@ -67,8 +67,8 @@ class ThalnetModule(nn.Module):
         self.input_size = input_size
 
         # Reading mechanism
-        self.fc_context = nn.utils.weight_norm(
-            nn.Linear(self.center_size, self.context_size), name='weight')
+        self.fc_context = torch.nn.utils.weight_norm(
+            torch.nn.Linear(self.center_size, self.context_size), name='weight')
 
         # Parameters needed for the controller
         self.input_context_size = self.input_size + self.context_size

@@ -20,8 +20,9 @@ __author__ = "Ryan L. McAvoy, Tomasz Kornuta"
 
 
 import torch
-from torch import nn
 import collections
+from torch.nn import Module
+
 from miprometheus.models.dnc.control_and_params import ControlParams
 from miprometheus.models.dnc.interface import Interface
 from miprometheus.utils.app_state import AppState
@@ -42,7 +43,7 @@ class NTMCellStateTuple(_NTMCellStateTuple):
     __slots__ = ()
 
 
-class DNCCell(nn.Module):
+class DNCCell(Module):
     """
     Class representing a single cell of the DNC.
     """
@@ -64,7 +65,7 @@ class DNCCell(nn.Module):
         self.interface = Interface(params)
         self.control_params = ControlParams(
             output_size, self.interface.read_size, params)
-        self.output_network = nn.Linear(self.interface.read_size, output_size)
+        self.output_network = torch.nn.Linear(self.interface.read_size, output_size)
 
     def init_state(self, memory_address_size, batch_size):
         """

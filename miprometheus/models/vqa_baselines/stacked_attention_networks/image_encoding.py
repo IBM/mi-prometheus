@@ -23,11 +23,11 @@ for the Stacked Attention Network.
 __author__ = "Vincent Marois & Younes Bouhadjar"
 
 import torch
-import torch.nn as nn
+from torch.nn import Module
 import torchvision
 
 
-class PretrainedImageEncoding(nn.Module):
+class PretrainedImageEncoding(Module):
     """
     Wrapper class over a ``torchvision.model`` to produce feature maps for the SAN model.
 

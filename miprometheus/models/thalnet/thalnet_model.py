@@ -144,20 +144,18 @@ class ThalNetModel(SequentialModel):
         :return: figure layout.
 
         """
+        import matplotlib
         from matplotlib.figure import Figure
-        import matplotlib.ticker as ticker
-        from matplotlib import rc
-        import matplotlib.gridspec as gridspec
 
         # Change fonts globally - for all figures/subsplots at once.
-        rc('font', **{'family': 'Times New Roman'})
+        matplotlib.rc('font', **{'family': 'Times New Roman'})
 
         # Prepare "generic figure template".
         # Create figure object.
         fig = Figure()
 
         # Create a specific grid
-        gs = gridspec.GridSpec(4, 3)
+        gs = matplotlib.gridspec.GridSpec(4, 3)
 
         # modules & centers subplots
         ax_center = [fig.add_subplot(gs[i, 0])
@@ -170,11 +168,11 @@ class ThalNetModel(SequentialModel):
         ax_pred = fig.add_subplot(gs[2, 2])
 
         # Set ticks - for bit axes only (for now).
-        ax_inputs.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_inputs.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_inputs.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_inputs.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
-        ax_pred.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_pred.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_pred.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_pred.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
         # Set labels.
         ax_inputs.set_title('Inputs')

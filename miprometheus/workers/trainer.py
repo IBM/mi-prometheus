@@ -216,7 +216,7 @@ class Trainer(Worker):
 
         # Build training problem and dataloader.
         self.training_problem, self.training_sampler, self.training_dataloader = \
-            self.build_problem_sampler_loader(self.params['training']) 
+            self.build_problem_sampler_loader(self.params['training'], 'training') 
         
         # parse the curriculum learning section in the loaded configuration.
         if 'curriculum_learning' in self.params['training']:
@@ -242,7 +242,7 @@ class Trainer(Worker):
         
         # Build validation problem and dataloader.
         self.validation_problem, self.validations_sampler, self.validation_dataloader = \
-            self.build_problem_sampler_loader(self.params['validation']) 
+            self.build_problem_sampler_loader(self.params['validation'], 'validation') 
 
         # Generate a single batch used for partial validation.
         #self.validation_batch = self.validation_problem.collate_fn(next(iter(self.validation_problem)))
@@ -255,13 +255,31 @@ class Trainer(Worker):
         # Build the model using the loaded configuration and the default values of the problem.
         self.model = ModelFactory.build(self.params['model'], self.training_problem.default_values)
 
-        # load the indicated pretrained model checkpoint if the argument is valid
-        if self.flags.model != "":
-            if os.path.isfile(self.flags.model):
-                # Load parameters from checkpoint.
-                self.model.load(self.flags.model)
+        # Load the pretrained model from checkpoint.
+        try: 
+            # Check command line arguments, then check load option in config.
+            if self.flags.model != "":
+                model_name = self.flags.model
+                msg = "command line (--m)"
+            elif "load" in self.params['model']:
+                model_name = self.params['model']['load']
+                msg = "model section of the configuration file"
             else:
-                self.logger.error("Couldn't load the checkpoint {} : does not exist on disk.".format(self.flags.model))
+                model_name = ""
+            # Try to load the model.
+            if model_name != "":
+                if os.path.isfile(model_name):
+                    # Load parameters from checkpoint.
+                    self.model.load(model_name)
+                else:
+                    raise Exception("Couldn't load the checkpoint {} indicated in the {}: file does not exist".format(model_name, msg))
+        except KeyError:
+            self.logger.error("File {} indicated in the {} seems not to be a valid model checkpoint".format(model_name, msg))
+            exit(-5)
+        except Exception as e:
+            self.logger.error(e)
+            # Exit by following the logic: if user wanted to load the model but failed, then continuing the experiment makes no sense.
+            exit(-6)
 
         # Move the model to CUDA if applicable.
         if self.app_state.use_CUDA:
@@ -461,10 +479,16 @@ class Trainer(Worker):
 
 
         """
-        if self.validations_sampler is not None:
+        # Get number of samples - depending whether using sampler or not.
+        if self.params['validation']['dataloader']['drop_last']:
+            # if we are supposed to drop the last (incomplete) batch.
+            num_samples = len(self.validation_dataloader) * \
+                self.params['validation']['problem']['batch_size']
+        elif self.validations_sampler is not None:
             num_samples = len(self.validations_sampler)
         else:
             num_samples = len(self.validation_problem)
+        
         self.logger.info('Validating over the entire validation set ({} samples in {} episodes)'.format(
             num_samples, len(self.validation_dataloader)))
 

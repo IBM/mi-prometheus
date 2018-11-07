@@ -20,6 +20,7 @@ __author__ = "Tomasz Kornuta"
 
 import torch
 import collections
+from torch.nn import Module
 
 from miprometheus.models.controllers.controller_factory import ControllerFactory
 from miprometheus.models.ntm.ntm_interface import NTMInterface
@@ -40,7 +41,7 @@ class NTMCellStateTuple(_NTMCellStateTuple):
     __slots__ = ()
 
 
-class NTMCell(torch.nn.Module):
+class NTMCell(Module):
     """
     Class representing a single NTM cell.
     """

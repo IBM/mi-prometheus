@@ -24,7 +24,6 @@ split_indices.py:
 __author__ = "Tomasz Kornuta"
 
 import numpy as np
-from numpy.random import permutation
 
 
 def split_indices(length, split, logger, random_sampling=True):
@@ -53,7 +52,7 @@ def split_indices(length, split, logger, random_sampling=True):
     if random_sampling:
         logger.info('Using random sampling')
         # Random indices.
-        indices = permutation(length)
+        indices = np.random.permutation(length)
         # Split into two pieces.
         split_a = indices[0:split]
         split_b = indices[split:length]

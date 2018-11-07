@@ -46,12 +46,11 @@ reference paper.
 __author__ = "Vincent Marois"
 
 import torch
-from torch import nn
-import torch.nn.functional as F
+from torch.nn import Module
 from miprometheus.models.mac.utils_mac import linear
 
 
-class ControlUnit(nn.Module):
+class ControlUnit(Module):
     """
     Implementation of the ``ControlUnit`` of the MAC network.
     """
@@ -73,7 +72,7 @@ class ControlUnit(nn.Module):
 
         # define the linear layers (one per step) used to make the questions
         # encoding
-        self.pos_aware_layers = nn.ModuleList()
+        self.pos_aware_layers = torch.nn.ModuleList()
         for _ in range(max_step):
             self.pos_aware_layers.append(linear(2 * dim, dim, bias=True))
 
@@ -122,7 +121,7 @@ class ControlUnit(nn.Module):
         # compute attention weights
         cai = self.attn(context_ctrl)  # [batch_size x maxQuestionLength x 1]
 
-        self.cvi = F.softmax(cai, dim=1)
+        self.cvi = torch.nn.functional.softmax(cai, dim=1)
 
         # compute next control state
         # [batch_size x dim]

@@ -59,7 +59,6 @@ The dependencies of MI-prometheus are:
    * tqdm
    * nltk
    * h5py
-   * six
    * pyqt5 (v. 5.10.1)
 
 

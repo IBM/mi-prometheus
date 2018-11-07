@@ -23,19 +23,19 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import torch
 import logging
-import datetime
 import numpy as np
-from torch import nn
+from torch.nn import Module
+from datetime import datetime
 from abc import abstractmethod
 
 from miprometheus.utils.app_state import AppState
 
 
-class Model(nn.Module):
+class Model(Module):
     """
     Class representing base class for all Models.
 
-    Inherits from ``torch.nn.Module`` as all subclasses will represent a trainable model.
+    Inherits from :py:class:`torch.nn.Module` as all subclasses will represent a trainable model.
 
     Hence, all subclasses should override the ``forward`` function.
 
@@ -48,7 +48,7 @@ class Model(nn.Module):
         Initializes a Model object.
 
         :param params: Parameters read from configuration file.
-        :type params: ''ParamInterface''
+        :type params: ``miprometheus.utils.ParamInterface``
 
         :param problem_default_values_: dict of parameters values coming from the problem class. One example of such \
         parameter value is the size of the vocabulary set in a translation problem.
@@ -348,7 +348,7 @@ class Model(nn.Module):
 
         # Checkpoint to be saved.
         chkpt = {'name': self.name,
-                 'timestamp': datetime.datetime.now(),
+                 'timestamp': datetime.now(),
                  'state_dict': self.state_dict(),
                  'stats': statistics
                 }
@@ -484,7 +484,6 @@ class Model(nn.Module):
 
 if __name__ == '__main__':
     """Unit test for the handshake."""
-
     from miprometheus.utils.param_interface import ParamInterface
     params = ParamInterface()
 

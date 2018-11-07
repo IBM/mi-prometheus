@@ -22,7 +22,6 @@ __author__ = "Younes Bouhadjar & Vincent Marois"
 
 import os
 import torch
-import torch.nn.functional as F
 from torchvision import datasets, transforms
 
 from miprometheus.utils.data_dict import DataDict
@@ -164,6 +163,7 @@ class MNIST(ImageToClassProblem):
         """
         # Get image and target.
         img, target = self.dataset.__getitem__(index)
+  
         # Digit label.
         label = self.labels[target.data]
 
@@ -219,17 +219,17 @@ if __name__ == "__main__":
     print('__getitem__ works.')
 
     # wrap DataLoader on top of this Dataset subclass
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
     dataloader = DataLoader(dataset=mnist, collate_fn=mnist.collate_fn,
                             batch_size=batch_size, shuffle=True, num_workers=0)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
     import time
     s = time.time()
-    #for i, batch in enumerate(dataloader):
-    #    print('Batch # {} - {}'.format(i, type(batch)))
-    #print('Number of workers: {}'.format(dataloader.num_workers))
-    #print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
+    for i, batch in enumerate(dataloader):
+        print('Batch # {} - {}'.format(i, type(batch)))
+    print('Number of workers: {}'.format(dataloader.num_workers))
+    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
 
     # Display single sample (0) from batch.
     batch = next(iter(dataloader))

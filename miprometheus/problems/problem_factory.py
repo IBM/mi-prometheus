@@ -40,7 +40,7 @@ class ProblemFactory(object):
         provided in the list of parameters.
 
         :param params: Parameters used to instantiate the Problem class.
-        :type params: ``utils.param_interface.ParamInterface``
+        :type params: :py:class:`miprometheus.utils.ParamInterface`
 
         ..note::
 

@@ -20,6 +20,7 @@ __author__ = "Tomasz Kornuta"
 
 import torch
 import collections
+from torch.nn import Module
 
 # Set logging level.
 import logging
@@ -45,7 +46,7 @@ class MASCellStateTuple(_MASCellStateTuple):
     __slots__ = ()
 
 
-class MASCell(torch.nn.Module):
+class MASCell(Module):
     """
     Class representing a single Memory-Augmented Decoder cell.
     """

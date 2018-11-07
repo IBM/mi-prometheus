@@ -163,7 +163,6 @@ setup(
                       'tqdm',
                       'nltk',
                       'h5py',
-                      'six',
                       'pyqt5==5.10.1',  # to avoid PyQt5.sip being separated
                       # 'torch==0.4.0',  # can't install pytorch from pip, use conda
                       ],
@@ -234,3 +233,4 @@ setup(
         'Bug Reports': 'https://github.com/IBM/mi-prometheus/issues',
     },
 )
+
