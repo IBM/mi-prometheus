@@ -229,7 +229,7 @@ class GridAnalyzer(GridWorker):
         # Copy training status - from checkpoint.
         r['train_status'] = chkpt['status']
 
-        r['train_timestamp'] = os.path.basename(os.path.normpath(experiment_path))
+        r['train_start_timestamp'] = os.path.basename(os.path.normpath(experiment_path))
         #r['train_seed_torch'] = params['training']['seed_torch']
         #r['train_seed_numpy'] = params['training']['seed_numpy']
 
