@@ -124,11 +124,11 @@ class SequentialPixelMNIST(VideoToClassProblem):
         label = self.labels[target.data]
 
         # create mask
-        mask = torch.zeros(self.num_rows * self.num_columns).type(self.app_state.IntTensor)
-        mask[-1] = 1
+        mask = torch.zeros((self.num_rows * self.num_columns,1)).type(self.app_state.IntTensor)
+        mask[-1, 0] = 1
 
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
-        data_dict['images'] = img
+        data_dict['images'] = img.view(28*28,1,1,1)
         data_dict['mask'] = mask
         data_dict['targets'] = target*torch.ones((28*28,1),dtype=torch.long)
         data_dict['targets_label'] = label
@@ -172,6 +172,21 @@ if __name__ == "__main__":
     # get a sample
     sample = problem[0]
     print(repr(sample))
+
+    # test whether data structures match expected definitions
+    # images should be (batch size x sequence x channel x height x width)
+    # as this is a sample, we should have (sequence x channel x height x width) == (28*28, 1, 1, 1)
+    assert sample['images'].shape == torch.ones((28*28, 1, 1, 1)).shape, "Unit test failed! Expected images shape {} but got {}".format(torch.ones((28*28, 1, 1, 1)).shape, sample['images'].shape)
+
+    # mask should be (sequence x class) == (28*28, 1)
+    assert sample['mask'].shape == torch.ones((28*28,1)).shape, "Unit test failed! Expected mask shape {} but got {}".format(torch.ones((28*28,1)).shape, sample['mask'].shape)
+
+    # targets should be (sequence x class) == (28*28, 1)
+    assert sample['targets'].shape == torch.ones((28*28,1)).shape, "Unit test failed! Expected targets shape {} but got {}".format(torch.ones((28*28,1)).shape, sample['targets'].shape)
+
+    # targets_label should be (class) == (1)
+    assert type(sample['targets_label']) == type(' ') , "Unit test failed! Expected target_labels to be str but got {}".format(type(sample['targets_label']))
+
     print('__getitem__ works.')
 
     # wrap DataLoader on top of this Dataset subclass

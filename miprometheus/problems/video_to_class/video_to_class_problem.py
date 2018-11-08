@@ -55,9 +55,9 @@ class VideoToClassProblem(Problem):
         self.loss_function = nn.CrossEntropyLoss()
 
         # set default data_definitions dict
-	# images = batch size x sequence length x channels x X x Y
-	# mask = batch size x sequence length x channels x X x Y
-	# targets = batch size x class
+	# images = batch size x sequence length x channels x height x width
+	# mask = batch size x sequence length x class
+	# targets = batch size x sequence length x class
 	# targets_label = batch size x class
         self.data_definitions = {'images': {'size': [-1,-1, 3, -1, -1], 'type': [torch.Tensor]},
                                  'mask': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
