@@ -83,8 +83,8 @@ class SequentialPixelMNIST(VideoToClassProblem):
                                }
 
         self.data_definitions = {'images': {'size': [-1, 28*28, 1, 1, 1], 'type': [torch.Tensor]},
-                                 'mask': {'size': [-1, 28*28, 1, 1, 1], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1], 'type': [torch.Tensor]},
+                                 'mask': {'size': [-1, 28*28], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 28*28], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
 
@@ -130,7 +130,7 @@ class SequentialPixelMNIST(VideoToClassProblem):
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
         data_dict['images'] = img
         data_dict['mask'] = mask
-        data_dict['targets'] = target
+        data_dict['targets'] = target*torch.ones(28*28,dtype=torch.long)
         data_dict['targets_label'] = label
 
         return data_dict

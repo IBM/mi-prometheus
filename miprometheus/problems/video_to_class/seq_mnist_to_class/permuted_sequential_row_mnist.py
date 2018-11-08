@@ -87,7 +87,7 @@ class PermutedSequentialRowMnist(VideoToClassProblem):
                                'height': 28,
                                }
 
-        self.data_definitions = {'images': {'size': [-1, -1, 1, 28, 28], 'type': [torch.Tensor]},
+        self.data_definitions = {'images': {'size': [-1, 28, 1, 1, 28], 'type': [torch.Tensor]},
                                  'mask': {'size': [-1, 1], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}

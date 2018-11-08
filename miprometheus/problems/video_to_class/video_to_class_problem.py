@@ -60,8 +60,8 @@ class VideoToClassProblem(Problem):
 	# targets = batch size x class
 	# targets_label = batch size x class
         self.data_definitions = {'images': {'size': [-1,-1, 3, -1, -1], 'type': [torch.Tensor]},
-                                 'mask': {'size': [-1, -1, -1 -1, -1], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'mask': {'size': [-1, -1, 1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, -1, 1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
 
@@ -166,11 +166,12 @@ class VideoToClassProblem(Problem):
 
         # Get sample.
         images = images[sample_number].cpu().detach().numpy()
-        target = targets[sample_number].cpu().detach().numpy()
+        targets = targets[sample_number].cpu().detach().numpy()
         label = labels[sample_number]
 
         # Get image in sequence.
         image = images[sequence_number]
+        target = targets[sequence_number]
 
         # Reshape image.
         if image.shape[0] == 1:
@@ -184,7 +185,7 @@ class VideoToClassProblem(Problem):
         # show data.
         plt.xlabel('num_columns')
         plt.ylabel('num_rows')
-        plt.title('Target class: {} ({})'.format(label, target))
+        plt.title('Target class: {} ({}), {}th in Sequence'.format(label, target, sequence_number))
         plt.imshow(image, interpolation='nearest', aspect='auto', cmap='gray_r')
 
         # Plot!
