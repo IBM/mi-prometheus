@@ -19,7 +19,7 @@ training:
     # settings parameters
     terminal_conditions:
         loss_stop: 1.0e-5
-        episode_limit: 20000
+        episode_limit: 1000
         epoch_limit: 1
 
 # Problem parameters:
