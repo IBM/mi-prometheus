@@ -450,10 +450,6 @@ class Trainer(Worker):
         # Export  collected statistics.
         self.export_statistics(self.validation_stat_col, '[Partial Validation]')
 
-        # Aggregate statistics, but do not display them in log.
-        self.aggregate_and_export_statistics(self.model, self.validation_problem, 
-                self.validation_stat_col, self.validation_stat_agg, episode, '[Partial Validation]', False)
-
         # Visualization of validation.
         if self.app_state.visualize:
             # Allow for preprocessing

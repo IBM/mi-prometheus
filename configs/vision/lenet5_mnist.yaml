@@ -17,7 +17,8 @@ training:
   # settings parameters
   #terminal_condition:
   #  loss_stop: 1.0e-5
-  #  max_episodes: 20000
+  #  episode_limit: 10000
+  #  epoch_limit: 10
 
 # Validation parameters:
 validation:

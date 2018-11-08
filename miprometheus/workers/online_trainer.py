@@ -160,6 +160,7 @@ class OnlineTrainer(Trainer):
             # Reset the counters.
             episode = 0
             epoch = 0
+            self.logger.info('Starting next epoch: {}'.format(epoch))
 
             # Inform the training problem class that epoch has started.
             self.training_problem.initialize_epoch(epoch)
@@ -254,6 +255,10 @@ class OnlineTrainer(Trainer):
                     # Perform validation.
                     validation_loss = self.validate_on_batch(self.validation_batch, episode, epoch)
 
+                    # Aggregate statistics, but do not display them in log.
+                    self.aggregate_and_export_statistics(self.model, self.validation_problem, 
+                            self.validation_stat_col, self.validation_stat_agg, episode, '[Partial Validation]', False)
+
                     # Save the model using the latest validation statistics.
                     self.model.save(self.model_dir, training_status, self.validation_stat_agg)
 
@@ -320,6 +325,10 @@ class OnlineTrainer(Trainer):
 
                 # Perform validation.
                 self.validate_on_batch(self.validation_batch, episode, epoch)
+
+                # Aggregate statistics, but do not display them in log.
+                self.aggregate_and_export_statistics(self.model, self.validation_problem, 
+                        self.validation_stat_col, self.validation_stat_agg, episode, '[Partial Validation]', False)
 
                 # Save the model using the latest validation statistics.
                 self.model.save(self.model_dir, training_status, self.validation_stat_agg)
