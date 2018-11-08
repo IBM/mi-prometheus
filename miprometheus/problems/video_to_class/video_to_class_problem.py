@@ -42,8 +42,8 @@ class VideoToClassProblem(Problem):
             - sets ``self.data_definitions`` to:
 
                 >>> self.data_definitions = {'images': {'size': [-1, -1, 3, -1, -1], 'type': [torch.Tensor]},
-                >>>                          'mask': {'size': [-1, -1, -1, -1, -1], 'type': [torch.Tensor]},
-                >>>                          'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                >>>                          'mask': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+                >>>                          'targets': {'size': [-1, -1, 1], 'type': [torch.Tensor]},
                 >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
                 >>>                         }
 
@@ -60,7 +60,7 @@ class VideoToClassProblem(Problem):
 	# targets = batch size x class
 	# targets_label = batch size x class
         self.data_definitions = {'images': {'size': [-1,-1, 3, -1, -1], 'type': [torch.Tensor]},
-                                 'mask': {'size': [-1, -1, 1], 'type': [torch.Tensor]},
+                                 'mask': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1, -1, 1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }

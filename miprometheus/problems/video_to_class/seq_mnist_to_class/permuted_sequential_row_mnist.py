@@ -60,9 +60,9 @@ class PermutedSequentialRowMnist(VideoToClassProblem):
 
                 - ``self.data_definitions`` :
 
-                    >>> self.data_definitions = {'images': {'size': [-1, -1, 3, -1, -1], 'type': [torch.Tensor]},
-                    >>>                          'mask': {'size': [-1, -1, -1, -1, -1], 'type': [torch.Tensor]},
-                    >>>                          'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                    >>> self.data_definitions = {'images': {'size': [-1, 28, 1, 1, 28], 'type': [torch.Tensor]},
+                    >>>                          'mask': {'size': [-1, 28, 1], 'type': [torch.Tensor]},
+                    >>>                          'targets': {'size': [-1, 28, 1], 'type': [torch.Tensor]},
                     >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
                     >>>                         }
 
@@ -88,8 +88,8 @@ class PermutedSequentialRowMnist(VideoToClassProblem):
                                }
 
         self.data_definitions = {'images': {'size': [-1, 28, 1, 1, 28], 'type': [torch.Tensor]},
-                                 'mask': {'size': [-1, 1], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]},
+                                 'mask': {'size': [-1, 28, 1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 28, 1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
 
@@ -138,7 +138,7 @@ class PermutedSequentialRowMnist(VideoToClassProblem):
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
         data_dict['images'] = img
         data_dict['mask'] = mask
-        data_dict['targets'] = target*torch.ones(28,dtype=torch.long)
+        data_dict['targets'] = target*torch.ones((28,1),dtype=torch.long)
         data_dict['targets_label'] = label
 
         return data_dict
