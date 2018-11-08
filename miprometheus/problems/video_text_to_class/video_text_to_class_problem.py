@@ -68,6 +68,46 @@ class VideoTextToClassProblem(Problem):
 		# Default problem name.
 		self.name = 'VideoTextToClassProblem'
 
+	def show_sample(self, data_dict, sample_number=0):
+		"""
+		Shows a sample from the batch.
+
+		:param data_dict: ``DataDict`` containing inputs and targets.
+		:type data_dict: DataDict
+
+		:param sample_number: Number of sample in batch (default: 0)
+		:type sample_number: int
+
+		"""
+		import matplotlib.pyplot as plt
+
+		images = data_dict['images']
+		target = data_dict['targets']
+		label = data_dict['targets_label']
+
+		# Get sample.
+		image = images[sample_number].cpu().detach().numpy()
+		target = targets[sample_number].cpu().detach().numpy()
+		label = labels[sample_number]
+
+		# Reshape image.
+		if image.shape[0] == 1:
+		    # This is a single channel image - get rid of this dimension
+		    image = np.squeeze(image, axis=0)
+		else:
+		    # More channels - move channels to axis2, according to matplotilb documentation.
+		    # (X : array_like, shape (n, m) or (n, m, 3) or (n, m, 4))
+		    image = image.transpose(1, 2, 0)
+
+		# show data.
+		plt.xlabel('num_columns')
+		plt.ylabel('num_rows')
+		plt.title('Target class: {} ({})'.format(label, target))
+		plt.imshow(image, interpolation='nearest', aspect='auto', cmap='gray_r')
+
+		# Plot!
+		plt.show()
+
 if __name__ == '__main__':
 
 	from miprometheus.utils.param_interface import ParamInterface
