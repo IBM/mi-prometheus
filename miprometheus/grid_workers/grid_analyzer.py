@@ -30,6 +30,8 @@ import csv
 import yaml
 import logging
 
+import torch
+
 import numpy as np
 from datetime import datetime
 from functools import partial
@@ -145,20 +147,21 @@ class GridAnalyzer(GridWorker):
             for name in dirs:
                 self.experiments_list.append(os.path.join(root, name))
 
-        # Keep only the folders that contain validation.csv and training.csv
+        # Keep only the folders that contain training_configuration.yaml, training_statistics.csv and
+        # training.csv and model (which contains aggregated validation statistics).
         self.experiments_list = [elem for elem in self.experiments_list if 
-            self.check_if_file_exists(elem, 'validation_statistics.csv') and 
-            self.check_if_file_exists(elem, 'training_statistics.csv')]
+            self.check_if_file_exists(elem, 'training_configuration.yaml') and
+            self.check_if_file_exists(elem, 'training_statistics.csv') and
+            self.check_if_file_exists(elem, 'models/model_best.pt')]
+
+        # Check if the training statistics file contain any records.
+        self.experiments_list = [elem for elem in self.experiments_list if 
+             self.check_file_content(elem, 'training_statistics.csv')]
 
         # Check if there are some valid folders.
         if len(self.experiments_list) == 0:
             self.logger.error("There are no valid experiments in {} directory!".format(self.experiment_rootdir))
             exit(-2)
-
-        # Check if the files contain any collected training/validation statistics.
-        #self.experiments_list = [elem for elem in self.experiments_list if 
-        #    self.check_file_content(elem, 'training_statistics.csv') and
-        #    self.check_file_content(elem, 'validation_statistics.csv')]
 
         # List folders with "valid" experiments.
         exp_str = "Found the following valid experiments in {} directory:\n".format(self.experiment_rootdir)
@@ -177,6 +180,7 @@ class GridAnalyzer(GridWorker):
             # Save number of tests.
             number_of_test.append(len(experiments_tests))
 
+        # Not sure why we need that :]
         # Assert that the number is the same for all experiments.
         if len(set(number_of_test)) != 1:
             self.logger.error('Not all experiments have the same number of tests statistics collected!')
@@ -206,17 +210,48 @@ class GridAnalyzer(GridWorker):
         # Create results dictionary.
         r = dict()  
 
-        r['timestamp'] = os.path.basename(os.path.normpath(experiment_path))
 
         # Load yaml file. To get model name, problem name and random seeds
         with open(os.path.join(experiment_path, 'training_configuration.yaml'), 'r') as yaml_file:
             params = yaml.load(yaml_file)
 
-        r['model'] = params['model']['name']
+        # Get problem and model names - from config.
         r['problem'] = params['testing']['problem']['name']
+        r['model'] = params['model']['name']
 
-        r['seed_torch'] = params['training']['seed_torch']
-        r['seed_numpy'] = params['training']['seed_numpy']
+        # Load checkpoint from model file.
+        chkpt = torch.load(os.path.join(experiment_path, 'models/model_best.pt'),
+            map_location=lambda storage, loc: storage)
+
+        # Get episode - from checkpoint.
+        episode = int(chkpt['stats']['episode'])
+
+        # Copy training status - from checkpoint.
+        r['train_status'] = chkpt['status']
+
+        r['train_timestamp'] = os.path.basename(os.path.normpath(experiment_path))
+        #r['train_seed_torch'] = params['training']['seed_torch']
+        #r['train_seed_numpy'] = params['training']['seed_numpy']
+
+        with open(os.path.join(experiment_path, 'training_statistics.csv'), mode='r') as f:
+            train_reader = csv.DictReader(f)
+            # Get row with episode.
+            for row in train_reader: 
+                # Iterate over column name and value.
+                if int(row['episode']) == episode:
+                    # Copy training statistics.
+                    for key, value in row.items():
+                        r['train_{}'.format(key)] = str(value)          
+                    
+
+
+        r['valid_timestamp'] = '{0:%Y%m%d_%H%M%S}'.format(chkpt['timestamp']) # str(chkpt['timestamp'])
+        # Copy other values and add 'valid_' prefices from 
+        for key, value in chkpt['stats'].items():
+            r['valid_{}'.format(key)] = str(value)          
+
+        # Ok, return what we got right now.
+        return r
 
         # Get all tests for a given training experiment.
         experiments_tests = self.get_experiment_tests(experiment_path)
@@ -224,13 +259,9 @@ class GridAnalyzer(GridWorker):
         with open(os.path.join(experiment_path, 'validation_statistics.csv'), mode='r') as f:
             valid_csv = csv.reader(f, delimiter=',')
 
-        with open(os.path.join(experiment_path, 'training_statistics.csv'), mode='r') as f:
-            train_csv = csv.reader(f, delimiter=',')
 
-            #for row in train_csv:
-                #print(', '.join(row))
-        # Ok, return what we got right now.
-        return r
+        #for row in train_csv:
+            #print(', '.join(row))
         # get best train point
         train_episode = train_csv.episode.values.astype(int)
         train_loss = train_csv.loss.values.astype(float)
