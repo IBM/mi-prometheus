@@ -160,7 +160,7 @@ class VideoToClassProblem(Problem):
         # Unpack dict.
         #images, masks, targets, labels = data_dict.values()
         images = data_dict['images']
-        mask = data_dict['mask']
+        # mask = data_dict['mask']
         targets = data_dict['targets']
         labels = data_dict['targets_label']
 
