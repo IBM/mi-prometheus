@@ -167,10 +167,10 @@ class OfflineTrainer(Trainer):
             Main training and validation loop.
             '''
             # Reset the counter.
-            episode = 0
+            episode = -1
 
             # Set default termination cause.
-            termination_cause = "Epoch limit reached"
+            training_status = "Epoch limit reached"
             # Iterate over epochs.
             for epoch in range(self.epoch_limit):
                 self.logger.info('Starting next epoch: {}'.format(epoch))
@@ -179,6 +179,8 @@ class OfflineTrainer(Trainer):
 
                 # Exhaust training set.
                 for training_dict in self.training_dataloader:
+                    # "Move on" to the next episode.
+                    episode += 1
 
                     # reset all gradients
                     self.optimizer.zero_grad()
@@ -265,18 +267,19 @@ class OfflineTrainer(Trainer):
                         # Perform validation.
                         self.validate_on_batch(self.validation_batch, episode, epoch)
 
+                        # Aggregate statistics, but do not display them in log.
+                        self.aggregate_and_export_statistics(self.model, self.validation_problem, 
+                                self.validation_stat_col, self.validation_stat_agg, episode, '[Partial Validation]', False)
+
                         # Save the model using the latest validation statistics.
-                        self.model.save(self.model_dir, self.validation_stat_col)
+                        self.model.save(self.model_dir, training_status, self.validation_stat_agg)
 
                     # III. The episodes number limit has been reached.
                     if episode+1 >= self.episode_limit:
-                        termination_cause = "Episode Limit reached"
-                        break
+                        training_status = "Episode Limit reached"
+                        break # the inner loop.
 
-                    # Move on to next episode.
-                    episode += 1
-
-                # Epoch just ended!
+                # Epoch just ended! (or episode limit)
                 # Inform the problem class that the epoch has ended.
                 self.training_problem.finalize_epoch(epoch)
 
@@ -287,6 +290,11 @@ class OfflineTrainer(Trainer):
 
                 # Apply curriculum learning - change some of the Problem parameters
                 self.curric_done = self.training_problem.curriculum_learning_update_params(episode)
+
+                # III. The episodes number limit has been reached. (2nd check)
+                if episode+1 >= self.episode_limit:
+                    # We can simply break here, as there will be final validation made.
+                    break # the outer loop.
 
                 # Perform full validation!
 
@@ -300,7 +308,7 @@ class OfflineTrainer(Trainer):
                 self.validate_on_set(episode, epoch)
 
                 # Save the model using the average validation loss.
-                self.model.save(self.model_dir, self.validation_stat_agg)
+                self.model.save(self.model_dir, training_status, self.validation_stat_agg)
 
                 # Terminal conditions.
                 # I - the loss is < threshold (only when curriculum learning is finished if set.)
@@ -309,12 +317,12 @@ class OfflineTrainer(Trainer):
 
                     # Check the Full Validation loss.
                     if self.validation_stat_agg["loss"] < self.loss_stop:
-                        termination_cause = "Full Validation Loss went below Loss Stop threshold (model converged)"
+                        training_status = "Model converged (Full Validation Loss went below Loss Stop threshold)"
                         break
 
                 # II. Early stopping is set and loss hasn't improved by delta in n epochs.
                 # early_stopping(index=epoch, avg_valid_loss). (TODO: coming in next release)
-                # termination_cause = 'Early Stopping.'
+                # training_status = 'Early Stopping.'
 
                 # IV. The epoch number limit has been reached, condition is already made in for loop.
 
@@ -322,7 +330,7 @@ class OfflineTrainer(Trainer):
             End of main training and validation loop. Perform final full validation.
             '''
             self.logger.info('\n' + '='*80)
-            self.logger.info('Training finished because {}'.format(termination_cause))
+            self.logger.info('Training finished because {}'.format(training_status))
             # Check visualization flag - turn on visualization for last validation if needed.
             if self.flags.visualize == 3:
                 self.app_state.visualize = True
@@ -333,7 +341,7 @@ class OfflineTrainer(Trainer):
             self.validate_on_set(episode, epoch)
 
             # Save the model using the average validation loss.
-            self.model.save(self.model_dir, self.validation_stat_agg)
+            self.model.save(self.model_dir, training_status, self.validation_stat_agg)
 
             self.logger.info('Experiment finished!')
 

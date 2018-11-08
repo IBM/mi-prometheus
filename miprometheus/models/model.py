@@ -317,7 +317,7 @@ class Model(Module):
 
         """
 
-    def save(self, model_dir, stats):
+    def save(self, model_dir, training_status, stats):
         """
         Generic method saving the model parameters to file. It can be \
         overloaded if one needs more control.
@@ -325,30 +325,27 @@ class Model(Module):
         :param model_dir: Directory where the model will be saved.
         :type model_dir: str
 
-        :param stats: Statistics value to save with the model.
-        :type stats: ``StatisticsCollector`` or ``StatisticsAggregator``
+        :param training_status: String representing the current status of training.
+        :type training_status: str
+
+        :param stats: Statistics that will be saved to checkpoint along with the model.
+        :type stats: ``StatisticsAggregator``
 
         :return: True if this is currently the best model (until the current episode, considering the loss).
 
         """
-        # Get the episode index and the statistics:
-        if stats.__class__.__name__ == 'StatisticsCollector':
-            # Get data from collector.
-            episode = stats['episode'][-1]
-            loss = stats['loss'][-1]
-            # "Copy" last values only.
-            statistics = {k: v[-1] for k, v in stats.items()}
+        assert (stats.__class__.__name__ == 'StatisticsAggregator')
+        # Get the episode index and the statistics from aggregator.
+        episode = stats['episode']
+        loss = stats['loss']
+        # Simply copy values.
+        statistics = {k: v for k, v in stats.items()}
 
-        else:
-            # Get data from aggregator.
-            episode = stats['episode']
-            loss = stats['loss']
-            # Simply copy values.
-            statistics = {k: v for k, v in stats.items()}
 
         # Checkpoint to be saved.
         chkpt = {'name': self.name,
                  'timestamp': datetime.now(),
+                 'status': training_status,
                  'state_dict': self.state_dict(),
                  'stats': statistics
                 }
@@ -389,11 +386,13 @@ class Model(Module):
 
         # Print statistics.
         self.logger.info(
-            "Imported {} parameters from checkpoint from {} (episode {}, loss {})".format(
+            "Imported {} parameters from checkpoint from {} (episode: {}, loss: {}, status: {})".format(
                 chkpt['name'],
                 chkpt['timestamp'],
                 chkpt['stats']['episode'],
-                chkpt['stats']['loss']))
+                chkpt['stats']['loss'],
+                chkpt['status']
+                ))
 
     def summarize(self):
         """

@@ -420,7 +420,7 @@ class Trainer(Worker):
         if self.validation_set_writer is not None:
             self.validation_set_writer.close()
 
-    def validate_on_batch(self, valid_batch, episode, epoch=None):
+    def validate_on_batch(self, valid_batch, episode, epoch):
         """
         Performs a validation of the model using the provided batch.
 
@@ -447,7 +447,7 @@ class Trainer(Worker):
                                                                      valid_batch, self.validation_stat_col,
                                                                      episode, epoch)
 
-        # Export statistics.
+        # Export  collected statistics.
         self.export_statistics(self.validation_stat_col, '[Partial Validation]')
 
         # Visualization of validation.
@@ -476,7 +476,6 @@ class Trainer(Worker):
         :type epoch: int, optional
 
         :return: Average loss over the validation set.
-
 
         """
         # Get number of samples - depending whether using sampler or not.
@@ -525,4 +524,4 @@ class Trainer(Worker):
 
 if __name__ == '__main__':
     print("The trainer.py file contains only an abstract base class. Please try to use the \
-online_trainer (mip-onlinetrainer) or  offline_trainer (mip-offlinetrainer) instead.")
+online_trainer (mip-online-trainer) or  offline_trainer (mip-offline-trainer) instead.")

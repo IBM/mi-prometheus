@@ -48,11 +48,11 @@ class LeNet5(Model):
         self.name = 'LeNet5'
 
         # Create the LeNet-5 layers.
-        self.conv1 = torch.nn.Conv2D(1, 6, kernel_size=(5, 5))
+        self.conv1 = torch.nn.Conv2d(1, 6, kernel_size=(5, 5))
         self.maxpool1 = torch.nn.MaxPool2d(kernel_size=(2, 2), stride=2)
-        self.conv2 = torch.nn.Conv2D(6, 16, kernel_size=(5, 5))
+        self.conv2 = torch.nn.Conv2d(6, 16, kernel_size=(5, 5))
         self.maxpool2 = torch.nn.MaxPool2d(kernel_size=(2, 2), stride=2)
-        self.conv3 = torch.nn.Conv2D(16, 120, kernel_size=(5, 5))
+        self.conv3 = torch.nn.Conv2d(16, 120, kernel_size=(5, 5))
         self.linear1 = torch.nn.Linear(120, 84)
         self.linear2 = torch.nn.Linear(84, 10)
 
