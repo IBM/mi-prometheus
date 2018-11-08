@@ -193,7 +193,7 @@ if __name__ == "__main__":
     # Get a single batch from data loader
     batch = next(iter(dataloader))    
    
-    # reshape image for display. In sequential mnist each sequence has one pixel value. We will go from a long sequence of single pixels of a sequence of 1 with a full image.
+    # reshape image for display. In sequential mnist each sequence has 28*28 entries of one pixel value. We will go from a 28*28-long sequence of single pixels of a 1-long sequence of a full image (28x28).
     batch['images'] = batch['images'].view(batch_size,1,1,problem.num_columns,problem.num_rows)
 
     problem.show_sample(batch, 0)

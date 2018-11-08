@@ -138,7 +138,7 @@ class PermutedSequentialRowMnist(VideoToClassProblem):
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
         data_dict['images'] = img
         data_dict['mask'] = mask
-        data_dict['targets'] = target
+        data_dict['targets'] = target*torch.ones(28,dtype=torch.long)
         data_dict['targets_label'] = label
 
         return data_dict
@@ -200,8 +200,12 @@ if __name__ == "__main__":
     print('Number of workers: {}'.format(dataloader.num_workers))
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))
 
-    # Display single sample (0) from batch.
+    # Get a single batch from data loader.
     batch = next(iter(dataloader))
+
+    # Reshape image for display. In permuted sequential row mnist, each sequence has 28 entries of a row of pixels (1,28 image). We will go from a 28-long sequence of (1,28) images to a 1-long sequence of (28,28) images for testing.
+    batch['images'] = batch['images'].view(batch_size,1,1,problem.num_columns,problem.num_rows)
+
     problem.show_sample(batch, 0)
 
     print('Unit test completed')
