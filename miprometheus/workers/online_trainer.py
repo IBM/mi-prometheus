@@ -255,12 +255,8 @@ class OnlineTrainer(Trainer):
                     # Perform validation.
                     validation_loss = self.validate_on_batch(self.validation_batch, episode, epoch)
 
-                    # Aggregate statistics, but do not display them in log.
-                    self.aggregate_and_export_statistics(self.model, self.validation_problem, 
-                            self.validation_stat_col, self.validation_stat_agg, episode, '[Partial Validation]', False)
-
                     # Save the model using the latest validation statistics.
-                    self.model.save(self.model_dir, training_status, self.validation_stat_agg)
+                    self.model.save(self.model_dir, training_status, self.training_stat_col, self.validation_stat_col)
 
                     # Terminal conditions.
                     # I. the loss is < threshold (only when curriculum learning is finished if set.)
@@ -309,6 +305,8 @@ class OnlineTrainer(Trainer):
                     self.logger.info('Starting next epoch: {}'.format(epoch))
                     # Inform the training problem class that epoch has started.
                     self.training_problem.initialize_epoch(epoch)
+                    # Empty the statistics collector.
+                    self.training_stat_col.empty()
 
                 # Move on to next episode.
                 episode += 1
@@ -326,17 +324,13 @@ class OnlineTrainer(Trainer):
                 # Perform validation.
                 self.validate_on_batch(self.validation_batch, episode, epoch)
 
-                # Aggregate statistics, but do not display them in log.
-                self.aggregate_and_export_statistics(self.model, self.validation_problem, 
-                        self.validation_stat_col, self.validation_stat_agg, episode, '[Partial Validation]', False)
-
                 # Save the model using the latest validation statistics.
-                self.model.save(self.model_dir, training_status, self.validation_stat_agg)
+                self.model.save(self.model_dir, training_status, self.training_stat_col, self.validation_stat_col)
 
             self.logger.info('\n' + '='*80)
             self.logger.info('Training finished because {}'.format(training_status))
             # Check visualization flag - turn on visualization for last validation if needed.
-            if self.flags.visualize == 3:
+            if 2 <= self.flags.visualize <= 3:
                 self.app_state.visualize = True
             else:
                 self.app_state.visualize = False
@@ -344,8 +338,7 @@ class OnlineTrainer(Trainer):
             # Validate over the entire validation set.
             self.validate_on_set(episode, epoch)
 
-            # Save the model using the average validation loss.
-            self.model.save(self.model_dir, training_status, self.validation_stat_agg)
+            # Do not save the model, as we tried it already on "last" validation batch.
 
             self.logger.info('Experiment finished!')
 
