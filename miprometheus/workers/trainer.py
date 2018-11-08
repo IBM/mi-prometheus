@@ -440,6 +440,8 @@ class Trainer(Worker):
         """
         # Turn on evaluation mode.
         self.model.eval()
+        # Empty the statistics collector.
+        self.validation_stat_col.empty()
 
         # Compute the validation loss using the provided data batch.
         with torch.no_grad():

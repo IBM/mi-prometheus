@@ -317,7 +317,7 @@ class Model(Module):
 
         """
 
-    def save(self, model_dir, training_status, stats):
+    def save(self, model_dir, training_status, training_stats, validation_stats):
         """
         Generic method saving the model parameters to file. It can be \
         overloaded if one needs more control.
@@ -328,26 +328,47 @@ class Model(Module):
         :param training_status: String representing the current status of training.
         :type training_status: str
 
-        :param stats: Statistics that will be saved to checkpoint along with the model.
-        :type stats: ``StatisticsAggregator``
+        :param training_stats: Training statistics that will be saved to checkpoint along with the model.
+        :type training_stats: :py:class:miprometheus.utils.StatisticsAggregator or :py:class:miprometheus.utils.StatisticsAggregator
+
+        :param validation_stats: Validation statistics that will be saved to checkpoint along with the model.
+        :type validation_stats: :py:class:miprometheus.utils.StatisticsAggregator or :py:class:miprometheus.utils.StatisticsAggregator
 
         :return: True if this is currently the best model (until the current episode, considering the loss).
 
         """
-        assert (stats.__class__.__name__ == 'StatisticsAggregator')
-        # Get the episode index and the statistics from aggregator.
-        episode = stats['episode']
-        loss = stats['loss']
-        # Simply copy values.
-        statistics = {k: v for k, v in stats.items()}
+        # Process training statistics.
+        if training_stats.__class__.__name__ == 'StatisticsCollector':
+            # "Copy" last values only.
+            train_stats = {k: v[-1] for k, v in training_stats.items()}
+        else:
+            # Simply copy values.
+            train_stats = {k: v for k, v in training_stats.items()}
 
+        # Proces validation  statistics, get the episode and loss.
+        if validation_stats.__class__.__name__ == 'StatisticsCollector':
+            # Get data from collector.
+            episode = validation_stats['episode'][-1]
+            loss = validation_stats['loss'][-1]
+            # "Copy" last values only.
+            valid_stats = {k: v[-1] for k, v in validation_stats.items()}
+
+        else:
+            # Get data from aggregator.
+            episode = validation_stats['episode']
+            loss = validation_stats['loss']
+            # Simply copy values.
+            valid_stats = {k: v for k, v in validation_stats.items()}
 
         # Checkpoint to be saved.
         chkpt = {'name': self.name,
-                 'timestamp': datetime.now(),
-                 'status': training_status,
                  'state_dict': self.state_dict(),
-                 'stats': statistics
+                 'timestamp': datetime.now(),
+                 'episode': episode,
+                 'loss': loss,
+                 'status': training_status,
+                 'training_stats': train_stats,
+                 'validation_stats': valid_stats
                 }
 
         # Save the intermediate checkpoint.
@@ -389,8 +410,8 @@ class Model(Module):
             "Imported {} parameters from checkpoint from {} (episode: {}, loss: {}, status: {})".format(
                 chkpt['name'],
                 chkpt['timestamp'],
-                chkpt['stats']['episode'],
-                chkpt['stats']['loss'],
+                chkpt['episode'],
+                chkpt['loss'],
                 chkpt['status']
                 ))
 

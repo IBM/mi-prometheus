@@ -111,23 +111,23 @@ class MAECell(Module):
         else:
             logger.error("Encoder checkpoint not found at {}".format(filename))
 
-    def save(self, model_dir, stat_col, is_best_model, save_intermediate):
+    def save(self, model_dir, stat_obj, is_best_model, save_intermediate):
         """
         Method saves the model and encoder to file.
 
         :param model_dir: Directory where the model will be saved.
-        :param stat_col: Statistics collector that contain current loss and episode number (and other statistics).
+        :param stat_obj: Statistics object (collector or aggregator) that contain current loss and episode number (and other statistics).
         :param is_best_model: Flag indicating whether it is the best model or not.
         :parma save_intermediate: Flag indicating whether intermediate models should be saved or not.
 
         """
-        episode = stat_col['episode']
+        episode = stat_obj['episode']
         # Checkpoint to be saved.
         chkpt = {
             'name': 'MAE controller and interface',
             'ctrl_dict': self.controller.state_dict(),
             'interface_dict': self.interface.state_dict(),
-            'stats': stat_col.statistics
+            'stats': stat_obj.statistics
         }
 
         # Save the intermediate checkpoint.

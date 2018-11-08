@@ -685,9 +685,6 @@ class Worker(object):
         # Export to logger, cvs and TB.
         self.export_statistics(stat_agg, tag, export_to_log)
 
-        # Empty the statistics collector.
-        stat_col.empty()
-
     def cycle(self, iterable):
         """
         Cycle an iterator to prevent its exhaustion.

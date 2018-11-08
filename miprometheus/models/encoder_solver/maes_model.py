@@ -100,24 +100,33 @@ class MAES(SequentialModel):
 
 
 
-    def save(self, model_dir, stat_col):
+    def save(self, model_dir, training_status, training_stats, validation_stats):
         """
-        Method saves the model and encoder to file.
+        Generic method saving the model parameters to file. It can be \
+        overloaded if one needs more control.
 
         :param model_dir: Directory where the model will be saved.
-        
-        :param stat_col: Statistics collector that contain current loss and episode number (and other statistics).
+        :type model_dir: str
 
-        :return: True if this is the best model that is found till now (considering loss).
+        :param training_status: String representing the current status of training.
+        :type training_status: str
+
+        :param training_stats: Training statistics that will be saved to checkpoint along with the model.
+        :type training_stats: :py:class:miprometheus.utils.StatisticsAggregator or :py:class:miprometheus.utils.StatisticsAggregator
+
+        :param validation_stats: Validation statistics that will be saved to checkpoint along with the model.
+        :type validation_stats: :py:class:miprometheus.utils.StatisticsAggregator or :py:class:miprometheus.utils.StatisticsAggregator
+
+        :return: True if this is currently the best model (until the current episode, considering the loss).
 
         """
         # Call the case method to save the whole model.
-        is_best_model = super(MAES, self).save(model_dir, stat_col)
+        is_best_model = super(MAES, self).save(model_dir, training_status, training_stats, validation_stats)
 
         # Additionally, if flag is set to True, save the encoder.
         if self.save_encoder:
-            self.encoder.save(model_dir, stat_col,
-                              is_best_model, self.save_intermediate)
+            self.encoder.save(model_dir, validation_stats,
+                is_best_model, self.save_intermediate)
 
         return is_best_model
 
