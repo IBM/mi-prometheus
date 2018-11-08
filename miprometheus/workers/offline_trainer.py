@@ -167,7 +167,7 @@ class OfflineTrainer(Trainer):
             Main training and validation loop.
             '''
             # Reset the counter.
-            episode = 0
+            episode = -1
 
             # Set default termination cause.
             training_status = "Epoch limit reached"
@@ -179,6 +179,8 @@ class OfflineTrainer(Trainer):
 
                 # Exhaust training set.
                 for training_dict in self.training_dataloader:
+                    # "Move on" to the next episode.
+                    episode += 1
 
                     # reset all gradients
                     self.optimizer.zero_grad()
@@ -276,9 +278,6 @@ class OfflineTrainer(Trainer):
                     if episode+1 >= self.episode_limit:
                         training_status = "Episode Limit reached"
                         break # the inner loop.
-
-                    # Move on to next episode.
-                    episode += 1
 
                 # Epoch just ended! (or episode limit)
                 # Inform the problem class that the epoch has ended.

@@ -477,7 +477,6 @@ class Trainer(Worker):
 
         :return: Average loss over the validation set.
 
-
         """
         # Get number of samples - depending whether using sampler or not.
         if self.params['validation']['dataloader']['drop_last']:
@@ -525,4 +524,4 @@ class Trainer(Worker):
 
 if __name__ == '__main__':
     print("The trainer.py file contains only an abstract base class. Please try to use the \
-online_trainer (mip-onlinetrainer) or  offline_trainer (mip-offlinetrainer) instead.")
+online_trainer (mip-online-trainer) or  offline_trainer (mip-offline-trainer) instead.")
