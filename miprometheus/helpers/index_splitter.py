@@ -18,7 +18,7 @@
 """
 index_splitter.py:
 
-    - Contains the definition of a new ``Helper`` class, called IndexSplitter.
+    - Contains the definition of a ``Helper`` class, called :py:class:`IndexSplitter`.
 
 """
 __author__ = "Tomasz Kornuta"
@@ -31,28 +31,33 @@ from miprometheus.problems.problem_factory import ProblemFactory
 
 class IndexSplitter(Worker):
     """
-    Defines the ``IndexSplitter`` class.
+    Defines the :py:class:`IndexSplitter` class.
 
-    The class is responsible for generation of files with indices splitting given dataset into two.
+    This class allows to split the list of indices indexing a dataset into 2, non-overlapping, sub-lists of \
+    variable lengths. These 2 lists are then saved to file (named `split_a.txt` & `split_b.txt`).
 
-    Those files can later be used in training/verification testing when using ``SubsetRandomSampler``.
+    This can be useful to split a training set into a training set & a validation set.
+
+
+    These files can later be used for training / validation or testing when using \
+    :py:class:`torch.utils.data.SubsetRandomSampler` (instantiated with the :py:class:`miprometheus.utils.SamplerFactory`).
 
     .. note::
 
         General usage:
 
-            -- user provides the output dir where files with indices will be created (`--o`)
+            -- The user provides the output dir where the 2 files containing indices will be stored (`--o`)
 
-            -- user provides the problem name (`--p`) OR length of the dataset (`--l`)
+            -- The user provides the problem name (`--p`) OR length of the dataset (`--l`)
         
-            -- user provides split `--s` (value from 1 to l-2, which are border cases when one or the other \
-            split will contain a single index)
+            -- The user provides the split `--s`, which represents how many samples will be contained in the first split \
+            (value from 1 to l-2, which are border cases when one or the other split will contain a single index).
         
-        Additionally, the user might turn random sampling on or off  by --r (DEFAULT: ``True``)
+        Additionally, the user might turn ``random_sampling`` on or off  by `--r` (Default: ``True``)
 
-            -- when random_sampling is on, both files will contain (exclusive) random lists of indices
+            -- when ``random_sampling`` is on, both files will contain (exclusive) random lists of indices
 
-            -- when off, both files will contain ranges, i.e. [0, s-1] and [s, l-1] respectively.
+            -- when off, both files will contain ranges, i.e. `[0, s-1]` and `[s, l-1]` respectively.
 
  
     """
@@ -60,11 +65,13 @@ class IndexSplitter(Worker):
         """
         Set parser arguments.
 
-        ..note::
-            As it does not really share any functionality with other basic workers, it does not call the base ``Worker`` constructor. 
+        .. note::
 
-       :param name: Name of the worker (DEFAULT: "IndexSplitter").
-       :type name: str
+            As it does not really share any functionality with other basic workers, it does not call the base \
+            :py:class:`miprometheus.workers.Worker` constructor.
+
+        :param name: Name of the worker (Default: "IndexSplitter").
+        :type name: str
 
         """
         # Call base constructor to set up app state, registry and add default params.
@@ -181,7 +188,7 @@ class IndexSplitter(Worker):
 
 def main():
     """
-    Entry point function for the ``IndexSplitter``.
+    Entry point function for the :py:class:`IndexSplitter`.
 
     """
     worker = IndexSplitter()

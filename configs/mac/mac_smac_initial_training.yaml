@@ -52,14 +52,14 @@ grid_tasks:
       training:
         sampler:
           name: 'SubsetRandomSampler'
-          indices: '/home/vmarois/CLEVR_CoGenT_v1.0/cogent_train_set_indices.txt'
+          indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_train_set_indices.txt'
       validation:
         problem:
           settings:
             set: 'trainA'
         sampler:
           name: 'SubsetRandomSampler'
-          indices: '/home/vmarois/CLEVR_CoGenT_v1.0/cogent_val_set_indices.txt'
+          indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_val_set_indices.txt'
 
 # Parameters that will be overwritten for all tasks.
 grid_overwrite:
