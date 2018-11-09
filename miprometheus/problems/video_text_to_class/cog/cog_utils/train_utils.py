@@ -26,8 +26,8 @@ import json
 import numpy as np
 import traceback
 
-from miprometheus.problems.video_text_to_class.cog import stim_generator as sg
-import miprometheus.problems.video_text_to_class.cog.constants as const
+from miprometheus.problems.video_text_to_class.cog.cog_utils import stim_generator as sg
+import miprometheus.problems.video_text_to_class.cog.cog_utils.constants as const
 
 _R_MEAN = 123.68
 _G_MEAN = 116.78

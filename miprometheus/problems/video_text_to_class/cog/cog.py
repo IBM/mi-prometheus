@@ -25,7 +25,7 @@ import numpy as np
 
 from miprometheus.utils.data_dict import DataDict
 from miprometheus.problems.video_text_to_class.video_text_to_class_problem import VideoTextToClassProblem
-from miprometheus.problems.video_text_to_class.cog import train_utils as tu
+from miprometheus.problems.video_text_to_class.cog.cog_utils import train_utils as tu
 
 class COGDataset(VideoTextToClassProblem):
 	"""

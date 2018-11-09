@@ -40,7 +40,7 @@ import string
 
 import cv2 as cv2
 
-from miprometheus.problems.video_text_to_class.cog import constants as const
+from miprometheus.problems.video_text_to_class.cog.cog_utils import constants as const
 
 
 class Attribute(object):
