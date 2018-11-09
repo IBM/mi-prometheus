@@ -93,21 +93,19 @@ class COGDataset(VideoTextToClassProblem):
 
 		# Load up .json files and set data definitions
 		folder_name_append = ' '
+		
 		if self.dataset_type == 'canonical':
-			folder_name_append = '_4_3_1'
-			self.data_definitions = {'images': {'size': [-1, 4, 3, 112, 112], 'type': [torch.Tensor]},
-			'questions': 	 {'size': [-1, 4, 1], 'type': [list, str]},
-			'targets' :	 {'size': [-1, 4, 1], 'type': [torch.Tensor]},
-			'targets_label':{'size': [-1, 1], 'type' : [list,str]}
-			}
-
+			folder_name_append = '_4_3_1'			
+			self.sequence_length = 4
 		elif self.dataset_type == 'hard':
-			folder_name_append = '_8_7_10'
-			self.data_definitions = {'images': {'size': [-1, 8, 3, 112, 112], 'type': [torch.Tensor]},
-			'questions': 	 {'size': [-1, 8, 1], 'type': [list, str]},
-			'targets' :	 {'size': [-1, 8, 1], 'type': [torch.Tensor]},
-			'targets_label':{'size': [-1, 1], 'type' : [list,str]}
-			}
+			folder_name_append = '_8_7_10'			
+			self.sequence_length = 8
+			
+		self.data_definitions = {'images': {'size': [-1, self.sequence_length, 3, 112, 112], 'type': [torch.Tensor]},
+					'questions': 	 {'size': [-1, 1], 'type': [list, str]},
+					'targets' :	 {'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
+					'targets_label':{'size': [-1, 1], 'type' : [list,str]}
+					}
 
 		self.data_folder_path = os.path.join(self.data_folder,'data'+folder_name_append,self.set+folder_name_append)
 
@@ -138,7 +136,7 @@ class COGDataset(VideoTextToClassProblem):
 		:return: ``DataDict({'images', 'questions', 'targets', 'targets_label'})``, with:
 		
 			-images:	Sequence of images,
-			-questions:	Sequence of questions,
+			-questions:	Question on the sequence (this is constant per sequence for COG),
 			-targets:	Sequence of targets,
 			-targets_label:	Targets' label
 
@@ -147,21 +145,69 @@ class COGDataset(VideoTextToClassProblem):
 		i = index % len(self.tasks)
 		j = int(index / len(self.tasks))
 
-		output = tu.json_to_feeds([self.dataset[self.tasks[i]][j]])
-		images = (torch.from_numpy(output[0]).permute(0,3,1,2)
+		# This returns:
+		# All variables are numpy array of float32
+			# in_imgs: (n_epoch*batch_size, img_size, img_size, 3)
+			# in_rule: (max_seq_length, batch_size) the rule language input, type int32
+			# seq_length: (batch_size,) the length of each task instruction
+			# out_pnt: (n_epoch*batch_size, n_out_pnt)
+			# out_pnt_xy: (n_epoch*batch_size, 2)
+			# out_word: (n_epoch*batch_size, n_out_word)
+			# mask_pnt: (n_epoch*batch_size)
+			# mask_word: (n_epoch*batch_size)		
+		output = tu.json_to_feeds([self.dataset[self.tasks[i]][j]])[0]
+		images = ((torch.from_numpy(output)).permute(1,0,4,2,3)).squeeze()
+				
 
-		return(output[0])						
+		data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+		data_dict['images']	= images
+		data_dict['questions']	= self.dataset[self.tasks[i]][j]['question']
+		data_dict['targets']	= self.dataset[self.tasks[i]][j]['answers']
+		data_dict['targets_label'] = self.dataset[self.tasks[i]][j]['answers']
+		
+
+		return(data_dict)
+
+	def collate_fn(self, batch):
+		"""
+		Combines a list of ``DataDict`` (retrieved with ``__getitem__``) into a batch.
+
+		:param batch: list of individual ``DataDict`` samples to combine.
+		:return: ``DataDict({'images', 'questions', 'targets', 'targets_label'})`` containing the batch.
+		"""
+		return DataDict({key: value for key, value in zip(self.data_definitions.keys(),
+                                                          super(COGDataset, self).collate_fn(batch).values())})
 		
 
 if __name__ == "__main__":
 
+	# Define useful params
 	from miprometheus.utils.param_interface import ParamInterface
 	params = ParamInterface()
-	params.add_config_params({'data_folder': '/home/esevgen/IBM/cog-master', 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': ['AndCompareColor']})
+	params.add_config_params({'data_folder': '/home/esevgen/IBM/cog-master', 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': 'all'})
 
+	# Create problem
 	cog_dataset = COGDataset(params)
 
-	show_sample(
+	# Set batch size such that there's one input of each task type.
+	batch_size = 44
+
+	# Get a sample
+	sample = cog_dataset[0]
+	print(repr(sample))
+	print('__getitem__ works')
+	
+	# Set up Dataloader iterator
+	from torch.utils.data import DataLoader
+
+	dataloader = DataLoader(dataset=cog_dataset, collate_fn=cog_dataset.collate_fn,
+		            batch_size=batch_size, shuffle=True, num_workers=8)
+
+	# Display single sample (0) from batch.
+	batch = next(iter(dataloader))
+
+	cog_dataset.show_sample(batch,0,0)	
+
 
 
 	#with gzip.open('/home/esevgen/IBM/cog-master/data_4_3_1/val_4_3_1/cog_AndCompareColor.json.gz', 'r') as f:

@@ -68,7 +68,7 @@ class VideoTextToClassProblem(Problem):
 		# Default problem name.
 		self.name = 'VideoTextToClassProblem'
 
-	def show_sample(self, data_dict, sample_number=0):
+	def show_sample(self, data_dict, sample_number=0, sequence_number=0):
 		"""
 		Shows a sample from the batch.
 
@@ -78,17 +78,27 @@ class VideoTextToClassProblem(Problem):
 		:param sample_number: Number of sample in batch (default: 0)
 		:type sample_number: int
 
+		:param sequence_number: Which image in the sequence to display (default: 0)
+		:type sequence_number: int
+
 		"""
 		import matplotlib.pyplot as plt
 
+		# Unpack dict.
+		#images, masks, targets, labels = data_dict.values()
 		images = data_dict['images']
-		target = data_dict['targets']
-		label = data_dict['targets_label']
+		# mask = data_dict['mask']
+		targets = data_dict['targets']
+		labels = data_dict['targets_label']
 
 		# Get sample.
-		image = images[sample_number].cpu().detach().numpy()
-		target = targets[sample_number].cpu().detach().numpy()
+		images = images[sample_number].cpu().detach().numpy()
+		#targets = targets[sample_number].cpu().detach().numpy()
 		label = labels[sample_number]
+
+		# Get image in sequence.
+		image = images[sequence_number]
+		#target = targets[sequence_number]
 
 		# Reshape image.
 		if image.shape[0] == 1:
@@ -102,7 +112,7 @@ class VideoTextToClassProblem(Problem):
 		# show data.
 		plt.xlabel('num_columns')
 		plt.ylabel('num_rows')
-		plt.title('Target class: {} ({})'.format(label, target))
+		plt.title('Target class: {} ({}), {}th in Sequence'.format(label, sequence_number))
 		plt.imshow(image, interpolation='nearest', aspect='auto', cmap='gray_r')
 
 		# Plot!
