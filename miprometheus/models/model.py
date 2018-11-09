@@ -337,14 +337,6 @@ class Model(Module):
         :return: True if this is currently the best model (until the current episode, considering the loss).
 
         """
-        # Process training statistics.
-        #if training_stats.__class__.__name__ == 'StatisticsCollector':
-        #    # "Copy" last values only.
-        #    train_stats = {k: v[-1] for k, v in training_stats.items()}
-        #else:
-        #    # Simply copy values.
-        #    train_stats = {k: v for k, v in training_stats.items()}
-
         # Proces validation  statistics, get the episode and loss.
         if validation_stats.__class__.__name__ == 'StatisticsCollector':
             # Get data from collector.
