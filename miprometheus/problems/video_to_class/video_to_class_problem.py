@@ -154,6 +154,9 @@ class VideoToClassProblem(Problem):
         :param sample_number: Number of sample in batch (default: 0)
         :type sample_number: int
 
+	:param sequence_number: Which image in the sequence to display (default: 0)
+	:type sequence_number: int
+
         """
         import matplotlib.pyplot as plt
 

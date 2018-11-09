@@ -132,13 +132,13 @@ class PermutedSequentialRowMnist(VideoToClassProblem):
         label = self.labels[target.data]
 
         # create mask
-        mask = torch.zeros((self.num_rows,1)).type(self.app_state.IntTensor)
+        mask = torch.IntTensor(self.num_rows,1).zero_()
         mask[-1,0] = 1
 
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
         data_dict['images'] = img.view(28,1,1,28)
         data_dict['mask'] = mask
-        data_dict['targets'] = target*torch.ones((28,1),dtype=torch.long)
+        data_dict['targets'] = target.expand((28,1))
         data_dict['targets_label'] = label
 
         return data_dict
