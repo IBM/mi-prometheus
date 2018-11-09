@@ -173,7 +173,6 @@ class COGDataset(VideoTextToClassProblem):
 
 		data_dict = DataDict({key: None for key in self.data_definitions.keys()})
 		
-		batch_size = len(batch)
 		data_dict['images'] = torch.stack([image['images'] for image in batch]).type(torch.FloatTensor)
 		data_dict['tasks']  = [task['tasks'] for task in batch]
 		data_dict['questions'] = [question['questions'] for question in batch]
