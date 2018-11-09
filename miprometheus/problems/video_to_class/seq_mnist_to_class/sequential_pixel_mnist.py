@@ -58,11 +58,11 @@ class SequentialPixelMNIST(VideoToClassProblem):
 
                 - ``self.data_definitions`` :
 
-                    >>> self.data_definitions = {'sequences': {'size': [-1, 28*28], 'type': [torch.Tensor]},
-                    >>>                          'mask': {'size': [-1, 28*28], 'type': [torch.Tensor]},
-                    >>>                          'targets': {'size': [-1], 'type': [torch.Tensor]},
-                    >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
-                    >>>                         }
+                    >>> self.data_definitions = {'images': {'size': [-1, 28*28, 1, 1, 1], 'type': [torch.Tensor]},
+                    >>>             'mask': {'size': [-1, 28*28, 1], 'type': [torch.Tensor]},
+                    >>>             'targets': {'size': [-1, 28*28, 1], 'type': [torch.Tensor]},
+                    >>>             'targets_label': {'size': [-1, 1], 'type': [list, str]}
+                    >>>             }
 
         :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
@@ -82,9 +82,9 @@ class SequentialPixelMNIST(VideoToClassProblem):
                                'length': 28*28
                                }
 
-        self.data_definitions = {'sequences': {'size': [-1, 28*28], 'type': [torch.Tensor]},
-                                 'mask': {'size': [-1, 28*28], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1], 'type': [torch.Tensor]},
+        self.data_definitions = {'images': {'size': [-1, 28*28, 1, 1, 1], 'type': [torch.Tensor]},
+                                 'mask': {'size': [-1, 28*28, 1], 'type': [torch.Tensor]},
+                                 'targets': {'size': [-1, 28*28, 1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
 
@@ -110,9 +110,9 @@ class SequentialPixelMNIST(VideoToClassProblem):
         :param index: index of the sample to return.
         :type index: int
 
-        :return: ``DataDict({'sequences','targets', 'targets_label'})``, with:
+        :return: ``DataDict({'images', 'mask', 'targets', 'targets_label'})``, with:
 
-            - sequences: sequences of pixel,
+            - images: sequence of 'images' in [batch size, sequence length, channels, x, y] format. Single pixels, so x == y == 1
             - mask
             - targets: Index of the target class
 
@@ -124,13 +124,13 @@ class SequentialPixelMNIST(VideoToClassProblem):
         label = self.labels[target.data]
 
         # create mask
-        mask = torch.zeros(self.num_rows * self.num_columns).type(self.app_state.IntTensor)
-        mask[-1] = 1
+        mask = torch.IntTensor(self.num_rows * self.num_columns,1).zero_()
+        mask[-1, 0] = 1
 
         data_dict = DataDict({key: None for key in self.data_definitions.keys()})
-        data_dict['sequences'] = img
+        data_dict['images'] = img.view(28*28,1,1,1)
         data_dict['mask'] = mask
-        data_dict['targets'] = target
+        data_dict['targets'] = target.expand((28*28,1))
         data_dict['targets_label'] = label
 
         return data_dict
@@ -172,6 +172,21 @@ if __name__ == "__main__":
     # get a sample
     sample = problem[0]
     print(repr(sample))
+
+    # test whether data structures match expected definitions
+    # images should be (batch size x sequence x channel x height x width)
+    # as this is a sample, we should have (sequence x channel x height x width) == (28*28, 1, 1, 1)
+    assert sample['images'].shape == torch.ones((28*28, 1, 1, 1)).shape, "Unit test failed! Expected images shape {} but got {}".format(torch.ones((28*28, 1, 1, 1)).shape, sample['images'].shape)
+
+    # mask should be (sequence x class) == (28*28, 1)
+    assert sample['mask'].shape == torch.ones((28*28,1)).shape, "Unit test failed! Expected mask shape {} but got {}".format(torch.ones((28*28,1)).shape, sample['mask'].shape)
+
+    # targets should be (sequence x class) == (28*28, 1)
+    assert sample['targets'].shape == torch.ones((28*28,1)).shape, "Unit test failed! Expected targets shape {} but got {}".format(torch.ones((28*28,1)).shape, sample['targets'].shape)
+
+    # targets_label should be (class) == (1)
+    assert type(sample['targets_label']) == type(' ') , "Unit test failed! Expected target_labels to be str but got {}".format(type(sample['targets_label']))
+
     print('__getitem__ works.')
 
     # wrap DataLoader on top of this Dataset subclass
@@ -190,11 +205,11 @@ if __name__ == "__main__":
     print('Number of workers: {}'.format(dataloader.num_workers))
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))
 
-    # Display single sample (0) from batch.
-    batch = next(iter(dataloader))
-
-    # reshape image for display
-    batch['sequences'] = batch['sequences'].view(batch_size, 1, problem.num_columns, problem.num_rows)
+    # Get a single batch from data loader
+    batch = next(iter(dataloader))    
+   
+    # reshape image for display. In sequential mnist each sequence has 28*28 entries of one pixel value. We will go from a 28*28-long sequence of single pixels of a 1-long sequence of a full image (28x28).
+    batch['images'] = batch['images'].view(batch_size,1,1,problem.num_columns,problem.num_rows)
 
     problem.show_sample(batch, 0)
 
