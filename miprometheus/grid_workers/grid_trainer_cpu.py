@@ -203,6 +203,7 @@ class GridTrainerCPU(GridWorker):
         # add savetag
         if self.flags.savetag != '':
             self.outdir_str = self.outdir_str + "_" + self.flags.savetag + '/'
+        self.logger.info('Setting experiment directory to: {}'.format(self.outdir_str))
 
         # Prepare output paths for logging
         while True:  # Dirty fix: if log_dir already exists, wait for 1 second and try again
