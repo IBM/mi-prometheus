@@ -224,8 +224,6 @@ class GridTrainerCPU(GridWorker):
         if self.flags.user_confirm:
             try:
                 input('Press <Enter> to confirm and start the grid of experiments\n')
-            except Exception:
-                pass            
             except KeyboardInterrupt:
                 exit(0)            
 
