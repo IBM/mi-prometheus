@@ -191,7 +191,7 @@ class Trainer(Worker):
                 time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
                 if self.flags.savetag != '':
                     time_str = time_str + "_" + self.flags.savetag
-                self.log_dir = self.flags.outdir + '/' + training_problem_name + '/' + model_name + '/' + time_str + '/'
+                self.log_dir = self.flags.expdir + '/' + training_problem_name + '/' + model_name + '/' + time_str + '/'
                 os.makedirs(self.log_dir, exist_ok=False)
             except FileExistsError:
                 sleep(1)

@@ -133,14 +133,14 @@ class GridAnalyzer(GridWorker):
         self.logger.setLevel(getattr(logging, self.flags.log_level.upper(), None))
 
         # Check if experiments directory was indicated.
-        if self.flags.outdir == '':
-            print('Please pass the experiments directory as --outdir')
+        if self.flags.expdir == '':
+            print('Please pass the experiments directory as --expdir')
             exit(-1)
 
         # Get experiment directory.        
-        self.experiment_rootdir = self.flags.outdir
+        self.experiment_rootdir = self.flags.expdir
 
-        # Get all sub-directories paths in outdir.
+        # Get all sub-directories paths in expdir.
         self.experiments_list = []
 
         for root, dirs, _ in os.walk(self.experiment_rootdir, topdown=True):

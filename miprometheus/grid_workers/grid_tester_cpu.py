@@ -100,12 +100,12 @@ class GridTesterCPU(GridWorker):
             self.logger.error("Cannot localize the 'mip-tester' script! (hint: please use setup.py to install it)")
             exit(-1)
 
-        self.experiment_rootdir = self.flags.outdir
+        self.experiment_rootdir = self.flags.expdir
         # Get grid settings.
         experiment_repetitions = self.flags.experiment_repetitions
         self.max_concurrent_runs = self.flags.max_concurrent_runs
 
-        # get all sub-directories paths in outdir, repeating according to flags.num
+        # get all sub-directories paths in expdir, repeating according to flags.num
         self.experiments_list = []
 
         for _ in range(experiment_repetitions):
@@ -153,7 +153,7 @@ class GridTesterCPU(GridWorker):
 
         """
         try:
-            
+
             # Check max number of child processes. 
             if self.max_concurrent_runs <= 0: # We need at least one proces!
                 max_processes = self.get_available_cpus()

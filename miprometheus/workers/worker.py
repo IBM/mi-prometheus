@@ -117,11 +117,11 @@ class Worker(object):
                                      help='The current worker will move the computations on GPU devices, if available '
                                           'in the system. (Default: False)')
 
-            self.parser.add_argument('--outdir',
-                                     dest='outdir',
+            self.parser.add_argument('--expdir',
+                                     dest='expdir',
                                      type=str,
                                      default="./experiments",
-                                     help='Path to the output directory where the experiment(s) folders will be stored.'
+                                     help='Path to the directory where the experiment(s) folders are/will be stored.'
                                           ' (DEFAULT: ./experiments)')
 
             self.parser.add_argument('--savetag',

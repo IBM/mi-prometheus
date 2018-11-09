@@ -109,19 +109,13 @@ class GridWorker(object):
 
         # Add arguments to the specific parser.
         # These arguments will be shared by all grid workers.
-        self.parser.add_argument('--outdir',
-                                 dest='outdir',
+        self.parser.add_argument('--expdir',
+                                 dest='expdir',
                                  type=str,
                                  default="./experiments",
-                                 help='Path to the global output directory where the experiments folders '
+                                 help='Path to the directory where the experiments folders '
                                       'will be / are stored. Affects all grid experiments.'
                                       ' (DEFAULT: ./experiments)')
-
-        self.parser.add_argument('--savetag',
-                                 dest='savetag',
-                                 type=str,
-                                 default='',
-                                 help='Additional tag for the global output directory.')
 
         self.parser.add_argument('--ll',
                                  action='store',
@@ -144,7 +138,7 @@ class GridWorker(object):
                                  dest='user_confirm',
                                  action='store_true',
                                  help='Request user confirmation before starting the grid experiment.'
-                                      '  (Default: False)')
+                                      ' (Default: False)')
 
     def setup_grid_experiment(self):
         """

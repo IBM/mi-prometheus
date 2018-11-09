@@ -77,6 +77,12 @@ class GridTrainerCPU(GridWorker):
                                  action='store_true',
                                  help='Select the OnLineTrainer instead of the default OffLineTrainer.')
 
+        self.parser.add_argument('--savetag',
+                                 dest='savetag',
+                                 type=str,
+                                 default='',
+                                 help='Additional tag for the experiment directory.')
+
         self.parser.add_argument('--tensorboard',
                                  action='store',
                                  dest='tensorboard', choices=[0, 1, 2],
@@ -121,7 +127,7 @@ class GridTrainerCPU(GridWorker):
 
         except yaml.YAMLError as e:
             print("Error: Could not properly parse the {} grid configuration file".format(self.flags.config))
-            print('yaml.YAMLERROR:', e)
+            print('yaml.YAMLERROR: ', e)
             exit(-3)
 
         # Check the presence of mip-*-trainer scripts.
@@ -198,17 +204,17 @@ class GridTrainerCPU(GridWorker):
         self.experiments_done = 0
 
         # create experiment directory label of the day
-        self.outdir_str = self.flags.outdir + '_{0:%Y%m%d_%H%M%S}'.format(datetime.now())
+        self.expdir_str = self.flags.expdir + '_{0:%Y%m%d_%H%M%S}'.format(datetime.now())
 
         # add savetag
         if self.flags.savetag != '':
-            self.outdir_str = self.outdir_str + "_" + self.flags.savetag + '/'
-        self.logger.info('Setting experiment directory to: {}'.format(self.outdir_str))
+            self.expdir_str = self.expdir_str + "_" + self.flags.savetag + '/'
+        self.logger.info('Setting experiment directory to: {}'.format(self.expdir_str))
 
         # Prepare output paths for logging
         while True:  # Dirty fix: if log_dir already exists, wait for 1 second and try again
             try:
-                os.makedirs(self.outdir_str, exist_ok=False)
+                os.makedirs(self.expdir_str, exist_ok=False)
             except FileExistsError:
                 sleep(1)
             else:
@@ -286,7 +292,7 @@ class GridTrainerCPU(GridWorker):
                 command_str += " --gpu "
 
             # Add experiment config(s).
-            command_str = command_str + " --c {0} --outdir " + self.outdir_str + ' --li ' + str(self.flags.logging_interval) \
+            command_str = command_str + " --c {0} --expdir " + self.expdir_str + ' --li ' + str(self.flags.logging_interval) \
                         + ' --ll ' + str(self.flags.log_level)
             command_str = command_str.format(experiment_configs)
 
