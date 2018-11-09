@@ -102,9 +102,10 @@ class COGDataset(VideoTextToClassProblem):
 			self.sequence_length = 8
 			
 		self.data_definitions = {'images': {'size': [-1, self.sequence_length, 3, 112, 112], 'type': [torch.Tensor]},
-					'questions': 	 {'size': [-1, 1], 'type': [list, str]},
-					'targets' :	 {'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
-					'targets_label':{'size': [-1, 1], 'type' : [list,str]}
+					'tasks':	{'size': [-1, 1], 'type': [list, str]},
+					'questions': 	{'size': [-1, 1], 'type': [list, str]},
+					'targets_reg' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
+					'targets_class':{'size': [-1, 1], 'type' : [list,str]}
 					}
 
 		self.data_folder_path = os.path.join(self.data_folder,'data'+folder_name_append,self.set+folder_name_append)
@@ -136,9 +137,10 @@ class COGDataset(VideoTextToClassProblem):
 		:return: ``DataDict({'images', 'questions', 'targets', 'targets_label'})``, with:
 		
 			-images:	Sequence of images,
+			-tasks:		Which task family sample belongs to
 			-questions:	Question on the sequence (this is constant per sequence for COG),
-			-targets:	Sequence of targets,
-			-targets_label:	Targets' label
+			-targets_reg:	Sequence of targets as tuple of floats for pointing tasks
+			-targets_class:	Sequence of word targets for classification tasks
 
 		"""
 		# With the assumption that each family has the same number of examples
@@ -161,9 +163,18 @@ class COGDataset(VideoTextToClassProblem):
 
 		data_dict = DataDict({key: None for key in self.data_definitions.keys()})
 		data_dict['images']	= images
-		data_dict['questions']	= self.dataset[self.tasks[i]][j]['question']
-		data_dict['targets']	= self.dataset[self.tasks[i]][j]['answers']
-		data_dict['targets_label'] = self.dataset[self.tasks[i]][j]['answers']
+		data_dict['tasks']	= [self.tasks[i]]
+		data_dict['questions']	= [self.dataset[self.tasks[i]][j]['question']]
+		answers = self.dataset[self.tasks[i]][j]['answers']
+		if isinstance(answers[1],str):
+			data_dict['targets_reg']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
+			data_dict['targets_class'] 	= answers
+		else :
+			if answers[0] == 'invalid':
+				answers[0] = [-1,-1]
+			data_dict['targets_reg']	= torch.FloatTensor(answers)
+			data_dict['targets_class'] 	= [' ' for item in answers]
+
 		
 
 		return(data_dict)
@@ -173,18 +184,29 @@ class COGDataset(VideoTextToClassProblem):
 		Combines a list of ``DataDict`` (retrieved with ``__getitem__``) into a batch.
 
 		:param batch: list of individual ``DataDict`` samples to combine.
-		:return: ``DataDict({'images', 'questions', 'targets', 'targets_label'})`` containing the batch.
+		:return: ``DataDict({'images', 'tasks', 'questions', 'targets_reg', 'targets_class'})`` containing the batch.
 		"""
-		return DataDict({key: value for key, value in zip(self.data_definitions.keys(),
-                                                          super(COGDataset, self).collate_fn(batch).values())})
+		#return DataDict({key: value for key, value in zip(self.data_definitions.keys(),
+                #                                          super(COGDataset, self).collate_fn(batch).values())})
+
+		data_dict = DataDict({key: None for key in self.data_definitions.keys()})
 		
+		batch_size = len(batch)
+		data_dict['images'] = torch.stack([image['images'] for image in batch]).type(torch.FloatTensor)
+		data_dict['tasks']  = [task['tasks'] for task in batch]
+		data_dict['questions'] = [question['questions'] for question in batch]
+		data_dict['targets_reg'] = torch.stack([reg['targets_reg'] for reg in batch]).type(torch.FloatTensor)
+		data_dict['targets_class'] = [tgclassif['targets_class'] for tgclassif in batch]
+
+		return data_dict
+
 
 if __name__ == "__main__":
 
 	# Define useful params
 	from miprometheus.utils.param_interface import ParamInterface
 	params = ParamInterface()
-	params.add_config_params({'data_folder': '/home/esevgen/IBM/cog-master', 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': 'all'})
+	params.add_config_params({'data_folder': '/home/esevgen/IBM/cog-master', 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': ['Go']})
 
 	# Create problem
 	cog_dataset = COGDataset(params)
@@ -195,10 +217,20 @@ if __name__ == "__main__":
 	# Get a sample
 	sample = cog_dataset[0]
 	print(repr(sample))
+
+	# Test whether data structures match expected definitions
+	assert sample['images'].shape == torch.ones((4,3,112,112)).shape
+	assert sample['tasks'] == ['Go']
+	assert sample['questions'] == ['point now beige u']
+	assert sample['targets_reg'].shape == torch.ones((4,2)).shape
+	assert len(sample['targets_class']) == 4
+	assert sample['targets_class'][0] == ' '  	
+	
 	print('__getitem__ works')
 	
 	# Set up Dataloader iterator
 	from torch.utils.data import DataLoader
+	
 
 	dataloader = DataLoader(dataset=cog_dataset, collate_fn=cog_dataset.collate_fn,
 		            batch_size=batch_size, shuffle=True, num_workers=8)
@@ -206,16 +238,22 @@ if __name__ == "__main__":
 	# Display single sample (0) from batch.
 	batch = next(iter(dataloader))
 
-	cog_dataset.show_sample(batch,0,0)	
+	# Test whether batches are formed correctly	
+	assert batch['images'].shape == torch.ones((batch_size,4,3,112,112)).shape
+	assert len(batch['tasks']) == batch_size
+	assert len(batch['questions']) == batch_size
+	assert batch['targets_reg'].shape == torch.ones((batch_size,4,2)).shape
+	assert len(batch['targets_class']) == batch_size
+	assert len(batch['targets_class'][0]) == 4 
 
+	# Video Text to Class expects 'targets', so change 'targets_class' to 'targets'
+	# Implement a data_dict.pop later.
+	batch['targets'] = batch['targets_reg']
+	batch['targets_label'] = batch['targets_class']
 
+	# Show sample
+	cog_dataset.show_sample(batch,0,0)
 
-	#with gzip.open('/home/esevgen/IBM/cog-master/data_4_3_1/val_4_3_1/cog_AndCompareColor.json.gz', 'r') as f:
-	#	json_bytes=f.read()
-	#json_str = json_bytes.decode('utf-8').split('\n')
-	#data = json.loads(json_str[0])
-	#print(data)
-	#print(data['objects'])
-	#print(data['question'])
+	print('Unit test completed')
 
  

@@ -85,20 +85,21 @@ class VideoTextToClassProblem(Problem):
 		import matplotlib.pyplot as plt
 
 		# Unpack dict.
-		#images, masks, targets, labels = data_dict.values()
 		images = data_dict['images']
-		# mask = data_dict['mask']
 		targets = data_dict['targets']
 		labels = data_dict['targets_label']
+		questions = data_dict['questions']
 
 		# Get sample.
 		images = images[sample_number].cpu().detach().numpy()
-		#targets = targets[sample_number].cpu().detach().numpy()
-		label = labels[sample_number]
+		targets = targets[sample_number].cpu().detach().numpy()
+		labels = labels[sample_number]
+		question = questions[sample_number]
 
-		# Get image in sequence.
+		# Get image and label in sequence.
 		image = images[sequence_number]
-		#target = targets[sequence_number]
+		target = targets[sequence_number]
+		label = labels[sequence_number]
 
 		# Reshape image.
 		if image.shape[0] == 1:
@@ -112,8 +113,8 @@ class VideoTextToClassProblem(Problem):
 		# show data.
 		plt.xlabel('num_columns')
 		plt.ylabel('num_rows')
-		plt.title('Target class: {} ({}), {}th in Sequence'.format(label, sequence_number))
-		plt.imshow(image, interpolation='nearest', aspect='auto', cmap='gray_r')
+		plt.title('Target: {} ({}), {}th in Sequence, Question: {}'.format(label, target, sequence_number, question))
+		plt.imshow(image, interpolation='nearest', aspect='auto')
 
 		# Plot!
 		plt.show()
