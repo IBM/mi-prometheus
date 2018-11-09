@@ -151,12 +151,12 @@ class GridAnalyzer(GridWorker):
         # training.csv and model (which contains aggregated validation statistics).
         self.experiments_list = [elem for elem in self.experiments_list if 
             self.check_if_file_exists(elem, 'training_configuration.yaml') and
-            self.check_if_file_exists(elem, 'training_statistics.csv') and
+        #    self.check_if_file_exists(elem, 'training_statistics.csv') and
             self.check_if_file_exists(elem, 'models/model_best.pt')]
 
         # Check if the training statistics file contain any records.
-        self.experiments_list = [elem for elem in self.experiments_list if 
-             self.check_file_content(elem, 'training_statistics.csv')]
+        #self.experiments_list = [elem for elem in self.experiments_list if 
+        #     self.check_file_content(elem, 'training_statistics.csv')]
 
         # Check if there are some valid folders.
         if len(self.experiments_list) == 0:
@@ -223,32 +223,25 @@ class GridAnalyzer(GridWorker):
         chkpt = torch.load(os.path.join(experiment_path, 'models/model_best.pt'),
             map_location=lambda storage, loc: storage)
 
+        r['model_timestamp'] = '{0:%Y%m%d_%H%M%S}'.format(chkpt['timestamp']) 
+
         # Get episode - from checkpoint.
-        episode = int(chkpt['stats']['episode'])
+        episode = int(chkpt['episode'])
 
         # Copy training status - from checkpoint.
         r['train_status'] = chkpt['status']
 
-        r['train_start_timestamp'] = os.path.basename(os.path.normpath(experiment_path))
-        #r['train_seed_torch'] = params['training']['seed_torch']
-        #r['train_seed_numpy'] = params['training']['seed_numpy']
+        r['train_start'] = os.path.basename(os.path.normpath(experiment_path))
+        r['train_seed_torch'] = params['training']['seed_torch']
+        r['train_seed_numpy'] = params['training']['seed_numpy']                    
 
-        with open(os.path.join(experiment_path, 'training_statistics.csv'), mode='r') as f:
-            train_reader = csv.DictReader(f)
-            # Get row with episode.
-            for row in train_reader: 
-                # Iterate over column name and value.
-                if int(row['episode']) == episode:
-                    # Copy training statistics.
-                    for key, value in row.items():
-                        r['train_{}'.format(key)] = str(value)          
-                    
+        # Copy training statistics and add 'valid_' prefices from 
+        for key, value in chkpt['training_stats'].items():
+            r['train_{}'.format(key)] = value
 
-
-        r['valid_timestamp'] = '{0:%Y%m%d_%H%M%S}'.format(chkpt['timestamp']) # str(chkpt['timestamp'])
-        # Copy other values and add 'valid_' prefices from 
-        for key, value in chkpt['stats'].items():
-            r['valid_{}'.format(key)] = str(value)          
+        # Copy validation statistics and add 'valid_' prefices from 
+        for key, value in chkpt['validation_stats'].items():
+            r['valid_{}'.format(key)] = value
 
         # Ok, return what we got right now.
         return r
@@ -256,55 +249,19 @@ class GridAnalyzer(GridWorker):
         # Get all tests for a given training experiment.
         experiments_tests = self.get_experiment_tests(experiment_path)
 
-        with open(os.path.join(experiment_path, 'validation_statistics.csv'), mode='r') as f:
-            valid_csv = csv.reader(f, delimiter=',')
+        # Get test statistics
+        for test_idx, experiment_test_path in zip(range(1, self.num_tests+1), experiments_tests):
 
 
-        #for row in train_csv:
-            #print(', '.join(row))
-        # get best train point
-        train_episode = train_csv.episode.values.astype(int)
-        train_loss = train_csv.loss.values.astype(float)
-
-        index_train_loss = np.argmin(train_loss)
-        r['best_train_ep'] = train_episode[index_train_loss]  # episode index of lowest training loss
-        r['training_episodes_limit'] = train_episode[-1]
-        r['best_train_loss'] = train_loss[index_train_loss]  # lowest training loss
-
-        if 'acc' in train_csv:
-            train_accuracy = train_csv.acc.values.astype(float)
-            r['best_train_acc'] = train_accuracy[index_train_loss]
-
-        # best valid point
-        valid_episode = valid_csv.episode.values.astype(int)
-        valid_loss = valid_csv.loss.values.astype(float)
-
-        index_val_loss = np.argmin(valid_loss)
-        r['best_valid_ep'] = valid_episode[index_val_loss]  # episode index of lowest validation loss
-        r['best_valid_loss'] = valid_loss[index_val_loss]  # lowest validation loss
-
-        if 'acc' in valid_csv:
-            valid_accuracy = valid_csv.acc.values.astype(float)
-            r['best_valid_accuracy'] = valid_accuracy[index_val_loss]
-
-        # get test statistics
-        for test_idx, experiment in zip(range(1, self.num_tests+1), experiments_tests):
-
-            with open(os.path.join(experiment_path, 'testing_statistics.csv'), mode='r') as f:
-                test_csv = csv.reader(f, delimiter=',')
-
-            # get average test loss
-            nb_episode = test_csv.episode.values.astype(int)[-1]+1
-            losses = test_csv.loss.values.astype(float)
-
-            r['test_{}_average_loss'.format(test_idx)] = sum(losses)/nb_episode
-            r['test_{}_std_loss'.format(test_idx)] = np.std(losses)
-
-            if 'acc' in test_csv:
-                accuracies = test_csv.acc.values.astype(float)
-                r['test_{}_average_acc'.format(test_idx)] = sum(accuracies) / nb_episode
-                r['test_{}_std_acc'.format(test_idx)] = np.std(accuracies)
-
+            with open(os.path.join(experiment_test_path, 'testing_statistics.csv'), mode='r') as f:
+                train_reader = csv.DictReader(f)
+                # Get row with episode.
+                for row in train_reader: 
+                    # Iterate over column name and value.
+                    if int(row['episode']) == episode:
+                        # Copy training statistics.
+                        for key, value in row.items():
+                            r['test_{}'.format(key)] = value   
         return r
 
     def run_grid_experiment(self):
