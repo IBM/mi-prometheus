@@ -107,12 +107,12 @@ class GridTrainerCPU(GridWorker):
 
         # Check if config file was selected.
         if self.flags.config == '':
-            print('Please pass grid configuration file as --c parameter.')
+            print('Please pass grid configuration file as --c parameter')
             exit(-1)
 
         # Check if file exists.
         if not os.path.isfile(self.flags.config):
-            print('Error: Grid configuration file {} does not exist.'.format(self.flags.config))
+            print('Error: Grid configuration file {} does not exist'.format(self.flags.config))
             exit(-2)
 
         try:  # open file and get parameter dictionary.
@@ -120,7 +120,7 @@ class GridTrainerCPU(GridWorker):
                 grid_dict = yaml.safe_load(stream)
 
         except yaml.YAMLError as e:
-            print("Error: Could not properly parse the {} grid configuration file.".format(self.flags.config))
+            print("Error: Could not properly parse the {} grid configuration file".format(self.flags.config))
             print('yaml.YAMLERROR:', e)
             exit(-3)
 
@@ -139,7 +139,7 @@ class GridTrainerCPU(GridWorker):
             experiment_repetitions = grid_dict['grid_settings']['experiment_repetitions']
             self.max_concurrent_runs = grid_dict['grid_settings']['max_concurrent_runs']
         except KeyError:
-            print("Error: The 'grid_settings' section must define 'experiment_repetitions' and 'max_concurrent_runs'.")
+            print("Error: The 'grid_settings' section must define 'experiment_repetitions' and 'max_concurrent_runs'")
             exit(-5)
 
         # Check the presence of grid_overwrite section.
@@ -153,7 +153,7 @@ class GridTrainerCPU(GridWorker):
 
         # Check the presence of the tasks section.
         if 'grid_tasks' not in grid_dict:
-            print("Error: Grid configuration is lacking the 'grid_tasks' section.")
+            print("Error: Grid configuration is lacking the 'grid_tasks' section")
             exit(-6)
 
         # Create temporary file
@@ -232,22 +232,25 @@ class GridTrainerCPU(GridWorker):
          available cores.
 
         """
+        try:
 
-        # Check max number of child processes. 
-        if self.max_concurrent_runs <= 0: # We need at least one proces!
-            max_processes = self.get_available_cpus()
-        else:    
-            # Take into account the minimum value.
-            max_processes = min(self.get_available_cpus(), self.max_concurrent_runs)
-        self.logger.info('Spanning experiments using {} CPU(s) concurrently.'.format(max_processes))
+            # Check max number of child processes. 
+            if self.max_concurrent_runs <= 0: # We need at least one proces!
+                max_processes = self.get_available_cpus()
+            else:    
+                # Take into account the minimum value.
+                max_processes = min(self.get_available_cpus(), self.max_concurrent_runs)
+            self.logger.info('Spanning experiments using {} CPU(s) concurrently'.format(max_processes))
 
-        # Run in as many threads as there are CPUs available to the script.
-        with ThreadPool(processes=max_processes) as pool:
-            func = partial(GridTrainerCPU.run_experiment, self, prefix="")
-            pool.map(func, self.experiments_list)
+            # Run in as many threads as there are CPUs available to the script.
+            with ThreadPool(processes=max_processes) as pool:
+                func = partial(GridTrainerCPU.run_experiment, self, prefix="")
+                pool.map(func, self.experiments_list)
 
-        self.logger.info('Grid training experiments finished.')
+            self.logger.info('Grid training finished')
 
+        except KeyboardInterrupt:
+            self.logger.info('Grid training interrupted!')
 
     def run_experiment(self, experiment_configs: str, prefix=""):
         """
@@ -270,35 +273,40 @@ class GridTrainerCPU(GridWorker):
 
 
         """
-        # set the command to be executed using the indicated Trainer
-        if self.flags.online_trainer:
-            command_str = "{}mip-online-trainer".format(prefix)
-        else:
-            command_str = "{}mip-offline-trainer".format(prefix)
+        try:
 
-        # Add gpu flag if required.
-        if self.app_state.use_CUDA:
-            command_str += " --gpu "
+            # set the command to be executed using the indicated Trainer
+            if self.flags.online_trainer:
+                command_str = "{}mip-online-trainer".format(prefix)
+            else:
+                command_str = "{}mip-offline-trainer".format(prefix)
 
-        # Add experiment config(s).
-        command_str = command_str + " --c {0} --outdir " + self.outdir_str + ' --li ' + str(self.flags.logging_interval) \
-                      + ' --ll ' + str(self.flags.log_level)
-        command_str = command_str.format(experiment_configs)
+            # Add gpu flag if required.
+            if self.app_state.use_CUDA:
+                command_str += " --gpu "
 
-        # Add tensorboard flag.
-        if self.flags.tensorboard is not None:
-            command_str += " --t " + str(self.flags.tensorboard)
+            # Add experiment config(s).
+            command_str = command_str + " --c {0} --outdir " + self.outdir_str + ' --li ' + str(self.flags.logging_interval) \
+                        + ' --ll ' + str(self.flags.log_level)
+            command_str = command_str.format(experiment_configs)
 
-        self.logger.info("Starting: {}".format(command_str))
-        with open(os.devnull, 'w') as devnull:
-            result = subprocess.run(command_str.split(" "), stdout=devnull)
-        self.experiments_done += 1
-        self.logger.info("Finished: {}".format(command_str))
+            # Add tensorboard flag.
+            if self.flags.tensorboard is not None:
+                command_str += " --t " + str(self.flags.tensorboard)
 
-        self.logger.info('Number of experiments done: {}/{}.'.format(self.experiments_done, len(self.experiments_list)))
+            self.logger.info("Starting: {}".format(command_str))
+            with open(os.devnull, 'w') as devnull:
+                result = subprocess.run(command_str.split(" "), stdout=devnull)
+            self.experiments_done += 1
+            self.logger.info("Finished: {}".format(command_str))
 
-        if result.returncode != 0:
-            self.logger.info("Training exited with code: {}".format(result.returncode))
+            self.logger.info('Number of experiments done: {}/{}.'.format(self.experiments_done, len(self.experiments_list)))
+
+            if result.returncode != 0:
+                self.logger.info("Training exited with code: {}".format(result.returncode))
+
+        except KeyboardInterrupt:
+            self.logger.info('Grid training interrupted!')
 
 
 def main():

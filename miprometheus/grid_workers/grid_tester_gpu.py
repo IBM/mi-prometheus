@@ -88,44 +88,45 @@ class GridTesterGPU(GridTesterCPU):
          available cores.
 
         """
-        # Ask for confirmation - optional.
-        if self.flags.confirm:
-            input('Press any key to continue')
+        try:
 
-        # Check the presence of cuda-gpupick
-        if shutil.which('cuda-gpupick') is not None:
-            prefix_str = "cuda-gpupick -n1 "
-        else:
-            self.logger.warning("Cannot localize the 'cuda-gpupick' script, disabling it")
-            prefix_str = ''
+            # Check the presence of cuda-gpupick
+            if shutil.which('cuda-gpupick') is not None:
+                prefix_str = "cuda-gpupick -n1 "
+            else:
+                self.logger.warning("Cannot localize the 'cuda-gpupick' script, disabling it")
+                prefix_str = ''
 
-        # Check max number of child processes. 
-        if self.max_concurrent_runs <= 0: # We need at least one proces!
-            max_processes = torch.cuda.device_count()
-        else:    
-            # Take into account the minimum value.
-            max_processes = min(torch.cuda.device_count(), self.max_concurrent_runs)
-        self.logger.info('Spanning experiments using {} GPU(s) concurrently'.format(max_processes))
+            # Check max number of child processes. 
+            if self.max_concurrent_runs <= 0: # We need at least one proces!
+                max_processes = torch.cuda.device_count()
+            else:    
+                # Take into account the minimum value.
+                max_processes = min(torch.cuda.device_count(), self.max_concurrent_runs)
+            self.logger.info('Spanning experiments using {} GPU(s) concurrently'.format(max_processes))
 
-        # Run in as many threads as there are GPUs available to the script.
-        with ThreadPool(processes=max_processes) as pool:
-            # This contains a list of `AsyncResult` objects. To check if completed and get result.
-            thread_results = []
+            # Run in as many threads as there are GPUs available to the script.
+            with ThreadPool(processes=max_processes) as pool:
+                # This contains a list of `AsyncResult` objects. To check if completed and get result.
+                thread_results = []
 
-            for task in self.experiments_list:
-                func = partial(GridTesterGPU.run_experiment, self, prefix=prefix_str)
-                thread_results.append(pool.apply_async(func, (task,)))
+                for task in self.experiments_list:
+                    func = partial(GridTesterGPU.run_experiment, self, prefix=prefix_str)
+                    thread_results.append(pool.apply_async(func, (task,)))
 
-                # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
-                sleep(3)
-                while [r.ready() for r in thread_results].count(False) >= torch.cuda.device_count():
+                    # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
                     sleep(3)
+                    while [r.ready() for r in thread_results].count(False) >= torch.cuda.device_count():
+                        sleep(3)
 
-            # Equivalent of what would usually be called "join" for threads
-            for r in thread_results:
-                r.wait()
+                # Equivalent of what would usually be called "join" for threads
+                for r in thread_results:
+                    r.wait()
 
-        self.logger.info('Grid testing finished')
+            self.logger.info('Grid testing finished')
+
+        except KeyboardInterrupt:
+            self.logger.info('Grid testing interrupted!')
 
 
 def main():

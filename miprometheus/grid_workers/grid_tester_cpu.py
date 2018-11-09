@@ -152,21 +152,25 @@ class GridTesterCPU(GridWorker):
          available cores.
 
         """
+        try:
+            
+            # Check max number of child processes. 
+            if self.max_concurrent_runs <= 0: # We need at least one proces!
+                max_processes = self.get_available_cpus()
+            else:    
+                # Take into account the minimum value.
+                max_processes = min(self.get_available_cpus(), self.max_concurrent_runs)
+            self.logger.info('Spanning experiments using {} CPU(s) concurrently'.format(max_processes))
 
-        # Check max number of child processes. 
-        if self.max_concurrent_runs <= 0: # We need at least one proces!
-            max_processes = self.get_available_cpus()
-        else:    
-            # Take into account the minimum value.
-            max_processes = min(self.get_available_cpus(), self.max_concurrent_runs)
-        self.logger.info('Spanning experiments using {} CPU(s) concurrently'.format(max_processes))
+            # Run in as many threads as there are CPUs available to the script.
+            with ThreadPool(processes=max_processes) as pool:
+                func = partial(GridTesterCPU.run_experiment, self, prefix="")
+                pool.map(func, self.experiments_list)
 
-        # Run in as many threads as there are CPUs available to the script.
-        with ThreadPool(processes=max_processes) as pool:
-            func = partial(GridTesterCPU.run_experiment, self, prefix="")
-            pool.map(func, self.experiments_list)
+            self.logger.info('Grid testing finished')
 
-        self.logger.info('Grid test experiments finished')
+        except KeyboardInterrupt:
+            self.logger.info('Grid testing interrupted!')
 
 
     def run_experiment(self, experiment_path: str, prefix=""):
@@ -186,30 +190,35 @@ class GridTesterCPU(GridWorker):
              to the used ``Trainer``.
 
         """
-        path_to_model = os.path.join(experiment_path, 'model_best.pt')
-        self.logger.warning(path_to_model)
+        try:
 
-        # Run the test
-        command_str = "{}mip-tester --model {} --li {} --ll {}".format(
-            prefix, path_to_model,
-            self.flags.logging_interval,
-            self.flags.log_level)
+            path_to_model = os.path.join(experiment_path, 'model_best.pt')
+            self.logger.warning(path_to_model)
 
-        # Add gpu flag if required.
-        if self.app_state.use_CUDA:
-            command_str += " --gpu "
+            # Run the test
+            command_str = "{}mip-tester --model {} --li {} --ll {}".format(
+                prefix, path_to_model,
+                self.flags.logging_interval,
+                self.flags.log_level)
 
-        self.logger.info("Starting: {}".format(command_str))
-        with open(os.devnull, 'w') as devnull:
-            result = subprocess.run(command_str.split(" "), stdout=devnull)
-        self.experiments_done += 1
-        self.logger.info("Finished: {}".format(command_str))
+            # Add gpu flag if required.
+            if self.app_state.use_CUDA:
+                command_str += " --gpu "
 
-        self.logger.info(
-            'Number of experiments done: {}/{}.'.format(self.experiments_done, len(self.experiments_list)))
+            self.logger.info("Starting: {}".format(command_str))
+            with open(os.devnull, 'w') as devnull:
+                result = subprocess.run(command_str.split(" "), stdout=devnull)
+            self.experiments_done += 1
+            self.logger.info("Finished: {}".format(command_str))
 
-        if result.returncode != 0:
-            self.logger.info("Testing exited with code: {}".format(result.returncode))
+            self.logger.info(
+                'Number of experiments done: {}/{}.'.format(self.experiments_done, len(self.experiments_list)))
+
+            if result.returncode != 0:
+                self.logger.info("Testing exited with code: {}".format(result.returncode))
+
+        except KeyboardInterrupt:
+            self.logger.info('Grid testing interrupted!')
 
 
 def main():
