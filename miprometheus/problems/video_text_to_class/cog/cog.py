@@ -21,6 +21,7 @@ import torch
 import gzip
 import json
 import os
+import numpy as np
 
 from miprometheus.utils.data_dict import DataDict
 from miprometheus.problems.video_text_to_class.video_text_to_class_problem import VideoTextToClassProblem
@@ -31,10 +32,6 @@ class COGDataset(VideoTextToClassProblem):
 	The COG dataset is a sequential VQA dataset. Inputs are a sequence of images of simple shapes and characters on a black \
  	background, and a question based on these objects that relies on memory which has to be answered at every step of the \
 	sequence.
-
- 	..warning::
-
-		Currently only implementing the subset of tasks that are classification. There are also regression tasks.
 
 	"""
 
@@ -47,18 +44,22 @@ class COGDataset(VideoTextToClassProblem):
 
 				- ``self.root_folder`` (`string`) : Root directory of dataset where ``processed/training.pt``\
 					and ``processed/test.pt`` will be saved,
-				- ``self.data_folder`` (`string`) : Data directory where dataset is stored.
+				- ``self.data_folder`` (`string`) : Data directory where dataset is stored. If using canonical \
+									or hard dataset, simply point to 'data_X_Y_Z' folder.
 				- ``self.set`` (`string`) : 'val', 'test', or 'train'
-				- ``self.tasks`` (`list of string`): Tasks to include, to implement later.
-				- ``self.dataset_type`` (`string`) : Which dataset to use, 'canonical' or 'hard'. Will add \
-								'generate' with options later.
 				- ``self.tasks`` (`string or list of string`) : Which tasks to use. 'class', 'reg', 'all', or a 
 \ list of tasks such as ['AndCompareColor', 'AndCompareShape']. Only selected tasks will be used.
+				- ``self.dataset_type`` (`string`) : Which dataset to use, 'canonical', 'hard', or \
+								'generated'. If 'generated', please specify 'sequence_length'
 
 		"""
 	
 		# Call base class constructors
 		super(COGDataset, self).__init__(params)
+
+		# Set default parameters.
+		self.params.add_default_params({'root_folder': '~/data/COG', 'data_folder': '~/data/COG', 'set': 'train', 
+'tasks': 'class', 'dataset_type': 'canonical'})
 
 		# Retrieve parameters from the dictionary
 		self.root_folder= params['root_folder']
@@ -67,53 +68,35 @@ class COGDataset(VideoTextToClassProblem):
 		assert self.set in ['val','test','train'], "set in configuration file must be one of 'val', 'test', or 'train', "\
 								"got {}".format(self.set)
 		self.dataset_type	= params['dataset_type']
-		assert self.dataset_type in ['canonical','hard','generate'], "dataset in configuration file must be one of "\
-								"'canonical', 'hard', or 'generate', got {}".format(self.dataset_type)
+		assert self.dataset_type in ['canonical','hard','generated'], "dataset in configuration file must be one of "\
+								"'canonical', 'hard', or 'generated', got {}".format(self.dataset_type)
+
+		
+		if self.dataset_type == 'generated':
+			try:
+				self.sequence_length = params['dataset_type']['sequence_length']
+			except:
+				print("Please specify sequence length for a generated dataset under 'dataset_type'.")
 
 		# Name
 		self.name = 'COGDataset'
 
-		self.tasks = params['tasks']
-		if self.tasks == 'class':
-			self.tasks = ['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
-'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
-'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','GetColor','GetColorSpace','GetShape','GetShapeSpace','SimpleCompareColor',
-'SimpleCompareShape']
-		elif self.tasks == 'reg':
-			self.tasks = ['AndSimpleExistColorGo','AndSimpleExistGo','AndSimpleExistShapeGo','CompareColorGo','CompareShapeGo','ExistColorGo',
-'ExistColorSpaceGo','ExistGo','ExistShapeGo','ExistShapeSpaceGo','ExistSpaceGo','Go','GoColor','GoColorOf','GoShape','GoShapeOf',
-'SimpleCompareColorGo','SimpleCompareShapeGo','SimpleExistColorGo','SimpleExistGo','SimpleExistShapeGo']
-		elif self.tasks == 'all':
-			self.tasks =['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
-'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
-'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','GetColor','GetColorSpace','GetShape','GetShapeSpace','SimpleCompareColor',
-'SimpleCompareShape','AndSimpleExistColorGo','AndSimpleExistGo','AndSimpleExistShapeGo','CompareColorGo','CompareShapeGo','ExistColorGo',
-'ExistColorSpaceGo','ExistGo','ExistShapeGo','ExistShapeSpaceGo','ExistSpaceGo','Go','GoColor','GoColorOf','GoShape','GoShapeOf',
-'SimpleCompareColorGo','SimpleCompareShapeGo','SimpleExistColorGo','SimpleExistGo','SimpleExistShapeGo']
-
-		# Load up .json files and set data definitions
-		folder_name_append = ' '
+		# Parse task and dataset_type
+		self.parse_tasks_and_dataset_type(params)
 		
-		if self.dataset_type == 'canonical':
-			folder_name_append = '_4_3_1'			
-			self.sequence_length = 4
-		elif self.dataset_type == 'hard':
-			folder_name_append = '_8_7_10'			
-			self.sequence_length = 8
-			
+		# Set data dictionary based on parsed dataset type
 		self.data_definitions = {'images': {'size': [-1, self.sequence_length, 3, 112, 112], 'type': [torch.Tensor]},
 					'tasks':	{'size': [-1, 1], 'type': [list, str]},
 					'questions': 	{'size': [-1, 1], 'type': [list, str]},
 					'targets_reg' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
 					'targets_class':{'size': [-1, 1], 'type' : [list,str]}
-					}
-
-		self.data_folder_path = os.path.join(self.data_folder,'data'+folder_name_append,self.set+folder_name_append)
+					}		
 
 		assert os.path.isdir(self.data_folder_path), "Data directory not found at {}. Please download the dataset and "\
 	"point to the correct directory.".format(self.data_folder_path)
 		
-		#self.tasklist = []
+
+		# Load all the .jsons, but image generation is done in __getitem__
 		self.dataset = {}
 		self.length = 0
 	
@@ -126,7 +109,6 @@ class COGDataset(VideoTextToClassProblem):
 						self.dataset[tasklist[4:-8]].append(json.loads(datapoint))
 				self.length = self.length + len(self.dataset[tasklist[4:-8]])
 
-		#print(tu.json_to_feeds(self.dataset['AndCompareShape']))
 
 	def __getitem__(self, index):
 		"""
@@ -201,20 +183,68 @@ class COGDataset(VideoTextToClassProblem):
 		return data_dict
 
 
+	def parse_tasks_and_dataset_type(self, params):
+		"""
+		Parses the task list and dataset type. Then sets folder paths to appropriate values.
+
+		:param params: Dictionary of parameters (read from the configuration ``.yaml`` file).
+		:type params: miprometheus.utils.ParamInterface
+		"""
+
+		self.tasks = params['tasks']
+		if self.tasks == 'class':
+			self.tasks = ['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
+'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
+'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','GetColor','GetColorSpace','GetShape','GetShapeSpace','SimpleCompareColor',
+'SimpleCompareShape']
+		elif self.tasks == 'reg':
+			self.tasks = ['AndSimpleExistColorGo','AndSimpleExistGo','AndSimpleExistShapeGo','CompareColorGo','CompareShapeGo','ExistColorGo',
+'ExistColorSpaceGo','ExistGo','ExistShapeGo','ExistShapeSpaceGo','ExistSpaceGo','Go','GoColor','GoColorOf','GoShape','GoShapeOf',
+'SimpleCompareColorGo','SimpleCompareShapeGo','SimpleExistColorGo','SimpleExistGo','SimpleExistShapeGo']
+		elif self.tasks == 'all':
+			self.tasks =['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
+'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
+'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','GetColor','GetColorSpace','GetShape','GetShapeSpace','SimpleCompareColor',
+'SimpleCompareShape','AndSimpleExistColorGo','AndSimpleExistGo','AndSimpleExistShapeGo','CompareColorGo','CompareShapeGo','ExistColorGo',
+'ExistColorSpaceGo','ExistGo','ExistShapeGo','ExistShapeSpaceGo','ExistSpaceGo','Go','GoColor','GoColorOf','GoShape','GoShapeOf',
+'SimpleCompareColorGo','SimpleCompareShapeGo','SimpleExistColorGo','SimpleExistGo','SimpleExistShapeGo']
+
+		# If loading a default dataset, set default path names and set sequence length
+		folder_name_append = ' '
+		
+		if self.dataset_type == 'canonical':
+			folder_name_append = '_4_3_1'			
+			self.sequence_length = 4
+		elif self.dataset_type == 'hard':
+			folder_name_append = '_8_7_10'			
+			self.sequence_length = 8
+
+		# Open using default folder path if using a pregenerated dataset
+		if self.dataset_type != 'generated':
+			self.data_folder_path = os.path.join(self.data_folder,'data'+folder_name_append,self.set+folder_name_append)
+		else:
+			self.data_folder_path = self.data_folder
+		
+
 if __name__ == "__main__":
+	
+	""" 
+	Unit test that checks data dimensions match expected values, and generates an image.
+	Checks one regression and one classification task.
+	"""
 
 	# Define useful params
 	from miprometheus.utils.param_interface import ParamInterface
 	params = ParamInterface()
-	params.add_config_params({'data_folder': '/home/esevgen/IBM/cog-master', 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': ['Go']})
+	params.add_config_params({'data_folder': '/home/esevgen/IBM/cog-master', 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': ['Go','CompareColor']})
 
-	# Create problem
+	# Create problem - task Go
 	cog_dataset = COGDataset(params)
 
-	# Set batch size such that there's one input of each task type.
-	batch_size = 44
+	# Set batch size.
+	batch_size = 64
 
-	# Get a sample
+	# Get a sample - Go
 	sample = cog_dataset[0]
 	print(repr(sample))
 
@@ -224,7 +254,19 @@ if __name__ == "__main__":
 	assert sample['questions'] == ['point now beige u']
 	assert sample['targets_reg'].shape == torch.ones((4,2)).shape
 	assert len(sample['targets_class']) == 4
-	assert sample['targets_class'][0] == ' '  	
+	assert sample['targets_class'][0] == ' '  
+
+	# Get another sample - CompareColor
+	sample2 = cog_dataset[1]
+	print(repr(sample2))
+
+	# Test whether data structures match expected definitions
+	assert sample2['images'].shape == torch.ones((4,3,112,112)).shape
+	assert sample2['tasks'] == ['CompareColor']
+	assert sample2['questions'] == ['color of latest g equal color of last1 v ?']
+	assert sample2['targets_reg'].shape == torch.ones((4,2)).shape
+	assert len(sample2['targets_class']) == 4
+	assert sample2['targets_class'][0] == 'invalid'  
 	
 	print('__getitem__ works')
 	
@@ -233,7 +275,7 @@ if __name__ == "__main__":
 	
 
 	dataloader = DataLoader(dataset=cog_dataset, collate_fn=cog_dataset.collate_fn,
-		            batch_size=batch_size, shuffle=True, num_workers=8)
+		            batch_size=batch_size, shuffle=False, num_workers=8)
 
 	# Display single sample (0) from batch.
 	batch = next(iter(dataloader))
@@ -251,8 +293,14 @@ if __name__ == "__main__":
 	batch['targets'] = batch['targets_reg']
 	batch['targets_label'] = batch['targets_class']
 
-	# Show sample
+	# Convert image to uint8
+	batch['images'] = batch['images']/(np.iinfo(np.uint16).max)*255
+
+	# Show sample - Go
 	cog_dataset.show_sample(batch,0,0)
+
+	# Show sample - CompareColor
+	cog_dataset.show_sample(batch,1,0)	
 
 	print('Unit test completed')
 

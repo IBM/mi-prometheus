@@ -109,6 +109,7 @@ class VideoTextToClassProblem(Problem):
 		    # More channels - move channels to axis2, according to matplotilb documentation.
 		    # (X : array_like, shape (n, m) or (n, m, 3) or (n, m, 4))
 		    image = image.transpose(1, 2, 0)
+		
 
 		# show data.
 		plt.xlabel('num_columns')
