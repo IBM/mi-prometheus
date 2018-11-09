@@ -62,7 +62,7 @@ class GridTesterCPU(GridWorker):
         super(GridTesterCPU, self).__init__(name=name,use_gpu=use_gpu)
 
         # Get number_of_repetitions
-        self.parser.add_argument('--r',
+        self.parser.add_argument('--repeat',
                                  dest='experiment_repetitions',
                                  type=int,
                                  default=1,
@@ -70,7 +70,7 @@ class GridTesterCPU(GridWorker):
                                  ' (DEFAULT=1)')
 
         # Get number_of_repetitions
-        self.parser.add_argument('--m',
+        self.parser.add_argument('--max_concur_runs',
                                  dest='max_concurrent_runs',
                                  type=int,
                                  default=-1,
@@ -134,6 +134,15 @@ class GridTesterCPU(GridWorker):
         self.logger.info('Number of experiments to run: {}'.format(len(self.experiments_list)))
         self.experiments_done = 0
 
+        # Ask for confirmation - optional.
+        if self.flags.user_confirm:
+            try:
+                input('Press <Enter> to confirm and start the grid of experiments\n')
+            except Exception:
+                pass            
+            except KeyboardInterrupt:
+                exit(0)            
+
 
     def run_grid_experiment(self):
         """
@@ -143,9 +152,6 @@ class GridTesterCPU(GridWorker):
          available cores.
 
         """
-        # Ask for confirmation - optional.
-        if self.flags.confirm:
-            input('Press any key to continue')
 
         # Check max number of child processes. 
         if self.max_concurrent_runs <= 0: # We need at least one proces!

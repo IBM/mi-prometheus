@@ -214,6 +214,15 @@ class GridTrainerCPU(GridWorker):
             else:
                 break
 
+        # Ask for confirmation - optional.
+        if self.flags.user_confirm:
+            try:
+                input('Press <Enter> to confirm and start the grid of experiments\n')
+            except Exception:
+                pass            
+            except KeyboardInterrupt:
+                exit(0)            
+
 
     def run_grid_experiment(self):
         """
@@ -223,9 +232,6 @@ class GridTrainerCPU(GridWorker):
          available cores.
 
         """
-        # Ask for confirmation - optional.
-        if self.flags.confirm:
-            input('Press any key to continue')
 
         # Check max number of child processes. 
         if self.max_concurrent_runs <= 0: # We need at least one proces!

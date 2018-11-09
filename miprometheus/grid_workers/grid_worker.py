@@ -141,7 +141,7 @@ class GridWorker(object):
                                       ' (Default: 100, i.e. logs every 100 episodes).')
 
         self.parser.add_argument('--agree',
-                                 dest='confirm',
+                                 dest='user_confirm',
                                  action='store_true',
                                  help='Request user confirmation before starting the grid experiment.'
                                       '  (Default: False)')
