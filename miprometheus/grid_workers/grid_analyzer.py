@@ -29,13 +29,8 @@ import os
 import csv
 import yaml
 import logging
-
 import torch
-
-import numpy as np
 from datetime import datetime
-from functools import partial
-from multiprocessing.pool import ThreadPool
 
 from miprometheus.grid_workers.grid_worker import GridWorker
 
