@@ -89,7 +89,7 @@ class COGDataset(VideoTextToClassProblem):
 					'tasks':	{'size': [-1, 1], 'type': [list, str]},
 					'questions': 	{'size': [-1, 1], 'type': [list, str]},
 					'targets_reg' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
-					'targets_class':{'size': [-1, 1], 'type' : [list,str]}
+					'targets_class':{'size': [-1, self.sequence_length, 1], 'type' : [list,str]}
 					}		
 
 		assert os.path.isdir(self.data_folder_path), "Data directory not found at {}. Please download the dataset and "\
