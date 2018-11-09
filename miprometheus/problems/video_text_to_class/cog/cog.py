@@ -148,16 +148,14 @@ class COGDataset(VideoTextToClassProblem):
 		data_dict['tasks']	= [self.tasks[i]]
 		data_dict['questions']	= [self.dataset[self.tasks[i]][j]['question']]
 		answers = self.dataset[self.tasks[i]][j]['answers']
-		if isinstance(answers[1],str):
+		if self.tasks[i] in self.classification_tasks:
 			data_dict['targets_reg']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
 			data_dict['targets_class'] 	= answers
 		else :
-			if answers[0] == 'invalid':
-				answers[0] = [-1,-1]
-			data_dict['targets_reg']	= torch.FloatTensor(answers)
+			data_dict['targets_reg']	= torch.FloatTensor([[-1,-1] if reg == 'invalid' else reg for reg in answers])
 			data_dict['targets_class'] 	= [' ' for item in answers]
 
-		
+
 
 		return(data_dict)
 
@@ -190,23 +188,22 @@ class COGDataset(VideoTextToClassProblem):
 		:type params: miprometheus.utils.ParamInterface
 		"""
 
+		self.classification_tasks = ['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
+'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
+'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','GetColor','GetColorSpace','GetShape','GetShapeSpace','SimpleCompareColor',
+'SimpleCompareShape'] 
+
+		self.regression_tasks =['AndSimpleExistColorGo','AndSimpleExistGo','AndSimpleExistShapeGo','CompareColorGo','CompareShapeGo','ExistColorGo',
+'ExistColorSpaceGo','ExistGo','ExistShapeGo','ExistShapeSpaceGo','ExistSpaceGo','Go','GoColor','GoColorOf','GoShape','GoShapeOf',
+'SimpleCompareColorGo','SimpleCompareShapeGo','SimpleExistColorGo','SimpleExistGo','SimpleExistShapeGo'] 
+
 		self.tasks = params['tasks']
 		if self.tasks == 'class':
-			self.tasks = ['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
-'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
-'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','GetColor','GetColorSpace','GetShape','GetShapeSpace','SimpleCompareColor',
-'SimpleCompareShape']
+			self.tasks = self.classification_tasks
 		elif self.tasks == 'reg':
-			self.tasks = ['AndSimpleExistColorGo','AndSimpleExistGo','AndSimpleExistShapeGo','CompareColorGo','CompareShapeGo','ExistColorGo',
-'ExistColorSpaceGo','ExistGo','ExistShapeGo','ExistShapeSpaceGo','ExistSpaceGo','Go','GoColor','GoColorOf','GoShape','GoShapeOf',
-'SimpleCompareColorGo','SimpleCompareShapeGo','SimpleExistColorGo','SimpleExistGo','SimpleExistShapeGo']
+			self.tasks = self.regression_tasks
 		elif self.tasks == 'all':
-			self.tasks =['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
-'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
-'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','GetColor','GetColorSpace','GetShape','GetShapeSpace','SimpleCompareColor',
-'SimpleCompareShape','AndSimpleExistColorGo','AndSimpleExistGo','AndSimpleExistShapeGo','CompareColorGo','CompareShapeGo','ExistColorGo',
-'ExistColorSpaceGo','ExistGo','ExistShapeGo','ExistShapeSpaceGo','ExistSpaceGo','Go','GoColor','GoColorOf','GoShape','GoShapeOf',
-'SimpleCompareColorGo','SimpleCompareShapeGo','SimpleExistColorGo','SimpleExistGo','SimpleExistShapeGo']
+			self.tasks = self.classification_tasks + self.regression_tasks
 
 		# If loading a default dataset, set default path names and set sequence length
 		folder_name_append = ' '
@@ -241,7 +238,7 @@ if __name__ == "__main__":
 	cog_dataset = COGDataset(params)
 
 	# Set batch size.
-	batch_size = 64
+	batch_size = 44
 
 	# Get a sample - Go
 	sample = cog_dataset[0]
@@ -302,5 +299,51 @@ if __name__ == "__main__":
 	cog_dataset.show_sample(batch,1,0)	
 
 	print('Unit test completed')
+
+	# Test speed of generating images vs preloading generated images.
+	import time
+
+	# Number of batches to average over
+	testbatches = 100
+
+	# Define params to load entire dataset - all tasks included
+	params = ParamInterface()
+	params.add_config_params({'data_folder': '/home/esevgen/IBM/cog-master', 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': 'all'})
+
+	preload = time.time()
+	full_cog_canonical = COGDataset(params)
+	postload = time.time() 
+
+	dataloader = DataLoader(dataset=full_cog_canonical, collate_fn=full_cog_canonical.collate_fn,
+		            batch_size=batch_size, shuffle=True, num_workers=8)
+
+	prebatch = time.time()
+	for i, batch in enumerate(dataloader):
+		if i == testbatches:
+			break
+		if i% 100 == 0:
+			print('Batch # {} - {}'.format(i, type(batch)))
+	postbatch = time.time()
+	
+	print('Number of workers: {}'.format(dataloader.num_workers))
+	print('Time taken to load the dataset: {}s'.format(postload - preload))	
+	print('Time taken to exhaust {} batches for a batch size of {} with image generation: {}s'.format(testbatches, 
+												batch_size, postbatch-prebatch))
+	
+	# Test pregeneration and loading
+	for i, batch in enumerate(dataloader):
+		if i == testbatches:
+			print('Finished saving {} batches'.format(testbatches))
+			break
+		np.save(os.path.expanduser('~')+'/data/COGtest/'+str(i),batch['images'])
+
+	preload = time.time()
+	for i in range(testbatches):
+		mockload = np.fromfile(os.path.expanduser('~')+'/data/COGtest/'+str(i)+'.npy')
+	postload = time.time()
+	print('Generation time for {} batches: {}, Load time for {} batches: {}'.format(testbatches, postbatch-prebatch, 
+											testbatches, postload-preload))
+
+	print('Timing test completed')
 
  
