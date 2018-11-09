@@ -172,6 +172,24 @@ class StatisticsCollector(Mapping):
 
         csv_file.write(values_str)
 
+    def export_to_checkpoint(self):
+        """
+        This method exports the collected data into a dictionary using the associated formatting.
+
+        """
+        chkpt = {}
+
+        # Iterate through key, values and format them.
+        for key, value in self.statistics.items():
+
+            # Get formatting - using '{}' as default.
+            format_str = self.formatting.get(key, '{}')
+
+            # Add to dict.
+            chkpt[key]  = format_str.format(value[-1])
+
+        return chkpt
+
     def export_to_string(self, additional_tag=''):
         """
         Method returns current statistics in the form of string using the

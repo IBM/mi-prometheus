@@ -183,6 +183,24 @@ class StatisticsAggregator(StatisticsCollector):
 
         csv_file.write(values_str)
 
+    def export_to_checkpoint(self):
+        """
+        This method exports aggregated data into a dictionary using the associated formatting.
+
+        """
+        chkpt = {}
+
+        # Iterate through key, values and format them.
+        for key, value in self.aggregators.items():
+
+            # Get formatting - using '{}' as default.
+            format_str = self.formatting.get(key, '{}')
+
+            # Add to dict.
+            chkpt[key]  = format_str.format(value)
+
+        return chkpt        
+
     def export_to_string(self, additional_tag=''):
         """
         This method returns the current statistical aggregators values in the form of a string using the \

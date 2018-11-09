@@ -338,12 +338,12 @@ class Model(Module):
 
         """
         # Process training statistics.
-        if training_stats.__class__.__name__ == 'StatisticsCollector':
-            # "Copy" last values only.
-            train_stats = {k: v[-1] for k, v in training_stats.items()}
-        else:
-            # Simply copy values.
-            train_stats = {k: v for k, v in training_stats.items()}
+        #if training_stats.__class__.__name__ == 'StatisticsCollector':
+        #    # "Copy" last values only.
+        #    train_stats = {k: v[-1] for k, v in training_stats.items()}
+        #else:
+        #    # Simply copy values.
+        #    train_stats = {k: v for k, v in training_stats.items()}
 
         # Proces validation  statistics, get the episode and loss.
         if validation_stats.__class__.__name__ == 'StatisticsCollector':
@@ -351,14 +351,14 @@ class Model(Module):
             episode = validation_stats['episode'][-1]
             loss = validation_stats['loss'][-1]
             # "Copy" last values only.
-            valid_stats = {k: v[-1] for k, v in validation_stats.items()}
+            #valid_stats = {k: v[-1] for k, v in validation_stats.items()}
 
         else:
             # Get data from aggregator.
             episode = validation_stats['episode']
             loss = validation_stats['loss']
             # Simply copy values.
-            valid_stats = {k: v for k, v in validation_stats.items()}
+            #valid_stats = {k: v for k, v in validation_stats.items()}
 
         # Checkpoint to be saved.
         chkpt = {'name': self.name,
@@ -367,8 +367,8 @@ class Model(Module):
                  'episode': episode,
                  'loss': loss,
                  'status': training_status,
-                 'training_stats': train_stats,
-                 'validation_stats': valid_stats
+                 'training_stats': training_stats.export_to_checkpoint(),
+                 'validation_stats': validation_stats.export_to_checkpoint()
                 }
 
         # Save the intermediate checkpoint.

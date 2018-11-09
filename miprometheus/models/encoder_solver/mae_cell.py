@@ -127,7 +127,7 @@ class MAECell(Module):
             'name': 'MAE controller and interface',
             'ctrl_dict': self.controller.state_dict(),
             'interface_dict': self.interface.state_dict(),
-            'stats': stat_obj.statistics
+            'stats': stat_obj.export_to_checkpoint()
         }
 
         # Save the intermediate checkpoint.
