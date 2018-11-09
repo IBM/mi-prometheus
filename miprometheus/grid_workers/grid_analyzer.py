@@ -103,11 +103,12 @@ class GridAnalyzer(GridWorker):
 
         # Keep only the folders that contain `testing.csv`.
         experiments_tests = [elem for elem in experiments_tests if 
-            self.check_if_file_exists(elem, 'testing_statistics.csv')]
+            self.check_if_file_exists(elem, 'testing_configuration.yaml') and
+            self.check_if_file_exists(elem, 'testing_set_agg_statistics.csv') ]
 
         # Check if the files contain any collected training/validation statistics.
         experiments_tests = [elem for elem in experiments_tests if 
-            self.check_file_content(elem, 'testing_statistics.csv')]
+            self.check_file_content(elem, 'testing_set_agg_statistics.csv')]
         return experiments_tests
 
     def setup_grid_experiment(self):
@@ -164,38 +165,21 @@ class GridAnalyzer(GridWorker):
             exit(-2)
 
         # List folders with "valid" experiments.
-        exp_str = "Found the following valid experiments in {} directory:\n".format(self.experiment_rootdir)
+        exp_str = "Found the following valid experiments in directory: {} \n".format(self.experiment_rootdir)
         exp_str += '='*80 + '\n'
         for exp in self.experiments_list:
             exp_str += " - {}\n".format(exp)
         exp_str += '='*80 + '\n'
         self.logger.info(exp_str)
 
-        # Detect how many tests runs have been done for each experiments/models.
-        number_of_test = []
-        for exp_path in self.experiments_list:
-            # Get all tests for a given training experiment.
-            experiments_tests = self.get_experiment_tests(exp_path)
-
-            # Save number of tests.
-            number_of_test.append(len(experiments_tests))
-
-        # Not sure why we need that :]
-        # Assert that the number is the same for all experiments.
-        if len(set(number_of_test)) != 1:
-            self.logger.error('Not all experiments have the same number of tests statistics collected!')
-            exit(-3)
-        
-        # Get number of tests.
-        self.num_tests = number_of_test[0]
-
-        # Check number of tests.
-        if self.num_tests < 1:
-            self.logger.error('Tests statistics not found! (hint: please use mip-tester/mip-grid-tester to collect them)')
-            exit(-4)
-        # Ok, proceed.
-        self.logger.info('Detected number of tests per experiment: {}'.format(self.num_tests))
-
+        # Ask for confirmation - optional.
+        if self.flags.user_confirm:
+            try:
+                input('Press <Enter> to confirm and start the grid analyzis\n')
+            except Exception:
+                pass            
+            except KeyboardInterrupt:
+                exit(0)    
 
     def run_experiment(self, experiment_path: str):
         """
@@ -207,62 +191,108 @@ class GridAnalyzer(GridWorker):
         :type experiment_path: str
 
         """
-        # Create results dictionary.
-        r = dict()  
+        self.logger.info('Analysing experiment from: {}'.format(experiment_path))
 
+        # Create dictionaries.
+        status_dict = dict()
+        train_dict = dict()
+        valid_dict = dict()
 
         # Load yaml file. To get model name, problem name and random seeds
         with open(os.path.join(experiment_path, 'training_configuration.yaml'), 'r') as yaml_file:
             params = yaml.load(yaml_file)
 
         # Get problem and model names - from config.
-        r['problem'] = params['testing']['problem']['name']
-        r['model'] = params['model']['name']
+        status_dict['problem'] = params['testing']['problem']['name']
+        status_dict['model'] = params['model']['name']
 
         # Load checkpoint from model file.
         chkpt = torch.load(os.path.join(experiment_path, 'models/model_best.pt'),
             map_location=lambda storage, loc: storage)
 
-        r['model_timestamp'] = '{0:%Y%m%d_%H%M%S}'.format(chkpt['timestamp']) 
+        status_dict['model_timestamp'] = '{0:%Y%m%d_%H%M%S}'.format(chkpt['timestamp']) 
+        status_dict['train_status'] = chkpt['status']
 
-        # Get episode - from checkpoint.
-        episode = int(chkpt['episode'])
+        # Create "empty" equivalent.
+        status_dict_empty = {k: ' ' for k,v in status_dict.items()}
 
-        # Copy training status - from checkpoint.
-        r['train_status'] = chkpt['status']
-
-        r['train_start'] = os.path.basename(os.path.normpath(experiment_path))
-        r['train_seed_torch'] = params['training']['seed_torch']
-        r['train_seed_numpy'] = params['training']['seed_numpy']                    
+        # Copy training status stats.
+        train_dict['train_config'] = os.path.join(experiment_path, 'training_configuration.yaml')
+        train_dict['train_start'] = os.path.basename(os.path.normpath(experiment_path))
+        train_dict['train_seed_torch'] = params['training']['seed_torch']
+        train_dict['train_seed_numpy'] = params['training']['seed_numpy']                    
 
         # Copy training statistics and add 'valid_' prefices from 
         for key, value in chkpt['training_stats'].items():
-            r['train_{}'.format(key)] = value
+            train_dict['train_{}'.format(key)] = value
+        # Create "empty" equivalent.
+        train_dict_empty = {k: ' ' for k,v in train_dict.items()}
 
         # Copy validation statistics and add 'valid_' prefices from 
         for key, value in chkpt['validation_stats'].items():
-            r['valid_{}'.format(key)] = value
-
-        # Ok, return what we got right now.
-        return r
+            valid_dict['valid_{}'.format(key)] = value
+        # Create "empty" equivalent.
+        valid_dict_empty = {k: ' ' for k,v in valid_dict.items()}
 
         # Get all tests for a given training experiment.
         experiments_tests = self.get_experiment_tests(experiment_path)
 
-        # Get test statistics
-        for test_idx, experiment_test_path in zip(range(1, self.num_tests+1), experiments_tests):
+        list_test_dicts = []
+        if len(experiments_tests) > 0:
+            self.logger.info('  - Found {} test(s)'.format(len(experiments_tests)))
+            # "Expand" status, train and valid dicts by empty ones.
+            list_status_dicts = [status_dict, *[status_dict_empty for i in range(len(experiments_tests)-1)]]
+            list_train_dicts = [train_dict, *[train_dict_empty for i in range(len(experiments_tests)-1)]]
+            list_valid_dicts = [valid_dict, *[valid_dict_empty for i in range(len(experiments_tests)-1)]]
 
+            # Get tests statistics.
+            for experiment_test_path in experiments_tests:
+                self.logger.info('  - Analyzing test from: {}'.format(experiment_test_path))
+                # Create test dict,
+                test_dict = dict()
+                test_dict['test_config'] = os.path.join(experiment_test_path, 'testing_set_agg_statistics.yaml')
+                test_dict['test_start'] = os.path.basename(os.path.normpath(experiment_test_path))[5:]
+                # Load yaml file and get random seeds.
+                with open(os.path.join(experiment_test_path, 'testing_configuration.yaml'), 'r') as yaml_file:
+                    test_params = yaml.load(yaml_file)  
+                    # Get seeds.             
+                    test_dict['test_seed_torch'] = test_params['testing']['seed_torch']
+                    test_dict['test_seed_numpy'] = test_params['testing']['seed_numpy']                    
 
-            with open(os.path.join(experiment_test_path, 'testing_statistics.csv'), mode='r') as f:
-                train_reader = csv.DictReader(f)
-                # Get row with episode.
-                for row in train_reader: 
-                    # Iterate over column name and value.
-                    if int(row['episode']) == episode:
-                        # Copy training statistics.
+                with open(os.path.join(experiment_test_path, 'testing_statistics.csv'), mode='r') as f:
+                    # Open file.
+                    test_reader = csv.DictReader(f)
+                    # Copy training statistics.
+                    for row in test_reader:
                         for key, value in row.items():
-                            r['test_{}'.format(key)] = value   
-        return r
+                            test_dict['test_{}'.format(key)] = value   
+                list_test_dicts.append(test_dict)
+        else:
+            self.logger.info('  - Could not find any valid tests')
+            list_status_dicts = [status_dict]
+            list_train_dicts = [train_dict]
+            list_valid_dicts = [valid_dict]
+            # Add "empty test entry"
+            list_test_dicts.append({})
+
+        # Return all dictionaries with lists
+        return list_status_dicts, list_train_dicts, list_valid_dicts, list_test_dicts
+
+    def merge_list_dicts(self, list_dicts):
+        """ Function merges list of ditionaries by using filling the missing fields with spaces. """
+
+        # Create "unified" header.
+        header = set(k for d in list_dicts for k in d)
+        # Create "empty" dict with unified header.
+        empty_dict = {k:' ' for k in header}
+        # "Fill" all lists with empty gaps.
+        list_filled_dicts = []
+        for i,_ in enumerate(list_dicts):
+            list_filled_dicts.append({**empty_dict, **(list_dicts[i])})
+        # Zip lists of dics.
+        final_dict = dict(zip(header, zip(*[d.values() for d in list_filled_dicts])))
+        # Return the result.
+        return final_dict
 
     def run_grid_experiment(self):
         """
@@ -270,16 +300,33 @@ class GridAnalyzer(GridWorker):
 
         Maps the grid analysis to CPU cores in the limit of the available cores.
 
-
         """
         # Go throught experiments one by one and collect data.
-        list_dict_exp = []
+        list_statuses = []
+        list_trains = []
+        list_valids = []
+        list_tests = []
         for exp in self.experiments_list:
-            print(exp)
-            list_dict_exp.append(self.run_experiment(exp))
+            statuses, trains, valids, tests = self.run_experiment(exp)
+            list_statuses.extend(statuses)
+            list_trains.extend(trains)
+            list_valids.extend(valids)
+            list_tests.extend(tests)
 
-        print(list_dict_exp)
-        exp_values = dict(zip(list_dict_exp[0], zip(*[d.values() for d in list_dict_exp])))
+        # Merge lists.
+        statuses = self.merge_list_dicts(list_statuses)
+        trains = self.merge_list_dicts(list_trains)
+        valids = self.merge_list_dicts(list_valids)
+        tests = self.merge_list_dicts(list_tests)
+
+        print(statuses)
+        print(trains)
+        print(valids)
+        print(tests)
+
+        # Merge everything into one big dictionary..
+        exp_values =  {**statuses, **trains, **valids, **tests}
+        print(exp_values)
 
         # create results file
         results_file = os.path.join(self.experiment_rootdir, "{0:%Y%m%d_%H%M%S}_grid_analysis.csv".format(datetime.now()))
@@ -289,8 +336,8 @@ class GridAnalyzer(GridWorker):
             writer.writerow(exp_values.keys())
             writer.writerows(zip(*exp_values.values()))
 
-        self.logger.info('Analysis done.')
-        self.logger.info('Results stored in {}.'.format(results_file))
+        self.logger.info('Analysis done')
+        self.logger.info('Results stored in {}'.format(results_file))
 
 
 def main():

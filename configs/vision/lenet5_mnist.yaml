@@ -15,10 +15,10 @@ training:
     name: Adam
     lr: 0.01
   # settings parameters
-  #terminal_condition:
-  #  loss_stop: 1.0e-3
-  #  episode_limit: 10000
-  #  epoch_limit: 10
+  terminal_condition:
+    loss_stop: 1.0e-3
+    episode_limit: 10000
+    epoch_limit: 10
 
 # Validation parameters:
 validation:
