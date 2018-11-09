@@ -7,15 +7,32 @@ grid_tasks:
 # Sest exactly the same experiment conditions.
 grid_overwrite:
     training:
-        # Set the same optimizer parameters.
+        problem:
+            batch_size: 500
+        sampler:
+            name: SubsetRandomSampler
+            indices: [0, 55000]
+       # Set the same optimizer parameters.
         optimizer:
             name: Adam
             lr: 0.01
         # Set the same terminal conditions.
         terminal_conditions:
-            loss_stop: 1.0e-5
-            episode_limit: 5000
-            epoch_limit: 5 
+            loss_stop: 1.0e-2
+            episode_limit: 10000
+            epoch_limit: 10
+
+    # Problem parameters:
+    validation:
+        problem:
+            batch_size: 500
+        sampler:
+            name: SubsetRandomSampler
+            indices: [55000, 60000]
+
+    testing:
+        problem:
+            batch_size: 500
 
 grid_settings:
     # Set number of repetitions of each experiments.

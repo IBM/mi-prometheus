@@ -4,7 +4,7 @@ training:
     name: &name MNIST
     batch_size: 64
     use_train_data: True
-    mnist_folder: &folder '~/data/mnist'
+    data_folder: &folder '~/data/mnist'
     resize: [32, 32]
   # Use sampler that operates on a subset.
   sampler:
@@ -16,7 +16,7 @@ training:
     lr: 0.01
   # settings parameters
   #terminal_condition:
-  #  loss_stop: 1.0e-5
+  #  loss_stop: 1.0e-3
   #  episode_limit: 10000
   #  epoch_limit: 10
 
@@ -27,7 +27,7 @@ validation:
     name: *name 
     batch_size: 64
     use_train_data: True
-    mnist_folder: *folder
+    data_folder: *folder
     resize: [32, 32]
   # Use sampler that operates on a subset.
   sampler:
@@ -40,7 +40,7 @@ testing:
     name: *name
     batch_size: 10000
     use_train_data: False
-    mnist_folder: *folder
+    data_folder: *folder
     resize: [32, 32]
 
 # Model parameters:
