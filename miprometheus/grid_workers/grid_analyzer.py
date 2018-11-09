@@ -294,37 +294,40 @@ class GridAnalyzer(GridWorker):
         Maps the grid analysis to CPU cores in the limit of the available cores.
 
         """
-        # Go throught experiments one by one and collect data.
-        list_statuses = []
-        list_trains = []
-        list_valids = []
-        list_tests = []
-        for exp in self.experiments_list:
-            statuses, trains, valids, tests = self.run_experiment(exp)
-            list_statuses.extend(statuses)
-            list_trains.extend(trains)
-            list_valids.extend(valids)
-            list_tests.extend(tests)
+        try:
+            # Go throught experiments one by one and collect data.
+            list_statuses = []
+            list_trains = []
+            list_valids = []
+            list_tests = []
+            for exp in self.experiments_list:
+                statuses, trains, valids, tests = self.run_experiment(exp)
+                list_statuses.extend(statuses)
+                list_trains.extend(trains)
+                list_valids.extend(valids)
+                list_tests.extend(tests)
 
-        # Merge lists.
-        statuses = self.merge_list_dicts(list_statuses)
-        trains = self.merge_list_dicts(list_trains)
-        valids = self.merge_list_dicts(list_valids)
-        tests = self.merge_list_dicts(list_tests)
+            # Merge lists.
+            statuses = self.merge_list_dicts(list_statuses)
+            trains = self.merge_list_dicts(list_trains)
+            valids = self.merge_list_dicts(list_valids)
+            tests = self.merge_list_dicts(list_tests)
 
-        # Merge everything into one big dictionary..
-        exp_values =  {**statuses, **trains, **valids, **tests}
+            # Merge everything into one big dictionary..
+            exp_values =  {**statuses, **trains, **valids, **tests}
 
-        # create results file
-        results_file = os.path.join(self.experiment_rootdir, "{0:%Y%m%d_%H%M%S}_grid_analysis.csv".format(datetime.now()))
+            # create results file
+            results_file = os.path.join(self.experiment_rootdir, "{0:%Y%m%d_%H%M%S}_grid_analysis.csv".format(datetime.now()))
 
-        with open(results_file, "w") as outfile:
-            writer = csv.writer(outfile, delimiter=',')
-            writer.writerow(exp_values.keys())
-            writer.writerows(zip(*exp_values.values()))
+            with open(results_file, "w") as outfile:
+                writer = csv.writer(outfile, delimiter=',')
+                writer.writerow(exp_values.keys())
+                writer.writerows(zip(*exp_values.values()))
 
-        self.logger.info('Analyzis finished')
-        self.logger.info('Results stored in {}'.format(results_file))
+            self.logger.info('Analyzis finished')
+            self.logger.info('Results stored in {}'.format(results_file))
+        except KeyboardInterrupt:
+            self.logger.info('Grid analyzis interrupted!')
 
 
 def main():
