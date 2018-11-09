@@ -319,14 +319,8 @@ class GridAnalyzer(GridWorker):
         valids = self.merge_list_dicts(list_valids)
         tests = self.merge_list_dicts(list_tests)
 
-        print(statuses)
-        print(trains)
-        print(valids)
-        print(tests)
-
         # Merge everything into one big dictionary..
         exp_values =  {**statuses, **trains, **valids, **tests}
-        print(exp_values)
 
         # create results file
         results_file = os.path.join(self.experiment_rootdir, "{0:%Y%m%d_%H%M%S}_grid_analysis.csv".format(datetime.now()))
@@ -336,7 +330,7 @@ class GridAnalyzer(GridWorker):
             writer.writerow(exp_values.keys())
             writer.writerows(zip(*exp_values.values()))
 
-        self.logger.info('Analysis done')
+        self.logger.info('Analyzis finished')
         self.logger.info('Results stored in {}'.format(results_file))
 
 
