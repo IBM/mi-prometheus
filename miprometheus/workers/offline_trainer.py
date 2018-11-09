@@ -270,8 +270,8 @@ class OfflineTrainer(Trainer):
                         self.validate_on_batch(self.validation_batch, episode, epoch)
 
                         # Aggregate statistics, but do not display them in log.
-                        self.aggregate_and_export_statistics(self.model, self.validation_problem, 
-                                self.validation_stat_col, self.validation_stat_agg, episode, '[Partial Validation]', False)
+                        #self.aggregate_and_export_statistics(self.model, self.validation_problem, 
+                        #        self.validation_stat_col, self.validation_stat_agg, episode, '[Partial Validation]', False)
 
                         # Do not save the model! Offline trainer uses full set fot determining whether to save or not.
 
