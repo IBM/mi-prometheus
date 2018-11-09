@@ -112,10 +112,10 @@ class MAES(SequentialModel):
         :type training_status: str
 
         :param training_stats: Training statistics that will be saved to checkpoint along with the model.
-        :type training_stats: :py:class:miprometheus.utils.StatisticsAggregator or :py:class:miprometheus.utils.StatisticsAggregator
+        :type training_stats: :py:class:miprometheus.utils.StatisticsCollector or :py:class:miprometheus.utils.StatisticsAggregator
 
         :param validation_stats: Validation statistics that will be saved to checkpoint along with the model.
-        :type validation_stats: :py:class:miprometheus.utils.StatisticsAggregator or :py:class:miprometheus.utils.StatisticsAggregator
+        :type validation_stats: :py:class:miprometheus.utils.StatisticsCollector or :py:class:miprometheus.utils.StatisticsAggregator
 
         :return: True if this is currently the best model (until the current episode, considering the loss).
 

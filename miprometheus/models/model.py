@@ -263,21 +263,21 @@ class Model(Module):
 
     def add_aggregators(self, stat_agg):
         """
-        Adds statistical aggregators to ``StatisticsAggregator``.
+        Adds statistical aggregators to :py:class:miprometheus.utils.StatisticsAggregator.
 
         .. note::
 
             Empty - To be redefined in inheriting classes.
 
 
-        :param stat_agg: ``StatisticsAggregator``.
+        :param stat_agg: :py:class:miprometheus.utils.StatisticsAggregator.
 
         """
         pass
 
     def aggregate_statistics(self, stat_col, stat_agg):
         """
-        Aggregates the statistics collected by ``StatisticsCollector`` and adds the results to ``StatisticsAggregator``.
+        Aggregates the statistics collected by :py:class:miprometheus.utils.StatisticsCollector`` and adds the results to :py:class:miprometheus.utils.StatisticsAggregator.
 
          .. note::
 
@@ -289,9 +289,9 @@ class Model(Module):
             the user should also ensure that these statistics are correctly collected \
             (i.e. use of ``self.add_statistics`` and ``self.collect_statistics``).
 
-        :param stat_col: ``StatisticsCollector``.
+        :param stat_col: :py:class:miprometheus.utils.StatisticsAggregatorCollector
 
-        :param stat_agg: ``StatisticsAggregator``.
+        :param stat_agg: :py:class:miprometheus.utils.StatisticsAggregator
 
 
         """
