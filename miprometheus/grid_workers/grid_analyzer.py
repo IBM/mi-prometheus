@@ -214,7 +214,7 @@ class GridAnalyzer(GridWorker):
         status_dict['train_status'] = chkpt['status']
 
         # Create "empty" equivalent.
-        status_dict_empty = {k: ' ' for k,v in status_dict.items()}
+        status_dict_empty = dict.fromkeys(status_dict.keys(), ' ')
 
         # Copy training status stats.
         train_dict['train_config'] = os.path.join(experiment_path, 'training_configuration.yaml')
@@ -226,13 +226,13 @@ class GridAnalyzer(GridWorker):
         for key, value in chkpt['training_stats'].items():
             train_dict['train_{}'.format(key)] = value
         # Create "empty" equivalent.
-        train_dict_empty = {k: ' ' for k,v in train_dict.items()}
+        train_dict_empty = dict.fromkeys(train_dict.keys(), ' ')
 
         # Copy validation statistics and add 'valid_' prefices from 
         for key, value in chkpt['validation_stats'].items():
             valid_dict['valid_{}'.format(key)] = value
         # Create "empty" equivalent.
-        valid_dict_empty = {k: ' ' for k,v in valid_dict.items()}
+        valid_dict_empty = dict.fromkeys(valid_dict.keys(), ' ')
 
         # Get all tests for a given training experiment.
         experiments_tests = self.get_experiment_tests(experiment_path)
