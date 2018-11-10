@@ -329,28 +329,26 @@ class Model(Module):
         :type training_status: str
 
         :param training_stats: Training statistics that will be saved to checkpoint along with the model.
-        :type training_stats: :py:class:miprometheus.utils.StatisticsAggregator or :py:class:miprometheus.utils.StatisticsAggregator
+        :type training_stats: :py:class:`miprometheus.utils.StatisticsCollector` or \
+        :py:class:`miprometheus.utils.StatisticsAggregator`
 
         :param validation_stats: Validation statistics that will be saved to checkpoint along with the model.
-        :type validation_stats: :py:class:miprometheus.utils.StatisticsAggregator or :py:class:miprometheus.utils.StatisticsAggregator
+        :type validation_stats: :py:class:`miprometheus.utils.StatisticsCollector` or \
+        :py:class:`miprometheus.utils.StatisticsAggregator`
 
         :return: True if this is currently the best model (until the current episode, considering the loss).
 
         """
-        # Proces validation  statistics, get the episode and loss.
+        # Process validation statistics, get the episode and loss.
         if validation_stats.__class__.__name__ == 'StatisticsCollector':
             # Get data from collector.
             episode = validation_stats['episode'][-1]
             loss = validation_stats['loss'][-1]
-            # "Copy" last values only.
-            #valid_stats = {k: v[-1] for k, v in validation_stats.items()}
 
         else:
-            # Get data from aggregator.
+            # Get data from StatisticsAggregator.
             episode = validation_stats['episode']
             loss = validation_stats['loss']
-            # Simply copy values.
-            #valid_stats = {k: v for k, v in validation_stats.items()}
 
         # Checkpoint to be saved.
         chkpt = {'name': self.name,

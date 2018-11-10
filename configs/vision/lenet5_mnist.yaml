@@ -2,7 +2,7 @@
 training:
   problem:
     name: &name MNIST
-    batch_size: 64
+    batch_size: &b 64
     use_train_data: True
     data_folder: &folder '~/data/mnist'
     resize: [32, 32]
@@ -25,8 +25,8 @@ validation:
   #partial_validation_interval: 100
   problem:
     name: *name 
-    batch_size: 64
-    use_train_data: True
+    batch_size: *b
+    use_train_data: True  # True because we are splitting the training set to: validation and training
     data_folder: *folder
     resize: [32, 32]
   # Use sampler that operates on a subset.
@@ -38,7 +38,7 @@ validation:
 testing:
   problem:
     name: *name
-    batch_size: 10000
+    batch_size: *b
     use_train_data: False
     data_folder: *folder
     resize: [32, 32]

@@ -4,11 +4,11 @@ grid_tasks:
     -
         default_configs: configs/vision/simplecnn_mnist.yaml
 
-# Sest exactly the same experiment conditions.
+# Set exactly the same experiment conditions for the 2 tasks.
 grid_overwrite:
     training:
         problem:
-            batch_size: 1000
+            batch_size: &b 1000
         sampler:
             name: SubsetRandomSampler
             indices: [0, 55000]
@@ -25,14 +25,14 @@ grid_overwrite:
     # Problem parameters:
     validation:
         problem:
-            batch_size: 1000
+            batch_size: *b
         sampler:
             name: SubsetRandomSampler
             indices: [55000, 60000]
 
     testing:
         problem:
-            batch_size: 1000
+            batch_size: *b
 
 grid_settings:
     # Set number of repetitions of each experiments.

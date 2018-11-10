@@ -26,7 +26,7 @@ training:
 validation:
     problem:
         name: *name
-        batch_size: 5000
+        batch_size: *b
         data_folder: *folder
         use_train_data: True  # True because we are splitting the training set to: validation and training
         resize: [32, 32]
@@ -43,7 +43,7 @@ testing:
     #seed_torch: 2452
     problem:
         name: *name
-        batch_size: 10000
+        batch_size: *b
         data_folder: *folder
         use_train_data: False
         resize: [32, 32]

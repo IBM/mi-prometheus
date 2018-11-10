@@ -19,9 +19,10 @@
 grid_trainer_cpu.py:
 
     - This file contains the implementation of a worker spanning a grid of training experiments on \
-     a collection of CPUs. It works by loading a template yaml file, modifying the resulting dict, and dumping \
-      that as yaml into a temporary file. The specified ``Trainer`` is then executed using the temporary yaml \
-      file as the task. This grid trainer will run as many concurrent jobs as possible.
+     a collection of CPUs.
+    - It works by loading a template yaml file, modifying the resulting dict, and dumping \
+     that as yaml into a temporary file. The specified :py:class:`miprometheus.workers.Trainer` is then \
+    executed using the temporary yaml file as the task. This grid trainer will run as many concurrent jobs as possible.
 
 """
 __author__ = "Alexis Asseman, Ryan McAvoy, Tomasz Kornuta, Vincent Marois"
@@ -43,13 +44,14 @@ class GridTrainerCPU(GridWorker):
     """
     Grid Worker managing several training experiments on CPUs.
 
-    Reuses a ``Trainer`` (can specify the ``classic`` one or the ``flexible`` one) to start one experiment.
+    Reuses a :py:class:`miprometheus.workers.Trainer` (can specify :py:class:`miprometheus.workers.OfflineTrainer` \
+    or :py:class:`miprometheus.workers.OnlineTrainer`) to start one experiment.
 
     """
 
     def __init__(self, name="GridTrainerCPU", use_gpu=False):
         """
-        Constructor for the ``GridTrainerCPU``:
+        Constructor for the :py:class:`miprometheus.grid_workers.GridTrainerCPU`:
 
             - Calls the base constructor to set the worker's name and add default command lines arguments,
             - Adds some ``GridTrainer`` specific command line arguments.
@@ -76,13 +78,15 @@ class GridTrainerCPU(GridWorker):
                                  dest='trainer',
                                  type=str,
                                  default='',
-                                 help='Indicate trainer that will be used (DEFAULT: '' => mip-offline-trainer)')
+                                 help='Indicate which Trainer will be used (DEFAULT: '' => mip-offline-trainer).')
+
 
         self.parser.add_argument('--savetag',
                                  dest='savetag',
                                  type=str,
                                  default='',
-                                 help='Additional tag for the experiment directory')
+                                 help='Additional tag for the (output) experiment directory.')
+
 
         self.parser.add_argument('--tensorboard',
                                  action='store',
@@ -98,13 +102,13 @@ class GridTrainerCPU(GridWorker):
         """
         Setups a specific experiment.
 
-        - Calls the ``super(self).setup_experiment()`` to parse arguments, sets the 3 default sections \
-        (training / validation / test) and sets their dataloaders params.
+        - Calls :py:func:`GridWorker.setup_grid_experiment()` to parse arguments, sets the 3 default sections \
+        (training / validation / test) and sets their :py:class:`torch.utils.data.DataLoader` params.
 
         - Verifies that the specified config file is valid,
 
         - Parses it and recursively creates the configurations files for the grid tasks, overwriting \
-        specific sections if indicated (`grid_overwrite` and/or `overwrite` (task specific),
+        specific sections if indicated: `grid_overwrite` and/or `overwrite` (task specific),
 
         - Creates the output dir.
 
@@ -149,8 +153,8 @@ class GridTrainerCPU(GridWorker):
 
         # Check the presence of mip-*-trainer scripts.
         if shutil.which(self.trainer) is None:
-            self.logger.error("Cannot localize the '{}}' script! " 
-                "(hint: please use setup.py to install it)".format(self.trainer))
+            self.logger.error("Cannot localize the '{}}' script! "
+                              "(hint: please use setup.py to install it)".format(self.trainer))
             exit(-5)
 
         # Get grid settings.
@@ -173,7 +177,7 @@ class GridTrainerCPU(GridWorker):
         # Check the presence of the tasks section.
         if 'grid_tasks' not in grid_dict:
             print("Error: Grid configuration is lacking the 'grid_tasks' section")
-            exit(-6)
+            exit(-7)
 
         # Create temporary file
         param_interface_file = NamedTemporaryFile(mode='w', delete=False)
@@ -206,7 +210,7 @@ class GridTrainerCPU(GridWorker):
             except KeyError:
                 pass
 
-        # at this point, configs should contains the str of config file(s) corresponding to the grid_tasks.
+        # at this point, configs should contain the str of config file(s) corresponding to the grid_tasks.
 
         # Create list of experiments, repeat the ones that are required.
         self.experiments_list = []
@@ -233,26 +237,24 @@ class GridTrainerCPU(GridWorker):
             else:
                 break
 
+    def run_grid_experiment(self):
+        """
+        Main function of the :py:class:`miprometheus.grid_workers.GridTrainerCPU`.
+
+        Maps the grid experiments to CPU cores in the limit of the maximum concurrent runs allowed or maximum \
+        available cores.
+
+        """
         # Ask for confirmation - optional.
         if self.flags.user_confirm:
             try:
                 input('Press <Enter> to confirm and start the grid of experiments\n')
             except KeyboardInterrupt:
-                exit(0)            
-
-
-    def run_grid_experiment(self):
-        """
-        Main function of the ``GridTrainerCPU``.
-
-        Maps the grid experiments to CPU cores in the limit of the maximum concurrent runs allowed or maximum\
-         available cores.
-
-        """
+                exit(0)
         try:
 
             # Check max number of child processes. 
-            if self.max_concurrent_runs <= 0: # We need at least one proces!
+            if self.max_concurrent_runs <= 0:  # We need at least one process!
                 max_processes = self.get_available_cpus()
             else:    
                 # Take into account the minimum value.
@@ -281,12 +283,13 @@ class GridTrainerCPU(GridWorker):
         :type prefix: str
 
 
-        ..note::
+        .. note::
 
-            - Not using the ``--model`` argument of the ``Trainer`` to load a pretrained model.
             - Visualization is deactivated to avoid any user interaction.
             - Command-line arguments such as the logging interval (``--li``), tensorboard (``--t``) and log level \
-            (``--ll``) are passed to the used ``Trainer``.
+            (``--ll``) are passed to the used :py:class:`miprometheus.workers.Trainer`
+            - Not using the `--model` command-line argument of the :py:class:`miprometheus.workers.Trainer` \
+            to load a pretrained model. Please use instead the configuration parameter `load` in the `model` section.
 
 
         """
@@ -325,7 +328,7 @@ class GridTrainerCPU(GridWorker):
 
 def main():
     """
-    Entry point function for the ``GridTrainerCPU``.
+    Entry point function for the :py:class:`miprometheus.grid_workers.GridTrainerCPU`.
 
     """
     grid_trainer_cpu = GridTrainerCPU()
