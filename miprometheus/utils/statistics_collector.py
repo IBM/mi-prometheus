@@ -30,8 +30,7 @@ class StatisticsCollector(Mapping):
     Specialized class used for the collection and export of statistics during\
      training, validation and testing.
 
-    Inherits ``collections.Mapping``, therefore it offers functionality\
-     close to a ``dict``.
+    Inherits :py:class:`collections.Mapping`, therefore it offers functionality close to a ``dict``.
 
     """
 
@@ -199,7 +198,7 @@ class StatisticsCollector(Mapping):
         :type additional_tag: str
 
 
-        :return: String being the concatenation of the statistical aggregators names & values.
+        :return: String being the concatenation of the statistics names & values.
 
         """
         # Iterate through keys and values and concatenate them.
@@ -227,6 +226,7 @@ class StatisticsCollector(Mapping):
         Method exports current statistics to tensorboard.
 
         :param tb_writer: TensorBoard writer, optional.
+        :type tb_writer: :py:class:`tensorboardX.SummaryWriter`
 
         """
         # Get episode number.
