@@ -66,7 +66,7 @@ class GridTesterCPU(GridWorker):
                                  dest='experiment_repetitions',
                                  type=int,
                                  default=1,
-                                 help='Number of experiment repetitions to run for each model.'
+                                 help='Number of experiment repetitions to run for each model'
                                  ' (DEFAULT=1)')
 
         # Get number_of_repetitions
