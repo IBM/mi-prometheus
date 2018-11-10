@@ -72,12 +72,14 @@ class GridTrainerCPU(GridWorker):
                                  type=str,
                                  default='',
                                  help='Name of the configuration file(s) to be loaded. '
-                                      'If specifying more than one file, they must be separated with coma ",".')
+                                      'If specifying more than one file, they must be separated with coma ","')
 
-        self.parser.add_argument('--online_trainer',
-                                 dest='online_trainer',
-                                 action='store_true',
-                                 help='Select the OnlineTrainer instead of the default OfflineTrainer.')
+        self.parser.add_argument('--trainer',
+                                 dest='trainer',
+                                 type=str,
+                                 default='',
+                                 help='Indicate which Trainer will be used (DEFAULT: '' => mip-offline-trainer).')
+
 
         self.parser.add_argument('--savetag',
                                  dest='savetag',
@@ -85,15 +87,16 @@ class GridTrainerCPU(GridWorker):
                                  default='',
                                  help='Additional tag for the (output) experiment directory.')
 
+
         self.parser.add_argument('--tensorboard',
                                  action='store',
                                  dest='tensorboard', choices=[0, 1, 2],
                                  type=int,
                                  help="If present, enable logging to TensorBoard. Available log levels:\n"
-                                      "0: Log the collected statistics.\n"
-                                      "1: Add the histograms of the model's biases & weights (Warning: Slow).\n"
+                                      "0: Log the collected statistics\n"
+                                      "1: Add the histograms of the model's biases & weights (Warning: Slow)\n"
                                       "2: Add the histograms of the model's biases & weights gradients "
-                                      "(Warning: Even slower).")
+                                      "(Warning: Even slower)")
 
     def setup_grid_experiment(self):
         """
@@ -132,17 +135,27 @@ class GridTrainerCPU(GridWorker):
             print('yaml.YAMLERROR: ', e)
             exit(-3)
 
-        # Check the presence of mip-*-trainer scripts.
-        if self.flags.online_trainer:
-            if shutil.which('mip-online-trainer') is None:
-                self.logger.error("Cannot localize the 'mip-online-trainer' script! "
-                                  "(hint: please use setup.py to install it)")
-                exit(-4)
+        # Set trainer.
+        if self.flags.trainer != '':
+            self.trainer = self.flags.trainer      
         else:
-            if shutil.which('mip-offline-trainer') is None:
-                self.logger.error("Cannot localize the 'mip-offline-trainer' script! "
-                                  "(hint: please use setup.py to install it)")
-                exit(-4)
+            # Try to read from config.
+            try: 
+                self.trainer = grid_dict['grid_settings']['trainer']
+            except KeyError:
+                # Set offline trainer as default.
+                self.trainer = 'mip-offline-trainer'
+
+        # Check it user indicated a valid trainer.
+        if self.trainer not in ['mip-offline-trainer', 'mip-online-trainer']:
+            self.logger.error("Indicated '{}' does not exists!".format(self.trainer))
+            exit(-4)
+
+        # Check the presence of mip-*-trainer scripts.
+        if shutil.which(self.trainer) is None:
+            self.logger.error("Cannot localize the '{}}' script! "
+                              "(hint: please use setup.py to install it)".format(self.trainer))
+            exit(-5)
 
         # Get grid settings.
         try:
@@ -150,7 +163,7 @@ class GridTrainerCPU(GridWorker):
             self.max_concurrent_runs = grid_dict['grid_settings']['max_concurrent_runs']
         except KeyError:
             print("Error: The 'grid_settings' section must define 'experiment_repetitions' and 'max_concurrent_runs'")
-            exit(-5)
+            exit(-6)
 
         # Check the presence of grid_overwrite section.
         if 'grid_overwrite' not in grid_dict:
@@ -164,7 +177,7 @@ class GridTrainerCPU(GridWorker):
         # Check the presence of the tasks section.
         if 'grid_tasks' not in grid_dict:
             print("Error: Grid configuration is lacking the 'grid_tasks' section")
-            exit(-6)
+            exit(-7)
 
         # Create temporary file
         param_interface_file = NamedTemporaryFile(mode='w', delete=False)
@@ -282,11 +295,8 @@ class GridTrainerCPU(GridWorker):
         """
         try:
 
-            # set the command to be executed using the indicated Trainer
-            if self.flags.online_trainer:
-                command_str = "{}mip-online-trainer".format(prefix)
-            else:
-                command_str = "{}mip-offline-trainer".format(prefix)
+            # Set the command to be executed using the indicated trainer and prefix.
+            command_str = "{}{}".format(prefix,self.trainer)
 
             # Add gpu flag if required.
             if self.app_state.use_CUDA:

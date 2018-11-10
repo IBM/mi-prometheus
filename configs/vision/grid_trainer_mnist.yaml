@@ -39,4 +39,5 @@ grid_settings:
     experiment_repetitions: 5
     # Set number of concurrent running experiments.
     max_concurrent_runs: 4
-
+    # Set trainer.
+    trainer: mip-online-trainer
