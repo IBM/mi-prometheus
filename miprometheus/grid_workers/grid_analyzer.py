@@ -112,15 +112,11 @@ class GridAnalyzer(GridWorker):
 
         - Parses arguments and sets logger level.
 
-        - Recursively creates the paths to the experiments folders, verifying that they contain \
-        basic statistics files, i.e. `training_statistics.csv`, `validation_statistics.csv` and  \
-        `testing_statistics.csv`.
+        - Checks the presence of experiments folder.
 
-        ..note::
-
-            We also require that those files are valid, i.e. contain at least one line with \
-            collected statistics (excluding the header).
-        
+        - Recursively traverses the experiment folders, cherry-picking subfolders containing \
+        (a) 'training_configuration.yaml' and (b) 'models/model_best.pt'.
+       
         """
         # Parse arguments.
         self.flags, self.unparsed = self.parser.parse_known_args()
@@ -176,12 +172,29 @@ class GridAnalyzer(GridWorker):
 
     def run_experiment(self, experiment_path: str):
         """
-        Analyzes test results.
+        
+        Collects statistics for a given training validation. \
+        Analyzes whether given training experiment folder contains subfolder with tests.
 
-        TODO: complete doc
+         - Loades and parses training configuration file.
 
-        :param experiment_path: Path to an experiment folder containing a trained model.
+         - Loads checkpoint with model and training and validation statistics.
+
+       ..note::
+
+            We require that test csv files are valid, i.e. contain at least one line with \
+            collected statistics (excluding the header).
+
+        - Recursivelly traverses subdirectories looking for test experiments.
+
+        - Collects statistics from training, validation (from model checkpoint) and test experiments \
+        (from test csv files found in subdirectories).
+
+        :param experiment_path: Path to an experiment folder containing a training statistics.
         :type experiment_path: str
+
+        :returns: four dictionaries containing: status info (model, problem etc.), \
+        training, validation, testing.
 
         """
         self.logger.info('Analysing experiment from: {}'.format(experiment_path))
@@ -272,8 +285,11 @@ class GridAnalyzer(GridWorker):
         return list_status_dicts, list_train_dicts, list_valid_dicts, list_test_dicts
 
     def merge_list_dicts(self, list_dicts):
-        """ Function merges list of ditionaries by using filling the missing fields with spaces. """
-
+        """
+        Function merges list of ditionaries by using filling the missing fields with spaces.
+        
+        :param list_dicts: List of dictionaries, potentially containing different headers, that will be merged.
+        """
         # Create "unified" header.
         header = set(k for d in list_dicts for k in d)
         # Create "empty" dict with unified header.
@@ -289,10 +305,8 @@ class GridAnalyzer(GridWorker):
 
     def run_grid_experiment(self):
         """
-        Constructor for the ``GridAnalyzer``.
-
-        Maps the grid analysis to CPU cores in the limit of the available cores.
-
+        For each experiment path from the self.experiments_lists collects four lists of dictionaries, \
+        merges all them together and saves result to a single csv file.
         """
         try:
             # Go throught experiments one by one and collect data.

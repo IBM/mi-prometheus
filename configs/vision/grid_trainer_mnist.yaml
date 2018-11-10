@@ -18,7 +18,7 @@ grid_overwrite:
             lr: 0.01
         # Set the same terminal conditions.
         terminal_conditions:
-            loss_stop: 3.0e-2
+            loss_stop: 4.0e-2
             episode_limit: 10000
             epoch_limit: 10
 
