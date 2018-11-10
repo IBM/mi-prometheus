@@ -237,6 +237,13 @@ class GridTrainerCPU(GridWorker):
             else:
                 break
 
+        # Ask for confirmation - optional.
+        if self.flags.user_confirm:
+            try:
+                input('Press <Enter> to confirm and start the grid of experiments\n')
+            except KeyboardInterrupt:
+                exit(0)
+
     def run_grid_experiment(self):
         """
         Main function of the :py:class:`miprometheus.grid_workers.GridTrainerCPU`.
@@ -245,12 +252,6 @@ class GridTrainerCPU(GridWorker):
         available cores.
 
         """
-        # Ask for confirmation - optional.
-        if self.flags.user_confirm:
-            try:
-                input('Press <Enter> to confirm and start the grid of experiments\n')
-            except KeyboardInterrupt:
-                exit(0)
         try:
 
             # Check max number of child processes. 
