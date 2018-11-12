@@ -68,7 +68,20 @@ A grid configuration file is available to run the 4 initial training experiments
 =======  =======
 
 
-`To be continued`
+:download:`Grid configuration file <../../../configs/mac/mac_smac_initial_training.yaml>`
+
+Simply run
+
+    >>> mip-grid-trainer-gpu --c mac_smac_initial_training.yaml --savetag vigil_workshop --t 0
+
+The first option points to the grid configuration file.
+The second option indicates an additional tag for the experiments folder.
+The last option will log statistics using a Tensorboard writer. This will allow us to visualize the models convergence plots.
+
+.. note::
+
+    Training for 20 epochs will take ~ 24h on a GPU (one GPU per experiment).
+
 
 
 .. _CLEVR: https://s3-us-west-1.amazonaws.com/clevr/CLEVR_v1.0.zip
