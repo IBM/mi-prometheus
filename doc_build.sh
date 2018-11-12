@@ -8,4 +8,7 @@ sphinx-build -b html source build
 make html
 
 # open web browser(s) to master table of content
-firefox build/index.html
+if which firefox
+then
+    firefox build/index.html
+fi
