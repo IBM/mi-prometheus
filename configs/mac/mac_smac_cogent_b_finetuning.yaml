@@ -7,7 +7,7 @@ grid_tasks:
       # Add the model parameters:
       model:
         name: MACNetwork
-        load: 'path/to/the/trained/model/to/finetune'  # the trained mac model to finetune
+        load: 'path/to/the/trained/model/to/finetune'  # the CogenT-A trained mac model to finetune
   -
     default_configs: configs/mac/s_mac_cogent.yaml  # S-MAC on CoGenT
 
@@ -15,23 +15,23 @@ grid_tasks:
       # Add the model parameters:
       model:
         name: sMacNetwork
-        load: 'path/to/the/trained/model/to/finetune'  # the trained s-mac model to finetune
+        load: 'path/to/the/trained/model/to/finetune'  # the CogenT-A trained s-mac model to finetune
 
 # Parameters that will be overwritten for all tasks.
 grid_overwrite:
 
   training:
-    #use_EMA: True  # EMA: keep track of exponential moving averages of the models weights
+    #use_EMA: True  # EMA: keep track of exponential moving averages of the models weights.
 
     problem:
       settings:
-        set: 'valB'  # finetune on CoGenT-B, on 30k samples indicated by the indices below
+        set: 'valB'  # finetune on CoGenT-B, on 30k samples indicated by the indices below.
     sampler:
       name: 'SubsetRandomSampler'
       indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_finetuning_valB_indices.txt'
 
     terminal_conditions:
-      epoch_limit: 10  # finetune for 10 epochs
+      epoch_limit: 10  # finetune for 10 epochs.
 
     # fix the seeds
     seed_torch: 0
@@ -40,7 +40,7 @@ grid_overwrite:
   validation:
     problem:
       settings:
-        set: 'trainA'  # use the same validation set as during initial training (-> 10% of the true training set)
+        set: 'trainA'  # use the same validation set as during initial training (-> 10% of the true training set).
     sampler:
       name: 'SubsetRandomSampler'
       indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_val_set_indices.txt'
@@ -48,14 +48,16 @@ grid_overwrite:
   testing:
     problem:
       settings:
-        set: 'valB' # test the model on the CoGenT-B validation set, but on the complementary samples (not used for finetuning)
-      # set: 'valA' # for test on condition A. No sampler is needed in this case as we consider the entire validation set
+        set: 'valB' # test the model on the CoGenT-B validation set, but on the complementary samples (not used for finetuning).
+      # set: 'valA' # for test on condition A. No sampler is needed in this case as we consider the entire validation set.
     sampler:
       name: 'SubsetRandomSampler'
       indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_test_valB_indices.txt'
 
 grid_settings:
-  # Number of times each task will be repeated.
+  # Set number of repetitions of each experiments.
   experiment_repetitions: 1
-  # Max runs (that will be limited by the actual number of available CPUs/GPUs)
+  # Set number of concurrent running experiments (will be limited by the actual number of available CPUs/GPUs).
   max_concurrent_runs: 7
+  # Set trainer.
+  trainer: mip-offine-trainer

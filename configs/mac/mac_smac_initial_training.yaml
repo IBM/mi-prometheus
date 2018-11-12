@@ -66,14 +66,16 @@ grid_overwrite:
 
   # Training configuration.
   training:
-    #use_EMA: True  # EMA: keep track of exponential moving averages of the models weights
+    #use_EMA: True  # EMA: keep track of exponential moving averages of the models weights.
 
     # fix the seeds
     seed_torch: 0
     seed_numpy: 0
   
 grid_settings:
-  # Number of times each task will be repeated.
+  # Set number of repetitions of each experiments.
   experiment_repetitions: 1
-  # Max runs (that will be limited by the actual number of available CPUs/GPUs)
+  # Set number of concurrent running experiments (will be limited by the actual number of available CPUs/GPUs).
   max_concurrent_runs: 7
+  # Set trainer.
+  trainer: mip-offine-trainer
