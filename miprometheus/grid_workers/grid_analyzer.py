@@ -245,27 +245,27 @@ class GridAnalyzer(GridWorker):
         chkpt = torch.load(os.path.join(experiment_path, 'models/model_best.pt'),
                            map_location=lambda storage, loc: storage)
 
-        status_dict['model_timestamp'] = '{0:%Y%m%d_%H%M%S}'.format(chkpt['timestamp']) 
-        status_dict['train_status'] = chkpt['status']
+        status_dict['model_save_time'] = '{0:%Y%m%d_%H%M%S}'.format(chkpt['timestamp']) 
+        status_dict['training_terminal_status'] = chkpt['status']
 
         # Create "empty" equivalent.
         status_dict_empty = dict.fromkeys(status_dict.keys(), ' ')
 
         # Copy training status stats.
-        train_dict['train_config'] = os.path.join(experiment_path, 'training_configuration.yaml')
-        train_dict['train_start'] = os.path.basename(os.path.normpath(experiment_path))
-        train_dict['train_seed_torch'] = params['training']['seed_torch']
-        train_dict['train_seed_numpy'] = params['training']['seed_numpy']                    
+        train_dict['training_configuration_filepath'] = os.path.join(experiment_path, 'training_configuration.yaml')
+        train_dict['training_start_timestamp'] = os.path.basename(os.path.normpath(experiment_path))
+        train_dict['training_seed_torch'] = params['training']['seed_torch']
+        train_dict['training_seed_numpy'] = params['training']['seed_numpy']                    
 
         # Copy the training statistics from the checkpoint and add the 'train_' prefix.
         for key, value in chkpt['training_stats'].items():
-            train_dict['train_{}'.format(key)] = value
+            train_dict['training_{}'.format(key)] = value
         # Create "empty" equivalent.
         train_dict_empty = dict.fromkeys(train_dict.keys(), ' ')
 
         # Copy the validation statistics from the checkpoint and add the 'valid_' prefix.
         for key, value in chkpt['validation_stats'].items():
-            valid_dict['valid_{}'.format(key)] = value
+            valid_dict['validation_{}'.format(key)] = value
         # Create "empty" equivalent.
         valid_dict_empty = dict.fromkeys(valid_dict.keys(), ' ')
 
@@ -288,8 +288,8 @@ class GridAnalyzer(GridWorker):
 
                 # Create test dict:
                 test_dict = dict()
-                test_dict['test_config'] = os.path.join(experiment_test_path, 'testing_set_agg_statistics.yaml')
-                test_dict['test_start'] = os.path.basename(os.path.normpath(experiment_test_path))[5:]
+                test_dict['test_configuration_filepath'] = os.path.join(experiment_test_path, 'testing_set_agg_statistics.yaml')
+                test_dict['test_start_timestamp'] = os.path.basename(os.path.normpath(experiment_test_path))[5:]
 
                 # Load yaml file and get random seeds.
                 with open(os.path.join(experiment_test_path, 'testing_configuration.yaml'), 'r') as yaml_file:
@@ -299,7 +299,7 @@ class GridAnalyzer(GridWorker):
                     test_dict['test_seed_numpy'] = test_params['testing']['seed_numpy']                    
 
                 # Load csv file and copy test statistics
-                with open(os.path.join(experiment_test_path, 'testing_statistics.csv'), mode='r') as f:
+                with open(os.path.join(experiment_test_path, 'testing_set_agg_statistics.csv'), mode='r') as f:
                     # Open file.
                     test_reader = csv.DictReader(f)
 

@@ -169,8 +169,8 @@ class OfflineTrainer(Trainer):
             # Reset the counter.
             episode = -1
 
-            # Set default termination cause.
-            training_status = "Epoch limit reached"
+            # Set initial status.
+            training_status = "Not Converged"
             # Iterate over epochs.
             for epoch in range(self.epoch_limit):
                 self.logger.info('Starting next epoch: {}'.format(epoch))
@@ -314,7 +314,12 @@ class OfflineTrainer(Trainer):
 
                     # Check the Full Validation loss.
                     if self.validation_stat_agg["loss"] < self.loss_stop:
+                        # Change the status...
                         training_status = "Model converged (Full Validation Loss went below Loss Stop threshold)"
+
+                        # ... and THEN try to save the model using the average validation loss.
+                        self.model.save(self.model_dir, training_status, self.training_stat_agg, self.validation_stat_agg)
+
                         break
 
                 # II. Early stopping is set and loss hasn't improved by delta in n epochs.
@@ -341,7 +346,12 @@ class OfflineTrainer(Trainer):
             # Validate over the entire validation set.
             self.validate_on_set(episode, epoch)
 
-            # Do not save the model, as we tried it already on "last" validation.
+            # Try to save the model only if we hit the epoch limit.
+            if epoch+1 >= self.epoch_limit:
+                # Change the status...
+                training_status = "Epoch Limit reached"
+                # ... and THEN try to save the model using the average validation loss.
+                self.model.save(self.model_dir, training_status, self.training_stat_agg, self.validation_stat_agg)
 
             self.logger.info('Experiment finished!')
 

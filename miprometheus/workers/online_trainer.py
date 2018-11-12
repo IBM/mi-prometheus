@@ -165,7 +165,7 @@ class OnlineTrainer(Trainer):
             # Inform the training problem class that epoch has started.
             self.training_problem.initialize_epoch(epoch)
 
-            # Set default termination cause.
+            # Set initial status.
             training_status = "Not Converged"
             for training_dict in self.training_dataloader:
 
@@ -265,8 +265,12 @@ class OnlineTrainer(Trainer):
 
                         # Check the Partial Validation loss.
                         if (validation_loss < self.loss_stop):
+                            # Change the status...
                             training_status = "Model converged (Partial Validation Loss went below " \
                                 "Loss Stop threshold)"
+
+                            # ... and THEN save the model using the latest validation statistics.
+                            self.model.save(self.model_dir, training_status, self.training_stat_col, self.validation_stat_col)
                             break
 
                     # II. Early stopping is set and loss hasn't improved by delta in n epochs.
@@ -324,7 +328,7 @@ class OnlineTrainer(Trainer):
                 # Perform validation.
                 self.validate_on_batch(self.validation_batch, episode, epoch)
 
-                # Save the model using the latest validation statistics.
+                # Try to save the model using the latest validation statistics.
                 self.model.save(self.model_dir, training_status, self.training_stat_col, self.validation_stat_col)
 
             self.logger.info('\n' + '='*80)
