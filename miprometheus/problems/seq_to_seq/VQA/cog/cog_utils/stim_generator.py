@@ -26,10 +26,6 @@ the stimuli in each trial.
 Rendering function generates movies based on the instantiated stimuli
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import itertools
 from bisect import bisect_left
 from collections import defaultdict
@@ -40,7 +36,7 @@ import string
 
 import cv2 as cv2
 
-from miprometheus.problems.video_text_to_class.cog.cog_utils import constants as const
+from miprometheus.problems.seq_to_seq.VQA.cog.cog_utils import constants as const
 
 
 class Attribute(object):

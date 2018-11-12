@@ -15,19 +15,13 @@
 
 """Training utility functions."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from six import string_types
-import random
 import re
 import json
 import numpy as np
-import traceback
 
-from miprometheus.problems.video_text_to_class.cog.cog_utils import stim_generator as sg
-import miprometheus.problems.video_text_to_class.cog.cog_utils.constants as const
+from miprometheus.problems.seq_to_seq.VQA.cog.cog_utils import stim_generator as sg
+import miprometheus.problems.seq_to_seq.VQA.cog.cog_utils.constants as const
 
 _R_MEAN = 123.68
 _G_MEAN = 116.78
@@ -49,25 +43,6 @@ def convert_to_grid(xy_coord, prefs):
                       (xy_coord[:, 1:2] - prefs[:, 1])**2) / sigma2)
   activity = (activity.T / np.sum(activity, axis=1)).T
   return activity
-
-
-def map_sentence2ints(sentence):
-  """Map a sentence to a list of words."""
-  word_list = re.findall(r"[\w']+|[.,!?;]", sentence)
-  int_list = [const.INPUTVOCABULARY.index(word) for word in word_list]
-  return np.array(int_list).astype(np.int32)
-
-
-def preprocess(in_imgs_, vis_type):
-  """Pre-process images."""
-  if (vis_type == 'vgg') or (vis_type == 'vgg_pretrain'):
-    in_imgs_ -= np.array([_R_MEAN, _G_MEAN, _B_MEAN], dtype=np.float32)
-  else:
-    in_imgs_ /= 255.
-    in_imgs_ -= np.mean(in_imgs_)
-
-  return in_imgs_
-
 
 def tasks_to_rules(tasks):
   """Generate in_rule and seq_length arrays.
@@ -237,12 +212,6 @@ def json_to_feeds(json_examples):
   examples = []
   families = []
   rules = []
-  #for je in json_examples:
-  #  try:
-  #    e = json.loads(je)
-  #  except (ValueError, TypeError):
-  #    traceback.print_exc()
-  #    raise
 
   for entry in json_examples:
     rules.append(entry['question'])
@@ -262,29 +231,3 @@ def json_to_feeds(json_examples):
   values = values + (families,)
   return values
 
-
-def generate_feeds(tasks, hparams, dataparams=None):
-  """Generate feed dict for placeholders.
-
-  Args:
-    tasks: a list of tg.Task instances, length is batch_size.
-    hparams: hyperparameters in tf.HParams format.
-    dataparams: dictionary of parameters for the dataset
-
-  Returns:
-    feed_dict: the tensorflow feed_dict dictionary
-  """
-  if isinstance(hparams.n_epoch, int):
-    n_epoch = hparams.n_epoch
-  else:
-    n_epoch = random.randrange(hparams.n_epoch[0], hparams.n_epoch[1] + 1)
-
-  # in_imgs, in_rule, seq_length, out_pnt, out_pnt_xy, out_word, mask_pnt,
-  # mask_word
-  return generate_batch(
-      tasks,
-      n_epoch=n_epoch,
-      img_size=112,
-      n_distractor=dataparams['n_distractor'],
-      average_memory_span=dataparams['average_memory_span']
-  )

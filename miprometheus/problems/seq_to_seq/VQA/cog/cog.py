@@ -15,7 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""video_text_to_class_problem.py: abstract base class for sequential VQA problems."""
+"""cog.py: Implementation of Google's COG dataset. https://arxiv.org/abs/1803.06092"""
+
+__author__ = "Emre Sevgen"
 
 import torch
 import gzip
@@ -24,10 +26,10 @@ import os
 import numpy as np
 
 from miprometheus.utils.data_dict import DataDict
-from miprometheus.problems.video_text_to_class.video_text_to_class_problem import VideoTextToClassProblem
-from miprometheus.problems.video_text_to_class.cog.cog_utils import train_utils as tu
+from miprometheus.problems.seq_to_seq.VQA.VQA_problem import VQAProblem
+from miprometheus.problems.seq_to_seq.VQA.cog.cog_utils import json_to_img as jti
 
-class COGDataset(VideoTextToClassProblem):
+class COGDataset(VQAProblem):
 	"""
 	The COG dataset is a sequential VQA dataset. Inputs are a sequence of images of simple shapes and characters on a black \
  	background, and a question based on these objects that relies on memory which has to be answered at every step of the \
@@ -50,7 +52,10 @@ class COGDataset(VideoTextToClassProblem):
 				- ``self.tasks`` (`string or list of string`) : Which tasks to use. 'class', 'reg', 'all', or a 
 \ list of tasks such as ['AndCompareColor', 'AndCompareShape']. Only selected tasks will be used.
 				- ``self.dataset_type`` (`string`) : Which dataset to use, 'canonical', 'hard', or \
-								'generated'. If 'generated', please specify 'sequence_length'
+								'generated'. If 'generated', please specify 'sequence_length', \
+								'memory_length', and 'max_distractors'.
+
+		:param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
 		"""
 	
@@ -75,8 +80,10 @@ class COGDataset(VideoTextToClassProblem):
 		if self.dataset_type == 'generated':
 			try:
 				self.sequence_length = params['dataset_type']['sequence_length']
+				self.memory_length = params['dataset_type']['memory_length']
+				self.max_distractors = params['dataset_type']['max_distractors']
 			except:
-				print("Please specify sequence length for a generated dataset under 'dataset_type'.")
+				print("Please specify sequence length, memory length and maximum distractors for a generated dataset under 'dataset_type'.")
 
 		# Name
 		self.name = 'COGDataset'
@@ -139,7 +146,7 @@ class COGDataset(VideoTextToClassProblem):
 			# out_word: (n_epoch*batch_size, n_out_word)
 			# mask_pnt: (n_epoch*batch_size)
 			# mask_word: (n_epoch*batch_size)		
-		output = tu.json_to_feeds([self.dataset[self.tasks[i]][j]])[0]
+		output = jti.json_to_feeds([self.dataset[self.tasks[i]][j]])[0]
 		images = ((torch.from_numpy(output)).permute(1,0,4,2,3)).squeeze()
 				
 
@@ -220,6 +227,31 @@ class COGDataset(VideoTextToClassProblem):
 			self.data_folder_path = os.path.join(self.data_folder,'data'+folder_name_append,self.set+folder_name_append)
 		else:
 			self.data_folder_path = self.data_folder
+
+	def add_statistics(self, stat_col):
+		"""
+		Add cog-specific stats to ``StatisticsCollector``.
+		
+		:param stat_col: ``StatisticsCollector``.
+		
+		"""
+		stat_col.add_statistic('seq_len', '{:06d}')
+		stat_col.add_statistic('max_mem', '{:06d}')
+		stat_col.add_statistic('max_distractors', '{:06d}')
+		stat_col.add_statistic('task', '{}')
+
+	def collect_statistics(self, stat_col, data_dict, logits):
+		"""
+		Collects dataset details.
+		:param stat_col: ``StatisticsCollector``.
+		:param data_dict: DataDict containing targets.
+		:param logits: Prediction of the model.
+
+		"""
+		stat_col['seq_len'] = self.sequence_length
+		stat_col['max_mem'] = self.memory_length
+		stat_col['max_distractors'] = self.max_distractors
+		stat_col['task'] = data_dict['tasks']		
 		
 
 if __name__ == "__main__":

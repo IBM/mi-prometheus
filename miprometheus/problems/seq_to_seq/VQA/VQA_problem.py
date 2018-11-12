@@ -15,15 +15,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""video_text_to_class_problem.py: abstract base class for sequential VQA problems."""
+"""VQA_problem.py: abstract base class for sequential VQA problems."""
+
+__author__ = "Emre Sevgen"
 
 import torch
 import torch.nn as nn
 import numpy as np
-from miprometheus.problems.problem import Problem
+from miprometheus.problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
 
 
-class VideoTextToClassProblem(Problem):
+class VQAProblem(SeqToSeqProblem):
 	"""
 	Abstract base class for sequential VQA problems.
 
@@ -51,7 +53,7 @@ class VideoTextToClassProblem(Problem):
 
 		:param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 		"""
-		super(VideoTextToClassProblem, self).__init__(params)
+		super(VQAProblem, self).__init__(params)
 
 		# Set default loss function to cross entropy.
 		self.loss_function = nn.CrossEntropyLoss()
@@ -66,7 +68,7 @@ class VideoTextToClassProblem(Problem):
 					}
 
 		# Default problem name.
-		self.name = 'VideoTextToClassProblem'
+		self.name = 'VQAProblem'
 
 	def show_sample(self, data_dict, sample_number=0, sequence_number=0):
 		"""
@@ -120,10 +122,12 @@ class VideoTextToClassProblem(Problem):
 		# Plot!
 		plt.show()
 
+	
+
 if __name__ == '__main__':
 
 	from miprometheus.utils.param_interface import ParamInterface
 	
-	sample = VideoTextToClassProblem(ParamInterface())[0]
+	sample = VQAProblem(ParamInterface())[0]
 	
 	print(repr(sample))
