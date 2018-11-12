@@ -55,6 +55,7 @@ The dependencies of MI-prometheus are:
    * torchtext
    * tensorboardx
    * matplotlib 
+   * psutil (enables grid-* to span child processes on MacOS and Ubuntu)
    * PyYAML
    * tqdm
    * nltk
