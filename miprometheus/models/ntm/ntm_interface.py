@@ -20,10 +20,10 @@ __author__ = "Tomasz Kornuta"
 
 
 import torch
-import torch.nn.functional as F
+import logging
 import collections
 import numpy as np
-import logging
+from torch.nn import Module
 logger = logging.getLogger('NTM-Interface')
 
 from miprometheus.utils.app_state import AppState
@@ -53,7 +53,7 @@ class InterfaceStateTuple(_InterfaceStateTuple):
     __slots__ = ()
 
 
-class NTMInterface(torch.nn.Module):
+class NTMInterface(Module):
     """
     Class realizing interface between controller and memory.
     """
@@ -281,8 +281,8 @@ class NTMInterface(torch.nn.Module):
 
         # Add 3rd dimensions where required and apply non-linear transformations.
         # I didn't had that non-linear transformation in TF!
-        erase_vector_Bx1xC = F.sigmoid(erase_vector_BxC).unsqueeze(1)
-        add_vector_Bx1xC = F.sigmoid(add_vector_BxC).unsqueeze(1)
+        erase_vector_Bx1xC = torch.nn.functional.sigmoid(erase_vector_BxC).unsqueeze(1)
+        add_vector_Bx1xC = torch.nn.functional.sigmoid(add_vector_BxC).unsqueeze(1)
 
         #logger.debug("write_attention_BxAx1 {}:\n {}".format(write_attention_BxAx1.size(),  write_attention_BxAx1))
 
@@ -352,18 +352,18 @@ class NTMInterface(torch.nn.Module):
         """
         # Add 3rd dimensions where required and apply non-linear transformations.
         # Produce location-addressing params.
-        shift_BxSx1 = F.softmax(shift_BxS, dim=1).unsqueeze(2)
+        shift_BxSx1 = torch.nn.functional.softmax(shift_BxS, dim=1).unsqueeze(2)
         # Gamma - oneplus.
-        gamma_Bx1x1 = F.softplus(gamma_Bx1).unsqueeze(2) + 1
+        gamma_Bx1x1 = torch.nn.functional.softplus(gamma_Bx1).unsqueeze(2) + 1
 
         if self.use_content_based_addressing:
             # Add 3rd dimensions where required and apply non-linear transformations.
             # Produce content-addressing params.
-            query_vector_Bx1xC = F.sigmoid(query_vector_BxC).unsqueeze(1)
+            query_vector_Bx1xC = torch.nn.functional.sigmoid(query_vector_BxC).unsqueeze(1)
             # Beta: oneplus
-            beta_Bx1x1 = F.softplus(beta_Bx1).unsqueeze(2) + 1
+            beta_Bx1x1 = torch.nn.functional.softplus(beta_Bx1).unsqueeze(2) + 1
             # Produce gating param.
-            gate_Bx1x1 = F.sigmoid(gate_Bx1).unsqueeze(2)
+            gate_Bx1x1 = torch.nn.functional.sigmoid(gate_Bx1).unsqueeze(2)
 
             # Content-based addressing.
             content_attention_BxAx1 = self.content_based_addressing(
@@ -410,11 +410,11 @@ class NTMInterface(torch.nn.Module):
 
         """
         # Normalize query batch - along content.
-        norm_query_vector_Bx1xC = F.normalize(query_vector_Bx1xC, p=2, dim=2)
+        norm_query_vector_Bx1xC = torch.nn.functional.normalize(query_vector_Bx1xC, p=2, dim=2)
         #logger.debug("norm_query_vector_Bx1xC {}:\n {}".format(norm_query_vector_Bx1xC.size(),  norm_query_vector_Bx1xC))
 
         # Normalize memory - along content.
-        norm_memory_BxAxC = F.normalize(prev_memory_BxAxC, p=2, dim=2)
+        norm_memory_BxAxC = torch.nn.functional.normalize(prev_memory_BxAxC, p=2, dim=2)
         #logger.debug("norm_memory_BxAxC {}:\n {}".format(norm_memory_BxAxC.size(),  norm_memory_BxAxC))
 
         # Calculate cosine similarity [BATCH_SIZE x MEMORY_ADDRESSES x 1].
@@ -429,7 +429,7 @@ class NTMInterface(torch.nn.Module):
 
         # Calculate attention based on similarity along the "slot dimension"
         # [BATCH_SIZE x MEMORY_ADDRESSES x 1].
-        attention_BxAx1 = F.softmax(strengthtened_similarity_BxAx1, dim=1)
+        attention_BxAx1 = torch.nn.functional.softmax(strengthtened_similarity_BxAx1, dim=1)
         #logger.debug("attention_BxAx1 {}:\n {}".format(attention_BxAx1.size(),  attention_BxAx1))
         return attention_BxAx1
 
@@ -510,7 +510,7 @@ class NTMInterface(torch.nn.Module):
         # Perform  convolution for every batch-filter pair.
         tmp_attention_list = []
         for b in range(batch_size):
-            tmp_attention_list.append(F.conv1d(ext_att_trans_Bx1xEA.narrow(
+            tmp_attention_list.append(torch.nn.functional.conv1d(ext_att_trans_Bx1xEA.narrow(
                 0, b, 1), shift_trans_Bx1xS.narrow(0, b, 1)))
         # Concatenate list into a single tensor.
         shifted_attention_BxAx1 = torch.transpose(
@@ -533,7 +533,7 @@ class NTMInterface(torch.nn.Module):
         #logger.error("pow_attention_BxAx1 {}:\n {}".format(pow_attention_BxAx1.size(),  pow_attention_BxAx1))
 
         # Normalize along addresses.
-        norm_attention_BxAx1 = F.normalize(pow_attention_BxAx1, p=1, dim=1)
+        norm_attention_BxAx1 = torch.nn.functional.normalize(pow_attention_BxAx1, p=1, dim=1)
         #logger.error("EEEE norm_attention_BxAx1 {}:\n {}".format(norm_attention_BxAx1.size(),  norm_attention_BxAx1))
 
         return norm_attention_BxAx1

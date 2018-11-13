@@ -20,10 +20,10 @@ __author__ = "Tomasz Kornuta"
 
 
 import torch
-import torch.nn.functional as F
+import logging
 import collections
 import numpy as np
-import logging
+from torch.nn import Module
 logger = logging.getLogger('MAE-Interface')
 
 from miprometheus.utils.app_state import AppState
@@ -42,7 +42,7 @@ class MAEInterfaceStateTuple(_MAEInterfaceStateTuple):
     __slots__ = ()
 
 
-class MAEInterface(torch.nn.Module):
+class MAEInterface(Module):
     """
     Class realizing interface between controller and memory in Memory Augmented
     Encoder cell.
@@ -145,8 +145,8 @@ class MAEInterface(torch.nn.Module):
 
         # Add 3rd dimensions where required and apply non-linear
         # transformations.
-        erase_vector_Bx1xC = F.sigmoid(erase_vector_BxC).unsqueeze(1)
-        add_vector_Bx1xC = F.sigmoid(add_vector_BxC).unsqueeze(1)
+        erase_vector_Bx1xC = torch.nn.functional.sigmoid(erase_vector_BxC).unsqueeze(1)
+        add_vector_Bx1xC = torch.nn.functional.sigmoid(add_vector_BxC).unsqueeze(1)
 
         # Update the attention of the write head.
         write_attention_BxAx1, interface_state_tuple = self.update_attention(
@@ -205,9 +205,9 @@ class MAEInterface(torch.nn.Module):
         """
         # Add 3rd dimensions where required and apply non-linear transformations.
         # Produce location-addressing params.
-        shift_BxSx1 = F.softmax(shift_BxS, dim=1).unsqueeze(2)
+        shift_BxSx1 = torch.nn.functional.softmax(shift_BxS, dim=1).unsqueeze(2)
         # Gamma - oneplus.
-        gamma_Bx1x1 = F.softplus(gamma_Bx1).unsqueeze(2) + 1
+        gamma_Bx1x1 = torch.nn.functional.softplus(gamma_Bx1).unsqueeze(2) + 1
 
         # Location-based addressing.
         location_attention_BxAx1 = self.location_based_addressing(
@@ -299,7 +299,7 @@ class MAEInterface(torch.nn.Module):
         # Perform  convolution for every batch-filter pair.
         tmp_attention_list = []
         for b in range(batch_size):
-            tmp_attention_list.append(F.conv1d(ext_att_trans_Bx1xEA.narrow(
+            tmp_attention_list.append(torch.nn.functional.conv1d(ext_att_trans_Bx1xEA.narrow(
                 0, b, 1), shift_trans_Bx1xS.narrow(0, b, 1)))
         # Concatenate list into a single tensor.
         shifted_attention_BxAx1 = torch.transpose(
@@ -323,7 +323,7 @@ class MAEInterface(torch.nn.Module):
         #logger.debug("pow_attention_BxAx1 {}:\n {}".format(pow_attention_BxAx1.size(),  pow_attention_BxAx1))
 
         # Normalize along addresses.
-        norm_attention_BxAx1 = F.normalize(pow_attention_BxAx1, p=1, dim=1)
+        norm_attention_BxAx1 = torch.nn.functional.normalize(pow_attention_BxAx1, p=1, dim=1)
         #logger.debug("norm_attention_BxAx1 {}:\n {}".format(norm_attention_BxAx1.size(),  norm_attention_BxAx1))
 
         return norm_attention_BxAx1

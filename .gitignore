@@ -7,10 +7,12 @@
 !Readme.md
 !readthedocs.yml
 !setup.py
+!doc_build.sh
 !__init__.py
 !/configs/**
 !/docs/**
 !/miprometheus/**
+!.github/**
 
 # You can be specific with these rules
 __pycache__*
@@ -18,8 +20,8 @@ __pycache__*
 *.vector_cache
 !.gitignore
 
-# not sure if those are needed
-problems/.DS_Store
-problems/image_text_to_class/.DS_Store
-problems/image_text_to_class/CLEVR_v1.0
-CLEVR_v1.0/
+# Ignore every DS_Store
+**/.DS_Store
+
+# Ignore build directory
+/build/** 

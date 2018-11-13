@@ -85,7 +85,7 @@ class RelationalNetwork(Model):
             # number of output nodes
             self.nb_classes = problem_default_values_['num_classes']
 
-        except BaseException:
+        except KeyError:
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
         # compute the length of the input to the g_theta MLP:
@@ -212,7 +212,7 @@ if __name__ == '__main__':
     """Unit test for the RelationalNetwork on SortOfCLEVR"""
     from miprometheus.utils.app_state import AppState
     from miprometheus.utils.param_interface import ParamInterface
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
     app_state = AppState()
 
     from miprometheus.problems.image_text_to_class.sort_of_clevr import SortOfCLEVR

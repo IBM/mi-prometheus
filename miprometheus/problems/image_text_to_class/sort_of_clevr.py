@@ -53,8 +53,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
     :param img_size: Size of the images to generate.
     :type img_size: int
 
-    :param dataset_size: How many samples to generate.
-    :type dataset_size: int
+    :param size: How many samples to generate.
+    :type size: int
 
     :param regenerate: Whether to regenerate the dataset
     :type regenerate: Bool
@@ -66,12 +66,23 @@ class SortOfCLEVR(ImageTextToClassProblem):
             - First verifies if a file with a matching filename already exists in the ``data_folder``.
               The filename follows the following template:
 
-                >>> filename = '<split>_<dataset_size>_<img_size>.hy'
+                >>> filename = '<split>_<size>_<img_size>.hy'
 
 
             - If such a file exists, it is loaded and used as the dataset. If not, it is created and then used.
             - If ``regenerate`` is ``True``, the file is recreated regardless if one with the matching filename\
               already exists or not.
+
+
+    .. note::
+
+        The following is set by default:
+
+        >>> params = {'data_folder': '~/data/sort-of-clevr/',
+        >>>           'split': 'train',
+        >>>           'regenerate': False,
+        >>>           'size': 10000,
+        >>>           'img_size': 128}
 
 
     """
@@ -91,9 +102,16 @@ class SortOfCLEVR(ImageTextToClassProblem):
         # problem name
         self.name = 'Sort-of-CLEVR'
 
+        # Set default parameters.
+        self.params.add_default_params({'data_folder': '~/data/sort-of-clevr/',
+                                        'split': 'train',
+                                        'regenerate': False,
+                                        'size': 10000,
+                                        'img_size': 128})
+
         # parse params
         self.img_size = params["img_size"]
-        self.dataset_size = params["dataset_size"]
+        self.dataset_size = params["size"]
         self.regenerate = params.get("regenerate", False)
 
         # Set general color properties.
@@ -640,12 +658,7 @@ if __name__ == "__main__":
 
     # "Loaded parameters".
     from miprometheus.utils.param_interface import ParamInterface
-    params = ParamInterface()
-    params.add_default_params({'data_folder': '~/data/sort-of-clevr/',
-                               'split': 'train',
-                               'regenerate': False,
-                               'dataset_size': 10000,
-                               'img_size': 128})
+    params = ParamInterface()  # using the default values
 
     # create problem
     sortofclevr = SortOfCLEVR(params)
@@ -659,18 +672,17 @@ if __name__ == "__main__":
     print('__getitem__ works.')
 
     # wrap DataLoader on top of this Dataset subclass
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
 
     dataloader = DataLoader(dataset=sortofclevr, collate_fn=sortofclevr.collate_fn,
-                            batch_size=batch_size, shuffle=True, num_workers=8)
+                            batch_size=batch_size, shuffle=True, num_workers=0)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
     import time
 
     s = time.time()
     for i, batch in enumerate(dataloader):
-        #print('Batch # {} - {}'.format(i, type(batch)))
-        pass 
+        print('Batch # {} - {}'.format(i, type(batch)))
 
     print('Number of workers: {}'.format(dataloader.num_workers))
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))

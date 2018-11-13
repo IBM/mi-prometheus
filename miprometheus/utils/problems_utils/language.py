@@ -46,7 +46,7 @@ __author__ = "Vincent Marois, Ryan L. McAvoy"
 
 import torch
 from collections import Counter, OrderedDict
-import torchtext.vocab as vocab
+from torchtext import vocab
 
 
 class Language(object):

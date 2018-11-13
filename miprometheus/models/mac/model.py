@@ -54,7 +54,6 @@ import nltk
 import torch
 import numpy as np
 from PIL import Image
-import torch.nn.functional as F
 from torchvision import transforms
 from miprometheus.models.model import Model
 
@@ -92,7 +91,7 @@ class MACNetwork(Model):
 
         try:
             self.nb_classes = problem_default_values_['nb_classes']
-        except BaseException:
+        except KeyError:
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
         self.name = 'MAC'
@@ -164,24 +163,21 @@ class MACNetwork(Model):
         :return: figure layout.
 
         """
-
+        import matplotlib
         from matplotlib.figure import Figure
-        import matplotlib.ticker as ticker
-        import matplotlib.gridspec as gridspec
-        import matplotlib.pylab as pylab
 
         params = {'axes.titlesize': 'large',
                   'axes.labelsize': 'large',
                   'xtick.labelsize': 'medium',
                   'ytick.labelsize': 'medium'}
-        pylab.rcParams.update(params)
+        matplotlib.pylab.rcParams.update(params)
 
         # Prepare "generic figure template".
         # Create figure object.
         fig = Figure()
 
         # Create a specific grid for MAC.
-        gs = gridspec.GridSpec(6, 2)
+        gs = matplotlib.gridspec.GridSpec(6, 2)
 
         # subplots: original image, attention on image & question, step index
         ax_image = fig.add_subplot(gs[2:6, 0])
@@ -190,19 +186,19 @@ class MACNetwork(Model):
         ax_step = fig.add_subplot(gs[1, 0])
 
         # Set axis ticks
-        ax_image.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_image.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_attention_image.xaxis.set_major_locator(
-            ticker.MaxNLocator(integer=True))
+            matplotlib.ticker.MaxNLocator(integer=True))
         ax_attention_image.yaxis.set_major_locator(
-            ticker.MaxNLocator(integer=True))
+            matplotlib.ticker.MaxNLocator(integer=True))
 
         # question ticks
         ax_attention_question.xaxis.set_major_locator(
-            ticker.MaxNLocator(nbins=40))
+            matplotlib.ticker.MaxNLocator(nbins=40))
 
-        ax_step.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_step.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_step.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_step.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
         fig.set_tight_layout(True)
 
@@ -264,7 +260,7 @@ class MACNetwork(Model):
         image = image.permute(1, 2, 0)  # [300, 300, 3]
 
         # get most probable answer -> prediction of the network
-        proba_answers = F.softmax(logits, -1)
+        proba_answers = torch.nn.functional.softmax(logits, -1)
         proba_answer = proba_answers[sample].detach().cpu()
         proba_answer = proba_answer.max().numpy()
 
@@ -344,7 +340,7 @@ if __name__ == '__main__':
 
     from miprometheus.utils.app_state import AppState
     from miprometheus.utils.param_interface import ParamInterface
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
     app_state = AppState()
 
     from miprometheus.problems import CLEVR

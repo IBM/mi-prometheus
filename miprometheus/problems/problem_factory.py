@@ -34,13 +34,13 @@ class ProblemFactory(object):
     """
 
     @staticmethod
-    def build_problem(params):
+    def build(params):
         """
         Static method returning a particular problem, depending on the name \
         provided in the list of parameters.
 
         :param params: Parameters used to instantiate the Problem class.
-        :type params: ``utils.param_interface.ParamInterface``
+        :type params: :py:class:`miprometheus.utils.ParamInterface`
 
         ..note::
 

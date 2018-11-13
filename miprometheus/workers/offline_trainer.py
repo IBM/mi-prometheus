@@ -18,53 +18,53 @@
 """
 classic_trainer.py:
 
-    - This file contains the implementation of the ``OffLineTrainer``, which inherits from ``Trainer``. \
-    The ``OffLineTrainer`` is based on epochs.
+    - This file contains the implementation of the ``OfflineTrainer``, which inherits from ``Trainer``. \
+    The ``OfflineTrainer`` is based on epochs.
 
 """
 __author__ = "Vincent Marois, Tomasz Kornuta"
 
+import torch
 import numpy as np
-from torch.nn.utils import clip_grad_value_
 
 from miprometheus.workers.trainer import Trainer
 
 
-class OffLineTrainer(Trainer):
+class OfflineTrainer(Trainer):
     """
-    Implementation for the epoch-based ``OffLineTrainer``.
+    Implementation for the epoch-based ``OfflineTrainer``.
 
     ..note::
 
-        The default ``OffLineTrainer`` is based on epochs. \
+        The default ``OfflineTrainer`` is based on epochs. \
         An epoch is defined as passing through all samples of a finite-size dataset.\
-        The ``OffLineTrainer`` allows to loop over all samples from the training set many times i.e. in many epochs. \
+        The ``OfflineTrainer`` allows to loop over all samples from the training set many times i.e. in many epochs. \
         When an epochs finishes, it performs a similar step for the validation set and collects the statistics.
 
 
     """
 
-    def __init__(self, name="OffLineTrainer"):
+    def __init__(self, name="OfflineTrainer"):
         """
         Only calls the ``Trainer`` constructor as the initialization phase is identical to the ``Trainer``.
 
-       :param name: Name of the worker (DEFAULT: "OffLineTrainer").
+       :param name: Name of the worker (DEFAULT: "OfflineTrainer").
        :type name: str
 
         """ 
         # Call base constructor to set up app state, registry and add default params.
-        super(OffLineTrainer, self).__init__(name)
+        super(OfflineTrainer, self).__init__(name)
 
     def setup_experiment(self):
         """
-        Sets up an experiment for the ``OffLineTrainer``:
+        Sets up an experiment for the ``OfflineTrainer``:
 
             - Calls base class setup_experiment to parse the command line arguments,
             - Sets up the terminal conditions (loss threshold, episodes (optional) & epochs limits).
 
         """
         # Call base method to parse all command line arguments, load configuration, create problems and model etc.
-        super(OffLineTrainer, self).setup_experiment()
+        super(OfflineTrainer, self).setup_experiment()
 
         ################# TERMINAL CONDITIONS ################# 
         self.logger.info('Terminal conditions:\n' + '='*80)
@@ -92,8 +92,8 @@ class OffLineTrainer(Trainer):
             self.logger.info("Setting the Epoch Limit to: {}".format(self.epoch_limit))
 
         # Calculate the epoch size in terms of episodes.
-        epoch_size = self.training_problem.get_epoch_size(self.params["training"]["problem"]["batch_size"])
-        self.logger.info('Epoch size in terms of training episodes: {}'.format(epoch_size))
+        self.epoch_size = len(self.training_dataloader)
+        self.logger.info('Epoch size in terms of training episodes: {}'.format(self.epoch_size))
 
         # Terminal condition III: max episodes. Optional.
         self.params["training"]["terminal_conditions"].add_default_params({'episode_limit': -1})
@@ -105,6 +105,9 @@ class OffLineTrainer(Trainer):
         else:
             self.logger.info("Setting the Episode Limit to: {}".format(self.episode_limit))
         self.logger.info('\n' + '='*80)
+
+        # Export and log configuration, optionally asking the user for confirmation.
+        self.export_experiment_configuration(self.log_dir, "training_configuration.yaml", self.flags.confirm)
 
     def run_experiment(self):
         """
@@ -155,9 +158,6 @@ class OffLineTrainer(Trainer):
         with optional visualization of a random batch if set (vis. level 3).
 
         """
-        # Export and log configuration, optionally asking the user for confirmation.
-        self.export_experiment_configuration(self.log_dir, "training_configuration.yaml", self.flags.confirm)
-
         # Initialize TensorBoard and statistics collection.
         self.initialize_statistics_collection()
         self.initialize_tensorboard()
@@ -167,19 +167,22 @@ class OffLineTrainer(Trainer):
             Main training and validation loop.
             '''
             # Reset the counter.
-            episode = 0
-            last_epoch = 0
+            episode = -1
 
-            # Set default termination cause.
-            termination_cause = "Epoch limit reached"
+            # Set initial status.
+            training_status = "Not Converged"
             # Iterate over epochs.
             for epoch in range(self.epoch_limit):
                 self.logger.info('Starting next epoch: {}'.format(epoch))
                 # Inform the training problem class that epoch has started.
                 self.training_problem.initialize_epoch(epoch)
+                # Empty the statistics collector.
+                self.training_stat_col.empty()
 
                 # Exhaust training set.
                 for training_dict in self.training_dataloader:
+                    # "Move on" to the next episode.
+                    episode += 1
 
                     # reset all gradients
                     self.optimizer.zero_grad()
@@ -205,7 +208,7 @@ class OffLineTrainer(Trainer):
                     try:
                         # if present - clip gradients to a range (-gradient_clipping, gradient_clipping)
                         val = self.params['training']['gradient_clipping']
-                        clip_grad_value_(self.model.parameters(), val)
+                        torch.nn.utils.clip_grad_value_(self.model.parameters(), val)
                     except KeyError:
                         # Else - do nothing.
                         pass
@@ -266,19 +269,19 @@ class OffLineTrainer(Trainer):
                         # Perform validation.
                         self.validate_on_batch(self.validation_batch, episode, epoch)
 
-                        # Save the model using the latest validation statistics.
-                        self.model.save(self.model_dir, self.validation_stat_col)
+                        # Aggregate statistics, but do not display them in log.
+                        # self.aggregate_and_export_statistics(self.model, self.validation_problem,
+                        #                                      self.validation_stat_col, self.validation_stat_agg,
+                        #                                      episode, '[Partial Validation]', False)
+
+                        # Do not save the model: OfflineTrainer uses the full set to determine whether to save or not.
 
                     # III. The episodes number limit has been reached.
                     if episode+1 >= self.episode_limit:
-                        termination_cause = "Episode Limit reached"
-                        last_epoch = epoch
-                        break
+                        training_status = "Not converged: Episode Limit reached"
+                        break  # the inner loop.
 
-                    # Move on to next episode.
-                    episode += 1
-
-                # Epoch just ended!
+                # Epoch just ended! (or episode limit).
                 # Inform the problem class that the epoch has ended.
                 self.training_problem.finalize_epoch(epoch)
 
@@ -302,7 +305,7 @@ class OffLineTrainer(Trainer):
                 self.validate_on_set(episode, epoch)
 
                 # Save the model using the average validation loss.
-                self.model.save(self.model_dir, self.validation_stat_agg)
+                self.model.save(self.model_dir, training_status, self.training_stat_agg, self.validation_stat_agg)
 
                 # Terminal conditions.
                 # I - the loss is < threshold (only when curriculum learning is finished if set.)
@@ -311,33 +314,48 @@ class OffLineTrainer(Trainer):
 
                     # Check the Full Validation loss.
                     if self.validation_stat_agg["loss"] < self.loss_stop:
-                        termination_cause = "Full Validation Loss went below Loss Stop threshold (model converged)"
-                        last_epoch = epoch
+                        # Change the status...
+                        training_status = "Converged (Full Validation Loss went below Loss Stop threshold)"
+
+                        # ... and THEN try to save the model using the average validation loss.
+                        self.model.save(self.model_dir, training_status, self.training_stat_agg, self.validation_stat_agg)
+
                         break
 
                 # II. Early stopping is set and loss hasn't improved by delta in n epochs.
                 # early_stopping(index=epoch, avg_valid_loss). (TODO: coming in next release)
-                # termination_cause = 'Early Stopping.'
+                # training_status = 'Early Stopping.'
+
+                # III. The episodes number limit has been reached. (2nd check)
+                if episode+1 >= self.episode_limit:
+                    break # the outer loop.
 
                 # IV. The epoch number limit has been reached, condition is already made in for loop.
-                last_epoch = epoch
 
             '''
             End of main training and validation loop. Perform final full validation.
             '''
+            # Try to save the model only if we hit the epoch limit.
+            if epoch+1 >= self.epoch_limit:
+                # Change the status.
+                training_status = "Not converged: Epoch Limit reached"
+            
+            # Display status.
             self.logger.info('\n' + '='*80)
-            self.logger.info('Training finished because {}'.format(termination_cause))
+            self.logger.info('Training finished because {}'.format(training_status))
             # Check visualization flag - turn on visualization for last validation if needed.
-            if self.flags.visualize == 3:
+            if 2 <= self.flags.visualize <= 3:
                 self.app_state.visualize = True
             else:
                 self.app_state.visualize = False
 
             # Validate over the entire validation set.
-            self.validate_on_set(episode, last_epoch)
+            self.validate_on_set(episode, epoch)
 
-            # Save the model using the average validation loss.
-            self.model.save(self.model_dir, self.validation_stat_agg)
+            # Try to save the model only if we hit the epoch limit.
+            if epoch+1 >= self.epoch_limit:
+                # Try to save the model using the average validation loss.
+                self.model.save(self.model_dir, training_status, self.training_stat_agg, self.validation_stat_agg)
 
             self.logger.info('Experiment finished!')
 
@@ -358,7 +376,7 @@ def main():
     Entry point function for the ``OfflineTrainer``.
 
     """
-    trainer = OffLineTrainer()
+    trainer = OfflineTrainer()
     # parse args, load configuration and create all required objects.
     trainer.setup_experiment()
     # GO!

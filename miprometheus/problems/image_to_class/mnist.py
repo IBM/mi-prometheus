@@ -22,7 +22,6 @@ __author__ = "Younes Bouhadjar & Vincent Marois"
 
 import os
 import torch
-import torch.nn.functional as F
 from torchvision import datasets, transforms
 
 from miprometheus.utils.data_dict import DataDict
@@ -44,27 +43,24 @@ class MNIST(ImageToClassProblem):
 
     """
 
-    def __init__(self, params):
+    def __init__(self, params_):
         """
         Initializes MNIST problem:
 
             - Calls ``problems.problem.ImageToClassProblem`` class constructor,
             - Sets following attributes using the provided ``params``:
 
-                - ``self.root_dir`` (`string`) : Root directory of dataset where ``processed/training.pt``\
+                - ``self.data_folder`` (`string`) : Root directory of dataset where ``processed/training.pt``\
                     and  ``processed/test.pt`` will be saved,
                 - ``self.use_train_data`` (`bool`, `optional`) : If True, creates dataset from ``training.pt``,\
                     otherwise from ``test.pt``
-                - ``self.padding`` : possibility to pad the images. e.g. ``self.padding = [0, 0, 0, 0]``,
-                - ``self.upscale`` : upscale the images to `[224, 224]` if ``True``,
+                - ``self.resize`` : (optional) resize the images to `[h, w]` if set,
                 - ``self.defaut_values`` :
 
-                    >>> self.default_values = {'nb_classes': 10,
-                    >>>                        'num_channels': 1,
-                    >>>                        'width': 28,
-                    >>>                        'height': 28,
-                    >>>                        'up_scaling': self.up_scaling,
-                    >>>                        'padding': self.padding}
+                    >>> self.default_values = {'num_classes': 10,
+                    >>>            'num_channels': 1,
+                    >>>            'width': self.width, # (DEFAULT: 28)
+                    >>>            'height': self.height} # (DEFAULT: 28)
 
                 - ``self.data_definitions`` :
 
@@ -73,63 +69,81 @@ class MNIST(ImageToClassProblem):
                     >>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
                     >>>                         }
 
-        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
+        .. warning::
+
+            Resizing images might cause a significant slow down in batch generation.
+
+        .. note::
+
+            The following is set by default:
+
+            >>> self.params.add_default_params({'data_folder': '~/data/mnist',
+            >>>           'use_train_data': True})
+
+        :param params_: Dictionary of parameters (read from configuration ``.yaml`` file).
 
         """
 
         # Call base class constructors.
-        super(MNIST, self).__init__(params)
+        super(MNIST, self).__init__(params_, 'MNIST')
+
+        # Set default parameters.
+        self.params.add_default_params({'data_folder': '~/data/mnist',
+                                        'use_train_data': True
+                                        })
+
+        # Get absolute path.
+        data_folder = os.path.expanduser(self.params['data_folder'])
 
         # Retrieve parameters from the dictionary.
-        self.use_train_data = params['use_train_data']
+        self.use_train_data = self.params['use_train_data']
 
-        # Set default folder.
-        params.add_default_params({'data_folder': '~/data/mnist'})
-        # Get absolute path.
-        data_folder = os.path.expanduser(params['data_folder'])
+        # Add transformations depending on the resizing option.
+        if 'resize' in self.params:
+            # Check the desired size.
+            if len(self.params['resize']) != 2:
+                self.logger.error("'resize' field must contain 2 values: the desired height and width")
+                exit(-1)
 
-        # possibility to pad the image
-        self.padding = params['padding']
+            # Output image dimensions.
+            self.height = self.params['resize'][0]
+            self.width = self.params['resize'][1]
+            self.num_channels = 1
 
-        # up scaling the image to 224, 224 if True
-        self.up_scaling = params['up_scaling']
+            # Up-scale and transform to tensors.
+            transform = transforms.Compose([transforms.Resize((self.height, self.width)), transforms.ToTensor()])
 
-        if self.up_scaling:
-            self.logger.warning('Upscaling the images to [224, 224]. Slows down batches generation.')
+            self.logger.warning('Upscaling the images to [{}, {}]. Slows down batch generation.'.format(
+                self.width, self.height))
 
-        # define the default_values dict: holds parameters values that a model may need.
-        self.default_values = {'nb_classes': 10,
-                               'num_channels': 1,
-                               'width': 28,
-                               'height': 28,
-                               'up_scaling': self.up_scaling,
-                               'padding': self.padding}
+        else:
+            # Default MNIST settings.
+            self.width = 28
+            self.height = 28
+            self.num_channels = 1
+            # Simply turn to tensor.
+            transform = transforms.Compose([transforms.ToTensor()])
 
-        self.height = 224 if self.up_scaling else self.default_values['height']
-        self.width = 224 if self.up_scaling else self.default_values['width']
+        # Define the default_values dict: holds parameters values that a model may need.
+        self.default_values = {'num_classes': 10,
+                               'num_channels': self.num_channels,
+                               'width': self.width,
+                               'height': self.height}
 
-        self.data_definitions = {'images': {'size': [-1, 1, self.height, self.width], 'type': [torch.Tensor]},
+        self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
                                  }
 
-        self.name = 'MNIST'
-
-        # Define transforms: takes in an PIL image and returns a transformed version
-        transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()]) \
-            if self.up_scaling else transforms.Compose([transforms.ToTensor()])
-
         # load the dataset
         self.dataset = datasets.MNIST(root=data_folder, train=self.use_train_data, download=True,
-                                            transform=transform)
-        # type(self.train_dataset) = <class 'torchvision.datasets.mnist.MNIST'>
-        # -> inherits from torch.utils.data.Dataset
+                                      transform=transform)
 
+        # Set length.
         self.length = len(self.dataset)
 
         # Class names.
-        self.labels = 'Zero One Two Three Four Five Six Seven Eight Nine'.split(
-            ' ')
+        self.labels = 'Zero One Two Three Four Five Six Seven Eight Nine'.split(' ')
 
     def __getitem__(self, index):
         """
@@ -140,17 +154,16 @@ class MNIST(ImageToClassProblem):
 
         :return: ``DataDict({'images','targets', 'targets_label'})``, with:
 
-            - images: Image, upscaled if ``self.up_scaling`` and pad if ``self.padding``,
+            - images: Image, resized if ``self.resize`` is set,
             - targets: Index of the target class
             - targets_label: Label of the target class (cf ``self.labels``)
 
 
         """
+        # Get image and target.
         img, target = self.dataset.__getitem__(index)
-
-        # pad img
-        img = F.pad(img, self.padding, 'constant', 0)
-
+  
+        # Digit label.
         label = self.labels[target.data]
 
         # Return data_dict.
@@ -186,12 +199,13 @@ if __name__ == "__main__":
 
     # Load parameters.
     from miprometheus.utils.param_interface import ParamInterface
-    params = ParamInterface()
-    params.add_default_params({
-                                'use_train_data': True,
-                                'padding': [4, 4, 3, 3],
-                                'up_scaling': False
-                                })
+    params = ParamInterface()  # using the default values
+
+    # Test different options.
+    params.add_config_params({'data_folder': '~/data/mnist',
+                                    'use_train_data': True,
+                                    'resize': [32, 32]
+                                    })
 
     batch_size = 64
 
@@ -204,17 +218,15 @@ if __name__ == "__main__":
     print('__getitem__ works.')
 
     # wrap DataLoader on top of this Dataset subclass
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
     dataloader = DataLoader(dataset=mnist, collate_fn=mnist.collate_fn,
-                            batch_size=batch_size, shuffle=True, num_workers=4)
+                            batch_size=batch_size, shuffle=True, num_workers=0)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
     import time
     s = time.time()
     for i, batch in enumerate(dataloader):
-        #print('Batch # {} - {}'.format(i, type(batch)))
-        pass
-
+        print('Batch # {} - {}'.format(i, type(batch)))
     print('Number of workers: {}'.format(dataloader.num_workers))
     print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
 

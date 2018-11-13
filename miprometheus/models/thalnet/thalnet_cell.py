@@ -21,11 +21,11 @@ thalnet_cell: A ThalNetCell, constituted of ThalNet modules. It operates on a si
 __author__ = "Younes Bouhadjar & Vincent Marois"
 
 import torch
-from torch import nn
+from torch.nn import Module
 from miprometheus.models.thalnet.thalnet_module import ThalnetModule
 
 
-class ThalNetCell(nn.Module):
+class ThalNetCell(Module):
     """
     Implementation of the ``ThalNetCell``, iterating over one sequence element at a time.
 
@@ -69,7 +69,7 @@ class ThalNetCell(nn.Module):
         self.num_modules = num_modules
 
         # init module-center cell
-        self.modules_thalnet = nn.ModuleList()
+        self.modules_thalnet = torch.nn.ModuleList()
 
         self.modules_thalnet.append(
             ThalnetModule(

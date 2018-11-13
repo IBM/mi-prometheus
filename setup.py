@@ -154,16 +154,16 @@ setup(
     # dependencies to specific versions, or to specify sub-dependencies
     # (i.e. dependencies of your dependencies). This is overly-restrictive,
     # and prevents the user from gaining the benefit of dependency upgrades.
-    install_requires=['torchvision<0.2.0',  # to avoid AttributeError: module 'PIL.Image' has no attribute 'LANCZOS' in torchvision.transforms
+    install_requires=['torchvision',  # v0.2.0 is needed for the doc build, but we are specifying it in docs/requirements.txt
                       'torchtext',
                       'tensorboardX',
                       'matplotlib',
                       'numpy',
+                      'psutil',
                       'PyYAML',
                       'tqdm',
                       'nltk',
                       'h5py',
-                      'six',
                       'pyqt5==5.10.1',  # to avoid PyQt5.sip being separated
                       # 'torch==0.4.0',  # can't install pytorch from pip, use conda
                       ],
@@ -207,14 +207,15 @@ setup(
     # executes the function `main` from this package when invoked:
     entry_points={  # Optional
          'console_scripts': [
+             'mip-grid-trainer-cpu=miprometheus.grid_workers.grid_trainer_cpu:main',
+             'mip-grid-trainer-gpu=miprometheus.grid_workers.grid_trainer_gpu:main',
+             'mip-grid-tester-cpu=miprometheus.grid_workers.grid_tester_cpu:main',
+             'mip-grid-tester-gpu=miprometheus.grid_workers.grid_tester_gpu:main',
+             'mip-grid-analyzer=miprometheus.grid_workers.grid_analyzer:main',
+             'mip-index-splitter=miprometheus.helpers.index_splitter:main',
              'mip-offline-trainer=miprometheus.workers.offline_trainer:main',
              'mip-online-trainer=miprometheus.workers.online_trainer:main',
              'mip-tester=miprometheus.workers.tester:main',
-             'mip-grid-trainer-cpu=miprometheus.workers.grid_trainer_cpu:main',
-             'mip-grid-trainer-gpu=miprometheus.workers.grid_trainer_gpu:main',
-             'mip-grid-tester-cpu=miprometheus.workers.grid_tester_cpu:main',
-             'mip-grid-tester-gpu=miprometheus.workers.grid_tester_gpu:main',
-             'mip-grid-analyzer=miprometheus.workers.grid_analyzer:main',
          ],
      },
 

@@ -30,8 +30,7 @@ class StatisticsCollector(Mapping):
     Specialized class used for the collection and export of statistics during\
      training, validation and testing.
 
-    Inherits ``collections.Mapping``, therefore it offers functionality\
-     close to a ``dict``.
+    Inherits :py:class:`collections.Mapping`, therefore it offers functionality close to a ``dict``.
 
     """
 
@@ -172,6 +171,24 @@ class StatisticsCollector(Mapping):
 
         csv_file.write(values_str)
 
+    def export_to_checkpoint(self):
+        """
+        This method exports the collected data into a dictionary using the associated formatting.
+
+        """
+        chkpt = {}
+
+        # Iterate through key, values and format them.
+        for key, value in self.statistics.items():
+
+            # Get formatting - using '{}' as default.
+            format_str = self.formatting.get(key, '{}')
+
+            # Add to dict.
+            chkpt[key]  = format_str.format(value[-1])
+
+        return chkpt
+
     def export_to_string(self, additional_tag=''):
         """
         Method returns current statistics in the form of string using the
@@ -181,7 +198,7 @@ class StatisticsCollector(Mapping):
         :type additional_tag: str
 
 
-        :return: String being the concatenation of the statistical aggregators names & values.
+        :return: String being the concatenation of the statistics names & values.
 
         """
         # Iterate through keys and values and concatenate them.
@@ -209,6 +226,7 @@ class StatisticsCollector(Mapping):
         Method exports current statistics to tensorboard.
 
         :param tb_writer: TensorBoard writer, optional.
+        :type tb_writer: :py:class:`tensorboardX.SummaryWriter`
 
         """
         # Get episode number.

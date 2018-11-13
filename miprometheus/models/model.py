@@ -23,19 +23,19 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import torch
 import logging
-import datetime
 import numpy as np
-from torch import nn
+from torch.nn import Module
+from datetime import datetime
 from abc import abstractmethod
 
 from miprometheus.utils.app_state import AppState
 
 
-class Model(nn.Module):
+class Model(Module):
     """
     Class representing base class for all Models.
 
-    Inherits from ``torch.nn.Module`` as all subclasses will represent a trainable model.
+    Inherits from :py:class:`torch.nn.Module` as all subclasses will represent a trainable model.
 
     Hence, all subclasses should override the ``forward`` function.
 
@@ -48,6 +48,7 @@ class Model(nn.Module):
         Initializes a Model object.
 
         :param params: Parameters read from configuration file.
+        :type params: ``miprometheus.utils.ParamInterface``
 
         :param problem_default_values_: dict of parameters values coming from the problem class. One example of such \
         parameter value is the size of the vocabulary set in a translation problem.
@@ -125,8 +126,8 @@ class Model(nn.Module):
             for key in problem_default_values_.keys():
                 self.params.add_custom_params({key: problem_default_values_[key]})
 
-        except BaseException:
-            self.logger.info('No parameter value was parsed from problem_default_values_')
+        except Exception:
+            self.logger.warning('No parameter value was parsed from problem_default_values_')
 
         # --> We assume from here that the model class has all parameters values needed (either from params or
         # problem_default_values_) to be correctly instantiated and contained in self.params.
@@ -147,6 +148,7 @@ class Model(nn.Module):
 
         # Initialization of best loss - as INF.
         self.best_loss = np.inf
+        self.best_status = "Unknown"
 
     def handshake_definitions(self, problem_data_definitions_):
         """
@@ -262,21 +264,21 @@ class Model(nn.Module):
 
     def add_aggregators(self, stat_agg):
         """
-        Adds statistical aggregators to ``StatisticsAggregator``.
+        Adds statistical aggregators to :py:class:miprometheus.utils.StatisticsAggregator.
 
         .. note::
 
             Empty - To be redefined in inheriting classes.
 
 
-        :param stat_agg: ``StatisticsAggregator``.
+        :param stat_agg: :py:class:miprometheus.utils.StatisticsAggregator.
 
         """
         pass
 
     def aggregate_statistics(self, stat_col, stat_agg):
         """
-        Aggregates the statistics collected by ``StatisticsCollector`` and adds the results to ``StatisticsAggregator``.
+        Aggregates the statistics collected by :py:class:miprometheus.utils.StatisticsCollector`` and adds the results to :py:class:miprometheus.utils.StatisticsAggregator.
 
          .. note::
 
@@ -288,9 +290,9 @@ class Model(nn.Module):
             the user should also ensure that these statistics are correctly collected \
             (i.e. use of ``self.add_statistics`` and ``self.collect_statistics``).
 
-        :param stat_col: ``StatisticsCollector``.
+        :param stat_col: :py:class:miprometheus.utils.StatisticsAggregatorCollector
 
-        :param stat_agg: ``StatisticsAggregator``.
+        :param stat_agg: :py:class:miprometheus.utils.StatisticsAggregator
 
 
         """
@@ -316,7 +318,7 @@ class Model(nn.Module):
 
         """
 
-    def save(self, model_dir, stats):
+    def save(self, model_dir, training_status, training_stats, validation_stats):
         """
         Generic method saving the model parameters to file. It can be \
         overloaded if one needs more control.
@@ -324,32 +326,41 @@ class Model(nn.Module):
         :param model_dir: Directory where the model will be saved.
         :type model_dir: str
 
-        :param stats: Statistics value to save with the model.
-        :type stats: ``StatisticsCollector`` or ``StatisticsAggregator``
+        :param training_status: String representing the current status of training.
+        :type training_status: str
+
+        :param training_stats: Training statistics that will be saved to checkpoint along with the model.
+        :type training_stats: :py:class:`miprometheus.utils.StatisticsCollector` or \
+        :py:class:`miprometheus.utils.StatisticsAggregator`
+
+        :param validation_stats: Validation statistics that will be saved to checkpoint along with the model.
+        :type validation_stats: :py:class:`miprometheus.utils.StatisticsCollector` or \
+        :py:class:`miprometheus.utils.StatisticsAggregator`
 
         :return: True if this is currently the best model (until the current episode, considering the loss).
 
         """
-        # Get the episode index and the statistics:
-        if stats.__class__.__name__ == 'StatisticsCollector':
+        # Process validation statistics, get the episode and loss.
+        if validation_stats.__class__.__name__ == 'StatisticsCollector':
             # Get data from collector.
-            episode = stats['episode'][-1]
-            loss = stats['loss'][-1]
-            # "Copy" last values only.
-            statistics = {k: v[-1] for k, v in stats.items()}
+            episode = validation_stats['episode'][-1]
+            loss = validation_stats['loss'][-1]
 
         else:
-            # Get data from aggregator.
-            episode = stats['episode']
-            loss = stats['loss']
-            # Simply copy values.
-            statistics = {k: v for k, v in stats.items()}
+            # Get data from StatisticsAggregator.
+            episode = validation_stats['episode']
+            loss = validation_stats['loss']
 
         # Checkpoint to be saved.
         chkpt = {'name': self.name,
-                 'timestamp': datetime.datetime.now(),
                  'state_dict': self.state_dict(),
-                 'stats': statistics
+                 'model_timestamp': datetime.now(),
+                 'episode': episode,
+                 'loss': loss,
+                 'status': training_status,
+                 'status_timestamp': datetime.now(),
+                 'training_stats': training_stats.export_to_checkpoint(),
+                 'validation_stats': validation_stats.export_to_checkpoint()
                 }
 
         # Save the intermediate checkpoint.
@@ -362,12 +373,24 @@ class Model(nn.Module):
         # Save the best model.
         loss = loss.cpu()  # moving loss value to cpu type to allow (initial) comparison with numpy type
         if loss < self.best_loss:
+            # Save best loss and status.
             self.best_loss = loss
+            self.best_status = training_status
+            # Save checkpoint.
             filename = model_dir + 'model_best.pt'
             torch.save(chkpt, filename)
             self.logger.info("Model and statistics exported to checkpoint {}".format(filename))
             return True
-
+        elif self.best_status != training_status:
+            filename = model_dir + 'model_best.pt'
+            # Load checkpoint.
+            chkpt_loaded = torch.load(filename, map_location=lambda storage, loc: storage)
+            # Update status and status time.
+            chkpt_loaded['status'] = training_status
+            chkpt_loaded['status_timestamp'] = datetime.now()
+            # Save updated checkpoint.
+            torch.save(chkpt_loaded, filename)
+            self.logger.info("Updated training status in checkpoint {}".format(filename))
         # Else: that was not the best model.
         return False
 
@@ -388,11 +411,13 @@ class Model(nn.Module):
 
         # Print statistics.
         self.logger.info(
-            "Imported {} parameters from checkpoint from {} (episode {}, loss {})".format(
+            "Imported {} parameters from checkpoint from {} (episode: {}, loss: {}, status: {})".format(
                 chkpt['name'],
-                chkpt['timestamp'],
-                chkpt['stats']['episode'],
-                chkpt['stats']['loss']))
+                chkpt['model_timestamp'],
+                chkpt['episode'],
+                chkpt['loss'],
+                chkpt['status']
+                ))
 
     def summarize(self):
         """
@@ -483,7 +508,6 @@ class Model(nn.Module):
 
 if __name__ == '__main__':
     """Unit test for the handshake."""
-
     from miprometheus.utils.param_interface import ParamInterface
     params = ParamInterface()
 

@@ -30,11 +30,9 @@ import torch
 from time import sleep
 from random import randrange
 from datetime import datetime
-from torch.utils.data.dataloader import DataLoader
 
 from miprometheus.workers.worker import Worker
 from miprometheus.models.model_factory import ModelFactory
-from miprometheus.problems.problem_factory import ProblemFactory
 
 from miprometheus.utils.statistics_collector import StatisticsCollector
 from miprometheus.utils.statistics_aggregator import StatisticsAggregator
@@ -169,21 +167,21 @@ class Trainer(Worker):
         # Get training problem name.
         try:
             training_problem_name = self.params['training']['problem']['name']
-        except:
+        except KeyError:
             print("Error: Couldn't retrieve the problem name from the 'training' section in the loaded configuration")
             exit(-1)
 
         # Get validation problem name
         try:
             _ = self.params['validation']['problem']['name']
-        except:
+        except KeyError:
             print("Error: Couldn't retrieve the problem name from the 'validation' section in the loaded configuration")
             exit(-1)
 
         # Get model name.
         try:
             model_name = self.params['model']['name']
-        except:
+        except KeyError:
             print("Error: Couldn't retrieve the model name from the loaded configuration")
             exit(-1)
 
@@ -193,7 +191,7 @@ class Trainer(Worker):
                 time_str = '{0:%Y%m%d_%H%M%S}'.format(datetime.now())
                 if self.flags.savetag != '':
                     time_str = time_str + "_" + self.flags.savetag
-                self.log_dir = self.flags.outdir + '/' + training_problem_name + '/' + model_name + '/' + time_str + '/'
+                self.log_dir = self.flags.expdir + '/' + training_problem_name + '/' + model_name + '/' + time_str + '/'
                 os.makedirs(self.log_dir, exist_ok=False)
             except FileExistsError:
                 sleep(1)
@@ -216,22 +214,10 @@ class Trainer(Worker):
 
         ################# TRAINING PROBLEM ################# 
 
-        # Build the problem for the training
-        self.training_problem = ProblemFactory.build_problem(self.params['training']['problem'])
-
-        # build the DataLoader on top of the Problem class, using the associated configuration section.
-        self.training_dataloader = DataLoader(dataset=self.training_problem,
-                                              batch_size=self.params['training']['problem']['batch_size'],
-                                              shuffle=self.params['training']['dataloader']['shuffle'],
-                                              sampler=self.params['training']['dataloader']['sampler'],
-                                              batch_sampler=self.params['training']['dataloader']['batch_sampler'],
-                                              num_workers=self.params['training']['dataloader']['num_workers'],
-                                              collate_fn=self.training_problem.collate_fn,
-                                              pin_memory=self.params['training']['dataloader']['pin_memory'],
-                                              drop_last=self.params['training']['dataloader']['drop_last'],
-                                              timeout=self.params['training']['dataloader']['timeout'],
-                                              worker_init_fn=self.training_problem.worker_init_fn)
-
+        # Build training problem and dataloader.
+        self.training_problem, self.training_sampler, self.training_dataloader = \
+            self.build_problem_sampler_loader(self.params['training'], 'training') 
+        
         # parse the curriculum learning section in the loaded configuration.
         if 'curriculum_learning' in self.params['training']:
 
@@ -254,21 +240,9 @@ class Trainer(Worker):
 
         ################# VALIDATION PROBLEM ################# 
         
-        # Build the validation problem.
-        self.validation_problem = ProblemFactory.build_problem(self.params['validation']['problem'])
-
-        # build the DataLoader on top of the validation problem
-        self.validation_dataloader = DataLoader(dataset=self.validation_problem,
-                                                batch_size=self.params['validation']['problem']['batch_size'],
-                                                shuffle=self.params['validation']['dataloader']['shuffle'],
-                                                sampler=self.params['validation']['dataloader']['sampler'],
-                                                batch_sampler=self.params['validation']['dataloader']['batch_sampler'],
-                                                num_workers=self.params['validation']['dataloader']['num_workers'],
-                                                collate_fn=self.validation_problem.collate_fn,
-                                                pin_memory=self.params['validation']['dataloader']['pin_memory'],
-                                                drop_last=self.params['validation']['dataloader']['drop_last'],
-                                                timeout=self.params['validation']['dataloader']['timeout'],
-                                                worker_init_fn=self.validation_problem.worker_init_fn)
+        # Build validation problem and dataloader.
+        self.validation_problem, self.validations_sampler, self.validation_dataloader = \
+            self.build_problem_sampler_loader(self.params['validation'], 'validation') 
 
         # Generate a single batch used for partial validation.
         #self.validation_batch = self.validation_problem.collate_fn(next(iter(self.validation_problem)))
@@ -279,15 +253,33 @@ class Trainer(Worker):
         ################# MODEL PROBLEM ################# 
         
         # Build the model using the loaded configuration and the default values of the problem.
-        self.model = ModelFactory.build_model(self.params['model'], self.training_problem.default_values)
+        self.model = ModelFactory.build(self.params['model'], self.training_problem.default_values)
 
-        # load the indicated pretrained model checkpoint if the argument is valid
-        if self.flags.model != "":
-            if os.path.isfile(self.flags.model):
-                # Load parameters from checkpoint.
-                self.model.load(self.flags.model)
+        # Load the pretrained model from checkpoint.
+        try: 
+            # Check command line arguments, then check load option in config.
+            if self.flags.model != "":
+                model_name = self.flags.model
+                msg = "command line (--m)"
+            elif "load" in self.params['model']:
+                model_name = self.params['model']['load']
+                msg = "model section of the configuration file"
             else:
-                self.logger.error("Couldn't load the checkpoint {} : does not exist on disk.".format(self.flags.model))
+                model_name = ""
+            # Try to load the model.
+            if model_name != "":
+                if os.path.isfile(model_name):
+                    # Load parameters from checkpoint.
+                    self.model.load(model_name)
+                else:
+                    raise Exception("Couldn't load the checkpoint {} indicated in the {}: file does not exist".format(model_name, msg))
+        except KeyError:
+            self.logger.error("File {} indicated in the {} seems not to be a valid model checkpoint".format(model_name, msg))
+            exit(-5)
+        except Exception as e:
+            self.logger.error(e)
+            # Exit by following the logic: if user wanted to load the model but failed, then continuing the experiment makes no sense.
+            exit(-6)
 
         # Move the model to CUDA if applicable.
         if self.app_state.use_CUDA:
@@ -428,7 +420,7 @@ class Trainer(Worker):
         if self.validation_set_writer is not None:
             self.validation_set_writer.close()
 
-    def validate_on_batch(self, valid_batch, episode, epoch=None):
+    def validate_on_batch(self, valid_batch, episode, epoch):
         """
         Performs a validation of the model using the provided batch.
 
@@ -448,6 +440,8 @@ class Trainer(Worker):
         """
         # Turn on evaluation mode.
         self.model.eval()
+        # Empty the statistics collector.
+        self.validation_stat_col.empty()
 
         # Compute the validation loss using the provided data batch.
         with torch.no_grad():
@@ -455,7 +449,7 @@ class Trainer(Worker):
                                                                      valid_batch, self.validation_stat_col,
                                                                      episode, epoch)
 
-        # Export statistics.
+        # Export  collected statistics.
         self.export_statistics(self.validation_stat_col, '[Partial Validation]')
 
         # Visualization of validation.
@@ -485,10 +479,19 @@ class Trainer(Worker):
 
         :return: Average loss over the validation set.
 
-
         """
+        # Get number of samples - depending whether using sampler or not.
+        if self.params['validation']['dataloader']['drop_last']:
+            # if we are supposed to drop the last (incomplete) batch.
+            num_samples = len(self.validation_dataloader) * \
+                self.params['validation']['problem']['batch_size']
+        elif self.validations_sampler is not None:
+            num_samples = len(self.validations_sampler)
+        else:
+            num_samples = len(self.validation_problem)
+        
         self.logger.info('Validating over the entire validation set ({} samples in {} episodes)'.format(
-            len(self.validation_problem), len(self.validation_dataloader)))
+            num_samples, len(self.validation_dataloader)))
 
         # Turn on evaluation mode.
         self.model.eval()
@@ -523,4 +526,4 @@ class Trainer(Worker):
 
 if __name__ == '__main__':
     print("The trainer.py file contains only an abstract base class. Please try to use the \
-online_trainer (mip-onlinetrainer) or  offline_trainer (mip-offlinetrainer) instead.")
+online_trainer (mip-online-trainer) or  offline_trainer (mip-offline-trainer) instead.")

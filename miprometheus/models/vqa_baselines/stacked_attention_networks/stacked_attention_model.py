@@ -43,8 +43,6 @@ __author__ = "Vincent Marois & Younes Bouhadjar"
 
 import torch
 import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
 
 from miprometheus.models.model import Model
 from miprometheus.models.vqa_baselines.stacked_attention_networks.stacked_attention_layer import StackedAttentionLayer
@@ -95,7 +93,7 @@ class StackedAttentionNetwork(Model):
 
             self.nb_classes = problem_default_values_['num_classes']
 
-        except BaseException:
+        except KeyError:
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
         self.name = 'StackedAttentionNetwork'
@@ -121,7 +119,7 @@ class StackedAttentionNetwork(Model):
         else:
             self.num_dir = 1
 
-        self.lstm = nn.LSTM(input_size=self.question_encoding_size,
+        self.lstm =torch.nn.LSTM(input_size=self.question_encoding_size,
                             hidden_size=self.hidden_size,
                             num_layers=self.num_layers,
                             bias=True,
@@ -135,7 +133,7 @@ class StackedAttentionNetwork(Model):
         self.mid_features_attention = params['attention_layer']['nb_nodes']
 
         # Question encoding
-        self.ffn = nn.Linear(in_features=output_question_dim, out_features=self.image_encoding_channels)
+        self.ffn =torch.nn.Linear(in_features=output_question_dim, out_features=self.image_encoding_channels)
 
         # Instantiate class for attention
         self.apply_attention = StackedAttentionLayer(question_image_encoding_size=self.image_encoding_channels,
@@ -144,9 +142,9 @@ class StackedAttentionNetwork(Model):
         # Instantiate MLP for classifier
         input_size = self.image_encoding_channels
 
-        self.fc1 = nn.Linear(in_features=input_size, out_features=params['classifier']['nb_hidden_nodes'])
-        self.fc2 = nn.Linear(params['classifier']['nb_hidden_nodes'], params['classifier']['nb_hidden_nodes'])
-        self.fc3 = nn.Linear(params['classifier']['nb_hidden_nodes'], self.nb_classes)
+        self.fc1 =torch.nn.Linear(in_features=input_size, out_features=params['classifier']['nb_hidden_nodes'])
+        self.fc2 =torch.nn.Linear(params['classifier']['nb_hidden_nodes'], params['classifier']['nb_hidden_nodes'])
+        self.fc3 =torch.nn.Linear(params['classifier']['nb_hidden_nodes'], self.nb_classes)
 
         self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width], 'type': [torch.Tensor]},
                                  'questions': {'size': [-1, self.question_encoding_size], 'type': [torch.Tensor]},
@@ -188,9 +186,9 @@ class StackedAttentionNetwork(Model):
         encoded_attention = self.apply_attention(encoded_images, encoded_question)
 
         # 4. Classify based on the result of the stacked attention layer
-        x = F.relu(self.fc1(encoded_attention))
-        x = F.relu(self.fc2(x))
-        x = F.dropout(x)  # p=0.5
+        x = torch.nn.functional.relu(self.fc1(encoded_attention))
+        x = torch.nn.functional.relu(self.fc2(x))
+        x = torch.nn.functional.dropout(x)  # p=0.5
         logits = self.fc3(x)
 
         return logits
@@ -234,7 +232,7 @@ class StackedAttentionNetwork(Model):
         plt.imshow(image.permute(1, 2, 0),
                    interpolation='nearest', aspect='auto')
 
-        f = plt.figure()
+        _ = plt.figure()
         plt.title('Attention')
 
         width_height_attention = int(
@@ -256,7 +254,7 @@ class StackedAttentionNetwork(Model):
         plt.imshow(attention_visualize_layer1,
                    interpolation='nearest', aspect='auto')
 
-        f = plt.figure()
+        _ = plt.figure()
 
         plt.title('2nd attention layer')
         plt.imshow(attention_visualize_layer2,
@@ -288,7 +286,7 @@ if __name__ == '__main__':
     batch_size = 64
 
     # wrap DataLoader on top of this Dataset subclass
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
 
     dataloader = DataLoader(dataset=sortofclevr, collate_fn=sortofclevr.collate_fn,
                             batch_size=batch_size, shuffle=True, num_workers=4)

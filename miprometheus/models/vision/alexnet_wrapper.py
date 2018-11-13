@@ -57,13 +57,14 @@ class AlexnetWrapper(Model):
 
         try:
             # number of output nodes
-            self.nb_classes = problem_default_values_['nb_classes']
+            self.num_classes = problem_default_values_['num_classes']
 
-        except BaseException:
-            self.logger.warning("Couldn't retrieve the number of classes from problem_default_values_.")
+        except KeyError:
+            self.logger.warning("Couldn't retrieve the number of classes from problem_default_values")
+            exit(-1)
 
         # set model from torchvision
-        self.model = alexnet(pretrained=params['pretrained'], num_classes=self.nb_classes)
+        self.model = alexnet(pretrained=params['pretrained'], num_classes=self.num_classes)
 
         self.name = 'AlexNetWrapper'
 
@@ -156,7 +157,7 @@ if __name__ == '__main__':
     AppState().visualize = True
 
     from miprometheus.utils.param_interface import ParamInterface
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
     from miprometheus.problems import CIFAR10
 
     problem_params = ParamInterface()

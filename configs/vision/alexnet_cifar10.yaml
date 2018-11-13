@@ -5,10 +5,12 @@ training:
     problem:
         name: &name CIFAR10
         batch_size: &b 64
-        index: [0, 40000]
         use_train_data: True
-        padding: &p [0,0,0,0] # ex: (x1, x2, x3, x4) pad last dim by (x1, x2) and 2nd to last by (x3, x4)
-        up_scaling: &scale True # if up_scale true the image is resized to 224 x 224
+        resize: [224, 224]
+    # Use sampler that operates on a subset.
+    sampler:
+        name: SubsetRandomSampler
+        indices: [0, 45000]
     # optimizer parameters:
     optimizer:
         name: Adam
@@ -22,10 +24,12 @@ validation:
     problem:
         name: *name
         batch_size: *b
-        index: [40000, 49999]
         use_train_data: True # True because we are splitting the training set to: validation and training
-        padding: *p
-        up_scaling: *scale
+        resize: [224, 224]
+    # Use sampler that operates on a subset.
+    sampler:
+        name: SubsetRandomSampler
+        indices: [45000, 50000]
 
 # Problem parameters:
 testing:
@@ -33,8 +37,7 @@ testing:
         name: *name
         batch_size: *b
         use_train_data: False
-        padding: *p
-        up_scaling: *scale
+        resize: [224, 224]
 
 # Model parameters:
 model:

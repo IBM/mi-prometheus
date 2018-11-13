@@ -5,6 +5,10 @@ training:
         initial_max_sequence_length: 5
     #    must_finish: false
 
+    # Sampler.
+    sampler:
+        name: RandomSampler
+
     # Optimizer parameters:
     optimizer:
         # Exact name of the pytorch optimizer function

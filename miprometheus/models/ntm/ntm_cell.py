@@ -20,6 +20,7 @@ __author__ = "Tomasz Kornuta"
 
 import torch
 import collections
+from torch.nn import Module
 
 from miprometheus.models.controllers.controller_factory import ControllerFactory
 from miprometheus.models.ntm.ntm_interface import NTMInterface
@@ -40,7 +41,7 @@ class NTMCellStateTuple(_NTMCellStateTuple):
     __slots__ = ()
 
 
-class NTMCell(torch.nn.Module):
+class NTMCell(Module):
     """
     Class representing a single NTM cell.
     """
@@ -83,7 +84,7 @@ class NTMCell(torch.nn.Module):
             "output_size": self.controller_hidden_state_size
         })
         # Build the controller.
-        self.controller = ControllerFactory.build_controller(controller_params)
+        self.controller = ControllerFactory.build(controller_params)
         # Interface - entity responsible for accessing the memory.
         self.interface = NTMInterface(params)
 

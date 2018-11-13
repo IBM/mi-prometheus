@@ -23,7 +23,6 @@ import torch
 import logging
 import numpy as np
 from torch.utils.data import Dataset
-from torch.utils.data.dataloader import default_collate
 
 from miprometheus.utils.app_state import AppState
 from miprometheus.utils.data_dict import DataDict
@@ -33,24 +32,30 @@ class Problem(Dataset):
     """
     Class representing base class for all Problems.
 
-    Inherits from torch.utils.data.Dataset as all subclasses will represent a problem with an associated dataset,\
-    and the `worker` will use ``torch.utils.data.dataloader.DataLoader`` to generate batches.
+    Inherits from :py:class:`torch.utils.data.Dataset` as all subclasses will represent a problem with an associated dataset,\
+    and the `worker` will use :py:class:`torch.utils.data.DataLoader` to generate batches.
 
     Implements features & attributes used by all subclasses.
 
     """
 
-    def __init__(self, params):
+    def __init__(self, params_, name_ = 'Problem'):
         """
         Initializes problem object.
 
-        :param params: Dictionary of parameters (read from the configuration ``.yaml`` file).
+        :param params_: Dictionary of parameters (read from the configuration ``.yaml`` file).
+
+        :param name_: Problem name (DEFAULT: 'Problem').
 
         This constructor:
 
         - stores a pointer to ``params``:
 
-            >>> self.params = params
+            >>> self.params = params_
+
+        - sets a problem name:
+
+            >>> self.name = name_
 
         - sets a default loss function:
 
@@ -59,10 +64,6 @@ class Problem(Dataset):
         - initializes the size of the dataset:
 
             >>> self.length = None
-
-        - sets a default problem name:
-
-            >>> self.name = 'Problem'
 
         - initializes the logger.
 
@@ -99,7 +100,10 @@ class Problem(Dataset):
 
         """
         # Store pointer to params.
-        self.params = params
+        self.params = params_
+
+        # Problem name.
+        self.name = name_
 
         # Empty curriculum learning params - for now.
         self.curriculum_params = {}
@@ -110,10 +114,7 @@ class Problem(Dataset):
         # Size of the dataset
         self.length = None
 
-        # "Default" problem name.
-        self.name = 'Problem'
-
-        # initialize the logger.
+        # Initialize the logger.
         self.logger = logging.getLogger(self.name)
 
         # data_definitions: this is used for defining the DataDict keys.
@@ -121,8 +122,7 @@ class Problem(Dataset):
         # This dict contains information about the DataDict produced by the current problem class.
         # This object will be used during handshaking between the model and the problem class to ensure that the model
         # can accept the batches produced by the problem.
-        # This dict should at least contains the `targets` field.
-        self.data_definitions = {'targets': {'size': [-1, 1], 'type': [torch.Tensor]}}
+        self.data_definitions = {}
 
         # default_values: this is used to pass missing parameters values to the model.
 
@@ -270,11 +270,11 @@ class Problem(Dataset):
         """
         Generates a batch of samples from a list of individuals samples retrieved by ``__getitem__``.
 
-        The default collate_fn is ``torch.utils.data.default_collate``.
+        The default collate_fn is ``torch.utils.data.dataloader.default_collate``.
 
         .. note::
 
-            This base ``collate_fn`` method only calls the default ``torch.utils.data.default_collate``\
+            This base ``collate_fn`` method only calls the default ``torch.utils.data.dataloader.default_collate``\
             , as it can handle several cases (mainly tensors, numbers, dicts and lists).
 
             If your dataset can yield variable-length samples within a batch, or generate batches `on-the-fly`\
@@ -288,7 +288,7 @@ class Problem(Dataset):
         :return: DataDict containing the created batch.
 
         """
-        return default_collate(batch)
+        return torch.utils.data.dataloader.default_collate(batch)
 
     def __getitem__(self, index):
         """
@@ -456,26 +456,6 @@ class Problem(Dataset):
         """
         pass
         
-    def get_epoch_size(self, batch_size):
-        """
-        Compute the number of iterations ('episodes') to run given the size of the dataset and the batch size to cover
-        the entire dataset once.
-
-        :param batch_size: Batch size.
-        :type batch_size: int
-
-        .. note::
-
-            We are counting the last batch, even though it might be smaller than the other ones if the size of the \
-            dataset is not divisible by the batch size. -> Corresponds to ``drop_last=False`` in ``DataLoader()``.
-
-        :return: Number of iterations to perform to go though the entire dataset once.
-
-        """
-        if (self.length % batch_size) == 0:
-            return self.length // batch_size
-        else:
-            return (self.length // batch_size) + 1
 
     def initialize_epoch(self, epoch):
         """

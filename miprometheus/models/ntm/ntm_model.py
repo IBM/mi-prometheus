@@ -146,20 +146,18 @@ class NTM(SequentialModel):
         :returns: Matplot figure object.
 
         """
+        import matplotlib
         from matplotlib.figure import Figure
-        import matplotlib.ticker as ticker
-        from matplotlib import rc
-        import matplotlib.gridspec as gridspec
 
         # Change fonts globally - for all figures/subsplots at once.
-        rc('font', **{'family': 'Times New Roman'})
+        matplotlib.rc('font', **{'family': 'Times New Roman'})
 
         # Prepare "generic figure template".
         # Create figure object.
         fig = Figure()
 
         # Create a specific grid for NTM .
-        gs = gridspec.GridSpec(3, 7)
+        gs = matplotlib.gridspec.GridSpec(3, 7)
 
         # Memory
         ax_memory = fig.add_subplot(gs[:, 0])  # all rows, col 0
@@ -172,9 +170,9 @@ class NTM(SequentialModel):
 
         # Set ticks - currently for all axes.
         for ax in fig.axes:
-            ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-            ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-            ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+            ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+            ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
         # Set labels.
         ax_inputs.set_title('Inputs')
@@ -249,8 +247,8 @@ class NTM(SequentialModel):
         (ctrl_state, interface_state, memory_state,
          read_vectors) = self.cell_state_initial
 
-       # Initialize "empty" matrices.
-        memory_displayed = memory_state[0]
+        # Initialize "empty" matrices.
+
         read0_attention_displayed = np.zeros(
             (memory_state.shape[1], targets_seq.shape[0]))
         write_attention_displayed = np.zeros(
@@ -332,13 +330,11 @@ class NTM(SequentialModel):
         :returns: Matplot figure object.
 
         """
+        import matplotlib
         from matplotlib.figure import Figure
-        import matplotlib.ticker as ticker
-        from matplotlib import rc
-        import matplotlib.gridspec as gridspec
 
         # Change fonts globally - for all figures/subsplots at once.
-        rc('font', **{'family': 'Times New Roman'})
+        matplotlib.rc('font', **{'family': 'Times New Roman'})
 
         # Prepare "generic figure template".
         # Create figure object.
@@ -346,7 +342,7 @@ class NTM(SequentialModel):
         #axes = fig.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={'width_ratios': [input_seq.shape[0]]})
 
         # Create a specific grid for NTM .
-        gs = gridspec.GridSpec(4, 7)
+        gs = matplotlib.gridspec.GridSpec(4, 7)
 
         # Memory
         ax_memory = fig.add_subplot(gs[1:, 0])  # all rows, col 0
@@ -365,11 +361,11 @@ class NTM(SequentialModel):
 
         # Set ticks - currently for all axes.
         for ax in fig.axes:
-            ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-            ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+            ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+            ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         # ... except gates - single bit.
-        ax_write_gate.yaxis.set_major_locator(ticker.NullLocator())
-        ax_read_gate.yaxis.set_major_locator(ticker.NullLocator())
+        ax_write_gate.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_read_gate.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
 
         # Set labels.
         ax_inputs.set_title('Inputs')
@@ -476,8 +472,8 @@ class NTM(SequentialModel):
         (write_attention, write_similarity,
          write_gate, write_shift) = write_state_tuple
 
-       # Initialize "empty" matrices.
-        memory_displayed = memory_state[0]
+        # Initialize "empty" matrices.
+
         read0_attention_displayed = np.zeros(
             (memory_state.shape[1], targets_seq.shape[0]))
         read0_similarity_displayed = np.zeros(

@@ -18,20 +18,20 @@
 """
 online_trainer.py:
 
-    - This file contains the implementation of the ``OnLineTrainer``, which inherits from ``Trainer``.
+    - This file contains the implementation of the ``OnlineTrainer``, which inherits from ``Trainer``.
 
 """
 __author__ = "Vincent Marois, Tomasz Kornuta"
 
+import torch
 import numpy as np
-from torch.nn.utils import clip_grad_value_
 
 from miprometheus.workers.trainer import Trainer
 
 
-class OnLineTrainer(Trainer):
+class OnlineTrainer(Trainer):
     """
-    Implementation for the episode-based ``OnLineTrainer``.
+    Implementation for the episode-based ``OnlineTrainer``.
 
     ..note ::
 
@@ -39,22 +39,22 @@ class OnLineTrainer(Trainer):
         it makes less sense for problems which have a very large, almost infinite, dataset (like algorithmic \
         tasks, which generate random data on-the-fly). \
          
-        This is why this OnLineTrainer was implemented. Instead of looping on epochs, it iterates directly on \
+        This is why this OnlineTrainer was implemented. Instead of looping on epochs, it iterates directly on \
         episodes (we call an iteration on a single batch an episode).
 
 
     """
 
-    def __init__(self, name="OnLineTrainer"):
+    def __init__(self, name="OnlineTrainer"):
         """
         Only calls the ``Trainer`` constructor as the initialization phase is identical to the ``Trainer``.
 
-       :param name: Name of the worker (DEFAULT: "OnLineTrainer").
+       :param name: Name of the worker (DEFAULT: "OnlineTrainer").
        :type name: str
 
         """ 
         # Call base constructor to set up app state, registry and add default params.
-        super(OnLineTrainer, self).__init__(name)
+        super(OnlineTrainer, self).__init__(name)
 
     def setup_experiment(self):
         """
@@ -65,7 +65,7 @@ class OnLineTrainer(Trainer):
 
         """
         # Call base method to parse all command line arguments, load configuration, create problems and model etc.
-        super(OnLineTrainer, self).setup_experiment()
+        super(OnlineTrainer, self).setup_experiment()
 
         ################# TERMINAL CONDITIONS ################# 
         self.logger.info('Terminal conditions:\n' + '='*80)
@@ -95,8 +95,9 @@ class OnLineTrainer(Trainer):
             self.logger.info("Setting the Epoch Limit to: {}".format(self.epoch_limit))
 
         # Calculate the epoch size in terms of episodes.
-        epoch_size = self.training_problem.get_epoch_size(self.params["training"]["problem"]["batch_size"])
-        self.logger.info('Epoch size in terms of training episodes: {}'.format(epoch_size))
+        #self.epoch_size = self.get_epoch_size(self.training_problem, self.training_sampler,
+        self.epoch_size = len(self.training_dataloader)
+        self.logger.info('Epoch size in terms of training episodes: {}'.format(self.epoch_size))
 
         # Terminal condition III: max episodes. Mandatory.
         self.params["training"]["terminal_conditions"].add_default_params({'episode_limit': 100000})
@@ -108,9 +109,12 @@ class OnLineTrainer(Trainer):
             self.logger.info("Setting the Episode Limit to: {}".format(self.episode_limit))
         self.logger.info('\n' + '='*80)
 
+        # Export and log configuration, optionally asking the user for confirmation.
+        self.export_experiment_configuration(self.log_dir, "training_configuration.yaml", self.flags.confirm)
+
     def run_experiment(self):
         """
-        Main function of the ``OnLineTrainer``, runs the experiment.
+        Main function of the ``OnlineTrainer``, runs the experiment.
 
         Iterates over the (cycled) DataLoader (one iteration = one episode).
 
@@ -142,9 +146,6 @@ class OnLineTrainer(Trainer):
 
 
         """
-        # Export and log configuration, optionally asking the user for confirmation.
-        self.export_experiment_configuration(self.log_dir, "training_configuration.yaml",self.flags.confirm)
-
         # Initialize TensorBoard and statistics collection.
         self.initialize_statistics_collection()
         self.initialize_tensorboard()
@@ -159,12 +160,13 @@ class OnLineTrainer(Trainer):
             # Reset the counters.
             episode = 0
             epoch = 0
+            self.logger.info('Starting next epoch: {}'.format(epoch))
 
             # Inform the training problem class that epoch has started.
             self.training_problem.initialize_epoch(epoch)
 
-            # Set default termination cause.
-            termination_cause = "Episode limit reached"
+            # Set initial status.
+            training_status = "Not Converged"
             for training_dict in self.training_dataloader:
 
                 # reset all gradients
@@ -191,7 +193,7 @@ class OnLineTrainer(Trainer):
                 try:
                     # if present - clip gradients to a range (-gradient_clipping, gradient_clipping)
                     val = self.params['training']['gradient_clipping']
-                    clip_grad_value_(self.model.parameters(), val)
+                    torch.nn.utils.clip_grad_value_(self.model.parameters(), val)
                 except KeyError:
                     # Else - do nothing.
                     pass
@@ -254,7 +256,7 @@ class OnLineTrainer(Trainer):
                     validation_loss = self.validate_on_batch(self.validation_batch, episode, epoch)
 
                     # Save the model using the latest validation statistics.
-                    self.model.save(self.model_dir, self.validation_stat_col)
+                    self.model.save(self.model_dir, training_status, self.training_stat_col, self.validation_stat_col)
 
                     # Terminal conditions.
                     # I. the loss is < threshold (only when curriculum learning is finished if set.)
@@ -263,36 +265,27 @@ class OnLineTrainer(Trainer):
 
                         # Check the Partial Validation loss.
                         if (validation_loss < self.loss_stop):
-                            termination_cause = "Partial Validation Loss went below Loss Stop " \
-                                                "threshold (model converged)."
+                            # Change the status...
+                            training_status = "Converged (Partial Validation Loss went below " \
+                                "Loss Stop threshold)"
+
+                            # ... and THEN save the model using the latest validation statistics.
+                            self.model.save(self.model_dir, training_status, self.training_stat_col, self.validation_stat_col)
                             break
 
                     # II. Early stopping is set and loss hasn't improved by delta in n epochs.
                     # early_stopping(index=epoch, avg_valid_loss). (TODO: coming in next release)
-                    # termination_cause = 'Early Stopping.'
+                    # training_status = 'Early Stopping.'
 
                 # III. The episodes number limit has been reached.
                 if episode+1 >= self.episode_limit:
                     # If we reach this condition, then it is possible that the model didn't converge correctly
                     # but it currently might get better since last validation.
-
-                    if self.validation_stat_col["episode"] != episode:
-                        # We still must validate and try to save the model as it may perform better during this episode
-                        # (as opposed to the previous II. condition)
-
-                        # Do not visualize.
-                        self.app_state.visualize = False
-                        self.validate_on_batch(self.validation_batch, episode, epoch)
-
-                        # Save the model.
-                        self.model.save(self.model_dir, self.validation_stat_col)
-
-                    termination_cause = "Episode Limit reached."
+                    training_status = "Not converged: Episode Limit reached"
                     break
 
                 # Check if we are at the end of the 'epoch': indicate that the DataLoader is now cycling.
-                if ((episode + 1) % self.training_problem.get_epoch_size(
-                        self.params['training']['problem']['batch_size'])) == 0:
+                if ((episode + 1) % self.epoch_size) == 0:
 
                     # Epoch just ended!
                     # Inform the problem class that the epoch has ended.
@@ -307,7 +300,7 @@ class OnLineTrainer(Trainer):
 
                     # IV. Epoch limit has been reached.
                     if epoch+1 >= self.epoch_limit:
-                        termination_cause = "Epoch Limit reached"
+                        training_status = "Not converged: Epoch Limit reached"
                         # "Finish" the training.
                         break
 
@@ -316,6 +309,8 @@ class OnLineTrainer(Trainer):
                     self.logger.info('Starting next epoch: {}'.format(epoch))
                     # Inform the training problem class that epoch has started.
                     self.training_problem.initialize_epoch(epoch)
+                    # Empty the statistics collector.
+                    self.training_stat_col.empty()
 
                 # Move on to next episode.
                 episode += 1
@@ -323,10 +318,23 @@ class OnLineTrainer(Trainer):
             '''
             End of main training and validation loop. Perform final full validation.
             '''
+            # Eventually perform "last" validation on batch.
+            if self.validation_stat_col["episode"] != episode:
+                # We still must validate and try to save the model as it may perform better during this episode.
+
+                # Do not visualize.
+                self.app_state.visualize = False
+
+                # Perform validation.
+                self.validate_on_batch(self.validation_batch, episode, epoch)
+
+                # Try to save the model using the latest validation statistics.
+                self.model.save(self.model_dir, training_status, self.training_stat_col, self.validation_stat_col)
+
             self.logger.info('\n' + '='*80)
-            self.logger.info('Training finished because {}'.format(termination_cause))
+            self.logger.info('Training finished because {}'.format(training_status))
             # Check visualization flag - turn on visualization for last validation if needed.
-            if self.flags.visualize == 3:
+            if 2 <= self.flags.visualize <= 3:
                 self.app_state.visualize = True
             else:
                 self.app_state.visualize = False
@@ -334,8 +342,7 @@ class OnLineTrainer(Trainer):
             # Validate over the entire validation set.
             self.validate_on_set(episode, epoch)
 
-            # Save the model using the average validation loss.
-            self.model.save(self.model_dir, self.validation_stat_agg)
+            # Do not save the model, as we tried it already on "last" validation batch.
 
             self.logger.info('Experiment finished!')
 
@@ -356,7 +363,7 @@ def main():
     Entry point function for the ``OnlineTrainer``.
 
     """
-    trainer = OnLineTrainer()
+    trainer = OnlineTrainer()
     # parse args, load configuration and create all required objects.
     trainer.setup_experiment()
     # GO!

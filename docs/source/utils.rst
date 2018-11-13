@@ -1,7 +1,7 @@
 .. role:: hidden
     :class: hidden-section
 
-Utilities
+miprometheus.utils
 ===================================
 
 .. automodule:: miprometheus.utils
@@ -49,9 +49,25 @@ ParamRegistry
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-StatisticsCollector
+SamplerFactory
 -----------------------
 
+.. autoclass:: SamplerFactory
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+Split Indices
+-----------------------
+
+.. automodule:: miprometheus.utils.split_indices
+    :members: split_indices
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+StatisticsCollector
+-----------------------
+.. currentmodule:: miprometheus.utils
 .. autoclass:: StatisticsCollector
     :members:
     :special-members:

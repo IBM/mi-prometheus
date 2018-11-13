@@ -18,14 +18,20 @@
 """
 grid_worker.py:
 
-    - Contains the definition of the ``GridWorker`` class, base for all grid workers, such as ``GridTrainerCPU`` \
-    & ``GridAnalyzer``. These grid workers do not inherit from ``Worker``, as they are different in behavior. \
-    Rather, they reuse the base workers to manage grid of experiments (by calling them using the command lines).
+    - Contains the definition of the :py:class:`miprometheus.grid_workers.GridWorker` class, \
+    base for all grid workers, such as :py:class:`miprometheus.grid_workers.GridTrainerCPU` \
+    & :py:class:`miprometheus.grid_workers.GridAnalyzer`.
+
+    - These grid workers do not inherit from :py:class:`miprometheus.workers.Worker`, as they are different \
+    in behavior. Rather, they reuse the base workers to manage grid of experiments (by calling them using the commands).
 
     - This class also contains the definition of the default command line arguments of the grid workers.
 
 """
 __author__ = "Vincent Marois & Tomasz Kornuta"
+
+import os
+import psutil
 
 import logging
 import argparse
@@ -63,7 +69,8 @@ class GridWorker(object):
         :type name: str
 
         :param use_gpu: Indicates whether the worker should use GPU or not. Value coming from the subclasses \
-         (e.g. ``GridTrainerCPU`` vs ``GridTrainerGPU``) (DEFAULT: False).
+         (e.g. :py:class:`miprometheus.grid_workers.GridTrainerCPU` vs \
+         :py:class:`miprometheus.grid_workers.GridTrainerGPU`) (DEFAULT: False).
         :type use_gpu: bool
 
         """
@@ -106,19 +113,13 @@ class GridWorker(object):
 
         # Add arguments to the specific parser.
         # These arguments will be shared by all grid workers.
-        self.parser.add_argument('--outdir',
-                                 dest='outdir',
+        self.parser.add_argument('--expdir',
+                                 dest='expdir',
                                  type=str,
                                  default="./experiments",
-                                 help='Path to the global output directory where the experiments folders '
+                                 help='Path to the directory where the experiments folders '
                                       'will be / are stored. Affects all grid experiments.'
                                       ' (DEFAULT: ./experiments)')
-
-        self.parser.add_argument('--savetag',
-                                 dest='savetag',
-                                 type=str,
-                                 default='',
-                                 help='Additional tag for the global output directory.')
 
         self.parser.add_argument('--ll',
                                  action='store',
@@ -133,15 +134,15 @@ class GridWorker(object):
                                  default=100,
                                  type=int,
                                  help='Statistics logging interval. Will impact logging to the logger and exporting to '
-                                      'TensorBoard for the experiments. Do not affect the grid worker. '
+                                      'TensorBoard for the experiments. Do not affect the grid worker itself. '
                                       'Writing to the csv file is not impacted (interval of 1).'
                                       ' (Default: 100, i.e. logs every 100 episodes).')
 
         self.parser.add_argument('--agree',
-                                 dest='confirm',
+                                 dest='user_confirm',
                                  action='store_true',
                                  help='Request user confirmation before starting the grid experiment.'
-                                      '  (Default: False)')
+                                      ' (Default: False)')
 
     def setup_grid_experiment(self):
         """
@@ -152,7 +153,7 @@ class GridWorker(object):
             - Parses command line arguments,
 
             - Sets the 3 default sections (training / validation / test) for the param registry, \
-            sets seeds to unspecified and disable multiprocessing. Also saves the specified ``cuda`` key.
+            sets seeds to unspecified and disable multiprocessing.
 
         .. note::
 
@@ -171,7 +172,7 @@ class GridWorker(object):
         self.params.add_default_params({"validation": {}})
         self.params.add_default_params({"testing": {}})
 
-        # set seeds to undefined (-1), pass CUDA value and deactivate multiprocessing for `DataLoader`.
+        # set seeds to undefined (-1) and deactivate multiprocessing for `DataLoader`.
         # It is important not to set the seeds here as they would be identical for all experiments.
         self.params["training"].add_default_params({"seed_numpy": -1,
                                                     "seed_torch": -1,
@@ -186,7 +187,8 @@ class GridWorker(object):
     @abstractmethod
     def run_grid_experiment(self):
         """
-        Main function of the ``GridWorker``, which essentially maps an experiment to available core or device.
+        Main function of the :py:class:`miprometheus.grid_workers.GridWorker`, which essentially maps \
+        an experiment to available core or device.
 
         .. note::
 
@@ -194,3 +196,20 @@ class GridWorker(object):
 
 
         """
+
+    def get_available_cpus(self):
+        """
+        Returns the number of available CPUs on the current machine.
+        """
+
+        # Check scheduler for number of available cpus - if OS offers that!
+        if hasattr(os, 'sched_getaffinity'):
+            return len(os.sched_getaffinity(0))
+
+        proc = psutil.Process()
+        # cpu_affinity() is only available on Linux, Windows and FreeBSD
+        if hasattr(proc, 'cpu_affinity'):
+            return len(proc.cpu_affinity())
+
+        # Simply return CPU count
+        return psutil.cpu_count()

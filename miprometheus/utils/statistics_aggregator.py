@@ -16,10 +16,12 @@
 # limitations under the License.
 
 """
-statistics_aggregator.py: Allows to compute several statistical aggregators (e.g. average, standard deviation...)\
- using the statistics collected over an epoch or a validation phase by the ``StatisticsCollector``.
+statistics_aggregator.py:
 
- Allows to summarize the current epoch or validation phase using statistical aggregators.
+    - Allows to compute several "statistical aggregators" (e.g. average, standard deviation...) using the \
+    statistics collected over an epoch or a validation phase by the :py:class:`miprometheus.utils.StatisticsCollector`.
+    - Allows to summarize the current epoch or validation phase using statistical aggregators.
+
 
  """
 __author__ = "Vincent Marois, Tomasz Kornuta"
@@ -32,12 +34,12 @@ class StatisticsAggregator(StatisticsCollector):
     """
     Specialized class used for the computation of several statistical aggregators.
 
-    Inherits from ``StatisticsCollector`` as it extends its capabilities: it relies \
-    on ``StatisticsCollector`` to collect the statistics over an epoch (training set) \
+    Inherits from :py:class:`miprometheus.utils.StatisticsCollector` as it extends its capabilities: it relies \
+    on :py:class:`miprometheus.utils.StatisticsCollector` to collect the statistics over an epoch (training set) \
     or a validation (over the validation set).
 
-    Once the statistics have been collected, the ``StatisticsAggregator`` allows to compute several \
-    statistical aggregators to summarize the last epoch or validation phase.
+    Once the statistics have been collected, the :py:class:`miprometheus.utils.StatisticsAggregator` allows \
+    to compute several statistical aggregators to summarize the last epoch or validation phase.
 
     E.g. With the list of loss values from the last epoch, we can compute the average loss, the min & max, \
     and the standard deviation.
@@ -47,9 +49,9 @@ class StatisticsAggregator(StatisticsCollector):
 
     def __init__(self):
         """
-        Constructor for the ``StatisticsAggregator``. Defines empty aggregators dict.
+        Constructor for the :py:class:`miprometheus.utils.StatisticsAggregator`. Defines empty aggregators dict.
 
-        Other statistical aggregators can be added via ``self.add_aggregator()``.
+        Other statistical aggregators can be added via :py:func:`StatisticsAggregator.add_aggregator()`.
 
         """
         # call base constructor
@@ -63,9 +65,10 @@ class StatisticsAggregator(StatisticsCollector):
         The value associated to the specified key is initiated as -1.
 
         :param key: Statistical aggregator to add. Such aggregator (e.g. min, max, mean, std...)\
-         should be based on an existing statistics collected by the ``StatisticsCollector`` \
-         (e.g. added by ``add_statistic`` and collected by ``model.collect_statistics`` or \
-         ``problem.collect_statistics``.
+         should be based on an existing statistics collected by the :py:class:`miprometheus.utils.StatisticsCollector` \
+         (e.g. added by :py:func:`StatisticsCollector.add_statistic()` and collected by \
+         :py:func:`miprometheus.models.Model.collect_statistics()` or \
+         :py:func:`miprometheus.models.Problem.collect_statistics()`.
         :type key: str
 
         :param formatting: Formatting that will be used when logging and exporting to CSV.
@@ -183,6 +186,24 @@ class StatisticsAggregator(StatisticsCollector):
 
         csv_file.write(values_str)
 
+    def export_to_checkpoint(self):
+        """
+        This method exports the aggregated data into a dictionary using the associated formatting.
+
+        """
+        chkpt = {}
+
+        # Iterate through key, values and format them.
+        for key, value in self.aggregators.items():
+
+            # Get formatting - using '{}' as default.
+            format_str = self.formatting.get(key, '{}')
+
+            # Add to dict.
+            chkpt[key] = format_str.format(value)
+
+        return chkpt        
+
     def export_to_string(self, additional_tag=''):
         """
         This method returns the current statistical aggregators values in the form of a string using the \
@@ -216,13 +237,13 @@ class StatisticsAggregator(StatisticsCollector):
         Method exports current statistical aggregators values to TensorBoard.
 
         :param tb_writer: TensorBoard writer, optional
-        :type tb_writer: ``tensorboardX.SummaryWriter``
+        :type tb_writer: :py:class:`tensorboardX.SummaryWriter`
 
         """
         # Get episode number.
         episode = self.aggregators['episode']
 
-        if (tb_writer is None):
+        if tb_writer is None:
             tb_writer = self.tb_writer
         # If it is still None - well, we cannot do anything more.
         if tb_writer is None:
@@ -249,10 +270,8 @@ if __name__ == "__main__":
     for episode, loss in enumerate(loss_values):
         stat_col['episode'] = episode
         stat_col['loss'] = loss
-        #print(stat_col.export_statistics_to_string())
-        
-    # Aggregate.
-    stat_agg.aggregate_statistics(stat_col)
+        # print(stat_col.export_statistics_to_string())
+
     print(stat_agg.export_to_string())
 
     # Add new aggregator (a simulation of "additional statistics collected by model")

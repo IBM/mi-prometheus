@@ -19,8 +19,8 @@
 __author__ = "Younes Bouhadjar, T.S Jayram"
 
 import torch
-import torch.nn.functional as F
 import numpy as np
+
 from miprometheus.utils.app_state import AppState
 
 
@@ -63,8 +63,8 @@ def sim(query, data, l2_normalize=False, aligned=True):
     assert query.size()[-1] == data.size()[-2]
 
     if l2_normalize:
-        query = F.normalize(query, dim=-1)
-        data = F.normalize(data, dim=-2)
+        query = torch.nn.functional.normalize(query, dim=-1)
+        data = torch.nn.functional.normalize(data, dim=-2)
 
     return torch.matmul(query, data)
 
@@ -117,5 +117,5 @@ def circular_conv(x, f):
 
     # loop over indices in the hidden shape
     for ix in np.ndindex(f_other):
-        y[ix] = F.conv1d(x[ix][None, None, :], f[ix][None, None, :])
+        y[ix] = torch.nn.functional.conv1d(x[ix][None, None, :], f[ix][None, None, :])
     return y

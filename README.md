@@ -51,15 +51,15 @@ The dependencies of MI-prometheus are:
 
    * pytorch (v. 0.4.0)
    * numpy
-   * torchvision (v. 0.2.0)
+   * torchvision
    * torchtext
    * tensorboardx
    * matplotlib 
+   * psutil (enables grid-* to span child processes on MacOS and Ubuntu)
    * PyYAML
    * tqdm
    * nltk
    * h5py
-   * six
    * pyqt5 (v. 5.10.1)
 
 

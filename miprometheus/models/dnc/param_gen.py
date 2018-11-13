@@ -18,12 +18,14 @@
 """param_gen.py: The class that converts the hidden vector of the controller into the parameters of the interface
 """
 __author__ = " Ryan L. McAvoy"
+import torch
+from torch.nn import Module
 
-from torch import nn
-import torch.nn.functional as F
 
+class Param_Generator(Module):
+    """
 
-class Param_Generator(nn.Module):
+    """
     def __init__(self,
                  param_in_dim,
                  #      memory_size=128,
@@ -50,51 +52,51 @@ class Param_Generator(nn.Module):
         self._num_shifts = shift_size
 
         # v_t^i - The vectors to write to memory, for each write head `i`.
-        self.write_vect_ = nn.Linear(
+        self.write_vect_ = torch.nn.Linear(
             param_in_dim, self._num_writes * self._word_size)
 
         # e_t^i - Amount to erase the memory by before writing, for each write
         # head.
-        self.erase_vect_ = nn.Linear(
+        self.erase_vect_ = torch.nn.Linear(
             param_in_dim, self._num_writes * self._word_size)
 
         # f_t^j - Amount that the memory at the locations read from at the previous
         # time step can be declared unused, for each read head `j`.
-        self.free_gate_ = nn.Linear(param_in_dim, self._num_reads)
+        self.free_gate_ = torch.nn.Linear(param_in_dim, self._num_reads)
 
         # g_t^{a, i} - Interpolation between writing to unallocated memory and
         # content-based lookup, for each write head `i`. Note: `a` is simply used to
         # identify this gate with allocation vs writing (as defined below).
-        self.allocate_gate_ = nn.Linear(param_in_dim, self._num_writes)
+        self.allocate_gate_ = torch.nn.Linear(param_in_dim, self._num_writes)
 
         # g_t^{w, i} - Overall gating of write amount for each write head.
-        self.write_gate_ = nn.Linear(param_in_dim, self._num_writes)
+        self.write_gate_ = torch.nn.Linear(param_in_dim, self._num_writes)
 
         # \pi_t^j - Mixing between "backwards" and "forwards" positions (for
         # each write head), and content-based lookup, for each read head.
         num_read_modes = 1 + 2 * self._num_writes
-        self.read_mode_ = nn.Linear(
+        self.read_mode_ = torch.nn.Linear(
             param_in_dim, self._num_reads * num_read_modes)
 
         # Parameters for the (read / write) "weights by content matching"
         # modules.
-        self.write_keys_ = nn.Linear(
+        self.write_keys_ = torch.nn.Linear(
             param_in_dim, self._num_writes * self._word_size)
-        self.write_strengths_ = nn.Linear(param_in_dim, self._num_writes)
+        self.write_strengths_ = torch.nn.Linear(param_in_dim, self._num_writes)
 
-        self.read_keys_ = nn.Linear(
+        self.read_keys_ = torch.nn.Linear(
             param_in_dim, self._num_reads * self._word_size)
-        self.read_strengths_ = nn.Linear(param_in_dim, self._num_reads)
+        self.read_strengths_ = torch.nn.Linear(param_in_dim, self._num_reads)
 
         # s_j The shift vector that defines the circular convolution of the
         # outputs
-        self.shifts_ = nn.Linear(
+        self.shifts_ = torch.nn.Linear(
             param_in_dim, self._num_shifts * self._num_writes)
 
         # \gamma, sharpening parameter for the weights
-        self.sharpening_ = nn.Linear(param_in_dim, self._num_writes)
-        self.sharpening_r_ = nn.Linear(param_in_dim, self._num_reads)
-        self.shifts_r_ = nn.Linear(
+        self.sharpening_ = torch.nn.Linear(param_in_dim, self._num_writes)
+        self.sharpening_r_ = torch.nn.Linear(param_in_dim, self._num_reads)
+        self.shifts_r_ = torch.nn.Linear(
             param_in_dim, self._num_shifts * self._num_reads)
 
     def forward(self, vals):
@@ -114,23 +116,23 @@ class Param_Generator(nn.Module):
 
         # e_t^i - Amount to erase the memory by before writing, for each write head.
         # [batch, num_writes*word_size]
-        erase_vec = F.sigmoid(self.erase_vect_(vals))
+        erase_vec = torch.nn.functional.sigmoid(self.erase_vect_(vals))
         update_data['erase_vectors'] = erase_vec.view(
             -1, self._num_writes, self._word_size)
 
         # f_t^j - Amount that the memory at the locations read from at the previous
         # time step can be declared unused, for each read head `j`.
-        update_data['free_gate'] = F.sigmoid(
+        update_data['free_gate'] = torch.nn.functional.sigmoid(
             self.free_gate_(vals)).view(-1, self._num_reads, 1)
 
         # g_t^{a, i} - Interpolation between writing to unallocated memory and
         # content-based lookup, for each write head `i`. Note: `a` is simply used to
         # identify this gate with allocation vs writing (as defined below).
-        update_data['allocation_gate'] = F.sigmoid(
+        update_data['allocation_gate'] = torch.nn.functional.sigmoid(
             self.allocate_gate_(vals)).view(-1, self._num_writes, 1)
 
         # g_t^{w, i} - Overall gating of write amount for each write head.
-        update_data['write_gate'] = F.sigmoid(
+        update_data['write_gate'] = torch.nn.functional.sigmoid(
             self.write_gate_(vals)).view(-1, self._num_writes, 1)
 
         # \pi_t^j - Mixing between "backwards" and "forwards" positions (for
@@ -138,7 +140,7 @@ class Param_Generator(nn.Module):
         # Need to apply softmax batch-wise to the second index. This will not
         # work
         num_read_modes = 1 + 2 * self._num_writes
-        read_mode = F.softmax(self.read_mode_(vals), -1)
+        read_mode = torch.nn.functional.softmax(self.read_mode_(vals), -1)
         update_data['read_mode'] = read_mode.view(
             -1, self._num_reads, num_read_modes)
 
@@ -147,31 +149,31 @@ class Param_Generator(nn.Module):
         update_data['write_content_keys'] = self.write_keys_(
             vals).view(-1, self._num_writes, self._word_size)
         update_data['write_content_strengths'] = 1 + \
-            F.softplus(self.write_strengths_(vals)
+                                                 torch.nn.functional.softplus(self.write_strengths_(vals)
                        ).view(-1, self._num_writes, 1)
 
         update_data['read_content_keys'] = self.read_keys_(
             vals).view(-1, self._num_reads, self._word_size)
         update_data['read_content_strengths'] = 1 + \
-            F.softplus(self.read_strengths_(vals)).view(-1, self._num_reads, 1)
+            torch.nn.functional.softplus(self.read_strengths_(vals)).view(-1, self._num_reads, 1)
 
         # s_j The shift vector that defines the circular convolution of the
         # outputs
-        shifts = F.softmax(F.softplus(self.shifts_(vals)), dim=-1)
+        shifts = torch.nn.functional.softmax(torch.nn.functional.softplus(self.shifts_(vals)), dim=-1)
         update_data['shifts'] = shifts.view(-1,
                                             self._num_writes, self._num_shifts)
 
-        shifts_r = F.softmax(F.softplus(self.shifts_r_(vals)), dim=-1)
+        shifts_r = torch.nn.functional.softmax(torch.nn.functional.softplus(self.shifts_r_(vals)), dim=-1)
         update_data['shifts_read'] = shifts_r.view(
             -1, self._num_reads, self._num_shifts)
 
         # \gamma, sharpening parameter for the weights
         update_data['sharpening'] = 1 + \
-            F.softplus(self.sharpening_(vals)).view(-1, self._num_writes, 1)
+            torch.nn.functional.softplus(self.sharpening_(vals)).view(-1, self._num_writes, 1)
         update_data['sharpening_read'] = 1 + \
-            F.softplus(self.sharpening_r_(vals)).view(-1, self._num_reads, 1)
+            torch.nn.functional.softplus(self.sharpening_r_(vals)).view(-1, self._num_reads, 1)
 
-        update_data['read_mode_shift'] = F.sigmoid(
+        update_data['read_mode_shift'] = torch.nn.functional.sigmoid(
             self.free_gate_(vals)).view(-1, self._num_reads, 1)
 
         return update_data

@@ -6,3 +6,4 @@ from .manipulation_temporal import *
 from .recall import *
 
 
+from .algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem

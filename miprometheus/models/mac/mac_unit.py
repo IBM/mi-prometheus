@@ -46,7 +46,8 @@ reference paper.
 __author__ = "Vincent Marois"
 
 import torch
-from torch import nn
+from torch.nn import Module
+
 from miprometheus.models.mac.control_unit import ControlUnit
 from miprometheus.models.mac.read_unit import ReadUnit
 from miprometheus.models.mac.write_unit import WriteUnit
@@ -54,7 +55,7 @@ from miprometheus.utils.app_state import AppState
 app_state = AppState()
 
 
-class MACUnit(nn.Module):
+class MACUnit(Module):
     """
     Implementation of the ``MACUnit`` (iteration over the MAC cell) of the MAC network.
     """
@@ -92,8 +93,8 @@ class MACUnit(nn.Module):
             dim=dim, self_attention=self_attention, memory_gate=memory_gate)
 
         # initialize hidden states
-        self.mem_0 = nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
-        self.control_0 = nn.Parameter(
+        self.mem_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
+        self.control_0 = torch.nn.Parameter(
             torch.zeros(1, dim).type(app_state.dtype))
 
         self.dim = dim

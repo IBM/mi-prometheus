@@ -47,21 +47,39 @@ class ShapeColorQuery(SortOfCLEVR):
         initialization, sets properties using the provided parameters.
 
         :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
+        :type params: miprometheus.utils.ParamInterface
+
+        .. note::
+
+            The following is set by default:
+
+            >>> params = {'data_folder': '~/data/shape-color-query/',
+            >>>           'split': 'train',
+            >>>           'regenerate': False,
+            >>>           'size': 10000,
+            >>>           'img_size': 128}
+
 
         """
 
         # Call base class constructors.
         super(ShapeColorQuery, self).__init__(params)
-
         # problem name
         self.name = 'Shape-Color-Query'
+
+        # Add default values of parameters.
+        self.params.add_default_params({'data_folder': '~/data/shape-color-query/',
+                                        'split': 'train',
+                                        'regenerate': False,
+                                        'size': 10000,
+                                        'img_size': 128})
 
         # define the data_definitions dict: holds a description of the DataDict content
         self.data_definitions = {'images': {'size': [-1, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
                                  'questions': {'size': [-1, 3, self.NUM_QUESTIONS],
                                                'type': [torch.Tensor]},
                                  'targets_classes': {'size': [-1, self.NUM_COLORS + self.NUM_SHAPES + 2],
-                                             'type': [torch.Tensor]},
+                                                     'type': [torch.Tensor]},
                                  'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'scenes_description': {'size': [-1, -1], 'type': [list, str]},
                                  }
@@ -143,12 +161,7 @@ if __name__ == "__main__":
     # "Loaded parameters".
     from miprometheus.utils.param_interface import ParamInterface
 
-    params = ParamInterface()
-    params.add_default_params({'data_folder': '~/data/shape-color-query/',
-                               'split': 'train',
-                               'regenerate': False,
-                               'dataset_size': 10000,
-                               'img_size': 128})
+    params = ParamInterface()  # using the default values
 
     # create problem
     shapecolorquery = ShapeColorQuery(params)
@@ -162,10 +175,10 @@ if __name__ == "__main__":
     print('__getitem__ works.')
 
     # wrap DataLoader on top of this Dataset subclass
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
 
     dataloader = DataLoader(dataset=shapecolorquery, collate_fn=shapecolorquery.collate_fn,
-                            batch_size=batch_size, shuffle=True, num_workers=8)
+                            batch_size=batch_size, shuffle=True, num_workers=0)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
     import time

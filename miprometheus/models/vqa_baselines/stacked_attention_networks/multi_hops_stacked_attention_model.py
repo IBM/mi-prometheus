@@ -45,7 +45,6 @@ __author__ = "Vincent Marois & Younes Bouhadjar"
 import torch
 import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
 
 from miprometheus.models.model import Model
 from miprometheus.models.vqa_baselines.stacked_attention_networks.stacked_attention_layer import StackedAttentionLayer
@@ -96,7 +95,7 @@ class MultiHopsStackedAttentionNetwork(Model):
 
             self.num_words = problem_default_values_['seq_length']
 
-        except BaseException:
+        except KeyError:
             self.num_words = params['default_nb_hops']
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
@@ -199,9 +198,9 @@ class MultiHopsStackedAttentionNetwork(Model):
 
                 # 4. Classify based on the result of the stacked attention layer
         combined = torch.cat([v_features, hx], dim=1)
-        x = F.relu(self.fc1(combined))
-        x = F.relu(self.fc2(x))
-        x = F.dropout(x)  # p=0.5
+        x = torch.nn.functional.relu(self.fc1(combined))
+        x = torch.nn.functional.relu(self.fc2(x))
+        x = torch.nn.functional.dropout(x)  # p=0.5
         logits = self.fc3(x)
 
         return logits
@@ -272,7 +271,7 @@ if __name__ == '__main__':
     batch_size = 64
 
     # wrap DataLoader on top of this Dataset subclass
-    from torch.utils.data.dataloader import DataLoader
+    from torch.utils.data import DataLoader
 
     dataloader = DataLoader(dataset=shapecolorquery, collate_fn=shapecolorquery.collate_fn,
                             batch_size=batch_size, shuffle=True, num_workers=4)

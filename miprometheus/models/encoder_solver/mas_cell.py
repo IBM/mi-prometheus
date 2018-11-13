@@ -20,6 +20,7 @@ __author__ = "Tomasz Kornuta"
 
 import torch
 import collections
+from torch.nn import Module
 
 # Set logging level.
 import logging
@@ -45,7 +46,7 @@ class MASCellStateTuple(_MASCellStateTuple):
     __slots__ = ()
 
 
-class MASCell(torch.nn.Module):
+class MASCell(Module):
     """
     Class representing a single Memory-Augmented Decoder cell.
     """
@@ -83,7 +84,7 @@ class MASCell(torch.nn.Module):
             "num_layers": params['controller']['num_layers']
         }
         # Build the controller.
-        self.controller = ControllerFactory.build_controller(controller_params)
+        self.controller = ControllerFactory.build(controller_params)
 
         # Interface - entity responsible for accessing the memory.
         self.interface = MASInterface(params)
