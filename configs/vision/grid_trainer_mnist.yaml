@@ -1,0 +1,43 @@
+grid_tasks:
+    -
+        default_configs: configs/vision/lenet5_mnist.yaml
+    -
+        default_configs: configs/vision/simplecnn_mnist.yaml
+
+# Set exactly the same experiment conditions for the 2 tasks.
+grid_overwrite:
+    training:
+        problem:
+            batch_size: &b 1000
+        sampler:
+            name: SubsetRandomSampler
+            indices: [0, 55000]
+       # Set the same optimizer parameters.
+        optimizer:
+            name: Adam
+            lr: 0.01
+        # Set the same terminal conditions.
+        terminal_conditions:
+            loss_stop: 4.0e-2
+            episode_limit: 10000
+            epoch_limit: 10
+
+    # Problem parameters:
+    validation:
+        problem:
+            batch_size: *b
+        sampler:
+            name: SubsetRandomSampler
+            indices: [55000, 60000]
+
+    testing:
+        problem:
+            batch_size: *b
+
+grid_settings:
+    # Set number of repetitions of each experiments.
+    experiment_repetitions: 5
+    # Set number of concurrent running experiments.
+    max_concurrent_runs: 4
+    # Set trainer.
+    trainer: mip-online-trainer

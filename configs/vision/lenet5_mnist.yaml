@@ -2,9 +2,9 @@
 training:
   problem:
     name: &name MNIST
-    batch_size: 64
+    batch_size: &b 64
     use_train_data: True
-    mnist_folder: &folder '~/data/mnist'
+    data_folder: &folder '~/data/mnist'
     resize: [32, 32]
   # Use sampler that operates on a subset.
   sampler:
@@ -15,19 +15,19 @@ training:
     name: Adam
     lr: 0.01
   # settings parameters
-  #terminal_condition:
-  #  loss_stop: 1.0e-5
-  #  episode_limit: 10000
-  #  epoch_limit: 10
+  terminal_conditions:
+    loss_stop: 1.0e-2
+    episode_limit: 10000
+    epoch_limit: 10
 
 # Validation parameters:
 validation:
-  partial_validation_interval: 100
+  #partial_validation_interval: 100
   problem:
     name: *name 
-    batch_size: 64
-    use_train_data: True
-    mnist_folder: *folder
+    batch_size: *b
+    use_train_data: True  # True because we are splitting the training set to: validation and training
+    data_folder: *folder
     resize: [32, 32]
   # Use sampler that operates on a subset.
   sampler:
@@ -38,9 +38,9 @@ validation:
 testing:
   problem:
     name: *name
-    batch_size: 10000
+    batch_size: *b
     use_train_data: False
-    mnist_folder: *folder
+    data_folder: *folder
     resize: [32, 32]
 
 # Model parameters:

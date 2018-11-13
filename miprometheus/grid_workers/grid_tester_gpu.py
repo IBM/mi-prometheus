@@ -18,8 +18,8 @@
 """
 grid_tester_gpu.py:
 
-    - This file contains the implementation of a worker running the ``Tester`` on the results of a ``GridTrainer``\
-     using CPUs.
+    - This file contains the implementation of a worker running the :py:class:`miprometheus.workers.Tester` \
+    on the results of a ``GridTrainer`` using GPUs.
 
     - The input is a list of directories for each problem/model e.g. `experiments/serial_recall/dnc`, \
       and executes on every run of the model in that directory.
@@ -41,17 +41,17 @@ class GridTesterGPU(GridTesterCPU):
     """
     Implementation of the ``GridTester`` running on GPUs.
 
-    Reuses the ``Tester`` to start one test experiment.
+    Reuses the :py:class:`miprometheus.workers.Tester` to start one test experiment.
 
-    Inherits from ``GridTesterCPU`` as the constructor is identical.
+    Inherits from :py:class:`miprometheus.grid_workers.GridTesterCPU` as the constructor is identical.
 
     """
 
     def __init__(self, name="GridTesterGPU", use_gpu=True):
         """
-        Constructor for the ``GridTesterGPU``:
+        Constructor for the :py:class:`miprometheus.grid_workers.GridTesterGPU`:
 
-            - Calls the constructor of ``GridTesterCPU`` as it is identical.
+            - Calls the constructor of :py:class:`miprometheus.grid_workers.GridTesterCPU` as it is identical.
 
 
         :param name: Name of the worker (DEFAULT: "GridTesterGPU").
@@ -68,69 +68,70 @@ class GridTesterGPU(GridTesterCPU):
         """
         Setups a specific experiment.
 
-        - Calls the ``super(self).setup_experiment()`` to parse arguments, parse config files etc.
+        - Calls :py:func:`GridTesterCPU.setup_grid_experiment()` to parse arguments, parse config files etc.
 
         - Checks the presence of CUDA-compatible devices.
 
         """
         super(GridTesterGPU, self).setup_grid_experiment()
+
         # Check the presence of the CUDA-compatible devices.
-        if (torch.cuda.device_count() == 0):
+        if torch.cuda.device_count() == 0:
             self.logger.error("Cannot use GPU as there are no CUDA-compatible devices present in the system!")
             exit(-1)
 
-
     def run_grid_experiment(self):
         """
-        Main function of the ``GridTesterGPU``.
+        Main function of the :py:class:`miprometheus.grid_workers.GridTesterGPU`.
 
-        Maps the grid experiments to CPU cores in the limit of the maximum concurrent runs allowed or maximum\
-         available cores.
+        Maps the grid experiments to CUDA device in the limit of the maximum concurrent runs allowed or maximum \
+        available devices.
 
         """
-        # Ask for confirmation - optional.
-        if self.flags.confirm:
-            input('Press any key to continue')
+        try:
 
-        # Check the presence of cuda-gpupick
-        if shutil.which('cuda-gpupick') is not None:
-            prefix_str = "cuda-gpupick -n1 "
-        else:
-            self.logger.warning("Cannot localize the 'cuda-gpupick' script, disabling it")
-            prefix_str = ''
+            # Check the presence of cuda-gpupick
+            if shutil.which('cuda-gpupick') is not None:
+                prefix_str = "cuda-gpupick -n1 "
+            else:
+                self.logger.warning("Cannot localize the 'cuda-gpupick' script, disabling it")
+                prefix_str = ''
 
-        # Check max number of child processes. 
-        if self.max_concurrent_runs <= 0: # We need at least one proces!
-            max_processes = torch.cuda.device_count()
-        else:    
-            # Take into account the minimum value.
-            max_processes = min(torch.cuda.device_count(), self.max_concurrent_runs)
-        self.logger.info('Spanning experiments using {} GPU(s) concurrently.'.format(max_processes))
+            # Check max number of child processes. 
+            if self.max_concurrent_runs <= 0:  # We need at least one process!
+                max_processes = torch.cuda.device_count()
+            else:    
+                # Take into account the minimum value.
+                max_processes = min(torch.cuda.device_count(), self.max_concurrent_runs)
+            self.logger.info('Spanning experiments using {} GPU(s) concurrently'.format(max_processes))
 
-        # Run in as many threads as there are GPUs available to the script.
-        with ThreadPool(processes=max_processes) as pool:
-            # This contains a list of `AsyncResult` objects. To check if completed and get result.
-            thread_results = []
+            # Run in as many threads as there are GPUs available to the script.
+            with ThreadPool(processes=max_processes) as pool:
+                # This contains a list of `AsyncResult` objects. To check if completed and get result.
+                thread_results = []
 
-            for task in self.experiments_list:
-                func = partial(GridTesterGPU.run_experiment, self, prefix=prefix_str)
-                thread_results.append(pool.apply_async(func, (task,)))
+                for task in self.experiments_list:
+                    func = partial(GridTesterGPU.run_experiment, self, prefix=prefix_str)
+                    thread_results.append(pool.apply_async(func, (task,)))
 
-                # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
-                sleep(3)
-                while [r.ready() for r in thread_results].count(False) >= torch.cuda.device_count():
+                    # Check every 3 seconds if there is a (supposedly) free GPU to start a task on
                     sleep(3)
+                    while [r.ready() for r in thread_results].count(False) >= torch.cuda.device_count():
+                        sleep(3)
 
-            # Equivalent of what would usually be called "join" for threads
-            for r in thread_results:
-                r.wait()
+                # Equivalent of what would usually be called "join" for threads
+                for r in thread_results:
+                    r.wait()
 
-        self.logger.info('Grid training experiments finished.')
+            self.logger.info('Grid testing finished')
+
+        except KeyboardInterrupt:
+            self.logger.info('Grid testing interrupted!')
 
 
 def main():
     """
-    Entry point function for the ``GridTesterGPU``.
+    Entry point function for the :py:class:`miprometheus.grid_workers.GridTesterGPU`.
 
     """
     grid_tester_gpu = GridTesterGPU()

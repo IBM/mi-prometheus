@@ -159,6 +159,7 @@ setup(
                       'tensorboardX',
                       'matplotlib',
                       'numpy',
+                      'psutil',
                       'PyYAML',
                       'tqdm',
                       'nltk',

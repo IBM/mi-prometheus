@@ -148,6 +148,7 @@ class Model(Module):
 
         # Initialization of best loss - as INF.
         self.best_loss = np.inf
+        self.best_status = "Unknown"
 
     def handshake_definitions(self, problem_data_definitions_):
         """
@@ -329,46 +330,37 @@ class Model(Module):
         :type training_status: str
 
         :param training_stats: Training statistics that will be saved to checkpoint along with the model.
-        :type training_stats: :py:class:miprometheus.utils.StatisticsAggregator or :py:class:miprometheus.utils.StatisticsAggregator
+        :type training_stats: :py:class:`miprometheus.utils.StatisticsCollector` or \
+        :py:class:`miprometheus.utils.StatisticsAggregator`
 
         :param validation_stats: Validation statistics that will be saved to checkpoint along with the model.
-        :type validation_stats: :py:class:miprometheus.utils.StatisticsAggregator or :py:class:miprometheus.utils.StatisticsAggregator
+        :type validation_stats: :py:class:`miprometheus.utils.StatisticsCollector` or \
+        :py:class:`miprometheus.utils.StatisticsAggregator`
 
         :return: True if this is currently the best model (until the current episode, considering the loss).
 
         """
-        # Process training statistics.
-        if training_stats.__class__.__name__ == 'StatisticsCollector':
-            # "Copy" last values only.
-            train_stats = {k: v[-1] for k, v in training_stats.items()}
-        else:
-            # Simply copy values.
-            train_stats = {k: v for k, v in training_stats.items()}
-
-        # Proces validation  statistics, get the episode and loss.
+        # Process validation statistics, get the episode and loss.
         if validation_stats.__class__.__name__ == 'StatisticsCollector':
             # Get data from collector.
             episode = validation_stats['episode'][-1]
             loss = validation_stats['loss'][-1]
-            # "Copy" last values only.
-            valid_stats = {k: v[-1] for k, v in validation_stats.items()}
 
         else:
-            # Get data from aggregator.
+            # Get data from StatisticsAggregator.
             episode = validation_stats['episode']
             loss = validation_stats['loss']
-            # Simply copy values.
-            valid_stats = {k: v for k, v in validation_stats.items()}
 
         # Checkpoint to be saved.
         chkpt = {'name': self.name,
                  'state_dict': self.state_dict(),
-                 'timestamp': datetime.now(),
+                 'model_timestamp': datetime.now(),
                  'episode': episode,
                  'loss': loss,
                  'status': training_status,
-                 'training_stats': train_stats,
-                 'validation_stats': valid_stats
+                 'status_timestamp': datetime.now(),
+                 'training_stats': training_stats.export_to_checkpoint(),
+                 'validation_stats': validation_stats.export_to_checkpoint()
                 }
 
         # Save the intermediate checkpoint.
@@ -381,12 +373,24 @@ class Model(Module):
         # Save the best model.
         loss = loss.cpu()  # moving loss value to cpu type to allow (initial) comparison with numpy type
         if loss < self.best_loss:
+            # Save best loss and status.
             self.best_loss = loss
+            self.best_status = training_status
+            # Save checkpoint.
             filename = model_dir + 'model_best.pt'
             torch.save(chkpt, filename)
             self.logger.info("Model and statistics exported to checkpoint {}".format(filename))
             return True
-
+        elif self.best_status != training_status:
+            filename = model_dir + 'model_best.pt'
+            # Load checkpoint.
+            chkpt_loaded = torch.load(filename, map_location=lambda storage, loc: storage)
+            # Update status and status time.
+            chkpt_loaded['status'] = training_status
+            chkpt_loaded['status_timestamp'] = datetime.now()
+            # Save updated checkpoint.
+            torch.save(chkpt_loaded, filename)
+            self.logger.info("Updated training status in checkpoint {}".format(filename))
         # Else: that was not the best model.
         return False
 
@@ -409,7 +413,7 @@ class Model(Module):
         self.logger.info(
             "Imported {} parameters from checkpoint from {} (episode: {}, loss: {}, status: {})".format(
                 chkpt['name'],
-                chkpt['timestamp'],
+                chkpt['model_timestamp'],
                 chkpt['episode'],
                 chkpt['loss'],
                 chkpt['status']

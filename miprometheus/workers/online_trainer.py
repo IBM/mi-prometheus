@@ -165,7 +165,7 @@ class OnlineTrainer(Trainer):
             # Inform the training problem class that epoch has started.
             self.training_problem.initialize_epoch(epoch)
 
-            # Set default termination cause.
+            # Set initial status.
             training_status = "Not Converged"
             for training_dict in self.training_dataloader:
 
@@ -265,8 +265,12 @@ class OnlineTrainer(Trainer):
 
                         # Check the Partial Validation loss.
                         if (validation_loss < self.loss_stop):
-                            training_status = "Model converged (Partial Validation Loss went below " \
+                            # Change the status...
+                            training_status = "Converged (Partial Validation Loss went below " \
                                 "Loss Stop threshold)"
+
+                            # ... and THEN save the model using the latest validation statistics.
+                            self.model.save(self.model_dir, training_status, self.training_stat_col, self.validation_stat_col)
                             break
 
                     # II. Early stopping is set and loss hasn't improved by delta in n epochs.
@@ -277,7 +281,7 @@ class OnlineTrainer(Trainer):
                 if episode+1 >= self.episode_limit:
                     # If we reach this condition, then it is possible that the model didn't converge correctly
                     # but it currently might get better since last validation.
-                    training_status = "Episode Limit reached"
+                    training_status = "Not converged: Episode Limit reached"
                     break
 
                 # Check if we are at the end of the 'epoch': indicate that the DataLoader is now cycling.
@@ -296,7 +300,7 @@ class OnlineTrainer(Trainer):
 
                     # IV. Epoch limit has been reached.
                     if epoch+1 >= self.epoch_limit:
-                        training_status = "Epoch Limit reached"
+                        training_status = "Not converged: Epoch Limit reached"
                         # "Finish" the training.
                         break
 
@@ -324,7 +328,7 @@ class OnlineTrainer(Trainer):
                 # Perform validation.
                 self.validate_on_batch(self.validation_batch, episode, epoch)
 
-                # Save the model using the latest validation statistics.
+                # Try to save the model using the latest validation statistics.
                 self.model.save(self.model_dir, training_status, self.training_stat_col, self.validation_stat_col)
 
             self.logger.info('\n' + '='*80)

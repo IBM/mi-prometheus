@@ -5,7 +5,7 @@ training:
     problem:
         name: &name MNIST
         batch_size: &b 64
-        mnist_folder: &folder '~/data/mnist'
+        data_folder: &folder '~/data/mnist'
         use_train_data: True
         resize: [32, 32]
     sampler:
@@ -18,16 +18,16 @@ training:
         lr: 0.01
     # settings parameters
     terminal_conditions:
-        loss_stop: 1.0e-5
-        episode_limit: 20000
+        loss_stop: 1.0e-3
+        episode_limit: 1000
         epoch_limit: 1
 
 # Problem parameters:
 validation:
     problem:
         name: *name
-        batch_size: 5000
-        mnist_folder: *folder
+        batch_size: *b
+        data_folder: *folder
         use_train_data: True  # True because we are splitting the training set to: validation and training
         resize: [32, 32]
     sampler:
@@ -43,8 +43,8 @@ testing:
     #seed_torch: 2452
     problem:
         name: *name
-        batch_size: 10000
-        mnist_folder: *folder
+        batch_size: *b
+        data_folder: *folder
         use_train_data: False
         resize: [32, 32]
 
