@@ -18,7 +18,7 @@ training:
         lr: 0.01
     # settings parameters
     terminal_conditions:
-        loss_stop: 1.0e-3
+        loss_stop: 1.0e-2
         episode_limit: 1000
         epoch_limit: 1
 
