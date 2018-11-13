@@ -1,21 +1,36 @@
 Installation
 ===================
-`@author: Vincent Marois`
+`@author: Vincent Marois & Tomasz Kornuta`
 
 
-To use Mi-Prometheus, we need to first install PyTorch. Refer to the official installation guide_ of PyTorch for its installation.
+To use Mi-Prometheus, we need to first install PyTorch_. Refer to the official installation guide_ of PyTorch for its installation.
 It is easily installable via conda_, or you can compile it from source to optimize it for your machine.
 
+Mi-Prometheus is not (yet!) available as a pip_ package, or on conda_. 
+However, we provide the `setup.py` script. and we recommend to use it for installation of Mi-Prometheus.
+First please clone the MI-Prometheus repository::
+
+  git clone git@github.com:IBM/mi-prometheus.git
+  cd mi-prometheus
+
+Then, install the dependencies by running::
+
+  python setup.py install
+
+This command will install all dependencies of Mi-Prometheus via pip_.
+If you plan to develop and introduce changes, please call the following command instead::
+
+  python setup.py develop
+
+This will enable you to change the code of the existing problems/models/workers and still be able to run them by calling 'mip-*' commannds.
+More in that subject can be found e.g. in the following blog post on dev_mode_.
+
 .. _guide: https://github.com/pytorch/pytorch#installation
-
-Mi-Prometheus is not yet available as a pip_ package, or on conda_. We are currently working on it, but would like to ensure a
-certain stability first. The `setup.py` script is available and should be used for installation of Mi-Prometheus.
-
+.. _PyTorch: https://github.com/pytorch/pytorch
 .. _conda: https://pypi.org/
 .. _pip: https://pypi.org/
+.. _dev_mode: https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode
 
-So you can clone the repository, checkout out a particular branch if wanted and run `python setup.py install`.
-This command will install all dependencies of Mi-Prometheus via pip_.
 
 **Please note that it will not install PyTorch**, as we have observed inconsistent and erratic errors when we were installing it from pip_.
 Use conda_, or compile from source instead. The indicated way by the PyTorch team is conda_.
@@ -24,17 +39,15 @@ The `setup.py` will register Mi-Prometheus as a package in your `Python` environ
 
   >>> import miprometheus as mip
 
-And then you will be able to access the API as regular:
+And then you will be able to access the API, for example:
 
   >>> datadict = mip.utils.DataDict()
 
-etc.
+Besides, `setup.py` also creates aliases for all our workers, so that you can use them as regular commands::
 
-The `setup.py` also creates aliases for the workers, so that you can use them as regular commands:
+  mip-offline-trainer --c path/to/your/config/file
 
-  >>> mip-offline-trainer --c path/to/your/config/file
-
-The available commands are:
+The currently available commands are:
 
     - mip-offline-trainer
     - mip-online-trainer
@@ -44,8 +57,9 @@ The available commands are:
     - mip-grid-tester-cpu
     - mip-grid-tester-gpu
     - mip-grid-analyzer
+    - mip-index-splitter
 
-Each command executes the worker of the same name. Use `--h` to see the available flags for each command.
+Use `--h` to see the available flags for each command.
 
 You can then delete the cloned repository and use these commands to run a particular worker with your configurations files.
 
