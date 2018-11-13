@@ -278,7 +278,7 @@ class OfflineTrainer(Trainer):
 
                     # III. The episodes number limit has been reached.
                     if episode+1 >= self.episode_limit:
-                        training_status = "Episode Limit reached"
+                        training_status = "Not converged: Episode Limit reached"
                         break  # the inner loop.
 
                 # Epoch just ended! (or episode limit).
@@ -315,7 +315,7 @@ class OfflineTrainer(Trainer):
                     # Check the Full Validation loss.
                     if self.validation_stat_agg["loss"] < self.loss_stop:
                         # Change the status...
-                        training_status = "Model converged (Full Validation Loss went below Loss Stop threshold)"
+                        training_status = "Converged (Full Validation Loss went below Loss Stop threshold)"
 
                         # ... and THEN try to save the model using the average validation loss.
                         self.model.save(self.model_dir, training_status, self.training_stat_agg, self.validation_stat_agg)
@@ -335,6 +335,12 @@ class OfflineTrainer(Trainer):
             '''
             End of main training and validation loop. Perform final full validation.
             '''
+            # Try to save the model only if we hit the epoch limit.
+            if epoch+1 >= self.epoch_limit:
+                # Change the status.
+                training_status = "Not converged: Epoch Limit reached"
+            
+            # Display status.
             self.logger.info('\n' + '='*80)
             self.logger.info('Training finished because {}'.format(training_status))
             # Check visualization flag - turn on visualization for last validation if needed.
@@ -348,9 +354,7 @@ class OfflineTrainer(Trainer):
 
             # Try to save the model only if we hit the epoch limit.
             if epoch+1 >= self.epoch_limit:
-                # Change the status...
-                training_status = "Epoch Limit reached"
-                # ... and THEN try to save the model using the average validation loss.
+                # Try to save the model using the average validation loss.
                 self.model.save(self.model_dir, training_status, self.training_stat_agg, self.validation_stat_agg)
 
             self.logger.info('Experiment finished!')

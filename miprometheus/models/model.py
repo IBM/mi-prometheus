@@ -148,6 +148,7 @@ class Model(Module):
 
         # Initialization of best loss - as INF.
         self.best_loss = np.inf
+        self.best_status = "Unknown"
 
     def handshake_definitions(self, problem_data_definitions_):
         """
@@ -353,10 +354,11 @@ class Model(Module):
         # Checkpoint to be saved.
         chkpt = {'name': self.name,
                  'state_dict': self.state_dict(),
-                 'timestamp': datetime.now(),
+                 'model_timestamp': datetime.now(),
                  'episode': episode,
                  'loss': loss,
                  'status': training_status,
+                 'status_timestamp': datetime.now(),
                  'training_stats': training_stats.export_to_checkpoint(),
                  'validation_stats': validation_stats.export_to_checkpoint()
                 }
@@ -371,12 +373,24 @@ class Model(Module):
         # Save the best model.
         loss = loss.cpu()  # moving loss value to cpu type to allow (initial) comparison with numpy type
         if loss < self.best_loss:
+            # Save best loss and status.
             self.best_loss = loss
+            self.best_status = training_status
+            # Save checkpoint.
             filename = model_dir + 'model_best.pt'
             torch.save(chkpt, filename)
             self.logger.info("Model and statistics exported to checkpoint {}".format(filename))
             return True
-
+        elif self.best_status != training_status:
+            filename = model_dir + 'model_best.pt'
+            # Load checkpoint.
+            chkpt_loaded = torch.load(filename, map_location=lambda storage, loc: storage)
+            # Update status and status time.
+            chkpt_loaded['status'] = training_status
+            chkpt_loaded['status_timestamp'] = datetime.now()
+            # Save updated checkpoint.
+            torch.save(chkpt_loaded, filename)
+            self.logger.info("Updated training status in checkpoint {}".format(filename))
         # Else: that was not the best model.
         return False
 
@@ -399,7 +413,7 @@ class Model(Module):
         self.logger.info(
             "Imported {} parameters from checkpoint from {} (episode: {}, loss: {}, status: {})".format(
                 chkpt['name'],
-                chkpt['timestamp'],
+                chkpt['model_timestamp'],
                 chkpt['episode'],
                 chkpt['loss'],
                 chkpt['status']

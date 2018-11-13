@@ -245,8 +245,10 @@ class GridAnalyzer(GridWorker):
         chkpt = torch.load(os.path.join(experiment_path, 'models/model_best.pt'),
                            map_location=lambda storage, loc: storage)
 
-        status_dict['model_save_time'] = '{0:%Y%m%d_%H%M%S}'.format(chkpt['timestamp']) 
+        status_dict['model_save_timestamp'] = '{0:%Y%m%d_%H%M%S}'.format(chkpt['model_timestamp']) 
         status_dict['training_terminal_status'] = chkpt['status']
+        status_dict['training_terminal_status_timestamp'] = '{0:%Y%m%d_%H%M%S}'.format(chkpt['status_timestamp'])
+
 
         # Create "empty" equivalent.
         status_dict_empty = dict.fromkeys(status_dict.keys(), ' ')
