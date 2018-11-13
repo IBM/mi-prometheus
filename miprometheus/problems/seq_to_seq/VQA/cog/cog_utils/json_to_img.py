@@ -17,7 +17,6 @@
 
 from six import string_types
 import re
-import json
 import numpy as np
 
 from miprometheus.problems.seq_to_seq.VQA.cog.cog_utils import stim_generator as sg

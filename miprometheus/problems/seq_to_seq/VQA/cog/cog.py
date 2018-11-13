@@ -82,7 +82,7 @@ class COGDataset(VQAProblem):
 				self.sequence_length = params['dataset_type']['sequence_length']
 				self.memory_length = params['dataset_type']['memory_length']
 				self.max_distractors = params['dataset_type']['max_distractors']
-			except:
+			except KeyError:
 				print("Please specify sequence length, memory length and maximum distractors for a generated dataset under 'dataset_type'.")
 
 		# Name

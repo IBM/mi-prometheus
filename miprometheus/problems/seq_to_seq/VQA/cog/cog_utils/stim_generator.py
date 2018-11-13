@@ -29,7 +29,6 @@ Rendering function generates movies based on the instantiated stimuli
 import itertools
 from bisect import bisect_left
 from collections import defaultdict
-import json
 import random
 import numpy as np
 import string
@@ -710,7 +709,6 @@ def render_static(objlists, img_size=224, save_name=None):
     by_epoch.append([])
     # Sort objects by epoch
     objects.sort(key=key)
-    last_epoch = -1
     epoch_obj_dict = defaultdict(list,
         [(epoch, list(group)) for epoch, group
           in itertools.groupby(objects, key)])
@@ -989,8 +987,4 @@ def another_colorshape(color_shape):
       allcolorshapes.remove((c.value, s.value))
   c, s = random.choice(allcolorshapes)
   return Color(c), Shape(s)
-
-
-def main(argv):
-  del argv  # Unused.
 
