@@ -18,10 +18,10 @@
 """
 grid_tester_cpu.py:
 
-    - This file contains the implementation of a worker running the ``Tester`` on the results of a ``GridTrainer``
-    using CPUs.
+    - This file contains the implementation of a worker running the :py:class:`miprometheus.workers.Tester` \
+    on the results of a ``GridTrainer`` using CPUs.
 
-    - The input is a list of directories for each problem/model e.g. `experiments/serial_recall/dnc`, \
+    - The main input is a list of directories for each problem/model e.g. `experiments/serial_recall/dnc`, \
       and executes on every run of the model in that directory.
 
 """
@@ -40,16 +40,16 @@ class GridTesterCPU(GridWorker):
     """
     Implementation of the Grid Tester running on CPUs.
 
-    Reuses the ``Tester`` to start one test experiment.
+    Reuses the :py:class:`miprometheus.workers.Tester` to start one test experiment.
 
     """
 
     def __init__(self, name="GridTesterCPU", use_gpu=False):
         """
-        Constructor for the ``GridTesterCPU``:
+        Constructor for the :py:class:`miprometheus.grid_workers.GridTesterCPU`:
 
             - Calls the base constructor to set the worker's name and add default command lines arguments,
-            - Adds some ``GridTrainer`` specific command line arguments.
+            - Adds some ``GridTester`` specific command line arguments.
 
         :param name: Name of the worker (DEFAULT: "GridTesterCPU").
         :type name: str
@@ -62,100 +62,111 @@ class GridTesterCPU(GridWorker):
         super(GridTesterCPU, self).__init__(name=name,use_gpu=use_gpu)
 
         # Get number_of_repetitions
-        self.parser.add_argument('--r',
+        self.parser.add_argument('--repeat',
                                  dest='experiment_repetitions',
                                  type=int,
                                  default=1,
-                                 help='Number of experiment repetitions to run for each model.'
-                                 ' (DEFAULT=1)')
+                                 help='Number of experiment repetitions to run for each model (DEFAULT=1).')
 
         # Get number_of_repetitions
-        self.parser.add_argument('--m',
+        self.parser.add_argument('--max_concur_runs',
                                  dest='max_concurrent_runs',
                                  type=int,
                                  default=-1,
-                                 help='Value limiting the number of concurently running experiments.'
-                                    'The set limit will be truncated by number of available CPUs/GPUs.'
-                                    ' (DEFAULT=-1, meaning that it will be set to the number of CPUs/GPUs)')
-
+                                 help='Value limiting the number of concurrently running experiments.'
+                                      'The set limit will be truncated by number of available CPUs/GPUs.'
+                                      ' (DEFAULT=-1, meaning that it will be set to the number of CPUs/GPUs)')
 
     def setup_grid_experiment(self):
         """
          Setups the overall grid of experiments:
 
-        - Calls the ``super(self).setup_experiment()`` to parse arguments,
-
+        - Calls :py:func:`GridWorker.setup_grid_experiment()` to parse arguments,
         - Recursively creates the paths to the experiments folders, verifying that they are valid (e.g. \
-        contain `validation_statistics.csv` and `training_statistics.csv`).
-
-
-        :param cuda: Whether to use cuda or not. Default to ``False``.
-        :type cuda: bool
+          they contain a saved model, `model_best.pt`).
 
         """
         super(GridTesterCPU, self).setup_grid_experiment()
 
         # Check the presence of mip-tester script.
         if shutil.which('mip-tester') is None:
-            self.logger.error("Cannot localize the 'mip-tester' script! (hints: please use setup.py to install it)")
+            self.logger.error("Cannot localize the 'mip-tester' script! (hint: please use setup.py to install it)")
             exit(-1)
 
-        directory_chckpnts = self.flags.outdir
+        self.experiment_rootdir = self.flags.expdir
+
         # Get grid settings.
         experiment_repetitions = self.flags.experiment_repetitions
         self.max_concurrent_runs = self.flags.max_concurrent_runs
 
-        # get all sub-directories paths in outdir, repeating according to flags.num
+        # get all sub-directories paths in expdir, repeating according to flags.experiment_repetitions
         self.experiments_list = []
 
         for _ in range(experiment_repetitions):
-            for root, dirs, files in os.walk(directory_chckpnts, topdown=True):
+            for root, dirs, _ in os.walk(self.experiment_rootdir, topdown=True):
                 for name in dirs:
                     self.experiments_list.append(os.path.join(root, name))
 
-        # Keep only the folders that contain validation.csv and training.csv
-        self.experiments_list = [elem for elem in self.experiments_list if os.path.isfile(
-            elem + '/validation_statistics.csv') and os.path.isfile(elem + '/training_statistics.csv')]
+        # Keep only the folders that contain best_model.pt in model subdirectory.
+        # We assume that training configuration is there as well.
+        self.experiments_list = [elem for elem in self.experiments_list
+                                 if os.path.isfile(elem + '/model_best.pt')]
 
-        # check if the files are not empty
-        self.experiments_list = [elem for elem in self.experiments_list if os.stat(
-            elem + '/validation_statistics.csv').st_size > 24 and os.stat(elem + '/training_statistics.csv').st_size > 24]
+        # Check if these are 'valid' folders, e.g. they contain a saved model
+        if len(self.experiments_list) == 0:
+            self.logger.error("There are no models in {} directory!".format(self.experiment_rootdir))
+            exit(-2)
+
+        # List folders.
+        exp_str = "Found the following models in {} directory:\n".format(self.experiment_rootdir)
+        exp_str += '='*80 + '\n'
+        for exp in self.experiments_list:
+            exp_str += " - {}/model_best.pt\n".format(exp)
+        exp_str += '='*80 + '\n'
+        self.logger.info(exp_str)
 
         self.logger.info('Number of experiments to run: {}'.format(len(self.experiments_list)))
         self.experiments_done = 0
 
+        # Ask for confirmation - optional.
+        if self.flags.user_confirm:
+            try:
+                input('Press <Enter> to confirm and start the grid of experiments\n')
+            except KeyboardInterrupt:
+                exit(0)
+
 
     def run_grid_experiment(self):
         """
-        Main function of the ``GridTesterCPU``.
+        Main function of the :py:class:`miprometheus.grid_workers.GridTesterCPU`.
 
         Maps the grid experiments to CPU cores in the limit of the maximum concurrent runs allowed or maximum\
          available cores.
 
         """
-        # Ask for confirmation - optional.
-        if self.flags.confirm:
-            input('Press any key to continue')
+        try:
 
-        # Check max number of child processes. 
-        if self.max_concurrent_runs <= 0: # We need at least one proces!
-            max_processes = len(os.sched_getaffinity(0))
-        else:    
-            # Take into account the minimum value.
-            max_processes = min(len(os.sched_getaffinity(0)), self.max_concurrent_runs)
-        self.logger.info('Spanning experiments using {} CPU(s) concurrently.'.format(max_processes))
+            # Check max number of child processes. 
+            if self.max_concurrent_runs <= 0:  # We need at least one process!
+                max_processes = self.get_available_cpus()
+            else:    
+                # Take into account the minimum value.
+                max_processes = min(self.get_available_cpus(), self.max_concurrent_runs)
+            self.logger.info('Spanning experiments using {} CPU(s) concurrently'.format(max_processes))
 
-        # Run in as many threads as there are CPUs available to the script.
-        with ThreadPool(processes=max_processes) as pool:
-            func = partial(GridTesterCPU.run_experiment, self, prefix="")
-            pool.map(func, self.experiments_list)
+            # Run in as many threads as there are CPUs available to the script.
+            with ThreadPool(processes=max_processes) as pool:
+                func = partial(GridTesterCPU.run_experiment, self, prefix="")
+                pool.map(func, self.experiments_list)
 
-        self.logger.info('Grid test experiments finished.')
+            self.logger.info('Grid testing finished')
 
+        except KeyboardInterrupt:
+            self.logger.info('Grid testing interrupted!')
 
     def run_experiment(self, experiment_path: str, prefix=""):
         """
-        Runs a test on the specified model (experiment_path) using the ``Tester``.
+        Runs a test on the specified model (experiment_path) using the :py:class:`miprometheus.workers.Tester`.
 
         :param experiment_path: Path to an experiment folder containing a trained model.
         :type experiment_path: str
@@ -167,21 +178,20 @@ class GridTesterCPU(GridWorker):
 
             - Visualization is deactivated to avoid any user interaction.
             - Command-line arguments such as the logging interval (``--li``) and log level (``--ll``) are passed \
-             to the used ``Trainer``.
+             to the :py:class:`miprometheus.workers.Tester`.
 
         """
-        path_to_model = os.path.join(experiment_path, 'models/model_best.pt')
+        try:
 
-        # check if models list is empty
-        if not os.path.isfile(path_to_model):
-            self.logger.warning('The indicated model {} does not exist on file.'.format(path_to_model))
-
-        else:
+            path_to_model = os.path.join(experiment_path, 'model_best.pt')
+            self.logger.warning(path_to_model)
 
             # Run the test
-            command_str = "{}mip-tester --model {} --li {} --ll {}".format(prefix, path_to_model,
-                                                                                       self.flags.logging_interval,
-                                                                                       self.flags.log_level)
+            command_str = "{}mip-tester --model {} --li {} --ll {}".format(
+                prefix, path_to_model,
+                self.flags.logging_interval,
+                self.flags.log_level)
+
             # Add gpu flag if required.
             if self.app_state.use_CUDA:
                 command_str += " --gpu "
@@ -191,17 +201,20 @@ class GridTesterCPU(GridWorker):
                 result = subprocess.run(command_str.split(" "), stdout=devnull)
             self.experiments_done += 1
             self.logger.info("Finished: {}".format(command_str))
-            print()
+
             self.logger.info(
                 'Number of experiments done: {}/{}.'.format(self.experiments_done, len(self.experiments_list)))
 
             if result.returncode != 0:
                 self.logger.info("Testing exited with code: {}".format(result.returncode))
 
+        except KeyboardInterrupt:
+            self.logger.info('Grid testing interrupted!')
+
 
 def main():
     """
-    Entry point function for the ``GridTesterCPU``.
+    Entry point function for the :py:class:`miprometheus.grid_workers.GridTesterCPU`.
 
     """
     grid_tester_cpu = GridTesterCPU()

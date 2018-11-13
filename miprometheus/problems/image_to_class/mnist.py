@@ -80,7 +80,7 @@ class MNIST(ImageToClassProblem):
             >>> self.params.add_default_params({'data_folder': '~/data/mnist',
             >>>           'use_train_data': True})
 
-        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
+        :param params_: Dictionary of parameters (read from configuration ``.yaml`` file).
 
         """
 
@@ -99,7 +99,7 @@ class MNIST(ImageToClassProblem):
         self.use_train_data = self.params['use_train_data']
 
         # Add transformations depending on the resizing option.
-        if ('resize' in self.params):
+        if 'resize' in self.params:
             # Check the desired size.
             if len(self.params['resize']) != 2:
                 self.logger.error("'resize' field must contain 2 values: the desired height and width")
@@ -130,7 +130,6 @@ class MNIST(ImageToClassProblem):
                                'width': self.width,
                                'height': self.height}
 
-
         self.data_definitions = {'images': {'size': [-1, self.num_channels, self.height, self.width], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1], 'type': [torch.Tensor]},
                                  'targets_label': {'size': [-1, 1], 'type': [list, str]}
@@ -138,7 +137,7 @@ class MNIST(ImageToClassProblem):
 
         # load the dataset
         self.dataset = datasets.MNIST(root=data_folder, train=self.use_train_data, download=True,
-                                            transform=transform)
+                                      transform=transform)
 
         # Set length.
         self.length = len(self.dataset)

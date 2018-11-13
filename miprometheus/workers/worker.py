@@ -117,11 +117,11 @@ class Worker(object):
                                      help='The current worker will move the computations on GPU devices, if available '
                                           'in the system. (Default: False)')
 
-            self.parser.add_argument('--outdir',
-                                     dest='outdir',
+            self.parser.add_argument('--expdir',
+                                     dest='expdir',
                                      type=str,
                                      default="./experiments",
-                                     help='Path to the output directory where the experiment(s) folders will be stored.'
+                                     help='Path to the directory where the experiment(s) folders are/will be stored.'
                                           ' (DEFAULT: ./experiments)')
 
             self.parser.add_argument('--savetag',
@@ -380,8 +380,6 @@ class Worker(object):
         if user_confirm:
             try:
                 input('Press <Enter> to confirm and start the experiment\n')
-            except Exception:
-                pass            
             except KeyboardInterrupt:
                 exit(0)            
 
@@ -629,7 +627,7 @@ class Worker(object):
         # Return tuple: logits, loss.
         return logits, loss
 
-    def export_statistics(self, stat_obj, tag=''):
+    def export_statistics(self, stat_obj, tag='', export_to_log = True):
         """
         Export the statistics/aggregations to logger, csv and TB.
 
@@ -638,9 +636,13 @@ class Worker(object):
         :param tag: Additional tag that will be added to string exported to logger, optional (DEFAULT = '').
         :type tag: str
 
+        :param export_to_log: If True, exports statistics to logger (DEFAULT: True)
+        :type export_to_log: bool
+
         """ 
         # Log to logger
-        self.logger.info(stat_obj.export_to_string(tag))
+        if export_to_log:
+            self.logger.info(stat_obj.export_to_string(tag))
 
         # Export to csv
         stat_obj.export_to_csv()
@@ -648,7 +650,7 @@ class Worker(object):
         # Export to TensorBoard.
         stat_obj.export_to_tensorboard()
 
-    def aggregate_and_export_statistics(self, problem, model, stat_col, stat_agg, episode, tag=''):
+    def aggregate_and_export_statistics(self, problem, model, stat_col, stat_agg, episode, tag='', export_to_log = True):
         """
         Aggregates the collected statistics. Exports the aggregations to logger, csv and TB. \
         Empties statistics collector for the next episode.
@@ -666,6 +668,9 @@ class Worker(object):
         :param tag: Additional tag that will be added to string exported to logger, optional (DEFAULT = '').
         :type tag: str
 
+        :param export_to_log: If True, exports statistics to logger (DEFAULT: True)
+        :type export_to_log: bool
+
         """ 
         # Aggregate statistics.
         self.aggregate_statistics(stat_col, stat_agg)
@@ -676,10 +681,7 @@ class Worker(object):
         stat_agg["episode"] = episode
 
         # Export to logger, cvs and TB.
-        self.export_statistics(stat_agg, tag)
-
-        # Empty the statistics collector.
-        stat_col.empty()
+        self.export_statistics(stat_agg, tag, export_to_log)
 
     def cycle(self, iterable):
         """

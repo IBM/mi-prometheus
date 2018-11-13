@@ -5,6 +5,7 @@ training:
     problem:
         name: &name MNIST
         batch_size: &b 64
+        data_folder: &folder '~/data/mnist'
         use_train_data: True
         resize: [32, 32]
     sampler:
@@ -17,32 +18,35 @@ training:
         lr: 0.01
     # settings parameters
     terminal_conditions:
-        loss_stop: 1.0e-5
-        episode_limit: 50000
-        epochs_limit: 10
+        loss_stop: 1.0e-2
+        episode_limit: 1000
+        epoch_limit: 1
 
 # Problem parameters:
 validation:
     problem:
         name: *name
         batch_size: *b
+        data_folder: *folder
         use_train_data: True  # True because we are splitting the training set to: validation and training
         resize: [32, 32]
     sampler:
         name: SubsetRandomSampler
         indices: [55000, 60000]
         #indices: ~/data/mnist/split_b.txt 
+    #dataloader:
+    #    drop_last: True
 
 # Problem parameters:
 testing:
+    #seed_numpy: 4354
+    #seed_torch: 2452
     problem:
         name: *name
         batch_size: *b
+        data_folder: *folder
         use_train_data: False
         resize: [32, 32]
-    sampler:
-        name: SubsetRandomSampler
-        indices: [5000, 10000]
 
 
 # Model parameters:

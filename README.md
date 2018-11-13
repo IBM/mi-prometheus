@@ -45,6 +45,13 @@ To install MI-Prometheus, you can use the `setup.py` script with the following c
 
     python setup.py install
 
+If you are the developer, please call the following command instead:
+
+    python setup.py develop
+
+This will enable you to change the code of existing problems/models/workers and run them by calling mip-* commands.
+More in that subject can be found in [the setuptools documentation](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode). We mainly develop on Ubuntu 16.04, but MI-Prometheus should work on macOS (10.14) as well.
+
 We will upload MI-prometheus to [PyPI](https://pypi.org/) in the near future.
 
 The dependencies of MI-prometheus are: 
@@ -55,6 +62,7 @@ The dependencies of MI-prometheus are:
    * torchtext
    * tensorboardx
    * matplotlib 
+   * psutil (enables grid workers to span child processes on macOS and Ubuntu)
    * PyYAML
    * tqdm
    * nltk
