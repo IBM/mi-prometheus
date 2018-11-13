@@ -76,7 +76,7 @@ author = 'Tomasz Kornuta, Vincent Marois, Ryan L. McAvoy, Younes Bouhadjar, Alex
          'T.S. Jayram, Ahmet S. Ozcan'
 
 # The short X.Y version
-version = '0.2.1'
+version = '0.3.0'
 # The full version, including alpha/beta/rc tags
 release = 'master'
 
