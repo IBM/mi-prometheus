@@ -48,7 +48,7 @@ class Mock(MagicMock):
         elif name == '__file__':  # Sphinx tries to find source code, but doesn't matter because it's mocked
             return "FOO"
         elif name == '__loader__':
-            return "AAAAA"
+            return "BAR"
         return MagicMock()
 
 
@@ -56,12 +56,15 @@ MOCK_MODULES = ['torch', 'torch.nn', 'torch.utils', 'torch.optim',
                 'torch.utils.data', 'torch.utils.data.sampler',
 
                 'torchvision', 'torchvision.models',
+                'torchtext', 
 
                 'matplotlib', 'matplotlib.pyplot', 'matplotlib.figure', 'matplotlib.backends.qt_compat',
                 'matplotlib.backends.backend_qt5agg', 'matplotlib.backends.backend_qt4agg',
                 'matplotlib.backends.qt_compat.QtWidgets',
 
-                'torchtext', 'tensorboardX', 'numpy', 'yaml', 'nltk', 'h5py', 'tqdm']
+                'tensorboardX', 
+                
+                'psutil', 'numpy', 'yaml', 'nltk', 'h5py', 'tqdm']
 
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 # -- Project information -----------------------------------------------------
