@@ -1,0 +1,76 @@
+training:
+    problem:
+        batch_size: 1
+        control_bits: 0
+        data_bits: 159
+        data_type: train
+        embedding_type: glove.6B.100d
+        joint_all: true
+        name: BABI
+        one_hot_embedding: true
+        output_bits: 159
+        tasks: 1
+        ten_thousand_examples: true
+        seed_numpy: 847055145
+        seed_torch: 697881609
+
+        cuda: true
+        curriculum_learning:
+        initial_max_sequence_length: 5
+        interval: 0
+        must_finish: true
+        gradient_clipping: 20
+        length_loss: 10
+
+    optimizer:
+        lr: 0.0001
+        name: RMSprop
+
+
+
+
+
+model:
+    control_bits: 0
+    data_bits: 159
+    hidden_state_dim: 512
+    name: lstm
+    num_layers: 1
+    output_bits: 159
+    save_intermediate: false
+
+testing:
+
+    cuda: true
+    problem:
+        batch_size: 1
+        control_bits: 0
+        data_bits: 159
+        data_type: test
+        embedding_type: glove.6B.100d
+        joint_all: true
+        name: BABI
+        output_bits: 159
+        tasks: &id001
+        - 1
+        ten_thousand_examples: true
+
+
+    terminal_condition:
+        loss_stop: 1.0e-06
+        max_episodes: 100000000
+        validation_interval: 100
+
+validation:
+      problem:
+          batch_size: 1
+          control_bits: 0
+          data_bits: 159
+          data_type: valid
+          embedding_type: glove.6B.100d
+          joint_all: true
+          name: BABI
+          one_hot_embedding: true
+          output_bits: 159
+          tasks: *id001
+          ten_thousand_examples: true
