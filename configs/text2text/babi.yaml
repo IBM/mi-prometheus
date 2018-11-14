@@ -1,76 +1,58 @@
 training:
     problem:
-        batch_size: 1
-        control_bits: 0
-        data_bits: 159
+        name: &name BABI
+        batch_size: &b 1
         data_type: train
         embedding_type: glove.6B.100d
+        use_mask : false
         joint_all: true
-        name: BABI
         one_hot_embedding: true
-        output_bits: 159
-        tasks: 1
+        tasks: [1, 2, 3]
         ten_thousand_examples: true
-        seed_numpy: 847055145
-        seed_torch: 697881609
+        truncation_length : 50
+        directory : ./
 
-        cuda: true
-        curriculum_learning:
-        initial_max_sequence_length: 5
-        interval: 0
-        must_finish: true
-        gradient_clipping: 20
-        length_loss: 10
+
+    gradient_clipping: 20
+
+    seed_numpy: 847055145
+    seed_torch: 697881609
 
     optimizer:
-        lr: 0.0001
         name: RMSprop
+        lr: 0.0001
 
-
-
-
-
-model:
-    control_bits: 0
-    data_bits: 159
-    hidden_state_dim: 512
-    name: lstm
-    num_layers: 1
-    output_bits: 159
-    save_intermediate: false
-
-testing:
-
-    cuda: true
-    problem:
-        batch_size: 1
-        control_bits: 0
-        data_bits: 159
-        data_type: test
-        embedding_type: glove.6B.100d
-        joint_all: true
-        name: BABI
-        output_bits: 159
-        tasks: &id001
-        - 1
-        ten_thousand_examples: true
-
-
-    terminal_condition:
-        loss_stop: 1.0e-06
-        max_episodes: 100000000
-        validation_interval: 100
+    # settings parameters
+    terminal_conditions:
+      loss_stop: 1.0e-2
+      epoch_limit: 100
 
 validation:
       problem:
-          batch_size: 1
-          control_bits: 0
-          data_bits: 159
+          name: *name
+          batch_size: *b
           data_type: valid
           embedding_type: glove.6B.100d
           joint_all: true
-          name: BABI
           one_hot_embedding: true
-          output_bits: 159
-          tasks: *id001
+          tasks: [1, 2, 3]
           ten_thousand_examples: true
+          truncation_length : 50
+
+testing:
+    problem:
+        name: *name
+        batch_size: *b
+        data_type: test
+        embedding_type: glove.6B.100d
+        joint_all: true
+        one_hot_embedding: true
+        tasks: [1, 2, 3]
+        ten_thousand_examples: true
+        truncation_length : 50
+
+model:
+    name: LSTM
+    # Hidden state.
+    hidden_state_size: 256
+    num_layers: 1
