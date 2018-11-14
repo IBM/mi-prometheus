@@ -192,7 +192,7 @@ class COGDataset(VQAProblem):
 		#return DataDict({key: value for key, value in zip(self.data_definitions.keys(),
                 #                                          super(COGDataset, self).collate_fn(batch).values())})
 
-		data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+		data_dict = self.create_data_dict()
 		
 		data_dict['images'] = torch.stack([image['images'] for image in batch]).type(torch.FloatTensor)
 		data_dict['tasks']  = [task['tasks'] for task in batch]
@@ -346,6 +346,7 @@ if __name__ == "__main__":
 
 	# Convert image to uint8
 	batch['images'] = batch['images']/(np.iinfo(np.uint16).max)*255
+	#batch['images'] = np.uint8(batch['images'])
 
 	# Show sample - Go
 	cog_dataset.show_sample(batch,0,0)

@@ -32,8 +32,11 @@ from collections import defaultdict
 import random
 import numpy as np
 import string
+from PIL import Image, ImageDraw, ImageFont
+import matplotlib.pyplot as plt
+import os
 
-import cv2 as cv2
+#import cv2 as cv2
 
 from miprometheus.problems.seq_to_seq.VQA.cog.cog_utils import constants as const
 
@@ -624,28 +627,38 @@ def render_static_obj(canvas, obj, img_size):
 
   Args:
     canvas: numpy array of type int8 (img_size, img_size, 3). Modified in place.
-        Importantly, opencv default is (B, G, R) instead of (R,G,B)
+        Converted to PIL from OpenCV. Font is different from original COG
     obj: StaticObject instance
     img_size: int, image size.
   """
   # Fixed specifications
   radius = int(0.05 * img_size)
 
+	# Convert to PIL image.
+  image = Image.fromarray(np.uint8(canvas),'RGB')
+  draw = ImageDraw.Draw(image)
+
   # Note that OpenCV color is (Blue, Green, Red)
+	# Converted to PIL, so there is array rearrangements.
   color = const.WORD2COLOR[obj.color]
   shape = obj.shape
   center = (int(obj.loc[0] * img_size), int(obj.loc[1] * img_size))
   if shape == 'circle':
-    cv2.circle(canvas, center, radius, color, -1)
+    display = True
+    draw.ellipse((center[0]-radius,center[1]-radius,center[0]+radius,center[1]+radius),fill=color)
+    #cv2.circle(canvas, center, radius, color, -1)
   elif shape == 'square':
-    cv2.rectangle(canvas, (center[0] - radius, center[1] - radius),
-                  (center[0] + radius, center[1] + radius), color, -1)
+    draw.rectangle((center[0]-radius,center[1]-radius,center[0]+radius,center[1]+radius),fill=color)
+    #cv2.rectangle(canvas, (center[0] - radius, center[1] - radius),
+    #              (center[0] + radius, center[1] + radius), color, -1)
   elif shape == 'cross':
     thickness = int(0.02 * img_size)
-    cv2.line(canvas, (center[0] - radius, center[1]),
-             (center[0] + radius, center[1]), color, thickness)
-    cv2.line(canvas, (center[0], center[1] - radius),
-             (center[0], center[1] + radius), color, thickness)
+    draw.line((center[0] - radius, center[1], center[0] + radius, center[1]), fill=color, width=thickness)
+    draw.line((center[0], center[1] - radius, center[0], center[1] + radius), fill=color, width=thickness)
+    #cv2.line(canvas, (center[0] - radius, center[1]),
+    #         (center[0] + radius, center[1]), color, thickness)
+    #cv2.line(canvas, (center[0], center[1] - radius),
+    #        (center[0], center[1] + radius), color, thickness)
   elif shape == 'triangle':
     r1 = int(0.08 * img_size)
     r2 = int(0.04 * img_size)
@@ -653,24 +666,31 @@ def render_static_obj(canvas, obj, img_size):
     pts = np.array([(center[0], center[1] - r1),
                     (center[0] - r3, center[1] + r2), (center[0] + r3,
                                                        center[1] + r2)])
-    cv2.fillConvexPoly(canvas, pts, color)
+    #cv2.fillConvexPoly(canvas, pts, color)
+    draw.polygon(pts,fill=color)
   elif shape == 'vbar':
     r1 = int(0.5 * radius)
     r2 = int(1.2 * radius)
-    cv2.rectangle(canvas, (center[0] - r1, center[1] - r2),
-                  (center[0] + r1, center[1] + r2), color, -1)
+    #cv2.rectangle(canvas, (center[0] - r1, center[1] - r2),
+    #              (center[0] + r1, center[1] + r2), color, -1)
+    draw.rectangle((center[0] - r1, center[1] - r2, center[0] + r1, center[1] + r2),fill=color)
   elif shape == 'hbar':
     r1 = int(1.2 * radius)
     r2 = int(0.5 * radius)
-    cv2.rectangle(canvas, (center[0] - r1, center[1] - r2),
-                  (center[0] + r1, center[1] + r2), color, -1)
+    draw.rectangle((center[0] - r1, center[1] - r2, center[0] + r1, center[1] + r2),fill=color)
+    #cv2.rectangle(canvas, (center[0] - r1, center[1] - r2),
+    #              (center[0] + r1, center[1] + r2), color, -1)
   elif shape in string.ascii_letters:
-    font = cv2.FONT_HERSHEY_SIMPLEX
+    #font = cv2.FONT_HERSHEY_SIMPLEX
     # Shift x and y by -3 and 5 respectively to center the character
-    cv2.putText(canvas, shape, (center[0]-3, center[1]+5), font, 0.5, color, 2)
+    #cv2.putText(canvas, shape, (center[0]-3, center[1]+5), font, 0.5, color, 2)
+    font = ImageFont.truetype(os.path.join(os.path.dirname(__file__),'arial.ttf'),18)
+    draw.fontmode = '1'
+    draw.text((center[0]-3, center[1]-10), shape, color,font=font)
   else:
     raise NotImplementedError('Unknown shape ' + str(shape))
 
+  canvas[:] = np.array(np.float32(image)) 
 
 def render_obj(canvas, obj, img_size):
   """Render a single object.
@@ -678,6 +698,7 @@ def render_obj(canvas, obj, img_size):
   Args:
     canvas: numpy array of type int8 (img_size, img_size, 3). Modified in place.
         Importantly, opencv default is (B, G, R) instead of (R,G,B)
+				Converted to PIL, subfunctions handle the switch
     obj: Object or StaticObject instance, containing object information
     img_size: int, image size.
   """
@@ -780,29 +801,6 @@ def render(objsets, img_size=224, save_name=None):
   return movie
 
 
-def save_movie(movie, fname, t_total):
-  """Save movie to file.
-
-  Args:
-    movie: numpy array (n_time, img_size, img_size, n_channels)
-    fname: str, file name to be saved
-    t_total: total time length of the video in unit second
-  """
-  movie = movie.astype(np.uint8)
-  # opencv interprets color channels as (B, G, R), so flip channel order
-  movie = movie[..., ::-1]
-  img_size = movie.shape[1]
-  n_frame = len(movie)
-  # filename, FOURCC (video code) (MJPG works), frame/second, framesize
-  writer = cv2.VideoWriter(fname,
-                           cv2.VideoWriter_fourcc(*'MJPG'),
-                           int(n_frame / t_total), (img_size, img_size))
-
-  for frame in movie:
-    writer.write(frame)
-  writer.release()
-
-
 def render_target(movie, target):
   """Specifically render the target response.
 
@@ -826,7 +824,12 @@ def render_target(movie, target):
     if isinstance(target_now, Loc):
       loc = target_now.value
       center = (int(loc[0] * img_size), int(loc[1] * img_size))
-      cv2.circle(frame, center, radius, (255, 255, 255), -1)
+      #cv2.circle(frame, center, radius, (255, 255, 255), -1)
+      image = Image.fromarray(frame,'RGB')
+      draw = ImageDraw.Draw(image)
+      draw.ellipse((center[0]-radius,center[1]-radius,center[0]+radius,center[1]+radius),fill=(255,255,255))
+      frame = np.array(image)
+      
     else:
       if target_now is const.INVALID:
         string = 'invalid'
@@ -839,9 +842,13 @@ def render_target(movie, target):
       else:
         raise TypeError('Unknown target type.')
 
-      font = cv2.FONT_HERSHEY_SIMPLEX
-      cv2.putText(frame, string, (int(0.1 * img_size), int(0.8 * img_size)),
-                  font, 0.5, (255, 255, 255))
+      #font = cv2.FONT_HERSHEY_SIMPLEX
+      #cv2.putText(frame, string, (int(0.1 * img_size), int(0.8 * img_size)),
+      #            font, 0.5, (255, 255, 255))
+      image = Image.fromarray(frame,'RGB')
+      draw = ImageDraw.Draw(image)
+      draw.text((int(0.1 * img_size), int(0.8 * img_size)), string, (255,255,255))
+      frame = np.array(image)
 
   return movie_withtarget
 

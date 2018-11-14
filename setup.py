@@ -188,7 +188,9 @@ setup(
     package_data={  # Optional
         # 'miprometheus.config': ['default_config.yaml'],
         # we should list here some configs.yaml files that will be copied over with the data.
-    },
+    '':[path.join(here,'miprometheus/problems/seq_to_seq/VQA/cog/cog_utils/arial.ttf')]},
+
+    include_package_data=True,
 
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:
