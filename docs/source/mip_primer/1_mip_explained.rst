@@ -16,8 +16,8 @@ When training a model, people write programs which typically follow a similar pa
     - Updating the model parameters using an optimizer.
     
 
-During each iteration, the program also needs to collect some statistics (such as the
-training / validation loss & accuracy) and save the weights of the resulting model into a file.
+During each iteration, the program also can collect some statistics (such as the
+training / validation loss & accuracy) and (optionally) save the weights of the resulting model into a file.
 
 
 This typical workflow led us to the formalization of the core concepts of the framework:
@@ -35,6 +35,17 @@ This typical workflow led us to the formalization of the core concepts of the fr
    :align: center
 
    The 5 core concepts of Mi-Prometheus. Dotted elements indicate optional inputs/outputs/dataflows.
+
+
+Aside of Workers, MI-Prometheus currently offers 2 types of specialized applications, namely:
+
+    - **Grid Worker**: a specialized application automating spanning of a number (grid) of experiments.
+    - **Helper**: an application useful from the point of view of experiment running, but independent/external to the Workers.
+    
+General idea here is that Grid Workers are useful in reproducible research, when one has e.g. to train a set of independent models on set of problems and 
+compare the results. 
+In such a case user can use Helpers e.g. to download required datasets (in advance, before training) and/or preprocess them in a specific way
+(e.g. extract features from all images in a dataset once once, with a pretrained CNN model0, which will reduce overall time of all experiments.
 
 Architecture
 ---------------
