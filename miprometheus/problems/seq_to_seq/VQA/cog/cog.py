@@ -1,5 +1,19 @@
  #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 #
 # Copyright (C) IBM Corporation 2018
 #
@@ -63,12 +77,15 @@ class COGDataset(VQAProblem):
 		super(COGDataset, self).__init__(params)
 
 		# Set default parameters.
-		self.params.add_default_params({'root_folder': '~/data/COG', 'data_folder': '~/data/COG', 'set': 'train', 
-'tasks': 'class', 'dataset_type': 'canonical'})
+		self.params.add_default_params({'root_folder': os.path.expanduser('~/data/COG'), 
+																		'data_folder': os.path.expanduser('~/data/COG'), 
+																		'set': 'train', 
+																		'tasks': 'class', 
+																		'dataset_type': 'canonical'})
 
 		# Retrieve parameters from the dictionary
-		self.root_folder= params['root_folder']
-		self.data_folder= params['data_folder']
+		self.root_folder= os.path.expanduser(params['root_folder'])
+		self.data_folder= os.path.expanduser(params['data_folder'])
 		self.set	= params['set']
 		assert self.set in ['val','test','train'], "set in configuration file must be one of 'val', 'test', or 'train', "\
 								"got {}".format(self.set)
@@ -76,20 +93,20 @@ class COGDataset(VQAProblem):
 		assert self.dataset_type in ['canonical','hard','generated'], "dataset in configuration file must be one of "\
 								"'canonical', 'hard', or 'generated', got {}".format(self.dataset_type)
 
-		
-		if self.dataset_type == 'generated':
-			try:
-				self.sequence_length = params['dataset_type']['sequence_length']
-				self.memory_length = params['dataset_type']['memory_length']
-				self.max_distractors = params['dataset_type']['max_distractors']
-			except KeyError:
-				print("Please specify sequence length, memory length and maximum distractors for a generated dataset under 'dataset_type'.")
-
+		# Parse task and dataset_type
+		self.parse_tasks_and_dataset_type(params)
+	
 		# Name
 		self.name = 'COGDataset'
 
-		# Parse task and dataset_type
-		self.parse_tasks_and_dataset_type(params)
+		# This is set for now.
+		self.img_size = 112
+
+		# Set default values
+		self.default_values = {	'height': self.img_size,
+														'width': self.img_size,
+														'num_channels': 3,
+														'sequence_length' : self.sequence_length}
 		
 		# Set data dictionary based on parsed dataset type
 		self.data_definitions = {'images': {'size': [-1, self.sequence_length, 3, 112, 112], 'type': [torch.Tensor]},
@@ -149,8 +166,7 @@ class COGDataset(VQAProblem):
 		output = jti.json_to_feeds([self.dataset[self.tasks[i]][j]])[0]
 		images = ((torch.from_numpy(output)).permute(1,0,4,2,3)).squeeze()
 				
-
-		data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+		data_dict = self.create_data_dict()
 		data_dict['images']	= images
 		data_dict['tasks']	= [self.tasks[i]]
 		data_dict['questions']	= [self.dataset[self.tasks[i]][j]['question']]
@@ -221,6 +237,13 @@ class COGDataset(VQAProblem):
 		elif self.dataset_type == 'hard':
 			folder_name_append = '_8_7_10'			
 			self.sequence_length = 8
+		elif self.dataset_type == 'generated':
+			try:
+				self.sequence_length = params['dataset_type']['sequence_length']
+				self.memory_length = params['dataset_type']['memory_length']
+				self.max_distractors = params['dataset_type']['max_distractors']
+			except KeyError:
+				print("Please specify sequence length, memory length and maximum distractors for a generated dataset under 'dataset_type'.")
 
 		# Open using default folder path if using a pregenerated dataset
 		if self.dataset_type != 'generated':
@@ -316,7 +339,7 @@ if __name__ == "__main__":
 	assert len(batch['targets_class']) == batch_size
 	assert len(batch['targets_class'][0]) == 4 
 
-	# Video Text to Class expects 'targets', so change 'targets_class' to 'targets'
+	# VQA expects 'targets', so change 'targets_class' to 'targets'
 	# Implement a data_dict.pop later.
 	batch['targets'] = batch['targets_reg']
 	batch['targets_label'] = batch['targets_class']
