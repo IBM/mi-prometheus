@@ -39,7 +39,6 @@ import json
 import os
 import numpy as np
 
-from miprometheus.utils.data_dict import DataDict
 from miprometheus.problems.seq_to_seq.VQA.VQA_problem import VQAProblem
 from miprometheus.problems.seq_to_seq.VQA.cog.cog_utils import json_to_img as jti
 

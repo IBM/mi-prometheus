@@ -33,7 +33,6 @@ import random
 import numpy as np
 import string
 from PIL import Image, ImageDraw, ImageFont
-import matplotlib.pyplot as plt
 import os
 
 #import cv2 as cv2
@@ -644,7 +643,6 @@ def render_static_obj(canvas, obj, img_size):
   shape = obj.shape
   center = (int(obj.loc[0] * img_size), int(obj.loc[1] * img_size))
   if shape == 'circle':
-    display = True
     draw.ellipse((center[0]-radius,center[1]-radius,center[0]+radius,center[1]+radius),fill=color)
     #cv2.circle(canvas, center, radius, color, -1)
   elif shape == 'square':
@@ -828,7 +826,7 @@ def render_target(movie, target):
       image = Image.fromarray(frame,'RGB')
       draw = ImageDraw.Draw(image)
       draw.ellipse((center[0]-radius,center[1]-radius,center[0]+radius,center[1]+radius),fill=(255,255,255))
-      frame = np.array(image)
+      frame[:] = np.array(image)[:]
       
     else:
       if target_now is const.INVALID:
@@ -848,7 +846,7 @@ def render_target(movie, target):
       image = Image.fromarray(frame,'RGB')
       draw = ImageDraw.Draw(image)
       draw.text((int(0.1 * img_size), int(0.8 * img_size)), string, (255,255,255))
-      frame = np.array(image)
+      frame[:] = np.array(image)[:]
 
   return movie_withtarget
 
