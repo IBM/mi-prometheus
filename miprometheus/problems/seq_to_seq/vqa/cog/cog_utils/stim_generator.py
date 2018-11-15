@@ -682,7 +682,7 @@ def render_static_obj(canvas, obj, img_size):
     #font = cv2.FONT_HERSHEY_SIMPLEX
     # Shift x and y by -3 and 5 respectively to center the character
     #cv2.putText(canvas, shape, (center[0]-3, center[1]+5), font, 0.5, color, 2)
-    font = ImageFont.truetype(os.path.join(os.path.dirname(__file__),'arial.ttf'),18)
+    font = ImageFont.truetype(os.path.join(os.path.dirname(__file__),'roboto.ttf' ),18)
     draw.fontmode = '1'
     draw.text((center[0]-3, center[1]-10), shape, color,font=font)
   else:
