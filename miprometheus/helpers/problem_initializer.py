@@ -28,12 +28,10 @@ __author__ = "Emre Sevgen"
 import os
 import argparse
 import urllib.request
-import tarfile
 import sys
 import time
-import json
+#import json
 
-from torchvision import datasets
 from miprometheus.problems.problem_factory import ProblemFactory
 from miprometheus.workers import Worker
 
