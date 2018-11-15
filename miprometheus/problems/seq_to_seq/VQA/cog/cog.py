@@ -284,16 +284,24 @@ if __name__ == "__main__":
 	Checks one regression and one classification task.
 	"""
 
+	# Test parameters
+	batch_size = 44
+	sequence_nr = 1
+
+	# Timing test parameters
+	timing_test = True
+	testbatches = 100
+
+	#-------------------------
+
 	# Define useful params
 	from miprometheus.utils.param_interface import ParamInterface
 	params = ParamInterface()
-	params.add_config_params({'data_folder': '/home/esevgen/IBM/cog-master', 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': ['Go','CompareColor']})
+	tasks = ['Go','CompareColor']
+	params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'), 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': tasks})
 
 	# Create problem - task Go
 	cog_dataset = COGDataset(params)
-
-	# Set batch size.
-	batch_size = 44
 
 	# Get a sample - Go
 	sample = cog_dataset[0]
@@ -324,7 +332,6 @@ if __name__ == "__main__":
 	# Set up Dataloader iterator
 	from torch.utils.data import DataLoader
 	
-
 	dataloader = DataLoader(dataset=cog_dataset, collate_fn=cog_dataset.collate_fn,
 		            batch_size=batch_size, shuffle=False, num_workers=8)
 
@@ -346,60 +353,62 @@ if __name__ == "__main__":
 
 	# Convert image to uint8
 	batch['images'] = batch['images']/(np.iinfo(np.uint16).max)*255
-	#batch['images'] = np.uint8(batch['images'])
 
-	# Show sample - Go
-	cog_dataset.show_sample(batch,0,0)
+	# Show sample - Task 1
+	cog_dataset.show_sample(batch,0,sequence_nr)
 
-	# Show sample - CompareColor
-	cog_dataset.show_sample(batch,1,0)	
+	# Show sample - Task 2
+	cog_dataset.show_sample(batch,1,sequence_nr)	
 
 	print('Unit test completed')
 
-	# Test speed of generating images vs preloading generated images.
-	import time
+	if timing_test:
+		# Test speed of generating images vs preloading generated images.
+		import time
 
-	# Number of batches to average over
-	testbatches = 100
+		# Define params to load entire dataset - all tasks included
+		params = ParamInterface()
+		params.add_config_params({'data_folder': '/home/esevgen/IBM/cog-master', 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': 'all'})
 
-	# Define params to load entire dataset - all tasks included
-	params = ParamInterface()
-	params.add_config_params({'data_folder': '/home/esevgen/IBM/cog-master', 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': 'all'})
+		preload = time.time()
+		full_cog_canonical = COGDataset(params)
+		postload = time.time() 
 
-	preload = time.time()
-	full_cog_canonical = COGDataset(params)
-	postload = time.time() 
+		dataloader = DataLoader(dataset=full_cog_canonical, collate_fn=full_cog_canonical.collate_fn,
+				          batch_size=batch_size, shuffle=True, num_workers=8)
 
-	dataloader = DataLoader(dataset=full_cog_canonical, collate_fn=full_cog_canonical.collate_fn,
-		            batch_size=batch_size, shuffle=True, num_workers=8)
-
-	prebatch = time.time()
-	for i, batch in enumerate(dataloader):
-		if i == testbatches:
-			break
-		if i% 100 == 0:
-			print('Batch # {} - {}'.format(i, type(batch)))
-	postbatch = time.time()
+		prebatch = time.time()
+		for i, batch in enumerate(dataloader):
+			if i == testbatches:
+				break
+			if i% 100 == 0:
+				print('Batch # {} - {}'.format(i, type(batch)))
+		postbatch = time.time()
 	
-	print('Number of workers: {}'.format(dataloader.num_workers))
-	print('Time taken to load the dataset: {}s'.format(postload - preload))	
-	print('Time taken to exhaust {} batches for a batch size of {} with image generation: {}s'.format(testbatches, 
-												batch_size, postbatch-prebatch))
+		print('Number of workers: {}'.format(dataloader.num_workers))
+		print('Time taken to load the dataset: {}s'.format(postload - preload))	
+		print('Time taken to exhaust {} batches for a batch size of {} with image generation: {}s'.format(testbatches, 
+													batch_size, postbatch-prebatch))
 	
-	# Test pregeneration and loading
-	for i, batch in enumerate(dataloader):
-		if i == testbatches:
-			print('Finished saving {} batches'.format(testbatches))
-			break
-		np.save(os.path.expanduser('~')+'/data/COGtest/'+str(i),batch['images'])
+		# Test pregeneration and loading
+		for i, batch in enumerate(dataloader):
+			if i == testbatches:
+				print('Finished saving {} batches'.format(testbatches))
+				break
+			if not os.path.exists(os.path.expanduser('~/data/COGtest')):
+				os.makedirs(os.path.expanduser('~/data/COGtest'))
+			np.save(os.path.expanduser('~/data/COGtest/'+str(i)),batch['images'])
 
-	preload = time.time()
-	for i in range(testbatches):
-		mockload = np.fromfile(os.path.expanduser('~')+'/data/COGtest/'+str(i)+'.npy')
-	postload = time.time()
-	print('Generation time for {} batches: {}, Load time for {} batches: {}'.format(testbatches, postbatch-prebatch, 
-											testbatches, postload-preload))
+		preload = time.time()
+		for i in range(testbatches):
+			mockload = np.fromfile(os.path.expanduser('~/data/COGtest/'+str(i)+'.npy'))
+		postload = time.time()
+		print('Generation time for {} batches: {}, Load time for {} batches: {}'.format(testbatches, postbatch-prebatch, 
+												testbatches, postload-preload))
 
-	print('Timing test completed')
-
+		print('Timing test completed, removing files.')
+		for i in range(testbatches):
+			os.remove(os.path.expanduser('~/data/COGtest/'+str(i)+'.npy'))
+	
+	print('Done!')
  
