@@ -23,11 +23,10 @@ from miprometheus.utils.problems_utils.language import Language
 import torch.utils.data
 from tqdm import tqdm
 import os
-from miprometheus.problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
 from miprometheus.utils.app_state import AppState
 from miprometheus.problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
 from miprometheus.utils.loss.masked_cross_entropy_loss import MaskedCrossEntropyLoss
-import torch.nn as nn
+
 
 
 class BABI(SeqToSeqProblem):
@@ -58,6 +57,8 @@ class BABI(SeqToSeqProblem):
         # task number to train on
         self.tasks = params['tasks']
 
+        self.loss_function = MaskedCrossEntropyLoss()
+
         self.tenK = params['ten_thousand_examples']
 
         self.one_hot_embedding = params['one_hot_embedding']
@@ -67,6 +68,8 @@ class BABI(SeqToSeqProblem):
         self.memory_size = params['truncation_length']
 
         self.embedding_type = params['embedding_type']
+
+        self.embedding_size = 38
 
         self.init_token = '<sos>'
 
@@ -87,7 +90,7 @@ class BABI(SeqToSeqProblem):
         #create an object language from Language class - This object will be used to create the words embeddings
         self.language = Language('lang')
 
-        self.default_values = {'input_item_size': 38, 'output_item_size': 231}
+        self.default_values = {'input_item_size': self.embedding_size , 'output_item_size':self.embedding_size}
 
         self.data_definitions = {'sequences': {'size': [-1, -1, self.memory_size], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1], 'type': [torch.Tensor]},
@@ -95,17 +98,11 @@ class BABI(SeqToSeqProblem):
                                  'masks': {'size': [-1], 'type': [torch.Tensor]},
                                  }
 
-
         #building the embeddings
         if self.one_hot_embedding:
             self.dictionaries, self.itos_dict = self.build_dictionaries_one_hot()
         else:
             self.dictionaries, self.itos_dict = self.build_dictionaries()
-
-        if self.use_mask:
-            self.loss_function = MaskedBCEWithLogitsLoss()
-        else:
-            self.loss_function = nn.NLLLoss()
 
 
     def __len__(self):
@@ -130,10 +127,10 @@ class BABI(SeqToSeqProblem):
         answer = self.to_dictionary_indexes(self.dictionaries, written_answers)
 
         mask = torch.zeros((story.shape[0])).type(AppState().ByteTensor)
-        k =0
 
-        target = torch.zeros((story.shape[0])).type(AppState().LongTensor) 
+        target = torch.zeros((story.shape[0])).type(AppState().LongTensor)
 
+        k = 0
         for i, word in enumerate(current_question[0].split(' ')):
             if word == '_':
                 mask[i] = 1
@@ -147,7 +144,7 @@ class BABI(SeqToSeqProblem):
         data_dict['current_question'] = current_question
         data_dict['masks'] = mask
 
-        #return the fina DataDict
+        #return the final DataDict
         return data_dict
 
     def collate_babi(self, batch):
@@ -165,6 +162,7 @@ class BABI(SeqToSeqProblem):
 
         # create placeholders
         sequences = torch.zeros((batch_size, context_length, word_size)).type(AppState().dtype)
+
         targets = torch.zeros((batch_size, answer_length)).type(AppState().LongTensor)
         mask = torch.zeros((batch_size, answer_length)).type(AppState().ByteTensor)
 
@@ -187,6 +185,27 @@ class BABI(SeqToSeqProblem):
 
         # return the fina DataDict
         return data_dict
+
+    def evaluate_loss(self, data_dict, logits):
+        """ Calculates accuracy equal to mean number of correct predictions in a given batch.
+        WARNING: Applies mask to both logits and targets!
+
+        :param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask'}).
+
+        :param logits: Predictions being output of the model.
+
+        """
+        # Check if mask should be is used - if so, use the correct loss
+        # function.
+        if self.use_mask:
+            loss = self.loss_function(
+                logits, data_dict['targets'], data_dict['masks'])
+        else:
+            pred = logits.transpose(1, 2)
+
+            loss = self.loss_function(pred, data_dict['targets'], data_dict['masks'])
+
+        return loss
 
 
     def build_dictionaries_one_hot(self):
@@ -468,11 +487,8 @@ if __name__ == "__main__":
 
 
     babi = BABI(params)
-    sample=babi[10]
-    print(sample['sequences'].size())
-    print(sample['current_question'])
-    print(len(sample['current_question'][0].split(' ')))
-    print(babi[0])
+    sample=babi[12]
+    print(sample)
     print('__getitem__ works.')
 
 
@@ -493,5 +509,6 @@ if __name__ == "__main__":
 
     batch = next(iter(dataloader))
     print(batch)
+
     print('Unit test completed')
     exit()

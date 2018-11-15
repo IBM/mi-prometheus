@@ -4,12 +4,13 @@ training:
         batch_size: &b 1
         data_type: train
         embedding_type: glove.6B.100d
+        embedding_size: 50
         use_mask : false
         joint_all: true
         one_hot_embedding: true
         tasks: [1, 2, 3]
         ten_thousand_examples: true
-        truncation_length : 50
+        truncation_length: 50
         directory : ./
 
 
