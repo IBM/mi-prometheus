@@ -141,6 +141,10 @@ class Tester(Worker):
 
         # -> At this point, the Param Registry contains the configuration loaded (and overwritten) from several files.
 
+        self.check_multi_tests()
+        self.update_config()
+        exit()
+
         # Get testing problem name.
         try:
             _ = self.params['testing']['problem']['name']
@@ -416,8 +420,44 @@ class Tester(Worker):
 
                 return False
 
+            # store the number of tests to execute
+            self.number_tests = n_tests
+            self.completed_tests = 0
+
+            # store the params (and the indicated values) to update
+            self.multi_tests_params = multi_tests_values
+
             self.logger.info('Found the following indicated values for multiple tests: {}.'.format(multi_tests_values))
             return True
+
+    def update_config(self):
+        """
+        Update the ``config`` using the list of values to change for the multiple tests.
+
+        """
+        # If this method is used, then self.number_tests & self.multi_tests_params should be instantiated
+        new_params = {k: v[self.completed_tests] for k,v in self.multi_tests_params.items()}
+        self.logger.info("Updating the testing config with: {}".format(new_params))
+
+        #for leaf in self.params['testing']['problem'].leafs():
+        #    for param in new_params:
+        #        if param==leaf:
+
+        self.logger.info(self.params['testing']['problem']['settings']._keys_path)
+
+        self.params['testing']['problem'].add_config_params(new_params)
+
+        # Log the resulting training configuration.
+        #import yaml
+        #conf_str = 'Final parameter registry configuration:\n'
+        #conf_str += '=' * 80 + '\n'
+        #conf_str += yaml.safe_dump(self.params['testing'].to_dict(), default_flow_style=False)
+        #conf_str += '=' * 80 + '\n'
+        #self.logger.info(conf_str)
+
+
+
+
 
 
 def main():
