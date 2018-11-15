@@ -19,7 +19,8 @@
 problem_initializer.py:
 
 	- Contains the definition of a new ``Helper`` class, called ProblemInitializer.
-	- ProblemInitializer checks whether a dataset exists at a location, and downloads or generates if it doesn't.
+	- ProblemInitializer runs __init__ for a given problem, downloading and/or generating its datasets as necessary.
+	- Additionally, contains helpful function(s) to aid in checking and downloading data for problems.
 
 """
 
