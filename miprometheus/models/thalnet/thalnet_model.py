@@ -94,7 +94,7 @@ class ThalNetModel(SequentialModel):
         """
         Forward run of the ThalNetModel model.
 
-        :param data_dict: DataDict({'sequences', **}) where 'sequences' is of shape \
+        :param data_dict: DataDict({'sequences', ...}) where 'sequences' is of shape \
          [batch_size, sequence_length, input_size]
         :type data_dict: utils.DataDict
 
@@ -205,7 +205,7 @@ class ThalNetModel(SequentialModel):
         """
         Plots specific information on the model's behavior.
 
-        :param data_dict: DataDict({'sequences', **})
+        :param data_dict: DataDict({'sequences', ...})
         :type data_dict: utils.DataDict
 
         :param logits: Predictions of the model
@@ -214,7 +214,7 @@ class ThalNetModel(SequentialModel):
         :param sample: Index of the sample to visualize. Default to 0.
         :type sample: int
 
-        :return: ``True`` if the user pressed stop, else ``False``.
+        :returns: ``True`` if the user pressed stop, else ``False``.
 
         """
         # Check if we are supposed to visualize at all.

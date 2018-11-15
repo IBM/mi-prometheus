@@ -135,7 +135,7 @@ class RelationalNetwork(Model):
         """
         Runs the ``RelationalNetwork`` model.
 
-        :param data_dict: DataDict({'images', 'questions', **}) containing:
+        :param data_dict: DataDict({'images', 'questions', ...}) containing:
 
             - images [batch_size, num_channels, height, width],
             - questions [batch_size, question_size]
