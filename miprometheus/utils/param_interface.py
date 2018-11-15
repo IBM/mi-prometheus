@@ -117,6 +117,24 @@ class ParamInterface(Mapping):
             else:
                 yield key
 
+    def set_leaf(self, leaf_key, leaf_value):
+        """
+        Update the value of the specified ``leaf`` of the current :py:class:`ParamInterface`.
+
+        :param leaf: leaf key to update
+        :type leaf: str
+
+        """
+        assert leaf_key in list(self.leafs()), "The specified key is not a leaf of the current ParamInterface." \
+                                               "Got key '{}', and the leafs are {}.".format(leaf_key, list(self.leafs()))
+        for key, value in self.items():
+            if isinstance(value, ParamInterface):
+                for inner_key, inner_value in value.leafs():
+                    return inner_key, inner_value
+            elif leaf_key==key:
+                self[key] = leaf_value
+
+
     def add_default_params(self, default_params: dict):
         """
         Appends default params dictionary to the registry. This should not be \
