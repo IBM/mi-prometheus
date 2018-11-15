@@ -56,7 +56,7 @@ class ProblemInitializer(Worker):
 		super(ProblemInitializer, self).__init__(name='ProblemInitializer', add_default_parser_args=False)
 
 		# If no config is provided, try to build a problem from command line name.
-		if config == None:
+		if config is None:
 			self.params.add_default_params({'problem': {'name': name}})
 
 		# If config is provided, parse and build problem from it.
@@ -69,7 +69,7 @@ class ProblemInitializer(Worker):
 				exit(1)
 
 		# If path is provided, override default path.
-		if path != None:
+		if path is not None:
 			self.params.add_config_params({'problem': {'data_folder': path}})
 
 		# Build Problem
@@ -123,7 +123,7 @@ def reporthook(count, block_size, total_size):
 def int_or_str(val):
 	try:
 		return int(val)
-	except:
+	except ValueError:
 		return val
 
 # Useful function to properly parse argparse
@@ -162,11 +162,11 @@ if __name__ == "__main__":
 	
 	args = parser.parse_args()
 
-	if args.c == None and args.problem == None:
+	if args.c is None and args.problem is None:
 		print("Please provide either a config file or a problem name.")
 		exit(1)
 
-	elif args.c != None and args.problem != None:
+	elif args.c is not None and args.problem is not None:
 		print("Both a config and a problem name is provided. Please only provide one or the other.")
 		exit(1)	
 
