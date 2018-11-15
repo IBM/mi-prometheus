@@ -422,12 +422,9 @@ class Model(Module):
     def summarize(self):
         """
         Summarizes the model by showing the trainable/non-trainable parameters and weights\
-         per layer (``nn.Module``).
+         per layer ( ``nn.Module`` ).
 
         Uses ``recursive_summarize`` to iterate through the nested structure of the model (e.g. for RNNs).
-
-        :param: Model object for which the summary will be created.
-        :type ``models.model.Model`` (which inherits from ``nn.Module``).
 
         :return: Summary as a str.
 
