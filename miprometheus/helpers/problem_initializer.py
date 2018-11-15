@@ -39,17 +39,17 @@ from miprometheus.workers import Worker
 class ProblemInitializer(Worker):
 
 	def __init__(self, config=None, name=None, path=None):
-	"""
-	Initialize ProblemInitializer, which runs the __init__ for a provided problem, optionally overriding some parameters.
+		"""
+		Initialize ProblemInitializer, which runs the __init__ for a provided problem, optionally overriding some parameters.
 
-	:param config: Path to a config file to initialize from.
-	:type config: string
-	:param name: Name of a problem to initialize using default parameters
-	:type name:	string
-	:param path: Path to initialize problem, overrides default data_folder if provided.
-	:type path: string
+		:param config: Path to a config file to initialize from.
+		:type config: string
+		:param name: Name of a problem to initialize using default parameters
+		:type name:	string
+		:param path: Path to initialize problem, overrides default data_folder if provided.
+		:type path: string
 
-	"""
+		"""
 
 
 		# Call base constructor to set up app state, registry and add default params.
