@@ -507,7 +507,7 @@ class Model(Module):
 
 
 if __name__ == '__main__':
-    """Unit test for the handshake."""
+    """Model unit test."""
     from miprometheus.utils.param_interface import ParamInterface
     params = ParamInterface()
 
@@ -524,16 +524,3 @@ if __name__ == '__main__':
                               'index': {'size': [-1], 'type': [list, int]},
                               'imgfile': {'size': [-1,-1], 'type': [list,str]},
                                }
-
-    problem_data_definitions = {'img': {'size': [-1, 320, 480, 3], 'type': [np.ndarray]},
-                                'question': {'size': [-1, -1], 'type': [torch.Tensor]},
-                                'question_length': {'size': [-1], 'type': [list, int]},
-                                'question_string': {'size': [-1,-1], 'type': [list, str]},
-                                'question_type': {'size': [-1,-1], 'type': [list, str]},
-                                'targets': {'size': [-1], 'type': [torch.Tensor]},
-                                'targets_string': {'size': [-1,-1], 'type': [list, str]},
-                                'index': {'size': [-1], 'type': [list, int]},
-                                'imgfile': {'size': [-1,-1], 'type': [list,str]}
-                                }
-
-    model.handshake_definitions(problem_data_definitions)

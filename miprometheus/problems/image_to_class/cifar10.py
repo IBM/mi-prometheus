@@ -32,7 +32,7 @@ from miprometheus.problems.image_to_class.image_to_class_problem import ImageToC
 
 class CIFAR10(ImageToClassProblem):
     """
-    Classic CIFAR10 classification problem.
+    Image classification problem using the CIFAR-10 dataset.
 
     Please see reference here: https://www.cs.toronto.edu/~kriz/cifar.html
 
