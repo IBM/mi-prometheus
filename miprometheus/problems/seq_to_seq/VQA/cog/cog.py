@@ -39,8 +39,8 @@ import json
 import os
 import numpy as np
 
-from miprometheus.problems.seq_to_seq.VQA.VQA_problem import VQAProblem
-from miprometheus.problems.seq_to_seq.VQA.cog.cog_utils import json_to_img as jti
+from miprometheus.problems.seq_to_seq.vqa.vqa_problem import VQAProblem
+from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import json_to_img as jti
 
 class COGDataset(VQAProblem):
 	"""
@@ -77,10 +77,10 @@ class COGDataset(VQAProblem):
 
 		# Set default parameters.
 		self.params.add_default_params({'root_folder': os.path.expanduser('~/data/COG'), 
-																		'data_folder': os.path.expanduser('~/data/COG'), 
-																		'set': 'train', 
-																		'tasks': 'class', 
-																		'dataset_type': 'canonical'})
+										'data_folder': os.path.expanduser('~/data/COG'), 
+										'set': 'train', 
+										'tasks': 'class', 
+										'dataset_type': 'canonical'})
 
 		# Retrieve parameters from the dictionary
 		self.root_folder= os.path.expanduser(params['root_folder'])
@@ -98,17 +98,17 @@ class COGDataset(VQAProblem):
 		# Name
 		self.name = 'COGDataset'
 
-		# This is set for now.
-		self.img_size = 112
+		# Get the "hardcoded" image width/height.
+		self.img_size = 112 # self.params['img_size']
 
 		# Set default values
 		self.default_values = {	'height': self.img_size,
-														'width': self.img_size,
-														'num_channels': 3,
-														'sequence_length' : self.sequence_length}
+								'width': self.img_size,
+								'num_channels': 3,
+								'sequence_length' : self.sequence_length}
 		
 		# Set data dictionary based on parsed dataset type
-		self.data_definitions = {'images': {'size': [-1, self.sequence_length, 3, 112, 112], 'type': [torch.Tensor]},
+		self.data_definitions = {'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
 					'tasks':	{'size': [-1, 1], 'type': [list, str]},
 					'questions': 	{'size': [-1, 1], 'type': [list, str]},
 					'targets_reg' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
@@ -188,9 +188,6 @@ class COGDataset(VQAProblem):
 		:param batch: list of individual ``DataDict`` samples to combine.
 		:return: ``DataDict({'images', 'tasks', 'questions', 'targets_reg', 'targets_class'})`` containing the batch.
 		"""
-		#return DataDict({key: value for key, value in zip(self.data_definitions.keys(),
-                #                                          super(COGDataset, self).collate_fn(batch).values())})
-
 		data_dict = self.create_data_dict()
 		
 		data_dict['images'] = torch.stack([image['images'] for image in batch]).type(torch.FloatTensor)
@@ -367,7 +364,12 @@ if __name__ == "__main__":
 
 		# Define params to load entire dataset - all tasks included
 		params = ParamInterface()
-		params.add_config_params({'data_folder': '/home/esevgen/IBM/cog-master', 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': 'all'})
+		params.add_config_params({
+			'data_folder': '~/data/cog/',
+			'root_folder': ' ',
+			'set': 'val',
+			'dataset_type': 'canonical',
+			'tasks': 'all'})
 
 		preload = time.time()
 		full_cog_canonical = COGDataset(params)

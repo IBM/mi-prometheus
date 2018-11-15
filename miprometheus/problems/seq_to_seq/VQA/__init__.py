@@ -1,1 +1,2 @@
-from .VQA_problem import VQAProblem
+from .vqa_problem import VQAProblem
+from .cog import *

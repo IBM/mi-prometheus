@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""VQA_problem.py: abstract base class for sequential VQA problems."""
+"""vqa_problem.py: abstract base class for sequential VQA problems."""
 
 __author__ = "Emre Sevgen"
 

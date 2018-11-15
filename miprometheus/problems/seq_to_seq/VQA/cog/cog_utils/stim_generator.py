@@ -37,7 +37,7 @@ import os
 
 #import cv2 as cv2
 
-from miprometheus.problems.seq_to_seq.VQA.cog.cog_utils import constants as const
+from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import constants as const
 
 
 class Attribute(object):
