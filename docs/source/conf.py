@@ -216,8 +216,8 @@ intersphinx_mapping = {
     'torchvision': ('https://pytorch.org/docs/stable/', None),
     'python': ('https://docs.python.org/3', None),
     'yaml': ('https://yaml.readthedocs.io/en/latest/', None),
-    'numpy': ('https://numpy.readthedocs.io/en/latest/', None)
-}
+    'numpy': ('https://numpy.readthedocs.io/en/latest/', None),
+    'matplotlib': ('https://matplotlib.org/', None)}
 
 # -- Options for Texinfo output ----------------------------------------------
 
