@@ -47,7 +47,7 @@ class CIFAR10(ImageToClassProblem):
 
     def __init__(self, params):
         """
-        Initializes CIFAR10 problem:
+        Initializes the CIFAR-10 problem:
 
             - Calls ``problems.problem.ImageToClassProblem`` class constructor,
             - Sets following attributes using the provided ``params``:
@@ -83,7 +83,7 @@ class CIFAR10(ImageToClassProblem):
             >>>           'use_train_data': True}
 
 
-        :param params: Dictionary of parameters (read from configuration ``.yaml``file).
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
         :type params: miprometheus.utils.ParamInterface
 
         """
