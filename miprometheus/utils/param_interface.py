@@ -105,6 +105,18 @@ class ParamInterface(Mapping):
     def __iter__(self):
         return iter(self._lookup())
 
+    def leafs(self):
+        """
+        Yields the leafs of the current :py:class:`ParamInterface`.
+
+        """
+        for key, value in self.items():
+            if isinstance(value, ParamInterface):
+                for inner_key in value.leafs():
+                    yield inner_key
+            else:
+                yield key
+
     def add_default_params(self, default_params: dict):
         """
         Appends default params dictionary to the registry. This should not be \
