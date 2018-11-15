@@ -1,6 +1,6 @@
 
 Grid Workers Explained
-===================
+======================
 `@author: Tomasz Kornuta & Vincent Marois`
 
 There are five Grid Workers, i.e. scripts which manage sets of experiments on grids of CPUs/GPUs.
