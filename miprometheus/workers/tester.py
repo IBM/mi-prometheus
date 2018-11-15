@@ -348,6 +348,77 @@ class Tester(Worker):
             # Finalize statistics collection.
             self.finalize_statistics_collection()
 
+    def check_multi_tests(self):
+        """
+        Checks if multiple tests are indicated in the testing configuration section.
+
+        .. note::
+
+            If the user would like to run multiple tests, he can use the ``multi_tests`` key in the ``testing`` \
+            section to indicate the keys which associated values will be different for each test config.
+
+            E.g.
+
+            >>> # Problem parameters:
+            >>> testing:
+            >>>     problem:
+            >>>         name: SortOfCLEVR
+            >>>         batch_size: 64
+            >>>         data_folder: '~/data/sort-of-clevr/'
+            >>>         dataset_size: 10000
+            >>>         split: 'test'
+            >>>         img_size: 128
+            >>>         regenerate: False
+            >>>
+            >>>     multi_tests: {batch_size: [64, 128], img_size: [128, 256]}
+
+        .. warning::
+
+            The following constraints apply:
+
+            - Assume that the indicated varying values are leafs of the `testing problem` section
+            - The number of indicated varying values per key is the same for all keys
+            - The indicated order of the varying values will be respected, i.e. \
+
+             >>>     multi_tests: {batch_size: [64, 128], img_size: [128, 256]}
+
+             and
+
+             >>>     multi_tests: {batch_size: [64, 128], img_size: [256, 128]}
+
+             will lead to different test configs.
+
+            - At least one key has varying values (but this is implicit)
+
+        :return: True if the constraints above are respected, else False
+
+        """
+        # check first if the user wants multi-tests
+        if self.params['testing']['multi_tests'] is None:
+            return False
+        else:
+
+            self.logger.info("Checking validity of the indicated values for the multiple tests")
+            multi_tests_values = self.params['testing']['multi_tests'].to_dict()
+
+            for key in multi_tests_values:
+
+                # check the key is a leaf of the testing problem config section
+                if not key in list(self.params['testing']['problem'].leafs()):
+                    self.logger.error("Did not find the indicated key '{}' in the leafs of the test problem "
+                                      "config section.".format(key))
+                    return False
+
+            # check that all indicated list of values have same length
+            n_tests = len(next(iter(multi_tests_values.values())))
+            if not all(len(x) == n_tests for x in multi_tests_values.values()):
+                self.logger.error("Got varying number of elements for the indicated multiple tests values.")
+
+                return False
+
+            self.logger.info('Found the following indicated values for multiple tests: {}.'.format(multi_tests_values))
+            return True
+
 
 def main():
     """
