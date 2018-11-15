@@ -5,7 +5,7 @@ rm -rf build
 
 # create html pages
 sphinx-build -b html source build
-make html
+#make html
 
 # open web browser(s) to master table of content
 if which firefox
