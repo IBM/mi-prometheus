@@ -72,12 +72,14 @@ class COGModel:
 if __name__ == '__main__':
 	from miprometheus.utils.param_interface import ParamInterface
 	from miprometheus.problems.seq_to_seq.vqa.cog import COG
+	import os
+
 	params = ParamInterface()
 	tasks = ['Go','CompareColor']
 	params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'), 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': tasks})
 
 	# Create problem - task Go
-	cog_dataset = COGDataset(params)
+	cog_dataset = COG(params)
 
 	# Get a sample - Go
 	sample = cog_dataset[0]
