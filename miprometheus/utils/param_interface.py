@@ -134,6 +134,26 @@ class ParamInterface(Mapping):
             self._nest_dict(config_params)
         )
 
+    def del_default_params(self, key):
+        """
+        Removes an entry from the Default Parameters. \
+        The entry can either be a subtree or a leaf of the Default Parameters tree.
+
+        :param key: key to subtree / leaf in the Default Parameters
+
+        """
+        self._param_registry.del_default_params(self._keys_path + [key])
+
+    def del_config_params(self, key):
+        """
+        Removes an entry from the Configuration Parameters. \
+        The entry can either be a subtree or a leaf of the Configuration Parameters tree.
+
+        :param key: key to subtree / leaf in the Configuration Parameters
+
+        """
+        self._param_registry.del_config_params(self._keys_path + [key])
+
     def add_config_params_from_yaml(self, yaml_path: str):
         """
         Helper function. Has the same functionality as ``add_config_params``, but \
