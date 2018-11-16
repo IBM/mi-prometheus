@@ -27,6 +27,8 @@ class COGModel:
 		out_conv4			= self.conv4(out_maxpool3)
 		out_maxpool4	= self.maxpool2(out_conv4)
 
+		return out_maxpool4
+
 	# Visual Processing
 	def VisualProcessing(self):
 		# First up is a 4 layer CNN
@@ -81,13 +83,19 @@ if __name__ == '__main__':
 	# Create problem - task Go
 	cog_dataset = COG(params)
 
-	# Get a sample - Go
-	sample = cog_dataset[0]
+	# Set up Dataloader iterator
+	from torch.utils.data import DataLoader
+	
+	dataloader = DataLoader(dataset=cog_dataset, collate_fn=cog_dataset.collate_fn,
+		            batch_size=64, shuffle=False, num_workers=8)
+
+	# Get a batch
+	batch = next(iter(dataloader))
 
 	# Initialize model
 	model = COGModel()
 
 	# Test forward pass
-	print(model.forward(sample['images']))
+	print(repr(model.forward(batch['images'][0])))
 	
 	
