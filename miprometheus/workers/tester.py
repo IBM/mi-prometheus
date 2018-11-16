@@ -134,10 +134,7 @@ class Tester(Worker):
         configs_to_load = self.recurrent_config_parse(config_file, [])
 
         # Read the YAML files one by one - but in reverse order -> overwrite the first indicated config(s)
-        for config in reversed(configs_to_load):
-            # Load params from YAML file.
-            self.params.add_config_params_from_yaml(config)
-            print('Loaded configuration from file {}'.format(config))
+        self.recurrent_config_load(configs_to_load)
 
         # -> At this point, the Param Registry contains the configuration loaded (and overwritten) from several files.
 

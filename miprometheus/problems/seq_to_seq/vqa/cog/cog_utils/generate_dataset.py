@@ -15,10 +15,6 @@
 
 """Script for generating a COG dataset"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import errno
 import functools
 import gzip
@@ -34,20 +30,6 @@ import numpy as np
 
 from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import stim_generator as sg
 import miprometheus.problems.seq_to_seq.vqa.cog.cog_utils.task_bank as task_bank
-
-FLAGS = tf.flags.FLAGS
-
-tf.flags.DEFINE_integer('max_memory', 3, 'maximum memory duration')
-tf.flags.DEFINE_integer('max_distractors', 1, 'maximum number of distractors')
-tf.flags.DEFINE_integer('epochs', 4, 'number of epochs')
-tf.flags.DEFINE_boolean('compress', True, 'whether to gzip the files')
-tf.flags.DEFINE_integer('examples_per_family', 2,
-                     'number of examples to generate per task family')
-tf.flags.DEFINE_string('output_dir', '/tmp/cog',
-                    'Directory to write output (json or tfrecord) to.')
-tf.flags.DEFINE_integer('parallel', 0,
-                     'number of parallel processes to use. Only training '
-                     'dataset is generated in parallel.')
 
 
 try:
@@ -68,13 +50,13 @@ def get_target_value(t):
   return t
 
 
-def generate_example(max_memory, max_distractors, task_family, epochs):
+def generate_example(memory_length, max_distractors, task_family, epochs):
   #random.seed(1)
   task = task_bank.random_task(task_family)
 
   # To get maximum memory duration, we need to specify the following average
   # memory value
-  avg_mem = round(max_memory/3.0 + 0.01, 2)
+  avg_mem = round(memory_length/3.0 + 0.01, 2)
   objset = task.generate_objset(n_epoch=epochs,
                                 n_distractor=random.randint(1, max_distractors),
                                 average_memory_span=avg_mem)
@@ -154,19 +136,19 @@ def mkdir(path):
       raise
 
 
-def generate_dataset(epochs, max_distractors, max_memory,
-                     examples_per_family, output_dir,
+def generate_dataset(epochs, max_distractors, memory_length,
+                     examples_per_task, output_dir,
                      random_families, start_index=0,
                      per_file=10000, compress=True):
-  print("Generating dataset into %s:\n  examples per familiy=%d\n  epochs=%d"
+  print("Generating dataset into %s:\n  examples per family=%d\n  epochs=%d"
         "\n  start_index=%d\n  per_file=%d"
-        % (output_dir, examples_per_family, epochs, start_index, per_file))
+        % (output_dir, examples_per_task, epochs, start_index, per_file))
   if not os.path.exists(output_dir):
     mkdir(output_dir)
 
   families = list(task_bank.task_family_dict.keys())
   n_families = len(families)
-  total_examples = n_families * examples_per_family
+  total_examples = n_families * examples_per_task
 
   base_fname = os.path.join(output_dir, 'cog')
 
@@ -179,7 +161,7 @@ def generate_dataset(epochs, max_distractors, max_memory,
       if i % 10000 == 0 and i > 0:
         print("Generated ", i, " examples")
       task_family = families[task_ind % n_families]
-      example, _, _ = generate_example(max_memory, max_distractors,
+      example, _, _ = generate_example(memory_length, max_distractors,
                                        task_family, epochs)
       # Write the example to file
       dump_str = json.dumps(example, sort_keys=True, separators=(',', ': '))
@@ -195,67 +177,62 @@ def generate_dataset(epochs, max_distractors, max_memory,
       file_names.append(fname)
       open_fn = gzip.open if compress else open
       with open_fn(fname, 'wb') as f:
-        for i in range_fn(examples_per_family):
+        for i in range_fn(examples_per_task):
           if i % 10000 == 0 and i > 0:
             print("Generated ", i, " examples")
-          example, _, _ = generate_example(max_memory, max_distractors,
+          example, _, _ = generate_example(memory_length, max_distractors,
                                            family, epochs)
           # Write the example to file
           dump_str = json.dumps(example, sort_keys=True, separators=(',', ': '))
           assert '\n' not in dump_str, 'dumps_str has new line %s' % (dump_str,)
           f.write(dump_str.encode())
-          if i != examples_per_family - 1:
+          if i != examples_per_task - 1:
             f.write(b'\n')
 
   print("Wrote dataset into:", file_names)
 
 
-def generate_train(output_dir, examples_per_family, start_index, per_file):
-  generate_dataset(FLAGS.epochs, FLAGS.max_distractors, FLAGS.max_memory,
-                   examples_per_family, output_dir, random_families=True,
+def generate_train(path,examples_per_task,sequence_length,memory_length,max_distractors,cog_variant,start_index=0,per_file=10000):
+
+  output_dir = os.path.join(path, 'train_' + cog_variant)
+  generate_dataset(sequence_length, max_distractors, memory_length,
+                   examples_per_task, output_dir, random_families=True,
                    start_index=start_index, per_file=per_file,
-                   compress=FLAGS.compress)
+                   compress=True)
 
-def generate_val_or_test(data_type, cog_variant):
-  """
-  Args:
-    data_type: 'val' or 'test'
-  """
+def generate_val_or_test(path,examples_per_task,sequence_length,memory_length,max_distractors,nr_processors,data_type, cog_variant):
   # 20x smaller than training.
-  output_dir = os.path.join(
-      FLAGS.output_dir, '%s_%s' % (data_type, cog_variant))
-  generate_dataset(FLAGS.epochs, FLAGS.max_distractors, FLAGS.max_memory,
-                   max(FLAGS.examples_per_family // 20, 50),
+  output_dir = os.path.join(path, '%s_%s' % (data_type, cog_variant))
+	
+  generate_dataset(sequence_length, max_distractors, memory_length,
+                   max(examples_per_task // 20, 50),
                    output_dir, random_families=False,
-                   compress=FLAGS.compress)
+                   compress=True)
 
 
-def main(argv):
-  cog_variant = '%d_%d_%d' % (FLAGS.epochs, FLAGS.max_memory, FLAGS.max_distractors)
+def main(path,examples_per_task,sequence_length,memory_length,max_distractors,nr_processors):
+  cog_variant = '%d_%d_%d' % (sequence_length, memory_length, max_distractors)
 
-  train_output_dir = os.path.join(FLAGS.output_dir, 'train_' + cog_variant)
+  if nr_processors > 2:
+    train_parallel = nr_processors - 2
+    assert (examples_per_task % (2 * train_parallel)) == 0, (
+      "examples_per_task must be a multiple of 2*(nr_processors - 2)")
+    examples_per_task_per_job = examples_per_task // train_parallel
 
-  if FLAGS.parallel:
-    assert FLAGS.parallel > 2
-    train_parallel = FLAGS.parallel - 2
-    assert (FLAGS.examples_per_family % (2 * train_parallel)) == 0, (
-      "examples_per_family must be a multiple of 2*(parallel - 2)")
-    examples_per_family_per_job = FLAGS.examples_per_family // train_parallel
-
-    pool = multiprocessing.Pool(processes=FLAGS.parallel)
+    pool = multiprocessing.Pool(processes=nr_processors)
     jobs = []
     n_tasks = len(task_bank.task_family_dict)
     for i in range_fn(train_parallel):
       jobs.append(pool.apply_async(generate_train, (
-        train_output_dir, examples_per_family_per_job,
-        2 * i, n_tasks * examples_per_family_per_job // 2)))
-    jobs.append(pool.apply_async(generate_val_or_test, ('val', cog_variant)))
-    jobs.append(pool.apply_async(generate_val_or_test, ('test', cog_variant)))
+        path, examples_per_task_per_job, sequence_length,memory_length,max_distractors, cog_variant,
+        2 * i, n_tasks * examples_per_task_per_job // 2)))
+    jobs.append(pool.apply_async(generate_val_or_test, (path,examples_per_task,sequence_length,memory_length,max_distractors,nr_processors,'val', cog_variant)))
+    jobs.append(pool.apply_async(generate_val_or_test, (path,examples_per_task,sequence_length,memory_length,max_distractors,nr_processors,'test', cog_variant)))
 
     # wait for all jobs to complete
     [j.get() for j in jobs]
   else:
-    generate_train(train_output_dir)
-    generate_val_or_test('val', cog_variant)
-    generate_val_or_test('test', cog_variant)
+    generate_train(path,examples_per_task,sequence_length,memory_length,max_distractors,cog_variant)
+    generate_val_or_test(path,examples_per_task,sequence_length,memory_length,max_distractors,nr_processors,'val', cog_variant)
+    generate_val_or_test(path,examples_per_task,sequence_length,memory_length,max_distractors,nr_processors,'test', cog_variant)
 

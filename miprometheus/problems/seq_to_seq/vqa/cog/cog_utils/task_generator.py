@@ -18,16 +18,12 @@
 Contains the building blocks for permissible tasks.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from collections import defaultdict
 import copy
 import random
 
-from cognitive import constants as const
-from cognitive import stim_generator as sg
+from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import constants as const
+from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import stim_generator as sg
 
 
 def obj_str(loc=None, color=None, shape=None,

@@ -51,7 +51,6 @@ class ProblemInitializer(Worker):
 
 		"""
 
-
 		# Call base constructor to set up app state, registry and add default params.
 		super(ProblemInitializer, self).__init__(name='ProblemInitializer', add_default_parser_args=False)
 
@@ -62,7 +61,9 @@ class ProblemInitializer(Worker):
 		# If config is provided, parse and build problem from it.
 		else:
 			try:
-				self.params.add_config_params_from_yaml(os.path.expanduser(config))
+				#self.params.add_config_params_from_yaml(os.path.expanduser(config))
+				configs_to_load = self.recurrent_config_parse(os.path.expanduser(config),[])
+				self.recurrent_config_load(configs_to_load)
 				self.params = self.params['training']
 			except FileNotFoundError:
 				print("Config file at path '{}' not found.".format(config))
@@ -72,53 +73,15 @@ class ProblemInitializer(Worker):
 		if path is not None:
 			self.params.add_config_params({'problem': {'data_folder': path}})
 
+		# Pass initialization only flag.
+		self.params.add_config_params({'problem':{'initialization_only': True}})
+
 		# Build Problem
 		try:
 			_ = ProblemFactory.build(self.params['problem'])
 		except AttributeError:
 			print("Provided problem name not found.")
 			exit(1)
-			
-		
-
-# Function to make check and download easier
-def CheckAndDownload(filefoldertocheck, url='none', downloadname='~/data/downloaded'):
-	"""
-	Checks whether a file or folder exists at given path (relative to storage folder), otherwise downloads files from given URL.
-
-	:param filefoldertocheck: Relative path to a file or folder to check to see if it exists.
-	:type filefoldertocheck: string
-	:param url: URL to download files from.
-	:type url: string
-	:param downloadname: What to name the downloaded file. (DEFAULT: "downloaded").
-	:type downloadname: string.
-
-	:return: False if file was found, True if a download was necessary.
-
-	"""
-	filefoldertocheck = os.path.expanduser(filefoldertocheck)
-	if not ( os.path.isfile( filefoldertocheck)  or 
-					 os.path.isdir ( filefoldertocheck) ):
-		print('Downloading {}'.format(url))
-		urllib.request.urlretrieve(url, os.path.expanduser(downloadname), reporthook)
-		return True
-	else:
-		print('Dataset found at {}'.format(filefoldertocheck))
-		return False
-
-# Progress bar function
-def reporthook(count, block_size, total_size):
-	global start_time
-	if count == 0:
-		  start_time = time.time()
-		  return
-	duration = time.time() - start_time
-	progress_size = int(count * block_size)
-	speed = int(progress_size / (1024 * duration))
-	percent = int(count * block_size * 100 / total_size)
-	sys.stdout.write("\r...%d%%, %d MB, %d KB/s, %d seconds passed" %
-		              (percent, progress_size / (1024 * 1024), speed, duration))
-	sys.stdout.flush()
 
 # Useful function to properly parse argparse
 def int_or_str(val):

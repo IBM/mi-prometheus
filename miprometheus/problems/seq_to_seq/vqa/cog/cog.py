@@ -41,9 +41,8 @@ import numpy as np
 
 from miprometheus.problems.seq_to_seq.vqa.vqa_problem import VQAProblem
 from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import json_to_img as jti
-from miprometheus.helpers.problem_initializer import CheckAndDownload
 
-class COGDataset(VQAProblem):
+class COG(VQAProblem):
 	"""
 	The COG dataset is a sequential VQA dataset. Inputs are a sequence of images of simple shapes and characters on a black \
  	background, and a question based on these objects that relies on memory which has to be answered at every step of the \
@@ -53,39 +52,39 @@ class COGDataset(VQAProblem):
 
 	def __init__(self, params):
 		"""
-		Initializes the COG Dataset problem:
+		Initializes the COG problem:
 
-			- Calls ``problems.problem.VideoTextToClassProblem`` class constructor,
+			- Calls ``problems.problem.VQAProblem`` class constructor,
 			- Sets the following attributes using the provided ``params``:
 
-				- ``self.root_folder`` (`string`) : Root directory of dataset where ``processed/training.pt``\
-					and ``processed/test.pt`` will be saved,
-				- ``self.data_folder`` (`string`) : Data directory where dataset is stored. If using canonical \
-									or hard dataset, simply point to 'data_X_Y_Z' folder.
+				- ``self.data_folder`` (`string`) : Data directory where dataset is stored.
 				- ``self.set`` (`string`) : 'val', 'test', or 'train'
 				- ``self.tasks`` (`string or list of string`) : Which tasks to use. 'class', 'reg', 'all', or a 
 \ list of tasks such as ['AndCompareColor', 'AndCompareShape']. Only selected tasks will be used.
 				- ``self.dataset_type`` (`string`) : Which dataset to use, 'canonical', 'hard', or \
 								'generated'. If 'generated', please specify 'examples_per_task', 'sequence_length', \
-								'memory_length', and 'max_distractors'.
+								'memory_length', and 'max_distractors' under 'generation'. Can also specify 'nr_processors' for generation.
 
 		:param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
 		"""
 	
 		# Call base class constructors
-		super(COGDataset, self).__init__(params)
+		super(COG, self).__init__(params)
 
 		# Set default parameters.
-		self.params.add_default_params({'root_folder': os.path.expanduser('~/data/COG'), 
-										'data_folder': os.path.expanduser('~/data/COG'), 
-										'set': 'train', 
-										'tasks': 'class', 
-										'dataset_type': 'canonical'})
+		self.params.add_default_params({'data_folder': os.path.expanduser('~/data/cog'), 
+																		'set': 'train', 
+																		'tasks': 'class', 
+																		'dataset_type': 'canonical',
+																		'initialization_only': False})
 
 		# Retrieve parameters from the dictionary
-		self.root_folder= os.path.expanduser(params['root_folder'])
-		self.data_folder= os.path.expanduser(params['data_folder'])
+		# Data folder main is /path/cog
+		# Data folder parent is data_X_Y_Z
+		# Data folder children are train_X_Y_Z, test_X_Y_Z, or val_X_Y_Z
+		self.data_folder_main= os.path.expanduser(params['data_folder'])
+
 		self.set	= params['set']
 		assert self.set in ['val','test','train'], "set in configuration file must be one of 'val', 'test', or 'train', "\
 								"got {}".format(self.set)
@@ -120,19 +119,43 @@ class COGDataset(VQAProblem):
 		# Check if dataset exists, download or generate if necessary.
 		self.source_dataset(self.params)
 
-		# Load all the .jsons, but image generation is done in __getitem__
-		self.dataset = {}
-		self.length = 0
-	
-		for tasklist in os.listdir(self.data_folder_path):
-			if tasklist[4:-8] in self.tasks:
-				self.dataset[(tasklist[4:-8])]=[]
-				with gzip.open(os.path.join(self.data_folder_path,tasklist)) as f:
-					fulltask = f.read().decode('utf-8').split('\n')
-					for datapoint in fulltask:
-						self.dataset[tasklist[4:-8]].append(json.loads(datapoint))
-				self.length = self.length + len(self.dataset[tasklist[4:-8]])
+		if not params['initialization_only']:
 
+			# Load all the .jsons, but image generation is done in __getitem__
+			self.dataset = {}
+			for task in self.tasks:
+				self.dataset[task]=[]
+			self.length = 0
+	
+			print("Loading dataset as json into memory.")
+			# Val and Test are not shuffled
+			if self.set == 'val' or self.set == 'test':
+				for tasklist in os.listdir(self.data_folder_child):
+					if tasklist[4:-8] in self.tasks:
+						with gzip.open(os.path.join(self.data_folder_child,tasklist)) as f:
+							fulltask = f.read().decode('utf-8').split('\n')
+							for datapoint in fulltask:
+								self.dataset[tasklist[4:-8]].append(json.loads(datapoint))
+						self.length = self.length + len(self.dataset[tasklist[4:-8]])
+						print("{} task examples loaded.".format(tasklist[4:-8]))
+					else:
+						print("Skipped loading {} task.".format(tasklist[4:-8]))
+		
+			# Training set is shuffled
+			elif self.set == 'train':
+				for zipfile in os.listdir(self.data_folder_child):
+					with gzip.open(os.path.join(self.data_folder_child,zipfile)) as f:
+						fullzip = f.read().decode('utf-8').split('\n')
+						for datapoint in fullzip:
+							task = json.loads(datapoint)
+							if task['family'] in self.tasks:
+								self.dataset[task['family']].append(task)
+								self.length = self.length + 1
+					print("Zip file {} loaded.".format(zipfile))
+
+		else:
+			print("COG initialization complete.")
+			exit(0)
 
 	def __getitem__(self, index):
 		"""
@@ -149,6 +172,7 @@ class COGDataset(VQAProblem):
 			-targets_class:	Sequence of word targets for classification tasks
 
 		"""
+
 		# With the assumption that each family has the same number of examples
 		i = index % len(self.tasks)
 		j = int(index / len(self.tasks))
@@ -235,45 +259,52 @@ class COGDataset(VQAProblem):
 			self.memory_length = 7
 			self.max_distractors = 10
 		elif self.dataset_type == 'generated':
+			self.params.add_default_params({'generation':{'nr_processors':1}})
 			try:
-				self.examples_per_task = int(params['dataset_type']['examples_per_task'])
-				self.sequence_length = int(params['dataset_type']['sequence_length'])
-				self.memory_length = int(params['dataset_type']['memory_length'])
-				self.max_distractors = int(params['dataset_type']['max_distractors'])
+				self.examples_per_task = int(params['generation']['examples_per_task'])
+				self.sequence_length = int(params['generation']['sequence_length'])
+				self.memory_length = int(params['generation']['memory_length'])
+				self.max_distractors = int(params['generation']['max_distractors'])
+				self.nr_processors = int(params['generation']['nr_processors'])
 			except KeyError:
 				print("Please specify examples per task, sequence length, memory length and maximum distractors for a generated dataset under 'dataset_type'.")
 				exit(1)
 			except ValueError:
-				print("Examples per task, sequence length, memory length and maximum distractors must be of type int.")
+				print("Examples per task, sequence length, memory length, maximum distractors and nr_processors (if provided) must be of type int.")
 				exit(1)
 
-		folder_name_append = '_'+str(self.sequence_length)+'_'+str(self.memory_length)+'_'+str(self.max_distractors)		
-		self.data_folder_path = os.path.join(self.data_folder,'data'+folder_name_append,self.set+folder_name_append)
+		self.dataset_name = str(self.sequence_length)+'_'+str(self.memory_length)+'_'+str(self.max_distractors)
+		self.data_folder_parent = os.path.join(self.data_folder_main,'data_'+self.dataset_name) 
+		self.data_folder_child = os.path.join(self.data_folder_parent,self.set+'_'+self.dataset_name)
 		
 	def source_dataset(self, params):
 		if self.dataset_type == 'canonical':
-			self.download = self.CheckAndDownload(self.data_folder_path, 
+			self.download = self.CheckAndDownload(self.data_folder_child, 
 													'https://storage.googleapis.com/cog-datasets/data_4_3_1.tar')
 		
 		elif self.dataset_type == 'hard':
-			self.download = self.CheckAndDownload(self.data_folder_path, 
+			self.download = self.CheckAndDownload(self.data_folder_child,
 													'https://storage.googleapis.com/cog-datasets/data_8_7_10.tar')
 			if self.download:
 				print('\nDownload complete. Extracting...')
 				tar = tarfile.open(os.path.expanduser('~/data/downloaded'))
-				tar.extractall(path=self.data_folder)
+				tar.extractall(path=self.data_folder_main)
 				tar.close()
 				print('\nDone! Cleaning up.')
 				os.remove(os.path.expanduser('~/data/downloaded'))
 				print('\nClean-up complete! Dataset ready.')
 
-		else:			
-			from miprometheus.helpers.cog_generator import generate_dataset
-			generate_dataset.main(self.examples_per_task, 
-														self.sequence_length, 
-														self.memory_length, 
-														self.max_distractors, options[4], self.path)
-			print('\nDataset generation complete!')
+		else:
+			self.download = self.CheckAndDownload(self.data_folder_child)
+			if self.download:			
+				from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import generate_dataset
+				generate_dataset.main(self.data_folder_parent,
+															self.examples_per_task, 
+															self.sequence_length, 
+															self.memory_length, 
+															self.max_distractors,
+															self.nr_processors)
+				print('\nDataset generation complete for {}!'.format(self.dataset_name))
 
 	def add_statistics(self, stat_col):
 		"""
@@ -322,10 +353,10 @@ if __name__ == "__main__":
 	from miprometheus.utils.param_interface import ParamInterface
 	params = ParamInterface()
 	tasks = ['Go','CompareColor']
-	params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'), 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': tasks})
+	params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'), 'set': 'val', 'dataset_type': 'canonical','tasks': tasks})
 
 	# Create problem - task Go
-	cog_dataset = COGDataset(params)
+	cog_dataset = COG(params)
 
 	# Get a sample - Go
 	sample = cog_dataset[0]
@@ -394,13 +425,12 @@ if __name__ == "__main__":
 		params = ParamInterface()
 		params.add_config_params({
 			'data_folder': '~/data/cog/',
-			'root_folder': ' ',
 			'set': 'val',
 			'dataset_type': 'canonical',
 			'tasks': 'all'})
 
 		preload = time.time()
-		full_cog_canonical = COGDataset(params)
+		full_cog_canonical = COG(params)
 		postload = time.time() 
 
 		dataloader = DataLoader(dataset=full_cog_canonical, collate_fn=full_cog_canonical.collate_fn,
@@ -424,20 +454,20 @@ if __name__ == "__main__":
 			if i == testbatches:
 				print('Finished saving {} batches'.format(testbatches))
 				break
-			if not os.path.exists(os.path.expanduser('~/data/COGtest')):
-				os.makedirs(os.path.expanduser('~/data/COGtest'))
-			np.save(os.path.expanduser('~/data/COGtest/'+str(i)),batch['images'])
+			if not os.path.exists(os.path.expanduser('~/data/cogtest')):
+				os.makedirs(os.path.expanduser('~/data/cogtest'))
+			np.save(os.path.expanduser('~/data/cogtest/'+str(i)),batch['images'])
 
 		preload = time.time()
 		for i in range(testbatches):
-			mockload = np.fromfile(os.path.expanduser('~/data/COGtest/'+str(i)+'.npy'))
+			mockload = np.fromfile(os.path.expanduser('~/data/cogtest/'+str(i)+'.npy'))
 		postload = time.time()
 		print('Generation time for {} batches: {}, Load time for {} batches: {}'.format(testbatches, postbatch-prebatch, 
 												testbatches, postload-preload))
 
 		print('Timing test completed, removing files.')
 		for i in range(testbatches):
-			os.remove(os.path.expanduser('~/data/COGtest/'+str(i)+'.npy'))
+			os.remove(os.path.expanduser('~/data/cogtest/'+str(i)+'.npy'))
 	
 	print('Done!')
  

@@ -15,21 +15,12 @@
 
 """A bank of available tasks."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from collections import OrderedDict
 import random
-import tensorflow as tf
 
-from cognitive import stim_generator as sg
-from cognitive import task_generator as tg
-from cognitive.task_generator import Task
-
-FLAGS = tf.app.flags.FLAGS
-
-tf.app.flags.DEFINE_string('task_family', 'all', 'name of the task to be trained')
+from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import stim_generator as sg
+from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import task_generator as tg
+from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils.task_generator import Task
 
 
 class GoColor(Task):
