@@ -15,6 +15,7 @@ from .s_mac import *
 from .relational_net import *
 from .vision import *
 from .vqa_baselines import *
+from .cog import *
 
 # Other imports.
 from .model import Model
