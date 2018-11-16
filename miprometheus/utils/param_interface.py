@@ -119,20 +119,23 @@ class ParamInterface(Mapping):
 
     def set_leaf(self, leaf_key, leaf_value):
         """
-        Update the value of the specified ``leaf`` of the current :py:class:`ParamInterface`.
+        Update the value of the specified ``leaf_key`` of the current :py:class:`ParamInterface` \
+        with the specified ``leaf_value``.
 
-        :param leaf: leaf key to update
-        :type leaf: str
+        :param leaf_key: leaf key to update.
+        :type leaf_key: str
+
+        :param leaf_value: New value to set.
 
         """
         assert leaf_key in list(self.leafs()), "The specified key is not a leaf of the current ParamInterface." \
-                                               "Got key '{}', and the leafs are {}.".format(leaf_key, list(self.leafs()))
+                                               " Got key '{}', and the leafs are {}.".format(leaf_key, list(self.leafs()))
         for key, value in self.items():
             if isinstance(value, ParamInterface):
-                for inner_key, inner_value in value.leafs():
-                    return inner_key, inner_value
-            elif leaf_key==key:
-                self[key] = leaf_value
+                return value.set_leaf(leaf_key, leaf_value)
+            elif key==leaf_key:
+                self.add_config_params({key: leaf_value})
+                break
 
 
     def add_default_params(self, default_params: dict):
