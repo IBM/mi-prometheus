@@ -82,7 +82,7 @@ class ProblemInitializer(Worker):
 		
 
 # Function to make check and download easier
-def CheckAndDownload(filefoldertocheck, url='none', downloadname='downloaded'):
+def CheckAndDownload(filefoldertocheck, url='none', downloadname='~/data/downloaded'):
 	"""
 	Checks whether a file or folder exists at given path (relative to storage folder), otherwise downloads files from given URL.
 
@@ -96,13 +96,14 @@ def CheckAndDownload(filefoldertocheck, url='none', downloadname='downloaded'):
 	:return: False if file was found, True if a download was necessary.
 
 	"""
-	if not ( os.path.isfile  ( os.path.join(self.path,filefoldertocheck)) or 
-					 os.path.isdir( os.path.join(self.path,filefoldertocheck)) ):
+	filefoldertocheck = os.path.expanduser(filefoldertocheck)
+	if not ( os.path.isfile( filefoldertocheck)  or 
+					 os.path.isdir ( filefoldertocheck) ):
 		print('Downloading {}'.format(url))
-		urllib.request.urlretrieve(url, os.path.join(self.path,downloadname), reporthook)
+		urllib.request.urlretrieve(url, os.path.expanduser(downloadname), reporthook)
 		return True
 	else:
-		print('Dataset found at {}'.format(os.path.join(self.path,filefoldertocheck)))
+		print('Dataset found at {}'.format(filefoldertocheck))
 		return False
 
 # Progress bar function

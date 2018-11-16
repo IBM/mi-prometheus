@@ -41,6 +41,7 @@ import numpy as np
 
 from miprometheus.problems.seq_to_seq.vqa.vqa_problem import VQAProblem
 from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import json_to_img as jti
+from miprometheus.helpers.problem_initializer import CheckAndDownload
 
 class COGDataset(VQAProblem):
 	"""
@@ -65,7 +66,7 @@ class COGDataset(VQAProblem):
 				- ``self.tasks`` (`string or list of string`) : Which tasks to use. 'class', 'reg', 'all', or a 
 \ list of tasks such as ['AndCompareColor', 'AndCompareShape']. Only selected tasks will be used.
 				- ``self.dataset_type`` (`string`) : Which dataset to use, 'canonical', 'hard', or \
-								'generated'. If 'generated', please specify 'sequence_length', \
+								'generated'. If 'generated', please specify 'examples_per_task', 'sequence_length', \
 								'memory_length', and 'max_distractors'.
 
 		:param params: Dictionary of parameters (read from configuration ``.yaml`` file).
@@ -96,7 +97,7 @@ class COGDataset(VQAProblem):
 		self.parse_tasks_and_dataset_type(params)
 	
 		# Name
-		self.name = 'COGDataset'
+		self.name = 'COG'
 
 		# Get the "hardcoded" image width/height.
 		self.img_size = 112 # self.params['img_size']
@@ -115,9 +116,9 @@ class COGDataset(VQAProblem):
 					'targets_class':{'size': [-1, self.sequence_length, 1], 'type' : [list,str]}
 					}		
 
-		assert os.path.isdir(self.data_folder_path), "Data directory not found at {}. Please download the dataset and "\
-	"point to the correct directory.".format(self.data_folder_path)
-		
+
+		# Check if dataset exists, download or generate if necessary.
+		self.source_dataset(self.params)
 
 		# Load all the .jsons, but image generation is done in __getitem__
 		self.dataset = {}
@@ -177,8 +178,6 @@ class COGDataset(VQAProblem):
 			data_dict['targets_reg']	= torch.FloatTensor([[-1,-1] if reg == 'invalid' else reg for reg in answers])
 			data_dict['targets_class'] 	= [' ' for item in answers]
 
-
-
 		return(data_dict)
 
 	def collate_fn(self, batch):
@@ -224,28 +223,57 @@ class COGDataset(VQAProblem):
 		elif self.tasks == 'all':
 			self.tasks = self.classification_tasks + self.regression_tasks
 
-		# If loading a default dataset, set default path names and set sequence length
-		folder_name_append = ' '
-		
+		# If loading a default dataset, set default path names and set sequence length		
 		if self.dataset_type == 'canonical':
-			folder_name_append = '_4_3_1'			
+			self.examples_per_task = 227280
 			self.sequence_length = 4
+			self.memory_length = 3
+			self.max_distractors = 1
 		elif self.dataset_type == 'hard':
-			folder_name_append = '_8_7_10'			
+			self.examples_per_task = 227280
 			self.sequence_length = 8
+			self.memory_length = 7
+			self.max_distractors = 10
 		elif self.dataset_type == 'generated':
 			try:
-				self.sequence_length = params['dataset_type']['sequence_length']
-				self.memory_length = params['dataset_type']['memory_length']
-				self.max_distractors = params['dataset_type']['max_distractors']
+				self.examples_per_task = int(params['dataset_type']['examples_per_task'])
+				self.sequence_length = int(params['dataset_type']['sequence_length'])
+				self.memory_length = int(params['dataset_type']['memory_length'])
+				self.max_distractors = int(params['dataset_type']['max_distractors'])
 			except KeyError:
-				print("Please specify sequence length, memory length and maximum distractors for a generated dataset under 'dataset_type'.")
+				print("Please specify examples per task, sequence length, memory length and maximum distractors for a generated dataset under 'dataset_type'.")
+				exit(1)
+			except ValueError:
+				print("Examples per task, sequence length, memory length and maximum distractors must be of type int.")
+				exit(1)
 
-		# Open using default folder path if using a pregenerated dataset
-		if self.dataset_type != 'generated':
-			self.data_folder_path = os.path.join(self.data_folder,'data'+folder_name_append,self.set+folder_name_append)
-		else:
-			self.data_folder_path = self.data_folder
+		folder_name_append = '_'+str(self.sequence_length)+'_'+str(self.memory_length)+'_'+str(self.max_distractors)		
+		self.data_folder_path = os.path.join(self.data_folder,'data'+folder_name_append,self.set+folder_name_append)
+		
+	def source_dataset(self, params):
+		if self.dataset_type == 'canonical':
+			self.download = self.CheckAndDownload(self.data_folder_path, 
+													'https://storage.googleapis.com/cog-datasets/data_4_3_1.tar')
+		
+		elif self.dataset_type == 'hard':
+			self.download = self.CheckAndDownload(self.data_folder_path, 
+													'https://storage.googleapis.com/cog-datasets/data_8_7_10.tar')
+			if self.download:
+				print('\nDownload complete. Extracting...')
+				tar = tarfile.open(os.path.expanduser('~/data/downloaded'))
+				tar.extractall(path=self.data_folder)
+				tar.close()
+				print('\nDone! Cleaning up.')
+				os.remove(os.path.expanduser('~/data/downloaded'))
+				print('\nClean-up complete! Dataset ready.')
+
+		else:			
+			from miprometheus.helpers.cog_generator import generate_dataset
+			generate_dataset.main(self.examples_per_task, 
+														self.sequence_length, 
+														self.memory_length, 
+														self.max_distractors, options[4], self.path)
+			print('\nDataset generation complete!')
 
 	def add_statistics(self, stat_col):
 		"""
