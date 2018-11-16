@@ -22,7 +22,7 @@ If you plan to develop and introduce changes, please call the following command 
 
   python setup.py develop
 
-This will enable you to change the code of the existing problems/models/workers and still be able to run them by calling the associated 'mip-*' commands.
+This will enable you to change the code of the existing problems/models/workers and still be able to run them by calling the associated ``mip-*`` commands.
 More in that subject can be found in the following blog post on dev_mode_.
 
 .. _guide: https://github.com/pytorch/pytorch#installation

@@ -153,7 +153,7 @@ class CNN_LSTM(Model):
         """
         Runs the ``CNN_LSTM`` model.
 
-        :param data_dict: DataDict({'images', 'questions', **}) where:
+        :param data_dict: DataDict({'images', 'questions', ...}) where:
 
             - images: [batch_size, num_channels, height, width],
             - questions: [batch_size, size_question_encoding]
@@ -198,7 +198,7 @@ class CNN_LSTM(Model):
 
         :param data_dict: DataDict({'images', 'questions', 'targets'}) where:
 
-            - images: [batch_size, num_channels, height, width],
+            - images: [batch_size, num_channels, height, width]
             - questions: [batch_size, size_question_encoding]
             - targets: [batch_size]
 
@@ -208,7 +208,7 @@ class CNN_LSTM(Model):
         :type predictions: torch.tensor
 
         :param sample: Index of sample in batch (DEFAULT: 0).
-        :type sample:int
+        :type sample: int
 
         """
         # Check if we are supposed to visualize at all.

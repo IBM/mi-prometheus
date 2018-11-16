@@ -32,7 +32,7 @@ from miprometheus.problems.image_to_class.image_to_class_problem import ImageToC
 
 class CIFAR10(ImageToClassProblem):
     """
-    Classic CIFAR10 classification problem.
+    Image classification problem using the CIFAR-10 dataset.
 
     Please see reference here: https://www.cs.toronto.edu/~kriz/cifar.html
 
@@ -47,7 +47,7 @@ class CIFAR10(ImageToClassProblem):
 
     def __init__(self, params):
         """
-        Initializes CIFAR10 problem:
+        Initializes the CIFAR-10 problem:
 
             - Calls ``problems.problem.ImageToClassProblem`` class constructor,
             - Sets following attributes using the provided ``params``:
@@ -83,7 +83,7 @@ class CIFAR10(ImageToClassProblem):
             >>>           'use_train_data': True}
 
 
-        :param params: Dictionary of parameters (read from configuration ``.yaml``file).
+        :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
         :type params: miprometheus.utils.ParamInterface
 
         """
