@@ -16,19 +16,15 @@
 """Script for generating a COG dataset"""
 
 import errno
-import functools
 import gzip
-import itertools
 import json
 import multiprocessing
 import os
 import random
 import shutil
-import traceback
 
 import numpy as np
 
-from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import stim_generator as sg
 import miprometheus.problems.seq_to_seq.vqa.cog.cog_utils.task_bank as task_bank
 
 

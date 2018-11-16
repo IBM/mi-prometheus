@@ -67,7 +67,7 @@ def set_outputs_from_tasks(n_epoch, tasks, objsets,
   for epoch_now in range(n_epoch):
     for task, objset in zip(tasks, objsets):
       target = task(objset, epoch_now)
-      if target is const.INVALID:
+      if target == const.INVALID:
         # For invalid target, no loss is used. Everything remains zero.
         pass
       elif isinstance(target, sg.Loc):

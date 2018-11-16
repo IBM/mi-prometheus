@@ -19,7 +19,6 @@ Contains the building blocks for permissible tasks.
 """
 
 from collections import defaultdict
-import copy
 import random
 
 from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import constants as const
@@ -233,7 +232,7 @@ class Operator(object):
 
   def __call__(self, objset, epoch_now):
     del objset
-    del epoch_now
+    #del epoch_now
 
   def set_child(self, child):
     """Set operators as children."""
@@ -383,7 +382,7 @@ class Select(Operator):
         a = getattr(self, attr_type)
         attr = a(objset, epoch_now)
         # If the input is successfully evaluated
-        if attr is not const.INVALID and attr.has_value:
+        if attr != const.INVALID and attr.has_value:
           if attr_type == 'loc':
             attr = attr.get_space_to(self.space_type)
           attr_new_object.append(attr)
@@ -436,7 +435,7 @@ class Select(Operator):
         a = getattr(self, attr_type)
         attr = a(objset, epoch_now)
         if isinstance(a, Operator):
-          if attr is const.INVALID:
+          if attr == const.INVALID:
             # Can not be evaluated yet, then randomly choose one
             attr = sg.random_attr(attr_type)
           attr_expected_in.append(attr)
@@ -511,7 +510,7 @@ class Get(Operator):
     else:
       objs = self.objs
 
-    if objs is const.INVALID:
+    if objs == const.INVALID:
       return const.INVALID
     elif len(objs) != 1:
       # Ambiguous or non-existent
@@ -602,7 +601,7 @@ class GetTime(Operator):
       objs = self.objs(objset, epoch_now)
     else:
       objs = self.objs
-    if objs is const.INVALID:
+    if objs == const.INVALID:
       return const.INVALID
     elif len(objs) != 1:
       # Ambiguous or non-existent
@@ -613,10 +612,10 @@ class GetTime(Operator):
 
   def get_expected_input(self, should_be):
     raise NotImplementedError()
-    if should_be is None:
-      should_be = sg.random_attr(self.attr_type)
-    objs = sg.Object([should_be])
-    return [objs]
+    #if should_be is None:
+    #  should_be = sg.random_attr(self.attr_type)
+    #objs = sg.Object([should_be])
+    #return [objs]
 
 
 class Exist(Operator):
@@ -704,7 +703,7 @@ class Switch(Operator):
 
   def __call__(self, objset, epoch_now):
     statement_true = self.statement(objset, epoch_now)
-    if statement_true is const.INVALID:
+    if statement_true == const.INVALID:
       if self.invalid_as_false:
         statement_true = False
       else:
@@ -799,7 +798,7 @@ class IsSame(Operator):
     attr1 = self.attr1(objset, epoch_now)
     attr2 = self.attr2(objset, epoch_now)
 
-    if (attr1 is const.INVALID) or (attr2 is const.INVALID):
+    if (attr1 == const.INVALID) or (attr2 == const.INVALID):
       return const.INVALID
     else:
       return attr1 == attr2
@@ -812,8 +811,8 @@ class IsSame(Operator):
     attr1_value = self.attr1(objset, epoch_now)
     attr2_value = self.attr2(objset, epoch_now)
 
-    attr1_fixed = attr1_value is not const.INVALID
-    attr2_fixed = attr2_value is not const.INVALID
+    attr1_fixed = attr1_value != const.INVALID
+    attr2_fixed = attr2_value != const.INVALID
 
     if attr1_fixed:
       assert attr1_value.has_value

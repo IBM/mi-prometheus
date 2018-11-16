@@ -28,9 +28,6 @@ __author__ = "Emre Sevgen"
 
 import os
 import argparse
-import urllib.request
-import sys
-import time
 #import json
 
 from miprometheus.problems.problem_factory import ProblemFactory
