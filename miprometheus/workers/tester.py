@@ -432,32 +432,18 @@ class Tester(Worker):
 
     def update_config(self):
         """
-        Update the ``config`` using the list of values to change for the multiple tests.
+        Update ``self.params['testing']['problem']`` using the list of values to change for the multiple tests.
 
         """
         # If this method is used, then self.number_tests & self.multi_tests_params should be instantiated
-        new_params = {k: v[self.completed_tests] for k,v in self.multi_tests_params.items()}
-        self.logger.info("Updating the testing config with: {}".format(new_params))
+        new_params = {k: v[self.completed_tests] for k, v in self.multi_tests_params.items()}
+        self.logger.info("Updating the testing problem config with: {}".format(new_params))
 
-        #for leaf in self.params['testing']['problem'].leafs():
-        #    for param in new_params:
-        #        if param==leaf:
+        for leaf_key, new_value in new_params.items():
+            self.params['testing']['problem'].set_leaf(leaf_key, new_value)
 
-        self.logger.info(self.params['testing']['problem']['settings']._keys_path)
-
-        self.params['testing']['problem'].add_config_params(new_params)
-
-        # Log the resulting training configuration.
-        #import yaml
-        #conf_str = 'Final parameter registry configuration:\n'
-        #conf_str += '=' * 80 + '\n'
-        #conf_str += yaml.safe_dump(self.params['testing'].to_dict(), default_flow_style=False)
-        #conf_str += '=' * 80 + '\n'
-        #self.logger.info(conf_str)
-
-
-
-
+        self.logger.info("Updated the testing problem configuration.")
+        return True
 
 
 def main():
