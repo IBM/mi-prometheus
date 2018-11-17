@@ -44,10 +44,6 @@ class ParamInterface(Mapping):
         self._param_registry = ParamRegistry()
         self._keys_path = list(keys)
 
-        # Add the recursive dict structure determined by the given keys to
-        # default params
-        self.add_default_params({})
-
     def _lookup(self, *keys):
         def lookup_recursion(dic, key, *keys):
             if keys:
