@@ -44,10 +44,6 @@ class ParamInterface(Mapping):
         self._param_registry = ParamRegistry()
         self._keys_path = list(keys)
 
-        # Add the recursive dict structure determined by the given keys to
-        # default params
-        self.add_default_params({})
-
     def _lookup(self, *keys):
         def lookup_recursion(dic, key, *keys):
             if keys:
@@ -133,6 +129,26 @@ class ParamInterface(Mapping):
         self._param_registry.add_config_params(
             self._nest_dict(config_params)
         )
+
+    def del_default_params(self, key):
+        """
+        Removes an entry from the Default Parameters. \
+        The entry can either be a subtree or a leaf of the Default Parameters tree.
+
+        :param key: key to subtree / leaf in the Default Parameters
+
+        """
+        self._param_registry.del_default_params(self._keys_path + [key])
+
+    def del_config_params(self, key):
+        """
+        Removes an entry from the Configuration Parameters. \
+        The entry can either be a subtree or a leaf of the Configuration Parameters tree.
+
+        :param key: key to subtree / leaf in the Configuration Parameters
+
+        """
+        self._param_registry.del_config_params(self._keys_path + [key])
 
     def add_config_params_from_yaml(self, yaml_path: str):
         """

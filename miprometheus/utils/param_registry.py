@@ -94,6 +94,28 @@ class ParamRegistry(Mapping, metaclass=MetaSingletonABC):
         # Merge default with config list.
         self._update_params()
 
+    def del_default_params(self, keypath: list):
+        """
+        Removes an entry from the Default Parameters. \
+        The entry can either be a subtree or a leaf of the Default Parameters tree.
+
+        :param keypath: list of keys to subtree / leaf in the Default Parameters
+
+        """
+        self.delete_subtree(self._default_params, keypath)
+        self._update_params()
+
+    def del_config_params(self, keypath: list):
+        """
+        Removes an entry from the Configuration Parameters. \
+        The entry can either be a subtree or a leaf of the Configuration Parameters tree.
+
+        :param keypath: list of keys to subtree / leaf in the Configuration Parameters
+
+        """
+        self.delete_subtree(self._superseding_config_params, keypath)
+        self._update_params()
+
     def __getitem__(self, key):
         """
         Get parameter value under key. The parameter dict is derived from the \
@@ -130,3 +152,24 @@ class ParamRegistry(Mapping, metaclass=MetaSingletonABC):
             else:
                 d[k] = v
         return d
+
+    def delete_subtree(self, d, keypath: list):
+        """
+
+        :param d: dictionary to act on
+        :param keypath: path to subtree to delete
+        """
+        if len(keypath) < 1:
+            raise KeyError
+
+        def lookup_recursion(dic, key, *keys):
+            if keys:
+                return lookup_recursion(dic[key], *keys)
+            return dic[key]
+
+        lookup_keys = keypath[:-1]  # We keep the last key for use with `del`
+        if len(keypath) > 0:
+            r = lookup_recursion(d, *lookup_keys)
+            del r[keypath[-1]]
+        else:
+            del d[keypath[-1]]
