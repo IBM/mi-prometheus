@@ -24,37 +24,56 @@ from miprometheus.utils.param_registry import ParamRegistry
 
 class ParamInterface(Mapping):
     """
-    Interface to ``ParameterRegistry`` singleton.
+    Interface to the :py:class:`ParamRegistry` singleton.
 
-    Inherits ``collections.Mapping``, and therefore exposes functionality \
-    close to a `dict`. Offers a read (through ``collections.Mapping`` \
-    interface) and write (through ``add_default_params`` and \
-    ``add_config_params`` methods) view of the ``ParameterRegistry``.
+    Inherits :py:class:`collections.Mapping`, and therefore exposes functionality close to a `dict`.
+
+    Offers a read (through :py:class:`collections.Mapping` interface) and write \
+    (through :py:func:`add_default_params` and :py:func:`add_config_params` methods) \
+    view of the :py:class:`ParamRegistry`.
 
     """
 
     def __init__(self, *keys):
         """
+        Constructor:
+            - Call base constructor (:py:class:`Mapping`),
+            - Initializes the :py:class:`ParamRegistry`,
+            - Initializes empty keys_path list
+            - **Adds the recursive dict structure determined by the given keys to the default params**
 
-        :param keys: sequence of keys to the subtree of the registry. The subtree hierarchy will be created if it \
+
+        :param keys: Sequence of keys to the subtree of the registry. The subtree hierarchy will be created if it \
         does not exist. If empty, shows the whole registry.
+        :type keys: sequence / collection: dict, list etc.
 
         """
+        # call base constructor
         super(ParamInterface, self).__init__()
+
+        # empty ParamRegistry
         self._param_registry = ParamRegistry()
+
+        # keys_path as a list
         self._keys_path = list(keys)
 
-        # Add the recursive dict structure determined by the given keys to
-        # default params
-        self.add_default_params({})
-
     def _lookup(self, *keys):
+        """
+        Returns the :py:class:`ParamInterface` living under ``keys``.
+
+        :param keys: Sequence of keys to the subtree of the registry. If empty, shows the whole registry.
+        :type keys: sequence / collection: dict, list etc.
+
+        """
+
         def lookup_recursion(dic, key, *keys):
             if keys:
                 return lookup_recursion(dic[key], *keys)
             return dic[key]
 
+        # construct the path from the existing keys path
         lookup_keys = self._keys_path + list(keys)
+
         if len(lookup_keys) > 0:
             r = lookup_recursion(self._param_registry, *lookup_keys)
             return r
@@ -62,6 +81,12 @@ class ParamInterface(Mapping):
             return self._param_registry
 
     def _nest_dict(self, d: dict):
+        """
+        Create a nested dict using a sequence of
+        :param d:
+        :return:
+        """
+
         def nest_dict_recursion(dic, key, *keys):
             if keys:
                 dic[key] = {}
@@ -80,7 +105,7 @@ class ParamInterface(Mapping):
     def to_dict(self):
         """
 
-        :return: `dict` containing a snapshot of the current parameter tree.
+        :return: `dict` containing a snapshot of the current :py:class:`ParamInterface` tree.
         """
         return dict(self._lookup())
 
