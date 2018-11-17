@@ -29,6 +29,8 @@ MI Prometheus is an open source Python library, built using PyTorch, that enable
    :maxdepth: 1
    :caption: Tutorials
 
+   tutorials/1_lenet_mnist_intro.rst
+.. 
    tutorials/*
 
 

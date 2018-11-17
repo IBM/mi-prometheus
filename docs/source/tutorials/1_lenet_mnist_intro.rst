@@ -13,8 +13,13 @@ From this tutorial you will learn how to:
     * Test the resulting model on the test set 
 
 
+.. toctree::
+   :glob:
+   :maxdepth: 1
 
-
-
-
+   2_mnist_problem.rst
+   3_lenet_model.rst
+   4_lenet_mnist_config.rst
+   5_lenet_mnist_training.rst
+   6_lenet_mnist_testing.rst
 
