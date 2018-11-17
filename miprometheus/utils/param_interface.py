@@ -57,7 +57,8 @@ class ParamInterface(Mapping):
         # keys_path as a list
         self._keys_path = list(keys)
 
-    def _lookup(self, *keys):
+clear
+gdef _lookup(self, *keys):
         """
         Returns the :py:class:`ParamInterface` living under ``keys``.
 
