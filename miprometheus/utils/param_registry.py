@@ -55,6 +55,7 @@ class ParamRegistry(Mapping, metaclass=MetaSingletonABC):
     def __init__(self):
         """
         Constructor:
+
             - Call base constructor (:py:class:`Mapping`),
             - Initializes empty parameters dicts for:
 
