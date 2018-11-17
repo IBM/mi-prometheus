@@ -32,20 +32,35 @@ class ParamInterface(Mapping):
     (through :py:func:`add_default_params` and :py:func:`add_config_params` methods) \
     view of the :py:class:`ParamRegistry`.
 
+        .. warning::
+
+            This class is the only interface to :py:class:`ParamRegistry`, and thus the only way to \
+            interact with it.
+
     """
 
     def __init__(self, *keys):
         """
         Constructor:
+
             - Call base constructor (:py:class:`Mapping`),
             - Initializes the :py:class:`ParamRegistry`,
             - Initializes empty keys_path list
-            - **Adds the recursive dict structure determined by the given keys to the default params**
 
 
         :param keys: Sequence of keys to the subtree of the registry. The subtree hierarchy will be created if it \
         does not exist. If empty, shows the whole registry.
         :type keys: sequence / collection: dict, list etc.
+
+        .. note::
+
+            Calling :py:func:`to_dict` after initializing a :py:class:`ParamInterface` with ``keys``, \
+            will throw a ``KeyError``.
+
+            Adding `default` & `config` params should be done through :py:func:`add_default_param` and \
+            :py:func:`add_config_param`.
+
+            ``keys`` is mainly purposed for the recursion of :py:class:`ParamInterface`.
 
         """
         # call base constructor
@@ -57,10 +72,9 @@ class ParamInterface(Mapping):
         # keys_path as a list
         self._keys_path = list(keys)
 
-clear
-gdef _lookup(self, *keys):
+    def _lookup(self, *keys):
         """
-        Returns the :py:class:`ParamInterface` living under ``keys``.
+        Returns the :py:class:`ParamInterface` or the value living under ``keys``.
 
         :param keys: Sequence of keys to the subtree of the registry. If empty, shows the whole registry.
         :type keys: sequence / collection: dict, list etc.
@@ -83,9 +97,13 @@ gdef _lookup(self, *keys):
 
     def _nest_dict(self, d: dict):
         """
-        Create a nested dict using a sequence of
-        :param d:
-        :return:
+        Create a nested dict using ``d`` living under ``self._keys_path``.
+
+        :param d: dict to nest under ``self._keys_path``.
+        :type d: dict
+
+        :return: nested ``d``.
+
         """
 
         def nest_dict_recursion(dic, key, *keys):
@@ -112,11 +130,14 @@ gdef _lookup(self, *keys):
 
     def __getitem__(self, key):
         """
-        Get parameter value under key. The parameter dict is derived from the \
-        default parameters updated with the config parameters.
+        Get parameter value under ``key``.
 
-        :param key: key to value in parameters
-        :return: ``ParameterInterface(key)`` or value if leaf of the ``ParamRegistry`` tree.
+        The parameter dict is derived from the default parameters updated with the config parameters.
+
+        :param key: key to value in the :py:class:`ParamInterface` tree.
+        :type key: str
+
+        :return: :py:class:`ParamInterface` ``[key]`` or value if leaf of the :py:class:`ParamRegistry` tree.
 
         """
         v = self._lookup(key)
@@ -126,19 +147,35 @@ gdef _lookup(self, *keys):
             return v
 
     def __len__(self):
+        """
+
+        :return: Length of the :py:class:`ParamInterface`.
+
+        """
         return len(self._lookup())
 
     def __iter__(self):
+        """
+
+        :return: Iterator over the :py:class:`ParamInterface`.
+
+        """
         return iter(self._lookup())
 
     def add_default_params(self, default_params: dict):
         """
-        Appends default params dictionary to the registry. This should not be \
-        used by the user, but rather set by the objects necessitating default \
-        values. The dictionary will be inserted into the subtree chosen during \
-        initialization of ``ParameterInterface``
+        Appends ``default_params`` to the `config` parameter dict of the :py:class:`ParamRegistry`.
 
-        :param default_params: Dictionary containing default values.
+        .. note::
+
+            This method should be used by the objects necessitating default values \
+            (problems, models, workers etc.).
+
+        :param default_params: Dictionary containing `default` values.
+        :type default_params: dict
+
+        The dictionary will be inserted into the subtree keys path indicated at the initialization of the \
+        current :py:class:`ParamInterface`.
 
         """
         self._param_registry.add_default_params(
@@ -147,13 +184,17 @@ gdef _lookup(self, *keys):
 
     def add_config_params(self, config_params: dict):
         """
-        Appends config parameters dictionary to the registry. This is intended \
-        for the user to dynamically (re)configure the experiments. The dictionary \
-        will be inserted into the subtree chosen during initialization of \
-        ``ParameterInterface``
+        Appends ``config_params`` to the `config` parameter dict of the :py:class:`ParamRegistry`.
 
-        :param config_params: Dictionary containing config values.
+        .. note::
 
+            This is intended for the user to dynamically (re)configure his experiments.
+
+        :param config_params: Dictionary containing `config` values.
+        :type config_params: dict
+
+        The dictionary will be inserted into the subtree keys path indicated at the initialization of the \
+        current :py:class:`ParamInterface`.
 
         """
         self._param_registry.add_config_params(
@@ -162,30 +203,36 @@ gdef _lookup(self, *keys):
 
     def del_default_params(self, key):
         """
-        Removes an entry from the Default Parameters. \
-        The entry can either be a subtree or a leaf of the Default Parameters tree.
+        Removes the entry from the `default` params living under ``key``.
 
-        :param key: key to subtree / leaf in the Default Parameters
+        The entry can either be a subtree or a leaf of the `default` params tree.
+
+        :param key: key to subtree / leaf in the `default` params tree.
+        :type key: str
 
         """
         self._param_registry.del_default_params(self._keys_path + [key])
 
     def del_config_params(self, key):
         """
-        Removes an entry from the Configuration Parameters. \
-        The entry can either be a subtree or a leaf of the Configuration Parameters tree.
+        Removes the entry from the `config` params living under ``key``.
 
-        :param key: key to subtree / leaf in the Configuration Parameters
+        The entry can either be a subtree or a leaf of the `config` params tree.
+
+        :param key: key to subtree / leaf in the `config` params tree.
+        :type key: str
 
         """
         self._param_registry.del_config_params(self._keys_path + [key])
 
     def add_config_params_from_yaml(self, yaml_path: str):
         """
-        Helper function. Has the same functionality as ``add_config_params``, but \
-        loads from path of yaml file.
+        Helper function adding `config` params by loading the file at ``yaml_path``.
 
-        :param yaml_path: Path to yaml file containing config parameters.
+        Wraps call to :py:func:`add_default_param`.
+
+        :param yaml_path: Path to a ``.yaml`` file containing config parameters.
+        :type yaml_path: str`
 
         """
         # Open file and try to add that to list of parameter dictionaries.
@@ -193,6 +240,7 @@ gdef _lookup(self, *keys):
             # Load parameters.
             params_from_yaml = yaml.load(stream)
 
+        # add config param
         self.add_config_params(params_from_yaml)
 
 
