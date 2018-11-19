@@ -59,10 +59,10 @@ class PairwiseRelationNetwork(Module):
         """
         forward pass of the g_theta MLP.
 
-        :param inputs: tensor of shape [batch_size, *, input_size], should represent the pairs of regions (in the CNN \
+        :param inputs: tensor of shape [batch_size, -1, input_size], should represent the pairs of regions (in the CNN \
         feature maps) cat with the question encoding.
 
-        :return: tensor of shape [batch_size, *, 256].
+        :return: tensor of shape [batch_size, -1, 256].
 
         """
 
@@ -113,10 +113,10 @@ class SumOfPairsAnalysisNetwork(Module):
         """
         forward pass of the f_phi MLP.
 
-        :param inputs: tensor of shape [batch_size, *, 256], should represent the element-wise sum of the outputs of \
+        :param inputs: tensor of shape [batch_size, -1, 256], should represent the element-wise sum of the outputs of \
         g_theta.
 
-        :return: Predictions over the available classes, tensor of shape [batch_size, *, output_size]
+        :return: Predictions over the available classes, tensor of shape [batch_size, -1, output_size]
 
         """
 
