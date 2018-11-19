@@ -31,25 +31,6 @@ training:
     seed_torch: 0
     seed_numpy: 0
 
-testing:
-    # Problem parameters:
-    problem:
-        name: *name
-        batch_size: *b
-        settings:
-            data_folder: *dir
-            set: 'valB'
-            dataset_variant: *var
-        images:
-            raw_images: False
-            feature_extractor:
-                cnn_model: *cnn
-                num_blocks: 4
-        questions:
-            embedding_type: *emb
-            embedding_dim: 300
-        max_test_episodes: 3
-
 validation:
     partial_validation_interval: 200
     # Problem parameters:
@@ -68,6 +49,27 @@ validation:
         questions:
             embedding_type: *emb
             embedding_dim: 300
+
+testing:
+    # Problem parameters:
+    problem:
+        name: *name
+        batch_size: *b
+        settings:
+            data_folder: *dir
+            set: 'valA'
+            dataset_variant: *var
+        images:
+            raw_images: False
+            feature_extractor:
+                cnn_model: *cnn
+                num_blocks: 4
+        questions:
+            embedding_type: *emb
+            embedding_dim: 300
+        max_test_episodes: 3
+
+    multi_tests: {set: ['valA', 'valB'], batch_size: [64, 128]}
 
 
 # Model parameters:

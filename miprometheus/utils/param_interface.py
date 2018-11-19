@@ -162,6 +162,48 @@ class ParamInterface(Mapping):
         """
         return iter(self._lookup())
 
+    def leafs(self):
+        """
+        Yields the leafs of the current :py:class:`ParamInterface`.
+
+        """
+        for key, value in self.items():
+            if isinstance(value, ParamInterface):
+                for inner_key in value.leafs():
+                    yield inner_key
+            else:
+                yield key
+
+    def set_leaf(self, leaf_key, leaf_value):
+        """
+        Update the value of the specified ``leaf_key`` of the current :py:class:`ParamInterface` \
+        with the specified ``leaf_value``.
+
+        :param leaf_key: leaf key to update.
+        :type leaf_key: str
+
+        :param leaf_value: New value to set.
+
+        :return: ``True`` if the leaf value has been changed, ``False`` if ``leaf_key`` is not in \
+        :py:func:`ParamInterface.leafs`.
+
+        """
+        # check first if we can access the leaf to change
+        if leaf_key not in list(self.leafs()):
+            return False
+
+        for key, value in self.items():
+
+            if isinstance(value, ParamInterface):
+                # hit a sub ParamInterface, recursion
+                if value.set_leaf(leaf_key, leaf_value):
+                    return True  # leaf has been changed, done
+                else:
+                    continue  # have not found the key, continue
+            elif key == leaf_key:
+                self.add_config_params({key: leaf_value})
+                return True  # leaf has been changed, done
+
     def add_default_params(self, default_params: dict):
         """
         Appends ``default_params`` to the `config` parameter dict of the :py:class:`ParamRegistry`.
