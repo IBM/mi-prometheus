@@ -17,6 +17,7 @@
 
 __author__ = "Alexis Asseman, Tomasz Kornuta"
 
+import copy
 from abc import ABCMeta
 from collections import Mapping
 from miprometheus.utils.singleton import SingletonMetaClass
@@ -80,7 +81,8 @@ class ParamRegistry(Mapping, metaclass=MetaSingletonABC):
         `config` params registry.
 
         """
-        self._params = self._default_params.copy()
+        # deep copy to avoid the config params leaking to `self._default_params`
+        self._params = copy.deepcopy(self._default_params)
         self.update_dict_recursively(self._params, self._superseding_config_params)
 
     def add_default_params(self, default_params: dict):
