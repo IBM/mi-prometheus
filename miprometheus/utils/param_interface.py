@@ -194,7 +194,6 @@ class ParamInterface(Mapping):
                 self.add_config_params({key: leaf_value})
                 break
 
-
     def add_default_params(self, default_params: dict):
         """
         Appends ``default_params`` to the `config` parameter dict of the :py:class:`ParamRegistry`.
