@@ -184,15 +184,25 @@ class ParamInterface(Mapping):
 
         :param leaf_value: New value to set.
 
+        :return: ``True`` if the leaf value has been changed, ``False`` if ``leaf_key`` is not in \
+        :py:func:`ParamInterface.leafs`.
+
         """
-        assert leaf_key in list(self.leafs()), "The specified key is not a leaf of the current ParamInterface." \
-                                               " Got key '{}', and the leafs are {}.".format(leaf_key, list(self.leafs()))
+        # check first if we can access the leaf to change
+        if leaf_key not in list(self.leafs()):
+            return False
+
         for key, value in self.items():
+
             if isinstance(value, ParamInterface):
-                return value.set_leaf(leaf_key, leaf_value)
-            elif key==leaf_key:
+                # hit a sub ParamInterface, recursion
+                if value.set_leaf(leaf_key, leaf_value):
+                    return True  # leaf has been changed, done
+                else:
+                    continue  # have not found the key, continue
+            elif key == leaf_key:
                 self.add_config_params({key: leaf_value})
-                break
+                return True  # leaf has been changed, done
 
     def add_default_params(self, default_params: dict):
         """
