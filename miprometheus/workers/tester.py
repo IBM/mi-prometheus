@@ -417,9 +417,9 @@ class Tester(Worker):
 
             for key in multi_tests_values:
 
-                # check the key is a leaf of the testing problem config section
-                if not key in list(self.params['testing']['problem'].leafs()):
-                    self.logger.error("Did not find the indicated key '{}' in the leafs of the test problem "
+                # check the key is a leaf of the testing config section
+                if not key in list(self.params['testing'].leafs()):
+                    self.logger.error("Did not find the indicated key '{}' in the leafs of the 'testing' "
                                       "config section.".format(key))
                     return False
 
@@ -447,7 +447,7 @@ class Tester(Worker):
 
     def update_config(self, test_index):
         """
-        Update ``self.params['testing']['problem']`` using the list of values to change for the multiple tests.
+        Update ``self.params['testing']`` using the list of values to change for the multiple tests.
 
         :param test_index: Current test experiment index.
         :type test_index: int
@@ -455,12 +455,12 @@ class Tester(Worker):
         """
         # If this method is used, then self.number_tests & self.multi_tests_params should be instantiated
         new_params = {k: v[test_index] for k, v in self.multi_tests_params.items()}
-        self.logger.warning("Updating the testing problem config with: {}".format(new_params))
+        self.logger.warning("Updating the testing config with: {}".format(new_params))
 
         for leaf_key, new_value in new_params.items():
-            self.params['testing']['problem'].set_leaf(leaf_key, new_value)
+            self.params['testing'].set_leaf(leaf_key, new_value)
 
-        self.logger.warning("Updated the testing problem configuration.")
+        self.logger.warning("Updated the testing configuration.")
         self.logger.info('\n' + '=' * 80 + '\n')
         return True
 
@@ -478,7 +478,7 @@ def main():
 
         for test_index in range(tester.number_tests):
             tester.logger.info('\n' + '=' * 80 + '\n')
-            tester.logger.info("Starting test #{}.".format(test_index))
+            tester.logger.info("Starting test #{}.".format(test_index+1))
             # update the testing problem config based on the current test index.
             tester.update_config(test_index)
 
