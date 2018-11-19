@@ -434,6 +434,11 @@ class Tester(Worker):
             # store the params (and the indicated values) to update
             self.multi_tests_params = multi_tests_values
 
+            # delete them from the param registry
+            # TODO: Fix bug where we have to delete the key from the config AND default params
+            self.params['testing'].del_config_params(key='multi_tests')
+            self.params['testing'].del_default_params(key='multi_tests')
+
             self.logger.info('Found the following indicated values for multiple tests: {}.'.format(multi_tests_values))
             return True
 
@@ -450,12 +455,13 @@ class Tester(Worker):
         """
         # If this method is used, then self.number_tests & self.multi_tests_params should be instantiated
         new_params = {k: v[test_index] for k, v in self.multi_tests_params.items()}
-        self.logger.info("Updating the testing problem config with: {}".format(new_params))
+        self.logger.warning("Updating the testing problem config with: {}".format(new_params))
 
         for leaf_key, new_value in new_params.items():
             self.params['testing']['problem'].set_leaf(leaf_key, new_value)
 
-        self.logger.info("Updated the testing problem configuration.")
+        self.logger.warning("Updated the testing problem configuration.")
+        self.logger.info('\n' + '=' * 80 + '\n')
         return True
 
 
@@ -471,6 +477,8 @@ def main():
     if tester.check_multi_tests():
 
         for test_index in range(tester.number_tests):
+            tester.logger.info('\n' + '=' * 80 + '\n')
+            tester.logger.info("Starting test #{}.".format(test_index))
             # update the testing problem config based on the current test index.
             tester.update_config(test_index)
 
@@ -479,6 +487,10 @@ def main():
 
             # run the current experiment
             tester.run_experiment()
+
+            # remove the FileHandler as it will be set again in the next individual test
+            tester.logger.removeHandler(tester.logger.handlers[0])
+            tester
 
     else:
         # finalize the experiment setup
