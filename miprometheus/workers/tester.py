@@ -435,9 +435,7 @@ class Tester(Worker):
             self.multi_tests_params = multi_tests_values
 
             # delete them from the param registry
-            # TODO: Fix bug where we have to delete the key from the config AND default params
             self.params['testing'].del_config_params(key='multi_tests')
-            self.params['testing'].del_default_params(key='multi_tests')
 
             self.logger.info('Found the following indicated values for multiple tests: {}.'.format(multi_tests_values))
             return True
