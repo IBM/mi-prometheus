@@ -15,6 +15,14 @@ grid_tasks:
         sampler:
           name: 'SubsetRandomSampler'
           indices: '~/data/CLEVR_v1.0/vigil_clevr_val_set_indices.txt'
+      testing:
+        # specify the params combinations for 3 tests:
+        # CoGenT-valA, CoGenT-valB
+        multi_tests: {
+                       data_folder: ['~/data/CLEVR_v1.0/','~/data/CLEVR_CoGenT_v1.0', '~/data/CLEVR_CoGenT_v1.0'],
+                       dataset_variant: ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-CoGenT'],
+                       set: ['val','valA', 'valB']
+        }
   - 
     default_configs: configs/mac/mac_cogent.yaml   # MAC on CoGenT
 
@@ -30,6 +38,10 @@ grid_tasks:
         sampler:
           name: 'SubsetRandomSampler'
           indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_val_set_indices.txt'
+      testing:
+        # specify the params combinations for 2 tests:
+        # CoGenT-valA, CoGenT-valB. Only 'set' changes.
+        multi_tests: {set: ['valA', 'valB']}
   -
     default_configs: configs/mac/s_mac_clevr.yaml  # S-MAC on CLEVR
 
@@ -45,6 +57,14 @@ grid_tasks:
         sampler:
           name: 'SubsetRandomSampler'
           indices: '~/data/CLEVR_v1.0/vigil_clevr_val_set_indices.txt'
+      testing:
+        # specify the params combinations for several tests:
+        # CLEVR-val, CoGenT-valA, CoGenT-valB
+        multi_tests: {
+          data_folder: ['~/data/CLEVR_v1.0/','~/data/CLEVR_CoGenT_v1.0', '~/data/CLEVR_CoGenT_v1.0'],
+          dataset_variant: ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-CoGenT'],
+          set: ['val','valA', 'valB']
+        }
   -
     default_configs: configs/mac/s_mac_cogent.yaml  # S-MAC on CoGenT
 
@@ -60,6 +80,10 @@ grid_tasks:
         sampler:
           name: 'SubsetRandomSampler'
           indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_val_set_indices.txt'
+      testing:
+        # specify the params combinations for 2 tests:
+        # CoGenT-valA, CoGenT-valB. Only 'set' changes.
+        multi_tests: {set: ['valA', 'valB']}
 
 # Parameters that will be overwritten for all tasks.
 grid_overwrite:
