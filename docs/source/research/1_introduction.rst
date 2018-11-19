@@ -13,7 +13,7 @@ This section gathers information about our published work and how to reproduce t
 +------------------------------------+-------------------------+-------------------------------+
 |           Publications             |       Paper link        |            Details            |
 +====================================+=========================+===============================+
-|         NIPS VIGIL Workshop        |                         | See :ref:`vigil-experiments`. |
+|         NIPS VIGIL Workshop        |   `arxiv/1811.06529`_   | See :ref:`vigil-experiments`. |
 +------------------------------------+-------------------------+-------------------------------+
 |    Differentiable Working Memory   |   `arxiv/1809.11087`_   |                               |
 +------------------------------------+-------------------------+-------------------------------+
@@ -26,3 +26,5 @@ This section gathers information about our published work and how to reproduce t
 .. _arxiv/1809.11087: https://arxiv.org/abs/1809.11087
 
 .. _arxiv/1809.10847: https://arxiv.org/abs/1809.10847
+
+.. _arxiv/1811.06529: https://arxiv.org/abs/1811.06529
