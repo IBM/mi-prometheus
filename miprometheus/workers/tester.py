@@ -490,7 +490,6 @@ def main():
 
             # remove the FileHandler as it will be set again in the next individual test
             tester.logger.removeHandler(tester.logger.handlers[0])
-            tester
 
     else:
         # finalize the experiment setup
