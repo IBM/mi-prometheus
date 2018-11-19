@@ -213,7 +213,7 @@ class sMacNetwork(Model):
         Dynamic visualization throughout the reasoning steps is possible.
 
         :param data_dict: DataDict({'questions_string', 'questions_type', 'targets_string','imgfiles', \
-        'prediction_string', 'clevr_dir', **})
+        'prediction_string', 'clevr_dir', ``**``})
         :type data_dict: :py:class:`miprometheus.utils.DataDict`
 
         :param logits: Prediction of the model.

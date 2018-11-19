@@ -389,9 +389,10 @@ class Tester(Worker):
 
             The following constraints apply:
 
-            - Assume that the indicated varying values are leafs of the `testing problem` section
+            - Assume that the indicated varying values are **leafs** of the `testing` section
             - The number of indicated varying values per key is the same for all keys
             - The indicated order of the varying values will be respected, i.e. \
+
 
              >>>     multi_tests: {batch_size: [64, 128], img_size: [128, 256]}
 
@@ -402,6 +403,7 @@ class Tester(Worker):
              will lead to different test configs.
 
             - At least one key has varying values (but this is implicit)
+
 
         :return: True if the constraints above are respected, else False
 
