@@ -2,7 +2,7 @@
 default_configs:
     configs/mac/default_cogent.yaml
 
-# Model parameters:
+# Add the model parameters:
 model:
     name: sMacNetwork
     dim: 512

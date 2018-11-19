@@ -68,6 +68,3 @@ testing:
             embedding_type: *emb
             embedding_dim: 300
         max_test_episodes: -1  # do an entire epoch.
-
-    # allow test on CoGenT-A & CoGenT-B
-    multi_tests: {set: ['valA', 'valB'], batch_size: [64, 128]}
