@@ -101,14 +101,14 @@ class CLEVR(ImageTextToClassProblem):
 
         -   `settings`:
 
-            - ``data_folder``: Root folder of the dataset. Will also be used to store generated files\
-               (e.g. tokenization of the questions, features extracted from the images..)
+            - ``data_folder``: Root folder of the dataset. Will also be used to store `generated files/` \
+               (e.g. tokenization of the questions, features extracted from the images etc.)
 
                .. warning::
 
-                    As of now, this class doesn't handle downloading & decompressing the dataset if it is not\
-                     present in the ``data_folder``. Please make sure that the dataset is already present in this\
-                     ``data_folder``.
+                    As of now, this class doesn't handle downloading & decompressing the dataset if it is not \
+                    present in the ``data_folder``. Please make sure that the dataset is already present in this \
+                    ``data_folder``.
 
                         - For CLEVR-Humans, since only the questions change (and the images remains the same),\
                           please put the corresponding `.json` files in `~/CLEVR_v1.0/questions/`.
@@ -154,6 +154,30 @@ class CLEVR(ImageTextToClassProblem):
                     - "glove.6B.300d"
 
             - ``embedding_dim``: In the case of a random ``embedding_type``, this is the embedding dimension to use.
+            - ``embedding_source``: In the case of a random ``embedding_type``, this is the source of the embeddings \
+            to use. ``str``, equal to one of the dataset variant: `CLEVR`, `CLEVR-CoGenT` or `CLEVR-Humans`.
+
+                .. warning::
+
+                    If this ``embedding_source`` is different than the indicated ``dataset_variant`` above:
+
+                        - The class assumes that there is exist in ``data_folder``/`generated_files`:
+
+                            - A file `<embedding_source>_embedding_weights.pkl` corresponding to the random \
+                            embedding weights to use,
+                            - A file `<embedding_source>_dics.pkl` corresponding to the dicts ``{'words': index}`` & \
+                            ``{'answer': index}``.
+
+                        - The class will then override checking if the file containing the tokenized questions exist, \
+                        and instead load the `<embedding_source>_dics.pkl` file, and use it to tokenize the questions.
+                        - The class will also load the `<embedding_source>_embedding_weights.pkl` file and use it as \
+                        the weights of the random embedding layer.
+
+                    This is particularly useful to finetune or test a CLEVR-trained model on CoGenT-A or CoGenT-B.
+
+                    If not this ``embedding_source`` is not indicated, the class assumes it is equal to the \
+                    ``dataset_variant``.
+
 
     .. note::
 
@@ -819,7 +843,6 @@ if __name__ == "__main__":
     clevr_dataset = CLEVR(params)
 
     batch_size = 64
-    print('Number of episodes to run to cover the set once: {}'.format(clevr_dataset.get_epoch_size(batch_size)))
 
     sample = clevr_dataset[0]
     print(repr(sample))
