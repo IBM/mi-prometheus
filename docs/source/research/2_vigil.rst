@@ -60,20 +60,18 @@ The training set of CoGenT-A contains 699,960 samples, and we keep 629,964 for t
 
 Just run
 
-    >>> mip-index-splitter --l 699989 --s 629990
+    >>> mip-index-splitter --l 699989 --s 629990 --o '~/data/CLEVR_v1.0/'
 
 This command will generate 2 files, `split_a.txt` and `split_b.txt` which contains the samples indices to index
-90% of the training set and 10% of the training set respectively.
+90% of the training set and 10% of the training set respectively, and place them in `~/data/CLEVR_v1.0/`.
 
-Rename these files to `vigil_clevr_train_set_indices.txt` and `vigil_clevr_val_set_indices.txt` respectively, and place
-them in `~/data/CLEVR_v1.0/`.
+Rename these files to `vigil_clevr_train_set_indices.txt` and `vigil_clevr_val_set_indices.txt` respectively.
 
 Do the same operation for CoGenT:
 
-    >>> mip-index-splitter --l 699960 --s 629964
+    >>> mip-index-splitter --l 699960 --s 629964 --o '~/data/CLEVR_v1.0/'
 
-Rename the files to `vigil_cogent_train_set_indices.txt` and `vigil_cogent_val_set_indices.txt` respectively, and place
-them in `~/data/CLEVR_CoGenT_v1.0/`.
+Rename the files to `vigil_cogent_train_set_indices.txt` and `vigil_cogent_val_set_indices.txt` respectively.
 
 Here are the ones we used for reference:
 
@@ -147,10 +145,10 @@ samples for testing. We use the entire validation set of the CoGenT-A for testin
 
 The CoGenT-B validation set contains 149,991 samples. Run
 
-    >>> mip-index-splitter --l 149991 --s 30000
+    >>> mip-index-splitter --l 149991 --s 30000 --o '~/data/CLEVR_CoGenT_v1.0/'
 
 to split the range of indices in 2. Rename the files to `vigil_cogent_finetuning_valB_indices.txt` and
-`vigil_cogent_test_valB_indices.txt` respectively, and place them in `~/data/CLEVR_CoGenT_v1.0/`. You can also use ours:
+`vigil_cogent_test_valB_indices.txt` respectively. You can also use ours:
 
 :download:`vigil_cogent_finetuning_valB_indices.txt <vigil/vigil_cogent_finetuning_valB_indices.txt>`
 :download:`vigil_cogent_test_valB_indices.txt <vigil/vigil_cogent_test_valB_indices.txt>`
@@ -236,10 +234,10 @@ We use the entire validation set of the CoGenT-A for testing.
 
 The CoGenT-A validation set contains 150,000 samples. Run
 
-    >>> mip-index-splitter --l 150000 --s 30000
+    >>> mip-index-splitter --l 150000 --s 30000 --o '~/data/CLEVR_CoGenT_v1.0/'
 
 to split the range of indices in 2. Rename the files to `vigil_cogent_finetuning_valA_indices.txt` and
-`vigil_cogent_test_valA_indices.txt` respectively, and place them in `~/data/CLEVR_CoGenT_v1.0/`. You can also use ours:
+`vigil_cogent_test_valA_indices.txt` respectively. You can also use ours:
 
 :download:`vigil_cogent_finetuning_valA_indices.txt <vigil/vigil_cogent_finetuning_valA_indices.txt>`
 :download:`vigil_cogent_test_valA_indices.txt <vigil/vigil_cogent_test_valA_indices.txt>`
