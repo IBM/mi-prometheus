@@ -7,6 +7,20 @@ grid_tasks:
       # Add the model parameters:
       model:
         load: 'path/to/the/trained/model/to/finetune'  # the CLEVR trained mac model to finetune on CoGenT-B
+
+      # indicate the following so that the CLEVR-trained model can properly handle CoGenT data.
+      training:
+        problem:
+          questions:
+            embedding_source: 'CLEVR'
+      validation:
+        problem:
+          questions:
+            embedding_source: 'CLEVR'
+      testing:
+        problem:
+          questions:
+            embedding_source: 'CLEVR'
   -
     default_configs: configs/mac/s_mac_cogent.yaml  # S-MAC on CoGenT
 
@@ -14,6 +28,20 @@ grid_tasks:
       # Add the model parameters:
       model:
         load: 'path/to/the/trained/model/to/finetune'  # the CLEVR trained s-mac model to finetune on CoGenT-B
+
+      # indicate the following so that the CLEVR-trained model can properly handle CoGenT data.
+      training:
+        problem:
+          questions:
+            embedding_source: 'CLEVR'
+      validation:
+        problem:
+          questions:
+            embedding_source: 'CLEVR'
+      testing:
+        problem:
+          questions:
+            embedding_source: 'CLEVR'
 
 # Parameters that will be overwritten for all tasks.
 grid_overwrite:
