@@ -41,7 +41,8 @@
 
 """clevr.py: This file contains 1 class:
 
-    - CLEVR, which represents the CLEVR `Dataset`. It inherits from `ImageTextToClassProblem`.
+    - CLEVR, which represents the CLEVR `Dataset`. It inherits from \
+    py:class:`miprometheus.problems.ImageTextToClassProblem`.
 
 """
 __author__ = "Vincent Marois"
@@ -70,7 +71,7 @@ class CLEVR(ImageTextToClassProblem):
     See reference here: https://cs.stanford.edu/people/jcjohns/clevr/
 
     :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
-    :type params: miprometheus.utils.ParamInterface
+    :type params: :py:class:`miprometheus.utils.ParamInterface`
 
 
     Given the relative complexity of this class, ``params`` should follow a specific template. Here are 2 examples:
@@ -92,9 +93,9 @@ class CLEVR(ImageTextToClassProblem):
 
     ``params`` is separated in 3 sections:
 
-        - 'settings': generic settings for the ``CLEVR`` class,
-        - 'images': specific parameters for the images,
-        - 'questions': specific parameters for the questions.
+        - `settings`: generic settings for the :py:class:`CLEVR` class,
+        - `images`: specific parameters for the images,
+        - `questions`: specific parameters for the questions.
 
 
     Here is a breakdown of the available options:
@@ -115,18 +116,18 @@ class CLEVR(ImageTextToClassProblem):
                         - For CLEVR-CoGenT, this is a fairly separate dataset with different questions & images.
                           Indicate ``data_folder`` as the root to `~/CLEVR_CoGenT_v1.0/` in this case.
 
-            - ``set``: either ``train``, ``val`` in the case of `CLEVR` & `CLEVR-Humans`, and ``valA``, ``valB`` or\
-              ``trainA`` in the case of CLEVR-CoGenT. ``test`` is not supported yet since ground truth answers are\
+            - ``set``: either "train", "val" in the case of "CLEVR" & "CLEVR-Humans", and "valA", "valB" or\
+              "trainA" in the case of CLEVR-CoGenT. "test" is not supported yet since ground truth answers are\
               not distributed by the CLEVR authors.
-            - ``dataset_variant``: either   ``CLEVR``, ``CLEVR-CoGenT`` or ``CLEVR-Humans``.
+            - ``dataset_variant``: either   "CLEVR", "CLEVR-CoGenT" or "CLEVR-Humans".
 
         - `images`:
 
             - ``raw_images``: whether or not to use to the original images as the visual source. If ``False``, then
-              ``feature_extractor`` cannot be empty. The visual source will then be features extracted fron the\
+              ``feature_extractor`` cannot be empty. The visual source will then be features extracted from the\
                original images using a specified pretrained CNN.
             - ``cnn_model`` : In the case of features extracted from the original images, the specific CNN model to\
-            use. Must be part of ``torchvision.models``.
+            use. Must be part of :py:mod:`torchvision.models`.
             - ``num_blocks``: In the case of features extracted from the original images, this represents the number\
             of layers to use from ``cnn_model``.
 
@@ -155,7 +156,7 @@ class CLEVR(ImageTextToClassProblem):
 
             - ``embedding_dim``: In the case of a random ``embedding_type``, this is the embedding dimension to use.
             - ``embedding_source``: In the case of a random ``embedding_type``, this is the source of the embeddings \
-            to use. ``str``, equal to one of the dataset variant: `CLEVR`, `CLEVR-CoGenT` or `CLEVR-Humans`.
+            to use. ``str``, equal to one of the dataset variant: "CLEVR", "CLEVR-CoGenT" or "CLEVR-Humans".
 
                 .. warning::
 
