@@ -6,16 +6,28 @@ grid_tasks:
     overwrite:
       # Add the model parameters:
       model:
-        name: MACNetwork
-        load: 'path/to/the/trained/model/to/finetune'  # the CogenT-A trained mac model to finetune
+        load: 'path/to/the/trained/model/to/finetune'  # the CogenT-A trained mac model to finetune on CoGenT-B
+  -
+    default_configs: configs/mac/mac_cogent.yaml   # MAC on CoGenT
+
+    overwrite:
+      # Add the model parameters:
+      model:
+        load: 'path/to/the/trained/model/to/finetune'  # the CLEVR trained mac model to finetune on CoGenT-B
   -
     default_configs: configs/mac/s_mac_cogent.yaml  # S-MAC on CoGenT
 
     overwrite:
       # Add the model parameters:
       model:
-        name: sMacNetwork
-        load: 'path/to/the/trained/model/to/finetune'  # the CogenT-A trained s-mac model to finetune
+        load: 'path/to/the/trained/model/to/finetune'  # the CogenT-A trained s-mac model to finetune on CoGenT-B
+  -
+    default_configs: configs/mac/s_mac_cogent.yaml  # S-MAC on CoGenT
+
+    overwrite:
+      # Add the model parameters:
+      model:
+        load: 'path/to/the/trained/model/to/finetune'  # the CLEVR trained s-mac model to finetune on CoGenT-B
 
 # Parameters that will be overwritten for all tasks.
 grid_overwrite:
@@ -29,7 +41,6 @@ grid_overwrite:
     sampler:
       name: 'SubsetRandomSampler'
       indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_finetuning_valB_indices.txt'
-
     terminal_conditions:
       epoch_limit: 10  # finetune for 10 epochs.
 
@@ -40,7 +51,7 @@ grid_overwrite:
   validation:
     problem:
       settings:
-        set: 'trainA'  # use the same validation set as during initial training (-> 10% of the true training set).
+        set: 'trainA'  # use CoGenT-A as validation set (-> 10% of the true training set) as we will test on CoGenT.
     sampler:
       name: 'SubsetRandomSampler'
       indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_val_set_indices.txt'
@@ -48,11 +59,19 @@ grid_overwrite:
   testing:
     problem:
       settings:
-        set: 'valB' # test the model on the CoGenT-B validation set, but on the complementary samples (not used for finetuning).
-      # set: 'valA' # for test on condition A. No sampler is needed in this case as we consider the entire validation set.
+        set: 'valB'
     sampler:
       name: 'SubsetRandomSampler'
       indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_test_valB_indices.txt'
+
+    # test on the CoGenT-B validation set, but on the complementary samples (not used for finetuning).
+    # test on condition A. We simply point to a file containing all the indices of valA.
+    multi_tests: {
+      set: ['valB', 'valA'],
+      indices: ['~/data/CLEVR_CoGenT_v1.0/vigil_cogent_test_valB_indices.txt',
+                '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_valA_full_indices.txt']
+    }
+
 
 grid_settings:
   # Set number of repetitions of each experiments.
