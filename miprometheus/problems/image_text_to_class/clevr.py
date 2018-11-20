@@ -177,8 +177,6 @@ class CLEVR(ImageTextToClassProblem):
 
                     This is particularly useful to finetune or test a CLEVR-trained model on CoGenT-A or CoGenT-B.
 
-                    **This is only supported in the case of the validation sets.**
-
                     If this ``embedding_source`` is not indicated, the class assumes it is equal to the \
                     ``dataset_variant``.
 
@@ -321,8 +319,21 @@ class CLEVR(ImageTextToClassProblem):
                                                                                              answer_dic=self.answer_dic)
 
             elif self.set == 'train' or self.set == 'trainA':  # Can directly tokenize the questions
-                self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set, word_dic=None,
-                                                                                         answer_dic=None)
+                if self.embedding_source != self.dataset:
+                    # load the specified dicts and re-tokenize the questions but don't save them to file.
+                    with open(os.path.join(self.data_folder, 'generated_files', '{}_dics.pkl'.format(self.embedding_source)),
+                              'rb') as f:
+                        dic = pickle.load(f)
+                        self.answer_dic = dic['answer_dic']
+                        self.word_dic = dic['word_dic']
+
+                    self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
+                                                                                             word_dic=self.word_dic,
+                                                                                             answer_dic=self.answer_dic,
+                                                                                             save_to_file=False)
+                else:
+                    self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set, word_dic=None,
+                                                                                             answer_dic=None)
 
         # --> At this point, self.data contains the processed questions
         self.length = len(self.data)
