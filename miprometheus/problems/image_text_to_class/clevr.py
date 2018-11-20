@@ -201,6 +201,7 @@ class CLEVR(ImageTextToClassProblem):
         Instantiate the CLEVR class.
 
         :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
+        :type params: :py:class:`miprometheus.utils.ParamInterface`
 
 
         """
@@ -366,7 +367,7 @@ class CLEVR(ImageTextToClassProblem):
 
 
         :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
-        :type params: miprometheus.utils.ParamInterface
+        :type params: :py:class:`miprometheus.utils.ParamInterface`
 
 
         """
@@ -571,7 +572,8 @@ class CLEVR(ImageTextToClassProblem):
 
     def generate_feature_maps_file(self):
         """
-        Uses GenerateFeatureMaps to pass the ``CLEVR`` images through a pretrained CNN model.
+        Uses :py:class:`miprometheus.utils.GenerateFeatureMaps` to pass the :py:class:`CLEVR` images through a \
+        pretrained CNN model.
 
         """
         # import lines
@@ -614,6 +616,7 @@ class CLEVR(ImageTextToClassProblem):
         Getter method to access the dataset and return a sample.
 
         :param index: index of the sample to return.
+        :type index: int
 
         :return: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', 'targets', \
         'targets_string', 'index','imgfiles'}), with:
@@ -672,7 +675,7 @@ class CLEVR(ImageTextToClassProblem):
 
     def collate_fn(self, batch):
         """
-        Combines a list of DataDict (retrieved with ``__getitem__``) into a batch.
+        Combines a list of DataDict (retrieved with :py:func:`__getitem__`) into a batch.
 
         .. note::
 
@@ -720,7 +723,9 @@ class CLEVR(ImageTextToClassProblem):
 
     def finalize_epoch(self, epoch):
         """
-        Call ``self.get_acc_per_family()`` to get the accuracy per family.
+        Empty for now.
+
+        Will call :py:func:`get_acc_per_family` to get the accuracy per family once it has been refactored.
 
         :param epoch: current epoch index
         :type epoch: int
@@ -744,10 +749,18 @@ class CLEVR(ImageTextToClassProblem):
         the number of correct predictions & questions per family in self.correct_pred_families (saved
         to file).
 
-        :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', 'targets', \
-            'targets_string', 'index','imgfiles'})
+
+        .. note::
+
+            To refactor.
+
+
+        :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', \
+        'targets', 'targets_string', 'index','imgfiles'})
+        :type data_dict: :py:class:`miprometheus.utils.DataDict`
 
         :param logits: network predictions.
+        :type logits: :py:class:`torch.Tensor`
 
         """
         # unpack the DataDict
@@ -788,7 +801,7 @@ class CLEVR(ImageTextToClassProblem):
 
         :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', 'targets', \
         'targets_string', 'index','imgfiles'})
-        :type data_dict: DataDict
+        :type data_dict: :py:class:`miprometheus.utils.DataDict`
 
         :param sample: sample index to visualize.
         :type sample: int
@@ -827,9 +840,10 @@ class CLEVR(ImageTextToClassProblem):
 
         :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', 'targets', \
         'targets_string', 'index','imgfiles'})
+        :type data_dict: :py:class:`miprometheus.utils.DataDict`
 
         :param logits: Predictions of the model.
-        :type logits: Tensor
+        :type logits: :py:class:`torch.Tensor`
 
         :return:
 
