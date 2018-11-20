@@ -170,12 +170,15 @@ class CLEVR(ImageTextToClassProblem):
 
                         - The class will then override checking if the file containing the tokenized questions exist, \
                         and instead load the `<embedding_source>_dics.pkl` file, and use it to tokenize the questions.
+                        - Nonetheless, the tokenized questions and dicts will **not** be saved to file.
                         - The class will also load the `<embedding_source>_embedding_weights.pkl` file and use it as \
                         the weights of the random embedding layer.
 
                     This is particularly useful to finetune or test a CLEVR-trained model on CoGenT-A or CoGenT-B.
 
-                    If not this ``embedding_source`` is not indicated, the class assumes it is equal to the \
+                    **This is only supported in the case of the validation sets.**
+
+                    If this ``embedding_source`` is not indicated, the class assumes it is equal to the \
                     ``dataset_variant``.
 
 
@@ -265,7 +268,7 @@ class CLEVR(ImageTextToClassProblem):
 
         # check if the file containing the tokenized questions (& answers, image filename, type etc.) exists or not
         questions_filename = os.path.join(self.data_folder, 'generated_files', '{}_{}_questions.pkl'.format(self.set, self.dataset))
-        if os.path.isfile(questions_filename):
+        if os.path.isfile(questions_filename) and self.embedding_source == self.dataset:
             self.logger.info('The file {} already exists, loading it.'.format(questions_filename))
 
             # load questions
@@ -284,22 +287,36 @@ class CLEVR(ImageTextToClassProblem):
             # We need to ensure that we use the same words & answers dicts for both train & val, otherwise we do not
             # have the same reference.
             if self.set == 'val' or self.set == 'valA' or self.set == 'valB':  # handle CoGenT
-                # first generate the words dic using the training samples
-                self.logger.warning('We need to ensure that we use the same words-to-index & answers-to-index '
-                                    'dictionaries for both the train & val samples.')
-                self.logger.warning('First, generating the words-to-index & answers-to-index dictionaries from '
-                                    'the training samples :')
-                _, self.word_dic, self.answer_dic = self.generate_questions_dics('train' if self.set == 'val' else
-                                                                                 'trainA',
-                                                                                 word_dic=None,
-                                                                                 answer_dic=None)
 
-                # then tokenize the questions using the created dictionaries from the training samples
-                self.logger.warning('We can now tokenize the validation questions using the dictionaries created from '
-                                    'the training samples')
-                self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
-                                                                                         word_dic=self.word_dic,
-                                                                                         answer_dic=self.answer_dic)
+                if self.embedding_source != self.dataset:
+                    # load the specified dicts and re-tokenize the questions but don't save them to file.
+                    with open(os.path.join(self.data_folder, 'generated_files', '{}_dics.pkl'.format(self.embedding_source)),
+                              'rb') as f:
+                        dic = pickle.load(f)
+                        self.answer_dic = dic['answer_dic']
+                        self.word_dic = dic['word_dic']
+
+                    self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
+                                                                                             word_dic=self.word_dic,
+                                                                                             answer_dic=self.answer_dic,
+                                                                                             save_to_file=False)
+                else:
+                    # first generate the words dic using the training samples
+                    self.logger.warning('We need to ensure that we use the same words-to-index & answers-to-index '
+                                        'dictionaries for both the train & val samples.')
+                    self.logger.warning('First, generating the words-to-index & answers-to-index dictionaries from '
+                                        'the training samples :')
+                    _, self.word_dic, self.answer_dic = self.generate_questions_dics('train' if self.set == 'val' else
+                                                                                     'trainA',
+                                                                                     word_dic=None,
+                                                                                     answer_dic=None)
+
+                    # then tokenize the questions using the created dictionaries from the training samples
+                    self.logger.warning('We can now tokenize the validation questions using the dictionaries created from '
+                                        'the training samples')
+                    self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
+                                                                                             word_dic=self.word_dic,
+                                                                                             answer_dic=self.answer_dic)
 
             elif self.set == 'train' or self.set == 'trainA':  # Can directly tokenize the questions
                 self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set, word_dic=None,
@@ -316,7 +333,7 @@ class CLEVR(ImageTextToClassProblem):
             self.embed_layer = torch.nn.Embedding(num_embeddings=self.n_vocab, embedding_dim=self.embedding_dim)
 
             # we have to make sure that the weights are the same during training and validation
-            weights_filepath = os.path.join(self.data_folder, 'generated_files', '{}_embedding_weights.pkl'.format(self.dataset))
+            weights_filepath = os.path.join(self.data_folder, 'generated_files', '{}_embedding_weights.pkl'.format(self.embedding_source))
             if os.path.isfile(weights_filepath):
                 self.logger.info('Found random embedding weights on file, using them.')
                 with open(weights_filepath, 'rb') as f:
@@ -417,14 +434,27 @@ class CLEVR(ImageTextToClassProblem):
         assert self.embedding_type in embedding_types, "Embedding type not found, available options are {}".format(
             embedding_types)
         if self.embedding_type == 'random':
-            self.embedding_dim = params['questions']['embedding_dim']
-            assert type(self.embedding_dim) is int, "The random embedding dimension should be an int, got {}".format(
-                type(self.embedding_dim))
+            self.embedding_dim = int(params['questions']['embedding_dim'])
+
+            # checks if the embedding source is specified
+            if 'embedding_source' in params['questions']:
+                self.embedding_source = params['questions']['embedding_source']
+
+                # checks if it is different than the dataset_variant
+                if self.embedding_source != self.dataset:
+                    self.logger.warning('Detected that the questions embedding source is different than the '
+                                        'dataset variant. Got {} and the dataset variant is {}'.format(self.embedding_source,
+                                                                                                       self.dataset))
+                    self.logger.warning("Will override checking if the file containing the tokenized questions exist "
+                                        "and re-tokenize the question using the {'words': index} & {'answer': index} "
+                                        "dicts and random weights from the embedding source.")
+            else:
+                self.embedding_source = self.dataset
 
         else:
             self.embedding_dim = int(self.embedding_type[:-4])
 
-    def generate_questions_dics(self, set, word_dic=None, answer_dic=None):
+    def generate_questions_dics(self, set, word_dic=None, answer_dic=None, save_to_file=True):
         """
         Loads the questions from the .json file, tokenize them, creates vocab dics and save that to files.
 
@@ -438,6 +468,9 @@ class CLEVR(ImageTextToClassProblem):
         :param answer_dic: dict ``{'answer': index}`` to be used to process the answers. Optional. If passed, it\
         is used and unseen answers are added. It not passed, an empty one is created.
         :type answer_dic: dict
+
+        :param save_to_file: Whether to save to file the tokenized questions and the dicts.
+        :type save_to_file: bool, default: True
 
         :return:
 
@@ -519,17 +552,18 @@ class CLEVR(ImageTextToClassProblem):
 
         self.logger.info('Done: constructed words dictionary of length {}, and answers dictionary of length {}'.format(len(word_dic),
                                                                                                             len(answer_dic)))
-        # save result to file
-        questions_filename = os.path.join(self.data_folder, 'generated_files', '{}_{}_questions.pkl'.format(self.set, self.dataset))
-        with open(questions_filename, 'wb') as f:
-            pickle.dump(result, f)
+        if save_to_file:
+            # save result to file
+            questions_filename = os.path.join(self.data_folder, 'generated_files', '{}_{}_questions.pkl'.format(self.set, self.dataset))
+            with open(questions_filename, 'wb') as f:
+                pickle.dump(result, f)
 
-        self.logger.warning('Saved tokenized questions to file {}.'.format(questions_filename))
+            self.logger.warning('Saved tokenized questions to file {}.'.format(questions_filename))
 
-        # save dictionaries to file:
-        with open(os.path.join(self.data_folder, 'generated_files', '{}_dics.pkl'.format(self.dataset)), 'wb') as f:
-            pickle.dump({'word_dic': word_dic, 'answer_dic': answer_dic}, f)
-        self.logger.warning('Saved dics to file {}.'.format(os.path.join(self.data_folder, 'generated_files', '{}_dics.pkl'.format(self.dataset))))
+            # save dictionaries to file:
+            with open(os.path.join(self.data_folder, 'generated_files', '{}_dics.pkl'.format(self.dataset)), 'wb') as f:
+                pickle.dump({'word_dic': word_dic, 'answer_dic': answer_dic}, f)
+            self.logger.warning('Saved dics to file {}.'.format(os.path.join(self.data_folder, 'generated_files', '{}_dics.pkl'.format(self.dataset))))
 
         # return everything
         return result, word_dic, answer_dic
