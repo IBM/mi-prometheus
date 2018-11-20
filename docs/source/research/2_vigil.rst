@@ -72,7 +72,7 @@ A grid configuration file is available to run the 4 initial training experiments
 
 Simply run
 
-    >>> mip-grid-trainer-gpu --c mac_smac_initial_training.yaml --savetag vigil_workshop --t 0
+    >>> mip-grid-trainer-gpu --c mac_smac_initial_training.yaml --savetag vigil_workshop --tensorboard 0
 
 The first option points to the grid configuration file.
 The second option indicates an additional tag for the experiments folder.
