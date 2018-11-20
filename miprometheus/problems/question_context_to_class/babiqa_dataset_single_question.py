@@ -22,14 +22,17 @@ import torch
 from miprometheus.utils.problems_utils.language import Language
 import torch.utils.data
 from tqdm import tqdm
+import requests
 import os
 from miprometheus.utils.app_state import AppState
 from miprometheus.problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
+from miprometheus.problems.seq_to_seq.text2text.text_to_text_problem import TextToTextProblem
+
 from miprometheus.utils.loss.masked_cross_entropy_loss import MaskedCrossEntropyLoss
 
 
 
-class BABI(SeqToSeqProblem):
+class bAbIQASingleQuestion(TextToTextProblem):
     """
     Problem Class for loading bAbi QA data set using Torchtext
     
@@ -45,9 +48,9 @@ class BABI(SeqToSeqProblem):
         :param params: Dictionary of parameters (read from configuration file).
         
         """
-        super(BABI).__init__()
+        super(bAbIQASingleQuestion).__init__()
 
-        self.directory = './'
+        self.directory = '~/data/babi/'
 
         # boolean: is it training phase?
         self.data_type = params['data_type']
@@ -65,11 +68,9 @@ class BABI(SeqToSeqProblem):
 
         self.batch_size = params['batch_size']
 
-        self.memory_size = params['truncation_length']
-
         self.embedding_type = params['embedding_type']
 
-        self.embedding_size = 38
+        self.embedding_size = params['embedding_size']
 
         self.init_token = '<sos>'
 
@@ -92,9 +93,9 @@ class BABI(SeqToSeqProblem):
 
         self.default_values = {'input_item_size': self.embedding_size , 'output_item_size':self.embedding_size}
 
-        self.data_definitions = {'sequences': {'size': [-1, -1, self.memory_size], 'type': [torch.Tensor]},
+        self.data_definitions = {'sequences': {'size': [-1, -1, self.embedding_size], 'type': [torch.Tensor]},
                                  'targets': {'size': [-1], 'type': [torch.Tensor]},
-                                 'current_question': {'size': [-1, 1], 'type': [list, str]},
+                                 'current_questions': {'size': [-1, 1], 'type': [list, str]},
                                  'masks': {'size': [-1], 'type': [torch.Tensor]},
                                  }
 
@@ -348,7 +349,7 @@ class BABI(SeqToSeqProblem):
                 if chunk:
                     f.write(chunk)
 
-    def load_data(self, path=None, root='.data', tasks=[1], tenK=False, add_punctuation=True, data_type='train',
+    def load_data(self, path=None, root='data', tasks=[1], tenK=False, add_punctuation=True, data_type='train',
                   outmod=''):
 
         """loads all asked for tasks into a single file (combining multiple files) and then parses the combined file"""
@@ -482,11 +483,11 @@ if __name__ == "__main__":
 
     babi_tasks = list(range(1, 21))
 
-    params = {'directory': '/', 'tasks': babi_tasks,'data_type': 'train', 'batch_size': 10,'embedding_type' :'glove.6B.100d', 'ten_thousand_examples': True, 'one_hot_embedding': True, 'truncation_length':50 }
+    params = {'directory': '/', 'tasks': babi_tasks,'data_type': 'train', 'batch_size': 10,'embedding_type' :'glove.6B.100d', 'embedding_size' :38 , 'ten_thousand_examples': True, 'one_hot_embedding': True, 'truncation_length':50 }
 
 
 
-    babi = BABI(params)
+    babi = bAbIQASingleQuestion(params)
     sample=babi[12]
     print(sample)
     print('__getitem__ works.')
