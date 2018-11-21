@@ -303,3 +303,16 @@ Run
 
 These commands should collect all results contained in the indicated main experiments folder and gather them in a
 csv file stored at the root of the indicated folder.
+
+
+`If you find this page useful, please refer to it with the following BibTex:`
+
+::
+
+    @article{marois2018transfer,
+            title={On transfer learning using a MAC model variant},
+            author={Marois, Vincent and Jayram, TS and Albouy, Vincent and Kornuta, Tomasz and Bouhadjar, Younes and Ozcan, Ahmet S},
+            journal={arXiv preprint arXiv:1811.06529},
+            year={2018}
+    }
+
