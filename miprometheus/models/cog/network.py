@@ -24,48 +24,57 @@ class COGModel(nn.Module):
 		# Initialize unique word counter. Updated by UpdateAndFetchLookup
 		self.nr_unique_words = 0
 		# This should be the length of the longest sentence encounterable
-		self.nwords = 128
-		self.nr_classes = 16
+		self.nwords = 32
+		self.words_embed_length = 64
+		self.vocabulary_size = 512
+		self.nr_classes = 2
 
-		self.controller_input_size = 128 + 5*5*128 + 5*5*3
-		self.controller_output_size = 128 + self.controller_input_size
+		self.controller_input_size = self.nwords + 5*5*128 + 5*5*3
+		self.controller_output_size = 128
 
-		self.lstm_input_size = 64
+		self.lstm_input_size = self.words_embed_length
 		self.lstm_hidden_units = 64
 
 		self.VisualProcessing()
 		self.SemanticProcessing()
-		self.EmbedVocabulary(1024)
+		self.EmbedVocabulary(self.vocabulary_size,self.words_embed_length)
 		self.Controller(128)
 		self.VisualMemory()
 
-		self.feature_attn1 = FeatureAttention(64,self.controller_output_size)
-		self.feature_attn2 = FeatureAttention(128,self.controller_output_size)
-		self.spatial_attn1 = SpatialAttention(128,self.controller_output_size)
-		self.semantic_attn1 = SemanticAttention(128,self.controller_output_size)
+		self.feature_attn1 = FeatureAttention(64,self.controller_output_size*2)
+		self.feature_attn2 = FeatureAttention(128,self.controller_output_size*2)
+		self.spatial_attn1 = SpatialAttention(128,self.controller_output_size*2)
+		self.semantic_attn1 = SemanticAttention(self.lstm_hidden_units*2,self.controller_output_size*2)
 
 		self.classifier1 = nn.Linear(128,self.nr_classes)
 		self.pointer1 = nn.Linear(5*5*3,49)
 
-	def forward(self,images,questions,attention=None,vstm_state=None):
+	def forward(self,images,questions,attention=None,vstm_state=None,controller_state=None):
 		if attention is None:
-			attention = torch.randn(self.controller_output_size)
+			attention = torch.randn(images.size()[0],self.controller_output_size*2)
+		if controller_state is None:
+			controller_state = torch.zeros(1,images.size()[0],128)
+
+		#print('Attention size: {}'.format(attention.size()))
+		#print('Controller_State size: {}'.format(controller_state.size()))
 		
 		out_cnn1 = self.forward_img2cnn_attention(images,attention)
 		
 		out_embed = self.forward_words2embed(questions)
+		#print('out_embed size: {}'.format(out_embed.size()))
 		out_lstm1, state_lstm1 = self.forward_embed2lstm(out_embed)
 		out_semantic_attn1 = self.semantic_attn1(out_lstm1,attention)
+		#print('out_semantic_attn1 size: {}'.format(out_semantic_attn1.size()))
 		out_vstm1, vstm_state = self.vstm1(out_cnn1,vstm_state,attention)
 
-		in_controller1 = torch.cat((out_semantic_attn1.view(-1,1,128),out_cnn1.view(-1,1,128*5*5),out_vstm1.view(-1,1,3*5*5)),-1)
-		out_controller1, state_controller1 = self.controller1(in_controller1)
+		in_controller1 = torch.cat((out_semantic_attn1.view(-1,1,self.nwords),out_cnn1.view(-1,1,128*5*5),out_vstm1.view(-1,1,3*5*5)),-1)
+		out_controller1, controller_state = self.controller1(in_controller1,controller_state)
 
 		classification = self.classifier1(out_controller1.view(-1,1,128))
 		pointing = self.pointer1(out_vstm1.view(-1,1,5*5*3))
-		attention = torch.cat((out_controller1.view(-1,1,128),state_controller1.view(-1,1,128)))
+		attention = torch.cat((out_controller1.squeeze(),controller_state.squeeze()),-1)
 		
-		return classification, pointing, attention, vstm_state
+		return classification, pointing, attention, vstm_state, controller_state
 		
 
 	def forward_img2cnn(self,images):
@@ -97,11 +106,11 @@ class COGModel(nn.Module):
 		return out_spatial_attn1		
 
 	# For a single timepoint in a single sample, returns (nwords,64)
-	def forward_words2embed(self,words):
+	def forward_words2embed(self,questions):
 		
-		out_embed=torch.zeros(len(words),self.nwords,64)
-		for i, sentence in enumerate(words):
-			for j, word in enumerate(sentence):
+		out_embed=torch.zeros(len(questions),self.nwords,self.words_embed_length)
+		for i, sentence in enumerate(questions):
+			for j, word in enumerate(sentence[0].split()):
 				out_embed[i,j,:] = ( self.Embedding(self.UpdateAndFetchLookup(word)) )
 		
 		return out_embed
@@ -178,13 +187,13 @@ class COGModel(nn.Module):
 		self.controller1 = nn.GRU(self.controller_input_size, nr_units,batch_first=True)
 
 	def VisualMemory(self):
-		self.vstm1 = VSTM((5,5),128,3,4,self.controller_output_size)
+		self.vstm1 = VSTM((5,5),128,3,4,self.controller_output_size*2)
 
 	# Embed vocabulary for all available task families
 	# COG paper used a 64-dim training vector.
 	# For a single timepoint in a single sample, returns (nwords,64)
-	def EmbedVocabulary(self,vocabulary_size):
-		self.Embedding = nn.Embedding(vocabulary_size,64)
+	def EmbedVocabulary(self,vocabulary_size,words_embed_length):
+		self.Embedding = nn.Embedding(vocabulary_size,words_embed_length)
 
 	# Given a single word, updates lookup table if necessary, then returns embedded vector
 	def UpdateAndFetchLookup(self,word):
@@ -200,7 +209,7 @@ if __name__ == '__main__':
 	import torch.optim as optim
 
 	params = ParamInterface()
-	tasks = ['Go','CompareColor']
+	tasks = ['AndCompareColor']
 	params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'), 'root_folder': ' ', 'set': 'val', 'dataset_type': 'canonical','tasks': tasks})
 
 	# Create problem - task Go
@@ -218,13 +227,11 @@ if __name__ == '__main__':
 	# Initialize model
 	model = COGModel()
 
-	images = batch['images'][:,0,:,:,:]
+	images = batch['images'].permute(1,0,2,3,4)
 	questions = batch['questions']
 
-	print(questions)
-
 	# Test forward pass of image
-	print(model.forward_img2cnn(batch['images'][:,0,:,:,:]).size())
+	#print(model.forward_img2cnn(images[0]).size())
 
 	# Test forward pass of words
 	#embed = model.forward_words2embed(batch['questions'][0][0].split())
@@ -233,8 +240,11 @@ if __name__ == '__main__':
 	#print(repr(lstm))
 
 	# Test full forward pass
-
-	out_pass1 = model(images,questions)
+	out_pass1, pointing, attention,vstm_state,controller_state = model(images[0],questions)
+	#print(out_pass1)
+	#print(out_pass1.size())
+	#exit(0)
+	out_pass2 = model(images[1],questions,attention,vstm_state,controller_state)
 
 	
 	# Try training!
@@ -243,22 +253,54 @@ if __name__ == '__main__':
 	criterion = nn.CrossEntropyLoss()
 	optimizer = optim.SGD(model.parameters(), lr=0.001, momentum = 0.9)
 
+	from tensorboardX import SummaryWriter
+	writer = SummaryWriter('runs/exp1/')
+
+	dummy_input1 = torch.autograd.Variable(torch.Tensor(
+	writer.add_graph('model_graph',model,out_pass2)
+
 	for epoch in range(2):
 	
 		running_loss = 0.0
 		for i, data in enumerate(dataloader,0):
 
 			optimizer.zero_grad()
-			images = data['images'][:,0,:,:,:]
-			questions = data['questions']			
-
-			classification, pointing, attention, vstm_state = model(images,questions)
+			images = data['images'].permute(1,0,2,3,4)
+			questions = data['questions']
+			targets = data['targets_class']
 			
-			# Ponder a bit?
-			classification, pointing, attention, vstm_state = model(images,questions,attention,vstm_state)
+			for j, target in enumerate(targets):
+				targets[j] = [0 if item=='false' else 1 for item in target]
+			targets = torch.LongTensor(targets)
+			
+			output = torch.zeros((64,4,2))
+
+			classification, pointing, attention, vstm_state, controller_state = model(
+			images[0],questions)
+			output[:,0:1,:] = classification[:,0:1,:]
+
+			classification, pointing, attention, vstm_state, controller_state = model(
+			images[1], questions, attention, vstm_state, controller_state)
+			output[:,1:2,:] = classification[:,0:1,:]
+			
+			classification, pointing, attention, vstm_state, controller_state = model(
+			images[2], questions, attention, vstm_state, controller_state)
+			output[:,2:3,:] = classification[:,0:1,:]
+			
+			classification, pointing, attention, vstm_state, controller_state = model(
+			images[3], questions, attention, vstm_state, controller_state)
+			output[:,3:4,:] = classification[:,0:1,:]
 		
-			# Need an if/else here to pick the correct output
-			loss = criterion(
+			loss = criterion(output.view(-1,2),targets.view(64*4))
+			loss.backward()
+			optimizer.step()
+
+			writer.add_scalar('loss',loss.item(),i)
+			#writer.add_graph('model',model,(images[0],questions))
+
+			#running_loss += loss.item()
+			print(i)
+			print('Loss: {}'.format(loss.item()))
 
 
 

@@ -53,10 +53,13 @@ class VSTM(nn.Module):
 	def forward(self,inputs,state=None,controls=None):
 
 		if controls is None:
-			controls = torch.randn(self.control_input_size)
+			controls = torch.randn(inputs.size()[0],self.control_input_size)
 
 		if state is None:
-			state = torch.zeros(self.n_maps,self.shape[0],self.shape[1])
+			state = torch.zeros(inputs.size()[0],self.n_maps,self.shape[0],self.shape[1])
+
+		#print('VSTM Controls size: {}'.format(controls.size()))
+		#print('VSTM State size: {}'.format(state.size()))
 
 		# Generate gate parameters from control input via linear layer			
 		inputs_control = self.control1(controls)
@@ -64,23 +67,30 @@ class VSTM(nn.Module):
 		# Split gate inputs into respective gates
 		f, i, o = torch.split(inputs_control,(self.num_units_forget_gate, 
 																					self.num_units_input_gate,
-																					self.num_units_output_gate))
+																					self.num_units_output_gate),-1)
 
-		in_gates = i.view(self.n_maps,self.in_channels,1,1)
-		# I think TF has separable convolution
-		gated_inputs = nn.functional.conv2d(inputs,in_gates)
+
+		in_gates = i.view(-1,self.n_maps,self.in_channels,1,1)
+		forget_gates = f.view(-1,self.n_maps,1,1)
+		output_gates = o.view(-1,self.out_channels,self.n_maps,1,1)
+		
+
+		# Probably inefficient, but that's ok for now
+		gated_inputs = torch.zeros(inputs.size()[0],self.n_maps,self.shape[0],self.shape[1])		
+		for i in range(inputs.size()[0]):
+			gated_inputs[i:i+1] = nn.functional.conv2d(inputs[i:i+1],in_gates[i])
 
 		# TensorFlow implementation has bias.
-		forget_gates = f.view(self.n_maps,1,1)
 		gated_states = state * forget_gates
 		new_state = gated_inputs + gated_states
 
-		output_gates = o.view(self.out_channels,self.n_maps,1,1)
-		# Again, I think TF uses separable convolution
+		# Probably inefficient, but that's ok for now
 		output = torch.tanh(new_state)
-		output = nn.functional.conv2d(output,output_gates)
+		outputs = torch.zeros(inputs.size()[0],self.out_channels,self.shape[0],self.shape[1])
+		for i in range(inputs.size()[0]):
+			outputs[i:i+1] = nn.functional.conv2d(output[i:i+1],output_gates[1])
 
-		return output, new_state
+		return outputs, new_state
 
 if __name__ == '__main__':
 	# Test with:

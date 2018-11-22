@@ -27,11 +27,11 @@ class FeatureAttention(nn.Module):
 	def forward(self,inputs_to_attend,attn_gen):
 	
 		shift_and_scale = self.attn1(attn_gen)
-		shift, scale = torch.chunk(shift_and_scale,2)
+		shift, scale = torch.chunk(shift_and_scale,2,-1)
 		
 		scale = nn.functional.relu(scale + 1.0)
 	
-		inputs_to_attend = (inputs_to_attend + shift.view(self.attention_size,1,1)) * scale.view(self.attention_size,1,1)
+		inputs_to_attend = (inputs_to_attend + shift.view(-1,self.attention_size,1,1)) * scale.view(-1,self.attention_size,1,1)
 		inputs_to_attend = nn.functional.relu(inputs_to_attend)
 		return inputs_to_attend, (shift, scale)
 
@@ -55,7 +55,7 @@ class SpatialAttention(nn.Module):
 	def forward(self,inputs_to_attend,attn_gen):
 		attn_gen = nn.functional.relu(self.attn1(attn_gen))
 		attn_gen = nn.functional.softmax(self.attn2(attn_gen),dim=-1)
-		inputs_to_attend *= attn_gen.view(self.attention_size,1,1)
+		inputs_to_attend *= attn_gen.view(-1,self.attention_size,1,1)
 
 		return inputs_to_attend, attn_gen
 
@@ -71,7 +71,11 @@ class SemanticAttention(nn.Module):
 	def forward(self,key,query):
 	
 		query = self.attn1(query)
-		return torch.sum(self.trainable_weights.view(1,1,self.attention_size)*torch.tanh(key+query.expand_as(key)),-1)
+		key = key.permute(1,0,2)
+		#print(self.trainable_weights.size())
+		#print(key.size())
+		#print(query.size())
+		return torch.sum(self.trainable_weights.expand_as(key)*torch.tanh(key+query.expand_as(key)),-1).permute(1,0)
 		
 
 if __name__ == '__main__':
