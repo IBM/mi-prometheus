@@ -177,8 +177,8 @@ class CLEVR(ImageTextToClassProblem):
 
                     This is particularly useful to finetune or test a CLEVR-trained model on CoGenT-A or CoGenT-B.
 
-                    If this ``embedding_source`` is not indicated, the class assumes it is equal to the \
-                    ``dataset_variant``.
+                    `Should work for both the training & validation samples although only has been tested on validation \
+                    samples so far`.
 
 
     .. note::
@@ -328,6 +328,8 @@ class CLEVR(ImageTextToClassProblem):
                         dic = pickle.load(f)
                         self.answer_dic = dic['answer_dic']
                         self.word_dic = dic['word_dic']
+                        self.logger.info("Loaded the 'words': index & 'answer': index dicts from the "
+                                         "embedding source '{}'.".format(self.embedding_source))
 
                     self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
                                                                                              word_dic=self.word_dic,
