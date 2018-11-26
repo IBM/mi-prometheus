@@ -295,6 +295,8 @@ class CLEVR(ImageTextToClassProblem):
                         dic = pickle.load(f)
                         self.answer_dic = dic['answer_dic']
                         self.word_dic = dic['word_dic']
+                        self.logger.info("Loaded the {'words': index} & {'answer': index} dicts from the "
+                                         "embedding source '{}'.".format(self.embedding_source))
 
                     self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
                                                                                              word_dic=self.word_dic,
@@ -348,7 +350,7 @@ class CLEVR(ImageTextToClassProblem):
             # we have to make sure that the weights are the same during training and validation
             weights_filepath = os.path.join(self.data_folder, 'generated_files', '{}_embedding_weights.pkl'.format(self.embedding_source))
             if os.path.isfile(weights_filepath):
-                self.logger.info('Found random embedding weights on file, using them.')
+                self.logger.info('Found random embedding weights on file ({}), using them.'.format(weights_filepath))
                 with open(weights_filepath, 'rb') as f:
                     self.embed_layer.weight.data = pickle.load(f)
             else:
