@@ -10,7 +10,7 @@ training:
         set: 'trainA'
         dataset_variant: &var 'CLEVR-CoGenT'
       questions:
-        'embedding_source': 'CLEVR-CoGenT'
+        embedding_source: 'CLEVR-CoGenT'
 
   # fix the seeds
     seed_torch: 0
@@ -23,7 +23,7 @@ validation:
         set: 'valA'
         dataset_variant: *var
       questions:
-        'embedding_source': 'CLEVR-CoGenT'
+        embedding_source: 'CLEVR-CoGenT'
 
 testing:
     problem:
@@ -32,4 +32,4 @@ testing:
         set: 'valB'
         dataset_variant: *var
       questions:
-        'embedding_source': 'CLEVR-CoGenT'
+        embedding_source: 'CLEVR-CoGenT'
