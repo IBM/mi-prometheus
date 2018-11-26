@@ -295,8 +295,8 @@ class CLEVR(ImageTextToClassProblem):
                         dic = pickle.load(f)
                         self.answer_dic = dic['answer_dic']
                         self.word_dic = dic['word_dic']
-                        self.logger.info("Loaded the {'words': index} & {'answer': index} dicts from the "
-                                         "embedding source '{source}'.".format(source=self.embedding_source))
+                        self.logger.info("Loaded the 'words': index & 'answer': index dicts from the "
+                                         "embedding source '{}'.".format(self.embedding_source))
 
                     self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
                                                                                              word_dic=self.word_dic,
