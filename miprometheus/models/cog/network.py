@@ -24,11 +24,9 @@ class COGModel(nn.Module):
 		# Initialize unique word counter. Updated by UpdateAndFetchLookup
 		self.nr_unique_words = 0
 		# This should be the length of the longest sentence encounterable
-		self.nwords = 32Skipped loading ExistShape task.
-
+		self.nwords = 32
 		self.words_embed_length = 64
-		self.vocabulary_size = 512Skipped loading ExistShape task.
-
+		self.vocabulary_size = 512
 		self.nr_classes = 2
 
 		self.controller_input_size = self.nwords + 5*5*128 + 5*5*3
@@ -82,8 +80,7 @@ class COGModel(nn.Module):
 		attention = torch.cat((out_controller1.squeeze(),controller_state.squeeze()),-1)
 		
 		return classification, pointing, attention, vstm_state, controller_state
-		Skipped loading ExistShape task.
-
+		
 
 	def forward_img2cnn(self,images):
 
@@ -101,8 +98,7 @@ class COGModel(nn.Module):
 	def forward_img2cnn_attention(self,images,attention):
 		out_conv1 		= self.conv1(images)
 		out_maxpool1	= self.maxpool1(out_conv1)
-		out_conv2			= self.conv2(out_maxpool1)Skipped loading ExistShape task.
-
+		out_conv2			= self.conv2(out_maxpool1)
 		out_maxpool2	= self.maxpool2(out_conv2)
 		out_conv3 		= self.conv3(out_maxpool2)
 		out_maxpool3	= self.maxpool3(out_conv3)
@@ -149,8 +145,7 @@ class COGModel(nn.Module):
 
 		# Second Layer
 		# Input to this layer is 32 channels.
-		# Output is 64 channelsSkipped loading ExistShape task.
-
+		# Output is 64 channels
 		# nn.conv2d(in_channels,out_channels,kernel_size,stride=1,padding=0,dilation=1,groups=1,bias=True)
 		self.conv2 = nn.Conv2d(32,64,3,stride=1,padding=0,dilation=1,groups=1,bias=True)
 		# nn.MaxPool2d(kernel_size, stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
@@ -198,7 +193,6 @@ class COGModel(nn.Module):
 
 	def VisualMemory(self):
 		self.vstm1 = VSTM((5,5),128,3,4,self.controller_output_size*2)
-Skipped loading ExistShape task.
 
 	# Embed vocabulary for all available task families
 	# COG paper used a 64-dim training vector.
