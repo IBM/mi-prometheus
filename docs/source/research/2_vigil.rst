@@ -11,8 +11,8 @@ Please refer to the paper_ for a full description of the experiments and the ana
 .. admonition:: Abstract
 
     We introduce a variant of the MAC model (Hudson and Manning, ICLR 2018) \
-    with a simplified set of equations that achieves comparable accuracy, while train-\
-    ing faster. We evaluate both models on CLEVR and CoGenT, and show that, trans-\
+    with a simplified set of equations that achieves comparable accuracy, while train\
+    ing faster. We evaluate both models on CLEVR and CoGenT, and show that, trans\
     fer learning with fine-tuning results in a 15 point increase in accuracy, matching \
     the state of the art. Finally, in contrast, we demonstrate that improper fine-tuning \
     can actually reduce a model’s accuracy as well.
