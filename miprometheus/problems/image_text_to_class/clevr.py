@@ -388,7 +388,8 @@ class CLEVR(ImageTextToClassProblem):
                                                 'dataset_variant': 'CLEVR'},
                                    'images': {'raw_images': 'True'},
                                    'questions': {'embedding_type': 'random',
-                                                 'embedding_dim': 300}
+                                                 'embedding_dim': 300,
+                                                 'embedding_source': 'CLEVR'}
                                    })
         # get the data_folder
         self.data_folder = os.path.expanduser(params['settings']['data_folder'])
