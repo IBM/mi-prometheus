@@ -39,62 +39,35 @@ import gzip
 import json
 import os
 import tarfile
-import string
 import numpy as np
 
 from miprometheus.problems.seq_to_seq.vqa.vqa_problem import VQAProblem
 from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import json_to_img as jti
 
-
 class COG(VQAProblem):
 	"""
-	The COG dataset is a sequential VQA dataset.
-
-	Inputs are a sequence of images of simple shapes and characters on a black background, \
-	and a question based on these objects that relies on memory which has to be answered at every step of the sequence.
-
-	See https://arxiv.org/abs/1803.06092 (`A Dataset and Architecture for Visual Reasoning with a Working Memory`)\
-	for the reference paper.
+	The COG dataset is a sequential VQA dataset. Inputs are a sequence of images of simple shapes and characters on a black \
+ 	background, and a question based on these objects that relies on memory which has to be answered at every step of the \
+	sequence.
 
 	"""
 
 	def __init__(self, params):
 		"""
-		Initializes the :py:class:`COG` problem:
+		Initializes the COG problem:
 
-			- Calls :py:class:`miprometheus.problems.VQAProblem` class constructor,
+			- Calls ``problems.problem.VQAProblem`` class constructor,
 			- Sets the following attributes using the provided ``params``:
 
-				- ``self.data_folder`` (`string`) : Data directory where the dataset is stored.
+				- ``self.data_folder`` (`string`) : Data directory where dataset is stored.
 				- ``self.set`` (`string`) : 'val', 'test', or 'train'
-				- ``self.tasks`` (`string` or list of `string`) : Which tasks to use. 'class', 'reg', \
-				'all', or a list of tasks such as ['AndCompareColor', 'AndCompareShape']. \
-				Only the selected tasks will be used.
+				- ``self.tasks`` (`string or list of string`) : Which tasks to use. 'class', 'reg', 'all', or a 
+\ list of tasks such as ['AndCompareColor', 'AndCompareShape']. Only selected tasks will be used.
 				- ``self.dataset_type`` (`string`) : Which dataset to use, 'canonical', 'hard', or \
-				'generated'. If 'generated', please specify 'examples_per_task', 'sequence_length', \
-				'memory_length', and 'max_distractors' under 'generation'. Can also specify 'nr_processors' for generation.
-
-			- Adds the following as default params:
-
-				>>> {'data_folder': os.path.expanduser('~/data/cog'),
-				>>>  'set': 'train',
-				>>>  'tasks': 'class',
-				>>>  'dataset_type': 'canonical',
-				>>>  'initialization_only': False}
-
-			- Sets:
-
-				>>> self.data_definitions = {'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
-				>>>                          'tasks': {'size': [-1, 1], 'type': [list, str]},
-				>>>                          'questions': {'size': [-1, 1], 'type': [list, str]},
-				>>>                          'targets_reg': {'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
-				>>>                          'targets_class': {'size': [-1, self.sequence_length, 1], 'type' : [list,str]}
-				>>>                         }
-
-
+								'generated'. If 'generated', please specify 'examples_per_task', 'sequence_length', \
+								'memory_length', and 'max_distractors' under 'generation'. Can also specify 'nr_processors' for generation.
 
 		:param params: Dictionary of parameters (read from configuration ``.yaml`` file).
-		:type params: :py:class:`miprometheus.utils.ParamInterface`
 
 		"""
 	
@@ -102,23 +75,24 @@ class COG(VQAProblem):
 		super(COG, self).__init__(params)
 
 		# Set default parameters.
-		self.params.add_default_params({'data_folder': os.path.expanduser('~/data/cog'), 'set': 'train',
-										'tasks': 'class',
-										'dataset_type': 'canonical',
-										'initialization_only': False})
+		self.params.add_default_params({'data_folder': os.path.expanduser('~/data/cog'), 
+																		'set': 'train', 
+																		'tasks': 'class', 
+																		'dataset_type': 'canonical',
+																		'initialization_only': False})
 
 		# Retrieve parameters from the dictionary
 		# Data folder main is /path/cog
 		# Data folder parent is data_X_Y_Z
 		# Data folder children are train_X_Y_Z, test_X_Y_Z, or val_X_Y_Z
-		self.data_folder_main = os.path.expanduser(params['data_folder'])
+		self.data_folder_main= os.path.expanduser(params['data_folder'])
 
-		self.set = params['set']
-		assert self.set in ['val', 'test', 'train'], "set in configuration file must be one of 'val', 'test', or " \
-													 "'train', got {}".format(self.set)
-		self.dataset_type = params['dataset_type']
-		assert self.dataset_type in ['canonical', 'hard', 'generated'], "dataset in configuration file must be one of " \
-																		"'canonical', 'hard', or 'generated', got {}".format(self.dataset_type)
+		self.set	= params['set']
+		assert self.set in ['val','test','train'], "set in configuration file must be one of 'val', 'test', or 'train', "\
+								"got {}".format(self.set)
+		self.dataset_type	= params['dataset_type']
+		assert self.dataset_type in ['canonical','hard','generated'], "dataset in configuration file must be one of "\
+								"'canonical', 'hard', or 'generated', got {}".format(self.dataset_type)
 
 		# Parse task and dataset_type
 		self.parse_tasks_and_dataset_type(params)
@@ -126,50 +100,53 @@ class COG(VQAProblem):
 		# Name
 		self.name = 'COG'
 
-		# Edit loss to add ignore_index
-		self.loss_function = nn.CrossEntropyLoss(ignore_index=-1)
-
 		# Initialize word lookup dictionary
 		self.word_lookup = {}
 
+		# Whether embedding is done here
+		self.embed = False
+
 		# Initialize unique word counter. Updated by UpdateAndFetchLookup
-		self.nr_unique_words = 1
+		self.nr_unique_words = 0
 
 		# This should be the length of the longest sentence encounterable
-		self.nwords = 24
+		self.nwords = 32
+
+		# Size of the vectoral represetation of each word
+		self.words_embed_length = 64
+		self.vocabulary_size = 512		
+		self.EmbedVocabulary(self.vocabulary_size,self.words_embed_length)
 
 		# Get the "hardcoded" image width/height.
-		self.img_size = 112  # self.params['img_size']
+		self.img_size = 112 # self.params['img_size']
 
 		# Set default values
 		self.default_values = {	'height': self.img_size,
 								'width': self.img_size,
 								'num_channels': 3,
-								'sequence_length' : self.sequence_length,
-								'num_classes': self.output_classes,
-								'embed_vocab_size': self.input_words}
+								'sequence_length' : self.sequence_length}
 		
 		# Set data dictionary based on parsed dataset type
-		self.data_definitions = {
-		'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
-		'tasks':	{'size': [-1, 1], 'type': [list, str]},
-		'questions': 	{'size': [-1,self.nwords], 'type': [torch.Tensor]},
-		#'targets': {'size': [-1,self.sequence_length, self.output_classes], 'type': [torch.Tensor]},
-		'targets_reg' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
-		'targets_class':{'size': [-1, self.sequence_length, self.output_classes], 'type' : [list,str]}
+		self.data_definitions = {'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
+					'tasks':	{'size': [-1, 1], 'type': [list, str]},
+					'questions': 	{'size': [-1,self.nwords,self.words_embed_length], 'type': [torch.Tensor]},
+					'targets_reg' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
+					'targets_class':{'size': [-1, self.sequence_length, 1], 'type' : [list,str]}
 					}		
 
 
 		# Check if dataset exists, download or generate if necessary.
-		self.source_dataset()
+		self.source_dataset(self.params)
 
 		if not params['initialization_only']:
 
 			# Load all the .jsons, but image generation is done in __getitem__
-			self.dataset=[]
-			
+			self.dataset = {}
+			for task in self.tasks:
+				self.dataset[task]=[]
+			self.length = 0
 	
-			self.logger.info("Loading dataset as json into memory.")
+			print("Loading dataset as json into memory.")
 			# Val and Test are not shuffled
 			if self.set == 'val' or self.set == 'test':
 				for tasklist in os.listdir(self.data_folder_child):
@@ -177,10 +154,11 @@ class COG(VQAProblem):
 						with gzip.open(os.path.join(self.data_folder_child,tasklist)) as f:
 							fulltask = f.read().decode('utf-8').split('\n')
 							for datapoint in fulltask:
-								self.dataset.append(json.loads(datapoint))
+								self.dataset[tasklist[4:-8]].append(json.loads(datapoint))
+						self.length = self.length + len(self.dataset[tasklist[4:-8]])
 						print("{} task examples loaded.".format(tasklist[4:-8]))
 					else:
-						self.logger.info("Skipped loading {} task.".format(tasklist[4:-8]))
+						print("Skipped loading {} task.".format(tasklist[4:-8]))
 		
 			# Training set is shuffled
 			elif self.set == 'train':
@@ -190,25 +168,35 @@ class COG(VQAProblem):
 						for datapoint in fullzip:
 							task = json.loads(datapoint)
 							if task['family'] in self.tasks:
-								self.dataset.append(task)
-					print("Zip file {} loaded.".format(zipfile))		
-
-			self.length = len(self.dataset)
-
-			# Testing output classes
-			#if self.set == 'val':
-			#	self.output_words = []
-			#	for datapoint in self.dataset:
-			#		for answer in datapoint['answers']:
-			#			if not answer in self.output_words:
-			#				self.output_words.append(answer)
-
-				#print(self.output_words)
-				#print(len(self.output_words) )
+								self.dataset[task['family']].append(task)
+								self.length = self.length + 1
+					print("Zip file {} loaded.".format(zipfile))
 
 		else:
-			self.logger.info("COG initialization complete.")
+			print("COG initialization complete.")
 			exit(0)
+	
+	# For a single timepoint in a single sample, returns (nwords,64)
+	def words2embed(self,questions):
+		out_embed=torch.zeros(self.nwords,self.words_embed_length)
+		for i, sentence in enumerate(questions):
+			for j, word in enumerate(sentence.split()):
+				out_embed[j,:] = ( self.Embedding(self.UpdateAndFetchLookup(word)) )
+		
+		return out_embed
+
+	# Given a single word, updates lookup table if necessary, then returns embedded vector
+	def UpdateAndFetchLookup(self,word):
+		if word not in self.word_lookup:
+			self.word_lookup[word] = self.nr_unique_words
+			self.nr_unique_words += 1
+		return torch.tensor([self.word_lookup[word]], dtype=torch.long)
+
+	def EmbedQuestions(self,questions):
+		return self.words2embed(questions)
+
+	def EmbedVocabulary(self,vocabulary_size,words_embed_length):
+		self.Embedding = nn.Embedding(vocabulary_size,words_embed_length)
 
 	def evaluate_loss(self, data_dict, logits):
 		""" Calculates accuracy equal to mean number of correct predictions in a given batch.
@@ -219,18 +207,17 @@ class COG(VQAProblem):
 		:param logits: Predictions being output of the model.
 
 		"""
-
-		targets_reg = data_dict['targets_reg']
 		targets_class = data_dict['targets_class']
+		targets_point = data_dict['targets_reg']
 		
-		# Classification Loss 
-		loss = self.loss_function(logits[0][:,0,:], targets_class[:,0]) /logits[0].size(1)
-		for i in range(1,logits[0].size(1)):
-			loss += self.loss_function(logits[0][:,i,:], targets_class[:,i]) /logits[0].size(1)
+		for j, target in enumerate(targets_class):
+			targets_class[j] = [0 if item=='false' else 1 for item in target]
+		targets_class = torch.LongTensor(targets_class)
 
-		# Pointing Loss
-		logsoftmax = nn.LogSoftmax(dim=2)
-		loss += torch.mean(torch.sum(-targets_reg * logsoftmax(logits[1]), 2))
+		loss = self.loss_function(logits[0][:,0,:], targets_class[:,0])
+		for i in range(1,logits[0].size()[1]):
+			loss += self.loss_function(logits[0][:,i,:], targets_class[:,i])/logits[0].size()[1]
+			loss += logits[1].sum()*0
 
 		return loss
 
@@ -243,32 +230,21 @@ class COG(VQAProblem):
 		:param logits: Predictions being output of the model.
 
 		"""
-		
-		targets_reg = data_dict['targets_reg']
 		targets_class = data_dict['targets_class']
+		targets_point = data_dict['targets_reg']
 		
-		# Classification Accuracy
-		values, indices = torch.max(logits[0],2)
-		correct = (indices==targets_class).sum().item() #+ (targets==-1).sum().item()
-		total = targets_class.numel() - (targets_class==-1).sum().item()
+		for j, target in enumerate(targets_class):
+			targets_class[j] = [0 if item=='false' else 1 for item in target]
+		targets_class = torch.LongTensor(targets_class) 		
 
-		# Pointing Accuracy
-		values, indices = torch.max(logits[1],2)
-		values, hard_targets = torch.max(targets_reg,2)
-		
-		# Committing a minor inaccuracy here
-		correct += (indices==hard_targets).sum().item() - (indices==0).sum().item()
-		total += hard_targets.numel() - (hard_targets==0).sum().item()
+		correct = 0
+		total = 0
+		for i in range(0,logits[0].size()[1]):
+			values, indices = torch.max(logits[0][:,i,:],1)
+			total += targets_class[:,i].size(0)
+			correct += (indices==targets_class[:,i]).sum().item()
 
-		return correct/total
-
-	def output_class_to_int(self,targets_class):
-		#for j, target in enumerate(targets_class):
-		targets_class = [-1 if a == 'invalid' else self.output_vocab.index(a) for a in targets_class]
-		targets_class = self.app_state.LongTensor(targets_class)
-
-		return targets_class
-
+		return (correct/total)
 
 	def __getitem__(self, index):
 		"""
@@ -276,16 +252,20 @@ class COG(VQAProblem):
 
 		:param index: index of the sample to return.
 		:type index: int
-
 		:return: ``DataDict({'images', 'questions', 'targets', 'targets_label'})``, with:
 		
-			- ``images``: Sequence of images,
-			- ``tasks``: Which task family sample belongs to,
-			- ``questions``: Question on the sequence (this is constant per sequence for COG),
-			- ``targets_reg``: Sequence of targets as tuple of floats for pointing tasks,
-			- ``targets_class``: Sequence of word targets for classification tasks.
+			-images:	Sequence of images,
+			-tasks:		Which task family sample belongs to
+			-questions:	Question on the sequence (this is constant per sequence for COG),
+			-targets_reg:	Sequence of targets as tuple of floats for pointing tasks
+			-targets_class:	Sequence of word targets for classification tasks
 
 		"""
+
+		# With the assumption that each family has the same number of examples
+		i = index % len(self.tasks)
+		j = int(index / len(self.tasks))
+
 		# This returns:
 		# All variables are numpy array of float32
 			# in_imgs: (n_epoch*batch_size, img_size, img_size, 3)
@@ -296,120 +276,70 @@ class COG(VQAProblem):
 			# out_word: (n_epoch*batch_size, n_out_word)
 			# mask_pnt: (n_epoch*batch_size)
 			# mask_word: (n_epoch*batch_size)		
-
-		output = jti.json_to_feeds([self.dataset[index]])[0]
+		output = jti.json_to_feeds([self.dataset[self.tasks[i]][j]])[0]
 		images = ((torch.from_numpy(output)).permute(1,0,4,2,3)).squeeze()
 				
 		data_dict = self.create_data_dict()
 		data_dict['images']	= images
-		data_dict['tasks']	= self.dataset[index]['family']
-		data_dict['questions'] = [self.dataset[index]['question']]
-		data_dict['questions'] = torch.LongTensor([self.input_vocab.index(word) for word in data_dict['questions'][0].split()])
-		if(data_dict['questions'].size(0) <= self.nwords):
-			prev_size = data_dict['questions'].size(0)
-			data_dict['questions'].resize_(self.nwords)
-			data_dict['questions'][prev_size:] = 0
-		answers = self.dataset[index]['answers']
-		if data_dict['tasks'] in self.classification_tasks:
-			#data_dict['targets_reg']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
-			#data_dict['targets_reg'] = np.array([[-10,-10] for target in answers])
-			targets_reg = np.array([[-10,-10] for target in answers])
-			data_dict['targets_class'] 	= self.output_class_to_int(answers)
-			#data_dict['targets'] = self.output_class_to_int(answers)
-			
+		data_dict['tasks']	= [self.tasks[i]]
+		data_dict['questions'] = [self.dataset[self.tasks[i]][j]['question']]
+		if(self.embed):
+			data_dict['questions'] = self.words2embed(data_dict['questions'])
+		answers = self.dataset[self.tasks[i]][j]['answers']
+		if self.tasks[i] in self.classification_tasks:
+			data_dict['targets_reg']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
+			data_dict['targets_class'] 	= answers
 		else :
-			data_dict['targets_reg']	= np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
-			data_dict['targets_class'] 	= self.app_state.LongTensor([-1 for target in answers])
-			targets_reg = np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
+			data_dict['targets_reg']	= torch.FloatTensor([[-1,-1] if reg == 'invalid' else reg for reg in answers])
+			data_dict['targets_class'] 	= [' ' for item in answers]
 
-		x, y = np.meshgrid(np.linspace(-1,1,7), np.linspace(-1,1,7))
-		mu = 0.1
-
-		sequence_length = len(data_dict['targets_class'])
-		soft_targets = np.zeros((sequence_length,49))
-		for i in range(sequence_length):
-			soft_targets[i,:] = np.exp( -((x-targets_reg[i,0])**2)/(2*(mu**2))
-																		-((y-targets_reg[i,1])**2)/(2*(mu**2)) ).flatten()
-			soft_targets[i,:] = soft_targets[i,:] / np.sum(soft_targets[i,:])
-		np.nan_to_num(soft_targets,copy=False)
-		data_dict['targets_reg'] = self.app_state.FloatTensor(soft_targets)
-
-		return data_dict
+		return(data_dict)
 
 	def collate_fn(self, batch):
 		"""
-		Combines a list of :py:class:`miprometheus.utils.DataDict` (retrieved with :py:func:`__getitem__`) into a batch.
+		Combines a list of ``DataDict`` (retrieved with ``__getitem__``) into a batch.
 
-		:param batch: individual :py:class:`miprometheus.utils.DataDict` samples to combine.
-		:type batch: list
-
+		:param batch: list of individual ``DataDict`` samples to combine.
 		:return: ``DataDict({'images', 'tasks', 'questions', 'targets_reg', 'targets_class'})`` containing the batch.
-
 		"""
 		data_dict = self.create_data_dict()
 		
 		data_dict['images'] = torch.stack([image['images'] for image in batch]).type(torch.FloatTensor)
 		data_dict['tasks']  = [task['tasks'] for task in batch]
-		data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.LongTensor)
+		if(self.embed):
+			data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.FloatTensor)
+		else:
+			data_dict['questions'] = [question['questions'] for question in batch]
 		data_dict['targets_reg'] = torch.stack([reg['targets_reg'] for reg in batch]).type(torch.FloatTensor)
-		data_dict['targets_class'] = torch.stack([tgclassif['targets_class'] for tgclassif in batch]).type(torch.LongTensor)
-		#data_dict['targets'] = torch.stack([target['targets'] for target in batch])
+		data_dict['targets_class'] = [tgclassif['targets_class'] for tgclassif in batch]
 
 		return data_dict
+
 
 	def parse_tasks_and_dataset_type(self, params):
 		"""
 		Parses the task list and dataset type. Then sets folder paths to appropriate values.
 
 		:param params: Dictionary of parameters (read from the configuration ``.yaml`` file).
-		:type params: :py:class:`miprometheus.utils.ParamInterface`
-
+		:type params: miprometheus.utils.ParamInterface
 		"""
 
-		self.classification_tasks = ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
-									 'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
-									 'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
-									 'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
-									 'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
-									 'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape']
-
-		self.regression_tasks = ['AndSimpleExistColorGo', 'AndSimpleExistGo', 'AndSimpleExistShapeGo', 'CompareColorGo',
-								 'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
-								 'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
-								 'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
-								 'SimpleExistGo','SimpleExistShapeGo']
-
-		self.binary_tasks = ['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
+		self.classification_tasks = ['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
 'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
-'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','SimpleCompareColor','SimpleCompareShape'] 
+'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','GetColor','GetColorSpace','GetShape','GetShapeSpace','SimpleCompareColor',
+'SimpleCompareShape'] 
 
-		self.all_colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'] + [
-    'cyan', 'magenta', 'lime', 'pink', 'teal', 'lavender', 'brown', 'beige',
-    'maroon', 'mint', 'olive', 'coral', 'navy', 'grey', 'white']
-
-		self.all_shapes = ['circle', 'square', 'cross', 'triangle', 'vbar', 'hbar'] + list(string.ascii_lowercase)
-		
-		self.all_spaces = ['left', 'right', 'top', 'bottom']
-
-		self.all_whens = ['now','latest','last1']
-
-		self.input_vocab = ['invalid','.', ',', '?','object', 'color', 'shape','loc', 'on','if','then', 'else','exist','equal', 'and','the', 'of', 'with','point'] + self.all_spaces + self.all_colors + self.all_shapes + self.all_whens
-		self.output_vocab = ['true','false'] + self.all_colors + self.all_shapes
+		self.regression_tasks =['AndSimpleExistColorGo','AndSimpleExistGo','AndSimpleExistShapeGo','CompareColorGo','CompareShapeGo','ExistColorGo',
+'ExistColorSpaceGo','ExistGo','ExistShapeGo','ExistShapeSpaceGo','ExistSpaceGo','Go','GoColor','GoColorOf','GoShape','GoShapeOf',
+'SimpleCompareColorGo','SimpleCompareShapeGo','SimpleExistColorGo','SimpleExistGo','SimpleExistShapeGo'] 
 
 		self.tasks = params['tasks']
 		if self.tasks == 'class':
 			self.tasks = self.classification_tasks
 		elif self.tasks == 'reg':
 			self.tasks = self.regression_tasks
-			self.output_vocab = []
 		elif self.tasks == 'all':
 			self.tasks = self.classification_tasks + self.regression_tasks
-		elif self.tasks == 'binary':
-			self.tasks = self.binary_tasks
-			self.output_vocab = ['true','false']
-
-		self.input_words = len(self.input_vocab)
-		self.output_classes = len(self.output_vocab)
 
 		# If loading a default dataset, set default path names and set sequence length		
 		if self.dataset_type == 'canonical':
@@ -431,26 +361,35 @@ class COG(VQAProblem):
 				self.max_distractors = int(params['generation']['max_distractors'])
 				self.nr_processors = int(params['generation']['nr_processors'])
 			except KeyError:
-				self.logger.info("Please specify examples per task, sequence length, memory length and maximum distractors "
-					  "for a generated dataset under 'dataset_type'.")
+				print("Please specify examples per task, sequence length, memory length and maximum distractors for a generated dataset under 'dataset_type'.")
 				exit(1)
 			except ValueError:
-				self.logger.info("Examples per task, sequence length, memory length, maximum distractors and nr_processors "
-					  "(if provided) must be of type int.")
-				exit(2)
+				print("Examples per task, sequence length, memory length, maximum distractors and nr_processors (if provided) must be of type int.")
+				exit(1)
 
 		self.dataset_name = str(self.sequence_length)+'_'+str(self.memory_length)+'_'+str(self.max_distractors)
 		self.data_folder_parent = os.path.join(self.data_folder_main,'data_'+self.dataset_name) 
 		self.data_folder_child = os.path.join(self.data_folder_parent,self.set+'_'+self.dataset_name)
 		
-	def source_dataset(self):
-		"""
-		Handles downloading and unzipping the canonical or hard version of the dataset.
+	def source_dataset(self, params):
+		if self.dataset_type == 'canonical':
+			self.download = self.CheckAndDownload(self.data_folder_child, 
+													'https://storage.googleapis.com/cog-datasets/data_4_3_1.tar')
+		
+		elif self.dataset_type == 'hard':
+			self.download = self.CheckAndDownload(self.data_folder_child,
+													'https://storage.googleapis.com/cog-datasets/data_8_7_10.tar')
+		if self.download:
+			print('\nDownload complete. Extracting...')
+			tar = tarfile.open(os.path.expanduser('~/data/downloaded'))
+			tar.extractall(path=self.data_folder_main)
+			tar.close()
+			print('\nDone! Cleaning up.')
+			os.remove(os.path.expanduser('~/data/downloaded'))
+			print('\nClean-up complete! Dataset ready.')
 
-		"""
-		self.download = False
-		if self.dataset_type == 'generated':
-			self.download = self.check_and_download(self.data_folder_child)
+		else:
+			self.download = self.CheckAndDownload(self.data_folder_child)
 			if self.download:			
 				from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import generate_dataset
 				generate_dataset.main(self.data_folder_parent,
@@ -459,31 +398,13 @@ class COG(VQAProblem):
 															self.memory_length, 
 															self.max_distractors,
 															self.nr_processors)
-				self.logger.info('\nDataset generation complete for {}!'.format(self.dataset_name))
-				self.download = False
-
-		if self.dataset_type == 'canonical':
-			self.download = self.check_and_download(self.data_folder_child, 
-												  'https://storage.googleapis.com/cog-datasets/data_4_3_1.tar')
-		
-		elif self.dataset_type == 'hard':
-			self.download = self.check_and_download(self.data_folder_child,
-												  'https://storage.googleapis.com/cog-datasets/data_8_7_10.tar')
-		if self.download:
-			self.logger.info('\nDownload complete. Extracting...')
-			tar = tarfile.open(os.path.expanduser('~/data/downloaded'))
-			tar.extractall(path=self.data_folder_main)
-			tar.close()
-			self.logger.info('\nDone! Cleaning up.')
-			os.remove(os.path.expanduser('~/data/downloaded'))
-			self.logger.info('\nClean-up complete! Dataset ready.')
-
+				print('\nDataset generation complete for {}!'.format(self.dataset_name))
 
 	def add_statistics(self, stat_col):
 		"""
-		Add :py:class:`COG`-specific stats to :py:class:`miprometheus.utils.StatisticsCollector`.
+		Add cog-specific stats to ``StatisticsCollector``.
 		
-		:param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
+		:param stat_col: ``StatisticsCollector``.
 		
 		"""
 		stat_col.add_statistic('acc', '{:12.10f}')
@@ -495,17 +416,17 @@ class COG(VQAProblem):
 	def collect_statistics(self, stat_col, data_dict, logits):
 		"""
 		Collects dataset details.
-
-		:param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
-		:param data_dict: :py:class:`miprometheus.utils.DataDict` containing targets.
-		:param logits: Prediction of the model (:py:class:`torch.Tensor`)
+		:param stat_col: ``StatisticsCollector``.
+		:param data_dict: DataDict containing targets.
+		:param logits: Prediction of the model.
 
 		"""
 		stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
 		#stat_col['seq_len'] = self.sequence_length
 		#stat_col['max_mem'] = self.memory_length
 		#stat_col['max_distractors'] = self.max_distractors
-		#stat_col['task'] = data_dict['tasks']			
+		#stat_col['task'] = data_dict['tasks']		
+		
 
 if __name__ == "__main__":
 	
@@ -522,16 +443,13 @@ if __name__ == "__main__":
 	timing_test = True
 	testbatches = 100
 
-	# -------------------------
+	#-------------------------
 
 	# Define useful params
 	from miprometheus.utils.param_interface import ParamInterface
 	params = ParamInterface()
-	tasks = ['Go', 'CompareColor']
-	params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'),
-							  'set': 'val',
-							  'dataset_type': 'canonical',
-							  'tasks': tasks})
+	tasks = ['Go','CompareColor']
+	params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'), 'set': 'val', 'dataset_type': 'canonical','tasks': tasks})
 
 	# Create problem - task Go
 	cog_dataset = COG(params)
@@ -541,7 +459,7 @@ if __name__ == "__main__":
 	print(repr(sample))
 
 	# Test whether data structures match expected definitions
-	assert sample['images'].shape == torch.ones((4, 3, 112, 112)).shape
+	assert sample['images'].shape == torch.ones((4,3,112,112)).shape
 	assert sample['tasks'] == ['Go']
 	#assert sample['questions'] == ['point now beige u']
 	assert sample['targets_reg'].shape == torch.ones((4,2)).shape
@@ -553,7 +471,7 @@ if __name__ == "__main__":
 	print(repr(sample2))
 
 	# Test whether data structures match expected definitions
-	assert sample2['images'].shape == torch.ones((4, 3, 112, 112)).shape
+	assert sample2['images'].shape == torch.ones((4,3,112,112)).shape
 	assert sample2['tasks'] == ['CompareColor']
 	#assert sample2['questions'] == ['color of latest g equal color of last1 v ?']
 	assert sample2['targets_reg'].shape == torch.ones((4,2)).shape
@@ -566,7 +484,7 @@ if __name__ == "__main__":
 	from torch.utils.data import DataLoader
 	
 	dataloader = DataLoader(dataset=cog_dataset, collate_fn=cog_dataset.collate_fn,
-							batch_size=batch_size, shuffle=False, num_workers=8)
+		            batch_size=batch_size, shuffle=False, num_workers=8)
 
 	# Display single sample (0) from batch.
 	batch = next(iter(dataloader))
@@ -613,7 +531,7 @@ if __name__ == "__main__":
 		postload = time.time() 
 
 		dataloader = DataLoader(dataset=full_cog_canonical, collate_fn=full_cog_canonical.collate_fn,
-								batch_size=batch_size, shuffle=True, num_workers=8)
+				          batch_size=batch_size, shuffle=True, num_workers=8)
 
 		prebatch = time.time()
 		for i, batch in enumerate(dataloader):
@@ -625,9 +543,8 @@ if __name__ == "__main__":
 	
 		print('Number of workers: {}'.format(dataloader.num_workers))
 		print('Time taken to load the dataset: {}s'.format(postload - preload))	
-		print('Time taken to exhaust {} batches for a batch size of {} with image generation: {}s'.format(testbatches,
-																										  batch_size,
-																										  postbatch-prebatch))
+		print('Time taken to exhaust {} batches for a batch size of {} with image generation: {}s'.format(testbatches, 
+													batch_size, postbatch-prebatch))
 	
 		# Test pregeneration and loading
 		for i, batch in enumerate(dataloader):
@@ -650,3 +567,4 @@ if __name__ == "__main__":
 			os.remove(os.path.expanduser('~/data/cogtest/'+str(i)+'.npy'))
 	
 	print('Done!')
+ 
