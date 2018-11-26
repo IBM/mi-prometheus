@@ -24,9 +24,11 @@ class COGModel(nn.Module):
 		# Initialize unique word counter. Updated by UpdateAndFetchLookup
 		self.nr_unique_words = 0
 		# This should be the length of the longest sentence encounterable
-		self.nwords = 32
+		self.nwords = 32Skipped loading ExistShape task.
+
 		self.words_embed_length = 64
-		self.vocabulary_size = 512
+		self.vocabulary_size = 512Skipped loading ExistShape task.
+
 		self.nr_classes = 2
 
 		self.controller_input_size = self.nwords + 5*5*128 + 5*5*3
@@ -49,7 +51,13 @@ class COGModel(nn.Module):
 		self.classifier1 = nn.Linear(128,self.nr_classes)
 		self.pointer1 = nn.Linear(5*5*3,49)
 
-	def forward(self,images,questions,attention=None,vstm_state=None,controller_state=None):
+	def forward(self,
+							images,
+							embedded_questions,
+							attention=None,
+							vstm_state=None,
+							controller_state=None):
+
 		if attention is None:
 			attention = torch.randn(images.size()[0],self.controller_output_size*2)
 		if controller_state is None:
@@ -59,10 +67,9 @@ class COGModel(nn.Module):
 		#print('Controller_State size: {}'.format(controller_state.size()))
 		
 		out_cnn1 = self.forward_img2cnn_attention(images,attention)
-		
-		out_embed = self.forward_words2embed(questions)
+	
 		#print('out_embed size: {}'.format(out_embed.size()))
-		out_lstm1, state_lstm1 = self.forward_embed2lstm(out_embed)
+		out_lstm1, state_lstm1 = self.forward_embed2lstm(embedded_questions)
 		out_semantic_attn1 = self.semantic_attn1(out_lstm1,attention)
 		#print('out_semantic_attn1 size: {}'.format(out_semantic_attn1.size()))
 		out_vstm1, vstm_state = self.vstm1(out_cnn1,vstm_state,attention)
@@ -75,7 +82,8 @@ class COGModel(nn.Module):
 		attention = torch.cat((out_controller1.squeeze(),controller_state.squeeze()),-1)
 		
 		return classification, pointing, attention, vstm_state, controller_state
-		
+		Skipped loading ExistShape task.
+
 
 	def forward_img2cnn(self,images):
 
@@ -93,7 +101,8 @@ class COGModel(nn.Module):
 	def forward_img2cnn_attention(self,images,attention):
 		out_conv1 		= self.conv1(images)
 		out_maxpool1	= self.maxpool1(out_conv1)
-		out_conv2			= self.conv2(out_maxpool1)
+		out_conv2			= self.conv2(out_maxpool1)Skipped loading ExistShape task.
+
 		out_maxpool2	= self.maxpool2(out_conv2)
 		out_conv3 		= self.conv3(out_maxpool2)
 		out_maxpool3	= self.maxpool3(out_conv3)
@@ -140,7 +149,8 @@ class COGModel(nn.Module):
 
 		# Second Layer
 		# Input to this layer is 32 channels.
-		# Output is 64 channels
+		# Output is 64 channelsSkipped loading ExistShape task.
+
 		# nn.conv2d(in_channels,out_channels,kernel_size,stride=1,padding=0,dilation=1,groups=1,bias=True)
 		self.conv2 = nn.Conv2d(32,64,3,stride=1,padding=0,dilation=1,groups=1,bias=True)
 		# nn.MaxPool2d(kernel_size, stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
@@ -188,6 +198,7 @@ class COGModel(nn.Module):
 
 	def VisualMemory(self):
 		self.vstm1 = VSTM((5,5),128,3,4,self.controller_output_size*2)
+Skipped loading ExistShape task.
 
 	# Embed vocabulary for all available task families
 	# COG paper used a 64-dim training vector.
@@ -200,7 +211,11 @@ class COGModel(nn.Module):
 		if word not in self.word_lookup:
 			self.word_lookup[word] = self.nr_unique_words
 			self.nr_unique_words += 1
-		return torch.tensor([self.word_lookup[word]], dtype=torch.long)	
+		return torch.tensor([self.word_lookup[word]], dtype=torch.long)
+
+	def EmbedQuestions(self,questions):
+		return self.forward_words2embed(questions)
+	
 
 if __name__ == '__main__':
 	from miprometheus.utils.param_interface import ParamInterface
@@ -229,6 +244,8 @@ if __name__ == '__main__':
 
 	images = batch['images'].permute(1,0,2,3,4)
 	questions = batch['questions']
+	embedded_questions = model.EmbedQuestions(questions)
+	#print(embedded_questions.size())
 
 	# Test forward pass of image
 	#print(model.forward_img2cnn(images[0]).size())
@@ -240,11 +257,11 @@ if __name__ == '__main__':
 	#print(repr(lstm))
 
 	# Test full forward pass
-	out_pass1, pointing, attention,vstm_state,controller_state = model(images[0],questions)
+	out_pass1, pointing, attention,vstm_state,controller_state = model(images[0],embedded_questions)
 	#print(out_pass1)
 	#print(out_pass1.size())
 	#exit(0)
-	out_pass2 = model(images[1],questions,attention,vstm_state,controller_state)
+	out_pass2 = model(images[1],embedded_questions,attention,vstm_state,controller_state)
 
 	
 	# Try training!
@@ -255,9 +272,13 @@ if __name__ == '__main__':
 
 	from tensorboardX import SummaryWriter
 	writer = SummaryWriter('runs/exp1/')
+	print(images[0].size())
+	print(embedded_questions.size())
 
-	dummy_input1 = torch.autograd.Variable(torch.Tensor(
-	writer.add_graph('model_graph',model,out_pass2)
+	dummy_images = torch.autograd.Variable(torch.Tensor(64,3,112,112),requires_grad=True)
+	dummy_questions = torch.autograd.Variable(torch.Tensor(64,32,64),requires_grad=True)
+	dummy_out_class,dummy_out_reg,_,_,_ = model(dummy_images,dummy_questions)
+	writer.add_graph('model_graph',model,dummy_out_class)
 
 	for epoch in range(2):
 	
@@ -268,6 +289,7 @@ if __name__ == '__main__':
 			images = data['images'].permute(1,0,2,3,4)
 			questions = data['questions']
 			targets = data['targets_class']
+			embedded_questions = model.EmbedQuestions(questions)
 			
 			for j, target in enumerate(targets):
 				targets[j] = [0 if item=='false' else 1 for item in target]
@@ -276,19 +298,19 @@ if __name__ == '__main__':
 			output = torch.zeros((64,4,2))
 
 			classification, pointing, attention, vstm_state, controller_state = model(
-			images[0],questions)
+			images[0],embedded_questions)
 			output[:,0:1,:] = classification[:,0:1,:]
 
 			classification, pointing, attention, vstm_state, controller_state = model(
-			images[1], questions, attention, vstm_state, controller_state)
+			images[1], embedded_questions, attention, vstm_state, controller_state)
 			output[:,1:2,:] = classification[:,0:1,:]
 			
 			classification, pointing, attention, vstm_state, controller_state = model(
-			images[2], questions, attention, vstm_state, controller_state)
+			images[2], embedded_questions, attention, vstm_state, controller_state)
 			output[:,2:3,:] = classification[:,0:1,:]
 			
 			classification, pointing, attention, vstm_state, controller_state = model(
-			images[3], questions, attention, vstm_state, controller_state)
+			images[3], embedded_questions, attention, vstm_state, controller_state)
 			output[:,3:4,:] = classification[:,0:1,:]
 		
 			loss = criterion(output.view(-1,2),targets.view(64*4))
