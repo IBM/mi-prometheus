@@ -9,24 +9,35 @@ import numpy as np
 import torch.nn as nn
 from miprometheus.models.cog.vstm import VSTM
 from miprometheus.models.cog.ops import FeatureAttention, SpatialAttention, SemanticAttention
-
-#from miprometheus.models.model import Model
+from miprometheus.models.model import Model
 
 # Model inherits from Module, which is very useful.
 # But for now, inherit directly from Module for testing
-class COGModel(nn.Module):
+class CogModel(Model):
 
-	def __init__(self):
-		super(COGModel,self).__init__()
+	# Temporary default value for params
+	def __init__(self, params, problem_default_values_={}):
+		#params = ParamInterface()
+		super(CogModel,self).__init__(params,problem_default_values_)
+
+		self.name = 'CogModel'
+
+		self.data_definitions = {'images': {'size': [-1,-1,-1,-1,-1], 'type': [torch.Tensor]},
+														'questions': {'size': [-1,-1,-1], 'type': [list,str]},
+														'targets_class': {'size': [-1,-1,-1], 'type': [torch.Tensor]},
+														'targets_reg': {'size' : [-1,-1,2], 'type': [torch.Tensor]}
+														}
 
 		# Initialize word lookup dictionary
 		self.word_lookup = {}
+
 		# Initialize unique word counter. Updated by UpdateAndFetchLookup
 		self.nr_unique_words = 0
+
 		# This should be the length of the longest sentence encounterable
 		self.nwords = 32
 		self.words_embed_length = 64
-		self.vocabulary_size = 512
+		self.vocabulary_size = 256
 		self.nr_classes = 2
 
 		self.controller_input_size = self.nwords + 5*5*128 + 5*5*3
@@ -49,9 +60,32 @@ class COGModel(nn.Module):
 		self.classifier1 = nn.Linear(128,self.nr_classes)
 		self.pointer1 = nn.Linear(5*5*3,49)
 
-	def forward(self,
+	def forward(self, data_dict):
+		images = data_dict['images'].permute(1,0,2,3,4)
+		questions = data_dict['questions']
+		#targets_class = data_dict['targets_class']
+		#targets_reg = data_dict['targets_reg']
+		questions = self.EmbedQuestions(questions)
+		
+		output_class = torch.zeros((images.size()[1],images.size()[0],2))
+		output_point = torch.zeros((images.size()[1],images.size()[0],49))
+		attention = None
+		vstm_state = None
+		controller_state=None
+
+		for j, image_seq in enumerate(images):
+			classification, pointing, attention, vstm_state, controller_state = self.forward_full_oneseq(
+			image_seq,questions, attention, vstm_state,controller_state)
+
+			output_class[:,j:j+1,:] = classification[:,0:1,:]
+			output_point[:,j:j+1,:] = pointing[:,0:1,:]
+
+		return output_class, output_point
+		
+
+	def forward_full_oneseq(self,
 							images,
-							embedded_questions,
+							questions,
 							attention=None,
 							vstm_state=None,
 							controller_state=None):
@@ -67,7 +101,7 @@ class COGModel(nn.Module):
 		out_cnn1 = self.forward_img2cnn_attention(images,attention)
 	
 		#print('out_embed size: {}'.format(out_embed.size()))
-		out_lstm1, state_lstm1 = self.forward_embed2lstm(embedded_questions)
+		out_lstm1, state_lstm1 = self.forward_embed2lstm(questions)
 		out_semantic_attn1 = self.semantic_attn1(out_lstm1,attention)
 		#print('out_semantic_attn1 size: {}'.format(out_semantic_attn1.size()))
 		out_vstm1, vstm_state = self.vstm1(out_cnn1,vstm_state,attention)
@@ -78,7 +112,6 @@ class COGModel(nn.Module):
 		classification = self.classifier1(out_controller1.view(-1,1,128))
 		pointing = self.pointer1(out_vstm1.view(-1,1,5*5*3))
 		attention = torch.cat((out_controller1.squeeze(),controller_state.squeeze()),-1)
-		
 		return classification, pointing, attention, vstm_state, controller_state
 		
 
@@ -151,6 +184,7 @@ class COGModel(nn.Module):
 		# nn.MaxPool2d(kernel_size, stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
 		self.maxpool2 = nn.MaxPool2d(2,stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
 
+	#print(repr(lstm))
 		# Third Layer
 		# Input to this layer is 64 channels.
 		# Output is 64 channels
@@ -179,7 +213,7 @@ class COGModel(nn.Module):
 		# Output is 64x2 = 128
 		self.lstm1 = nn.LSTM(self.lstm_input_size,self.lstm_hidden_units,1, batch_first=True,bidirectional=True)
 
-	#Controller Unit
+	#Controller Unitd
 	def Controller(self,nr_units):
 		# Undefined (!) number of GRU units. Not sure if Bidirecitional.
 		# torch.nn.GRU(input_size, hidden_size, num_layers, bias, batch_first, dropout, bidirectional)
@@ -230,18 +264,23 @@ if __name__ == '__main__':
 	dataloader = DataLoader(dataset=cog_dataset, collate_fn=cog_dataset.collate_fn,
 		            batch_size=64, shuffle=False, num_workers=8)
 
-	# Get a batch
+	# Get a batch64))
+	#print(repr(lstm))
 	batch = next(iter(dataloader))
 
 	# Initialize model
-	model = COGModel()
+	from miprometheus.utils.param_interface import ParamInterface
+	params = ParamInterface()
+	#params.add_config_params(params_dict)
+	model = CogModel(params)
 
 	images = batch['images'].permute(1,0,2,3,4)
 	questions = batch['questions']
-	embedded_questions = model.EmbedQuestions(questions)
+	#embedded_questions = model.EmbedQuestions(questions)
 	#print(embedded_questions.size())
 
-	# Test forward pass of image
+	# Test forward pass of image64))
+	#print(repr(lstm))
 	#print(model.forward_img2cnn(images[0]).size())
 
 	# Test forward pass of words
@@ -251,11 +290,11 @@ if __name__ == '__main__':
 	#print(repr(lstm))
 
 	# Test full forward pass
-	out_pass1, pointing, attention,vstm_state,controller_state = model(images[0],embedded_questions)
+	out_pass1, pointing, attention,vstm_state,controller_state = model.forward_full_oneseq(images[0],questions)
 	#print(out_pass1)
 	#print(out_pass1.size())
 	#exit(0)
-	out_pass2 = model(images[1],embedded_questions,attention,vstm_state,controller_state)
+	out_pass2 = model.forward_full_oneseq(images[1],questions,attention,vstm_state,controller_state)
 
 	
 	# Try training!
@@ -266,13 +305,13 @@ if __name__ == '__main__':
 
 	from tensorboardX import SummaryWriter
 	writer = SummaryWriter('runs/exp1/')
-	print(images[0].size())
-	print(embedded_questions.size())
+	#print(images[0].size())
+	#print(embedded_questions.size())
 
-	dummy_images = torch.autograd.Variable(torch.Tensor(64,3,112,112),requires_grad=True)
-	dummy_questions = torch.autograd.Variable(torch.Tensor(64,32,64),requires_grad=True)
-	dummy_out_class,dummy_out_reg,_,_,_ = model(dummy_images,dummy_questions)
-	writer.add_graph('model_graph',model,dummy_out_class)
+	#dummy_images = torch.autograd.Variable(torch.Tensor(64,3,112,112),requires_grad=True)
+	#dummy_questions = torch.autograd.Variable(torch.Tensor(64,32,64),requires_grad=True)
+	#dummy_out_class,dummy_out_reg,_,_,_ = model.forward_full_oneseq(dummy_images,dummy_questions)
+	#writer.add_graph(CogModel().forward_full_oneseq,(dummy_images,dummy_questions))
 
 	for epoch in range(2):
 	
@@ -280,33 +319,14 @@ if __name__ == '__main__':
 		for i, data in enumerate(dataloader,0):
 
 			optimizer.zero_grad()
-			images = data['images'].permute(1,0,2,3,4)
-			questions = data['questions']
 			targets = data['targets_class']
-			embedded_questions = model.EmbedQuestions(questions)
-			
+		
 			for j, target in enumerate(targets):
 				targets[j] = [0 if item=='false' else 1 for item in target]
 			targets = torch.LongTensor(targets)
-			
-			output = torch.zeros((64,4,2))
-
-			classification, pointing, attention, vstm_state, controller_state = model(
-			images[0],embedded_questions)
-			output[:,0:1,:] = classification[:,0:1,:]
-
-			classification, pointing, attention, vstm_state, controller_state = model(
-			images[1], embedded_questions, attention, vstm_state, controller_state)
-			output[:,1:2,:] = classification[:,0:1,:]
-			
-			classification, pointing, attention, vstm_state, controller_state = model(
-			images[2], embedded_questions, attention, vstm_state, controller_state)
-			output[:,2:3,:] = classification[:,0:1,:]
-			
-			classification, pointing, attention, vstm_state, controller_state = model(
-			images[3], embedded_questions, attention, vstm_state, controller_state)
-			output[:,3:4,:] = classification[:,0:1,:]
 		
+			output = model(data)
+	
 			loss = criterion(output.view(-1,2),targets.view(64*4))
 			loss.backward()
 			optimizer.step()

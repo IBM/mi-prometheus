@@ -34,6 +34,7 @@
 __author__ = "Emre Sevgen"
 
 import torch
+import torch.nn as nn
 import gzip
 import json
 import os
@@ -124,6 +125,23 @@ class COG(VQAProblem):
 		# Name
 		self.name = 'COG'
 
+		# Initialize word lookup dictionary
+		self.word_lookup = {}
+
+		# Whether embedding is done here
+		self.embed = False
+
+		# Initialize unique word counter. Updated by UpdateAndFetchLookup
+		self.nr_unique_words = 0
+
+		# This should be the length of the longest sentence encounterable
+		self.nwords = 32
+
+		# Size of the vectoral represetation of each word
+		self.words_embed_length = 64
+		self.vocabulary_size = 512		
+		self.EmbedVocabulary(self.vocabulary_size,self.words_embed_length)
+
 		# Get the "hardcoded" image width/height.
 		self.img_size = 112  # self.params['img_size']
 
@@ -135,11 +153,12 @@ class COG(VQAProblem):
 		
 		# Set data dictionary based on parsed dataset type
 		self.data_definitions = {'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
-								 'tasks': {'size': [-1, 1], 'type': [list, str]},
-								 'questions': {'size': [-1, 1], 'type': [list, str]},
-								 'targets_reg': {'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
-								 'targets_class': {'size': [-1, self.sequence_length, 1], 'type' : [list,str]}
-								 }
+					'tasks':	{'size': [-1, 1], 'type': [list, str]},
+					'questions': 	{'size': [-1,self.nwords,self.words_embed_length], 'type': [torch.Tensor]},
+					'targets_reg' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
+					'targets_class':{'size': [-1, self.sequence_length, 1], 'type' : [list,str]}
+					}		
+
 
 		# Check if dataset exists, download or generate if necessary.
 		self.source_dataset()
@@ -181,6 +200,76 @@ class COG(VQAProblem):
 		else:
 			self.logger.info("COG initialization complete.")
 			exit(0)
+	
+	# For a single timepoint in a single sample, returns (nwords,64)
+	def words2embed(self,questions):
+		out_embed=torch.zeros(self.nwords,self.words_embed_length)
+		for i, sentence in enumerate(questions):
+			for j, word in enumerate(sentence.split()):
+				out_embed[j,:] = ( self.Embedding(self.UpdateAndFetchLookup(word)) )
+		
+		return out_embed
+
+	# Given a single word, updates lookup table if necessary, then returns embedded vector
+	def UpdateAndFetchLookup(self,word):
+		if word not in self.word_lookup:
+			self.word_lookup[word] = self.nr_unique_words
+			self.nr_unique_words += 1
+		return torch.tensor([self.word_lookup[word]], dtype=torch.long)
+
+	def EmbedQuestions(self,questions):
+		return self.words2embed(questions)
+
+	def EmbedVocabulary(self,vocabulary_size,words_embed_length):
+		self.Embedding = nn.Embedding(vocabulary_size,words_embed_length)
+
+	def evaluate_loss(self, data_dict, logits):
+		""" Calculates accuracy equal to mean number of correct predictions in a given batch.
+		WARNING: Applies mask to both logits and targets!
+
+		:param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask'}).
+
+		:param logits: Predictions being output of the model.
+
+		"""
+		targets_class = data_dict['targets_class']
+		targets_point = data_dict['targets_reg']
+		
+		for j, target in enumerate(targets_class):
+			targets_class[j] = [0 if item=='false' else 1 for item in target]
+		targets_class = torch.LongTensor(targets_class)
+
+		loss = self.loss_function(logits[0][:,0,:], targets_class[:,0])
+		for i in range(1,logits[0].size()[1]):
+			loss += self.loss_function(logits[0][:,i,:], targets_class[:,i])/logits[0].size()[1]
+			loss += logits[1].sum()*0
+
+		return loss
+
+	def calculate_accuracy(self, data_dict, logits):
+		""" Calculates accuracy equal to mean number of correct predictions in a given batch.
+		WARNING: Applies mask to both logits and targets!
+
+		:param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask'}).
+
+		:param logits: Predictions being output of the model.
+
+		"""
+		targets_class = data_dict['targets_class']
+		targets_point = data_dict['targets_reg']
+		
+		for j, target in enumerate(targets_class):
+			targets_class[j] = [0 if item=='false' else 1 for item in target]
+		targets_class = torch.LongTensor(targets_class) 		
+
+		correct = 0
+		total = 0
+		for i in range(0,logits[0].size()[1]):
+			values, indices = torch.max(logits[0][:,i,:],1)
+			total += targets_class[:,i].size(0)
+			correct += (indices==targets_class[:,i]).sum().item()
+
+		return (correct/total)
 
 	def __getitem__(self, index):
 		"""
@@ -218,9 +307,11 @@ class COG(VQAProblem):
 		images = ((torch.from_numpy(output)).permute(1, 0, 4, 2, 3)).squeeze()
 				
 		data_dict = self.create_data_dict()
-		data_dict['images'] = images
-		data_dict['tasks'] = [self.tasks[i]]
+		data_dict['images']	= images
+		data_dict['tasks']	= [self.tasks[i]]
 		data_dict['questions'] = [self.dataset[self.tasks[i]][j]['question']]
+		if(self.embed):
+			data_dict['questions'] = self.words2embed(data_dict['questions'])
 		answers = self.dataset[self.tasks[i]][j]['answers']
 
 		if self.tasks[i] in self.classification_tasks:
@@ -245,8 +336,11 @@ class COG(VQAProblem):
 		data_dict = self.create_data_dict()
 		
 		data_dict['images'] = torch.stack([image['images'] for image in batch]).type(torch.FloatTensor)
-		data_dict['tasks'] = [task['tasks'] for task in batch]
-		data_dict['questions'] = [question['questions'] for question in batch]
+		data_dict['tasks']  = [task['tasks'] for task in batch]
+		if(self.embed):
+			data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.FloatTensor)
+		else:
+			data_dict['questions'] = [question['questions'] for question in batch]
 		data_dict['targets_reg'] = torch.stack([reg['targets_reg'] for reg in batch]).type(torch.FloatTensor)
 		data_dict['targets_class'] = [tgclassif['targets_class'] for tgclassif in batch]
 
@@ -354,10 +448,11 @@ class COG(VQAProblem):
 		:param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
 		
 		"""
-		stat_col.add_statistic('seq_len', '{:06d}')
-		stat_col.add_statistic('max_mem', '{:06d}')
-		stat_col.add_statistic('max_distractors', '{:06d}')
-		stat_col.add_statistic('task', '{}')
+		stat_col.add_statistic('acc', '{:12.10f}')
+		#stat_col.add_statistic('seq_len', '{:06d}')
+		#stat_col.add_statistic('max_mem', '{:06d}')
+		#stat_col.add_statistic('max_distractors', '{:06d}')
+		#stat_col.add_statistic('task', '{}')
 
 	def collect_statistics(self, stat_col, data_dict, logits):
 		"""
@@ -368,10 +463,11 @@ class COG(VQAProblem):
 		:param logits: Prediction of the model (:py:class:`torch.Tensor`)
 
 		"""
-		stat_col['seq_len'] = self.sequence_length
-		stat_col['max_mem'] = self.memory_length
-		stat_col['max_distractors'] = self.max_distractors
-		stat_col['task'] = data_dict['tasks']		
+		stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
+		#stat_col['seq_len'] = self.sequence_length
+		#stat_col['max_mem'] = self.memory_length
+		#stat_col['max_distractors'] = self.max_distractors
+		#stat_col['task'] = data_dict['tasks']		
 		
 
 if __name__ == "__main__":
@@ -410,8 +506,8 @@ if __name__ == "__main__":
 	# Test whether data structures match expected definitions
 	assert sample['images'].shape == torch.ones((4, 3, 112, 112)).shape
 	assert sample['tasks'] == ['Go']
-	assert sample['questions'] == ['point now beige u']
-	assert sample['targets_reg'].shape == torch.ones((4, 2)).shape
+	#assert sample['questions'] == ['point now beige u']
+	assert sample['targets_reg'].shape == torch.ones((4,2)).shape
 	assert len(sample['targets_class']) == 4
 	assert sample['targets_class'][0] == ' '  
 
@@ -422,8 +518,8 @@ if __name__ == "__main__":
 	# Test whether data structures match expected definitions
 	assert sample2['images'].shape == torch.ones((4, 3, 112, 112)).shape
 	assert sample2['tasks'] == ['CompareColor']
-	assert sample2['questions'] == ['color of latest g equal color of last1 v ?']
-	assert sample2['targets_reg'].shape == torch.ones((4, 2)).shape
+	#assert sample2['questions'] == ['color of latest g equal color of last1 v ?']
+	assert sample2['targets_reg'].shape == torch.ones((4,2)).shape
 	assert len(sample2['targets_class']) == 4
 	assert sample2['targets_class'][0] == 'invalid'  
 	
@@ -442,6 +538,7 @@ if __name__ == "__main__":
 	assert batch['images'].shape == torch.ones((batch_size,4,3,112,112)).shape
 	assert len(batch['tasks']) == batch_size
 	assert len(batch['questions']) == batch_size
+	print(batch['questions'].size())
 	assert batch['targets_reg'].shape == torch.ones((batch_size,4,2)).shape
 	assert len(batch['targets_class']) == batch_size
 	assert len(batch['targets_class'][0]) == 4 
