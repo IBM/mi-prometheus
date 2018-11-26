@@ -189,7 +189,7 @@ class CLEVR(ImageTextToClassProblem):
         >>>                        'set': 'train',
         >>>                        'dataset_variant': 'CLEVR'},
         >>>           'images': {'raw_images': True},
-        >>>           'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
+        >>>           'questions': {'embedding_type': 'random', 'embedding_dim': 300, 'embedding_source': 'CLEVR'}})
 
 
     """
