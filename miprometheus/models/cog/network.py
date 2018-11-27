@@ -78,6 +78,7 @@ class CogModel(Model):
 		questions = self.forward_lookup2embed(questions)
 
 		dtype = questions.dtype
+		print(dtype)
 		
 		output_class = torch.zeros((images.size()[1],images.size()[0],2)).type(dtype)
 		output_point = torch.zeros((images.size()[1],images.size()[0],49)).type(dtype)
@@ -98,9 +99,9 @@ class CogModel(Model):
 	def forward_full_oneseq(self,
 							images,
 							questions,
-							attention=None,
-							vstm_state=None,
-							controller_state=None):
+							attention,
+							vstm_state,
+							controller_state):
 
 		#print('Attention size: {}'.format(attention.size()))
 		#print('Controller_State size: {}'.format(controller_state.size()))
