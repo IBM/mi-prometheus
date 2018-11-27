@@ -104,13 +104,13 @@ class COG(VQAProblem):
 		self.word_lookup = {}
 
 		# Whether embedding is done here
-		self.embed = False
+		self.embed = True
 
 		# Initialize unique word counter. Updated by UpdateAndFetchLookup
-		self.nr_unique_words = 0
+		self.nr_unique_words = 1
 
 		# This should be the length of the longest sentence encounterable
-		self.nwords = 32
+		self.nwords = 24
 
 		# Size of the vectoral represetation of each word
 		self.words_embed_length = 64
@@ -129,7 +129,7 @@ class COG(VQAProblem):
 		# Set data dictionary based on parsed dataset type
 		self.data_definitions = {'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
 					'tasks':	{'size': [-1, 1], 'type': [list, str]},
-					'questions': 	{'size': [-1,self.nwords,self.words_embed_length], 'type': [torch.Tensor]},
+					'questions': 	{'size': [-1,self.nwords], 'type': [torch.Tensor]},
 					'targets_reg' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
 					'targets_class':{'size': [-1, self.sequence_length, 1], 'type' : [list,str]}
 					}		
@@ -284,7 +284,11 @@ class COG(VQAProblem):
 		data_dict['tasks']	= [self.tasks[i]]
 		data_dict['questions'] = [self.dataset[self.tasks[i]][j]['question']]
 		if(self.embed):
-			data_dict['questions'] = self.words2embed(data_dict['questions'])
+			data_dict['questions'] = torch.Tensor([self.UpdateAndFetchLookup(word) for word in data_dict['questions'][0].split()])
+			if(data_dict['questions'].size(0) <= self.nwords):
+				prev_size = data_dict['questions'].size(0)
+				data_dict['questions'].resize_(self.nwords)
+				data_dict['questions'][prev_size:] = 0
 		answers = self.dataset[self.tasks[i]][j]['answers']
 		if self.tasks[i] in self.classification_tasks:
 			data_dict['targets_reg']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
@@ -307,7 +311,9 @@ class COG(VQAProblem):
 		data_dict['images'] = torch.stack([image['images'] for image in batch]).type(torch.FloatTensor)
 		data_dict['tasks']  = [task['tasks'] for task in batch]
 		if(self.embed):
-			data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.FloatTensor)
+			#data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.FloatTensor)
+			data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.LongTensor)
+			#print(data_dict['questions'])
 		else:
 			data_dict['questions'] = [question['questions'] for question in batch]
 		data_dict['targets_reg'] = torch.stack([reg['targets_reg'] for reg in batch]).type(torch.FloatTensor)
