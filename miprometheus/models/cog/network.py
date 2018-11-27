@@ -42,6 +42,7 @@ class CogModel(Model):
 
 		self.controller_input_size = self.nwords + 5*5*128 + 5*5*3
 		self.controller_output_size = 128
+		self.pondering_steps = 6
 
 		self.lstm_input_size = self.words_embed_length
 		self.lstm_hidden_units = 64
@@ -89,7 +90,8 @@ class CogModel(Model):
 
 
 		for j, image_seq in enumerate(images):
-			classification, pointing, attention, vstm_state, controller_state = self.forward_full_oneseq(
+			for k in range(self.pondering_steps):
+				classification, pointing, attention, vstm_state, controller_state = self.forward_full_oneseq(
 			image_seq,questions, attention, vstm_state,controller_state)
 
 			output_class[:,j:j+1,:] = classification[:,0:1,:]
