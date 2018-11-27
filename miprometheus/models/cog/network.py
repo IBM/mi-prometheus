@@ -73,17 +73,15 @@ class CogModel(Model):
 	def forward(self, data_dict):
 		images = data_dict['images'].permute(1,0,2,3,4)
 		questions = data_dict['questions']
-		self.dtype = images.dtype
-		print(self.dtype)
 		#targets_class = data_dict['targets_class']
 		#targets_reg = data_dict['targets_reg']
 		questions = self.forward_lookup2embed(questions)
 		
-		output_class = torch.zeros((images.size()[1],images.size()[0],2)).type(self.dtype)
-		output_point = torch.zeros((images.size()[1],images.size()[0],49)).type(self.dtype)
-		attention = torch.randn(images.size()[1],self.controller_output_size*2).type(self.dtype)
-		controller_state = torch.zeros(1,images.size()[1],128).type(self.dtype)
-		vstm_state = torch.zeros(images.size()[1],self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]).type(self.dtype)
+		output_class = torch.zeros((images.size()[1],images.size()[0],2),requires_grad=False)
+		output_point = torch.zeros((images.size()[1],images.size()[0],49),requires_grad=False)
+		attention = torch.randn((images.size()[1],self.controller_output_size*2),requires_grad=False)
+		controller_state = torch.zeros((1,images.size()[1],128),requires_grad=False)
+		vstm_state = torch.zeros((images.size()[1],self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=False)
 
 		for j, image_seq in enumerate(images):
 			classification, pointing, attention, vstm_state, controller_state = self.forward_full_oneseq(
@@ -164,7 +162,7 @@ class CogModel(Model):
 
 	def forward_lookup2embed(self,questions):
 		
-		out_embed=torch.zeros(questions.size(0),self.nwords,self.words_embed_length).type(self.dtype)
+		out_embed=torch.zeros(questions.size(0),self.nwords,self.words_embed_length)
 		for i, sentence in enumerate(questions):
 			out_embed[i,:,:] = ( self.Embedding( sentence ))
 		
