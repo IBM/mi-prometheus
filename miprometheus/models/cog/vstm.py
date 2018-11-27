@@ -50,13 +50,8 @@ class VSTM(nn.Module):
 		# Should it have bias?
 		self.control1 = nn.Linear(self.control_input_size, self.control_output_size,bias=False)
 
-	def forward(self,inputs,state=None,controls=None):
+	def forward(self,inputs,state,controls):
 
-		if controls is None:
-			controls = torch.randn(inputs.size()[0],self.control_input_size)
-
-		if state is None:
-			state = torch.zeros(inputs.size()[0],self.n_maps,self.shape[0],self.shape[1])
 
 		#print('VSTM Controls size: {}'.format(controls.size()))
 		#print('VSTM State size: {}'.format(state.size()))

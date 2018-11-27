@@ -46,11 +46,21 @@ class CogModel(Model):
 		self.lstm_input_size = self.words_embed_length
 		self.lstm_hidden_units = 64
 
+		self.vstm_shape=(5,5)
+		self.vstm_inchannels = 128
+		self.vstm_outchannels = 3
+		self.vstm_nmaps = 4
+		self.vstm_controlinputsize = self.controller_output_size*2
+
 		self.VisualProcessing()
 		self.SemanticProcessing()
 		self.EmbedVocabulary(self.vocabulary_size,self.words_embed_length)
-		self.Controller(128)
-		self.VisualMemory()
+		self.Controller(self.controller_output_size)
+		self.VisualMemory(self.vstm_shape,
+											self.vstm_inchannels,
+											self.vstm_outchannels,
+											self.vstm_nmaps,
+											self.vstm_controlinputsize)
 
 		self.feature_attn1 = FeatureAttention(64,self.controller_output_size*2)
 		self.feature_attn2 = FeatureAttention(128,self.controller_output_size*2)
@@ -69,9 +79,9 @@ class CogModel(Model):
 		
 		output_class = torch.zeros((images.size()[1],images.size()[0],2))
 		output_point = torch.zeros((images.size()[1],images.size()[0],49))
-		attention = None
-		vstm_state = None
-		controller_state=None
+		attention = torch.randn(images.size()[1],self.controller_output_size*2)
+		controller_state = torch.zeros(1,images.size()[1],128)
+		vstm_state = torch.zeros(images.size()[1],self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1])
 
 		for j, image_seq in enumerate(images):
 			classification, pointing, attention, vstm_state, controller_state = self.forward_full_oneseq(
@@ -89,11 +99,6 @@ class CogModel(Model):
 							attention=None,
 							vstm_state=None,
 							controller_state=None):
-
-		if attention is None:
-			attention = torch.randn(images.size()[0],self.controller_output_size*2)
-		if controller_state is None:
-			controller_state = torch.zeros(1,images.size()[0],128)
 
 		#print('Attention size: {}'.format(attention.size()))
 		#print('Controller_State size: {}'.format(controller_state.size()))
@@ -235,8 +240,8 @@ class CogModel(Model):
 		# "In addition, the activity of the top visual layer is summed up across space and provided to the controller." (??)
 		self.controller1 = nn.GRU(self.controller_input_size, nr_units,batch_first=True)
 
-	def VisualMemory(self):
-		self.vstm1 = VSTM((5,5),128,3,4,self.controller_output_size*2)
+	def VisualMemory(self,shape,in_channels,out_channels,n_maps,control_input_size):
+		self.vstm1 = VSTM(shape,in_channels,out_channels,n_maps,control_input_size)
 
 	# Embed vocabulary for all available task families
 	# COG paper used a 64-dim training vector.
