@@ -1,0 +1,41 @@
+# Problem parameters:
+training:
+ cuda: False
+ problem:
+  name: COG
+  # Size of generated input: [batch_size x sequence_length x classes].
+  batch_size: 64
+  tasks: ['AndCompareColor']
+  data_folder: '~/data/cog'
+  set: val
+  use_mask: False
+  dataset_type: canonical
+  # Set optimizer.
+ optimizer:
+  name: Adam
+  lr: 0.005
+
+testing:
+ cuda: False
+ problem:
+  name: COG
+  # Size of generated input: [batch_size x sequence_length x classes].
+  batch_size: 64
+  tasks: ['AndCompareColor']
+  data_folder: '~/data/cog'
+  set: val
+  dataset_type: canonical
+
+validation:
+ cuda: False
+ problem:
+  name: COG
+  # Size of generated input: [batch_size x sequence_length x classes].
+  batch_size: 64
+  tasks: ['AndCompareColor']
+  data_folder: '~/data/cog'
+  set: val
+  dataset_type: canonical
+
+model:
+ name: CogModel
