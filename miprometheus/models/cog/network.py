@@ -35,7 +35,7 @@ class CogModel(Model):
 		self.nr_unique_words = 0
 
 		# This should be the length of the longest sentence encounterable
-		self.nwords = 32
+		self.nwords = 24
 		self.words_embed_length = 64
 		self.vocabulary_size = 256
 		self.nr_classes = 2
@@ -100,7 +100,7 @@ class CogModel(Model):
 		
 		out_cnn1 = self.forward_img2cnn_attention(images,attention)
 	
-		#print('out_embed size: {}'.format(out_embed.size()))
+		#print('questions: {}'.format(questions))
 		out_lstm1, state_lstm1 = self.forward_embed2lstm(questions)
 		out_semantic_attn1 = self.semantic_attn1(out_lstm1,attention)
 		#print('out_semantic_attn1 size: {}'.format(out_semantic_attn1.size()))
@@ -149,6 +149,7 @@ class CogModel(Model):
 		out_embed=torch.zeros(len(questions),self.nwords,self.words_embed_length)
 		for i, sentence in enumerate(questions):
 			for j, word in enumerate(sentence[0].split()):
+				#print('j is {} and word is {}'.format(j,word))
 				out_embed[i,j,:] = ( self.Embedding(self.UpdateAndFetchLookup(word)) )
 		
 		return out_embed
