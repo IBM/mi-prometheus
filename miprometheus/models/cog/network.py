@@ -87,11 +87,6 @@ class CogModel(Model):
 		controller_state = torch.zeros((1,images.size()[1],128),requires_grad=False).type(self.dtype)
 		vstm_state = torch.zeros((images.size()[1],self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=False).type(self.dtype)
 
-		print(output_class.device)
-		print(output_point.device)
-		print(attention.device)
-		print(controller_state.device)
-		print(vstm_state.device)
 
 		for j, image_seq in enumerate(images):
 			classification, pointing, attention, vstm_state, controller_state = self.forward_full_oneseq(
@@ -120,7 +115,7 @@ class CogModel(Model):
 		out_lstm1, state_lstm1 = self.forward_embed2lstm(questions)
 		out_semantic_attn1 = self.semantic_attn1(out_lstm1,attention)
 		#print('out_semantic_attn1 size: {}'.format(out_semantic_attn1.size()))
-		out_vstm1, vstm_state = self.vstm1(out_cnn1,vstm_state,attention)
+		out_vstm1, vstm_state = self.vstm1(out_cnn1,vstm_state,attention,self.dtype)
 
 		in_controller1 = torch.cat((out_semantic_attn1.view(-1,1,self.nwords),out_cnn1.view(-1,1,128*5*5),out_vstm1.view(-1,1,3*5*5)),-1)
 		out_controller1, controller_state = self.controller1(in_controller1,controller_state)

@@ -264,7 +264,6 @@ class COG(VQAProblem):
 
 		correct = 0
 		total = 0
-		print(logits[0].size())
 		for i in range(0,logits[0].size()[1]):
 			values, indices = torch.max(logits[0][:,i,:],1)
 			total += targets_class[:,i].size(0)

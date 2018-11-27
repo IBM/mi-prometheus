@@ -50,7 +50,7 @@ class VSTM(nn.Module):
 		# Should it have bias?
 		self.control1 = nn.Linear(self.control_input_size, self.control_output_size,bias=False)
 
-	def forward(self,inputs,state,controls):
+	def forward(self,inputs,state,controls,dtype):
 
 
 		#print('VSTM Controls size: {}'.format(controls.size()))
@@ -71,7 +71,7 @@ class VSTM(nn.Module):
 		
 
 		# Probably inefficient, but that's ok for now
-		gated_inputs = torch.zeros(inputs.size()[0],self.n_maps,self.shape[0],self.shape[1])		
+		gated_inputs = torch.zeros(inputs.size()[0],self.n_maps,self.shape[0],self.shape[1]).type(dtype)		
 		for i in range(inputs.size()[0]):
 			gated_inputs[i:i+1] = nn.functional.conv2d(inputs[i:i+1],in_gates[i])
 
@@ -81,7 +81,7 @@ class VSTM(nn.Module):
 
 		# Probably inefficient, but that's ok for now
 		output = torch.tanh(new_state)
-		outputs = torch.zeros(inputs.size()[0],self.out_channels,self.shape[0],self.shape[1])
+		outputs = torch.zeros(inputs.size()[0],self.out_channels,self.shape[0],self.shape[1]).type(dtype)
 		for i in range(inputs.size()[0]):
 			outputs[i:i+1] = nn.functional.conv2d(output[i:i+1],output_gates[1])
 
