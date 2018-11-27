@@ -43,8 +43,7 @@
 s_control_unit.py:
 
     - Implementation of the :py:class:`ControlUnit` for the ``S-MAC`` network (simplified MAC).
-    - Cf https://arxiv.org/abs/1803.03067 for the reference MAC paper (Hudson and Manning, CVPR 2018).
-    - Submitted to the 2018 NIPS VIGIL workshop. More information will be provided after reviews.
+    - Cf https://arxiv.org/abs/1803.03067 for the reference MAC paper (Hudson and Manning, ICLR 2018).
 
 """
 __author__ = "Vincent Marois & T.S. Jayram"
@@ -64,8 +63,17 @@ class ControlUnit(Module):
         This implementation is part of a simplified version of the MAC network, where modifications regarding \
         the different units have been done to reduce the number of linear layers (and thus number of parameters).
 
-        This is part of a submission to the VIGIL workshop for NIPS 2018. More information (e.g. associated paper) \
-        will be provided in the near future.
+        This is part of a submission to the ViGIL workshop for NIPS 2018. Feel free to use this model and refer to it \
+        with the following BibTex:
+
+        ::
+
+            @article{marois2018transfer,
+                    title={On transfer learning using a MAC model variant},
+                    author={Marois, Vincent and Jayram, TS and Albouy, Vincent and Kornuta, Tomasz and Bouhadjar, Younes and Ozcan, Ahmet S},
+                    journal={arXiv preprint arXiv:1811.06529},
+                    year={2018}
+            }
 
     """
 

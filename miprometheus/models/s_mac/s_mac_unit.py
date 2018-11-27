@@ -43,8 +43,7 @@
 s_mac_unit.py:
 
     - Implementation of the :py:class:`MACUnit` for the ``S-MAC`` network (simplified MAC).
-    - Cf https://arxiv.org/abs/1803.03067 for the reference MAC paper (Hudson and Manning, CVPR 2018).
-    - Submitted to the 2018 NIPS VIGIL workshop. More information will be provided after reviews.
+    - Cf https://arxiv.org/abs/1803.03067 for the reference MAC paper (Hudson and Manning, ICLR 2018).
 
 """
 __author__ = "Vincent Marois & T.S. Jayram"
@@ -72,8 +71,17 @@ class MACUnit(Module):
         The implementation being simplified, we are not using the optional `self-attention` & `memory-gating` in \
         the :py:class:`WriteUnit`.
 
-        This is part of a submission to the VIGIL workshop for NIPS 2018. More information (e.g. associated paper) \
-        will be provided in the near future.
+        This is part of a submission to the ViGIL workshop for NIPS 2018. Feel free to use this model and refer to it \
+        with the following BibTex:
+
+        ::
+
+            @article{marois2018transfer,
+                    title={On transfer learning using a MAC model variant},
+                    author={Marois, Vincent and Jayram, TS and Albouy, Vincent and Kornuta, Tomasz and Bouhadjar, Younes and Ozcan, Ahmet S},
+                    journal={arXiv preprint arXiv:1811.06529},
+                    year={2018}
+            }
 
     """
 
