@@ -83,7 +83,8 @@ grid_overwrite:
     multi_tests: {
       set: ['valB', 'valA'],
       indices: ['~/data/CLEVR_CoGenT_v1.0/vigil_cogent_valB_full_indices.txt',
-                '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_test_valA_indices.txt']
+                '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_test_valA_indices.txt'],
+      max_test_episodes: [-1, -1]
     }
 
 

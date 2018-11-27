@@ -65,7 +65,8 @@ grid_tasks:
           data_folder: ['~/data/CLEVR_v1.0/','~/data/CLEVR_CoGenT_v1.0', '~/data/CLEVR_CoGenT_v1.0'],
           dataset_variant: ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-CoGenT'],
           set: ['val','valA', 'valB'],
-          embedding_source: ['CLEVR', 'CLEVR', 'CLEVR']
+          embedding_source: ['CLEVR', 'CLEVR', 'CLEVR'],
+          max_test_episodes: [-1, -1, -1]
         }
   -
     default_configs: configs/mac/s_mac_cogent.yaml  # S-MAC on CoGenT
