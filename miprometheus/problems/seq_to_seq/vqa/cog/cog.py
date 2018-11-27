@@ -260,7 +260,7 @@ class COG(VQAProblem):
 		
 		for j, target in enumerate(targets_class):
 			targets_class[j] = [0 if item=='false' else 1 for item in target]
-		targets_class = torch.LongTensor(targets_class) 		
+		targets_class = self.app_state.LongTensor(targets_class) 		
 
 		correct = 0
 		total = 0
