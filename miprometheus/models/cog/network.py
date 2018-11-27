@@ -76,12 +76,14 @@ class CogModel(Model):
 		#targets_class = data_dict['targets_class']
 		#targets_reg = data_dict['targets_reg']
 		questions = self.forward_lookup2embed(questions)
+
+		dtype = self.app_state.dtype
 		
-		output_class = torch.zeros((images.size()[1],images.size()[0],2))
-		output_point = torch.zeros((images.size()[1],images.size()[0],49))
-		attention = torch.randn(images.size()[1],self.controller_output_size*2)
-		controller_state = torch.zeros(1,images.size()[1],128)
-		vstm_state = torch.zeros(images.size()[1],self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1])
+		output_class = torch.zeros((images.size()[1],images.size()[0],2)).type(dtype)
+		output_point = torch.zeros((images.size()[1],images.size()[0],49)).type(dtype)
+		attention = torch.randn(images.size()[1],self.controller_output_size*2).type(dtype)
+		controller_state = torch.zeros(1,images.size()[1],128).type(dtype)
+		vstm_state = torch.zeros(images.size()[1],self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]).type(dtype)
 
 		for j, image_seq in enumerate(images):
 			classification, pointing, attention, vstm_state, controller_state = self.forward_full_oneseq(
