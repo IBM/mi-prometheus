@@ -65,7 +65,7 @@ class CogModel(Model):
 		questions = data_dict['questions']
 		#targets_class = data_dict['targets_class']
 		#targets_reg = data_dict['targets_reg']
-		questions = self.EmbedQuestions(questions)
+		questions = self.forward_lookup2embed(questions)
 		
 		output_class = torch.zeros((images.size()[1],images.size()[0],2))
 		output_point = torch.zeros((images.size()[1],images.size()[0],49))
@@ -101,6 +101,7 @@ class CogModel(Model):
 		out_cnn1 = self.forward_img2cnn_attention(images,attention)
 	
 		#print('questions: {}'.format(questions))
+		#questions = self.forward_lookup2embed(questions)
 		out_lstm1, state_lstm1 = self.forward_embed2lstm(questions)
 		out_semantic_attn1 = self.semantic_attn1(out_lstm1,attention)
 		#print('out_semantic_attn1 size: {}'.format(out_semantic_attn1.size()))
@@ -151,6 +152,14 @@ class CogModel(Model):
 			for j, word in enumerate(sentence[0].split()):
 				#print('j is {} and word is {}'.format(j,word))
 				out_embed[i,j,:] = ( self.Embedding(self.UpdateAndFetchLookup(word)) )
+		
+		return out_embed
+
+	def forward_lookup2embed(self,questions):
+		
+		out_embed=torch.zeros(questions.size(0),self.nwords,self.words_embed_length)
+		for i, sentence in enumerate(questions):
+			out_embed[i,:,:] = ( self.Embedding( sentence ))
 		
 		return out_embed
 
