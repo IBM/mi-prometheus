@@ -77,7 +77,7 @@ class CogModel(Model):
 		#targets_reg = data_dict['targets_reg']
 		questions = self.forward_lookup2embed(questions)
 
-		dtype = self.app_state.dtype
+		dtype = questions.dtype
 		
 		output_class = torch.zeros((images.size()[1],images.size()[0],2)).type(dtype)
 		output_point = torch.zeros((images.size()[1],images.size()[0],49)).type(dtype)
