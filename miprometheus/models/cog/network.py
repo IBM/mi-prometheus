@@ -83,6 +83,12 @@ class CogModel(Model):
 		controller_state = torch.zeros((1,images.size()[1],128),requires_grad=False)
 		vstm_state = torch.zeros((images.size()[1],self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=False)
 
+		print(output_class.device)
+		print(output_point.device)
+		print(attention.device)
+		print(controller_state.device)
+		print(vstm_state.device)
+
 		for j, image_seq in enumerate(images):
 			classification, pointing, attention, vstm_state, controller_state = self.forward_full_oneseq(
 			image_seq,questions, attention, vstm_state,controller_state)
