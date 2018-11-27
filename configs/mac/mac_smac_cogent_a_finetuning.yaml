@@ -6,7 +6,7 @@ grid_tasks:
     overwrite:
       # Add the model parameters:
       model:
-        load: 'path/to/the/trained/model/to/finetune'  # the CLEVR trained mac model to finetune on CoGenT-B
+        load: 'path/to/the/trained/model/to/finetune'  # the CLEVR trained mac model to finetune on CoGenT-A
 
       # indicate the following so that the CLEVR-trained model can properly handle CoGenT data.
       training:
@@ -27,7 +27,7 @@ grid_tasks:
     overwrite:
       # Add the model parameters:
       model:
-        load: 'path/to/the/trained/model/to/finetune'  # the CLEVR trained s-mac model to finetune on CoGenT-B
+        load: 'path/to/the/trained/model/to/finetune'  # the CLEVR trained s-mac model to finetune on CoGenT-A
 
       # indicate the following so that the CLEVR-trained model can properly handle CoGenT data.
       training:
