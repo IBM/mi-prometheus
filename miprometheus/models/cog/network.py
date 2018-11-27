@@ -73,11 +73,15 @@ class CogModel(Model):
 	def forward(self, data_dict):
 		images = data_dict['images'].permute(1,0,2,3,4)
 		questions = data_dict['questions']
+		
+		# Get dtype.
+		dtype = self.app_state.dtype
+
 		#targets_class = data_dict['targets_class']
 		#targets_reg = data_dict['targets_reg']
 		questions = self.forward_lookup2embed(questions)
 		
-		output_class = torch.zeros((images.size()[1],images.size()[0],2),requires_grad=False)
+		output_class = torch.zeros((images.size()[1],images.size()[0],2),requires_grad=False).type(dtype)
 		output_point = torch.zeros((images.size()[1],images.size()[0],49),requires_grad=False)
 		attention = torch.randn((images.size()[1],self.controller_output_size*2),requires_grad=False)
 		controller_state = torch.zeros((1,images.size()[1],128),requires_grad=False)
@@ -168,7 +172,7 @@ class CogModel(Model):
 
 	def forward_lookup2embed(self,questions):
 		
-		out_embed=torch.zeros(questions.size(0),self.nwords,self.words_embed_length)
+		out_embed=torch.zeros((questions.size(0),self.nwords,self.words_embed_length),requires_grad=False)
 		for i, sentence in enumerate(questions):
 			out_embed[i,:,:] = ( self.Embedding( sentence ))
 		
