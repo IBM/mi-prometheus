@@ -1,5 +1,25 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) IBM Corporation 2018
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
 """
 Defines the COG model
+
+See the reference paper here: https://arxiv.org/abs/1803.06092
 """
 
 __author__ = "Emre Sevgen"
@@ -15,20 +35,49 @@ from miprometheus.models.model import Model
 # But for now, inherit directly from Module for testing
 class CogModel(Model):
 
+	"""
+	``Cog`` is a model for VQA on sequences, using an externally-gates 2D-LSTM-like structure as
+	memory, and relying on attention mechanisms. The module consists of a semantic processing
+	subunit, a visual processing subunit, a visual memory and a controller. Additionally, the
+	controller is allowed to 'ponder' on each sequence element for a variable number of steps
+	before moving onto the next input in the sequence. 
+
+	"""
+
 	# Temporary default value for params
 	def __init__(self, params, problem_default_values_={}):
-		#params = ParamInterface()
+		"""
+		Constructor of the ``CogModel``. Instantiates all subunits.
+
+		:param params: dictionary of parameters (read from the ``.yaml`` configuration file.)
+		:type params: utils.ParamInterface
+
+		:param problem_default_values_: default values coming from the ``Problem`` class.
+		:type problem_default_values_: dict
+
+		"""
+		# Call base class initialization.
 		super(CogModel,self).__init__(params,problem_default_values_)
+
+		params.add_default_params({'num_classes' : problem_default_values_['num_classes']})
 
 		self.name = 'CogModel'
 
 		self.data_definitions = {'images': {'size': [-1,-1,-1,-1,-1], 'type': [torch.Tensor]},
-														'questions': {'size': [-1,-1,-1], 'type': [list,str]},
+														'questions': {'size': [-1,-1], 'type': [torch.Tensor]},
 														'targets_class': {'size': [-1,-1,-1], 'type': [torch.Tensor]},
 														'targets_reg': {'size' : [-1,-1,2], 'type': [torch.Tensor]}
 														}
 
-		# Initialize word lookup dictionary
+		# Parameters relating to semantic processing
+		# Each word in a given input is first mapped (optionally) to unique integers in a lookup table
+		# Then, the resulting ints are embedded using torch nn.Embedding and fed into a bidirectional
+		# LSTM. 
+		#
+		# Input is post-lookup table questions.
+		# Output is fed into Semantic Attention mechanism.
+		#-----------------------------------------------------------------
+		# Initialize lookup table
 		self.word_lookup = {}
 
 		# Initialize unique word counter. Updated by UpdateAndFetchLookup
@@ -36,45 +85,137 @@ class CogModel(Model):
 
 		# This should be the length of the longest sentence encounterable
 		self.nwords = 24
+		
+		# Length of vectoral representation of each word.
 		self.words_embed_length = 64
+
+		# Maximum number of embeddable words.
 		self.vocabulary_size = 256
-		self.nr_classes = 2
 
-		self.controller_input_size = self.nwords + 5*5*128 + 5*5*3
-		self.controller_output_size = 128
-
+		# LSTM input size (redundant?)
 		self.lstm_input_size = self.words_embed_length
+		
+		# LSTM hidden units.
 		self.lstm_hidden_units = 64
+		#-----------------------------------------------------------------
 
-		self.VisualProcessing()
-		self.SemanticProcessing()
-		self.EmbedVocabulary(self.vocabulary_size,self.words_embed_length)
-		self.Controller(128)
-		self.VisualMemory()
+		
+		# Parameters relating to visual processing
+		# Visual processing is a four layer CNN with 32, 64, 64 and 128 channels, 3x3
+		# kernels and 2x2 MaxPool layers. Last two layers are subject to feature attention, 
+		# and last layer is subject to spatial attention.
+		#
+		# Input is input images.
+		# Output is fed into the Controller and into the VSTM.
+		#-----------------------------------------------------------------
+		# Input Image size
+		self.image_size = [112,112]
 
-		self.feature_attn1 = FeatureAttention(64,self.controller_output_size*2)
-		self.feature_attn2 = FeatureAttention(128,self.controller_output_size*2)
-		self.spatial_attn1 = SpatialAttention(128,self.controller_output_size*2)
-		self.semantic_attn1 = SemanticAttention(self.lstm_hidden_units*2,self.controller_output_size*2)
+		# Number of channels in input Image
+		self.image_channels = 3
 
-		self.classifier1 = nn.Linear(128,self.nr_classes)
-		self.pointer1 = nn.Linear(5*5*3,49)
+		# CNN number of channels
+		self.visual_processing_channels = [32,64,64,128]
+
+		#-----------------------------------------------------------------
+	
+
+		# Parameters relating to visual memory
+		# Visual memory is a 2D externally gated network. See vstm.py for details.
+		#
+		# Inputs are output of visual processing, and gating from the Controller.
+		# Output is retrieved memory into Controller.
+		#-----------------------------------------------------------------
+		# Visual memory shape. height x width.
+		self.vstm_shape = np.array(self.image_size)
+		for channel in self.visual_processing_channels:
+			self.vstm_shape = np.floor((self.vstm_shape-2)/2)
+		self.vstm_shape = [int(dim) for dim in self.vstm_shape]
+
+		# Input channels to the visual memory. This is the same as the output of the last CNN layer.
+		self.vstm_inchannels = self.visual_processing_channels[-1]
+
+		# Output channels from the visual memory.
+		self.vstm_outchannels = 3
+
+		# Number of memory maps used to save information. 
+		self.vstm_nmaps = 4
+
+		# Number of pointing classes.
+		self.nr_pointers = 49
+
+		#-----------------------------------------------------------------
+
+
+		# Parameters relating to controller
+		# Controller processes input from all subunits, gates the visual memory, and produces
+		# classification answers after pondering. It is a GRU.
+		#
+		# Inputs is concatenation of post-attention Semantic output, Visual processing, and VSTM.
+		# Output feeds attention mechanisms, and generates a classification.
+		#-----------------------------------------------------------------
+		self.controller_input_size = self.nwords + 5*5*128 + 5*5*3
+
+		# Number of GRU units in controller
+		self.controller_output_size = 768
+
+		# Number of pondering steps per item in sequence.
+		self.pondering_steps = 6
+
+		# Number of possible classes to output.
+		self.nr_classes = params['num_classes']
+
+		#-----------------------------------------------------------------
+
+
+		# Define each subunit from provided parameters.
+		#-----------------------------------------------------------------
+		self.VisualProcessing(self.image_channels, 
+													self.visual_processing_channels, 
+													self.controller_output_size*2)
+	
+		self.SemanticProcessing(self.lstm_input_size,
+														self.lstm_hidden_units,
+														self.controller_output_size*2)
+
+		self.EmbedVocabulary(self.vocabulary_size,
+												 self.words_embed_length)
+
+		self.Controller(self.controller_input_size, 
+										self.controller_output_size,
+										self.nr_classes)
+
+		self.VisualMemory(self.vstm_shape,
+											self.vstm_inchannels,
+											self.vstm_outchannels,
+											self.vstm_nmaps,
+											self.controller_output_size*2,
+											self.nr_pointers)
+
+		#-----------------------------------------------------------------
+
+
+
 
 	def forward(self, data_dict):
 		images = data_dict['images'].permute(1,0,2,3,4)
 		questions = data_dict['questions']
-		#targets_class = data_dict['targets_class']
-		#targets_reg = data_dict['targets_reg']
+		
+		# Get dtype.
+		self.dtype = self.app_state.dtype
+
 		questions = self.forward_lookup2embed(questions)
 		
-		output_class = torch.zeros((images.size()[1],images.size()[0],2))
-		output_point = torch.zeros((images.size()[1],images.size()[0],49))
-		attention = None
-		vstm_state = None
-		controller_state=None
+		output_class = torch.zeros((images.size()[1],images.size()[0],self.nr_classes),requires_grad=False).type(self.dtype)
+		output_point = torch.zeros((images.size()[1],images.size()[0],49),requires_grad=False).type(self.dtype)
+		attention = torch.randn((images.size()[1],self.controller_output_size*2),requires_grad=False).type(self.dtype)
+		controller_state = torch.zeros((1,images.size()[1],self.controller_output_size),requires_grad=False).type(self.dtype)
+		vstm_state = torch.zeros((images.size()[1],self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=False).type(self.dtype)
+
 
 		for j, image_seq in enumerate(images):
-			classification, pointing, attention, vstm_state, controller_state = self.forward_full_oneseq(
+			for k in range(self.pondering_steps):
+				classification, pointing, attention, vstm_state, controller_state = self.forward_full_oneseq(
 			image_seq,questions, attention, vstm_state,controller_state)
 
 			output_class[:,j:j+1,:] = classification[:,0:1,:]
@@ -86,33 +227,20 @@ class CogModel(Model):
 	def forward_full_oneseq(self,
 							images,
 							questions,
-							attention=None,
-							vstm_state=None,
-							controller_state=None):
-
-		if attention is None:
-			attention = torch.randn(images.size()[0],self.controller_output_size*2)
-		if controller_state is None:
-			controller_state = torch.zeros(1,images.size()[0],128)
-
-		#print('Attention size: {}'.format(attention.size()))
-		#print('Controller_State size: {}'.format(controller_state.size()))
+							attention,
+							vstm_state,
+							controller_state):
 		
 		out_cnn1 = self.forward_img2cnn_attention(images,attention)
-	
-		#print('questions: {}'.format(questions))
-		#questions = self.forward_lookup2embed(questions)
 		out_lstm1, state_lstm1 = self.forward_embed2lstm(questions)
 		out_semantic_attn1 = self.semantic_attn1(out_lstm1,attention)
-		#print('out_semantic_attn1 size: {}'.format(out_semantic_attn1.size()))
-		out_vstm1, vstm_state = self.vstm1(out_cnn1,vstm_state,attention)
-
+		out_vstm1, vstm_state = self.vstm1(out_cnn1,vstm_state,attention,self.dtype)
 		in_controller1 = torch.cat((out_semantic_attn1.view(-1,1,self.nwords),out_cnn1.view(-1,1,128*5*5),out_vstm1.view(-1,1,3*5*5)),-1)
 		out_controller1, controller_state = self.controller1(in_controller1,controller_state)
-
-		classification = self.classifier1(out_controller1.view(-1,1,128))
+		classification = self.classifier1(out_controller1.view(-1,1,self.controller_output_size))
 		pointing = self.pointer1(out_vstm1.view(-1,1,5*5*3))
 		attention = torch.cat((out_controller1.squeeze(),controller_state.squeeze()),-1)
+		
 		return classification, pointing, attention, vstm_state, controller_state
 		
 
@@ -157,7 +285,7 @@ class CogModel(Model):
 
 	def forward_lookup2embed(self,questions):
 		
-		out_embed=torch.zeros(questions.size(0),self.nwords,self.words_embed_length)
+		out_embed=torch.zeros((questions.size(0),self.nwords,self.words_embed_length),requires_grad=False).type(self.dtype)
 		for i, sentence in enumerate(questions):
 			out_embed[i,:,:] = ( self.Embedding( sentence ))
 		
@@ -170,77 +298,54 @@ class CogModel(Model):
 		return out_lstm1, (c_n,h_n)
 
 	# Visual Processing
-	# Currently lacking attention on the last two layers
-	def VisualProcessing(self):
-		# First up is a 4 layer CNN
-		# Batch normalization
-		# 3x3 Kernel
-		# 2x2 Max Pooling after
-		# ReLU
+	def VisualProcessing(self,in_channels,layer_channels,control_len):
 
 		# First Layer
-		# Input to this layer is 3 channel images.
-		# Output is 32 channels	
-		# nn.conv2d(in_channels,out_channels,kernel_size,stride=1,padding=0,dilation=1,groups=1,bias=True)
-		self.conv1 = nn.Conv2d(3,32,3,stride=1,padding=0,dilation=1,groups=1,bias=True)
-		# nn.MaxPool2d(kernel_size, stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
-		self.maxpool1 = nn.MaxPool2d(2,stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+		self.conv1 = nn.Conv2d(in_channels,layer_channels[0],3,
+								 stride=1,padding=0,dilation=1,groups=1,bias=True)
+		self.maxpool1 = nn.MaxPool2d(2,
+										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
 
 		# Second Layer
-		# Input to this layer is 32 channels.
-		# Output is 64 channels
-		# nn.conv2d(in_channels,out_channels,kernel_size,stride=1,padding=0,dilation=1,groups=1,bias=True)
-		self.conv2 = nn.Conv2d(32,64,3,stride=1,padding=0,dilation=1,groups=1,bias=True)
-		# nn.MaxPool2d(kernel_size, stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
-		self.maxpool2 = nn.MaxPool2d(2,stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+		self.conv2 = nn.Conv2d(layer_channels[0],layer_channels[1],3,
+								 stride=1,padding=0,dilation=1,groups=1,bias=True)
+		self.maxpool2 = nn.MaxPool2d(2,
+										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
 
-	#print(repr(lstm))
 		# Third Layer
-		# Input to this layer is 64 channels.
-		# Output is 64 channels
-		# nn.conv2d(in_channels,out_channels,kernel_size,stride=1,padding=0,dilation=1,groups=1,bias=True)
-		self.conv3 = nn.Conv2d(64,64,3,stride=1,padding=0,dilation=1,groups=1,bias=True)
-		# nn.MaxPool2d(kernel_size, stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
-		self.maxpool3 = nn.MaxPool2d(2,stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+		self.conv3 = nn.Conv2d(layer_channels[1],layer_channels[2],3,
+								 stride=1,padding=0,dilation=1,groups=1,bias=True)
+		self.maxpool3 = nn.MaxPool2d(2,
+										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+		self.feature_attn1 = FeatureAttention(layer_channels[2],control_len)
 
 		# Fourth Layer
-		# Input to this layer is 64 channels.
-		# Output is 128 channels
-		# nn.conv2d(in_channels,out_channels,kernel_size,stride=1,padding=0,dilation=1,groups=1,bias=True)
-		self.conv4 = nn.Conv2d(64,128,3,stride=1,padding=0,dilation=1,groups=1,bias=True)
-		# nn.MaxPool2d(kernel_size, stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
-		self.maxpool4 = nn.MaxPool2d(2,stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+		self.conv4 = nn.Conv2d(layer_channels[2],layer_channels[3],3,
+								 stride=1,padding=0,dilation=1,groups=1,bias=True)
+		self.maxpool4 = nn.MaxPool2d(2,
+										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+		self.feature_attn2 = FeatureAttention(layer_channels[3],control_len)
+		self.spatial_attn1 = SpatialAttention(layer_channels[3],control_len)
+
 
 	# Semantic Processing
-	# For a single timepoint in a single sample, returns (nwords,128)
-	def SemanticProcessing(self):
-		# 128 unit Bidirectional LSTM
-		# torch.nn.LSTM(input_size, hidden_size, num_layers, bias, batch_first, dropout, bidirectional)
+	def SemanticProcessing(self,lstm_input,lstm_hidden,control_len):
+		self.lstm1 = nn.LSTM(lstm_input,lstm_hidden,
+								 num_layers=1, batch_first=True,bidirectional=True)
 
-		# Input is a 64-dim embedding.
-		# Hidden state is 128 - this is what they are referring to as 128 unit.
-		# Then I assume it's a single layer.
-		# Output is 64x2 = 128
-		self.lstm1 = nn.LSTM(self.lstm_input_size,self.lstm_hidden_units,1, batch_first=True,bidirectional=True)
+		self.semantic_attn1 = SemanticAttention(lstm_hidden*2,control_len)
 
-	#Controller Unitd
-	def Controller(self,nr_units):
-		# Undefined (!) number of GRU units. Not sure if Bidirecitional.
-		# torch.nn.GRU(input_size, hidden_size, num_layers, bias, batch_first, dropout, bidirectional)
+	#Controller Unit
+	def Controller(self,controller_input,controller_hidden,nr_classes):
+		self.controller1 = nn.GRU(controller_input, controller_hidden,
+											 batch_first=True)
+		self.classifier1 = nn.Linear(controller_hidden,nr_classes)
 
-		# Input is a concatenation of:
-			# Post-attention activity of top visual layer through a 128-unit fully connected layer. (Size = 128)
-			# Semantic memory. (Size = nword ? )
-			# vSTM Module output. 
-		# "In addition, the activity of the top visual layer is summed up across space and provided to the controller." (??)
-		self.controller1 = nn.GRU(self.controller_input_size, nr_units,batch_first=True)
-
-	def VisualMemory(self):
-		self.vstm1 = VSTM((5,5),128,3,4,self.controller_output_size*2)
+	def VisualMemory(self,shape,in_channels,out_channels,n_maps,control_len,nr_pointers):
+		self.vstm1 = VSTM(shape,in_channels,out_channels,n_maps,control_len)
+		self.pointer1 = nn.Linear(shape[0]*shape[1]*out_channels,nr_pointers)
 
 	# Embed vocabulary for all available task families
-	# COG paper used a 64-dim training vector.
-	# For a single timepoint in a single sample, returns (nwords,64)
 	def EmbedVocabulary(self,vocabulary_size,words_embed_length):
 		self.Embedding = nn.Embedding(vocabulary_size,words_embed_length)
 
