@@ -196,6 +196,23 @@ class CogModel(Model):
 											self.nr_pointers)
 
 		#-----------------------------------------------------------------
+		
+		
+
+
+		# Initial states of RNNs are trainable parameters. Set them here.
+		#-----------------------------------------------------------------
+		# Get dtype.
+		self.dtype = self.app_state.dtype
+
+
+		self.attention_init = nn.Parameter(torch.randn((1,self.controller_output_size*2),requires_grad=False).type(self.dtype))
+
+		self.controller_state_init = nn.Parameter(torch.randn((1,1,self.controller_output_size),requires_grad=False).type(self.dtype))
+
+		self.vstm_state_init = nn.Parameter(torch.randn((1,self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=False).type(self.dtype))
+		#-----------------------------------------------------------------
+
 
 
 
@@ -203,23 +220,20 @@ class CogModel(Model):
 	def forward(self, data_dict):
 		images = data_dict['images'].permute(1,0,2,3,4)
 		questions = data_dict['questions']
-		
-		# Get dtype.
-		self.dtype = self.app_state.dtype
-
+	
 		questions = self.forward_lookup2embed(questions)
 		
 		output_class = torch.zeros((images.size()[1],images.size()[0],self.nr_classes),requires_grad=False).type(self.dtype)
 		output_point = torch.zeros((images.size()[1],images.size()[0],49),requires_grad=False).type(self.dtype)
-		attention = torch.randn((images.size()[1],self.controller_output_size*2),requires_grad=False).type(self.dtype)
-		controller_state = torch.zeros((1,images.size()[1],self.controller_output_size),requires_grad=False).type(self.dtype)
-		vstm_state = torch.zeros((images.size()[1],self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=False).type(self.dtype)
-
+		
+		attention = self.attention_init.expand(images.size(1),-1)
+		vstm_state = self.vstm_state_init.expand(images.size(1),-1,-1,-1)
+		controller_state = self.controller_state_init.expand(-1,images.size(1),-1)
 
 		for j, image_seq in enumerate(images):
 			for k in range(self.pondering_steps):
 				classification, pointing, attention, vstm_state, controller_state = self.forward_full_oneseq(
-			image_seq,questions, attention, vstm_state,controller_state)
+			image_seq,questions, attention, vstm_state, controller_state)
 
 			output_class[:,j:j+1,:] = classification[:,0:1,:]
 			output_point[:,j:j+1,:] = pointing[:,0:1,:]
@@ -240,6 +254,7 @@ class CogModel(Model):
 		out_vstm1, vstm_state = self.vstm1(out_cnn1,vstm_state,attention,self.dtype)
 		in_controller1 = torch.cat((out_semantic_attn1.view(-1,1,self.nwords),out_cnn1.view(-1,1,128*5*5),out_vstm1.view(-1,1,3*5*5)),-1)
 		out_controller1, controller_state = self.controller1(in_controller1,controller_state)
+		controller_state = torch.clamp(controller_state, max=self.controller_clip)
 		classification = self.classifier1(out_controller1.view(-1,1,self.controller_output_size))
 		pointing = self.pointer1(out_vstm1.view(-1,1,5*5*3))
 		attention = torch.cat((out_controller1.squeeze(),controller_state.squeeze()),-1)
