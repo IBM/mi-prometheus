@@ -59,6 +59,8 @@ class CogModel(Model):
 		# Call base class initialization.
 		super(CogModel,self).__init__(params,problem_default_values_)
 
+		params.add_default_params({'num_classes' : problem_default_values_['num_classes']})
+
 		self.name = 'CogModel'
 
 		self.data_definitions = {'images': {'size': [-1,-1,-1,-1,-1], 'type': [torch.Tensor]},
@@ -155,13 +157,13 @@ class CogModel(Model):
 		self.controller_input_size = self.nwords + 5*5*128 + 5*5*3
 
 		# Number of GRU units in controller
-		self.controller_output_size = 128
+		self.controller_output_size = 768
 
 		# Number of pondering steps per item in sequence.
 		self.pondering_steps = 6
 
 		# Number of possible classes to output.
-		self.nr_classes = 2
+		self.nr_classes = params['num_classes']
 
 		#-----------------------------------------------------------------
 
@@ -204,10 +206,10 @@ class CogModel(Model):
 
 		questions = self.forward_lookup2embed(questions)
 		
-		output_class = torch.zeros((images.size()[1],images.size()[0],2),requires_grad=False).type(self.dtype)
+		output_class = torch.zeros((images.size()[1],images.size()[0],self.nr_classes),requires_grad=False).type(self.dtype)
 		output_point = torch.zeros((images.size()[1],images.size()[0],49),requires_grad=False).type(self.dtype)
 		attention = torch.randn((images.size()[1],self.controller_output_size*2),requires_grad=False).type(self.dtype)
-		controller_state = torch.zeros((1,images.size()[1],128),requires_grad=False).type(self.dtype)
+		controller_state = torch.zeros((1,images.size()[1],self.controller_output_size),requires_grad=False).type(self.dtype)
 		vstm_state = torch.zeros((images.size()[1],self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=False).type(self.dtype)
 
 
@@ -235,7 +237,7 @@ class CogModel(Model):
 		out_vstm1, vstm_state = self.vstm1(out_cnn1,vstm_state,attention,self.dtype)
 		in_controller1 = torch.cat((out_semantic_attn1.view(-1,1,self.nwords),out_cnn1.view(-1,1,128*5*5),out_vstm1.view(-1,1,3*5*5)),-1)
 		out_controller1, controller_state = self.controller1(in_controller1,controller_state)
-		classification = self.classifier1(out_controller1.view(-1,1,128))
+		classification = self.classifier1(out_controller1.view(-1,1,self.controller_output_size))
 		pointing = self.pointer1(out_vstm1.view(-1,1,5*5*3))
 		attention = torch.cat((out_controller1.squeeze(),controller_state.squeeze()),-1)
 		

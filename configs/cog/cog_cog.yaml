@@ -5,9 +5,9 @@ training:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 64
-  tasks: ['AndCompareColor']
+  tasks: class
   data_folder: '~/data/cog'
-  set: val
+  set: train
   use_mask: False
   dataset_type: canonical
   # Set optimizer.
@@ -21,9 +21,9 @@ testing:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 64
-  tasks: ['AndCompareColor']
+  tasks: class
   data_folder: '~/data/cog'
-  set: val
+  set: test
   dataset_type: canonical
 
 validation:
@@ -32,7 +32,7 @@ validation:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 64
-  tasks: ['AndCompareColor']
+  tasks: class
   data_folder: '~/data/cog'
   set: val
   dataset_type: canonical
