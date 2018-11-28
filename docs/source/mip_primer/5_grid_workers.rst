@@ -8,7 +8,7 @@ These are:
 
     - two Grid Trainers (separate versions for collections of CPUs and GPUs) spanning several trainings in parallel,
     - two Grid Testers (similarly),
-    - a single Grid Analyzer, which colleects the results of several trainings & tests in a given experiment directory into a single csv file.
+    - a single Grid Analyzer, which collects the results of several trainings & tests in a given experiment directory into a single csv file.
 
 
 .. figure:: ../img/worker_grid_class_diagram.png

@@ -1,3 +1,5 @@
+.. _installation:
+
 Installation
 ===================
 `@author: Vincent Marois & Tomasz Kornuta`

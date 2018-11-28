@@ -1,3 +1,5 @@
+.. _explained:
+
 MI-Prometheus Explained
 =======================
 `@author: Tomasz Kornuta & Vincent Marois`
