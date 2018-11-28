@@ -14,6 +14,7 @@ training:
  optimizer:
   name: Adam
   lr: 0.0005
+  weight_decay: 2e-5
  gradient_clipping: 10
 
 testing:

@@ -226,9 +226,9 @@ class CogModel(Model):
 		output_class = torch.zeros((images.size()[1],images.size()[0],self.nr_classes),requires_grad=False).type(self.dtype)
 		output_point = torch.zeros((images.size()[1],images.size()[0],49),requires_grad=False).type(self.dtype)
 		
-		attention = self.attention_init.expand(images.size(1),-1)
-		vstm_state = self.vstm_state_init.expand(images.size(1),-1,-1,-1)
-		controller_state = self.controller_state_init.expand(-1,images.size(1),-1)
+		attention = self.attention_init.expand(images.size(1),-1).contiguous()
+		vstm_state = self.vstm_state_init.expand(images.size(1),-1,-1,-1).contiguous()
+		controller_state = self.controller_state_init.expand(-1,images.size(1),-1).contiguous()
 
 		for j, image_seq in enumerate(images):
 			for k in range(self.pondering_steps):
