@@ -28,23 +28,27 @@ __author__ = "Emre Sevgen"
 
 import os
 import argparse
-#import json
+# import json
 
 from miprometheus.problems.problem_factory import ProblemFactory
 from miprometheus.workers import Worker
+
 
 class ProblemInitializer(Worker):
 
 	def __init__(self, config=None, name=None, path=None):
 		"""
-		Initialize ProblemInitializer, which runs the __init__ for a provided problem, optionally overriding some parameters.
+		Initialize :py:class:`ProblemInitializer`, which runs the :py:func:`__init__` for a provided \
+		``Problem``, downloading and/or generating its datasets as necessary, optionally overriding some parameters.
 
 		:param config: Path to a config file to initialize from.
-		:type config: string
+		:type config: str
+
 		:param name: Name of a problem to initialize using default parameters
-		:type name:	string
+		:type name:	str
+
 		:param path: Path to initialize problem, overrides default data_folder if provided.
-		:type path: string
+		:type path: str
 
 		"""
 
@@ -58,12 +62,12 @@ class ProblemInitializer(Worker):
 		# If config is provided, parse and build problem from it.
 		else:
 			try:
-				#self.params.add_config_params_from_yaml(os.path.expanduser(config))
+				# self.params.add_config_params_from_yaml(os.path.expanduser(config))
 				configs_to_load = self.recurrent_config_parse(os.path.expanduser(config),[])
 				self.recurrent_config_load(configs_to_load)
 				self.params = self.params['training']
 			except FileNotFoundError:
-				print("Config file at path '{}' not found.".format(config))
+				self.logger.error("Config file at path '{}' not found.".format(config))
 				exit(1)
 
 		# If path is provided, override default path.
@@ -71,41 +75,60 @@ class ProblemInitializer(Worker):
 			self.params.add_config_params({'problem': {'data_folder': path}})
 
 		# Pass initialization only flag.
-		self.params.add_config_params({'problem':{'initialization_only': True}})
+		self.params.add_config_params({'problem': {'initialization_only': True}})
 
 		# Build Problem
 		try:
 			_ = ProblemFactory.build(self.params['problem'])
 		except AttributeError:
-			print("Provided problem name not found.")
+			self.logger.error("Provided problem name not found.")
 			exit(1)
 
-# Useful function to properly parse argparse
-def int_or_str(val):
-	try:
-		return int(val)
-	except ValueError:
-		return val
+	# Useful function to properly parse argparse
+	@staticmethod
+	def int_or_str(val):
+		"""
+		Try to return ``int(val)`` else return ``val``.
 
-# Useful function to properly parse argparse
-def str_to_bool(val):
-	if val.lower() in ('yes', 'true', 't', 'y', '1'):
-		return True
-	elif val.lower() in ('no', 'false', 'f', 'n', '0'):
-		return False
-	else:
-		raise argparse.ArgumentTypeError('Boolean value expected.')
+		:param val: Value to evaluate.
+
+		"""
+		try:
+			return int(val)
+		except ValueError:
+			return val
+
+	# Useful function to properly parse argparse
+	@staticmethod
+	def str_to_bool(val):
+		"""
+		Return ``True`` if val.lower() in ('yes', 'true', 't', 'y', '1').
+
+		Return ``False`` if val.lower() in ('no', 'false', 'f', 'n', '0')
+
+		Else raise argparse.ArgumentTypeError.
+
+		:param val: Value to evaluate.
+
+		"""
+		if val.lower() in ('yes', 'true', 't', 'y', '1'):
+			return True
+		elif val.lower() in ('no', 'false', 'f', 'n', '0'):
+			return False
+		else:
+			raise argparse.ArgumentTypeError('Boolean value expected.')
+
 
 if __name__ == "__main__":
 	""" May be used as a script to prepare a dataset for subsequent runs. """
 
 	# Create parser with a list of runtime arguments.
-	parser = argparse.ArgumentParser(description=
-	'Initializes any problem, thereby downloading any prerequisite datasets if required. \n' + 
-	'A dataset can be initialize either from a config file with --c, or from the command line directly ' +
-	'with --problem to initialize a problem with its default parameters. An optional --path argument' +
-	'can be provided to override default problem path.'
-	, formatter_class=argparse.RawTextHelpFormatter)
+	parser = argparse.ArgumentParser(description='Initializes any problem, thereby downloading any prerequisite '
+												 'datasets if required. \nA dataset can be initialized either from a '
+												 'config file with --c, or from the command line directly with --problem'
+												 ' to initialize a problem with its default parameters. An optional '
+												 '--path argument can be provided to override default problem path.',
+									 formatter_class=argparse.RawTextHelpFormatter)
 
 	parser.add_argument('--c', type=str,
 	help='A config file to initialize from.')
@@ -116,10 +139,10 @@ if __name__ == "__main__":
 	parser.add_argument('--path', type=str,
 	help='Change from problem default path to this path when initializing')
 
-  # Add a command line dict parser
-	#parser.add_argument('--options', type=json.loads,
-	#help='A dictionary to initialize from, obtained directly from the command line.' + 
-	#'If --c is provided, arguments here will override the config file parameters.')
+	# Add a command line dict parser
+	# parser.add_argument('--options', type=json.loads,
+	# help='A dictionary to initialize from, obtained directly from the command line.' +
+	# 'If --c is provided, arguments here will override the config file parameters.')
 	
 	args = parser.parse_args()
 
