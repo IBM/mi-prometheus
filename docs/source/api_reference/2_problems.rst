@@ -75,10 +75,26 @@ ImageToClass Problems
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+
 SequenceToSequence Problems
 ----------------------------
 
 .. autoclass:: SeqToSeqProblem
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+VQA Problems
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: VQAProblem
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+:hidden:`COG`
+```````````````````````````
+.. autoclass:: COG
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__

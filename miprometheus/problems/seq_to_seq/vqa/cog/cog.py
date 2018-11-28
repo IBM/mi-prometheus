@@ -60,11 +60,12 @@ class COG(VQAProblem):
 
 				- ``self.data_folder`` (`string`) : Data directory where dataset is stored.
 				- ``self.set`` (`string`) : 'val', 'test', or 'train'
-				- ``self.tasks`` (`string or list of string`) : Which tasks to use. 'class', 'reg', 'all', or a 
-\ list of tasks such as ['AndCompareColor', 'AndCompareShape']. Only selected tasks will be used.
+				- ``self.tasks`` (`string or list of string`) : Which tasks to use. 'class', 'reg', \
+'all', or a list of tasks such as ['AndCompareColor', 'AndCompareShape']. \
+Only selected tasks will be used. 
 				- ``self.dataset_type`` (`string`) : Which dataset to use, 'canonical', 'hard', or \
-								'generated'. If 'generated', please specify 'examples_per_task', 'sequence_length', \
-								'memory_length', and 'max_distractors' under 'generation'. Can also specify 'nr_processors' for generation.
+				'generated'. If 'generated', please specify 'examples_per_task', 'sequence_length', \
+				'memory_length', and 'max_distractors' under 'generation'. Can also specify 'nr_processors' for generation.
 
 		:param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
@@ -166,11 +167,11 @@ class COG(VQAProblem):
 		:type index: int
 		:return: ``DataDict({'images', 'questions', 'targets', 'targets_label'})``, with:
 		
-			-images:	Sequence of images,
-			-tasks:		Which task family sample belongs to
-			-questions:	Question on the sequence (this is constant per sequence for COG),
-			-targets_reg:	Sequence of targets as tuple of floats for pointing tasks
-			-targets_class:	Sequence of word targets for classification tasks
+			- ``images`` :	Sequence of images, 
+			- ``tasks`` :		Which task family sample belongs to, 
+			- ``questions`` :	Question on the sequence (this is constant per sequence for COG), 
+			- ``targets_reg`` :	Sequence of targets as tuple of floats for pointing tasks, 
+			- ``targets_class`` :	Sequence of word targets for classification tasks, 
 
 		"""
 
