@@ -1,6 +1,6 @@
 # Problem parameters:
 training:
- cuda: False
+ cuda: True
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
@@ -13,10 +13,11 @@ training:
   # Set optimizer.
  optimizer:
   name: Adam
-  lr: 0.005
+  lr: 0.0005
+ gradient_clipping: 10
 
 testing:
- cuda: False
+ cuda: True
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
@@ -27,7 +28,7 @@ testing:
   dataset_type: canonical
 
 validation:
- cuda: False
+ cuda: True
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].

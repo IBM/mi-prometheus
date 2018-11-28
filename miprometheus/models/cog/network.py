@@ -165,6 +165,9 @@ class CogModel(Model):
 		# Number of possible classes to output.
 		self.nr_classes = params['num_classes']
 
+		# Controller state norm clip
+		self.controller_clip = 10000
+
 		#-----------------------------------------------------------------
 
 
