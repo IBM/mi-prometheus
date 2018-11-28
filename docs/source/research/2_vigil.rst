@@ -301,8 +301,13 @@ Run
 >>> mip-grid-analyzer --e experiments_<timestamp>_cogent_a_finetuning/
 >>> mip-grid-analyzer --e experiments_<timestamp>_cogent_b_finetuning/
 
-These commands should collect all results contained in the indicated main experiments folder and gather them in a
-csv file stored at the root of the indicated folder.
+These commands will collect all results contained in the indicated main experiments folder (training / validation and
+test statistics) and gather them in a csv file stored at the root of the indicated folder.
+You should then end up with three csv files containing all 22 tests results:
+
+    - 10 for the initial training (CLEVR / CoGenT-A, tests on CLEVR / CoGenT-A / CoGenT-B),
+    - 8 for the finetuning on CoGenT-B (tests on CoGenT-A / CoGenT-B),
+    - 4 for the finetuning on CoGenT-B (tests on CoGenT-A / CoGenT-B).
 
 
 `If you find this page useful, please refer to it with the following BibTex:`
