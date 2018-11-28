@@ -17,7 +17,6 @@
 
 import itertools
 import string
-import numpy as np
 
 # RGB, from https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
 WORD2COLOR = {
