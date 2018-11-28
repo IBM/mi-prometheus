@@ -81,12 +81,3 @@ OUTPUTVOCABULARY = ['true', 'false'] + ALLCOLORS + ALLSHAPES
 
 # Maximum number of words in a sentence
 MAXSEQLENGTH = 25
-
-config = {'dataset': 'yang',
-          'pnt_net': True,
-          'in_voc_size': len(INPUTVOCABULARY),
-          'grid_size': GRID_SIZE,
-          'out_voc_size': len(OUTPUTVOCABULARY),
-          'maxseqlength': MAXSEQLENGTH,
-          'prefs': PREFS,
-         }
