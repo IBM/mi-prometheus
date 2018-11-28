@@ -72,10 +72,10 @@ class ProblemInitializer(Worker):
 
 		# If path is provided, override default path.
 		if path is not None:
-			self.params.add_config_params({'problem': {'data_folder': path}})
+			self.params.add_default_params({'problem': {'data_folder': path}})
 
 		# Pass initialization only flag.
-		self.params.add_config_params({'problem': {'initialization_only': True}})
+		self.params.add_default_params({'problem': {'initialization_only': True}})
 
 		# Build Problem
 		try:
