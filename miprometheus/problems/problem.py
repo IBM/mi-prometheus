@@ -20,7 +20,11 @@ __author__ = "Tomasz Kornuta & Vincent Marois"
 
 import signal
 import torch
+import os
 import logging
+import urllib
+import time
+import sys
 import numpy as np
 from torch.utils.data import Dataset
 
@@ -435,6 +439,45 @@ class Problem(Dataset):
         """
 
         return True
+
+    # Function to make check and download easier
+    def CheckAndDownload(self,filefoldertocheck, url='none', downloadname='~/data/downloaded'):
+        """
+        Checks whether a file or folder exists at given path (relative to storage folder), otherwise downloads files from given URL.
+
+        :param filefoldertocheck: Relative path to a file or folder to check to see if it exists.
+        :type filefoldertocheck: string
+        :param url: URL to download files from.
+        :type url: string
+        :param downloadname: What to name the downloaded file. (DEFAULT: "downloaded").
+        :type downloadname: string.
+
+        :return: False if file was found, True if a download was necessary.
+
+        """
+        filefoldertocheck = os.path.expanduser(filefoldertocheck)
+        if not ( os.path.isfile( filefoldertocheck)  or 
+                         os.path.isdir ( filefoldertocheck) ):
+            print('Downloading {}'.format(url))
+            urllib.request.urlretrieve(url, os.path.expanduser(downloadname), self.reporthook)
+            return True
+        else:
+            print('Dataset found at {}'.format(filefoldertocheck))
+            return False
+
+    # Progress bar function
+    def reporthook(self,count, block_size, total_size):
+        global start_time
+        if count == 0:
+                start_time = time.time()
+                return
+        duration = time.time() - start_time
+        progress_size = int(count * block_size)
+        speed = int(progress_size / (1024 * duration))
+        percent = int(count * block_size * 100 / total_size)
+        sys.stdout.write("\r...%d%%, %d MB, %d KB/s, %d seconds passed" %
+                            (percent, progress_size / (1024 * 1024), speed, duration))
+        sys.stdout.flush()
 
 
 if __name__ == '__main__':

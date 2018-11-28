@@ -20,7 +20,7 @@ import re
 import numpy as np
 
 from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import stim_generator as sg
-import miprometheus.problems.seq_to_seq.vqa.cog.cog_utils.constants as const
+from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import constants as const
 
 _R_MEAN = 123.68
 _G_MEAN = 116.78
@@ -67,7 +67,7 @@ def set_outputs_from_tasks(n_epoch, tasks, objsets,
   for epoch_now in range(n_epoch):
     for task, objset in zip(tasks, objsets):
       target = task(objset, epoch_now)
-      if target is const.INVALID:
+      if target == const.INVALID:
         # For invalid target, no loss is used. Everything remains zero.
         pass
       elif isinstance(target, sg.Loc):

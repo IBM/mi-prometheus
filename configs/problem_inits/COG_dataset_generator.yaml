@@ -1,0 +1,13 @@
+# Problem parameters:
+training:
+ problem:
+  name: COG
+  data_folder: '~/data/cog'
+  set: train
+  dataset_type: generated
+  generation:
+   examples_per_task: 256
+   sequence_length: 5
+   memory_length: 4
+   max_distractors: 2
+   nr_processors: 6   

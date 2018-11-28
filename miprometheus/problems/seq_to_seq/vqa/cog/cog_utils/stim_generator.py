@@ -829,7 +829,7 @@ def render_target(movie, target):
       frame[:] = np.array(image)[:]
       
     else:
-      if target_now is const.INVALID:
+      if target_now == const.INVALID:
         string = 'invalid'
       elif isinstance(target_now, bool):
         string = 'true' if target_now else 'false'
@@ -976,7 +976,7 @@ def another_attr(attr):
     return another_shape(attr)
   elif isinstance(attr, Space):
     return another_loc(attr)
-  elif attr is const.INVALID:
+  elif attr == const.INVALID:
     return attr
   else:
     raise TypeError(
