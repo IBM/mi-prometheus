@@ -278,14 +278,18 @@ class CogModel(Model):
 	def forward_img2cnn_attention(self,images,attention):
 		out_conv1 		= self.conv1(images)
 		out_maxpool1	= self.maxpool1(out_conv1)
-		out_conv2			= self.conv2(out_maxpool1)
+		out_batchnorm1= nn.functional.relu(self.batchnorm1(out_maxpool1))
+		out_conv2			= self.conv2(out_batchnorm1)
 		out_maxpool2	= self.maxpool2(out_conv2)
-		out_conv3 		= self.conv3(out_maxpool2)
+		out_batchnorm2= nn.functional.relu(self.batchnorm2(out_maxpool2))
+		out_conv3 		= self.conv3(out_batchnorm2)
 		out_maxpool3	= self.maxpool3(out_conv3)
-		out_feature_attn1, attn_feature_attn1  = self.feature_attn1(out_maxpool3,attention)
+		out_batchnorm3= nn.functional.relu(self.batchnorm3(out_maxpool3))
+		out_feature_attn1, attn_feature_attn1  = self.feature_attn1(out_batchnorm3,attention)
 		out_conv4 = self.conv4(out_feature_attn1)
 		out_maxpool4 = self.maxpool4(out_conv4)
-		out_feature_attn2, attn_feature_attn2 = self.feature_attn2(out_maxpool4,attention)
+		out_batchnorm4= nn.functional.relu(self.batchnorm4(out_maxpool4))
+		out_feature_attn2, attn_feature_attn2 = self.feature_attn2(out_batchnorm4,attention)
 		out_spatial_attn1, attn_spatial_attn1 = self.spatial_attn1(out_feature_attn2,attention)
 
 		return out_spatial_attn1		
@@ -323,25 +327,31 @@ class CogModel(Model):
 								 stride=1,padding=0,dilation=1,groups=1,bias=True)
 		self.maxpool1 = nn.MaxPool2d(2,
 										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+		self.batchnorm1 = nn.BatchNorm2d(layer_channels[0])
+	
 
 		# Second Layer
 		self.conv2 = nn.Conv2d(layer_channels[0],layer_channels[1],3,
 								 stride=1,padding=0,dilation=1,groups=1,bias=True)
 		self.maxpool2 = nn.MaxPool2d(2,
 										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+		self.batchnorm2 = nn.BatchNorm2d(layer_channels[1])
 
 		# Third Layer
 		self.conv3 = nn.Conv2d(layer_channels[1],layer_channels[2],3,
 								 stride=1,padding=0,dilation=1,groups=1,bias=True)
 		self.maxpool3 = nn.MaxPool2d(2,
 										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+		self.batchnorm3 = nn.BatchNorm2d(layer_channels[2])
 		self.feature_attn1 = FeatureAttention(layer_channels[2],control_len)
+
 
 		# Fourth Layer
 		self.conv4 = nn.Conv2d(layer_channels[2],layer_channels[3],3,
 								 stride=1,padding=0,dilation=1,groups=1,bias=True)
 		self.maxpool4 = nn.MaxPool2d(2,
 										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+		self.batchnorm4 = nn.BatchNorm2d(layer_channels[3])
 		self.feature_attn2 = FeatureAttention(layer_channels[3],control_len)
 		self.spatial_attn1 = SpatialAttention(layer_channels[3],control_len)
 
