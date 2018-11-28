@@ -75,7 +75,7 @@ class COG(VQAProblem):
 			- Adds the following as default params:
 
 				>>> {'data_folder': os.path.expanduser('~/data/cog'),
-				>>>	 'set': 'train',
+				>>>  'set': 'train',
 				>>>  'tasks': 'class',
 				>>>  'dataset_type': 'canonical',
 				>>>  'initialization_only': False}
@@ -83,11 +83,11 @@ class COG(VQAProblem):
 			- Sets:
 
 				>>> self.data_definitions = {'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
-				>>>							 'tasks': {'size': [-1, 1], 'type': [list, str]},
-				>>>							 'questions': {'size': [-1, 1], 'type': [list, str]},
-				>>>							 'targets_reg': {'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
-				>>>							 'targets_class': {'size': [-1, self.sequence_length, 1], 'type' : [list,str]}
-				>>>							}
+				>>>                          'tasks': {'size': [-1, 1], 'type': [list, str]},
+				>>>                          'questions': {'size': [-1, 1], 'type': [list, str]},
+				>>>                          'targets_reg': {'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
+				>>>                          'targets_class': {'size': [-1, self.sequence_length, 1], 'type' : [list,str]}
+				>>>                         }
 
 
 
@@ -336,7 +336,7 @@ class COG(VQAProblem):
 			self.logger.info('\nClean-up complete! Dataset ready.')
 
 		else:
-			self.download = self.CheckAndDownload(self.data_folder_child)
+			self.download = self.check_and_download(self.data_folder_child)
 			if self.download:			
 				from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import generate_dataset
 				generate_dataset.main(self.data_folder_parent,
