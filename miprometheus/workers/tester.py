@@ -62,9 +62,9 @@ class Tester(Worker):
                                  dest='visualize',
                                  help='Activate dynamic visualization')
 
-    def setup_experiment(self):
+    def setup_global_experiment(self):
         """
-        Sets up experiment for the ``Tester``:
+        Sets up the global test experiment for the ``Tester``:
 
             - Checks that the model to use exists on file:
 
@@ -74,27 +74,12 @@ class Tester(Worker):
 
                 >>> if not os.path.isfile(config_file)
 
-            - Set up the log directory path:
+            - Create the configuration:
 
-                >>> os.makedirs(self.log_dir, exist_ok=False)
+                >>> self.params.add_config_params_from_yaml(config)
 
-            - Add a FileHandler to the logger (defined in BaseWorker):
-
-                >>>  self.logger.addHandler(fh)
-
-            - Set random seeds:
-
-                >>>  self.set_random_seeds(self.params['testing'], 'testing')
-
-            - Creates problem and model:
-
-                >>> self.problem = ProblemFactory.build_problem(self.params['training']['problem'])
-                >>> self.model = ModelFactory.build_model(self.params['model'], self.dataset.default_values)
-
-            - Creates the DataLoader:
-
-                >>> self.dataloader = DataLoader(dataset=self.problem, ...)
-
+        The rest of the experiment setup is done in :py:func:`setup_individual_experiment()` \
+        to allow for multiple tests suppport.
 
         """
         # Call base method to parse all command line arguments and add default sections.
@@ -111,14 +96,14 @@ class Tester(Worker):
             exit(-2)
 
         # Extract path.
-        abs_path, _ = os.path.split(os.path.dirname(os.path.abspath(self.flags.model)))
+        self.abs_path, _ = os.path.split(os.path.dirname(os.path.abspath(self.flags.model)))
 
         # Check if config file was indicated by the user.
         if self.flags.config != '':
             config_file = self.flags.config
         else:
             # Use the "default one".
-            config_file = abs_path + '/training_configuration.yaml'
+            config_file = self.abs_path + '/training_configuration.yaml'
 
         # Check if configuration file exists.
         if not os.path.isfile(config_file):
@@ -134,12 +119,38 @@ class Tester(Worker):
         configs_to_load = self.recurrent_config_parse(config_file, [])
 
         # Read the YAML files one by one - but in reverse order -> overwrite the first indicated config(s)
-        for config in reversed(configs_to_load):
-            # Load params from YAML file.
-            self.params.add_config_params_from_yaml(config)
-            print('Loaded configuration from file {}'.format(config))
+        self.recurrent_config_load(configs_to_load)
 
         # -> At this point, the Param Registry contains the configuration loaded (and overwritten) from several files.
+
+    def setup_individual_experiment(self):
+        """
+        Setup individual test experiment in the case of multiple tests, or the main experiment in the case of \
+        one test experiment.
+
+
+        - Set up the log directory path:
+
+            >>> os.makedirs(self.log_dir, exist_ok=False)
+
+        - Add a FileHandler to the logger (defined in BaseWorker):
+
+            >>>  self.logger.addHandler(fh)
+
+        - Set random seeds:
+
+            >>>  self.set_random_seeds(self.params['testing'], 'testing')
+
+        - Creates problem and model:
+
+            >>> self.problem = ProblemFactory.build_problem(self.params['training']['problem'])
+            >>> self.model = ModelFactory.build_model(self.params['model'], self.dataset.default_values)
+
+        - Creates the DataLoader:
+
+            >>> self.dataloader = DataLoader(dataset=self.problem, ...)
+
+        """
 
         # Get testing problem name.
         try:
@@ -162,7 +173,7 @@ class Tester(Worker):
                 time_str = 'test_{0:%Y%m%d_%H%M%S}'.format(datetime.now())
                 if self.flags.savetag != '':
                     time_str = time_str + "_" + self.flags.savetag
-                self.log_dir = abs_path + '/' + time_str + '/'
+                self.log_dir = self.abs_path + '/' + time_str + '/'
                 os.makedirs(self.log_dir, exist_ok=False)
             except FileExistsError:
                 sleep(1)
@@ -233,7 +244,6 @@ class Tester(Worker):
 
         # Export and log configuration, optionally asking the user for confirmation.
         self.export_experiment_configuration(self.log_dir, "testing_configuration.yaml",self.flags.confirm)
-
 
     def initialize_statistics_collection(self):
         """
@@ -348,6 +358,109 @@ class Tester(Worker):
             # Finalize statistics collection.
             self.finalize_statistics_collection()
 
+    def check_multi_tests(self):
+        """
+        Checks if multiple tests are indicated in the testing configuration section.
+
+        .. note::
+
+            If the user would like to run multiple tests, he can use the ``multi_tests`` key in the ``testing`` \
+            section to indicate the keys which associated values will be different for each test config.
+
+            E.g.
+
+            >>> # Problem parameters:
+            >>> testing:
+            >>>     problem:
+            >>>         name: SortOfCLEVR
+            >>>         batch_size: 64
+            >>>         data_folder: '~/data/sort-of-clevr/'
+            >>>         dataset_size: 10000
+            >>>         split: 'test'
+            >>>         img_size: 128
+            >>>         regenerate: False
+            >>>
+            >>>     multi_tests: {batch_size: [64, 128], img_size: [128, 256]}
+
+        .. warning::
+
+            The following constraints apply:
+
+            - Assume that the indicated varying values are **leafs** of the `testing` section
+            - The number of indicated varying values per key is the same for all keys
+            - The indicated order of the varying values will be respected, i.e. \
+
+
+             >>>     multi_tests: {batch_size: [64, 128], img_size: [128, 256]}
+
+             and
+
+             >>>     multi_tests: {batch_size: [64, 128], img_size: [256, 128]}
+
+             will lead to different test configs.
+
+            - At least one key has varying values (but this is implicit)
+
+
+        :return: True if the constraints above are respected, else False
+
+        """
+        # check first if the user wants multi-tests
+        try:
+            _ = self.params['testing']['multi_tests']
+
+            self.logger.info("Checking validity of the indicated values for the multiple tests")
+            multi_tests_values = self.params['testing']['multi_tests'].to_dict()
+
+            for key in multi_tests_values:
+
+                # check the key is a leaf of the testing config section
+                if not key in list(self.params['testing'].leafs()):
+                    self.logger.error("Did not find the indicated key '{}' in the leafs of the 'testing' "
+                                      "config section.".format(key))
+                    return False
+
+            # check that all indicated list of values have same length
+            n_tests = len(next(iter(multi_tests_values.values())))
+            if not all(len(x) == n_tests for x in multi_tests_values.values()):
+                self.logger.error("Got varying number of elements for the indicated multiple tests values.")
+
+                return False
+
+            # store the number of tests to execute
+            self.number_tests = n_tests
+
+            # store the params (and the indicated values) to update
+            self.multi_tests_params = multi_tests_values
+
+            # delete them from the param registry
+            self.params['testing'].del_config_params(key='multi_tests')
+
+            self.logger.info('Found the following indicated values for multiple tests: {}.'.format(multi_tests_values))
+            return True
+
+        except KeyError:
+            return False
+
+    def update_config(self, test_index):
+        """
+        Update ``self.params['testing']`` using the list of values to change for the multiple tests.
+
+        :param test_index: Current test experiment index.
+        :type test_index: int
+
+        """
+        # If this method is used, then self.number_tests & self.multi_tests_params should be instantiated
+        new_params = {k: v[test_index] for k, v in self.multi_tests_params.items()}
+        self.logger.warning("Updating the testing config with: {}".format(new_params))
+
+        for leaf_key, new_value in new_params.items():
+            self.params['testing'].set_leaf(leaf_key, new_value)
+
+        self.logger.warning("Updated the testing configuration.")
+        self.logger.info('\n' + '=' * 80 + '\n')
+        return True
+
 
 def main():
     """
@@ -356,9 +469,31 @@ def main():
     """
     tester = Tester()
     # parse args, load configuration and create all required objects.
-    tester.setup_experiment()
-    # GO!
-    tester.run_experiment()
+    tester.setup_global_experiment()
+
+    if tester.check_multi_tests():
+
+        for test_index in range(tester.number_tests):
+            tester.logger.info('\n' + '=' * 80 + '\n')
+            tester.logger.info("Starting test #{}.".format(test_index+1))
+            # update the testing problem config based on the current test index.
+            tester.update_config(test_index)
+
+            # finalize the experiment setup
+            tester.setup_individual_experiment()
+
+            # run the current experiment
+            tester.run_experiment()
+
+            # remove the FileHandler as it will be set again in the next individual test
+            tester.logger.removeHandler(tester.logger.handlers[0])
+
+    else:
+        # finalize the experiment setup
+        tester.setup_individual_experiment()
+
+        # run the experiment
+        tester.run_experiment()
 
 
 if __name__ == '__main__':

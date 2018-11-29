@@ -1,0 +1,35 @@
+# Load the following the default CLEVR config first.
+default_configs:
+    configs/mac/default_clevr.yaml
+
+# Then overwrite problem params.
+training:
+    problem:
+      settings:
+        data_folder: &dir '~/data/CLEVR_CoGenT_v1.0'
+        set: 'trainA'
+        dataset_variant: &var 'CLEVR-CoGenT'
+      questions:
+        embedding_source: 'CLEVR-CoGenT'
+
+  # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0
+
+validation:
+    problem:
+      settings:
+        data_folder: *dir
+        set: 'valA'
+        dataset_variant: *var
+      questions:
+        embedding_source: 'CLEVR-CoGenT'
+
+testing:
+    problem:
+      settings:
+        data_folder: *dir
+        set: 'valB'
+        dataset_variant: *var
+      questions:
+        embedding_source: 'CLEVR-CoGenT'

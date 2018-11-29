@@ -1,0 +1,11 @@
+# Load the CoGenT config first.
+default_configs:
+    configs/mac/default_cogent.yaml
+
+# Add the model parameters:
+model:
+    name: sMacNetwork
+    dim: 512
+    embed_hidden: 300
+    max_step: 12
+    dropout: 0.15

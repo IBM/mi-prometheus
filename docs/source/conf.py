@@ -76,7 +76,7 @@ author = 'Tomasz Kornuta, Vincent Marois, Ryan L. McAvoy, Younes Bouhadjar, Alex
          'T.S. Jayram, Ahmet S. Ozcan'
 
 # The short X.Y version
-version = '0.3.0'
+version = '0.3.1'
 # The full version, including alpha/beta/rc tags
 release = 'master'
 
@@ -150,7 +150,7 @@ html_theme_options = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+#html_static_path = ['_static']
 
 # Custom sidebar templates, must be a dictionary that maps document names to template names.
 # The default sidebars (for documents that don't match any pattern) are
@@ -216,8 +216,8 @@ intersphinx_mapping = {
     'torchvision': ('https://pytorch.org/docs/stable/', None),
     'python': ('https://docs.python.org/3', None),
     'yaml': ('https://yaml.readthedocs.io/en/latest/', None),
-    'numpy': ('https://numpy.readthedocs.io/en/latest/', None)
-}
+    'numpy': ('https://numpy.readthedocs.io/en/latest/', None),
+    'matplotlib': ('https://matplotlib.org/', None)}
 
 # -- Options for Texinfo output ----------------------------------------------
 

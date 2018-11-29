@@ -1,0 +1,111 @@
+# Lists of tasks that will be executed in parallel.
+grid_tasks:
+  -
+    default_configs: configs/mac/mac_cogent.yaml   # MAC on CoGenT
+
+    overwrite:
+      # Add the model parameters:
+      model:
+        load: 'path/to/the/trained/model/to/finetune'  # the CogenT-A trained mac model to finetune on CoGenT-B
+  -
+    default_configs: configs/mac/mac_cogent.yaml   # MAC on CoGenT
+
+    overwrite:
+      # Add the model parameters:
+      model:
+        load: 'path/to/the/trained/model/to/finetune'  # the CLEVR trained mac model to finetune on CoGenT-B
+
+      # indicate the following so that the CLEVR-trained model can properly handle CoGenT data.
+      training:
+        problem:
+          questions:
+            embedding_source: 'CLEVR'
+      validation:
+        problem:
+          questions:
+            embedding_source: 'CLEVR'
+      testing:
+        problem:
+          questions:
+            embedding_source: 'CLEVR'
+  -
+    default_configs: configs/mac/s_mac_cogent.yaml  # S-MAC on CoGenT
+
+    overwrite:
+      # Add the model parameters:
+      model:
+        load: 'path/to/the/trained/model/to/finetune'  # the CogenT-A trained s-mac model to finetune on CoGenT-B
+  -
+    default_configs: configs/mac/s_mac_cogent.yaml  # S-MAC on CoGenT
+
+    overwrite:
+      # Add the model parameters:
+      model:
+        load: 'path/to/the/trained/model/to/finetune'  # the CLEVR trained s-mac model to finetune on CoGenT-B
+
+      # indicate the following so that the CLEVR-trained model can properly handle CoGenT data.
+      training:
+        problem:
+          questions:
+            embedding_source: 'CLEVR'
+      validation:
+        problem:
+          questions:
+            embedding_source: 'CLEVR'
+      testing:
+        problem:
+          questions:
+            embedding_source: 'CLEVR'
+
+# Parameters that will be overwritten for all tasks.
+grid_overwrite:
+
+  training:
+    #use_EMA: True  # EMA: keep track of exponential moving averages of the models weights.
+
+    problem:
+      settings:
+        set: 'valB'  # finetune on CoGenT-B, on 30k samples indicated by the indices below.
+    sampler:
+      name: 'SubsetRandomSampler'
+      indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_finetuning_valB_indices.txt'
+    terminal_conditions:
+      epoch_limit: 10  # finetune for 10 epochs.
+
+    # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0
+
+  validation:
+    problem:
+      settings:
+        set: 'trainA'  # use CoGenT-A as validation set (-> 10% of the true training set) as we will test on CoGenT.
+    sampler:
+      name: 'SubsetRandomSampler'
+      indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_val_set_indices.txt'
+
+  testing:
+    problem:
+      settings:
+        set: 'valB'
+    sampler:
+      name: 'SubsetRandomSampler'
+      indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_test_valB_indices.txt'
+
+    # test on the CoGenT-B validation set, but on the complementary samples (not used for finetuning).
+    # test on condition A. We simply point to a file containing all the indices of valA.
+    multi_tests: {
+      set: ['valB', 'valA'],
+      indices: ['~/data/CLEVR_CoGenT_v1.0/vigil_cogent_test_valB_indices.txt',
+                '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_valA_full_indices.txt'],
+      max_test_episodes: [-1, -1]
+    }
+
+
+grid_settings:
+  # Set number of repetitions of each experiments.
+  experiment_repetitions: 1
+  # Set number of concurrent running experiments (will be limited by the actual number of available CPUs/GPUs).
+  max_concurrent_runs: 7
+  # Set trainer.
+  trainer: mip-offline-trainer

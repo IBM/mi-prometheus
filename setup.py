@@ -43,7 +43,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.3.0',  # Required
+    version='0.3.1',  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -189,7 +189,9 @@ setup(
     package_data={  # Optional
         # 'miprometheus.config': ['default_config.yaml'],
         # we should list here some configs.yaml files that will be copied over with the data.
-    },
+    '':[path.join(here,'miprometheus/problems/seq_to_seq/vqa/cog/cog_utils/roboto.ttf')]},
+
+    include_package_data=True,
 
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:
