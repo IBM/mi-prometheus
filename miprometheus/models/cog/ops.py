@@ -30,11 +30,17 @@ class FeatureAttention(nn.Module):
 		shift, scale = torch.chunk(shift_and_scale,2,-1)
 		
 		scale = nn.functional.relu(scale + 1.0)
+
+		#print(shift)
+		#print(scale)
+		#print(inputs_to_attend)
 	
-		inputs_to_attend = (inputs_to_attend + shift.view(-1,self.attention_size,1,1)) * scale.view(-1,self.attention_size,1,1)
+		inputs_to_attend = inputs_to_attend + shift.view(-1,self.attention_size,1,1)
+		#print(inputs_to_attend)
+		inputs_to_attend = inputs_to_attend * scale.view(-1,self.attention_size,1,1)
+		#print(inputs_to_attend)
 		inputs_to_attend = nn.functional.relu(inputs_to_attend)
 		return inputs_to_attend, (shift, scale)
-
 
 
 # Inputs:

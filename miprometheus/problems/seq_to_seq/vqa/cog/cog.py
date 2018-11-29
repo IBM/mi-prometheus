@@ -263,16 +263,11 @@ class COG(VQAProblem):
 		
 		targets = data_dict['targets']
 
-		correct = 0
-		total = 0
-		for i in range(0,logits[0].size()[1]):
-			values, indices = torch.max(logits[0][:,i,:],1)
-			total += targets[:,i].size(0)
-			correct += (indices==targets[:,i]).sum().item()
+		
+		values, indices = torch.max(logits[0],2)
+		correct = (indices==targets).sum().item() + (targets==-1).sum().item()
 
-		correct += (targets==-1).sum().item()
-
-		return (correct/total)
+		return (correct/float(targets.numel()))
 
 	def output_class_to_int(self,targets_class):
 		#for j, target in enumerate(targets_class):
