@@ -40,18 +40,20 @@ class VQAProblem(SeqToSeqProblem):
 		"""
 		Initializes problem:
 	
-		- Calls ``problems.problem.Problem`` class constructor,
-		- Sets loss function to ``CrossEntropy``,
+		- Calls :py:class:`miprometheus.problems.SeqToSeqProblem` class constructor,
+		- Sets loss function to :py:class:`torch.nn.CrossEntropyLoss`,
 		- Sets ``self.data_definitions`` to:
 
 		>>> self.data_definitions = {'images': {'size': [-1, -1, 3, -1, -1], 'type': [torch.Tensor]},
-		>>>			     'mask': {'size': [-1, -1, 1], 'type': [torch.Tensor]},
-		>>>			     'questions' {'size': [-1, 1], 'type': [list, str]},	
-		>>>			     'targets': {'size': [-1, -1,  1], 'type': [torch.Tensor]},
-		>>>			     'targets_label': {'size': [-1, 1], 'type': [list, str]}
-		>>>			    }
+		>>>                          'mask': {'size': [-1, -1, 1], 'type': [torch.Tensor]},
+		>>>                          'questions' {'size': [-1, 1], 'type': [list, str]},
+		>>>                          'targets': {'size': [-1, -1,  1], 'type': [torch.Tensor]},
+		>>>                          'targets_label': {'size': [-1, 1], 'type': [list, str]}
+		>>>                         }
 
 		:param params: Dictionary of parameters (read from configuration ``.yaml`` file).
+		:type params: :py:class:`miprometheus.utils.ParamInterface`
+
 		"""
 		super(VQAProblem, self).__init__(params)
 
@@ -61,11 +63,10 @@ class VQAProblem(SeqToSeqProblem):
 		# Set default data_definitions dict
 		# Should 'questions' be [-1, 1] or [-1, -1, 1], as in an entry for each member of a sequence?
 		self.data_definitions = {'images': {'size': [-1, -1, 3, -1, -1], 'type': [torch.Tensor]},
-					'mask': {'size': [-1, -1, 1], 'type': [torch.Tensor]},
-					'questions': {'size': [-1, -1, 1], 'type': [list, str]},	
-					'targets': {'size': [-1, -1,  1], 'type': [torch.Tensor]},
-					'targets_label': {'size': [-1, 1], 'type': [list, str]}
-					}
+								 'mask': {'size': [-1, -1, 1], 'type': [torch.Tensor]},
+								 'questions': {'size': [-1, -1, 1], 'type': [list, str]},
+								 'targets': {'size': [-1, -1,  1], 'type': [torch.Tensor]},
+								 'targets_label': {'size': [-1, 1], 'type': [list, str]}}
 
 		# Default problem name.
 		self.name = 'VQAProblem'
@@ -75,7 +76,7 @@ class VQAProblem(SeqToSeqProblem):
 		Shows a sample from the batch.
 
 		:param data_dict: ``DataDict`` containing inputs and targets.
-		:type data_dict: DataDict
+		:type data_dict: :py:class:`miprometheus.utils.DataDict`
 
 		:param sample_number: Number of sample in batch (default: 0)
 		:type sample_number: int
@@ -105,13 +106,12 @@ class VQAProblem(SeqToSeqProblem):
 
 		# Reshape image.
 		if image.shape[0] == 1:
-		    # This is a single channel image - get rid of this dimension
-		    image = np.squeeze(image, axis=0)
+			# This is a single channel image - get rid of this dimension
+			image = np.squeeze(image, axis=0)
 		else:
-		    # More channels - move channels to axis2, according to matplotilb documentation.
-		    # (X : array_like, shape (n, m) or (n, m, 3) or (n, m, 4))
-		    image = image.transpose(1, 2, 0)
-		
+			# More channels - move channels to axis2, according to matplotilb documentation.
+			# (X : array_like, shape (n, m) or (n, m, 3) or (n, m, 4))
+			image = image.transpose(1, 2, 0)
 
 		# show data.
 		plt.xlabel('num_columns')
@@ -122,7 +122,6 @@ class VQAProblem(SeqToSeqProblem):
 		# Plot!
 		plt.show()
 
-	
 
 if __name__ == '__main__':
 
