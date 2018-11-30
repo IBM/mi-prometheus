@@ -69,14 +69,22 @@ class SemanticAttention(nn.Module):
 		self.attn1 = nn.Linear(attention_input_size,attention_size)
 		self.trainable_weights = nn.Parameter(torch.randn(attention_size))
 
-	def forward(self,key,query):
+	def forward(self,keys,query):
 	
 		query = self.attn1(query)
-		key = key.permute(1,0,2)
-		#print(self.trainable_weights.size())
-		#print(key.size())
-		#print(query.size())
-		return torch.sum(self.trainable_weights.expand_as(key)*torch.tanh(key+query.expand_as(key)),-1).permute(1,0)
+		# keys is batch x sequence x embedding length
+		# trainable weights is embedding length
+		# query is batch x embedding length
+		# similarity is batch x sequence
+
+		similarity = torch.sum(
+		self.trainable_weights.unsqueeze(0).unsqueeze(0) * 
+		torch.tanh(query.unsqueeze(1) + keys), -1 )
+
+		post_attention = torch.sum(
+		keys * similarity.unsqueeze(-1), 1)
+
+		return post_attention
 		
 
 if __name__ == '__main__':
@@ -89,3 +97,10 @@ if __name__ == '__main__':
 
 	feature_attn(postcnn,attention)
 	spatial_attn(postcnn,attention)
+
+	semantic_attn = SemanticAttention(8,128)
+	keys = torch.rand((2,4,8))
+	query = torch.rand((2,128))
+	semantic_attn(keys,query)
+	
+	

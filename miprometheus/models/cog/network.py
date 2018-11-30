@@ -154,7 +154,7 @@ class CogModel(Model):
 		# Inputs is concatenation of post-attention Semantic output, Visual processing, and VSTM.
 		# Output feeds attention mechanisms, and generates a classification.
 		#-----------------------------------------------------------------
-		self.controller_input_size = self.nwords + 128 + 128
+		self.controller_input_size = self.lstm_hidden_units*2 + 128 + 128
 
 		# Number of GRU units in controller
 		self.controller_output_size = 768
@@ -172,13 +172,15 @@ class CogModel(Model):
 
 
 		# Define each subunit from provided parameters.
-		#-----------------------------------------------------------------
+		#-----------------------------------------------------------------	
+		#VisualProcessing			(self,in_channels,layer_channels,feature_control_len,spatial_control_len,output_shape)
 		self.VisualProcessing(self.image_channels, 
 													self.visual_processing_channels,
-													self.nwords, 
+													self.lstm_hidden_units*2, 
 													self.controller_output_size*2,
 													self.vstm_shape)
-	
+
+		# SemanticProcessing(self,lstm_input,lstm_hidden,control_len):
 		self.SemanticProcessing(self.lstm_input_size,
 														self.lstm_hidden_units,
 														self.controller_output_size*2)
@@ -278,7 +280,7 @@ class CogModel(Model):
 		out_vstm1 = self.vstm_linear1(out_vstm1.view(-1,self.vstm_outchannels*self.vstm_shape[0]*self.vstm_shape[1]))
 
 		# Full pass controller
-		in_controller1 = torch.cat((out_semantic_attn1.view(-1,1,self.nwords),out_cnn1.view(-1,1,128),out_vstm1.view(-1,1,128)),-1)
+		in_controller1 = torch.cat((out_semantic_attn1.view(-1,1,self.lstm_hidden_units*2),out_cnn1.view(-1,1,128),out_vstm1.view(-1,1,128)),-1)
 		out_controller1, controller_state = self.controller1(in_controller1,controller_state)
 		controller_state = torch.clamp(controller_state, max=self.controller_clip)
 		attention = torch.cat((out_controller1.squeeze(),controller_state.squeeze()),-1)
@@ -290,7 +292,7 @@ class CogModel(Model):
 			out_vstm1, vstm_state = self.vstm1(out_spatial_attn1,vstm_state,attention,self.dtype)
 			out_vstm1 = self.vstm_linear1(out_vstm1.view(-1,self.vstm_outchannels*self.vstm_shape[0]*self.vstm_shape[1]))
 			out_cnn1 = self.cnn_linear1(out_spatial_attn1.view(-1,self.visual_processing_channels[3]*self.vstm_shape[0]*self.vstm_shape[1]))
-			in_controller1 = torch.cat((out_semantic_attn1.view(-1,1,self.nwords),out_cnn1.view(-1,1,128),out_vstm1.view(-1,1,128)),-1)
+			in_controller1 = torch.cat((out_semantic_attn1.view(-1,1,self.lstm_hidden_units*2),out_cnn1.view(-1,1,128),out_vstm1.view(-1,1,128)),-1)
 			out_controller1, controller_state = self.controller1(in_controller1,controller_state)
 			controller_state = torch.clamp(controller_state, max=self.controller_clip)
 			attention = torch.cat((out_controller1.squeeze(),controller_state.squeeze()),-1)
