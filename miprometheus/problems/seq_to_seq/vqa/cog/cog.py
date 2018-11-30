@@ -201,6 +201,17 @@ class COG(VQAProblem):
 
 			self.length = len(self.dataset)
 
+			# Testing output classes
+			if self.set == 'val':
+				self.output_words = []
+				for datapoint in self.dataset:
+					for answer in datapoint['answers']:
+						if not answer in self.output_words:
+							self.output_words.append(answer)
+
+				print(self.output_words)
+				print(len(self.output_words) )
+
 		else:
 			self.logger.info("COG initialization complete.")
 			exit(0)
@@ -377,6 +388,10 @@ class COG(VQAProblem):
 								 'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
 								 'SimpleExistGo','SimpleExistShapeGo']
 
+		self.binary_tasks = ['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
+'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
+'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','SimpleCompareColor','SimpleCompareShape'] 
+
 		self.all_colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'] + [
     'cyan', 'magenta', 'lime', 'pink', 'teal', 'lavender', 'brown', 'beige',
     'maroon', 'mint', 'olive', 'coral', 'navy', 'grey', 'white']
@@ -394,6 +409,10 @@ class COG(VQAProblem):
 			self.tasks = self.regression_tasks
 		elif self.tasks == 'all':
 			self.tasks = self.classification_tasks + self.regression_tasks
+		elif self.tasks == 'binary':
+			self.tasks = self.binary_tasks
+			self.output_vocab = ['true','false']
+			self.output_classes = 2
 
 		# If loading a default dataset, set default path names and set sequence length		
 		if self.dataset_type == 'canonical':

@@ -210,11 +210,11 @@ class CogModel(Model):
 		self.dtype = self.app_state.dtype
 
 
-		self.attention_init = nn.Parameter(torch.randn((1,self.controller_output_size*2),requires_grad=False).type(self.dtype))
+		self.attention_init = nn.Parameter(torch.randn((1,self.controller_output_size*2),requires_grad=True).type(self.dtype))
 
-		self.controller_state_init = nn.Parameter(torch.randn((1,1,self.controller_output_size),requires_grad=False).type(self.dtype))
+		self.controller_state_init = nn.Parameter(torch.randn((1,1,self.controller_output_size),requires_grad=True).type(self.dtype))
 
-		self.vstm_state_init = nn.Parameter(torch.randn((1,self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=False).type(self.dtype))
+		self.vstm_state_init = nn.Parameter(torch.randn((1,self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=True).type(self.dtype))
 		#-----------------------------------------------------------------
 
 
@@ -267,8 +267,9 @@ class CogModel(Model):
 		out_conv3 		= self.conv3(out_batchnorm2)
 		out_maxpool3	= self.maxpool3(out_conv3)
 		out_batchnorm3= nn.functional.relu(self.batchnorm3(out_maxpool3))
-		out_feature_attn1, attn_feature_attn1  = self.feature_attn1(out_batchnorm3,out_semantic_attn1)
-		out_conv4 = self.conv4(out_feature_attn1)
+		#out_feature_attn1, attn_feature_attn1  = self.feature_attn1(out_batchnorm3,out_semantic_attn1)
+		#out_conv4 = self.conv4(out_feature_attn1)
+		out_conv4 = self.conv4(out_batchnorm3)
 		out_maxpool4 = self.maxpool4(out_conv4)
 		out_batchnorm4= nn.functional.relu(self.batchnorm4(out_maxpool4))
 		out_feature_attn2, attn_feature_attn2 = self.feature_attn2(out_batchnorm4,out_semantic_attn1)
