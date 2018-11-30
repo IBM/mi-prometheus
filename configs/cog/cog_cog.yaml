@@ -1,38 +1,40 @@
 # Problem parameters:
 training:
- cuda: False
+ cuda: True
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 64
-  tasks: class
+  tasks: binary
   data_folder: '~/data/cog'
-  set: train
+  set: val
   use_mask: False
   dataset_type: canonical
   # Set optimizer.
  optimizer:
   name: Adam
-  lr: 0.005
+  lr: 0.001
+  weight_decay: 0.00002
+ gradient_clipping: 10
 
 testing:
- cuda: False
+ cuda: True
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 64
-  tasks: class
+  tasks: binary
   data_folder: '~/data/cog'
   set: test
   dataset_type: canonical
 
 validation:
- cuda: False
+ cuda: True
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 64
-  tasks: class
+  tasks: binary
   data_folder: '~/data/cog'
   set: val
   dataset_type: canonical

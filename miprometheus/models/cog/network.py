@@ -154,7 +154,7 @@ class CogModel(Model):
 		# Inputs is concatenation of post-attention Semantic output, Visual processing, and VSTM.
 		# Output feeds attention mechanisms, and generates a classification.
 		#-----------------------------------------------------------------
-		self.controller_input_size = self.nwords + 5*5*128 + 5*5*3
+		self.controller_input_size = self.lstm_hidden_units*2 + 128 + 128
 
 		# Number of GRU units in controller
 		self.controller_output_size = 768
@@ -165,15 +165,22 @@ class CogModel(Model):
 		# Number of possible classes to output.
 		self.nr_classes = params['num_classes']
 
+		# Controller state norm clip
+		self.controller_clip = 10000
+
 		#-----------------------------------------------------------------
 
 
 		# Define each subunit from provided parameters.
-		#-----------------------------------------------------------------
+		#-----------------------------------------------------------------	
+		#VisualProcessing			(self,in_channels,layer_channels,feature_control_len,spatial_control_len,output_shape)
 		self.VisualProcessing(self.image_channels, 
-													self.visual_processing_channels, 
-													self.controller_output_size*2)
-	
+													self.visual_processing_channels,
+													self.lstm_hidden_units*2, 
+													self.controller_output_size*2,
+													self.vstm_shape)
+
+		# SemanticProcessing(self,lstm_input,lstm_hidden,control_len):
 		self.SemanticProcessing(self.lstm_input_size,
 														self.lstm_hidden_units,
 														self.controller_output_size*2)
@@ -193,6 +200,23 @@ class CogModel(Model):
 											self.nr_pointers)
 
 		#-----------------------------------------------------------------
+		
+		
+
+
+		# Initial states of RNNs are trainable parameters. Set them here.
+		#-----------------------------------------------------------------
+		# Get dtype.
+		self.dtype = self.app_state.dtype
+
+
+		self.attention_init = nn.Parameter(torch.randn((1,self.controller_output_size*2),requires_grad=True).type(self.dtype))
+
+		self.controller_state_init = nn.Parameter(torch.randn((1,1,self.controller_output_size),requires_grad=True).type(self.dtype))
+
+		self.vstm_state_init = nn.Parameter(torch.randn((1,self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=True).type(self.dtype))
+		#-----------------------------------------------------------------
+
 
 
 
@@ -200,23 +224,19 @@ class CogModel(Model):
 	def forward(self, data_dict):
 		images = data_dict['images'].permute(1,0,2,3,4)
 		questions = data_dict['questions']
-		
-		# Get dtype.
-		self.dtype = self.app_state.dtype
-
+	
 		questions = self.forward_lookup2embed(questions)
 		
 		output_class = torch.zeros((images.size()[1],images.size()[0],self.nr_classes),requires_grad=False).type(self.dtype)
 		output_point = torch.zeros((images.size()[1],images.size()[0],49),requires_grad=False).type(self.dtype)
-		attention = torch.randn((images.size()[1],self.controller_output_size*2),requires_grad=False).type(self.dtype)
-		controller_state = torch.zeros((1,images.size()[1],self.controller_output_size),requires_grad=False).type(self.dtype)
-		vstm_state = torch.zeros((images.size()[1],self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=False).type(self.dtype)
-
+		
+		attention = self.attention_init.expand(images.size(1),-1).contiguous()
+		vstm_state = self.vstm_state_init.expand(images.size(1),-1,-1,-1).contiguous()
+		controller_state = self.controller_state_init.expand(-1,images.size(1),-1).contiguous()
 
 		for j, image_seq in enumerate(images):
-			for k in range(self.pondering_steps):
-				classification, pointing, attention, vstm_state, controller_state = self.forward_full_oneseq(
-			image_seq,questions, attention, vstm_state,controller_state)
+			classification, pointing, attention, vstm_state, controller_state = self.forward_full_oneseq(
+			image_seq,questions, attention, vstm_state, controller_state,self.pondering_steps)
 
 			output_class[:,j:j+1,:] = classification[:,0:1,:]
 			output_point[:,j:j+1,:] = pointing[:,0:1,:]
@@ -229,17 +249,60 @@ class CogModel(Model):
 							questions,
 							attention,
 							vstm_state,
-							controller_state):
+							controller_state,
+							pondering_steps):
 		
-		out_cnn1 = self.forward_img2cnn_attention(images,attention)
+
+		# Full pass semantic processing
 		out_lstm1, state_lstm1 = self.forward_embed2lstm(questions)
 		out_semantic_attn1 = self.semantic_attn1(out_lstm1,attention)
-		out_vstm1, vstm_state = self.vstm1(out_cnn1,vstm_state,attention,self.dtype)
-		in_controller1 = torch.cat((out_semantic_attn1.view(-1,1,self.nwords),out_cnn1.view(-1,1,128*5*5),out_vstm1.view(-1,1,3*5*5)),-1)
+
+		# Full pass visual processing
+		out_conv1 		= self.conv1(images)
+		out_maxpool1	= self.maxpool1(out_conv1)
+		out_batchnorm1= nn.functional.relu(self.batchnorm1(out_maxpool1))
+		out_conv2			= self.conv2(out_batchnorm1)
+		out_maxpool2	= self.maxpool2(out_conv2)
+		out_batchnorm2= nn.functional.relu(self.batchnorm2(out_maxpool2))
+		out_conv3 		= self.conv3(out_batchnorm2)
+		out_maxpool3	= self.maxpool3(out_conv3)
+		out_batchnorm3= nn.functional.relu(self.batchnorm3(out_maxpool3))
+		#out_feature_attn1, attn_feature_attn1  = self.feature_attn1(out_batchnorm3,out_semantic_attn1)
+		#out_conv4 = self.conv4(out_feature_attn1)
+		out_conv4 = self.conv4(out_batchnorm3)
+		out_maxpool4 = self.maxpool4(out_conv4)
+		out_batchnorm4= nn.functional.relu(self.batchnorm4(out_maxpool4))
+		out_feature_attn2, attn_feature_attn2 = self.feature_attn2(out_batchnorm4,out_semantic_attn1)
+		out_spatial_attn1, attn_spatial_attn1 = self.spatial_attn1(out_feature_attn2,attention)
+		out_cnn1 = self.cnn_linear1(out_spatial_attn1.view(-1,self.visual_processing_channels[3]*self.vstm_shape[0]*self.vstm_shape[1]))
+
+		# Full pass visual memory
+		out_vstm1, vstm_state = self.vstm1(out_spatial_attn1,vstm_state,attention,self.dtype)
+		out_vstm1 = self.vstm_linear1(out_vstm1.view(-1,self.vstm_outchannels*self.vstm_shape[0]*self.vstm_shape[1]))
+
+		# Full pass controller
+		in_controller1 = torch.cat((out_semantic_attn1.view(-1,1,self.lstm_hidden_units*2),out_cnn1.view(-1,1,128),out_vstm1.view(-1,1,128)),-1)
 		out_controller1, controller_state = self.controller1(in_controller1,controller_state)
-		classification = self.classifier1(out_controller1.view(-1,1,self.controller_output_size))
-		pointing = self.pointer1(out_vstm1.view(-1,1,5*5*3))
+		controller_state = torch.clamp(controller_state, max=self.controller_clip)
 		attention = torch.cat((out_controller1.squeeze(),controller_state.squeeze()),-1)
+
+		for _ in range(pondering_steps):
+			out_semantic_attn1 = self.semantic_attn1(out_lstm1,attention)
+			out_feature_attn2, attn_feature_attn2 = self.feature_attn2(out_batchnorm4,out_semantic_attn1)
+			out_spatial_attn1, attn_spatial_attn1 = self.spatial_attn1(out_feature_attn2,attention)
+			out_vstm1, vstm_state = self.vstm1(out_spatial_attn1,vstm_state,attention,self.dtype)
+			out_vstm1 = self.vstm_linear1(out_vstm1.view(-1,self.vstm_outchannels*self.vstm_shape[0]*self.vstm_shape[1]))
+			out_cnn1 = self.cnn_linear1(out_spatial_attn1.view(-1,self.visual_processing_channels[3]*self.vstm_shape[0]*self.vstm_shape[1]))
+			in_controller1 = torch.cat((out_semantic_attn1.view(-1,1,self.lstm_hidden_units*2),out_cnn1.view(-1,1,128),out_vstm1.view(-1,1,128)),-1)
+			out_controller1, controller_state = self.controller1(in_controller1,controller_state)
+			controller_state = torch.clamp(controller_state, max=self.controller_clip)
+			attention = torch.cat((out_controller1.squeeze(),controller_state.squeeze()),-1)
+
+
+
+		classification = self.classifier1(out_controller1.view(-1,1,self.controller_output_size))
+		pointing = self.pointer1(out_vstm1.view(-1,1,128))
+		
 		
 		return classification, pointing, attention, vstm_state, controller_state
 		
@@ -257,17 +320,21 @@ class CogModel(Model):
 
 		return out_maxpool4
 
-	def forward_img2cnn_attention(self,images,attention):
+	def forward_img2cnn_attention(self,images,attention,semantic_output):
 		out_conv1 		= self.conv1(images)
 		out_maxpool1	= self.maxpool1(out_conv1)
-		out_conv2			= self.conv2(out_maxpool1)
+		out_batchnorm1= nn.functional.relu(self.batchnorm1(out_maxpool1))
+		out_conv2			= self.conv2(out_batchnorm1)
 		out_maxpool2	= self.maxpool2(out_conv2)
-		out_conv3 		= self.conv3(out_maxpool2)
+		out_batchnorm2= nn.functional.relu(self.batchnorm2(out_maxpool2))
+		out_conv3 		= self.conv3(out_batchnorm2)
 		out_maxpool3	= self.maxpool3(out_conv3)
-		out_feature_attn1, attn_feature_attn1  = self.feature_attn1(out_maxpool3,attention)
+		out_batchnorm3= nn.functional.relu(self.batchnorm3(out_maxpool3))
+		out_feature_attn1, attn_feature_attn1  = self.feature_attn1(out_batchnorm3,semantic_output)
 		out_conv4 = self.conv4(out_feature_attn1)
 		out_maxpool4 = self.maxpool4(out_conv4)
-		out_feature_attn2, attn_feature_attn2 = self.feature_attn2(out_maxpool4,attention)
+		out_batchnorm4= nn.functional.relu(self.batchnorm4(out_maxpool4))
+		out_feature_attn2, attn_feature_attn2 = self.feature_attn2(out_batchnorm4,semantic_output)
 		out_spatial_attn1, attn_spatial_attn1 = self.spatial_attn1(out_feature_attn2,attention)
 
 		return out_spatial_attn1		
@@ -298,35 +365,43 @@ class CogModel(Model):
 		return out_lstm1, (c_n,h_n)
 
 	# Visual Processing
-	def VisualProcessing(self,in_channels,layer_channels,control_len):
+	def VisualProcessing(self,in_channels,layer_channels,feature_control_len,spatial_control_len,output_shape):
 
 		# First Layer
 		self.conv1 = nn.Conv2d(in_channels,layer_channels[0],3,
 								 stride=1,padding=0,dilation=1,groups=1,bias=True)
 		self.maxpool1 = nn.MaxPool2d(2,
 										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+		self.batchnorm1 = nn.BatchNorm2d(layer_channels[0])
+	
 
 		# Second Layer
 		self.conv2 = nn.Conv2d(layer_channels[0],layer_channels[1],3,
 								 stride=1,padding=0,dilation=1,groups=1,bias=True)
 		self.maxpool2 = nn.MaxPool2d(2,
 										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+		self.batchnorm2 = nn.BatchNorm2d(layer_channels[1])
 
 		# Third Layer
 		self.conv3 = nn.Conv2d(layer_channels[1],layer_channels[2],3,
 								 stride=1,padding=0,dilation=1,groups=1,bias=True)
 		self.maxpool3 = nn.MaxPool2d(2,
 										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
-		self.feature_attn1 = FeatureAttention(layer_channels[2],control_len)
+		self.batchnorm3 = nn.BatchNorm2d(layer_channels[2])
+		self.feature_attn1 = FeatureAttention(layer_channels[2],feature_control_len)
+
 
 		# Fourth Layer
 		self.conv4 = nn.Conv2d(layer_channels[2],layer_channels[3],3,
 								 stride=1,padding=0,dilation=1,groups=1,bias=True)
 		self.maxpool4 = nn.MaxPool2d(2,
 										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
-		self.feature_attn2 = FeatureAttention(layer_channels[3],control_len)
-		self.spatial_attn1 = SpatialAttention(layer_channels[3],control_len)
+		self.batchnorm4 = nn.BatchNorm2d(layer_channels[3])
+		self.feature_attn2 = FeatureAttention(layer_channels[3],feature_control_len)
+		self.spatial_attn1 = SpatialAttention(output_shape,spatial_control_len)
 
+		# Linear Layer
+		self.cnn_linear1 = nn.Linear(layer_channels[3]*output_shape[0]*output_shape[1],128)
 
 	# Semantic Processing
 	def SemanticProcessing(self,lstm_input,lstm_hidden,control_len):
@@ -343,7 +418,8 @@ class CogModel(Model):
 
 	def VisualMemory(self,shape,in_channels,out_channels,n_maps,control_len,nr_pointers):
 		self.vstm1 = VSTM(shape,in_channels,out_channels,n_maps,control_len)
-		self.pointer1 = nn.Linear(shape[0]*shape[1]*out_channels,nr_pointers)
+		self.pointer1 = nn.Linear(128,nr_pointers)
+		self.vstm_linear1 = nn.Linear(shape[0]*shape[1]*out_channels,128)
 
 	# Embed vocabulary for all available task families
 	def EmbedVocabulary(self,vocabulary_size,words_embed_length):
