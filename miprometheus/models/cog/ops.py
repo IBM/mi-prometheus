@@ -22,7 +22,10 @@ class FeatureAttention(nn.Module):
 		self.attention_size = attention_size
 		self.use_mlp = use_mlp
 		
+		# Define the scaling and shifting network, initialize to 1.
 		self.attn1 = nn.Linear(attention_input_size,attention_size*2)
+		for param in self.attn1.parameters():
+			param.data.fill_(0)
 
 	def forward(self,inputs_to_attend,attn_gen):
 	
@@ -31,17 +34,10 @@ class FeatureAttention(nn.Module):
 		
 		scale = nn.functional.relu(scale + 1.0)
 
-		#print(shift)
-		#print(scale)
-		#print(inputs_to_attend)
-	
 		inputs_to_attend = inputs_to_attend + shift.view(-1,self.attention_size,1,1)
-		#print(inputs_to_attend)
 		inputs_to_attend = inputs_to_attend * scale.view(-1,self.attention_size,1,1)
-		#print(inputs_to_attend)
 		inputs_to_attend = nn.functional.relu(inputs_to_attend)
 		return inputs_to_attend, (shift, scale)
-
 
 # Inputs:
 	# Output from a conv2d layer 
@@ -54,14 +50,13 @@ class SpatialAttention(nn.Module):
 		super(SpatialAttention,self).__init__()
 		self.attention_size = attention_size
 		self.attn1 = nn.Linear(attention_input_size,10)
-		#self.attn1 = nn.ReLU(self.attn1)
-		self.attn2 = nn.Linear(10,attention_size)
-		#self.attn2 = nn.Softmax(self.attn2)
+		self.attn2 = nn.Linear(10,attention_size[0]*attention_size[1])
 	
 	def forward(self,inputs_to_attend,attn_gen):
 		attn_gen = nn.functional.relu(self.attn1(attn_gen))
 		attn_gen = nn.functional.softmax(self.attn2(attn_gen),dim=-1)
-		inputs_to_attend *= attn_gen.view(-1,self.attention_size,1,1)
+
+		inputs_to_attend *= attn_gen.view(-1,1,self.attention_size[0],self.attention_size[1])
 
 		return inputs_to_attend, attn_gen
 
@@ -86,11 +81,11 @@ class SemanticAttention(nn.Module):
 
 if __name__ == '__main__':
 
-	postcnn = torch.rand((2,64,14,14))
+	postcnn = torch.rand((1,4,2,2))
 	attention = torch.rand(128)
 
-	feature_attn = FeatureAttention(64,128)
-	spatial_attn = SpatialAttention(64,128)
+	feature_attn = FeatureAttention(4,128)
+	spatial_attn = SpatialAttention([2,2],128)
 
 	feature_attn(postcnn,attention)
 	spatial_attn(postcnn,attention)

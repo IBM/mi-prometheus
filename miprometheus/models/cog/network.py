@@ -395,7 +395,7 @@ class CogModel(Model):
 										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
 		self.batchnorm4 = nn.BatchNorm2d(layer_channels[3])
 		self.feature_attn2 = FeatureAttention(layer_channels[3],feature_control_len)
-		self.spatial_attn1 = SpatialAttention(layer_channels[3],spatial_control_len)
+		self.spatial_attn1 = SpatialAttention(output_shape,spatial_control_len)
 
 		# Linear Layer
 		self.cnn_linear1 = nn.Linear(layer_channels[3]*output_shape[0]*output_shape[1],128)
