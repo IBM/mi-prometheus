@@ -5,7 +5,7 @@ training:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 48
-  tasks: &task ['AndCompareColor']
+  tasks: &task ['Exist']
   data_folder: '~/data/cog'
   set: val
   use_mask: False
@@ -13,9 +13,9 @@ training:
   # Set optimizer.
  optimizer:
   name: Adam
-  lr: 0.001
-  # weight_decay: 0.00002
- gradient_clipping: 100
+  lr: 0.0005
+  weight_decay: 0.00002
+ gradient_clipping: 10
 
 testing:
  cuda: True
