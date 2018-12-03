@@ -409,7 +409,7 @@ class CogModel(Model):
 								 num_layers=1, batch_first=True,bidirectional=True)
 
 		self.semantic_attn1 = SemanticAttention(lstm_hidden*2,control_len)
-		self.replacement_linear1 = nn.Linear(self.nwords*self.words_embed_length,lstm_hidden*2)
+		#self.replacement_linear1 = nn.Linear(self.nwords*self.words_embed_length,lstm_hidden*2)
 
 	#Controller Unit
 	def Controller(self,controller_input,controller_hidden,nr_classes):
