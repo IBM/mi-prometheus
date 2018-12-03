@@ -72,7 +72,7 @@ class VSTM(nn.Module):
 
 		# Probably inefficient, but that's ok for now
 		gated_inputs = torch.zeros(inputs.size()[0],self.n_maps,self.shape[0],self.shape[1]).type(dtype)		
-		for i in range(inputs.size()[0]):
+		for i in range(inputs.size(0)):
 			gated_inputs[i:i+1] = nn.functional.conv2d(inputs[i:i+1],in_gates[i])
 
 		# TensorFlow implementation has bias.
@@ -81,9 +81,10 @@ class VSTM(nn.Module):
 
 		# Probably inefficient, but that's ok for now
 		output = torch.tanh(new_state)
-		outputs = torch.zeros(inputs.size()[0],self.out_channels,self.shape[0],self.shape[1]).type(dtype)
-		for i in range(inputs.size()[0]):
-			outputs[i:i+1] = nn.functional.conv2d(output[i:i+1],output_gates[1])
+		outputs = torch.zeros(inputs.size(0),self.out_channels,self.shape[0],self.shape[1]).type(dtype)
+		for i in range(inputs.size(0)):
+			# Is this correct?
+			outputs[i:i+1] = nn.functional.conv2d(output[i:i+1],output_gates[i])
 
 		return outputs, new_state
 

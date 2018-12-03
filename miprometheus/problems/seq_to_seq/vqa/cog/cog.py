@@ -253,9 +253,9 @@ class COG(VQAProblem):
 
 		targets = data_dict['targets']
 		
-		loss = self.loss_function(logits[0][:,0,:], targets[:,0])/logits[0].size(1)
+		loss = self.loss_function(logits[0][:,0,:], targets[:,0]) /logits[0].size(1)
 		for i in range(1,logits[0].size(1)):
-			loss += self.loss_function(logits[0][:,i,:], targets[:,i])/logits[0].size(1)
+			loss += self.loss_function(logits[0][:,i,:], targets[:,i]) /logits[0].size(1)
 		loss += logits[1].sum()*0
 
 		return loss
@@ -273,10 +273,15 @@ class COG(VQAProblem):
 		#targets_point = data_dict['targets_reg']
 		
 		targets = data_dict['targets']
-
 		
 		values, indices = torch.max(logits[0],2)
 		correct = (indices==targets).sum().item() + (targets==-1).sum().item()
+
+		#print((indices==targets).sum().item())
+		#print((targets==-1).sum().item())
+
+		#print(indices)
+		#print(targets)
 
 		return (correct/float(targets.numel()))
 
@@ -400,8 +405,6 @@ class COG(VQAProblem):
 
 		self.output_vocab = ['true','false'] + self.all_colors + self.all_shapes
 
-		self.output_classes = len(self.output_vocab)
-
 		self.tasks = params['tasks']
 		if self.tasks == 'class':
 			self.tasks = self.classification_tasks
@@ -412,7 +415,8 @@ class COG(VQAProblem):
 		elif self.tasks == 'binary':
 			self.tasks = self.binary_tasks
 			self.output_vocab = ['true','false']
-			self.output_classes = 2
+
+		self.output_classes = len(self.output_vocab)
 
 		# If loading a default dataset, set default path names and set sequence length		
 		if self.dataset_type == 'canonical':

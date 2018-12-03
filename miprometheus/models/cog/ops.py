@@ -72,6 +72,9 @@ class SemanticAttention(nn.Module):
 	def forward(self,keys,query):
 	
 		query = self.attn1(query)
+		#print(keys.size())
+		#print(self.trainable_weights.size())
+		#print(query.size())
 		# keys is batch x sequence x embedding length
 		# trainable weights is embedding length
 		# query is batch x embedding length

@@ -4,8 +4,8 @@ training:
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
-  batch_size: 64
-  tasks: binary
+  batch_size: 48
+  tasks: &task ['AndCompareColor']
   data_folder: '~/data/cog'
   set: val
   use_mask: False
@@ -14,8 +14,8 @@ training:
  optimizer:
   name: Adam
   lr: 0.001
-  weight_decay: 0.00002
- gradient_clipping: 10
+  # weight_decay: 0.00002
+ gradient_clipping: 100
 
 testing:
  cuda: True
@@ -23,7 +23,7 @@ testing:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 64
-  tasks: binary
+  tasks: *task
   data_folder: '~/data/cog'
   set: test
   dataset_type: canonical
@@ -34,7 +34,7 @@ validation:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 64
-  tasks: binary
+  tasks: *task
   data_folder: '~/data/cog'
   set: val
   dataset_type: canonical
