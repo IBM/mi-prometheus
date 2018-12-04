@@ -244,8 +244,8 @@ class CogModel(Model):
 		# Process questions
 		questions = self.forward_lookup2embed(questions)
 		questions, _ = self.lstm1(questions,(
-									 					self.lstm_hidden_init.expand(-1,images.size(1),-1),
-														self.lstm_cell_init.expand(-1,images.size(1),-1) ) )
+									 					self.lstm_hidden_init.expand(-1,images.size(1),-1).contiguous(),
+														self.lstm_cell_init.expand(-1,images.size(1),-1).contiguous() ) )
 		
 		output_class = torch.zeros((images.size(1),images.size(0)
 ,self.nr_classes),requires_grad=False).type(self.dtype)
@@ -283,7 +283,7 @@ class CogModel(Model):
 
 			# Full pass controller
 			y = torch.cat((out_semantic_attn1.unsqueeze(1),out_cnn1.unsqueeze(1),x.unsqueeze(1)),-1)
-			y, controller_state = self.controller1(y,self.controller_state_init.expand(-1,images.size(1),-1))
+			y, controller_state = self.controller1(y,self.controller_state_init.expand(-1,images.size(1),-1).contiguous())
 			#controller_state = torch.clamp(controller_state, max=self.controller_clip)
 			attention = torch.cat((y.squeeze(),controller_state.squeeze()),-1)
 
