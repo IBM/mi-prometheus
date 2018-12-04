@@ -24,8 +24,10 @@ class FeatureAttention(nn.Module):
 		
 		# Define the scaling and shifting network, initialize to 1.
 		self.attn1 = nn.Linear(attention_input_size,attention_size*2)
-		for param in self.attn1.parameters():
-			param.data.fill_(0)
+		
+		# Initialize network
+		nn.init.xavier_uniform_(self.attn1.weight, gain=nn.init.calculate_gain('relu'))
+		self.attn1.bias.data.fill_(0.0)
 
 	def forward(self,inputs_to_attend,attn_gen):
 	
@@ -51,6 +53,12 @@ class SpatialAttention(nn.Module):
 		self.attention_size = attention_size
 		self.attn1 = nn.Linear(attention_input_size,10)
 		self.attn2 = nn.Linear(10,attention_size[0]*attention_size[1])
+
+		# Initialize network
+		nn.init.xavier_uniform_(self.attn1.weight, gain=nn.init.calculate_gain('relu'))
+		nn.init.xavier_uniform_(self.attn2.weight)
+		self.attn1.bias.data.fill_(0.0)
+		self.attn2.bias.data.fill_(0.0)
 	
 	def forward(self,inputs_to_attend,attn_gen):
 		attn_gen = nn.functional.relu(self.attn1(attn_gen))
@@ -67,7 +75,11 @@ class SemanticAttention(nn.Module):
 		self.attention_size = attention_size
 		
 		self.attn1 = nn.Linear(attention_input_size,attention_size)
-		self.trainable_weights = nn.Parameter(torch.randn(attention_size))
+		self.trainable_weights = nn.Parameter(torch.rand(attention_size))
+
+		# Initialize network
+		nn.init.xavier_uniform_(self.attn1.weight)
+		self.attn1.bias.data.fill_(0.0)
 
 	def forward(self,keys,query):
 	

@@ -230,11 +230,42 @@ class CogModel(Model):
 		self.lstm_cell_init = nn.Parameter(torch.randn((2,1,self.lstm_hidden_units)) )
 		#-----------------------------------------------------------------
 
+		# Initialize weights and biases
+		#-----------------------------------------------------------------
+		# Visual processing
+		nn.init.xavier_uniform_(self.conv1.weight, gain=nn.init.calculate_gain('relu'))
+		nn.init.xavier_uniform_(self.conv2.weight, gain=nn.init.calculate_gain('relu'))
+		nn.init.xavier_uniform_(self.conv3.weight, gain=nn.init.calculate_gain('relu'))
+		nn.init.xavier_uniform_(self.conv4.weight, gain=nn.init.calculate_gain('relu'))
 
+		self.conv1.bias.data.fill_(0.0)
+		self.conv2.bias.data.fill_(0.0)
+		self.conv3.bias.data.fill_(0.0)
+		self.conv4.bias.data.fill_(0.0)
 
+		# Semantic processing
+		for name, param in self.lstm1.named_parameters():
+			if 'bias' in name:
+				nn.init.constant(param,0.0)
+			elif 'weight' in name:
+				nn.init.xavier_uniform_(param)
+
+		# Controller
+		for name, param in self.controller1.named_parameters():
+			if 'bias' in name:
+				nn.init.constant(param,0.0)
+			elif 'weight' in name:
+				nn.init.xavier_uniform_(param)
+
+		# Output
+		nn.init.xavier_uniform_(self.classifier1.weight)
+		self.classifier1.bias.data.fill_(0.0)
+		#-----------------------------------------------------------------
 
 	# For debugging
 	torch.set_printoptions(threshold=999999)
+
+
 
 	def forward(self, data_dict):
 		# Parse input
