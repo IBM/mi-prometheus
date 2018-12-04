@@ -136,10 +136,10 @@ class COG(VQAProblem):
 		self.embed = True
 
 		# Initialize unique word counter. Updated by UpdateAndFetchLookup
-		self.nr_unique_words = 0
+		self.nr_unique_words = 1
 
 		# This should be the length of the longest sentence encounterable
-		self.nwords = 24
+		self.nwords = 12
 
 		# Size of the vectoral represetation of each word
 		self.words_embed_length = 64
