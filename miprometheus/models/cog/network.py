@@ -211,7 +211,7 @@ class CogModel(Model):
 
 		#-----------------------------------------------------------------
 		
-		
+		# kik
 
 
 		# Initial states of RNNs are trainable parameters. Set them here.
