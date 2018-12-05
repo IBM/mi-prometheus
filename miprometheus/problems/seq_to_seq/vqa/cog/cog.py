@@ -256,7 +256,7 @@ class COG(VQAProblem):
 		loss = self.loss_function(logits[0][:,0,:], targets[:,0]) /logits[0].size(1)
 		for i in range(1,logits[0].size(1)):
 			loss += self.loss_function(logits[0][:,i,:], targets[:,i]) /logits[0].size(1)
-		loss += logits[1].sum()*0
+		#loss += logits[1].sum()*0
 
 		return loss
 
