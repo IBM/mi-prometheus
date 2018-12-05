@@ -75,7 +75,7 @@ class SemanticAttention(nn.Module):
 		self.attention_size = attention_size
 		
 		self.attn1 = nn.Linear(attention_input_size,attention_size)
-		self.trainable_weights = nn.Parameter(torch.rand(attention_size))
+		self.trainable_weights = nn.Parameter(torch.randn(attention_size)*0.1)
 
 		# Initialize network
 		nn.init.xavier_uniform_(self.attn1.weight)

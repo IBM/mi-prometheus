@@ -219,14 +219,14 @@ class CogModel(Model):
 		self.dtype = self.app_state.dtype
 
 
-		self.attention_init = nn.Parameter(torch.rand((1,self.controller_output_size*2),requires_grad=True).type(self.dtype))
+		self.attention_init = nn.Parameter(torch.randn((1,self.controller_output_size*2),requires_grad=True).type(self.dtype)*0.1)
 
-		self.controller_state_init = nn.Parameter(torch.rand((1,1,self.controller_output_size),requires_grad=True).type(self.dtype))
+		self.controller_state_init = nn.Parameter(torch.randn((1,1,self.controller_output_size),requires_grad=True).type(self.dtype)*0.1)
 
-		self.vstm_state_init = nn.Parameter(torch.rand((1,self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=True).type(self.dtype))
+		self.vstm_state_init = nn.Parameter(torch.randn((1,self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=True).type(self.dtype)*0.1)
 
-		self.lstm_hidden_init = nn.Parameter(torch.rand((2,1,self.lstm_hidden_units)) )
-		self.lstm_cell_init = nn.Parameter(torch.rand((2,1,self.lstm_hidden_units)) )
+		self.lstm_hidden_init = nn.Parameter(torch.randn((2,1,self.lstm_hidden_units))*0.1 )
+		self.lstm_cell_init = nn.Parameter(torch.randn((2,1,self.lstm_hidden_units))*0.1 )
 		#-----------------------------------------------------------------
 
 		# Initialize weights and biases
