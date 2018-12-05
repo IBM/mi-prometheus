@@ -50,7 +50,7 @@ class VSTM(nn.Module):
 		self.control1 = nn.Linear(self.control_input_size, self.control_output_size)
 
 		# Initialize network
-		nn.init.xavier_normal_(self.control1.weight)
+		nn.init.xavier_uniform_(self.control1.weight)
 		self.control1.bias.data.fill_(0.0)
 
 	def forward(self,inputs,state,controls,dtype):

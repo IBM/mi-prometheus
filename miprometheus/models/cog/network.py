@@ -210,8 +210,7 @@ class CogModel(Model):
 											self.nr_pointers)
 
 		#-----------------------------------------------------------------
-		
-		# kik
+	
 
 
 		# Initial states of RNNs are trainable parameters. Set them here.
@@ -220,46 +219,46 @@ class CogModel(Model):
 		self.dtype = self.app_state.dtype
 
 
-		self.attention_init = nn.Parameter(torch.randn((1,self.controller_output_size*2),requires_grad=True).type(self.dtype))
+		self.attention_init = nn.Parameter(torch.rand((1,self.controller_output_size*2),requires_grad=True).type(self.dtype))
 
-		self.controller_state_init = nn.Parameter(torch.randn((1,1,self.controller_output_size),requires_grad=True).type(self.dtype))
+		self.controller_state_init = nn.Parameter(torch.rand((1,1,self.controller_output_size),requires_grad=True).type(self.dtype))
 
-		self.vstm_state_init = nn.Parameter(torch.randn((1,self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=True).type(self.dtype))
+		self.vstm_state_init = nn.Parameter(torch.rand((1,self.vstm_nmaps,self.vstm_shape[0],self.vstm_shape[1]),requires_grad=True).type(self.dtype))
 
-		self.lstm_hidden_init = nn.Parameter(torch.randn((2,1,self.lstm_hidden_units)) )
-		self.lstm_cell_init = nn.Parameter(torch.randn((2,1,self.lstm_hidden_units)) )
+		self.lstm_hidden_init = nn.Parameter(torch.rand((2,1,self.lstm_hidden_units)) )
+		self.lstm_cell_init = nn.Parameter(torch.rand((2,1,self.lstm_hidden_units)) )
 		#-----------------------------------------------------------------
 
 		# Initialize weights and biases
 		#-----------------------------------------------------------------
 		# Visual processing
-		nn.init.xavier_normal_(self.conv1.weight, gain=nn.init.calculate_gain('relu'))
-		nn.init.xavier_normal_(self.conv2.weight, gain=nn.init.calculate_gain('relu'))
-		nn.init.xavier_normal_(self.conv3.weight, gain=nn.init.calculate_gain('relu'))
-		nn.init.xavier_normal_(self.conv4.weight, gain=nn.init.calculate_gain('relu'))
+		nn.init.xavier_uniform_(self.conv1.weight, gain=nn.init.calculate_gain('relu'))
+		nn.init.xavier_uniform_(self.conv2.weight, gain=nn.init.calculate_gain('relu'))
+		nn.init.xavier_uniform_(self.conv3.weight, gain=nn.init.calculate_gain('relu'))
+		nn.init.xavier_uniform_(self.conv4.weight, gain=nn.init.calculate_gain('relu'))
 
-		self.conv1.bias.data.fill_(0.0)
-		self.conv2.bias.data.fill_(0.0)
-		self.conv3.bias.data.fill_(0.0)
-		self.conv4.bias.data.fill_(0.0)
+		self.conv1.bias.data.fill_(0.01)
+		self.conv2.bias.data.fill_(0.01)
+		self.conv3.bias.data.fill_(0.01)
+		self.conv4.bias.data.fill_(0.01)
 
 		# Semantic processing
 		for name, param in self.lstm1.named_parameters():
 			if 'bias' in name:
-				nn.init.constant(param,0.0)
+				nn.init.constant(param,0.01)
 			elif 'weight' in name:
-				nn.init.xavier_normal_(param)
+				nn.init.xavier_uniform_(param)
 
 		# Controller
 		for name, param in self.controller1.named_parameters():
 			if 'bias' in name:
-				nn.init.constant(param,0.0)
+				nn.init.constant(param,0.01)
 			elif 'weight' in name:
-				nn.init.xavier_normal_(param)
+				nn.init.xavier_uniform_(param)
 
 		# Output
-		nn.init.xavier_normal_(self.classifier1.weight)
-		self.classifier1.bias.data.fill_(0.0)
+		nn.init.xavier_uniform_(self.classifier1.weight)
+		self.classifier1.bias.data.fill_(0.01)
 		#-----------------------------------------------------------------
 
 	# For debugging
