@@ -91,7 +91,7 @@ class CogModel(Model):
 		self.nr_unique_words = 0
 
 		# This should be the length of the longest sentence encounterable
-		self.nwords = 12
+		self.nwords = 24
 		
 		# Length of vectoral representation of each word.
 		self.words_embed_length = 64

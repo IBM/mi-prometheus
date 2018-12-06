@@ -139,7 +139,7 @@ class COG(VQAProblem):
 		self.nr_unique_words = 1
 
 		# This should be the length of the longest sentence encounterable
-		self.nwords = 12
+		self.nwords = 24
 
 		# Size of the vectoral represetation of each word
 		self.words_embed_length = 64
