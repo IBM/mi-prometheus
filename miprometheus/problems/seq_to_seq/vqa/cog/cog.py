@@ -107,19 +107,11 @@ class COG(VQAProblem):
 		# Initialize word lookup dictionary
 		self.word_lookup = {}
 
-		# Whether embedding is done here
-		self.embed = True
-
 		# Initialize unique word counter. Updated by UpdateAndFetchLookup
-		self.nr_unique_words = 0
+		self.nr_unique_words = 1
 
 		# This should be the length of the longest sentence encounterable
 		self.nwords = 24
-
-		# Size of the vectoral represetation of each word
-		self.words_embed_length = 64
-		self.vocabulary_size = 512		
-		self.EmbedVocabulary(self.vocabulary_size,self.words_embed_length)
 
 		# Get the "hardcoded" image width/height.
 		self.img_size = 112 # self.params['img_size']
@@ -129,7 +121,8 @@ class COG(VQAProblem):
 								'width': self.img_size,
 								'num_channels': 3,
 								'sequence_length' : self.sequence_length,
-								'num_classes': self.output_classes}
+								'num_classes': self.output_classes,
+								'embed_vocab_size': self.input_words}
 		
 		# Set data dictionary based on parsed dataset type
 		self.data_definitions = {
@@ -190,28 +183,6 @@ class COG(VQAProblem):
 		else:
 			print("COG initialization complete.")
 			exit(0)
-	
-	# For a single timepoint in a single sample, returns (nwords,64)
-	def words2embed(self,questions):
-		out_embed=torch.zeros(self.nwords,self.words_embed_length)
-		for i, sentence in enumerate(questions):
-			for j, word in enumerate(sentence.split()):
-				out_embed[j,:] = ( self.Embedding(self.UpdateAndFetchLookup(word)) )
-		
-		return out_embed
-
-	# Given a single word, updates lookup table if necessary, then returns embedded vector
-	def UpdateAndFetchLookup(self,word):
-		if word not in self.word_lookup:
-			self.word_lookup[word] = self.nr_unique_words
-			self.nr_unique_words += 1
-		return torch.tensor([self.word_lookup[word]], dtype=torch.long)
-
-	def EmbedQuestions(self,questions):
-		return self.words2embed(questions)
-
-	def EmbedVocabulary(self,vocabulary_size,words_embed_length):
-		self.Embedding = nn.Embedding(vocabulary_size,words_embed_length)
 
 	def evaluate_loss(self, data_dict, logits):
 		""" Calculates accuracy equal to mean number of correct predictions in a given batch.
@@ -228,10 +199,10 @@ class COG(VQAProblem):
 
 		targets = data_dict['targets']
 		
-		loss = self.loss_function(logits[0][:,0,:], targets[:,0])/logits[0].size(1)
+		loss = self.loss_function(logits[0][:,0,:], targets[:,0]) /logits[0].size(1)
 		for i in range(1,logits[0].size(1)):
-			loss += self.loss_function(logits[0][:,i,:], targets[:,i])/logits[0].size(1)
-		loss += logits[1].sum()*0
+			loss += self.loss_function(logits[0][:,i,:], targets[:,i]) /logits[0].size(1)
+		#loss += logits[1].sum()*0
 
 		return loss
 
@@ -248,17 +219,17 @@ class COG(VQAProblem):
 		#targets_point = data_dict['targets_reg']
 		
 		targets = data_dict['targets']
+		
+		values, indices = torch.max(logits[0],2)
+		correct = (indices==targets).sum().item() + (targets==-1).sum().item()
 
-		correct = 0
-		total = 0
-		for i in range(0,logits[0].size()[1]):
-			values, indices = torch.max(logits[0][:,i,:],1)
-			total += targets[:,i].size(0)
-			correct += (indices==targets[:,i]).sum().item()
+		#print((indices==targets).sum().item())
+		#print((targets==-1).sum().item())
 
-		correct += (targets==-1).sum().item()
+		#print(indices)
+		#print(targets)
 
-		return (correct/total)
+		return (correct/float(targets.numel()))
 
 	def output_class_to_int(self,targets_class):
 		#for j, target in enumerate(targets_class):
@@ -301,12 +272,11 @@ class COG(VQAProblem):
 		data_dict['images']	= images
 		data_dict['tasks']	= self.dataset[index]['family']
 		data_dict['questions'] = [self.dataset[index]['question']]
-		if(self.embed):
-			data_dict['questions'] = torch.Tensor([self.UpdateAndFetchLookup(word) for word in data_dict['questions'][0].split()])
-			if(data_dict['questions'].size(0) <= self.nwords):
-				prev_size = data_dict['questions'].size(0)
-				data_dict['questions'].resize_(self.nwords)
-				data_dict['questions'][prev_size:] = 0
+		data_dict['questions'] = torch.LongTensor([self.input_vocab.index(word) for word in data_dict['questions'][0].split()])
+		if(data_dict['questions'].size(0) <= self.nwords):
+			prev_size = data_dict['questions'].size(0)
+			data_dict['questions'].resize_(self.nwords)
+			data_dict['questions'][prev_size:] = 0
 		answers = self.dataset[index]['answers']
 		if data_dict['tasks'] in self.classification_tasks:
 			data_dict['targets_reg']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
@@ -330,12 +300,7 @@ class COG(VQAProblem):
 		
 		data_dict['images'] = torch.stack([image['images'] for image in batch]).type(torch.FloatTensor)
 		data_dict['tasks']  = [task['tasks'] for task in batch]
-		if(self.embed):
-			#data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.FloatTensor)
-			data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.LongTensor)
-			#print(data_dict['questions'])
-		else:
-			data_dict['questions'] = [question['questions'] for question in batch]
+		data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.LongTensor)
 		data_dict['targets_reg'] = torch.stack([reg['targets_reg'] for reg in batch]).type(torch.FloatTensor)
 		data_dict['targets_class'] = [tgclassif['targets_class'] for tgclassif in batch]
 		data_dict['targets'] = torch.stack([target['targets'] for target in batch])
@@ -369,22 +334,28 @@ class COG(VQAProblem):
     'maroon', 'mint', 'olive', 'coral', 'navy', 'grey', 'white']
 
 		self.all_shapes = ['circle', 'square', 'cross', 'triangle', 'vbar', 'hbar'] + list(string.ascii_lowercase)
+		
+		self.all_spaces = ['left', 'right', 'top', 'bottom']
 
+		self.all_whens = ['now','latest','last1']
+
+		self.input_vocab = ['invalid','.', ',', '?','object', 'color', 'shape','loc', 'on','if','then', 'else','exist','equal', 'and','the', 'of', 'with','point'] + self.all_spaces + self.all_colors + self.all_shapes + self.all_whens
 		self.output_vocab = ['true','false'] + self.all_colors + self.all_shapes
-
-		self.output_classes = len(self.output_vocab)
 
 		self.tasks = params['tasks']
 		if self.tasks == 'class':
 			self.tasks = self.classification_tasks
 		elif self.tasks == 'reg':
 			self.tasks = self.regression_tasks
+			self.output_vocab = []
 		elif self.tasks == 'all':
 			self.tasks = self.classification_tasks + self.regression_tasks
 		elif self.tasks == 'binary':
 			self.tasks = self.binary_tasks
 			self.output_vocab = ['true','false']
-			self.output_classes = 2
+
+		self.input_words = len(self.input_vocab)
+		self.output_classes = len(self.output_vocab)
 
 		# If loading a default dataset, set default path names and set sequence length		
 		if self.dataset_type == 'canonical':
