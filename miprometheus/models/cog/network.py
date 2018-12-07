@@ -62,9 +62,8 @@ class CogModel(Model):
 		# Call base class initialization.
 		super(CogModel,self).__init__(params,problem_default_values_)
 
-		#params.add_default_params({'num_classes' : problem_default_values_['num_classes']})
-		# Hack for easy testing
-		params.add_default_params({'num_classes' : 2})
+		params.add_default_params({'num_classes' : problem_default_values_['num_classes'],
+															 'vocab_size' : problem_default_values_['embed_vocab_size']})
 
 		print("num classes : {}".format(params['num_classes']))
 
@@ -97,7 +96,7 @@ class CogModel(Model):
 		self.words_embed_length = 64
 
 		# Maximum number of embeddable words.
-		self.vocabulary_size = 256
+		self.vocabulary_size = params['vocab_size']
 
 		# LSTM input size (redundant?)
 		self.lstm_input_size = self.words_embed_length
