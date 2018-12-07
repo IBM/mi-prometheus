@@ -5,17 +5,19 @@ training:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 48
-  tasks: &task ['Exist']
+  tasks: &task binary
   data_folder: '~/data/cog'
-  set: val
+  set: train
   use_mask: False
   dataset_type: canonical
   # Set optimizer.
  optimizer:
   name: Adam
-  lr: 0.0001
+  lr: 0.00005
   weight_decay: 0.00002
  gradient_clipping: 10
+ terminal_conditions:
+  epoch_limit: 20
 
 testing:
  cuda: True
