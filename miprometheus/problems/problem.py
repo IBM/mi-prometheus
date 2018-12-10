@@ -28,6 +28,9 @@ import sys
 import numpy as np
 from torch.utils.data import Dataset
 
+#debug
+import gc
+
 from miprometheus.utils.app_state import AppState
 from miprometheus.utils.data_dict import DataDict
 
@@ -276,6 +279,12 @@ class Problem(Dataset):
         """
         return self.data_definitions
 
+    def memReport(self):
+        for obj in gc.get_objects():
+            if torch.is_tensor(obj):
+                if len(obj.size()) == 0:
+                    print(type(obj), obj.size(), id(obj))
+
     def evaluate_loss(self, data_dict, logits):
         """
         Calculates loss between the predictions / logits and targets (from ``data_dict``) using the selected \
@@ -291,6 +300,8 @@ class Problem(Dataset):
 
         # Compute loss using the provided loss function. 
         loss = self.loss_function(logits, data_dict['targets'])
+        print("New cycle")        
+        self.memReport()
 
         return loss
 
