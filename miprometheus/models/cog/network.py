@@ -244,14 +244,14 @@ class CogModel(Model):
 		# Semantic processing
 		for name, param in self.lstm1.named_parameters():
 			if 'bias' in name:
-				nn.init.constant(param,0.01)
+				nn.init.constant_(param,0.01)
 			elif 'weight' in name:
 				nn.init.xavier_uniform_(param)
 
 		# Controller
 		for name, param in self.controller1.named_parameters():
 			if 'bias' in name:
-				nn.init.constant(param,0.01)
+				nn.init.constant_(param,0.01)
 			elif 'weight' in name:
 				nn.init.xavier_uniform_(param)
 
