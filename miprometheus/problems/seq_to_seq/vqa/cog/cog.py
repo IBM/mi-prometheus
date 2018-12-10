@@ -42,12 +42,6 @@ import tarfile
 import string
 import numpy as np
 
-
-#Debugging
-import sys
-import psutil
-import gc
-
 from miprometheus.problems.seq_to_seq.vqa.vqa_problem import VQAProblem
 from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import json_to_img as jti
 
@@ -205,17 +199,11 @@ class COG(VQAProblem):
 		#family = data_dict['tasks']
 
 		targets = data_dict['targets']
-		print(id(targets),'targets')
 		
 		loss = self.loss_function(logits[0][:,0,:], targets[:,0]) /logits[0].size(1)
 		for i in range(1,logits[0].size(1)):
 			loss += self.loss_function(logits[0][:,i,:], targets[:,i]) /logits[0].size(1)
 		#loss += logits[1].sum()*0
-		print(id(loss),'loss')
-	
-		self.memReport()
-		self.cpuStats()
-		gc.collect()
 
 		return loss
 
@@ -232,11 +220,9 @@ class COG(VQAProblem):
 		#targets_point = data_dict['targets_reg']
 		
 		targets = data_dict['targets']
-		print(id(targets),'targets')
 		
 		values, indices = torch.max(logits[0],2)
 		correct = (indices==targets).sum().item() + (targets==-1).sum().item()
-		print(id(correct),'correct')
 
 		#print((indices==targets).sum().item())
 		#print((targets==-1).sum().item())
@@ -282,12 +268,8 @@ class COG(VQAProblem):
 
 		output = jti.json_to_feeds([self.dataset[index]])[0]
 		images = ((torch.from_numpy(output)).permute(1,0,4,2,3)).squeeze()
-
-		print(id(output),'output')
-		print(id(images),'images')
 				
 		data_dict = self.create_data_dict()
-		print(id(data_dict),'data_dict')
 		data_dict['images']	= images
 		data_dict['tasks']	= self.dataset[index]['family']
 		data_dict['questions'] = [self.dataset[index]['question']]
@@ -323,8 +305,6 @@ class COG(VQAProblem):
 		data_dict['targets_reg'] = torch.stack([reg['targets_reg'] for reg in batch]).type(torch.FloatTensor)
 		data_dict['targets_class'] = [tgclassif['targets_class'] for tgclassif in batch]
 		data_dict['targets'] = torch.stack([target['targets'] for target in batch])
-
-		print(id(data_dict),'data_dict')
 
 		return data_dict
 
@@ -462,23 +442,7 @@ class COG(VQAProblem):
 		#stat_col['seq_len'] = self.sequence_length
 		#stat_col['max_mem'] = self.memory_length
 		#stat_col['max_distractors'] = self.max_distractors
-		#stat_col['task'] = data_dict['tasks']	
-
-	def memReport(self):
-		for obj in gc.get_objects():
-			if torch.is_tensor(obj):
-				if len(obj.size()) == 0:
-					print(type(obj), obj.size(), id(obj))
-		  
-	def cpuStats(self):
-		print(sys.version)
-		print(psutil.cpu_percent())
-		print(psutil.virtual_memory())  # physical memory usage
-		pid = os.getpid()
-		py = psutil.Process(pid)
-		memoryUse = py.memory_info()[0] / 2. ** 30  # memory use in GB...I think
-		print('memory GB:', memoryUse)
-		
+		#stat_col['task'] = data_dict['tasks']			
 
 if __name__ == "__main__":
 	
