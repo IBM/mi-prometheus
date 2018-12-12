@@ -230,6 +230,9 @@ class COG(VQAProblem):
 			loss += self.loss_function(logits[0][:,i,:], targets[:,i]) /logits[0].size(1)
 		#loss += logits[1].sum()*0
 
+		#logsoftmax = nn.LogSoftmax()
+		#torch.mean(torch.sum(- soft_targets * logsoftmax(pred), 1))
+
 		return loss
 
 	def calculate_accuracy(self, data_dict, logits):
