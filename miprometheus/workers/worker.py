@@ -624,7 +624,7 @@ class Worker(object):
 
         stat_col['episode'] = episode
         # Collect loss as float.
-        stat_col['loss'] = loss
+        stat_col['loss'] = loss.item()
 
         # Collect other (potential) statistics from problem & model.
         problem.collect_statistics(stat_col, data_dict, logits)

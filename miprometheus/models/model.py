@@ -371,7 +371,7 @@ class Model(Module):
                 "Model and statistics exported to checkpoint {}".format(filename))
 
         # Save the best model.
-        loss = loss.cpu()  # moving loss value to cpu type to allow (initial) comparison with numpy type
+        # loss = loss.cpu()  # moving loss value to cpu type to allow (initial) comparison with numpy type
         if loss < self.best_loss:
             # Save best loss and status.
             self.best_loss = loss
