@@ -5,7 +5,7 @@ training:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 48
-  tasks: &task all
+  tasks: &task ['ExistGo']
   data_folder: '~/data/cog'
   set: val
   use_mask: False

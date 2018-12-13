@@ -229,22 +229,8 @@ class COG(VQAProblem):
 			loss += self.loss_function(logits[0][:,i,:], targets_class[:,i]) /logits[0].size(1)
 
 		# Pointing Loss
-		x, y = np.meshgrid(np.linspace(-1,1,7), np.linspace(-1,1,7))
-		mu = 0.1
-		targets_reg = targets_reg.numpy()
-		batch_size = int(targets_class.size(0))
-		sequence_size = int(targets_class.size(1))
-		soft_targets = np.zeros((batch_size,sequence_size,49))
-		for i in range(batch_size):
-			for j in range(sequence_size):
-					soft_targets[i,j,:] = np.exp( -((x-targets_reg[i,j,0])**2)/(2*(mu**2))
-																				 -((y-targets_reg[i,j,1])**2)/(2*(mu**2)) ).flatten()
-					soft_targets[i,j,:] = soft_targets[i,j,:] / np.sum(soft_targets[i,j,:])
-		np.nan_to_num(soft_targets,copy=False)
-		soft_targets = torch.Tensor(soft_targets)
-
 		logsoftmax = nn.LogSoftmax(dim=2)
-		loss += torch.mean(torch.sum(- soft_targets * logsoftmax(logits[1]), 2))
+		loss += torch.mean(torch.sum(-targets_reg * logsoftmax(logits[1]), 2))
 
 		return loss
 
@@ -268,21 +254,7 @@ class COG(VQAProblem):
 
 		# Pointing Accuracy
 		values, indices = torch.max(logits[1],2)
-
-		x, y = np.meshgrid(np.linspace(-1,1,7), np.linspace(-1,1,7))
-		mu = 0.1
-		targets_reg = targets_reg.numpy()
-		batch_size = int(targets_class.size(0))
-		sequence_size = int(targets_class.size(1))
-		soft_targets = np.zeros((batch_size,sequence_size,49))
-		for i in range(batch_size):
-			for j in range(sequence_size):
-				soft_targets[i,j,:] = np.exp( -((x-targets_reg[i,j,0])**2)/(2*(mu**2))
-																			 -((y-targets_reg[i,j,1])**2)/(2*(mu**2)) ).flatten()
-				soft_targets[i,j,:] = soft_targets[i,j,:] / np.sum(soft_targets[i,j,:]) 
-		np.nan_to_num(soft_targets,copy=False)
-		soft_targets = torch.Tensor(soft_targets)
-		values, hard_targets = torch.max(soft_targets,2)
+		values, hard_targets = torch.max(targets_reg,2)
 		
 		# Committing a minor inaccuracy here
 		correct += (indices==hard_targets).sum().item() - (indices==0).sum().item()
@@ -340,13 +312,27 @@ class COG(VQAProblem):
 		answers = self.dataset[index]['answers']
 		if data_dict['tasks'] in self.classification_tasks:
 			#data_dict['targets_reg']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
-			data_dict['targets_reg'] = torch.FloatTensor([[-10,-10] for target in answers])
+			#data_dict['targets_reg'] = np.array([[-10,-10] for target in answers])
+			targets_reg = np.array([[-10,-10] for target in answers])
 			data_dict['targets_class'] 	= self.output_class_to_int(answers)
 			#data_dict['targets'] = self.output_class_to_int(answers)
 			
 		else :
-			data_dict['targets_reg']	= torch.FloatTensor([[-1,-1] if reg == 'invalid' else reg for reg in answers])
+			data_dict['targets_reg']	= np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
 			data_dict['targets_class'] 	= self.app_state.LongTensor([-1 for target in answers])
+			targets_reg = np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
+
+		x, y = np.meshgrid(np.linspace(-1,1,7), np.linspace(-1,1,7))
+		mu = 0.1
+
+		sequence_length = len(data_dict['targets_class'])
+		soft_targets = np.zeros((sequence_length,49))
+		for i in range(sequence_length):
+			soft_targets[i,:] = np.exp( -((x-targets_reg[i,0])**2)/(2*(mu**2))
+																		-((y-targets_reg[i,1])**2)/(2*(mu**2)) ).flatten()
+			soft_targets[i,:] = soft_targets[i,:] / np.sum(soft_targets[i,:])
+		np.nan_to_num(soft_targets,copy=False)
+		data_dict['targets_reg'] = self.app_state.FloatTensor(soft_targets)
 
 		return data_dict
 
