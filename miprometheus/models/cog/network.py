@@ -258,6 +258,9 @@ class CogModel(Model):
 		# Output
 		nn.init.xavier_uniform_(self.classifier1.weight)
 		self.classifier1.bias.data.fill_(0.01)
+		
+		nn.init.xavier_uniform_(self.pointer1.weight)
+		self.pointer1.bias.data.fill_(0.01)
 		#-----------------------------------------------------------------
 
 	# For debugging
