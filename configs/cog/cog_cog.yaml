@@ -5,9 +5,9 @@ training:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 48
-  tasks: &task binary
+  tasks: &task all
   data_folder: '~/data/cog'
-  set: train
+  set: val
   use_mask: False
   dataset_type: canonical
   # Set optimizer.

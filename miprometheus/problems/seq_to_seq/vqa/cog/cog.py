@@ -154,7 +154,7 @@ class COG(VQAProblem):
 		'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
 		'tasks':	{'size': [-1, 1], 'type': [list, str]},
 		'questions': 	{'size': [-1,self.nwords], 'type': [torch.Tensor]},
-		'targets': {'size': [-1,self.sequence_length, self.output_classes], 'type': [torch.Tensor]},
+		#'targets': {'size': [-1,self.sequence_length, self.output_classes], 'type': [torch.Tensor]},
 		'targets_reg' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
 		'targets_class':{'size': [-1, self.sequence_length, self.output_classes], 'type' : [list,str]}
 					}		
@@ -196,15 +196,15 @@ class COG(VQAProblem):
 			self.length = len(self.dataset)
 
 			# Testing output classes
-			if self.set == 'val':
-				self.output_words = []
-				for datapoint in self.dataset:
-					for answer in datapoint['answers']:
-						if not answer in self.output_words:
-							self.output_words.append(answer)
+			#if self.set == 'val':
+			#	self.output_words = []
+			#	for datapoint in self.dataset:
+			#		for answer in datapoint['answers']:
+			#			if not answer in self.output_words:
+			#				self.output_words.append(answer)
 
-				print(self.output_words)
-				print(len(self.output_words) )
+				#print(self.output_words)
+				#print(len(self.output_words) )
 
 		else:
 			self.logger.info("COG initialization complete.")
@@ -219,19 +219,32 @@ class COG(VQAProblem):
 		:param logits: Predictions being output of the model.
 
 		"""
-		#targets_class = data_dict['targets_class']
-		#targets_point = data_dict['targets_reg']
-		#family = data_dict['tasks']
 
-		targets = data_dict['targets']
+		targets_reg = data_dict['targets_reg']
+		targets_class = data_dict['targets_class']
 		
-		loss = self.loss_function(logits[0][:,0,:], targets[:,0]) /logits[0].size(1)
+		# Classification Loss 
+		loss = self.loss_function(logits[0][:,0,:], targets_class[:,0]) /logits[0].size(1)
 		for i in range(1,logits[0].size(1)):
-			loss += self.loss_function(logits[0][:,i,:], targets[:,i]) /logits[0].size(1)
-		#loss += logits[1].sum()*0
+			loss += self.loss_function(logits[0][:,i,:], targets_class[:,i]) /logits[0].size(1)
 
-		#logsoftmax = nn.LogSoftmax()
-		#torch.mean(torch.sum(- soft_targets * logsoftmax(pred), 1))
+		# Pointing Loss
+		x, y = np.meshgrid(np.linspace(-1,1,7), np.linspace(-1,1,7))
+		mu = 0.1
+		targets_reg = targets_reg.numpy()
+		batch_size = int(targets_class.size(0))
+		sequence_size = int(targets_class.size(1))
+		soft_targets = np.zeros((batch_size,sequence_size,49))
+		for i in range(batch_size):
+			for j in range(sequence_size):
+					soft_targets[i,j,:] = np.exp( -((x-targets_reg[i,j,0])**2)/(2*(mu**2))
+																				 -((y-targets_reg[i,j,1])**2)/(2*(mu**2)) ).flatten()
+					soft_targets[i,j,:] = soft_targets[i,j,:] / np.sum(soft_targets[i,j,:])
+		np.nan_to_num(soft_targets,copy=False)
+		soft_targets = torch.Tensor(soft_targets)
+
+		logsoftmax = nn.LogSoftmax(dim=2)
+		loss += torch.mean(torch.sum(- soft_targets * logsoftmax(logits[1]), 2))
 
 		return loss
 
@@ -244,21 +257,38 @@ class COG(VQAProblem):
 		:param logits: Predictions being output of the model.
 
 		"""
-		#targets_class = data_dict['targets_class']
-		#targets_point = data_dict['targets_reg']
 		
-		targets = data_dict['targets']
+		targets_reg = data_dict['targets_reg']
+		targets_class = data_dict['targets_class']
 		
+		# Classification Accuracy
 		values, indices = torch.max(logits[0],2)
-		correct = (indices==targets).sum().item() + (targets==-1).sum().item()
+		correct = (indices==targets_class).sum().item() #+ (targets==-1).sum().item()
+		total = targets_class.numel() - (targets_class==-1).sum().item()
 
-		#print((indices==targets).sum().item())
-		#print((targets==-1).sum().item())
+		# Pointing Accuracy
+		values, indices = torch.max(logits[1],2)
 
-		#print(indices)
-		#print(targets)
+		x, y = np.meshgrid(np.linspace(-1,1,7), np.linspace(-1,1,7))
+		mu = 0.1
+		targets_reg = targets_reg.numpy()
+		batch_size = int(targets_class.size(0))
+		sequence_size = int(targets_class.size(1))
+		soft_targets = np.zeros((batch_size,sequence_size,49))
+		for i in range(batch_size):
+			for j in range(sequence_size):
+				soft_targets[i,j,:] = np.exp( -((x-targets_reg[i,j,0])**2)/(2*(mu**2))
+																			 -((y-targets_reg[i,j,1])**2)/(2*(mu**2)) ).flatten()
+				soft_targets[i,j,:] = soft_targets[i,j,:] / np.sum(soft_targets[i,j,:]) 
+		np.nan_to_num(soft_targets,copy=False)
+		soft_targets = torch.Tensor(soft_targets)
+		values, hard_targets = torch.max(soft_targets,2)
+		
+		# Committing a minor inaccuracy here
+		correct += (indices==hard_targets).sum().item() - (indices==0).sum().item()
+		total += hard_targets.numel() - (hard_targets==0).sum().item()
 
-		return (correct/float(targets.numel()))
+		return correct/total
 
 	def output_class_to_int(self,targets_class):
 		#for j, target in enumerate(targets_class):
@@ -309,13 +339,14 @@ class COG(VQAProblem):
 			data_dict['questions'][prev_size:] = 0
 		answers = self.dataset[index]['answers']
 		if data_dict['tasks'] in self.classification_tasks:
-			data_dict['targets_reg']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
-			data_dict['targets_class'] 	= answers
-			data_dict['targets'] = self.output_class_to_int(answers)
+			#data_dict['targets_reg']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
+			data_dict['targets_reg'] = torch.FloatTensor([[-10,-10] for target in answers])
+			data_dict['targets_class'] 	= self.output_class_to_int(answers)
+			#data_dict['targets'] = self.output_class_to_int(answers)
 			
 		else :
 			data_dict['targets_reg']	= torch.FloatTensor([[-1,-1] if reg == 'invalid' else reg for reg in answers])
-			data_dict['targets_class'] 	= [' ' for item in answers]
+			data_dict['targets_class'] 	= self.app_state.LongTensor([-1 for target in answers])
 
 		return data_dict
 
@@ -335,8 +366,8 @@ class COG(VQAProblem):
 		data_dict['tasks']  = [task['tasks'] for task in batch]
 		data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.LongTensor)
 		data_dict['targets_reg'] = torch.stack([reg['targets_reg'] for reg in batch]).type(torch.FloatTensor)
-		data_dict['targets_class'] = [tgclassif['targets_class'] for tgclassif in batch]
-		data_dict['targets'] = torch.stack([target['targets'] for target in batch])
+		data_dict['targets_class'] = torch.stack([tgclassif['targets_class'] for tgclassif in batch]).type(torch.LongTensor)
+		#data_dict['targets'] = torch.stack([target['targets'] for target in batch])
 
 		return data_dict
 
