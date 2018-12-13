@@ -329,8 +329,8 @@ class CogModel(Model):
 				attention = torch.cat((y.squeeze(),controller_state.squeeze()),-1)
 
 			classification = self.classifier1(y.squeeze())
-			#pointing = self.pointer1(x.squeeze())
-			pointing = 0
+			pointing = self.pointer1(x.squeeze())
+			#pointing = 0
 
 			output_class[:,j,:] = classification
 			output_point[:,j,:] = pointing
@@ -452,7 +452,7 @@ class CogModel(Model):
 
 	def VisualMemory(self,shape,in_channels,out_channels,n_maps,control_len,nr_pointers):
 		self.vstm1 = VSTM(shape,in_channels,out_channels,n_maps,control_len)
-		#self.pointer1 = nn.Linear(128,nr_pointers)
+		self.pointer1 = nn.Linear(128,nr_pointers)
 		self.vstm_linear1 = nn.Linear(shape[0]*shape[1]*out_channels,128)
 
 	# Embed vocabulary for all available task families
