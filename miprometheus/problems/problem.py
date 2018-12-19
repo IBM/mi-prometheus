@@ -451,23 +451,22 @@ class Problem(Dataset):
         return True
 
     # Function to make check and download easier
+<<<<<<< bd0d95e19848b461d8de841e2b769055017978c6
     def check_and_download(self, file_folder_to_check, url=None, download_name='~/data/downloaded'):
+=======
+    def CheckAndDownload(self,filefoldertocheck, url='none', downloadname='~/data/downloaded'):
+>>>>>>> Ready to train MM on COG
         """
-        Checks whether a file or folder exists at given path (relative to storage folder), \
-        otherwise downloads files from the given URL.
-
-        :param file_folder_to_check: Relative path to a file or folder to check to see if it exists.
-        :type file_folder_to_check: str
-
+        Checks whether a file or folder exists at given path (relative to storage folder), otherwise downloads files from given URL.
+        :param filefoldertocheck: Relative path to a file or folder to check to see if it exists.
+        :type filefoldertocheck: string
         :param url: URL to download files from.
-        :type url: str
-
-        :param download_name: What to name the downloaded file. (DEFAULT: "downloaded").
-        :type download_name: str
-
+        :type url: string
+        :param downloadname: What to name the downloaded file. (DEFAULT: "downloaded").
+        :type downloadname: string.
         :return: False if file was found, True if a download was necessary.
-
         """
+<<<<<<< bd0d95e19848b461d8de841e2b769055017978c6
 
         file_folder_to_check = os.path.expanduser(file_folder_to_check)
         if not (os.path.isfile(file_folder_to_check) or os.path.isdir(file_folder_to_check)):
@@ -477,10 +476,19 @@ class Problem(Dataset):
                 return True
             else:
                 return True
+=======
+        filefoldertocheck = os.path.expanduser(filefoldertocheck)
+        if not ( os.path.isfile( filefoldertocheck)  or 
+                         os.path.isdir ( filefoldertocheck) ):
+            print('Downloading {}'.format(url))
+            urllib.request.urlretrieve(url, os.path.expanduser(downloadname), self.reporthook)
+            return True
+>>>>>>> Ready to train MM on COG
         else:
-            self.logger.info('Dataset found at {}'.format(file_folder_to_check))
+            print('Dataset found at {}'.format(filefoldertocheck))
             return False
 
+<<<<<<< bd0d95e19848b461d8de841e2b769055017978c6
 # Progress bar function
 def reporthook(count, block_size, total_size):
     global start_time
@@ -494,6 +502,21 @@ def reporthook(count, block_size, total_size):
     sys.stdout.write("\r...%d%%, %d MB, %d KB/s, %d seconds passed" %
                      (percent, progress_size / (1024 * 1024), speed, duration))
     sys.stdout.flush()
+=======
+    # Progress bar function
+    def reporthook(self,count, block_size, total_size):
+        global start_time
+        if count == 0:
+                start_time = time.time()
+                return
+        duration = time.time() - start_time
+        progress_size = int(count * block_size)
+        speed = int(progress_size / (1024 * duration))
+        percent = int(count * block_size * 100 / total_size)
+        sys.stdout.write("\r...%d%%, %d MB, %d KB/s, %d seconds passed" %
+                            (percent, progress_size / (1024 * 1024), speed, duration))
+        sys.stdout.flush()
+>>>>>>> Ready to train MM on COG
 
 
 if __name__ == '__main__':

@@ -25,8 +25,15 @@ from miprometheus.models.mental_model.ops import SemanticAttention
 
 
 class MentalModel(Model):
-	def __init__(self,params):
-		super(MentalModel,self).__init__(params)
+	def __init__(self,params,problem_default_values_={}):
+		super(MentalModel,self).__init__(params,problem_default_values_)
+
+		# Set default params
+		params.add_default_params({'num_classes' : problem_default_values_['num_classes'],
+															 'vocab_size' : problem_default_values_['embed_vocab_size']})
+
+		# Get app state gpu/cpu
+		self.dtype = self.app_state.dtype
 
 		# Define parameters
 		# Visual processing
@@ -36,13 +43,15 @@ class MentalModel(Model):
 		for channel in self.layer_channels:
 			self.features_shape = np.floor((self.features_shape-2)/2)
 		self.features_shape = int(self.features_shape)
+		# Normalization
+		self.img_norm = 255.0
 
 		# Semantic processing
-		self.vocabulary_size = 256
+		self.vocabulary_size = params['vocab_size']
 		self.words_embed_length = 64
 		self.lstm_input = 64
 		self.lstm_hidden = 64
-		self.nwords = 16
+		self.nwords = 24
 
 		# Controller
 		self.controller_input = 2*(self.layer_channels[3] + 3) + 128
@@ -55,8 +64,12 @@ class MentalModel(Model):
 		self.object_size = self.layer_channels[3] + 3
 
 		# Output
-		self.output_classes_class=54
-		self.output_classes_point=54
+		self.output_classes_class=params['num_classes']
+		self.output_classes_point=49
+
+
+
+
 
 
 		# Define the layers
@@ -73,13 +86,16 @@ class MentalModel(Model):
 		# Define semantic processing layers
 		self.embedding = nn.Embedding(self.vocabulary_size,self.words_embed_length,padding_idx=0)
 		self.lstm1 = nn.LSTM(self.lstm_input,self.lstm_hidden,bidirectional=True,batch_first=True)
+		self.lstm_cell_init= nn.Parameter(torch.randn((2,1,self.lstm_hidden),requires_grad=True).type(self.dtype)*0.1)
+		self.lstm_hidden_init= nn.Parameter(torch.randn((2,1,self.lstm_hidden),requires_grad=True).type(self.dtype)*0.1)
 
 		# Define the controller
 		self.controller1 = nn.GRU(self.controller_input,self.controller_hidden,batch_first=True)
+		self.controller_init = nn.Parameter(torch.randn((1,1,self.controller_hidden),requires_grad=True).type(self.dtype)*0.1)
 
 		# Define working memory
-		self.memory = Memory(self.batch_size,self.memory_size,self.object_size,self.controller_hidden)
-		self.attention_init = nn.Parameter(torch.randn((1,1, self.controller_hidden))) 
+		self.memory = Memory(self.batch_size,self.memory_size,self.object_size,self.controller_hidden,self.app_state)
+		self.attention_init = nn.Parameter(torch.randn((1,1, self.controller_hidden),requires_grad=True).type(self.dtype)*0.1) 
 
 		# Define Bahdanau attention
 		self.semantic_attn1 = SemanticAttention(self.lstm_input*2,self.controller_hidden)
@@ -93,15 +109,62 @@ class MentalModel(Model):
 		self.relationalnet_class = nn.Linear(2*self.object_size + self.lstm_input*2,self.output_classes_class)
 		self.relationalnet_point = nn.Linear(2*self.object_size + self.lstm_input*2,self.output_classes_point)
 
-	def forward(self,images,question):
+
+
+
+		# Initialize all networks
+		# CNN
+		nn.init.xavier_uniform_(self.conv1.weight, gain=nn.init.calculate_gain('relu'))
+		nn.init.xavier_uniform_(self.conv2.weight, gain=nn.init.calculate_gain('relu'))
+		nn.init.xavier_uniform_(self.conv3.weight, gain=nn.init.calculate_gain('relu'))
+		nn.init.xavier_uniform_(self.conv4.weight, gain=nn.init.calculate_gain('relu'))
+
+		self.conv1.bias.data.fill_(0.01)
+		self.conv2.bias.data.fill_(0.01)
+		self.conv3.bias.data.fill_(0.01)
+		self.conv4.bias.data.fill_(0.01)
+
+		# Semantic
+		for name, param in self.lstm1.named_parameters():
+			if 'bias' in name:
+				nn.init.constant_(param,0.01)
+			elif 'weight' in name:
+				nn.init.xavier_uniform_(param)
+		
+		# Controller
+		for name, param in self.controller1.named_parameters():
+			if 'bias' in name:
+				nn.init.constant_(param,0.01)
+			elif 'weight' in name:
+				nn.init.xavier_uniform_(param)
+
+		# Fetch network
+		nn.init.xavier_uniform_(self.objectfetch.weight)
+		self.objectfetch.bias.data.fill_(0.01)	
+
+		# Output
+		nn.init.xavier_uniform_(self.relationalnet_class.weight)
+		self.relationalnet_class.bias.data.fill_(0.01)
+		
+		nn.init.xavier_uniform_(self.relationalnet_point.weight)
+		self.relationalnet_point.bias.data.fill_(0.01)
+		
+
+	def forward(self,data_dict):
+
+		self.memory.reset()
+
+		images = data_dict['images'].permute(1,0,2,3,4) / self.img_norm
+		questions = data_dict['questions']
 
 		y = torch.zeros((questions.size(0),self.nwords,self.words_embed_length))
 		for i, sentence in enumerate(questions):
 			y[i,:,:] = self.embedding(sentence)
-		y, _ = self.lstm1(y)
+		y, _ = self.lstm1(y,( self.lstm_hidden_init.expand(-1,images.size(1),-1).contiguous(),
+												  self.lstm_cell_init.expand(-1,images.size(1),-1).contiguous() ) )
 		
-		output_class = torch.zeros((images.size(1),images.size(0),self.output_classes_class),requires_grad=False)
-		output_point = torch.zeros((images.size(1),images.size(0),self.output_classes_point),requires_grad=False)
+		output_class = torch.zeros((images.size(1),images.size(0),self.output_classes_class),requires_grad=False).type(self.dtype)
+		output_point = torch.zeros((images.size(1),images.size(0),self.output_classes_point),requires_grad=False).type(self.dtype)
 
 		for l, image in enumerate(images):
 			x = self.conv1(image)
@@ -114,6 +177,7 @@ class MentalModel(Model):
 			x = nn.functional.relu(self.maxpool4(x))
 			
 			controller_out = self.attention_init.expand(self.batch_size,1,-1)
+			controller_hidden = self.controller_init.expand(1,self.batch_size,-1)
 			for i in range(self.features_shape):
 				for j in range(self.features_shape):
 					obj = torch.cat((x[:,:,i,j], 
@@ -122,7 +186,7 @@ class MentalModel(Model):
 					for k in range(self.pondering):
 						z = self.semantic_attn1(y,controller_out.squeeze())
 						controller_in = torch.cat((obj,mem_obj,z),dim=-1)
-						controller_out, controller_hidden = self.controller1(controller_in.unsqueeze(1))
+						controller_out, controller_hidden = self.controller1(controller_in.unsqueeze(1),controller_hidden)
 						
 						read_key = self.memory.read_keygen(controller_out.squeeze())
 						read_subset = torch.sigmoid(self.memory.read_subset_gen(controller_out.squeeze()))
@@ -173,7 +237,7 @@ class MentalModel(Model):
 			mem_obj2 = self.memory.read(read_address,read_gate)	
 			
 			output_class[:,l,:] = self.relationalnet_class(torch.cat((mem_obj1,mem_obj2,y[:,-1,:]),dim=-1))
-			output_point[:,l,:] = self.relationalnet_class(torch.cat((mem_obj1,mem_obj2,y[:,-1,:]),dim=-1))
+			output_point[:,l,:] = self.relationalnet_point(torch.cat((mem_obj1,mem_obj2,y[:,-1,:]),dim=-1))
 		
 		return output_class, output_point
 					

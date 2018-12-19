@@ -83,29 +83,25 @@ OUTPUTVOCABULARY = ['true', 'false'] + ALLCOLORS + ALLSHAPES
 # Maximum number of words in a sentence
 MAXSEQLENGTH = 25
 
+
 # If use popvec out_type
-#def get_prefs(grid_size):
-#  """Helper function.
-#
-#  Args:
-#    grid_size : int
-#
-#  Returns:
-#    prefs: numpy 2-D array (n_out_pnt, 2). x and y preferences.
-#  """
-#  prefs_y, prefs_x = (np.mgrid[0:grid_size, 0:grid_size]) / (grid_size - 1.)
-#  prefs_x = prefs_x.flatten().astype('float32')
-#  prefs_y = prefs_y.flatten().astype('float32')
-#
+def get_prefs(grid_size):
+  prefs_y, prefs_x = (np.mgrid[0:grid_size, 0:grid_size]) / (grid_size - 1.)
+  prefs_x = prefs_x.flatten().astype('float32')
+  prefs_y = prefs_y.flatten().astype('float32')
+
   # numpy array (Grid_size**2, 2)
-#  prefs = (np.array([prefs_x, prefs_y]).astype('float32')).T
-#  return prefs
+  prefs = (np.array([prefs_x, prefs_y]).astype('float32')).T
+  return prefs
 
 GRID_SIZE = 7
-prefs_y, prefs_x = (np.mgrid[0:GRID_SIZE, 0:GRID_SIZE]) / (GRID_SIZE - 1.)
-prefs_x = prefs_x.flatten().astype('float32')
-prefs_y = prefs_y.flatten().astype('float32')
+PREFS = get_prefs(GRID_SIZE)
 
-  # numpy array (Grid_size**2, 2)
-PREFS = (np.array([prefs_x, prefs_y]).astype('float32')).T
-#PREFS = get_prefs(GRID_SIZE)
+config = {'dataset': 'yang',
+          'pnt_net': True,
+          'in_voc_size': len(INPUTVOCABULARY),
+          'grid_size': GRID_SIZE,
+          'out_voc_size': len(OUTPUTVOCABULARY),
+          'maxseqlength': MAXSEQLENGTH,
+          'prefs': PREFS,
+         }

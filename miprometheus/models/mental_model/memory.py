@@ -1,10 +1,15 @@
 import torch
+import torch.nn as nn
 
 
 class Memory(object):
-	def __init__(self, batch_size,mem_slots,object_size,controller_out_size):
+	def __init__(self, batch_size,mem_slots,object_size,controller_out_size,app_state):
+
+		# Get app state gpu/cpu
+		self.dtype = app_state.dtype
+
 		# memory is [batch size x memory slots x object size]
-		self.memory = torch.zeros((batch_size,mem_slots,object_size))
+		self.memory = torch.zeros((batch_size,mem_slots,object_size)).type(self.dtype)
 		
 		# generate key, subset, location address and address mixing for read 
 		self.read_keygen = torch.nn.Linear(controller_out_size, object_size)
@@ -26,6 +31,47 @@ class Memory(object):
 		self.write_mix_gen= torch.nn.Linear(controller_out_size, 2)
 		self.write_location = torch.nn.Linear(controller_out_size, mem_slots)
 		self.write_gate = torch.nn.Linear(controller_out_size,object_size)
+
+
+		# Initialize all layers
+		# reads
+		nn.init.xavier_uniform_(self.read_keygen.weight)
+		nn.init.xavier_uniform_(self.read_subset_gen.weight, gain=nn.init.calculate_gain('sigmoid'))
+		nn.init.xavier_uniform_(self.read_mix_gen.weight)
+		nn.init.xavier_uniform_(self.read_location.weight)
+		nn.init.xavier_uniform_(self.read_gate.weight, gain=nn.init.calculate_gain('sigmoid'))
+
+		self.read_keygen.bias.data.fill_(0.01)
+		self.read_subset_gen.bias.data.fill_(0.01)
+		self.read_mix_gen.bias.data.fill_(0.01)
+		self.read_location.bias.data.fill_(0.01)
+		self.read_gate.bias.data.fill_(0.01)
+
+		# erases
+		nn.init.xavier_uniform_(self.erase_keygen.weight)
+		nn.init.xavier_uniform_(self.erase_subset_gen.weight, gain=nn.init.calculate_gain('sigmoid'))
+		nn.init.xavier_uniform_(self.erase_mix_gen.weight)
+		nn.init.xavier_uniform_(self.erase_location.weight)
+		nn.init.xavier_uniform_(self.erase_gate.weight, gain=nn.init.calculate_gain('sigmoid'))
+
+		self.erase_keygen.bias.data.fill_(0.01)
+		self.erase_subset_gen.bias.data.fill_(0.01)
+		self.erase_mix_gen.bias.data.fill_(0.01)
+		self.erase_location.bias.data.fill_(0.01)
+		self.erase_gate.bias.data.fill_(0.01)
+
+		# writes
+		nn.init.xavier_uniform_(self.write_keygen.weight)
+		nn.init.xavier_uniform_(self.write_subset_gen.weight, gain=nn.init.calculate_gain('sigmoid'))
+		nn.init.xavier_uniform_(self.write_mix_gen.weight)
+		nn.init.xavier_uniform_(self.write_location.weight)
+		nn.init.xavier_uniform_(self.write_gate.weight, gain=nn.init.calculate_gain('sigmoid'))
+
+		self.write_keygen.bias.data.fill_(0.01)
+		self.write_subset_gen.bias.data.fill_(0.01)
+		self.write_mix_gen.bias.data.fill_(0.01)
+		self.write_location.bias.data.fill_(0.01)
+		self.write_gate.bias.data.fill_(0.01)
 
 	def subset_similarity(self, key, subset_attention):
 		# Loop over objects in memory
@@ -70,6 +116,11 @@ class Memory(object):
 		# obj is [batch size x object size]
 
 		self.memory = self.memory + (location.unsqueeze(2) * obj.unsqueeze(1) *gate.unsqueeze(1))
+
+	def reset(self):
+		# Reset memory to all zeros.
+
+		self.memory = torch.zeros_like(self.memory)
 		
 
 if __name__ == '__main__':

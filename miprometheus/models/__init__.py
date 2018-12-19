@@ -16,6 +16,7 @@ from .relational_net import *
 from .vision import *
 from .vqa_baselines import *
 from .cog import *
+from .mental_model import *
 
 # Other imports.
 from .model import Model
