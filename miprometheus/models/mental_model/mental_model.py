@@ -54,6 +54,10 @@ class MentalModel(Model):
 		self.memory_size = 8
 		self.object_size = self.layer_channels[3] + 3
 
+		# Output
+		self.output_classes_class=54
+		self.output_classes_point=54
+
 
 		# Define the layers
 		# Define visual processing layers
@@ -68,10 +72,10 @@ class MentalModel(Model):
 
 		# Define semantic processing layers
 		self.embedding = nn.Embedding(self.vocabulary_size,self.words_embed_length,padding_idx=0)
-		self.lstm1 = nn.LSTM(self.lstm_input,self.lstm_hidden,bidirectional=True)
+		self.lstm1 = nn.LSTM(self.lstm_input,self.lstm_hidden,bidirectional=True,batch_first=True)
 
 		# Define the controller
-		self.controller1 = nn.GRU(self.controller_input,self.controller_hidden)
+		self.controller1 = nn.GRU(self.controller_input,self.controller_hidden,batch_first=True)
 
 		# Define working memory
 		self.memory = Memory(self.batch_size,self.memory_size,self.object_size,self.controller_hidden)
@@ -79,8 +83,15 @@ class MentalModel(Model):
 
 		# Define Bahdanau attention
 		self.semantic_attn1 = SemanticAttention(self.lstm_input*2,self.controller_hidden)
-	
 
+		# Define object fetch network
+		# Input controller state, controller hidden state, question LSTM final state
+		# Output two concatenated read vectors
+		self.objectfetch = nn.Linear(2*self.controller_hidden+self.lstm_input*2,2*self.controller_hidden)
+
+		# Define relational networks
+		self.relationalnet_class = nn.Linear(2*self.object_size + self.lstm_input*2,self.output_classes_class)
+		self.relationalnet_point = nn.Linear(2*self.object_size + self.lstm_input*2,self.output_classes_point)
 
 	def forward(self,images,question):
 
@@ -89,6 +100,9 @@ class MentalModel(Model):
 			y[i,:,:] = self.embedding(sentence)
 		y, _ = self.lstm1(y)
 		
+		output_class = torch.zeros((images.size(1),images.size(0),self.output_classes_class),requires_grad=False)
+		output_point = torch.zeros((images.size(1),images.size(0),self.output_classes_point),requires_grad=False)
+
 		for l, image in enumerate(images):
 			x = self.conv1(image)
 			x = nn.functional.relu(self.maxpool1(x))
@@ -98,8 +112,8 @@ class MentalModel(Model):
 			x = nn.functional.relu(self.maxpool3(x))
 			x = self.conv4(x)
 			x = nn.functional.relu(self.maxpool4(x))
-
-			controller_out = self.attention_init.expand(1,self.batch_size,-1)
+			
+			controller_out = self.attention_init.expand(self.batch_size,1,-1)
 			for i in range(self.features_shape):
 				for j in range(self.features_shape):
 					obj = torch.cat((x[:,:,i,j], 
@@ -108,8 +122,8 @@ class MentalModel(Model):
 					for k in range(self.pondering):
 						z = self.semantic_attn1(y,controller_out.squeeze())
 						controller_in = torch.cat((obj,mem_obj,z),dim=-1)
-						controller_out, _ = self.controller1(controller_in.unsqueeze(0))
-	
+						controller_out, controller_hidden = self.controller1(controller_in.unsqueeze(1))
+						
 						read_key = self.memory.read_keygen(controller_out.squeeze())
 						read_subset = torch.sigmoid(self.memory.read_subset_gen(controller_out.squeeze()))
 						read_content_address = self.memory.subset_similarity(read_key,read_subset)
@@ -118,7 +132,7 @@ class MentalModel(Model):
 						read_address = self.memory.address_mix(read_content_address,read_location_address,read_address_mix)
 						read_gate = torch.sigmoid(self.memory.read_gate(controller_out.squeeze()))
 						mem_obj = self.memory.read(read_address,read_gate)
-
+						
 						erase_key = self.memory.erase_keygen(controller_out.squeeze())
 						erase_subset = torch.sigmoid(self.memory.erase_subset_gen(controller_out.squeeze()))
 						erase_content_address = self.memory.subset_similarity(erase_key,erase_subset)
@@ -127,7 +141,7 @@ class MentalModel(Model):
 						erase_address = self.memory.address_mix(erase_content_address,erase_location_address,erase_address_mix)
 						erase_gate = torch.sigmoid(self.memory.erase_gate(controller_out.squeeze()))
 						self.memory.erase(erase_address,erase_gate)
-
+						
 						write_key = self.memory.write_keygen(controller_out.squeeze())
 						write_subset = torch.sigmoid(self.memory.write_subset_gen(controller_out.squeeze()))
 						write_content_address = self.memory.subset_similarity(write_key,write_subset)
@@ -137,6 +151,31 @@ class MentalModel(Model):
 						write_gate = torch.sigmoid(self.memory.write_gate(controller_out.squeeze()))
 						self.memory.write(write_address,write_gate,obj)
 						
+			concatenated_reads = self.objectfetch(torch.cat((controller_out.squeeze(),controller_hidden.squeeze(),y[:,-1,:]),dim=-1))
+			read1, read2 = torch.split(concatenated_reads,(self.controller_hidden,self.controller_hidden),-1)
+
+			read_key = self.memory.read_keygen(read1.squeeze())
+			read_subset = torch.sigmoid(self.memory.read_subset_gen(read1.squeeze()))
+			read_content_address = self.memory.subset_similarity(read_key,read_subset)
+			read_location_address = torch.nn.functional.softmax(self.memory.read_location(read1.squeeze()),dim=-1)
+			read_address_mix = torch.nn.functional.softmax(self.memory.read_mix_gen(read1.squeeze()),dim=-1)
+			read_address = self.memory.address_mix(read_content_address,read_location_address,read_address_mix)
+			read_gate = torch.sigmoid(self.memory.read_gate(read1.squeeze()))
+			mem_obj1 = self.memory.read(read_address,read_gate)	
+		
+			read_key = self.memory.read_keygen(read2.squeeze())
+			read_subset = torch.sigmoid(self.memory.read_subset_gen(read2.squeeze()))
+			read_content_address = self.memory.subset_similarity(read_key,read_subset)
+			read_location_address = torch.nn.functional.softmax(self.memory.read_location(read2.squeeze()),dim=-1)
+			read_address_mix = torch.nn.functional.softmax(self.memory.read_mix_gen(read2.squeeze()),dim=-1)
+			read_address = self.memory.address_mix(read_content_address,read_location_address,read_address_mix)
+			read_gate = torch.sigmoid(self.memory.read_gate(read2.squeeze()))
+			mem_obj2 = self.memory.read(read_address,read_gate)	
+			
+			output_class[:,l,:] = self.relationalnet_class(torch.cat((mem_obj1,mem_obj2,y[:,-1,:]),dim=-1))
+			output_point[:,l,:] = self.relationalnet_class(torch.cat((mem_obj1,mem_obj2,y[:,-1,:]),dim=-1))
+		
+		return output_class, output_point
 					
 		
 if __name__ == '__main__':
@@ -146,13 +185,14 @@ if __name__ == '__main__':
 	mm = MentalModel(params)
 
 	# images = [sequence x batch x channels x width x height]
-	images = torch.rand((4,2,3,112,112))
+	images = torch.rand((4,48,3,112,112))
 
 	# questions = [batch x sequence of ints]
-	questions = torch.randint(0,10,(2,16),dtype=torch.long)
+	questions = torch.randint(0,10,(48,16),dtype=torch.long)
 
-	mm(images,questions)
+	output = mm(images,questions)
 	print(mm.memory.memory)
+	print(output)
 	
 
 	
