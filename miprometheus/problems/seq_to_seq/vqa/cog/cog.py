@@ -538,13 +538,8 @@ if __name__ == "__main__":
 	# Test whether data structures match expected definitions
 	assert sample['images'].shape == torch.ones((4, 3, 112, 112)).shape
 	assert sample['tasks'] == ['Go']
-<<<<<<< HEAD
-	assert sample['questions'] == ['point now beige u']
-	assert sample['targets_reg'].shape == torch.ones((4, 2)).shape
-=======
 	#assert sample['questions'] == ['point now beige u']
 	assert sample['targets_reg'].shape == torch.ones((4,2)).shape
->>>>>>> eae4f67e65560138f950c9f9702f2a0b4f9e80c4
 	assert len(sample['targets_class']) == 4
 	assert sample['targets_class'][0] == ' '  
 
@@ -555,13 +550,9 @@ if __name__ == "__main__":
 	# Test whether data structures match expected definitions
 	assert sample2['images'].shape == torch.ones((4, 3, 112, 112)).shape
 	assert sample2['tasks'] == ['CompareColor']
-<<<<<<< HEAD
-	assert sample2['questions'] == ['color of latest g equal color of last1 v ?']
-	assert sample2['targets_reg'].shape == torch.ones((4, 2)).shape
-=======
 	#assert sample2['questions'] == ['color of latest g equal color of last1 v ?']
 	assert sample2['targets_reg'].shape == torch.ones((4,2)).shape
->>>>>>> eae4f67e65560138f950c9f9702f2a0b4f9e80c4
+
 	assert len(sample2['targets_class']) == 4
 	assert sample2['targets_class'][0] == 'invalid'  
 	
