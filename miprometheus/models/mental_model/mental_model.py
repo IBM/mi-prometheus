@@ -23,6 +23,43 @@ from miprometheus.models.model import Model
 from miprometheus.models.mental_model.memory import Memory
 from miprometheus.models.mental_model.ops import SemanticAttention
 
+# Notes:
+
+# 1) Is mixing between content-based and location based addressing good? Do we just get garbage read/write to two locations instead?
+# 2) Can we initialize memory to a non-homogeneous state? This could improve content-based addressing at the start of a sequence.
+# 3) Is Sharpening required?
+# 4) Are normalizations, activation functions, and range of values reasonable across the network?
+# 5) The CNN is likely highly suboptimal. Improve?
+# 6) Right now the LSTM processing the questions is a bit weird.
+#			The fetching network expects the last output of the LSTM to encode relevant information about all objects required (for fetching at least)
+#			However, given pondering and attention mechanism on controller, the LSTM is also expected to 'word by word' encode meaning?
+#			This might be fine, as fetching network also gets controller output?
+#			However, this is the same as the relational networks, which have for inputs two objects and the last output of the LSTM.
+#			In the RL paper, this seemed to be enough for questions in CLEVR, right? - Double check.
+# 7) Training occasionally explodes with nans ?!?
+# 		Made batch size flexible for forward(..), maybe that fixes it.
+#			This means the self.batch_size parameter is kinda the maximum batch size.
+#			Might still blow up. Perhaps memory should be resized for each batch.
+#			Now memory is also reset to batch size. Hopefully now its fixed.
+#			Sometimes the loss explodes with weird gradients - maybe its training parameters?
+#			Weirdly, restarting from recent parameters doesnt lead to explosion...
+#			Did not fix. Is the error in problem set or model?
+#			Restarting does eventually lead to explosion, but not instantly.
+# 8) Currently, we augment object candidates with normalized x,y coordinates (-1 to 1) and normalized time (0 to 1)
+#			This is somewhat inspired from RN paper. Would be curious to see whether x, y information is used for pointing
+#			In a similar vein, would be interesting to see if time information is utilized for memory / relational tasks
+#			Actually, to make the claim that this is approximating a Mental Model, need to show that object encoding does successfully capture relational qualities
+#			In this framework, how would a nonsensical answer appear? Low confidence? Would this need to be trained as its own class?
+#			In the classical example of competing mental models (A is left of B, C is left of B, is A left of C?) what would we expect to see?
+#			Unfortunately, this is hard to test with COG, as we have explicit coordinates.
+# 9) In RN, sentences are object candidates. This feels too coarse. Can/should words be object candidates? 
+#			Perhaps this was practical, as a loop over all objects would be too insane with words.
+#			That is not a problem with current setup, as we do not loop over objects, just pick out two.
+# 10)Related: we have a hard limit of two objects compared. We also don't have a zero-object comparison.
+#			Technically, non relational (single-object) questions should be fine by fetching the same object twice.
+#			Would be interesting to see if this is indeed the case.
+
+
 
 class MentalModel(Model):
 	def __init__(self,params,problem_default_values_={}):
@@ -59,7 +96,6 @@ class MentalModel(Model):
 		self.pondering = 3
 
 		# Memory
-		self.batch_size = 48
 		self.memory_size = 8
 		self.object_size = self.layer_channels[3] + 3
 
@@ -67,7 +103,8 @@ class MentalModel(Model):
 		self.output_classes_class=params['num_classes']
 		self.output_classes_point=49
 
-
+		# Misc
+		self.sequence_length = 4
 
 
 
@@ -94,7 +131,7 @@ class MentalModel(Model):
 		self.controller_init = nn.Parameter(torch.randn((1,1,self.controller_hidden),requires_grad=True).type(self.dtype)*0.1)
 
 		# Define working memory
-		self.memory = Memory(self.batch_size,self.memory_size,self.object_size,self.controller_hidden,self.app_state)
+		self.memory = Memory(self.memory_size,self.object_size,self.controller_hidden,self.app_state)
 		self.attention_init = nn.Parameter(torch.randn((1,1, self.controller_hidden),requires_grad=True).type(self.dtype)*0.1) 
 
 		# Define Bahdanau attention
@@ -152,16 +189,22 @@ class MentalModel(Model):
 
 	def forward(self,data_dict):
 
-		self.memory.reset()
-
 		images = data_dict['images'].permute(1,0,2,3,4) / self.img_norm
 		questions = data_dict['questions']
+
+		if(self.check_and_print_nan(images)):
+			print('images')
+
+		self.memory.reset(images.size(1))
 
 		y = torch.zeros((questions.size(0),self.nwords,self.words_embed_length))
 		for i, sentence in enumerate(questions):
 			y[i,:,:] = self.embedding(sentence)
 		y, _ = self.lstm1(y,( self.lstm_hidden_init.expand(-1,images.size(1),-1).contiguous(),
 												  self.lstm_cell_init.expand(-1,images.size(1),-1).contiguous() ) )
+
+		if(self.check_and_print_nan(y)):
+			print('y')
 		
 		output_class = torch.zeros((images.size(1),images.size(0),self.output_classes_class),requires_grad=False).type(self.dtype)
 		output_point = torch.zeros((images.size(1),images.size(0),self.output_classes_point),requires_grad=False).type(self.dtype)
@@ -176,17 +219,31 @@ class MentalModel(Model):
 			x = self.conv4(x)
 			x = nn.functional.relu(self.maxpool4(x))
 			
-			controller_out = self.attention_init.expand(self.batch_size,1,-1)
-			controller_hidden = self.controller_init.expand(1,self.batch_size,-1)
+			controller_out = self.attention_init.expand(image.size(0),1,-1)
+			controller_hidden = self.controller_init.expand(1,image.size(0),-1)
 			for i in range(self.features_shape):
 				for j in range(self.features_shape):
 					obj = torch.cat((x[:,:,i,j], 
-													torch.Tensor([[i,j,l]]).expand(self.batch_size,-1)),dim=-1)
+													(torch.Tensor([[i-0.5*(self.features_shape-1),j-0.5*(self.features_shape-1),l]])/torch.Tensor([[0.5*(self.features_shape-1),0.5*(self.features_shape-1),self.sequence_length-1]])).expand(image.size(0),-1)),dim=-1)
 					mem_obj = torch.zeros_like(obj)
+
+
+					if(self.check_and_print_nan(obj)):
+						print('obj')
+					if(self.check_and_print_nan(mem_obj)):
+						print('mem_obj')
+
+
+
 					for k in range(self.pondering):
 						z = self.semantic_attn1(y,controller_out.squeeze())
 						controller_in = torch.cat((obj,mem_obj,z),dim=-1)
 						controller_out, controller_hidden = self.controller1(controller_in.unsqueeze(1),controller_hidden)
+
+						if(self.check_and_print_nan(controller_in)):
+							print('controller_in')
+						if(self.check_and_print_nan(controller_out)):
+							print('controller_out')
 						
 						read_key = self.memory.read_keygen(controller_out.squeeze())
 						read_subset = torch.sigmoid(self.memory.read_subset_gen(controller_out.squeeze()))
@@ -240,6 +297,13 @@ class MentalModel(Model):
 			output_point[:,l,:] = self.relationalnet_point(torch.cat((mem_obj1,mem_obj2,y[:,-1,:]),dim=-1))
 		
 		return output_class, output_point
+
+	def check_and_print_nan(self,tensor):
+		if torch.isnan(tensor).any():
+			print(tensor)
+			return True
+		else:
+			return False
 					
 		
 if __name__ == '__main__':

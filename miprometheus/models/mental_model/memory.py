@@ -2,14 +2,16 @@ import torch
 import torch.nn as nn
 
 
-class Memory(object):
-	def __init__(self, batch_size,mem_slots,object_size,controller_out_size,app_state):
+class Memory(nn.Module):
+	def __init__(self,mem_slots,object_size,controller_out_size,app_state):
+		super(Memory,self).__init__()
+
+		# Set constants for memory reset
+		self.mem_slots = mem_slots
+		self.object_size = object_size
 
 		# Get app state gpu/cpu
 		self.dtype = app_state.dtype
-
-		# memory is [batch size x memory slots x object size]
-		self.memory = torch.zeros((batch_size,mem_slots,object_size)).type(self.dtype)
 		
 		# generate key, subset, location address and address mixing for read 
 		self.read_keygen = torch.nn.Linear(controller_out_size, object_size)
@@ -117,10 +119,11 @@ class Memory(object):
 
 		self.memory = self.memory + (location.unsqueeze(2) * obj.unsqueeze(1) *gate.unsqueeze(1))
 
-	def reset(self):
+	def reset(self,batch_size):
 		# Reset memory to all zeros.
 
-		self.memory = torch.zeros_like(self.memory)
+		# memory is [batch size x memory slots x object size]
+		self.memory = torch.zeros((batch_size,self.mem_slots,self.object_size)).type(self.dtype)
 		
 
 if __name__ == '__main__':
