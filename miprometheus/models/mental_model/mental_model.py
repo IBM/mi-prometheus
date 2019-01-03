@@ -85,6 +85,7 @@ class MentalModel(Model):
 
 		# Semantic processing
 		self.vocabulary_size = params['vocab_size']
+		print(self.vocabulary_size)
 		self.words_embed_length = 64
 		self.lstm_input = 64
 		self.lstm_hidden = 64
@@ -189,27 +190,40 @@ class MentalModel(Model):
 
 	def forward(self,data_dict):
 
+		# Fetch images, make them sequence major, and normalize.
 		images = data_dict['images'].permute(1,0,2,3,4) / self.img_norm
 		questions = data_dict['questions']
 
 		if(self.check_and_print_nan(images)):
 			print('images')
+			exit(1)
 
+		# Set memory to blank, with batch size retrieved from input
 		self.memory.reset(images.size(1))
 
+		# Create empty vector to hold embedded question vector
 		y = torch.zeros((questions.size(0),self.nwords,self.words_embed_length))
 		for i, sentence in enumerate(questions):
 			y[i,:,:] = self.embedding(sentence)
+			if(self.check_and_print_nan(y)):
+				print('y[i,:,:]', i)
+				print(sentence)
+				print(self.embedding(sentence) )
+				exit(1)
 		y, _ = self.lstm1(y,( self.lstm_hidden_init.expand(-1,images.size(1),-1).contiguous(),
 												  self.lstm_cell_init.expand(-1,images.size(1),-1).contiguous() ) )
 
 		if(self.check_and_print_nan(y)):
 			print('y')
+			exit(1)
 		
+		# Create empty outputs that will be filled one by one for each member in sequence
 		output_class = torch.zeros((images.size(1),images.size(0),self.output_classes_class),requires_grad=False).type(self.dtype)
 		output_point = torch.zeros((images.size(1),images.size(0),self.output_classes_point),requires_grad=False).type(self.dtype)
 
+		# First loop, over the members of sequence.
 		for l, image in enumerate(images):
+			# Process image thru CNN
 			x = self.conv1(image)
 			x = nn.functional.relu(self.maxpool1(x))
 			x = self.conv2(x)
@@ -219,85 +233,296 @@ class MentalModel(Model):
 			x = self.conv4(x)
 			x = nn.functional.relu(self.maxpool4(x))
 			
+			# Initial states of attention and controller hidden are trainable parameters.
 			controller_out = self.attention_init.expand(image.size(0),1,-1)
 			controller_hidden = self.controller_init.expand(1,image.size(0),-1)
+
+			# Each location in the final feature maps is considered an 'object candidate'. Loop over candidates.
 			for i in range(self.features_shape):
 				for j in range(self.features_shape):
+					# Concatenate object candidates with normalized spatial location and time.
 					obj = torch.cat((x[:,:,i,j], 
 													(torch.Tensor([[i-0.5*(self.features_shape-1),j-0.5*(self.features_shape-1),l]])/torch.Tensor([[0.5*(self.features_shape-1),0.5*(self.features_shape-1),self.sequence_length-1]])).expand(image.size(0),-1)),dim=-1)
+
+					# Create empty object. During reasoning steps the controller may fetch objects from memory to assign to it.
 					mem_obj = torch.zeros_like(obj)
 
 
 					if(self.check_and_print_nan(obj)):
 						print('obj')
+						exit(1)
 					if(self.check_and_print_nan(mem_obj)):
 						print('mem_obj')
+						exit(1)
 
-
-
+					# For each object candidate, have several reasoning steps. Each step, controller updates attention over question, and may perform read and write to and erase from memory.
 					for k in range(self.pondering):
+						# Semantic attention over the question
 						z = self.semantic_attn1(y,controller_out.squeeze())
+						# Controller takes as input concatenation of current object candidate, an object it fetched from memory, and the post-attention question
 						controller_in = torch.cat((obj,mem_obj,z),dim=-1)
 						controller_out, controller_hidden = self.controller1(controller_in.unsqueeze(1),controller_hidden)
 
 						if(self.check_and_print_nan(controller_in)):
 							print('controller_in')
+							print(k)
+							exit(1)
 						if(self.check_and_print_nan(controller_out)):
 							print('controller_out')
+							print(k)
+							exit(1)
 						
+						# Controller output generates read, write and erase keys for content based addressing.
+						# Then, it may choose a subset of that key to compare with, rather than measure similarity to entire key.
+						# A content based location is provided based on the similarity of memory addresses to the key for the subset.
+						# A separate location based address is also generated.
+						# These addresses are mixed and sharpened.
+						# Finally, memory is read from, erased, or written to subject to a final gate.
 						read_key = self.memory.read_keygen(controller_out.squeeze())
+						if(self.check_and_print_nan(read_key)):
+							print('read_key')
+							exit(1)
 						read_subset = torch.sigmoid(self.memory.read_subset_gen(controller_out.squeeze()))
+						if(self.check_and_print_nan(read_subset)):
+							print('read_subset')
+							exit(1)
 						read_content_address = self.memory.subset_similarity(read_key,read_subset)
+						if(self.check_and_print_nan(read_content_address)):
+							print('read_content_address')
+							exit(1)
 						read_location_address = torch.nn.functional.softmax(self.memory.read_location(controller_out.squeeze()),dim=-1)
+						if(self.check_and_print_nan(read_location_address)):
+							print('read_location_address')
+							exit(1)
 						read_address_mix = torch.nn.functional.softmax(self.memory.read_mix_gen(controller_out.squeeze()),dim=-1)
-						read_address = self.memory.address_mix(read_content_address,read_location_address,read_address_mix)
+						if(self.check_and_print_nan(read_address_mix)):
+							print('read_address_mix')
+							exit(1)
+						read_address = torch.nn.functional.softmax(self.memory.address_mix(read_content_address,read_location_address,read_address_mix),dim=-1)
+						if(self.check_and_print_nan(read_address)):
+							print('read_address')
+							exit(1)
+						read_sharpen = self.memory.read_sharpen(controller_out.squeeze())
+						if(self.check_and_print_nan(read_sharpen)):
+							print('read_sharpen')
+							exit(1)
+						read_address_sharp = torch.nn.functional.softmax(self.memory.sharpen(read_address,read_sharpen),dim=-1)
+						if(self.check_and_print_nan(read_address_sharp)):
+							print('read_address_sharp')
+							exit(1)
 						read_gate = torch.sigmoid(self.memory.read_gate(controller_out.squeeze()))
-						mem_obj = self.memory.read(read_address,read_gate)
+						if(self.check_and_print_nan(read_gate)):
+							print('read_gate')
+							exit(1)
+						mem_obj = self.memory.read(read_address_sharp,read_gate)
+						if(self.check_and_print_nan(mem_obj)):
+							print('mem_obj')
+							exit(1)
+
 						
 						erase_key = self.memory.erase_keygen(controller_out.squeeze())
+						if(self.check_and_print_nan(erase_key)):
+							print('erase_address_sharp')
+							exit(1)
 						erase_subset = torch.sigmoid(self.memory.erase_subset_gen(controller_out.squeeze()))
+						if(self.check_and_print_nan(erase_subset)):
+							print('erase_subset')
+							exit(1)
 						erase_content_address = self.memory.subset_similarity(erase_key,erase_subset)
+						if(self.check_and_print_nan(erase_content_address)):
+							print('erase_content_address')
+							exit(1)
 						erase_location_address = torch.nn.functional.softmax(self.memory.erase_location(controller_out.squeeze()),dim=-1)
+						if(self.check_and_print_nan(erase_location_address)):
+							print('erase_location_address')
+							exit(1)
 						erase_address_mix = torch.nn.functional.softmax(self.memory.erase_mix_gen(controller_out.squeeze()),dim=-1)
-						erase_address = self.memory.address_mix(erase_content_address,erase_location_address,erase_address_mix)
+						if(self.check_and_print_nan(erase_address_mix)):
+							print('erase_address_mix')
+							exit(1)
+						erase_address = torch.nn.functional.softmax(self.memory.address_mix(erase_content_address,erase_location_address,erase_address_mix),dim=-1)
+						if(self.check_and_print_nan(erase_address)):
+							print('erase_address')
+							exit(1)
+						erase_sharpen = self.memory.erase_sharpen(controller_out.squeeze())
+						if(self.check_and_print_nan(erase_sharpen)):
+							print('erase_sharpen')
+							exit(1)
+						erase_address_sharp = torch.nn.functional.softmax(self.memory.sharpen(erase_address,erase_sharpen),dim=-1)
+						if(self.check_and_print_nan(erase_address_sharp)):
+							print('erase_address_sharp')
+							exit(1)
 						erase_gate = torch.sigmoid(self.memory.erase_gate(controller_out.squeeze()))
-						self.memory.erase(erase_address,erase_gate)
+						if(self.check_and_print_nan(erase_gate)):
+							print('erase_gate')
+							exit(1)
+						self.memory.erase(erase_address_sharp,erase_gate)
+						if(self.check_and_print_nan(self.memory.memory)):
+							print('memory')
+							exit(1)
+						#print(self.memory.memory,k,'ERASE')
 						
 						write_key = self.memory.write_keygen(controller_out.squeeze())
+						if(self.check_and_print_nan(write_key)):
+							print('write_key')
+							exit(1)
 						write_subset = torch.sigmoid(self.memory.write_subset_gen(controller_out.squeeze()))
+						if(self.check_and_print_nan(write_subset)):
+							print('write_subset')
+							exit(1)
 						write_content_address = self.memory.subset_similarity(write_key,write_subset)
+						if(self.check_and_print_nan(write_content_address)):
+							print('write_content_address')
+							exit(1)
 						write_location_address = torch.nn.functional.softmax(self.memory.write_location(controller_out.squeeze()),dim=-1)
+						if(self.check_and_print_nan(write_location_address)):
+							print('write_location_address')
+							exit(1)
 						write_address_mix = torch.nn.functional.softmax(self.memory.write_mix_gen(controller_out.squeeze()),dim=-1)
-						write_address = self.memory.address_mix(write_content_address,write_location_address,write_address_mix)
+						if(self.check_and_print_nan(write_address_mix)):
+							print('write_address_mix')
+							exit(1)
+						write_address = torch.nn.functional.softmax(self.memory.address_mix(write_content_address,write_location_address,write_address_mix),dim=-1)
+						if(self.check_and_print_nan(write_address)):
+							print('write_address')
+							exit(1)
+						write_sharpen = self.memory.write_sharpen(controller_out.squeeze())
+						if(self.check_and_print_nan(write_sharpen)):
+							print('write_sharpen')
+							exit(1)
+						write_address_sharp = torch.nn.functional.softmax(self.memory.sharpen(write_address,write_sharpen),dim=-1)
+						if(self.check_and_print_nan(write_address_sharp)):
+							print('write_address_sharp')
+							exit(1)
 						write_gate = torch.sigmoid(self.memory.write_gate(controller_out.squeeze()))
-						self.memory.write(write_address,write_gate,obj)
+						if(self.check_and_print_nan(write_gate)):
+							print('write_gate')
+							exit(1)
+						self.memory.write(write_address_sharp,write_gate,obj)
+						if(self.check_and_print_nan(self.memory.memory)):
+							print('write_mem')
+							exit(1)
+						#print(self.memory.memory,k,'write')
 						
+
+			# Once all object candidates are processed, an object-fetching network grabs two objects from memory.
+			# It generates two read vectors, which are fed into the read head as above.
+			# This results in two gated reads from memory, which are fed into a Relational Net-ish network along with the final encoding of the question LSTM.
+			# Output is the answer of the network to the task.
 			concatenated_reads = self.objectfetch(torch.cat((controller_out.squeeze(),controller_hidden.squeeze(),y[:,-1,:]),dim=-1))
+			if(self.check_and_print_nan(concatenated_reads)):
+				print('concatenated_reads')
+				exit(1)
+
 			read1, read2 = torch.split(concatenated_reads,(self.controller_hidden,self.controller_hidden),-1)
 
 			read_key = self.memory.read_keygen(read1.squeeze())
+			if(self.check_and_print_nan(read_key)):
+				print('read_key')
+				exit(1)
+
 			read_subset = torch.sigmoid(self.memory.read_subset_gen(read1.squeeze()))
+			if(self.check_and_print_nan(read_subset)):
+				print('read_subset')
+				exit(1)
+
 			read_content_address = self.memory.subset_similarity(read_key,read_subset)
+			if(self.check_and_print_nan(read_content_address)):
+				print('read_content_address')
+				exit(1)
+
 			read_location_address = torch.nn.functional.softmax(self.memory.read_location(read1.squeeze()),dim=-1)
+			if(self.check_and_print_nan(read_location_address)):
+				print('read_location_address')
+				exit(1)
+
 			read_address_mix = torch.nn.functional.softmax(self.memory.read_mix_gen(read1.squeeze()),dim=-1)
-			read_address = self.memory.address_mix(read_content_address,read_location_address,read_address_mix)
+			if(self.check_and_print_nan(read_address_mix)):
+				print('read_address_mix')
+				exit(1)
+
+			read_address = torch.nn.functional.softmax(self.memory.address_mix(read_content_address,read_location_address,read_address_mix),dim=-1)
+			if(self.check_and_print_nan(read_address)):
+				print('read_address')
+				exit(1)
+
+			read_sharpen = self.memory.read_sharpen(read1.squeeze())
+			if(self.check_and_print_nan(read_sharpen)):
+				print('read_sharpen')
+				exit(1)
+
+			read_address_sharp = torch.nn.functional.softmax(self.memory.sharpen(read_address,read_sharpen),dim=-1)
+			if(self.check_and_print_nan(read_address_sharp)):
+				print('read_address_sharp')
+				exit(1)
+
 			read_gate = torch.sigmoid(self.memory.read_gate(read1.squeeze()))
-			mem_obj1 = self.memory.read(read_address,read_gate)	
+			if(self.check_and_print_nan(read_gate)):
+				print('read_gate')
+				exit(1)
+
+			mem_obj1 = self.memory.read(read_address_sharp,read_gate)
+			if(self.check_and_print_nan(mem_obj1)):
+				print('mem_obj1')
+				exit(1)
 		
 			read_key = self.memory.read_keygen(read2.squeeze())
+			if(self.check_and_print_nan(read_key)):
+				print('read_key2')
+				exit(1)
+
 			read_subset = torch.sigmoid(self.memory.read_subset_gen(read2.squeeze()))
+			if(self.check_and_print_nan(read_subset)):
+				print('read_subset2')
+				exit(1)
+
 			read_content_address = self.memory.subset_similarity(read_key,read_subset)
+			if(self.check_and_print_nan(read_content_address)):
+				print('read_content_address2')
+				exit(1)
+
 			read_location_address = torch.nn.functional.softmax(self.memory.read_location(read2.squeeze()),dim=-1)
+			if(self.check_and_print_nan(read_location_address)):
+				print('read_location_address2')
+				exit(1)
+
 			read_address_mix = torch.nn.functional.softmax(self.memory.read_mix_gen(read2.squeeze()),dim=-1)
-			read_address = self.memory.address_mix(read_content_address,read_location_address,read_address_mix)
+			if(self.check_and_print_nan(read_address_mix)):
+				print('read_address_mix2')
+				exit(1)
+
+			read_address = torch.nn.functional.softmax(self.memory.address_mix(read_content_address,read_location_address,read_address_mix),dim=-1)
+			if(self.check_and_print_nan(read_address)):
+				print('read_address2')
+				exit(1)
+
+			read_sharpen = self.memory.read_sharpen(read2.squeeze())
+			if(self.check_and_print_nan(read_sharpen)):
+				print('read_sharpen2')
+				exit(1)
+
+			read_address_sharp = torch.nn.functional.softmax(self.memory.sharpen(read_address,read_sharpen),dim=-1)
+			if(self.check_and_print_nan(read_address_sharp)):
+				print('read_address_sharp2')
+				exit(1)
+
 			read_gate = torch.sigmoid(self.memory.read_gate(read2.squeeze()))
-			mem_obj2 = self.memory.read(read_address,read_gate)	
+			if(self.check_and_print_nan(read_gate)):
+				print('read_gate2')
+				exit(1)
+
+			mem_obj2 = self.memory.read(read_address_sharp,read_gate)	
+			if(self.check_and_print_nan(mem_obj2)):
+				print('mem_obj2')
+				exit(1)
+
 			
 			output_class[:,l,:] = self.relationalnet_class(torch.cat((mem_obj1,mem_obj2,y[:,-1,:]),dim=-1))
 			output_point[:,l,:] = self.relationalnet_point(torch.cat((mem_obj1,mem_obj2,y[:,-1,:]),dim=-1))
 		
 		return output_class, output_point
 
+	# Helper function for debugging.
 	def check_and_print_nan(self,tensor):
 		if torch.isnan(tensor).any():
 			print(tensor)

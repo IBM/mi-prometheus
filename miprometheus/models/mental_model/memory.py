@@ -13,12 +13,13 @@ class Memory(nn.Module):
 		# Get app state gpu/cpu
 		self.dtype = app_state.dtype
 		
-		# generate key, subset, location address and address mixing for read 
+		# generate key, subset, location address, address mixing and sharpening for read 
 		self.read_keygen = torch.nn.Linear(controller_out_size, object_size)
 		self.read_subset_gen= torch.nn.Linear(controller_out_size, object_size)
 		self.read_mix_gen= torch.nn.Linear(controller_out_size, 2)
 		self.read_location = torch.nn.Linear(controller_out_size, mem_slots)
 		self.read_gate = torch.nn.Linear(controller_out_size,object_size)
+		self.read_sharpen = torch.nn.Linear(controller_out_size,1)
 
 		# generate key, subset, location address and address mixing for erase
 		self.erase_keygen = torch.nn.Linear(controller_out_size, object_size)
@@ -26,6 +27,7 @@ class Memory(nn.Module):
 		self.erase_mix_gen= torch.nn.Linear(controller_out_size, 2)
 		self.erase_location = torch.nn.Linear(controller_out_size, mem_slots)
 		self.erase_gate = torch.nn.Linear(controller_out_size,object_size)
+		self.erase_sharpen = torch.nn.Linear(controller_out_size,1)
 
 		# generate key, subset, location address and address mixing for write
 		self.write_keygen = torch.nn.Linear(controller_out_size, object_size)
@@ -33,6 +35,7 @@ class Memory(nn.Module):
 		self.write_mix_gen= torch.nn.Linear(controller_out_size, 2)
 		self.write_location = torch.nn.Linear(controller_out_size, mem_slots)
 		self.write_gate = torch.nn.Linear(controller_out_size,object_size)
+		self.write_sharpen = torch.nn.Linear(controller_out_size,1)
 
 
 		# Initialize all layers
@@ -42,12 +45,14 @@ class Memory(nn.Module):
 		nn.init.xavier_uniform_(self.read_mix_gen.weight)
 		nn.init.xavier_uniform_(self.read_location.weight)
 		nn.init.xavier_uniform_(self.read_gate.weight, gain=nn.init.calculate_gain('sigmoid'))
+		nn.init.xavier_uniform_(self.read_sharpen.weight)
 
 		self.read_keygen.bias.data.fill_(0.01)
 		self.read_subset_gen.bias.data.fill_(0.01)
 		self.read_mix_gen.bias.data.fill_(0.01)
 		self.read_location.bias.data.fill_(0.01)
 		self.read_gate.bias.data.fill_(0.01)
+		self.read_sharpen.bias.data.fill_(1.00)
 
 		# erases
 		nn.init.xavier_uniform_(self.erase_keygen.weight)
@@ -55,12 +60,14 @@ class Memory(nn.Module):
 		nn.init.xavier_uniform_(self.erase_mix_gen.weight)
 		nn.init.xavier_uniform_(self.erase_location.weight)
 		nn.init.xavier_uniform_(self.erase_gate.weight, gain=nn.init.calculate_gain('sigmoid'))
+		nn.init.xavier_uniform_(self.erase_sharpen.weight)
 
 		self.erase_keygen.bias.data.fill_(0.01)
 		self.erase_subset_gen.bias.data.fill_(0.01)
 		self.erase_mix_gen.bias.data.fill_(0.01)
 		self.erase_location.bias.data.fill_(0.01)
 		self.erase_gate.bias.data.fill_(0.01)
+		self.erase_sharpen.bias.data.fill_(1.00)
 
 		# writes
 		nn.init.xavier_uniform_(self.write_keygen.weight)
@@ -68,12 +75,14 @@ class Memory(nn.Module):
 		nn.init.xavier_uniform_(self.write_mix_gen.weight)
 		nn.init.xavier_uniform_(self.write_location.weight)
 		nn.init.xavier_uniform_(self.write_gate.weight, gain=nn.init.calculate_gain('sigmoid'))
+		nn.init.xavier_uniform_(self.write_sharpen.weight)
 
 		self.write_keygen.bias.data.fill_(0.01)
 		self.write_subset_gen.bias.data.fill_(0.01)
 		self.write_mix_gen.bias.data.fill_(0.01)
 		self.write_location.bias.data.fill_(0.01)
 		self.write_gate.bias.data.fill_(0.01)
+		self.write_sharpen.bias.data.fill_(1.00)
 
 	def subset_similarity(self, key, subset_attention):
 		# Loop over objects in memory
@@ -85,8 +94,12 @@ class Memory(nn.Module):
 		# subset attention is [batch size x object size]
 		# output is [batch size x memory slots]
 
+		#print(key,'key')
 		key = torch.nn.functional.normalize(key,dim=-1)
-		norm_mem = torch.nn.functional.normalize(self.memory,dim=-1)
+		#print(key,'normkey')
+		norm_mem = torch.nn.functional.normalize(self.memory + 1e-12,dim=-1)
+		#print(norm_mem,'norm_mem')
+		#print(self.memory,'mem')
 		content_address = torch.sum(key.unsqueeze(1) * norm_mem * subset_attention.unsqueeze(1),-1)
 
 		return content_address
@@ -109,7 +122,11 @@ class Memory(nn.Module):
 		# location is [batch size x memory slots]
 		# erase is [batch size x object size]
 
+		#print(self.memory,'pre erase')
+		#print('loc',location)
+		#print('gate',gate)
 		self.memory = self.memory - self.memory * (location.unsqueeze(2) * gate.unsqueeze(1))
+		#print(self.memory,'post erase')
 
 	def write(self, location, gate, obj):
 		# Add to location the obj vector
@@ -124,6 +141,16 @@ class Memory(nn.Module):
 
 		# memory is [batch size x memory slots x object size]
 		self.memory = torch.zeros((batch_size,self.mem_slots,self.object_size)).type(self.dtype)
+
+	def sharpen(self,weights,sharpening):
+		# Sharpen the weight with sharpening factor given by the head
+
+		# Weights is [batch size x memory slots]
+		# sharpening is [batch size x 1]
+		sharpening, _ = torch.max(sharpening,1)
+		weights = torch.pow(weights + 1e-12, sharpening.unsqueeze(1))
+		weights = torch.nn.functional.normalize(weights, p=1, dim=1)
+		return weights
 		
 
 if __name__ == '__main__':
