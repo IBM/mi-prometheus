@@ -31,11 +31,6 @@ from miprometheus.models.cog.vstm import VSTM
 from miprometheus.models.cog.ops import FeatureAttention, SpatialAttention, SemanticAttention
 from miprometheus.models.model import Model
 
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-
-# Model inherits from Module, which is very useful.
-# But for now, inherit directly from Module for testing
 class CogModel(Model):
 
 	"""
@@ -65,8 +60,6 @@ class CogModel(Model):
 		params.add_default_params({'num_classes' : problem_default_values_['num_classes'],
 															 'vocab_size' : problem_default_values_['embed_vocab_size']})
 
-		print("num classes : {}".format(params['num_classes']))
-
 		self.name = 'CogModel'
 
 		self.data_definitions = {'images': {'size': [-1,-1,-1,-1,-1], 'type': [torch.Tensor]},
@@ -85,9 +78,6 @@ class CogModel(Model):
 		#-----------------------------------------------------------------
 		# Initialize lookup table
 		self.word_lookup = {}
-
-		# Initialize unique word counter. Updated by UpdateAndFetchLookup
-		self.nr_unique_words = 0
 
 		# This should be the length of the longest sentence encounterable
 		self.nwords = 24
@@ -269,6 +259,12 @@ class CogModel(Model):
 
 
 	def forward(self, data_dict):
+		"""
+		Forward pass of the ``CogModel``.
+
+		:param data_dict: dictionary of data with images, questions, answers.
+
+		"""
 		# Parse input
 		images = data_dict['images'].permute(1,0,2,3,4) / self.img_norm
 		questions = data_dict['questions']
@@ -339,49 +335,6 @@ class CogModel(Model):
 			output_point[:,j,:] = pointing
 
 		return output_class, output_point		
-
-	def forward_img2cnn(self,images):
-
-		out_conv1 		= self.conv1(images)
-		out_maxpool1	= self.maxpool1(out_conv1)
-		out_conv2			= self.conv2(out_maxpool1)
-		out_maxpool2	= self.maxpool2(out_conv2)
-		out_conv3 		= self.conv3(out_maxpool2)
-		out_maxpool3	= self.maxpool3(out_conv3)
-		out_conv4			= self.conv4(out_maxpool3)
-		out_maxpool4	= self.maxpool4(out_conv4)
-
-		return out_maxpool4
-
-	def forward_img2cnn_attention(self,images,attention,semantic_output):
-		out_conv1 		= self.conv1(images)
-		out_maxpool1	= self.maxpool1(out_conv1)
-		out_batchnorm1= nn.functional.relu(self.batchnorm1(out_maxpool1))
-		out_conv2			= self.conv2(out_batchnorm1)
-		out_maxpool2	= self.maxpool2(out_conv2)
-		out_batchnorm2= nn.functional.relu(self.batchnorm2(out_maxpool2))
-		out_conv3 		= self.conv3(out_batchnorm2)
-		out_maxpool3	= self.maxpool3(out_conv3)
-		out_batchnorm3= nn.functional.relu(self.batchnorm3(out_maxpool3))
-		out_feature_attn1, attn_feature_attn1  = self.feature_attn1(out_batchnorm3,semantic_output)
-		out_conv4 = self.conv4(out_feature_attn1)
-		out_maxpool4 = self.maxpool4(out_conv4)
-		out_batchnorm4= nn.functional.relu(self.batchnorm4(out_maxpool4))
-		out_feature_attn2, attn_feature_attn2 = self.feature_attn2(out_batchnorm4,semantic_output)
-		out_spatial_attn1, attn_spatial_attn1 = self.spatial_attn1(out_feature_attn2,attention)
-
-		return out_spatial_attn1		
-
-	# For a single timepoint in a single sample, returns (nwords,64)
-	def forward_words2embed(self,questions):
-		
-		out_embed=torch.zeros(len(questions),self.nwords,self.words_embed_length)
-		for i, sentence in enumerate(questions):
-			for j, word in enumerate(sentence[0].split()):
-				#print('j is {} and word is {}'.format(j,word))
-				out_embed[i,j,:] = ( self.Embedding(self.UpdateAndFetchLookup(word)) )
-		
-		return out_embed
 
 	def forward_lookup2embed(self,questions):
 		
@@ -461,13 +414,6 @@ class CogModel(Model):
 	# Embed vocabulary for all available task families
 	def EmbedVocabulary(self,vocabulary_size,words_embed_length):
 		self.Embedding = nn.Embedding(vocabulary_size,words_embed_length,padding_idx=0)
-
-	# Given a single word, updates lookup table if necessary, then returns embedded vector
-	def UpdateAndFetchLookup(self,word):
-		if word not in self.word_lookup:
-			self.word_lookup[word] = self.nr_unique_words
-			self.nr_unique_words += 1
-		return torch.tensor([self.word_lookup[word]], dtype=torch.long)
 
 	def EmbedQuestions(self,questions):
 		return self.forward_words2embed(questions)

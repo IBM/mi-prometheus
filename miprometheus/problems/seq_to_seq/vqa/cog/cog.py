@@ -449,11 +449,11 @@ class COG(VQAProblem):
 
 		"""
 		if self.dataset_type == 'canonical':
-			self.download = self.CheckAndDownload(self.data_folder_child, 
+			self.download = self.check_and_download(self.data_folder_child, 
 												  'https://storage.googleapis.com/cog-datasets/data_4_3_1.tar')
 		
 		elif self.dataset_type == 'hard':
-			self.download = self.CheckAndDownload(self.data_folder_child,
+			self.download = self.check_and_download(self.data_folder_child,
 												  'https://storage.googleapis.com/cog-datasets/data_8_7_10.tar')
 		if self.download:
 			self.logger.info('\nDownload complete. Extracting...')
