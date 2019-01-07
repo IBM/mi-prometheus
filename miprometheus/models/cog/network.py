@@ -128,7 +128,7 @@ class CogModel(Model):
 		# Visual memory shape. height x width.
 		self.vstm_shape = np.array(self.image_size)
 		for channel in self.visual_processing_channels:
-			self.vstm_shape = np.floor((self.vstm_shape-2)/2)
+			self.vstm_shape = np.floor((self.vstm_shape)/2)
 		self.vstm_shape = [int(dim) for dim in self.vstm_shape]
 
 		# Input channels to the visual memory. This is the same as the output of the last CNN layer.
@@ -156,7 +156,7 @@ class CogModel(Model):
 		self.controller_input_size = self.lstm_hidden_units*2 + 128 + 128
 
 		# Number of GRU units in controller
-		self.controller_output_size = 512
+		self.controller_output_size = 768
 
 		# Number of pondering steps per item in sequence.
 		self.pondering_steps = 4
@@ -358,7 +358,7 @@ class CogModel(Model):
 
 		# First Layer
 		self.conv1 = nn.Conv2d(in_channels,layer_channels[0],3,
-								 stride=1,padding=0,dilation=1,groups=1,bias=True)
+								 stride=1,padding=1,dilation=1,groups=1,bias=True)
 		self.maxpool1 = nn.MaxPool2d(2,
 										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
 		self.batchnorm1 = nn.BatchNorm2d(layer_channels[0])
@@ -366,14 +366,14 @@ class CogModel(Model):
 
 		# Second Layer
 		self.conv2 = nn.Conv2d(layer_channels[0],layer_channels[1],3,
-								 stride=1,padding=0,dilation=1,groups=1,bias=True)
+								 stride=1,padding=1,dilation=1,groups=1,bias=True)
 		self.maxpool2 = nn.MaxPool2d(2,
 										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
 		self.batchnorm2 = nn.BatchNorm2d(layer_channels[1])
 
 		# Third Layer
 		self.conv3 = nn.Conv2d(layer_channels[1],layer_channels[2],3,
-								 stride=1,padding=0,dilation=1,groups=1,bias=True)
+								 stride=1,padding=1,dilation=1,groups=1,bias=True)
 		self.maxpool3 = nn.MaxPool2d(2,
 										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
 		self.batchnorm3 = nn.BatchNorm2d(layer_channels[2])
@@ -382,7 +382,7 @@ class CogModel(Model):
 
 		# Fourth Layer
 		self.conv4 = nn.Conv2d(layer_channels[2],layer_channels[3],3,
-								 stride=1,padding=0,dilation=1,groups=1,bias=True)
+								 stride=1,padding=1,dilation=1,groups=1,bias=True)
 		self.maxpool4 = nn.MaxPool2d(2,
 										stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
 		self.batchnorm4 = nn.BatchNorm2d(layer_channels[3])
