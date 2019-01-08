@@ -1,0 +1,49 @@
+# Problem parameters:
+training:
+ cuda: True
+ problem:
+  name: COG
+  # Size of generated input: [batch_size x sequence_length x classes].
+  batch_size: 48
+  tasks: &task all
+  data_folder: '~/data/cog'
+  set: train
+  use_mask: False
+  dataset_type: canonical
+  # Set optimizer.
+ optimizer:
+  name: Adam
+  lr: 0.00005
+  weight_decay: 0.00002
+  amsgrad: True 
+ gradient_clipping: 10
+ terminal_conditions:
+  epoch_limit: 20
+  episode_limit: 10000000
+
+testing:
+ cuda: True
+ problem:
+  name: COG
+  # Size of generated input: [batch_size x sequence_length x classes].
+  batch_size: 48
+  tasks: *task
+  data_folder: '~/data/cog'
+  set: test
+  dataset_type: canonical
+
+validation:
+ cuda: True
+ problem:
+  name: COG
+  # Size of generated input: [batch_size x sequence_length x classes].
+  batch_size: 48
+  tasks: *task
+  data_folder: '~/data/cog'
+  set: val
+  use_mask: False
+  dataset_type: canonical
+ partial_validation_interval: 100
+
+model:
+ name: MentalModel
