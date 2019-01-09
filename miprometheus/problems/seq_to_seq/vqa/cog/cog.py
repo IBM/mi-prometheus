@@ -34,10 +34,12 @@
 __author__ = "Emre Sevgen"
 
 import torch
+import torch.nn as nn
 import gzip
 import json
 import os
 import tarfile
+import string
 import numpy as np
 
 from miprometheus.problems.seq_to_seq.vqa.vqa_problem import VQAProblem
@@ -124,22 +126,39 @@ class COG(VQAProblem):
 		# Name
 		self.name = 'COG'
 
+		# Edit loss to add ignore_index
+		self.loss_function = nn.CrossEntropyLoss(ignore_index=-1)
+
+		# Initialize word lookup dictionary
+		self.word_lookup = {}
+
+		# Initialize unique word counter. Updated by UpdateAndFetchLookup
+		self.nr_unique_words = 1
+
+		# This should be the length of the longest sentence encounterable
+		self.nwords = 24
+
 		# Get the "hardcoded" image width/height.
 		self.img_size = 112  # self.params['img_size']
 
 		# Set default values
-		self.default_values = {'height': self.img_size,
-							   'width': self.img_size,
-							   'num_channels': 3,
-							   'sequence_length' : self.sequence_length}
+		self.default_values = {	'height': self.img_size,
+								'width': self.img_size,
+								'num_channels': 3,
+								'sequence_length' : self.sequence_length,
+								'num_classes': self.output_classes,
+								'embed_vocab_size': self.input_words}
 		
 		# Set data dictionary based on parsed dataset type
-		self.data_definitions = {'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
-								 'tasks': {'size': [-1, 1], 'type': [list, str]},
-								 'questions': {'size': [-1, 1], 'type': [list, str]},
-								 'targets_reg': {'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
-								 'targets_class': {'size': [-1, self.sequence_length, 1], 'type' : [list,str]}
-								 }
+		self.data_definitions = {
+		'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
+		'tasks':	{'size': [-1, 1], 'type': [list, str]},
+		'questions': 	{'size': [-1,self.nwords], 'type': [torch.Tensor]},
+		#'targets': {'size': [-1,self.sequence_length, self.output_classes], 'type': [torch.Tensor]},
+		'targets_reg' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
+		'targets_class':{'size': [-1, self.sequence_length, self.output_classes], 'type' : [list,str]}
+					}		
+
 
 		# Check if dataset exists, download or generate if necessary.
 		self.source_dataset()
@@ -147,10 +166,8 @@ class COG(VQAProblem):
 		if not params['initialization_only']:
 
 			# Load all the .jsons, but image generation is done in __getitem__
-			self.dataset = {}
-			for task in self.tasks:
-				self.dataset[task] = []
-			self.length = 0
+			self.dataset=[]
+			
 	
 			self.logger.info("Loading dataset as json into memory.")
 			# Val and Test are not shuffled
@@ -160,9 +177,8 @@ class COG(VQAProblem):
 						with gzip.open(os.path.join(self.data_folder_child,tasklist)) as f:
 							fulltask = f.read().decode('utf-8').split('\n')
 							for datapoint in fulltask:
-								self.dataset[tasklist[4:-8]].append(json.loads(datapoint))
-						self.length = self.length + len(self.dataset[tasklist[4:-8]])
-						self.logger.info("{} task examples loaded.".format(tasklist[4:-8]))
+								self.dataset.append(json.loads(datapoint))
+						print("{} task examples loaded.".format(tasklist[4:-8]))
 					else:
 						self.logger.info("Skipped loading {} task.".format(tasklist[4:-8]))
 		
@@ -174,13 +190,85 @@ class COG(VQAProblem):
 						for datapoint in fullzip:
 							task = json.loads(datapoint)
 							if task['family'] in self.tasks:
-								self.dataset[task['family']].append(task)
-								self.length = self.length + 1
-					self.logger.info("Zip file {} loaded.".format(zipfile))
+								self.dataset.append(task)
+					print("Zip file {} loaded.".format(zipfile))		
+
+			self.length = len(self.dataset)
+
+			# Testing output classes
+			#if self.set == 'val':
+			#	self.output_words = []
+			#	for datapoint in self.dataset:
+			#		for answer in datapoint['answers']:
+			#			if not answer in self.output_words:
+			#				self.output_words.append(answer)
+
+				#print(self.output_words)
+				#print(len(self.output_words) )
 
 		else:
 			self.logger.info("COG initialization complete.")
 			exit(0)
+
+	def evaluate_loss(self, data_dict, logits):
+		""" Calculates accuracy equal to mean number of correct predictions in a given batch.
+		WARNING: Applies mask to both logits and targets!
+
+		:param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask'}).
+
+		:param logits: Predictions being output of the model.
+
+		"""
+
+		targets_reg = data_dict['targets_reg']
+		targets_class = data_dict['targets_class']
+		
+		# Classification Loss 
+		loss = self.loss_function(logits[0][:,0,:], targets_class[:,0]) /logits[0].size(1)
+		for i in range(1,logits[0].size(1)):
+			loss += self.loss_function(logits[0][:,i,:], targets_class[:,i]) /logits[0].size(1)
+
+		# Pointing Loss
+		logsoftmax = nn.LogSoftmax(dim=2)
+		loss += torch.mean(torch.sum(-targets_reg * logsoftmax(logits[1]), 2))
+
+		return loss
+
+	def calculate_accuracy(self, data_dict, logits):
+		""" Calculates accuracy equal to mean number of correct predictions in a given batch.
+		WARNING: Applies mask to both logits and targets!
+
+		:param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask'}).
+
+		:param logits: Predictions being output of the model.
+
+		"""
+		
+		targets_reg = data_dict['targets_reg']
+		targets_class = data_dict['targets_class']
+		
+		# Classification Accuracy
+		values, indices = torch.max(logits[0],2)
+		correct = (indices==targets_class).sum().item() #+ (targets==-1).sum().item()
+		total = targets_class.numel() - (targets_class==-1).sum().item()
+
+		# Pointing Accuracy
+		values, indices = torch.max(logits[1],2)
+		values, hard_targets = torch.max(targets_reg,2)
+		
+		# Committing a minor inaccuracy here
+		correct += (indices==hard_targets).sum().item() - (indices==0).sum().item()
+		total += hard_targets.numel() - (hard_targets==0).sum().item()
+
+		return correct/total
+
+	def output_class_to_int(self,targets_class):
+		#for j, target in enumerate(targets_class):
+		targets_class = [-1 if a == 'invalid' else self.output_vocab.index(a) for a in targets_class]
+		targets_class = self.app_state.LongTensor(targets_class)
+
+		return targets_class
+
 
 	def __getitem__(self, index):
 		"""
@@ -198,37 +286,53 @@ class COG(VQAProblem):
 			- ``targets_class``: Sequence of word targets for classification tasks.
 
 		"""
-
-		# With the assumption that each family has the same number of examples
-		i = index % len(self.tasks)
-		j = int(index / len(self.tasks))
-
 		# This returns:
 		# All variables are numpy array of float32
-		# in_imgs: (n_epoch*batch_size, img_size, img_size, 3)
-		# in_rule: (max_seq_length, batch_size) the rule language input, type int32
-		# seq_length: (batch_size,) the length of each task instruction
-		# out_pnt: (n_epoch*batch_size, n_out_pnt)
-		# out_pnt_xy: (n_epoch*batch_size, 2)
-		# out_word: (n_epoch*batch_size, n_out_word)
-		# mask_pnt: (n_epoch*batch_size)
-		# mask_word: (n_epoch*batch_size)
+			# in_imgs: (n_epoch*batch_size, img_size, img_size, 3)
+			# in_rule: (max_seq_length, batch_size) the rule language input, type int32
+			# seq_length: (batch_size,) the length of each task instruction
+			# out_pnt: (n_epoch*batch_size, n_out_pnt)
+			# out_pnt_xy: (n_epoch*batch_size, 2)
+			# out_word: (n_epoch*batch_size, n_out_word)
+			# mask_pnt: (n_epoch*batch_size)
+			# mask_word: (n_epoch*batch_size)		
 
-		output = jti.json_to_feeds([self.dataset[self.tasks[i]][j]])[0]
-		images = ((torch.from_numpy(output)).permute(1, 0, 4, 2, 3)).squeeze()
+		output = jti.json_to_feeds([self.dataset[index]])[0]
+		images = ((torch.from_numpy(output)).permute(1,0,4,2,3)).squeeze()
 				
 		data_dict = self.create_data_dict()
-		data_dict['images'] = images
-		data_dict['tasks'] = [self.tasks[i]]
-		data_dict['questions'] = [self.dataset[self.tasks[i]][j]['question']]
-		answers = self.dataset[self.tasks[i]][j]['answers']
+		data_dict['images']	= images
+		data_dict['tasks']	= self.dataset[index]['family']
+		data_dict['questions'] = [self.dataset[index]['question']]
+		data_dict['questions'] = torch.LongTensor([self.input_vocab.index(word) for word in data_dict['questions'][0].split()])
+		if(data_dict['questions'].size(0) <= self.nwords):
+			prev_size = data_dict['questions'].size(0)
+			data_dict['questions'].resize_(self.nwords)
+			data_dict['questions'][prev_size:] = 0
+		answers = self.dataset[index]['answers']
+		if data_dict['tasks'] in self.classification_tasks:
+			#data_dict['targets_reg']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
+			#data_dict['targets_reg'] = np.array([[-10,-10] for target in answers])
+			targets_reg = np.array([[-10,-10] for target in answers])
+			data_dict['targets_class'] 	= self.output_class_to_int(answers)
+			#data_dict['targets'] = self.output_class_to_int(answers)
+			
+		else :
+			data_dict['targets_reg']	= np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
+			data_dict['targets_class'] 	= self.app_state.LongTensor([-1 for target in answers])
+			targets_reg = np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
 
-		if self.tasks[i] in self.classification_tasks:
-			data_dict['targets_reg'] = torch.FloatTensor([0, 0]).expand(self.sequence_length,2)
-			data_dict['targets_class'] = answers
-		else:
-			data_dict['targets_reg'] = torch.FloatTensor([[-1, -1] if reg == 'invalid' else reg for reg in answers])
-			data_dict['targets_class'] = [' ' for _ in answers]
+		x, y = np.meshgrid(np.linspace(-1,1,7), np.linspace(-1,1,7))
+		mu = 0.1
+
+		sequence_length = len(data_dict['targets_class'])
+		soft_targets = np.zeros((sequence_length,49))
+		for i in range(sequence_length):
+			soft_targets[i,:] = np.exp( -((x-targets_reg[i,0])**2)/(2*(mu**2))
+																		-((y-targets_reg[i,1])**2)/(2*(mu**2)) ).flatten()
+			soft_targets[i,:] = soft_targets[i,:] / np.sum(soft_targets[i,:])
+		np.nan_to_num(soft_targets,copy=False)
+		data_dict['targets_reg'] = self.app_state.FloatTensor(soft_targets)
 
 		return data_dict
 
@@ -245,10 +349,11 @@ class COG(VQAProblem):
 		data_dict = self.create_data_dict()
 		
 		data_dict['images'] = torch.stack([image['images'] for image in batch]).type(torch.FloatTensor)
-		data_dict['tasks'] = [task['tasks'] for task in batch]
-		data_dict['questions'] = [question['questions'] for question in batch]
+		data_dict['tasks']  = [task['tasks'] for task in batch]
+		data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.LongTensor)
 		data_dict['targets_reg'] = torch.stack([reg['targets_reg'] for reg in batch]).type(torch.FloatTensor)
-		data_dict['targets_class'] = [tgclassif['targets_class'] for tgclassif in batch]
+		data_dict['targets_class'] = torch.stack([tgclassif['targets_class'] for tgclassif in batch]).type(torch.LongTensor)
+		#data_dict['targets'] = torch.stack([target['targets'] for target in batch])
 
 		return data_dict
 
@@ -274,13 +379,37 @@ class COG(VQAProblem):
 								 'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
 								 'SimpleExistGo','SimpleExistShapeGo']
 
+		self.binary_tasks = ['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
+'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
+'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','SimpleCompareColor','SimpleCompareShape'] 
+
+		self.all_colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'] + [
+    'cyan', 'magenta', 'lime', 'pink', 'teal', 'lavender', 'brown', 'beige',
+    'maroon', 'mint', 'olive', 'coral', 'navy', 'grey', 'white']
+
+		self.all_shapes = ['circle', 'square', 'cross', 'triangle', 'vbar', 'hbar'] + list(string.ascii_lowercase)
+		
+		self.all_spaces = ['left', 'right', 'top', 'bottom']
+
+		self.all_whens = ['now','latest','last1']
+
+		self.input_vocab = ['invalid','.', ',', '?','object', 'color', 'shape','loc', 'on','if','then', 'else','exist','equal', 'and','the', 'of', 'with','point'] + self.all_spaces + self.all_colors + self.all_shapes + self.all_whens
+		self.output_vocab = ['true','false'] + self.all_colors + self.all_shapes
+
 		self.tasks = params['tasks']
 		if self.tasks == 'class':
 			self.tasks = self.classification_tasks
 		elif self.tasks == 'reg':
 			self.tasks = self.regression_tasks
+			self.output_vocab = []
 		elif self.tasks == 'all':
 			self.tasks = self.classification_tasks + self.regression_tasks
+		elif self.tasks == 'binary':
+			self.tasks = self.binary_tasks
+			self.output_vocab = ['true','false']
+
+		self.input_words = len(self.input_vocab)
+		self.output_classes = len(self.output_vocab)
 
 		# If loading a default dataset, set default path names and set sequence length		
 		if self.dataset_type == 'canonical':
@@ -320,11 +449,11 @@ class COG(VQAProblem):
 
 		"""
 		if self.dataset_type == 'canonical':
-			self.download = self.CheckAndDownload(self.data_folder_child, 
+			self.download = self.check_and_download(self.data_folder_child, 
 												  'https://storage.googleapis.com/cog-datasets/data_4_3_1.tar')
 		
 		elif self.dataset_type == 'hard':
-			self.download = self.CheckAndDownload(self.data_folder_child,
+			self.download = self.check_and_download(self.data_folder_child,
 												  'https://storage.googleapis.com/cog-datasets/data_8_7_10.tar')
 		if self.download:
 			self.logger.info('\nDownload complete. Extracting...')
@@ -354,10 +483,11 @@ class COG(VQAProblem):
 		:param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
 		
 		"""
-		stat_col.add_statistic('seq_len', '{:06d}')
-		stat_col.add_statistic('max_mem', '{:06d}')
-		stat_col.add_statistic('max_distractors', '{:06d}')
-		stat_col.add_statistic('task', '{}')
+		stat_col.add_statistic('acc', '{:12.10f}')
+		#stat_col.add_statistic('seq_len', '{:06d}')
+		#stat_col.add_statistic('max_mem', '{:06d}')
+		#stat_col.add_statistic('max_distractors', '{:06d}')
+		#stat_col.add_statistic('task', '{}')
 
 	def collect_statistics(self, stat_col, data_dict, logits):
 		"""
@@ -368,11 +498,11 @@ class COG(VQAProblem):
 		:param logits: Prediction of the model (:py:class:`torch.Tensor`)
 
 		"""
-		stat_col['seq_len'] = self.sequence_length
-		stat_col['max_mem'] = self.memory_length
-		stat_col['max_distractors'] = self.max_distractors
-		stat_col['task'] = data_dict['tasks']		
-		
+		stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
+		#stat_col['seq_len'] = self.sequence_length
+		#stat_col['max_mem'] = self.memory_length
+		#stat_col['max_distractors'] = self.max_distractors
+		#stat_col['task'] = data_dict['tasks']			
 
 if __name__ == "__main__":
 	
@@ -410,8 +540,8 @@ if __name__ == "__main__":
 	# Test whether data structures match expected definitions
 	assert sample['images'].shape == torch.ones((4, 3, 112, 112)).shape
 	assert sample['tasks'] == ['Go']
-	assert sample['questions'] == ['point now beige u']
-	assert sample['targets_reg'].shape == torch.ones((4, 2)).shape
+	#assert sample['questions'] == ['point now beige u']
+	assert sample['targets_reg'].shape == torch.ones((4,2)).shape
 	assert len(sample['targets_class']) == 4
 	assert sample['targets_class'][0] == ' '  
 
@@ -422,8 +552,8 @@ if __name__ == "__main__":
 	# Test whether data structures match expected definitions
 	assert sample2['images'].shape == torch.ones((4, 3, 112, 112)).shape
 	assert sample2['tasks'] == ['CompareColor']
-	assert sample2['questions'] == ['color of latest g equal color of last1 v ?']
-	assert sample2['targets_reg'].shape == torch.ones((4, 2)).shape
+	#assert sample2['questions'] == ['color of latest g equal color of last1 v ?']
+	assert sample2['targets_reg'].shape == torch.ones((4,2)).shape
 	assert len(sample2['targets_class']) == 4
 	assert sample2['targets_class'][0] == 'invalid'  
 	
@@ -442,6 +572,7 @@ if __name__ == "__main__":
 	assert batch['images'].shape == torch.ones((batch_size,4,3,112,112)).shape
 	assert len(batch['tasks']) == batch_size
 	assert len(batch['questions']) == batch_size
+	print(batch['questions'].size())
 	assert batch['targets_reg'].shape == torch.ones((batch_size,4,2)).shape
 	assert len(batch['targets_class']) == batch_size
 	assert len(batch['targets_class'][0]) == 4 
