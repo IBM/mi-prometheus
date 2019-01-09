@@ -706,13 +706,12 @@ def render_obj(canvas, obj, img_size):
     render_static_obj(canvas, obj.to_static()[0], img_size)
 
 
-def render_static(objlists, img_size=224, save_name=None):
+def render_static(objlists, img_size=224):
   """Render a movie by epoch.
 
   Args:
     objlists: a list of lists of StaticObject instances
     img_size: int, size of image (both x and y)
-    save_name: if not None, save movie at save_name
 
   Returns:
     movie: numpy array (n_time, img_size, img_size, 3)
@@ -753,20 +752,15 @@ def render_static(objlists, img_size=224, save_name=None):
   assert i_frame == len(objlists) * n_epoch_max, '%d != %d' % (
       i_frame, len(objlists) * n_epoch_max)
 
-  if save_name is not None:
-    t_total = len(objlists) * n_epoch_max * 1.0  # need fps >= 1
-    save_movie(movie, save_name, t_total)
-
   return movie
 
 
-def render(objsets, img_size=224, save_name=None):
+def render(objsets, img_size=224):
   """Render a movie by epoch.
 
   Args:
     objsets: an ObjsetSet instance or a list of them
     img_size: int, size of image (both x and y)
-    save_name: if not None, save movie at save_name
 
   Returns:
     movie: numpy array (n_time, img_size, img_size, 3)
@@ -791,10 +785,6 @@ def render(objsets, img_size=224, save_name=None):
         render_obj(canvas, obj, img_size)
 
       i_frame += 1
-
-  if save_name is not None:
-    t_total = n_objset * n_epoch_max * 1.0  # need fps >= 1
-    save_movie(movie, save_name, t_total)
 
   return movie
 

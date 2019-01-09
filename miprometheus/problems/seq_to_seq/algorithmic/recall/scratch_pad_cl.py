@@ -173,7 +173,7 @@ if __name__ == "__main__":
     batch_size = 10
 
     # Create problem object.
-    scratchpad = ScratchPad(params)
+    scratchpad = ScratchPadCommandLines(params)
 
     # get a sample
     sample = scratchpad[0]
