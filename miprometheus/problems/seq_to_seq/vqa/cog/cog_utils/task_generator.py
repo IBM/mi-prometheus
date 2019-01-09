@@ -231,8 +231,7 @@ class Operator(object):
     pass
 
   def __call__(self, objset, epoch_now):
-    #del objset
-    #del epoch_now
+    pass
 
   def set_child(self, child):
     """Set operators as children."""
