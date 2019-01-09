@@ -9,12 +9,7 @@ training:
   data_folder: '~/data/cog'
   set: train   
   use_mask: False
-  dataset_type: generated
-  generation:
-   examples_per_task: 100
-   sequence_length: 7
-   memory_length: 3
-   max_distractors: 2
+  dataset_type: canonical
   # Set optimizer.
  optimizer:
   name: Adam
