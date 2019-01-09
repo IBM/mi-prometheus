@@ -940,22 +940,23 @@ def n_sample_colorshape(k):
 
 def another_color(color):
   allcolors = list(const.ALLCOLORS)
-  try:
-    allcolors.remove(color.value)
-  except AttributeError:
+  if isinstance(color,list):
     for c in color:
       allcolors.remove(c.value)
+  else:
+    allcolors.remove(color.value)
 
   return Color(random.choice(allcolors))
 
 
 def another_shape(shape):
   allshapes = list(const.ALLSHAPES)
-  try:
-    allshapes.remove(shape.value)
-  except AttributeError:
+  if isinstance(shape,list):
     for s in shape:
       allshapes.remove(s.value)
+  else:
+    allshapes.remove(shape.value)
+
   return Shape(random.choice(allshapes))
 
 

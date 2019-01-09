@@ -7,9 +7,14 @@ training:
   batch_size: 48
   tasks: &task all
   data_folder: '~/data/cog'
-  set: train
+  set: train   
   use_mask: False
-  dataset_type: canonical
+  dataset_type: generated
+  generation:
+   examples_per_task: 100
+   sequence_length: 7
+   memory_length: 3
+   max_distractors: 2
   # Set optimizer.
  optimizer:
   name: Adam

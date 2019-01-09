@@ -448,6 +448,20 @@ class COG(VQAProblem):
 		Handles downloading and unzipping the canonical or hard version of the dataset.
 
 		"""
+		self.download = False
+		if self.dataset_type == 'generated':
+			self.download = self.check_and_download(self.data_folder_child)
+			if self.download:			
+				from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import generate_dataset
+				generate_dataset.main(self.data_folder_parent,
+															self.examples_per_task, 
+															self.sequence_length, 
+															self.memory_length, 
+															self.max_distractors,
+															self.nr_processors)
+				self.logger.info('\nDataset generation complete for {}!'.format(self.dataset_name))
+				self.download = False
+
 		if self.dataset_type == 'canonical':
 			self.download = self.check_and_download(self.data_folder_child, 
 												  'https://storage.googleapis.com/cog-datasets/data_4_3_1.tar')
@@ -464,17 +478,6 @@ class COG(VQAProblem):
 			os.remove(os.path.expanduser('~/data/downloaded'))
 			self.logger.info('\nClean-up complete! Dataset ready.')
 
-		else:
-			self.download = self.check_and_download(self.data_folder_child)
-			if self.download:			
-				from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import generate_dataset
-				generate_dataset.main(self.data_folder_parent,
-															self.examples_per_task, 
-															self.sequence_length, 
-															self.memory_length, 
-															self.max_distractors,
-															self.nr_processors)
-				self.logger.info('\nDataset generation complete for {}!'.format(self.dataset_name))
 
 	def add_statistics(self, stat_col):
 		"""
