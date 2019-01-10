@@ -244,3 +244,12 @@ autodoc_default_options = {
     'special-members': None,
     'exclude-members': '__dict__,__weakref__' # Exclude "standard" methods.
     }
+
+# Overwrite settings for tables.
+html_static_path = ['_static']
+
+html_context = {
+    'css_files': [
+        '_static/theme_overrides.css',  # override wide tables in RTD theme
+        ],
+     }

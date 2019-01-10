@@ -36,7 +36,7 @@ The user can activate this by passing the `––gpu` argument when running a gi
 
 We can distinguish two main phases of functioning for the workers: the initialization and the iteration over the batches of samples (each such iteration on a single batch is called an Episode) produced by the model.
 
-Initialization:
+Initialization
 ^^^^^^^^^^^^^^^
 
 .. figure:: ../img/initialization_sequence_diagram.png
@@ -55,7 +55,7 @@ In order to ensure that the Problem and the Model are compatible, both basic wor
 They also verify if the definitions of the model’s predictions match the definitions of the Problem targets and are compatible with the used loss function.
 
 
-Iterations over the batches of samples:
+Iterations over the batches of samples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. figure:: ../img/episode_sequence_diagram.png
@@ -74,7 +74,7 @@ The Trainers performs several additional computations afterwards. First of all, 
 If visualization is active, the Trainers also display the current behavior of the Model, through a visualization window specific to the Model.
 Finally, they also export the Model along with the collected statistics to a checkpoint file.
 
-Terminal conditions:
+Terminal conditions
 ^^^^^^^^^^^^^^^^^^^^
 
 Training ends when one of the following conditions is met:

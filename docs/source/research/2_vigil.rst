@@ -1,7 +1,7 @@
 .. _vigil-experiments:
 
-VIGIL Workshop experiments
-===========================
+Compositional generalization of the MAC and S-MAC models
+=================================================================================
 `@author: Vincent Marois`
 
 This note will explain how to reproduce the VIGIL experiments for MAC & S-MAC.
