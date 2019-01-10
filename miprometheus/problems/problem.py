@@ -451,7 +451,7 @@ class Problem(Dataset):
         return True
 
     # Function to make check and download easier
-    def check_and_download(self, file_folder_to_check, url='none', download_name='~/data/downloaded'):
+    def check_and_download(self, file_folder_to_check, url=None, download_name='~/data/downloaded'):
         """
         Checks whether a file or folder exists at given path (relative to storage folder), \
         otherwise downloads files from the given URL.
@@ -468,28 +468,32 @@ class Problem(Dataset):
         :return: False if file was found, True if a download was necessary.
 
         """
-        # Progress bar function
-        def reporthook(count, block_size, total_size):
-            global start_time
-            if count == 0:
-                    start_time = time.time()
-                    return
-            duration = time.time() - start_time
-            progress_size = int(count * block_size)
-            speed = int(progress_size / (1024 * duration))
-            percent = int(count * block_size * 100 / total_size)
-            sys.stdout.write("\r...%d%%, %d MB, %d KB/s, %d seconds passed" %
-                             (percent, progress_size / (1024 * 1024), speed, duration))
-            sys.stdout.flush()
 
         file_folder_to_check = os.path.expanduser(file_folder_to_check)
         if not (os.path.isfile(file_folder_to_check) or os.path.isdir(file_folder_to_check)):
-            self.logger.info('Downloading {}'.format(url))
-            urllib.request.urlretrieve(url, os.path.expanduser(download_name), reporthook)
-            return True
+            if url is not None:
+                self.logger.info('Downloading {}'.format(url))
+                urllib.request.urlretrieve(url, os.path.expanduser(download_name), reporthook)
+                return True
+            else:
+                return True
         else:
             self.logger.info('Dataset found at {}'.format(file_folder_to_check))
             return False
+
+# Progress bar function
+def reporthook(count, block_size, total_size):
+    global start_time
+    if count == 0:
+            start_time = time.time()
+            return
+    duration = time.time() - start_time
+    progress_size = int(count * block_size)
+    speed = int(progress_size / (1024 * duration))
+    percent = int(count * block_size * 100 / total_size)
+    sys.stdout.write("\r...%d%%, %d MB, %d KB/s, %d seconds passed" %
+                     (percent, progress_size / (1024 * 1024), speed, duration))
+    sys.stdout.flush()
 
 
 if __name__ == '__main__':

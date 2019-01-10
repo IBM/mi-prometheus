@@ -73,9 +73,9 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 project = 'MI-Prometheus'
 copyright = '2018, Tomasz Kornuta, Vincent Marois, Ryan L. McAvoy, Younes Bouhadjar, Alexis Asseman, Vincent Albouy, ' \
-            'T.S. Jayram, Ahmet S. Ozcan'
+            'Emre Sevgen, T.S. Jayram, Ahmet S. Ozcan'
 author = 'Tomasz Kornuta, Vincent Marois, Ryan L. McAvoy, Younes Bouhadjar, Alexis Asseman, Vincent Albouy, ' \
-         'T.S. Jayram, Ahmet S. Ozcan'
+         'Emre Sevgen, T.S. Jayram, Ahmet S. Ozcan'
 
 # The short X.Y version
 version = '0.3.1'
@@ -194,7 +194,7 @@ latex_documents = [
     (master_doc,
      'MI_Prometheus.tex',
      'MI Prometheus Documentation',
-     'Tomasz Kornuta, Younes Bouhadjar, Ryan L. McAvoy, Vincent Marois, Alexis Asseman, Vincent Albouy, T.S. Jayram,'
+     'Tomasz Kornuta, Younes Bouhadjar, Ryan L. McAvoy, Vincent Marois, Alexis Asseman, Vincent Albouy, Emre Sevgen, T.S. Jayram,'
      'Mikyas T. Desta, Ahmet S. Ozcan',
      'manual'),
 ]

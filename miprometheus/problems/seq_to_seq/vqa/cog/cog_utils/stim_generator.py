@@ -46,6 +46,7 @@ class Attribute(object):
   def __init__(self, value):
     self.value = value if not isinstance(value, list) else tuple(value)
     self.parent = list()
+    self.attr_type = None
 
   def __call__(self, *args):
     """Including a call function to be consistent with Operator class."""
@@ -160,6 +161,12 @@ class Space(Attribute):
       self._value = [(0, 1), (0, 1)]
     else:
       self._value = value
+
+  def __eq__(self, other):
+    """Override the default Equals behavior."""
+    if isinstance(other, self.__class__):
+      return (self.value == other.value) and (self._value == other._value) 
+    return False
 
   def sample(self, avoid=None):
     """Sample a location.
@@ -930,22 +937,23 @@ def n_sample_colorshape(k):
 
 def another_color(color):
   allcolors = list(const.ALLCOLORS)
-  try:
-    allcolors.remove(color.value)
-  except AttributeError:
+  if isinstance(color,list):
     for c in color:
       allcolors.remove(c.value)
+  else:
+    allcolors.remove(color.value)
 
   return Color(random.choice(allcolors))
 
 
 def another_shape(shape):
   allshapes = list(const.ALLSHAPES)
-  try:
-    allshapes.remove(shape.value)
-  except AttributeError:
+  if isinstance(shape,list):
     for s in shape:
       allshapes.remove(s.value)
+  else:
+    allshapes.remove(shape.value)
+
   return Shape(random.choice(allshapes))
 
 

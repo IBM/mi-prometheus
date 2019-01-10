@@ -231,8 +231,7 @@ class Operator(object):
     pass
 
   def __call__(self, objset, epoch_now):
-    del objset
-    #del epoch_now
+    pass
 
   def set_child(self, child):
     """Set operators as children."""
@@ -243,7 +242,7 @@ class Operator(object):
       for c in child:
         self.set_child(c)
 
-  def get_expected_input(self, should_be=None):
+  def get_expected_input(self, should_be=None, objset=None,epoch_now=None):
     """Guess and update the objset at this epoch.
 
     Args:
@@ -464,7 +463,7 @@ class Select(Operator):
 
       # Add an object based on these attributes
       obj = sg.Object(attr_new_object, when=self.when)
-      obj = objset.add(obj, epoch_now, add_if_exist=False)
+      objset.add(obj, epoch_now, add_if_exist=False)
 
     # Return the expected inputs
     return [objset] + attr_expected_in
