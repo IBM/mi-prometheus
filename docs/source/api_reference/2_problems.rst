@@ -2,216 +2,234 @@
     :class: hidden-section
 
 miprometheus.problems
-===================================
-
+********************************************
 .. automodule:: miprometheus.problems
 
 
 Problem
---------------
-
+============================================
 .. autoclass:: miprometheus.problems.Problem
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
 ProblemFactory
------------------
+============================================
 .. autoclass:: ProblemFactory
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
 ImageTextToClass Problems
-----------------------------
-
+============================================
 .. autoclass:: miprometheus.problems.ImageTextToClassProblem
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`CLEVR`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------------
 .. autoclass:: CLEVR
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`Sort-Of-CLEVR`
-~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------------
 .. autoclass:: SortOfCLEVR
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`ShapeColorQuery`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------------
 .. autoclass:: ShapeColorQuery
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
 
 
 ImageToClass Problems
-----------------------------
-
+============================================
 .. autoclass:: ImageToClassProblem
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`CIFAR-10`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------------
 .. autoclass:: CIFAR10
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`MNIST`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------------
 .. autoclass:: MNIST
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
 
 SequenceToSequence Problems
-----------------------------
-
+============================================
 .. autoclass:: SeqToSeqProblem
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
-VQA Problems
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+:hidden:`MovieTextToClass Problems`
+--------------------------------------------
 .. autoclass:: VQAProblem
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`COG`
-```````````````````````````
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: COG
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
+
 Algorithmic SequenceToSequence Problems
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+============================================
 .. autoclass:: AlgorithmicSeqToSeqProblem
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
 :hidden:`Dual Comparison`
-`````````````````````````````
+--------------------------------------------
+
+:hidden:`SequenceComparisonCommandLines`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: SequenceComparisonCommandLines
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
+:hidden:`SequenceEqualityCommandLines`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: SequenceEqualityCommandLines
-    :special-members:
     :exclude-members: __dict__,__weakref__
 
+:hidden:`SequenceSymmetryCommandLines`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: SequenceSymmetryCommandLines
-    :members:
-    :special-members:
     :exclude-members: __dict__,__weakref__
+
 
 :hidden:`Dual Distraction`
-`````````````````````````````
+--------------------------------------------
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+
+:hidden:`DistractionCarry`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: DistractionCarry
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+:hidden:`DistractionForget`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: DistractionForget
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+:hidden:`DistractionIgnore`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: DistractionIgnore
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+
 :hidden:`Dual Ignore`
-`````````````````````````````
+--------------------------------------------
+
+:hidden:`InterruptionNot`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: InterruptionNot
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+:hidden:`InterruptionReverseRecall`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: InterruptionReverseRecall
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+:hidden:`InterruptionSwapRecall`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: InterruptionSwapRecall
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Manipulation Spatial`
-`````````````````````````````````
+
+Manipulation Spatial
+--------------------------------------------
+
+ManipulationSpatialNot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: ManipulationSpatialNot
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+ManipulationSpatialRotation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: ManipulationSpatialRotation
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Manipulation Temporal`
-`````````````````````````````````
+Manipulation Temporal
+--------------------------------------------
+
+ManipulationTemporalSwap
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: ManipulationTemporalSwap
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+SkipRecallCommandLines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: SkipRecallCommandLines
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Recall`
-`````````````````````````````
+Recall
+--------------------------------------------
+
+OperationSpan
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: OperationSpan
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+ReadingSpan
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: ReadingSpan
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+RepeatReverseRecallCommandLines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: RepeatReverseRecallCommandLines
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+RepeatSerialRecallCommandLines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: RepeatSerialRecallCommandLines
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+ReverseRecallCommandLines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: ReverseRecallCommandLines
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+ScratchPadCommandLines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: ScratchPadCommandLines
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+SerialRecallCommandLines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: SerialRecallCommandLines
     :members:
     :special-members:
@@ -219,14 +237,14 @@ Algorithmic SequenceToSequence Problems
 
 
 TextToText Problems
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+============================================
 .. automodule:: miprometheus.problems.seq_to_seq.text2text.text_to_text_problem
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`TranslationAnki`
-`````````````````````````````
+TranslationAnki
+--------------------------------------------
 .. automodule:: miprometheus.problems
 .. autoclass:: TranslationAnki
     :members:
@@ -235,19 +253,21 @@ TextToText Problems
 
 
 VideoToClass Problems
-----------------------------
+============================================
 .. autoclass:: VideoToClassProblem
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Sequential MNIST`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Permuted Sequential Row Mnist
+--------------------------------------------
 .. autoclass:: PermutedSequentialRowMnist
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+Sequential Pixel MNIST
+--------------------------------------------
 .. autoclass:: SequentialPixelMNIST
     :members:
     :special-members:

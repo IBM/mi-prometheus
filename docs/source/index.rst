@@ -17,33 +17,36 @@ MI Prometheus is an open source Python library, built using PyTorch, that enable
 
    notes/*
 
+..
+
+    .. toctree::
+        :glob:
+        :maxdepth: 1
+        :caption: MI-Prometheus Primer
+
+        mip_primer/*
+
+    .. toctree::
+        :glob:
+        :maxdepth: 1
+        :caption: Research
+
+        research/*
+
+    .. toctree::
+        :glob:
+        :maxdepth: 1
+        :caption: Tutorials
+
+        tutorials/*
+
+
 .. toctree::
    :glob:
-   :maxdepth: 1
-   :caption: MI-Prometheus Primer
-
-   mip_primer/*
-
-.. toctree::
-   :glob:
-   :maxdepth: 1
-   :caption: Research
-
-   research/*
-
-.. toctree::
-   :glob:
-   :maxdepth: 1
-   :caption: Tutorials
-
-   tutorials/*
-
-.. toctree::
-   :glob:
-   :maxdepth: 1
+   :maxdepth: 4
    :caption: Package Reference
 
-   api_reference/*
+   api_reference/2_problems.rst
 
 
 Indices and tables

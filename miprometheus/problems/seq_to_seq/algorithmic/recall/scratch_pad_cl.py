@@ -94,7 +94,7 @@ class ScratchPadCommandLines(AlgorithmicSeqToSeqProblem):
         # Define control lines.
         ctrl_aux = np.zeros(self.control_bits)
         if self.use_control_lines:
-            if  self.control_bits >= 3:
+            if  self.control_bits > 2:
                 if self.randomize_control_lines:
                     # Randomly pick one of the bits to be set.
                     ctrl_bit = np.random.randint(2, self.control_bits)

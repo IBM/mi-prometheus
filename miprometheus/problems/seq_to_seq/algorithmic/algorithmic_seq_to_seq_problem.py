@@ -36,7 +36,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
     Provides some basic features useful in all problems of such nature.
 
-    ..info:
+    .. info:
 
         All derived classes will provide two operation modes:
             - "optimized": "__getitem__" in fact does nothing (returns index), \
@@ -48,13 +48,13 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
     Advantage of the "not_optimized" mode is that a single batch will contain sequences of varying length.
     This mode is around 10 times slower though.
 
-    ..warning:
+    .. warning:
 
         In both cases the derived classes will work as true data generators, \
         and not really care about the indices provided from the list. As a result,\
         each epoch will contain newly generated, thus different samples (for the same indices).
 
-    ..warning:
+    .. warning:
 
         "optimized" mode is not suited to be used with many dataloader workers, i.e. \
         setting num_workers > 0 will in fact slow the whole generation (by 3-4 times!).
