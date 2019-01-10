@@ -9,17 +9,14 @@ miprometheus.problems
 Problem
 ============================================
 .. autoclass:: miprometheus.problems.Problem
-    :exclude-members: __dict__,__weakref__
 
 ProblemFactory
 ============================================
 .. autoclass:: ProblemFactory
-    :exclude-members: __dict__,__weakref__
 
 ImageTextToClass Problems
 ============================================
 .. autoclass:: miprometheus.problems.ImageTextToClassProblem
-    :exclude-members: __dict__,__weakref__
 
 CLEVR
 --------------------------------------------

@@ -39,30 +39,18 @@ The `.rst` files are written using the reStructuredText plaintext markup syntax.
     ---------------------------------
 
     .. autoclass:: Model
-        :members:
-        :special-members:
-        :exclude-members: __dict__,__weakref__
 
     :hidden:`CNN + LSTM` # This is a subsubtitle
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     .. automodule:: miprometheus.models.vqa_baselines.cnn_lstm
-        :members:
-        :special-members:
-        :exclude-members: __dict__,__weakref__
 
     SequentialModel # this is a subtitle
     ----------------------------------------
     .. autoclass:: SequentialModel
-        :members:
-        :special-members:
-        :exclude-members: __dict__,__weakref__
 
     :hidden:`DWM` # this is a subsubtitle
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     .. automodule:: miprometheus.models.dwm
-        :members:
-        :special-members:
-        :exclude-members: __dict__,__weakref__
 
 
 Do not hesitate to frequently refer to the reStructuredText guide_ for more information on the formatting.
