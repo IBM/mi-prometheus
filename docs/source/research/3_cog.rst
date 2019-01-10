@@ -1,7 +1,7 @@
 .. _cog-experiments:
 
 COG Dataset and Model Implementation and Reproduction
-===========================
+======================================================
 `@author: Emre Sevgen`
 
 This note will explain how to partially reproduce the results of COG model on the COG dataset with our implementation.

@@ -237,3 +237,10 @@ texinfo_documents = [
 autodoc_inherit_docstrings = False
 
 autodoc_member_order = 'bysource'
+
+# Default options for Sphinx-based generation of documentation from code.
+autodoc_default_options = {
+    'members': None, # Include all members (methods).
+    'special-members': None,
+    'exclude-members': '__dict__,__weakref__' # Exclude "standard" methods.
+    }
