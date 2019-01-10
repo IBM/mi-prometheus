@@ -21,17 +21,17 @@ ImageTextToClass Problems
 .. autoclass:: miprometheus.problems.ImageTextToClassProblem
     :exclude-members: __dict__,__weakref__
 
-:hidden:`CLEVR`
+CLEVR
 --------------------------------------------
 .. autoclass:: CLEVR
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Sort-Of-CLEVR`
+Sort-Of-CLEVR
 --------------------------------------------
 .. autoclass:: SortOfCLEVR
     :exclude-members: __dict__,__weakref__
 
-:hidden:`ShapeColorQuery`
+ShapeColorQuery
 --------------------------------------------
 .. autoclass:: ShapeColorQuery
     :exclude-members: __dict__,__weakref__
@@ -43,12 +43,12 @@ ImageToClass Problems
 .. autoclass:: ImageToClassProblem
     :exclude-members: __dict__,__weakref__
 
-:hidden:`CIFAR-10`
+CIFAR-10
 --------------------------------------------
 .. autoclass:: CIFAR10
     :exclude-members: __dict__,__weakref__
 
-:hidden:`MNIST`
+MNIST
 --------------------------------------------
 .. autoclass:: MNIST
     :exclude-members: __dict__,__weakref__
@@ -60,12 +60,12 @@ SequenceToSequence Problems
     :exclude-members: __dict__,__weakref__
 
 
-:hidden:`MovieTextToClass Problems`
+MovieTextToClass Problems
 --------------------------------------------
 .. autoclass:: VQAProblem
     :exclude-members: __dict__,__weakref__
 
-:hidden:`COG`
+COG
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: COG
     :exclude-members: __dict__,__weakref__
@@ -76,47 +76,47 @@ Algorithmic SequenceToSequence Problems
 .. autoclass:: AlgorithmicSeqToSeqProblem
     :exclude-members: __dict__,__weakref__
 
-:hidden:`Dual Comparison`
+Dual Comparison
 --------------------------------------------
 
-:hidden:`SequenceComparisonCommandLines`
+SequenceComparisonCommandLines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: SequenceComparisonCommandLines
     :exclude-members: __dict__,__weakref__
 
-:hidden:`SequenceEqualityCommandLines`
+SequenceEqualityCommandLines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: SequenceEqualityCommandLines
     :exclude-members: __dict__,__weakref__
 
-:hidden:`SequenceSymmetryCommandLines`
+SequenceSymmetryCommandLines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: SequenceSymmetryCommandLines
     :exclude-members: __dict__,__weakref__
 
 
-:hidden:`Dual Distraction`
+Dual Distraction
 --------------------------------------------
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 
-:hidden:`DistractionCarry`
+DistractionCarry
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: DistractionCarry
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`DistractionForget`
+DistractionForget
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: DistractionForget
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`DistractionIgnore`
+DistractionIgnore
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: DistractionIgnore
     :members:
@@ -124,24 +124,24 @@ Algorithmic SequenceToSequence Problems
     :exclude-members: __dict__,__weakref__
 
 
-:hidden:`Dual Ignore`
+Dual Ignore
 --------------------------------------------
 
-:hidden:`InterruptionNot`
+InterruptionNot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: InterruptionNot
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`InterruptionReverseRecall`
+InterruptionReverseRecall
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: InterruptionReverseRecall
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
-:hidden:`InterruptionSwapRecall`
+InterruptionSwapRecall
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: InterruptionSwapRecall
     :members:
