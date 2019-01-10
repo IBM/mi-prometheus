@@ -107,7 +107,7 @@ The :py:class:`miprometheus.workers.OnlineTrainer` (called by ``mip-online-train
 experiments folder, named `experiments/<timestamp>` which will contain the statistics.
 
 Testing the trained models on the Cog test dataset
-------------------------------------------
+---------------------------------------------------
 
 To be completed.
 
