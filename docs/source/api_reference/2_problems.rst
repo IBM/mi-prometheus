@@ -3,7 +3,9 @@
 
 miprometheus.problems
 ********************************************
+
 .. automodule:: miprometheus.problems
+.. currentmodule:: miprometheus.problems
 
 
 Problem
@@ -202,22 +204,21 @@ TextToText Problems
 
 TranslationAnki
 --------------------------------------------
-.. automodule:: miprometheus.problems
-.. autoclass:: TranslationAnki
+.. autoclass:: miprometheus.problems.seq_to_seq.TranslationAnki
     :exclude-members: __dict__,__weakref__
 
 
 VideoToClass Problems
 ============================================
-.. autoclass:: VideoToClassProblem
+.. autoclass:: miprometheus.problems.VideoToClassProblem
     :exclude-members: __dict__,__weakref__
 
 Permuted Sequential Row Mnist
 --------------------------------------------
-.. autoclass:: PermutedSequentialRowMnist
+.. autoclass:: miprometheus.problems.video_to_class.PermutedSequentialRowMnist
     :exclude-members: __dict__,__weakref__
 
 Sequential Pixel MNIST
 --------------------------------------------
-.. autoclass:: SequentialPixelMNIST
+.. autoclass:: miprometheus.problems.video_to_class.SequentialPixelMNIST
     :exclude-members: __dict__,__weakref__
