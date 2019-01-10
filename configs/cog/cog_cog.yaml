@@ -7,17 +7,19 @@ training:
   batch_size: 48
   tasks: &task all
   data_folder: '~/data/cog'
-  set: val
+  set: train   
   use_mask: False
   dataset_type: canonical
   # Set optimizer.
  optimizer:
   name: Adam
-  lr: 0.00005
+  lr: 0.0002
   weight_decay: 0.00002
  gradient_clipping: 10
  terminal_conditions:
   epoch_limit: 20
+  episodes: 100000000
+ partial_validation_interval: 100
 
 testing:
  cuda: True
@@ -45,3 +47,4 @@ validation:
 
 model:
  name: CogModel
+
