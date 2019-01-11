@@ -487,7 +487,7 @@ class CogModel(Model):
 	# Embed vocabulary for all available task families
 	def EmbedVocabulary(self,vocabulary_size,words_embed_length):
 		"""
-		Defines all layers pertaining to the VSTM module.
+		Defines nn.Embedding for embedding of questions into float tensors.
 
 		:param vocabulary_size: Number of unique words possible.
 		:type vocabulary_size: Int
@@ -497,17 +497,6 @@ class CogModel(Model):
 
 		"""
 		self.Embedding = nn.Embedding(vocabulary_size,words_embed_length,padding_idx=0)
-
-	def EmbedQuestions(self,questions):
-		"""
-		Performs embedding of questions into float tensors.
-
-		:param questions: Lookup format questions (vector of ints).
-		:type questions: LongTensor
-
-		"""
-		self.Embedding = nn.Embedding(vocabulary_size,words_embed_length,padding_idx=0)
-		return self.forward_words2embed(questions)
 	
 
 if __name__ == '__main__':
