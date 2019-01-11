@@ -124,6 +124,13 @@ Encoder-Solver models
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+Mental Model prototype
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. automodule:: miprometheus.models.mental_model
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
 
 Others Models
 ------------------------------
