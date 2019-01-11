@@ -48,7 +48,6 @@ class VSTM(nn.Module):
 		:type control_input_size: Int
 
 		"""
-		super(
 		super(VSTM, self).__init__()
 
 		# Shape of each visual memory map

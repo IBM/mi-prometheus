@@ -88,6 +88,7 @@ class COG(VQAProblem):
 'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
 'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','SimpleCompareColor','SimpleCompareShape'] 
 
+
 				- ``self.dataset_type`` (`string`) : Which dataset to use, 'canonical', 'hard', or \
 				'generated'. If 'generated', please specify 'examples_per_task', 'sequence_length', \
 				'memory_length', and 'max_distractors' under 'generation'. Can also specify 'nr_processors' for generation.
@@ -175,10 +176,7 @@ class COG(VQAProblem):
 		#'targets': {'size': [-1,self.sequence_length, self.output_classes], 'type': [torch.Tensor]},
 		'targets_reg' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
 		'targets_class':{'size': [-1, self.sequence_length, self.output_classes], 'type' : [list,str]}
-					}		['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
-'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
-'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','SimpleCompareColor','SimpleCompareShape'] 
-
+					}	
 
 		# Check if dataset exists, download or generate if necessary.
 		self.source_dataset()
@@ -306,21 +304,14 @@ class COG(VQAProblem):
 			- ``targets_class``: Sequence of word targets for classification tasks.
 
 		"""
-		# This returns:['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
-									 'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
-									 'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
-									 'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
-									 'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
-									 'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape']
+		# This returns:
 		# All variables are numpy array of float32
 			# in_imgs: (n_epoch*batch_size, img_size, img_size, 3)
 			# in_rule: (max_seq_length, batch_size) the rule language input, type int32
 			# seq_length: (batch_size,) the length of each task instruction
 			# out_pnt: (n_epoch*batch_size, n_out_pnt)
 			# out_pnt_xy: (n_epoch*batch_size, 2)
-			# out_word: (n_epoch*batch_size, n_out_word)['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
-'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
-'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','SimpleCompareColor','SimpleCompareShape'] 
+			# out_word: (n_epoch*batch_size, n_out_word)
 			# mask_pnt: (n_epoch*batch_size)
 			# mask_word: (n_epoch*batch_size)		
 
@@ -363,12 +354,7 @@ class COG(VQAProblem):
 
 		return data_dict
 
-	def collate_fn(self, batch):['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
-									 'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
-									 'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
-									 'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
-									 'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
-									 'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape']
+	def collate_fn(self, batch):
 		"""
 		Combines a list of :py:class:`miprometheus.utils.DataDict` (retrieved with :py:func:`__getitem__`) into a batch.
 
