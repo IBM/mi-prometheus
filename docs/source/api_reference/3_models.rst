@@ -24,27 +24,27 @@ ModelFactory
 Visual Question Answering baselines
 ----------------------------------------
 
-:hidden:`CNN + LSTM`
+CNN + LSTM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.vqa_baselines.cnn_lstm
 
-:hidden:`Stacked Attention Networks`
+Stacked Attention Networks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.vqa_baselines.stacked_attention_networks
 
-:hidden:`MAC`
+MAC
 ~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.mac
 
-:hidden:`Simplified MAC`
+Simplified MAC
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.s_mac
 
-:hidden:`Relational Networks`
+Relational Networks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.relational_net
 
-:hidden:`COG`
+COG
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.cog
 
@@ -62,19 +62,19 @@ Controllers for MANNs models
 Memory-Augmented Neural Network (MANN) models
 ------------------------------------------------------------
 
-:hidden:`DWM`
+DWM
 ~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.dwm
 
-:hidden:`DNC`
+DNC
 ~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.dnc
 
-:hidden:`NTM`
+NTM
 ~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.ntm
 
-:hidden:`Encoder-Solver models`
+Encoder-Solver models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.encoder_solver
 
@@ -82,11 +82,11 @@ Memory-Augmented Neural Network (MANN) models
 Others Models
 ------------------------------
 
-:hidden:`LSTM`
+LSTM
 ~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.lstm
 
-:hidden:`ThalNet`
+ThalNet
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: miprometheus.models.thalnet
 
