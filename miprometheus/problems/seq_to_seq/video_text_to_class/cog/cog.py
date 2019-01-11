@@ -42,11 +42,11 @@ import tarfile
 import string
 import numpy as np
 
-from miprometheus.problems.seq_to_seq.vqa.vqa_problem import VQAProblem
-from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import json_to_img as jti
+from miprometheus.problems.seq_to_seq.video_text_to_class.video_text_to_class_problem import VideoTextToClassProblem
+from miprometheus.problems.seq_to_seq.video_text_to_class.cog.cog_utils import json_to_img as jti
 
 
-class COG(VQAProblem):
+class COG(VideoTextToClassProblem):
 	"""
 	The COG dataset is a sequential VQA dataset.
 

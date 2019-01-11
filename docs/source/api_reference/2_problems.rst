@@ -84,7 +84,7 @@ SequenceToSequence Problems
 
 VideoTextToClass Problems
 --------------------------------------------
-.. autoclass:: VQAProblem
+.. autoclass:: video_text_to_class/
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__

@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
@@ -15,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""vqa_problem.py: abstract base class for sequential VQA problems."""
+"""video_text_to_class_problem.py: abstract base class for sequential VQA problems."""
 
 __author__ = "Emre Sevgen"
 
@@ -25,7 +26,7 @@ import numpy as np
 from miprometheus.problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
 
 
-class VQAProblem(SeqToSeqProblem):
+class VideoTextToClassProblem(SeqToSeqProblem):
 	"""
 	Abstract base class for sequential VQA problems.
 
@@ -55,7 +56,7 @@ class VQAProblem(SeqToSeqProblem):
 		:type params: :py:class:`miprometheus.utils.ParamInterface`
 
 		"""
-		super(VQAProblem, self).__init__(params)
+		super(VideoTextToClassProblem, self).__init__(params)
 
 		# Set default loss function to cross entropy.
 		self.loss_function = nn.CrossEntropyLoss()
@@ -127,6 +128,6 @@ if __name__ == '__main__':
 
 	from miprometheus.utils.param_interface import ParamInterface
 	
-	sample = VQAProblem(ParamInterface())[0]
+	sample = VideoTextToClassProblem(ParamInterface())[0]
 	
 	print(repr(sample))
