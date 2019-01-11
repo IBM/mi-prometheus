@@ -3,23 +3,31 @@
 
 miprometheus.models
 ===================================
-
 .. automodule:: miprometheus.models
-
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
 
 Model
 ----------
 .. autoclass:: Model
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
 
 SequentialModel
 --------------------
-
 .. autoclass:: SequentialModel
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
 
 ModelFactory
 --------------------
-
 .. autoclass:: ModelFactory
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
 
 Visual Question Answering baselines
 ----------------------------------------
