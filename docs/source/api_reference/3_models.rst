@@ -1,6 +1,8 @@
 .. role:: hidden
     :class: hidden-section
 
+.. currentmodule:: miprometheus.models
+
 miprometheus.models
 ===================================
 .. automodule:: miprometheus.models
