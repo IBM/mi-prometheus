@@ -59,9 +59,8 @@ Split Indices
 -----------------------
 .. automodule:: miprometheus.utils.split_indices
     :members: split_indices
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
+
+.. currentmodule:: miprometheus.utils
 
 StatisticsCollector
 -----------------------
