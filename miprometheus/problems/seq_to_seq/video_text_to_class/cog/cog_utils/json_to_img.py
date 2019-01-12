@@ -19,8 +19,8 @@ from six import string_types
 import re
 import numpy as np
 
-from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import stim_generator as sg
-from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import constants as const
+from miprometheus.problems.seq_to_seq.video_text_to_class.cog.cog_utils import stim_generator as sg
+from miprometheus.problems.seq_to_seq.video_text_to_class.cog.cog_utils import constants as const
 
 _R_MEAN = 123.68
 _G_MEAN = 116.78

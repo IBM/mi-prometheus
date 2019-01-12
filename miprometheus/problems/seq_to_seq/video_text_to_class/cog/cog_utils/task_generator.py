@@ -21,8 +21,8 @@ Contains the building blocks for permissible tasks.
 from collections import defaultdict
 import random
 
-from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import constants as const
-from miprometheus.problems.seq_to_seq.vqa.cog.cog_utils import stim_generator as sg
+from miprometheus.problems.seq_to_seq.video_text_to_class.cog.cog_utils import constants as const
+from miprometheus.problems.seq_to_seq.video_text_to_class.cog.cog_utils import stim_generator as sg
 
 
 def obj_str(loc=None, color=None, shape=None,

@@ -25,7 +25,7 @@ import shutil
 
 import numpy as np
 
-import miprometheus.problems.seq_to_seq.vqa.cog.cog_utils.task_bank as task_bank
+import miprometheus.problems.seq_to_seq.video_text_to_class.cog.cog_utils.task_bank as task_bank
 
 
 try:
