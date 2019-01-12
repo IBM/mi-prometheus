@@ -72,21 +72,21 @@ class COG(VideoTextToClassProblem):
 				Only the selected tasks will be used.
 
 				Classification tasks are: ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
-									 'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
-									 'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
-									 'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
-									 'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
-									 'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape']		
+				'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
+				'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
+				'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
+				'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
+				'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape']		
 
 				Regression tasks are: 		self.regression_tasks = ['AndSimpleExistColorGo', 'AndSimpleExistGo', 'AndSimpleExistShapeGo', 'CompareColorGo',
-								 'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
-								 'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
-								 'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
-								 'SimpleExistGo','SimpleExistShapeGo']
+				'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
+				'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
+				'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
+				'SimpleExistGo','SimpleExistShapeGo']
 
-				Binary classification tasks are: ['AndCompareColor','AndCompareShape','AndSimpleCompareColor','AndSimpleCompareShape','CompareColor','CompareShape','Exist',
-'ExistColor','ExistColorOf','ExistColorSpace','ExistLastColorSameShape','ExistLastObjectSameObject','ExistLastShapeSameColor',
-'ExistShape','ExistShapeOf','ExistShapeSpace','ExistSpace','SimpleCompareColor','SimpleCompareShape'] 
+				Binary classification tasks are: ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor', 'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist', 
+				'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape', 'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 
+				'ExistShape', 'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'SimpleCompareColor', 'SimpleCompareShape'] 
 
 
 				- ``self.dataset_type`` (`string`) : Which dataset to use, 'canonical', 'hard', or \
@@ -114,6 +114,7 @@ class COG(VideoTextToClassProblem):
 
 		:param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 		:type params: :py:class:`miprometheus.utils.ParamInterface`
+
 
 		"""
 	
