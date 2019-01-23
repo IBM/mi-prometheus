@@ -56,10 +56,12 @@ import numpy as np
 from PIL import Image
 from torchvision import transforms
 from miprometheus.models.model import Model
+import numpy as numpy
 
 from miprometheus.models.mac.input_unit import InputUnit
 from miprometheus.models.mac.mac_unit import MACUnit
 from miprometheus.models.mac.output_unit import OutputUnit
+from miprometheus.models.mac.image_encoding import ImageProcessing
 
 
 class MACNetwork(Model):
@@ -107,6 +109,8 @@ class MACNetwork(Model):
             memory_gate=self.memory_gate,
             dropout=self.dropout)
 
+        self.image_encoding = ImageProcessing(dim=512)
+
         self.output_unit = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
 
         self.data_definitions = {'images': {'size': [-1, 1024, 14, 14], 'type': [np.ndarray]},
@@ -116,8 +120,15 @@ class MACNetwork(Model):
                                  }
 
         # transform for the image plotting
-        self.transform = transforms.Compose(
-            [transforms.Resize([224, 224]), transforms.ToTensor()])
+        #self.transform = transforms.Compose(
+         #   [transforms.Resize([224, 224]), transforms.ToTensor()])
+        self.conv1 = torch.nn.Conv2d(3, 6, kernel_size=(8, 8))
+        self.maxpool1 = torch.nn.MaxPool2d(kernel_size=(2, 2), stride=2)
+        self.conv2 = torch.nn.Conv2d(6, 16, kernel_size=(8, 8))
+        self.maxpool2 = torch.nn.MaxPool2d(kernel_size=(2, 2), stride=2)
+        self.conv3 = torch.nn.Conv2d(16, 1024, kernel_size=(9, 9))
+        self.linear1 = torch.nn.Linear(120, 84)
+        self.linear2 = torch.nn.Linear(84, 10)
 
     def forward(self, data_dict, dropout=0.15):
         """
@@ -139,15 +150,40 @@ class MACNetwork(Model):
 
         # unpack data_dict
         images = data_dict['images']
-        questions = data_dict['questions']
-        questions_length = data_dict['questions_length']
+        images= images.permute(1, 0, 2, 3, 4)
 
-        # input unit
-        img, kb_proj, lstm_out, h = self.input_unit(
-            questions, questions_length, images)
 
-        # recurrent MAC cells
-        memory = self.mac_unit(lstm_out, h, img, kb_proj)
+        for i in range(images.size(0)):
+
+            print('starting to process a new image')
+
+            #apply convolutions + Max pool on raw images
+            x = self.conv1(images[i])
+            x = torch.nn.functional.relu(x)
+            x = self.maxpool1(x)
+            x = self.conv2(x)
+            x = torch.nn.functional.relu(x)
+            x = self.maxpool2(x)
+            x = self.conv3(x)
+            x = torch.nn.functional.relu(x)
+
+            #get question from data dict
+
+            questions = data_dict['questions']
+
+            #get questions size of all batch elements
+            questions_length = questions.size(1)
+
+            #convert questions lenght into a tensor
+            questions_length = torch.from_numpy(numpy.array(questions_length))
+            questions = questions.unsqueeze(2)
+
+            # input unit
+            img, kb_proj, lstm_out, h = self.input_unit(
+            questions, questions_length, x)
+
+            # recurrent MAC cells
+            memory = self.mac_unit(lstm_out, h, img, kb_proj)
 
         # output unit
         logits = self.output_unit(memory, h)
@@ -331,7 +367,7 @@ class MACNetwork(Model):
 
 if __name__ == '__main__':
     dim = 512
-    embed_hidden = 300
+    embed_hidden = 1
     max_step = 12
     self_attention = True
     memory_gate = True
@@ -341,26 +377,49 @@ if __name__ == '__main__':
     from miprometheus.utils.app_state import AppState
     from miprometheus.utils.param_interface import ParamInterface
     from torch.utils.data import DataLoader
+    from miprometheus.utils.param_interface import ParamInterface
+    from miprometheus.problems.seq_to_seq.video_text_to_class.cog import COG
+    import os
+    import torch.optim as optim
     app_state = AppState()
 
     from miprometheus.problems import CLEVR
-    problem_params = ParamInterface()
-    problem_params.add_config_params({'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
-                                                   'set': 'train', 'dataset_variant': 'CLEVR'},
 
-                                      'images': {'raw_images': False,
-                                                 'feature_extractor': {'cnn_model': 'resnet101',
-                                                                       'num_blocks': 4}},
-
-                                      'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
+    params = ParamInterface()
+    #problem_params.add_config_params({'settings': {'data_folder': '~/CLEVR_v1.0',
+     #                                              'set': 'train', 'dataset_variant': 'CLEVR'},
+#
+     #                                 'images': {'raw_images': False,
+     #                                            'feature_extractor': {'cnn_model': 'resnet101',
+     #                                                                  'num_blocks': 4}},
+#
+    #                                  'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
 
     # create problem
-    clevr_dataset = CLEVR(problem_params)
-    print('Problem {} instantiated.'.format(clevr_dataset.name))
+    #clevr_dataset = CLEVR(problem_params)
+   # print('Problem {} instantiated.'.format(clevr_dataset.name))
+
+    tasks = ['Go', 'CompareColor']
+    params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'),
+                              'set': 'val',
+                              'dataset_type': 'canonical',
+                              'tasks': tasks})
+
+    # Create problem - task Go
+    cog_dataset = COG(params)
+
+    # Get a sample - Go
+    sample = cog_dataset[0]
+    #print(repr(sample))
+    print(sample['images'].size())
+    print('hello')
+
+
 
     # instantiate DataLoader object
     batch_size=64
-    problem = DataLoader(clevr_dataset, batch_size=batch_size, collate_fn=clevr_dataset.collate_fn)
+    #problem = DataLoader(clevr_dataset, batch_size=batch_size, collate_fn=clevr_dataset.collate_fn)
+    problem = DataLoader(cog_dataset, batch_size=batch_size, collate_fn=cog_dataset.collate_fn)
 
     model_params = ParamInterface()
     model_params.add_config_params({'dim': dim,
@@ -370,19 +429,22 @@ if __name__ == '__main__':
                                     'memory_gate': memory_gate,
                                     'dropout': dropout})
 
-    model = MACNetwork(model_params, clevr_dataset.default_values)
+    model = MACNetwork(model_params, cog_dataset.default_values)
     print('Model {} instantiated.'.format(model.name))
     model.app_state.visualize = True
 
+
     # perform handshaking between MAC & CLEVR
-    model.handshake_definitions(clevr_dataset.data_definitions)
+    #model.handshake_definitions(clevr_dataset.data_definitions)
 
     # generate a batch
     for i_batch, sample in enumerate(problem):
         print('Sample # {} - {}'.format(i_batch, sample['images'].shape), type(sample))
+        print('coucou')
         logits = model(sample)
-        clevr_dataset.plot_preprocessing(sample, logits)
-        model.plot(sample, logits)
-        print(logits.shape)
+        print('logits  of size :', logits.size())
+        #clevr_dataset.plot_preprocessing(sample, logits)
+        #model.plot(sample, logits)
+        #print(logits.shape)
 
     print('Unit test completed.')

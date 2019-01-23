@@ -166,7 +166,7 @@ class COG(VideoTextToClassProblem):
 								'width': self.img_size,
 								'num_channels': 3,
 								'sequence_length' : self.sequence_length,
-								'num_classes': self.output_classes,
+								'nb_classes': self.output_classes,
 								'embed_vocab_size': self.input_words}
 		
 		# Set data dictionary based on parsed dataset type
@@ -558,6 +558,7 @@ if __name__ == "__main__":
 	# Get a sample - Go
 	sample = cog_dataset[0]
 	print(repr(sample))
+	print('hello')
 
 	# Test whether data structures match expected definitions
 #	assert sample['images'].shape == torch.ones((4, 3, 112, 112)).shape
@@ -667,6 +668,5 @@ if __name__ == "__main__":
 		print('Timing test completed, removing files.')
 		for i in range(testbatches):
 			os.remove(os.path.expanduser('~/data/cogtest/'+str(i)+'.npy'))
-	
 	print('Done!')
 

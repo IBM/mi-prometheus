@@ -501,7 +501,7 @@ class CogModel(Model):
 
 if __name__ == '__main__':
 	from miprometheus.utils.param_interface import ParamInterface
-	from miprometheus.problems.seq_to_seq.vqa.cog import COG
+	from miprometheus.problems.seq_to_seq.video_text_to_class.cog import COG
 	import os
 	import torch.optim as optim
 

@@ -1,6 +1,6 @@
 # Problem parameters:
 training:
- cuda: True
+ cuda: False
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
@@ -22,7 +22,7 @@ training:
  partial_validation_interval: 100
 
 testing:
- cuda: True
+ cuda: False
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
@@ -33,7 +33,7 @@ testing:
   dataset_type: canonical
 
 validation:
- cuda: True
+ cuda: False
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
