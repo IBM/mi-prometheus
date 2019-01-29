@@ -152,10 +152,12 @@ class MACNetwork(Model):
         images = data_dict['images']
         images= images.permute(1, 0, 2, 3, 4)
 
-
+        logits = torch.zeros(64, images.size(0), 55)
         for i in range(images.size(0)):
 
-            print('starting to process a new image')
+            #print('starting to process a new image')
+
+
 
             #apply convolutions + Max pool on raw images
             x = self.conv1(images[i])
@@ -185,8 +187,10 @@ class MACNetwork(Model):
             # recurrent MAC cells
             memory = self.mac_unit(lstm_out, h, img, kb_proj)
 
-        # output unit
-        logits = self.output_unit(memory, h)
+            # output unit
+            logits[:,i,:] = self.output_unit(memory, h)
+
+        #print(data_dict['targets_class'])
 
         return logits
 
@@ -433,16 +437,22 @@ if __name__ == '__main__':
     print('Model {} instantiated.'.format(model.name))
     model.app_state.visualize = True
 
-
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     # perform handshaking between MAC & CLEVR
     #model.handshake_definitions(clevr_dataset.data_definitions)
 
     # generate a batch
     for i_batch, sample in enumerate(problem):
+
         print('Sample # {} - {}'.format(i_batch, sample['images'].shape), type(sample))
-        print('coucou')
         logits = model(sample)
-        print('logits  of size :', logits.size())
+        #print('logits  of size :', logits.size())
+        loss=cog_dataset.evaluate_loss(sample,logits)
+        acc=cog_dataset.calculate_accuracy(sample,logits)
+        print(loss)
+        print(acc)
+        loss.backward()
+        optimizer.step()
         #clevr_dataset.plot_preprocessing(sample, logits)
         #model.plot(sample, logits)
         #print(logits.shape)

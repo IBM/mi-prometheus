@@ -4,7 +4,7 @@ training:
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
-  batch_size: 48
+  batch_size: 64
   tasks: &task all
   data_folder: '~/data/cog'
   set: val 
@@ -37,7 +37,7 @@ validation:
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
-  batch_size: 48
+  batch_size: 64
   tasks: *task
   data_folder: '~/data/cog'
   set: val
@@ -46,5 +46,12 @@ validation:
  partial_validation_interval: 100
 
 model:
- name: CogModel
+ name: MACNetwork
+ dim: 512
+ embed_hidden: 1
+ max_step: 12
+ self_attention: False
+ memory_gate: False
+ dropout: 0.15
+
 

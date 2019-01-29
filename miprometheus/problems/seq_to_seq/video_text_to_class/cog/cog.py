@@ -243,13 +243,13 @@ class COG(VideoTextToClassProblem):
 		targets_class = data_dict['targets_class']
 		
 		# Classification Loss 
-		loss = self.loss_function(logits[0][:,0,:], targets_class[:,0]) /logits[0].size(1)
-		for i in range(1,logits[0].size(1)):
-			loss += self.loss_function(logits[0][:,i,:], targets_class[:,i]) /logits[0].size(1)
+		loss = self.loss_function(logits[:,0,:], targets_class[:,0]) /logits.size(1)
+		for i in range(1,logits.size(1)):
+			loss += self.loss_function(logits[:,i,:], targets_class[:,i]) /logits.size(1)
 
 		# Pointing Loss
-		logsoftmax = nn.LogSoftmax(dim=2)
-		loss += torch.mean(torch.sum(-targets_reg * logsoftmax(logits[1]), 2))
+		#logsoftmax = nn.LogSoftmax(dim=2)
+		#loss += torch.mean(torch.sum(-targets_reg * logsoftmax(logits[1]), 2))
 
 		return loss
 
@@ -267,17 +267,18 @@ class COG(VideoTextToClassProblem):
 		targets_class = data_dict['targets_class']
 		
 		# Classification Accuracy
-		values, indices = torch.max(logits[0],2)
+		values, indices = torch.max(logits,2)
 		correct = (indices==targets_class).sum().item() #+ (targets==-1).sum().item()
 		total = targets_class.numel() - (targets_class==-1).sum().item()
 
 		# Pointing Accuracy
-		values, indices = torch.max(logits[1],2)
-		values, hard_targets = torch.max(targets_reg,2)
+
+		#values, indices = torch.max(logits[1],2)
+		#values, hard_targets = torch.max(targets_reg,2)
 		
 		# Committing a minor inaccuracy here
-		correct += (indices==hard_targets).sum().item() - (indices==0).sum().item()
-		total += hard_targets.numel() - (hard_targets==0).sum().item()
+		#correct += (indices==hard_targets).sum().item() - (indices==0).sum().item()
+		#total += hard_targets.numel() - (hard_targets==0).sum().item()
 
 		return correct/total
 
@@ -352,6 +353,7 @@ class COG(VideoTextToClassProblem):
 			soft_targets[i,:] = soft_targets[i,:] / np.sum(soft_targets[i,:])
 		np.nan_to_num(soft_targets,copy=False)
 		data_dict['targets_reg'] = self.app_state.FloatTensor(soft_targets)
+
 
 		return data_dict
 
@@ -581,6 +583,7 @@ if __name__ == "__main__":
 #	assert sample2['targets_class'][0] == 'invalid'  
 	
 	print('__getitem__ works')
+	print(cog_dataset.output_classes)
 	
 	# Set up Dataloader iterator
 	from torch.utils.data import DataLoader
