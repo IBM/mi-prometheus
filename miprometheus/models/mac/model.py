@@ -135,16 +135,63 @@ class MACNetwork(Model):
                                  'targets': {'size': [-1, self.nb_classes], 'type': [torch.Tensor]}
                                  }
 
+        ####### IMAGE PROCESSING ################
+
+        # Number of channels in input Image
+        self.image_channels = 3
+
+        # CNN number of channels
+        self.visual_processing_channels = [32, 64, 64, 128]
+
+        # LSTM hidden units.
+        self.lstm_hidden_units = 64
+
+        # Input Image size
+        self.image_size = [112, 112]
+
+        # Visual memory shape. height x width.
+        self.vstm_shape = np.array(self.image_size)
+        for channel in self.visual_processing_channels:
+            self.vstm_shape = np.floor((self.vstm_shape) / 2)
+        self.vstm_shape = [int(dim) for dim in self.vstm_shape]
+
+        # Number of GRU units in controller
+        self.controller_output_size = 768
+
+        self.VisualProcessing(self.image_channels,
+                              self.visual_processing_channels,
+                              self.lstm_hidden_units * 2,
+                              self.controller_output_size * 2,
+                              self.vstm_shape)
+
+        # Initialize weights and biases
+        # -----------------------------------------------------------------
+        # Visual processing
+        nn.init.xavier_uniform_(self.conv1.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self.conv2.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self.conv3.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self.conv4.weight, gain=nn.init.calculate_gain('relu'))
+
+        self.conv1.bias.data.fill_(0.01)
+        self.conv2.bias.data.fill_(0.01)
+        self.conv3.bias.data.fill_(0.01)
+        self.conv4.bias.data.fill_(0.01)
+
+
+
+
+        ########################################
+
         # transform for the image plotting
         #self.transform = transforms.Compose(
          #   [transforms.Resize([224, 224]), transforms.ToTensor()])
-        self.conv1 = torch.nn.Conv2d(3, 6, kernel_size=(8, 8))
-        self.maxpool1 = torch.nn.MaxPool2d(kernel_size=(2, 2), stride=2)
-        self.conv2 = torch.nn.Conv2d(6, 16, kernel_size=(8, 8))
-        self.maxpool2 = torch.nn.MaxPool2d(kernel_size=(2, 2), stride=2)
-        self.conv3 = torch.nn.Conv2d(16, 1024, kernel_size=(9, 9))
-        self.linear1 = torch.nn.Linear(120, 84)
-        self.linear2 = torch.nn.Linear(84, 10)
+        #self.conv1 = torch.nn.Conv2d(3, 6, kernel_size=(8, 8))
+        #self.maxpool1 = torch.nn.MaxPool2d(kernel_size=(2, 2), stride=2)
+        #self.conv2 = torch.nn.Conv2d(6, 16, kernel_size=(8, 8))
+        #self.maxpool2 = torch.nn.MaxPool2d(kernel_size=(2, 2), stride=2)
+        #self.conv3 = torch.nn.Conv2d(16, 1024, kernel_size=(9, 9))
+        #self.linear1 = torch.nn.Linear(120, 84)
+        #self.linear2 = torch.nn.Linear(84, 10)
 
     def forward(self, data_dict, dropout=0.15):
         """
@@ -171,21 +218,25 @@ class MACNetwork(Model):
          #TO BE CHANGED
         logits = torch.zeros(48, images.size(0), 55)
 
+
+
         for i in range(images.size(0)):
 
             #print('starting to process a new image')
 
-
-
-            #apply convolutions + Max pool on raw images
             x = self.conv1(images[i])
-            x = torch.nn.functional.relu(x)
             x = self.maxpool1(x)
+            x = nn.functional.relu(self.batchnorm1(x))
             x = self.conv2(x)
-            x = torch.nn.functional.relu(x)
             x = self.maxpool2(x)
+            x = nn.functional.relu(self.batchnorm2(x))
             x = self.conv3(x)
-            x = torch.nn.functional.relu(x)
+            x = self.maxpool3(x)
+            x = nn.functional.relu(self.batchnorm3(x))
+            x = self.conv4(x)
+            # out_conv4 = self.conv4(out_batchnorm3)
+            x = self.maxpool4(x)
+
 
             #get question from data dict
 
@@ -205,13 +256,14 @@ class MACNetwork(Model):
             img, kb_proj, lstm_out, h = self.input_unit(
             questions, questions_length, x)
 
+
             # recurrent MAC cells
             memory = self.mac_unit(lstm_out, h, img, kb_proj)
 
             # output unit
             logits[:,i,:] = self.output_unit(memory, h)
 
-        return logits
+        return logits.cuda()
 
     @staticmethod
     def generate_figure_layout():
@@ -291,6 +343,60 @@ class MACNetwork(Model):
 
             """
             self.Embedding = nn.Embedding(vocabulary_size, words_embed_length, padding_idx=0)
+
+    def VisualProcessing(self, in_channels, layer_channels, feature_control_len, spatial_control_len, output_shape):
+        """
+        Defines all layers pertaining to visual processing.
+
+        :param in_channels: Number of channels in images in dataset. Usually 3 (RGB).
+        :type in_channels: Int
+
+        :param layer_channels: Number of feature maps in the CNN for each layer.
+        :type layer_channels: List of Ints
+
+        :param feature_control_len: Input size to the Feature Attention linear layer.
+        :type feature_control_len: Int
+
+        :param spatial_control_len: Input size to the Spatial Attention linear layer.
+        :type spatial_control_len: Int
+
+        :param output_shape: Output dimensions of feature maps of last layer.
+        :type output_shape: Tuple of Ints
+
+        """
+        # Initial Norm
+        # self.batchnorm0 = nn.BatchNorm2d(3)
+
+        # First Layer
+        self.conv1 = nn.Conv2d(in_channels, layer_channels[0], 3,
+                               stride=1, padding=1, dilation=1, groups=1, bias=True)
+        self.maxpool1 = nn.MaxPool2d(2,
+                                     stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+        self.batchnorm1 = nn.BatchNorm2d(layer_channels[0])
+
+        # Second Layer
+        self.conv2 = nn.Conv2d(layer_channels[0], layer_channels[1], 3,
+                               stride=1, padding=1, dilation=1, groups=1, bias=True)
+        self.maxpool2 = nn.MaxPool2d(2,
+                                     stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+        self.batchnorm2 = nn.BatchNorm2d(layer_channels[1])
+
+        # Third Layer
+        self.conv3 = nn.Conv2d(layer_channels[1], layer_channels[2], 3,
+                               stride=1, padding=1, dilation=1, groups=1, bias=True)
+        self.maxpool3 = nn.MaxPool2d(2,
+                                     stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+        self.batchnorm3 = nn.BatchNorm2d(layer_channels[2])
+
+        # Fourth Layer
+        self.conv4 = nn.Conv2d(layer_channels[2], layer_channels[3], 3,
+                               stride=1, padding=1, dilation=1, groups=1, bias=True)
+        self.maxpool4 = nn.MaxPool2d(2,
+                                     stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
+        self.batchnorm4 = nn.BatchNorm2d(layer_channels[3])
+
+        # Linear Layer
+        self.cnn_linear1 = nn.Linear(layer_channels[3] * output_shape[0] * output_shape[1], 128)
 
 
     def plot(self, data_dict, logits, sample=0):
