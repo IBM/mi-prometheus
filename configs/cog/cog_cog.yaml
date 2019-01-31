@@ -1,6 +1,6 @@
 # Problem parameters:
 training:
- cuda: False
+ cuda: True
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
@@ -19,10 +19,10 @@ training:
  terminal_conditions:
   epoch_limit: 20
   episodes: 100000000
- partial_validation_interval: 100
+ partial_validation_interval: 10
 
 testing:
- cuda: False
+ cuda: True
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
@@ -33,7 +33,7 @@ testing:
   dataset_type: canonical
 
 validation:
- cuda: False
+ cuda: True
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
@@ -43,7 +43,7 @@ validation:
   set: val
   use_mask: False
   dataset_type: canonical
- partial_validation_interval: 100
+ partial_validation_interval: 10
 
 model:
  name: MACNetwork

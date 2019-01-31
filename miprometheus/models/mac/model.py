@@ -211,9 +211,6 @@ class MACNetwork(Model):
             # output unit
             logits[:,i,:] = self.output_unit(memory, h)
 
-        #print(data_dict['targets_class'])
-        print(logits.size())
-
         return logits
 
     @staticmethod
