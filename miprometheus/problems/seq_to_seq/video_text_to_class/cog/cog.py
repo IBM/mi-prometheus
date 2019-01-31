@@ -242,7 +242,7 @@ class COG(VideoTextToClassProblem):
 		targets_reg = data_dict['targets_reg']
 		targets_class = data_dict['targets_class']
 		
-		# Classification Loss 
+		# Classification Loss ƒ
 		loss = self.loss_function(logits[:,0,:], targets_class[:,0]) /logits.size(1)
 		for i in range(1,logits.size(1)):
 			loss += self.loss_function(logits[:,i,:], targets_class[:,i]) /logits.size(1)

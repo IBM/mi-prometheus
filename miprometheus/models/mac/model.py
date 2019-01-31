@@ -169,7 +169,7 @@ class MACNetwork(Model):
         images= images.permute(1, 0, 2, 3, 4)
 
          #TO BE CHANGED
-        logits = torch.zeros(64, images.size(0), 55)
+        logits = torch.zeros(48, images.size(0), 55)
 
         for i in range(images.size(0)):
 
