@@ -548,7 +548,7 @@ if __name__ == "__main__":
 	# Define useful params
 	from miprometheus.utils.param_interface import ParamInterface
 	params = ParamInterface()
-	tasks = ['Go', 'CompareColor']
+	tasks = [ 'GetColor']
 	params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'),
 							  'set': 'val',
 							  'dataset_type': 'canonical',
@@ -571,7 +571,7 @@ if __name__ == "__main__":
 #	assert sample['targets_class'][0] == ' '  
 
 	# Get another sample - CompareColor
-	sample2 = cog_dataset[1]
+	sample2 = cog_dataset[1000]
 	print(repr(sample2))
 
 	# Test whether data structures match expected definitions

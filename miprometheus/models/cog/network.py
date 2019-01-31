@@ -57,8 +57,6 @@ class CogModel(Model):
 		# Call base class initialization.
 		super(CogModel,self).__init__(params,problem_default_values_)
 
-		params.add_default_params({'num_classes' : problem_default_values_['num_classes'],
-															 'vocab_size' : problem_default_values_['embed_vocab_size']})
 
 		self.name = 'CogModel'
 
@@ -86,7 +84,7 @@ class CogModel(Model):
 		self.words_embed_length = 64
 
 		# Maximum number of embeddable words.
-		self.vocabulary_size = params['vocab_size']
+		self.vocabulary_size = 79
 
 		# LSTM input size (redundant?)
 		self.lstm_input_size = self.words_embed_length
@@ -162,7 +160,7 @@ class CogModel(Model):
 		self.pondering_steps = 4
 
 		# Number of possible classes to output.
-		self.nr_classes = params['num_classes']
+		self.nr_classes = 55
 
 		# Controller state norm clip
 		self.controller_clip = 10000
@@ -530,6 +528,12 @@ if __name__ == '__main__':
 
 	images = batch['images'].permute(1,0,2,3,4)
 	questions = batch['questions']
+	logits=model(batch)
+
+	print(logits[0])
+	print(logits[0].size())
+
+	exit()
 	#embedded_questions = model.EmbedQuestions(questions)
 	#print(embedded_questions.size())
 

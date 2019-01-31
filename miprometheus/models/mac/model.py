@@ -57,6 +57,7 @@ from PIL import Image
 from torchvision import transforms
 from miprometheus.models.model import Model
 import numpy as numpy
+import torch.nn as nn
 
 from miprometheus.models.mac.input_unit import InputUnit
 from miprometheus.models.mac.mac_unit import MACUnit
@@ -90,6 +91,21 @@ class MACNetwork(Model):
         self.self_attention = params['self_attention']
         self.memory_gate = params['memory_gate']
         self.dropout = params['dropout']
+
+        # Maximum number of embeddable words.
+        self.vocabulary_size = problem_default_values_['embed_vocab_size']
+
+        # Length of vectoral representation of each word.
+        self.words_embed_length = 64
+
+        # This should be the length of the longest sentence encounterable
+        self.nwords = 24
+
+        # Get dtype.
+        self.dtype = self.app_state.dtype
+
+        self.EmbedVocabulary(self.vocabulary_size,
+                             self.words_embed_length)
 
         try:
             self.nb_classes = problem_default_values_['nb_classes']
@@ -152,7 +168,9 @@ class MACNetwork(Model):
         images = data_dict['images']
         images= images.permute(1, 0, 2, 3, 4)
 
+         #TO BE CHANGED
         logits = torch.zeros(64, images.size(0), 55)
+
         for i in range(images.size(0)):
 
             #print('starting to process a new image')
@@ -172,13 +190,16 @@ class MACNetwork(Model):
             #get question from data dict
 
             questions = data_dict['questions']
+            #print(questions.size())
+
+            questions = self.forward_lookup2embed(questions)
+
 
             #get questions size of all batch elements
             questions_length = questions.size(1)
 
             #convert questions lenght into a tensor
             questions_length = torch.from_numpy(numpy.array(questions_length))
-            questions = questions.unsqueeze(2)
 
             # input unit
             img, kb_proj, lstm_out, h = self.input_unit(
@@ -191,6 +212,7 @@ class MACNetwork(Model):
             logits[:,i,:] = self.output_unit(memory, h)
 
         #print(data_dict['targets_class'])
+        print(logits.size())
 
         return logits
 
@@ -243,6 +265,36 @@ class MACNetwork(Model):
         fig.set_tight_layout(True)
 
         return fig
+
+    def forward_lookup2embed(self, questions):
+        """
+        Performs embedding of lookup-table questions with nn.Embedding.
+
+        :param questions: Tensor of questions in lookup format (Ints)
+
+        """
+
+        out_embed = torch.zeros((questions.size(0), self.nwords, self.words_embed_length), requires_grad=False).type(
+            self.dtype)
+        for i, sentence in enumerate(questions):
+            out_embed[i, :, :] = (self.Embedding(sentence))
+
+        return out_embed
+
+        # Embed vocabulary for all available task families
+    def EmbedVocabulary(self, vocabulary_size, words_embed_length):
+            """
+            Defines nn.Embedding for embedding of questions into float tensors.
+
+            :param vocabulary_size: Number of unique words possible.
+            :type vocabulary_size: Int
+
+            :param words_embed_length: Size of the vectors representing words post embedding.
+            :type words_embed_length: Int
+
+            """
+            self.Embedding = nn.Embedding(vocabulary_size, words_embed_length, padding_idx=0)
+
 
     def plot(self, data_dict, logits, sample=0):
         """
@@ -371,7 +423,7 @@ class MACNetwork(Model):
 
 if __name__ == '__main__':
     dim = 512
-    embed_hidden = 1
+    embed_hidden = 64
     max_step = 12
     self_attention = True
     memory_gate = True
