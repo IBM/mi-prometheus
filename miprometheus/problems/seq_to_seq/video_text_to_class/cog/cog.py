@@ -161,12 +161,15 @@ class COG(VideoTextToClassProblem):
 		# Get the "hardcoded" image width/height.
 		self.img_size = 112  # self.params['img_size']
 
+		self.output_classes_pointing=49
+
 		# Set default values
 		self.default_values = {	'height': self.img_size,
 								'width': self.img_size,
 								'num_channels': 3,
 								'sequence_length' : self.sequence_length,
 								'nb_classes': self.output_classes,
+								'nb_classes_pointing': self.output_classes_pointing,
 								'embed_vocab_size': self.input_words}
 		
 		# Set data dictionary based on parsed dataset type
@@ -243,13 +246,13 @@ class COG(VideoTextToClassProblem):
 		targets_class = data_dict['targets_class']
 		
 		# Classification Loss ƒ
-		loss = self.loss_function(logits[:,0,:], targets_class[:,0]) /logits.size(1)
-		for i in range(1,logits.size(1)):
-			loss += self.loss_function(logits[:,i,:], targets_class[:,i]) /logits.size(1)
+		loss = self.loss_function(logits[0][:,0,:], targets_class[:,0]) /logits[0].size(1)
+		for i in range(1,logits[0].size(1)):
+			loss += self.loss_function(logits[0][:,i,:], targets_class[:,i]) /logits[0].size(1)
 
 		# Pointing Loss
-		#logsoftmax = nn.LogSoftmax(dim=2)
-		#loss += torch.mean(torch.sum(-targets_reg * logsoftmax(logits[1]), 2))
+		logsoftmax = nn.LogSoftmax(dim=2)
+		loss += torch.mean(torch.sum(-targets_reg * logsoftmax(logits[1]), 2))
 
 		return loss
 
@@ -262,23 +265,23 @@ class COG(VideoTextToClassProblem):
 		:param logits: Predictions being output of the model.
 
 		"""
-		
+
 		targets_reg = data_dict['targets_reg']
 		targets_class = data_dict['targets_class']
-		
+
 		# Classification Accuracy
-		values, indices = torch.max(logits,2)
-		correct = (indices==targets_class).sum().item() #+ (targets==-1).sum().item()
-		total = targets_class.numel() - (targets_class==-1).sum().item()
+		values, indices = torch.max(logits[0], 2)
+		correct = (indices == targets_class).sum().item()  # + (targets==-1).sum().item()
+		total = targets_class.numel() - (targets_class == -1).sum().item()
 
 		# Pointing Accuracy
+		values, indices = torch.max(logits[1], 2)
+		values, hard_targets = torch.max(targets_reg, 2)
 
-		#values, indices = torch.max(logits[1],2)
-		#values, hard_targets = torch.max(targets_reg,2)
-		
 		# Committing a minor inaccuracy here
-		#correct += (indices==hard_targets).sum().item() - (indices==0).sum().item()
-		#total += hard_targets.numel() - (hard_targets==0).sum().item()
+		correct += (indices == hard_targets).sum().item() - (indices == 0).sum().item()
+
+		total += hard_targets.numel() - (hard_targets == 0).sum().item()
 
 		return correct/total
 

@@ -109,8 +109,11 @@ class MACNetwork(Model):
 
         try:
             self.nb_classes = problem_default_values_['nb_classes']
+            self.nb_classes_pointing = problem_default_values_['nb_classes_pointing']
         except KeyError:
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
+
+        self.nb_classes_pointing=49
 
         self.name = 'MAC'
 
@@ -128,6 +131,8 @@ class MACNetwork(Model):
         self.image_encoding = ImageProcessing(dim=512)
 
         self.output_unit = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
+        self.output_unit_pointing = OutputUnit(dim=self.dim, nb_classes=self.nb_classes_pointing)
+
 
         self.data_definitions = {'images': {'size': [-1, 1024, 14, 14], 'type': [np.ndarray]},
                                  'questions': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
@@ -179,20 +184,6 @@ class MACNetwork(Model):
 
 
 
-
-        ########################################
-
-        # transform for the image plotting
-        #self.transform = transforms.Compose(
-         #   [transforms.Resize([224, 224]), transforms.ToTensor()])
-        #self.conv1 = torch.nn.Conv2d(3, 6, kernel_size=(8, 8))
-        #self.maxpool1 = torch.nn.MaxPool2d(kernel_size=(2, 2), stride=2)
-        #self.conv2 = torch.nn.Conv2d(6, 16, kernel_size=(8, 8))
-        #self.maxpool2 = torch.nn.MaxPool2d(kernel_size=(2, 2), stride=2)
-        #self.conv3 = torch.nn.Conv2d(16, 1024, kernel_size=(9, 9))
-        #self.linear1 = torch.nn.Linear(120, 84)
-        #self.linear2 = torch.nn.Linear(84, 10)
-
     def forward(self, data_dict, dropout=0.15):
         """
         Forward pass of the ``MAC`` network. Calls first the ``InputUnit``, then the recurrent \
@@ -215,8 +206,11 @@ class MACNetwork(Model):
         images = data_dict['images']
         images= images.permute(1, 0, 2, 3, 4)
 
-         #TO BE CHANGED
-        logits = torch.zeros(48, images.size(0), 55)
+
+
+        #logits placeholders
+        logits = torch.zeros(data_dict['images'].size(0), images.size(0), self.nb_classes)
+        logits_pointing = torch.zeros(data_dict['images'].size(0), images.size(0),self.nb_classes_pointing )
 
 
 
@@ -260,10 +254,18 @@ class MACNetwork(Model):
             # recurrent MAC cells
             memory = self.mac_unit(lstm_out, h, img, kb_proj)
 
+            targets_reg = data_dict['targets_reg']
+            targets_class = data_dict['targets_class']
+            #print(targets_reg)
+            #print(targets_class)
+
+
             # output unit
             logits[:,i,:] = self.output_unit(memory, h)
+            logits_pointing[:,i,:] = self.output_unit_pointing(memory, h)
 
-        return logits.cuda()
+
+        return logits, logits_pointing
 
     @staticmethod
     def generate_figure_layout():
@@ -558,7 +560,7 @@ if __name__ == '__main__':
     #clevr_dataset = CLEVR(problem_params)
    # print('Problem {} instantiated.'.format(clevr_dataset.name))
 
-    tasks = ['Go', 'CompareColor']
+    tasks = ['GoColor']
     params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'),
                               'set': 'val',
                               'dataset_type': 'canonical',
@@ -576,7 +578,7 @@ if __name__ == '__main__':
 
 
     # instantiate DataLoader object
-    batch_size=64
+    batch_size=48
     #problem = DataLoader(clevr_dataset, batch_size=batch_size, collate_fn=clevr_dataset.collate_fn)
     problem = DataLoader(cog_dataset, batch_size=batch_size, collate_fn=cog_dataset.collate_fn)
 

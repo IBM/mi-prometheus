@@ -530,8 +530,10 @@ if __name__ == '__main__':
 	questions = batch['questions']
 	logits=model(batch)
 
-	print(logits[0])
+
 	print(logits[0].size())
+	print(logits[1].size())
+
 
 	exit()
 	#embedded_questions = model.EmbedQuestions(questions)
