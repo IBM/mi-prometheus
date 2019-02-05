@@ -58,7 +58,8 @@ from torchvision import transforms
 from miprometheus.models.model import Model
 import numpy as numpy
 import torch.nn as nn
-
+from miprometheus.utils.app_state import AppState
+app_state = AppState()
 from miprometheus.models.mac.input_unit import InputUnit
 from miprometheus.models.mac.mac_unit import MACUnit
 from miprometheus.models.mac.output_unit import OutputUnit
