@@ -182,6 +182,11 @@ class MACNetwork(Model):
         self.conv3.bias.data.fill_(0.01)
         self.conv4.bias.data.fill_(0.01)
 
+        # initialize hidden states for mac cell control states and memory states
+        self.mem_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
+        self.control_0 = torch.nn.Parameter(
+            torch.zeros(1, dim).type(app_state.dtype))
+
 
 
     def forward(self, data_dict, dropout=0.15):
@@ -212,7 +217,19 @@ class MACNetwork(Model):
         logits = torch.zeros(data_dict['images'].size(0), images.size(0), self.nb_classes)
         logits_pointing = torch.zeros(data_dict['images'].size(0), images.size(0),self.nb_classes_pointing )
 
+        batch_size = data_dict['images'].size(0)
 
+        # expand the hidden states to whole batch for mac cell control states and memory states
+        control = self.control_0.expand(batch_size, self.dim)
+        memory = self.mem_0.expand(batch_size, self.dim)
+        control_mask = self.get_dropout_mask(control, self.dropout)
+        memory_mask = self.get_dropout_mask(memory, self.dropout)
+        control = control * control_mask
+        memory = memory * memory_mask
+
+        # expand the hidden states to whole batch for mac cell control states and memory states
+        controls = [control]
+        memories = [memory]
 
         for i in range(images.size(0)):
 
@@ -252,7 +269,7 @@ class MACNetwork(Model):
 
 
             # recurrent MAC cells
-            memory = self.mac_unit(lstm_out, h, img, kb_proj)
+            memory, controls, memories = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories)
 
             targets_reg = data_dict['targets_reg']
             targets_class = data_dict['targets_class']
@@ -524,6 +541,29 @@ class MACNetwork(Model):
         self.plotWindow.update(fig, frames)
 
         return self.plotWindow.is_closed
+
+
+    def get_dropout_mask(self, x, dropout):
+        """
+        Create a dropout mask to be applied on x.
+
+        :param x: tensor of arbitrary shape to apply the mask on.
+        :type x: torch.tensor
+
+        :param dropout: dropout rate.
+        :type dropout: float
+
+        :return: mask.
+
+        """
+        # create a binary mask, where the probability of 1's is (1-dropout)
+        mask = torch.empty_like(x).bernoulli_(
+            1 - dropout).type(app_state.dtype)
+
+        # normalize the mask so that the average value is 1 and not (1-dropout)
+        mask /= (1 - dropout)
+
+        return mask
 
 
 if __name__ == '__main__':
