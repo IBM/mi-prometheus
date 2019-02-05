@@ -265,7 +265,7 @@ class MACNetwork(Model):
             logits_pointing[:,i,:] = self.output_unit_pointing(memory, h)
 
 
-        return logits, logits_pointing
+        return logits.cuda(), logits_pointing.cuda()
 
     @staticmethod
     def generate_figure_layout():
@@ -527,7 +527,7 @@ class MACNetwork(Model):
 
 
 if __name__ == '__main__':
-    dim = 512
+    dim = 128
     embed_hidden = 64
     max_step = 12
     self_attention = True

@@ -111,7 +111,7 @@ class InputUnit(Module):
         batch_size = feature_maps.shape[0]
 
         # images processing
-        feature_maps = self.conv(feature_maps)
+        #feature_maps = self.conv(feature_maps)
 
         # reshape feature maps as channels first
         feature_maps = feature_maps.view(batch_size, self.dim, -1)
