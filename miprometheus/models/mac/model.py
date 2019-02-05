@@ -183,7 +183,7 @@ class MACNetwork(Model):
         self.conv4.bias.data.fill_(0.01)
 
         # initialize hidden states for mac cell control states and memory states
-        self.mem_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
+        self.mem_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(app_state.dtype))
         self.control_0 = torch.nn.Parameter(
             torch.zeros(1, dim).type(app_state.dtype))
 
@@ -256,7 +256,6 @@ class MACNetwork(Model):
 
             questions = self.forward_lookup2embed(questions)
 
-
             #get questions size of all batch elements
             questions_length = questions.size(1)
 
@@ -267,7 +266,6 @@ class MACNetwork(Model):
             img, kb_proj, lstm_out, h = self.input_unit(
             questions, questions_length, x)
 
-
             # recurrent MAC cells
             memory, controls, memories = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories)
 
@@ -275,7 +273,6 @@ class MACNetwork(Model):
             targets_class = data_dict['targets_class']
             #print(targets_reg)
             #print(targets_class)
-
 
             # output unit
             logits[:,i,:] = self.output_unit(memory, h)
