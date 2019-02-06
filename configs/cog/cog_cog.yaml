@@ -47,7 +47,7 @@ validation:
 
 model:
  name: MACNetwork
- dim: 512
+ dim: 128
  embed_hidden: 64
  max_step: 12
  self_attention: False
