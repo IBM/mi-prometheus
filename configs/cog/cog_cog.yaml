@@ -18,7 +18,7 @@ training:
  gradient_clipping: 10
  terminal_conditions:
   epoch_limit: 20
-  episodes: 100000000
+  episodes: 10000000000
  partial_validation_interval: 100
 
 testing:

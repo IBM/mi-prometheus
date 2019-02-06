@@ -186,7 +186,7 @@ class MACNetwork(Model):
         # initialize hidden states for mac cell control states and memory states
         self.mem_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(app_state.dtype))
         self.control_0 = torch.nn.Parameter(
-            torch.zeros(1, dim).type(app_state.dtype))
+            torch.zeros(1, self.dim).type(app_state.dtype))
 
 
 
