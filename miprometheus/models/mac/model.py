@@ -234,7 +234,7 @@ class MACNetwork(Model):
 
         for i in range(images.size(0)):
 
-            #print('starting to process a new image')
+            #Cog like CNN - cf  cog  model
 
             x = self.conv1(images[i])
             x = self.maxpool1(x)
