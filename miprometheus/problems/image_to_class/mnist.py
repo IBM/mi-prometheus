@@ -223,11 +223,12 @@ if __name__ == "__main__":
                             batch_size=batch_size, shuffle=True, num_workers=0)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
+    #print("Measuring generation time. Please wait...") 
     #import time
     #s = time.time()
     #for i, batch in enumerate(dataloader):
         #print('Batch # {} - {}'.format(i, type(batch)))
-        #i = i
+        #pass
     #print('Number of workers: {}'.format(dataloader.num_workers))
     #print('Time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
 
