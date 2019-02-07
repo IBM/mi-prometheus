@@ -129,7 +129,7 @@ setup(
     # project page. What does your project relate to?
     #
     # Note that this is a string of words separated by whitespace, not a list.
-    keywords='mi-prometheus machine-learning model problem worker grid-worker',  # Optional
+    keywords='mi-prometheus pytorch machine-learning model problem worker grid-worker',  # Optional
 
     # You can just specify package directories manually here if your project is
     # simple. Or you can use find_packages().
@@ -164,6 +164,7 @@ setup(
                       'tqdm',
                       'nltk',
                       'h5py',
+                      'sphinx_rtd_theme',
                       'pyqt5==5.10.1',  # to avoid PyQt5.sip being separated
                       # 'torch==0.4.0',  # can't install pytorch from pip, use conda
                       ],

@@ -83,15 +83,15 @@ SequenceToSequence Problems
 
 
 VideoTextToClass Problems
---------------------------------------------
+============================================
 .. autoclass:: VideoTextToClassProblem
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 COG
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: COG
+--------------------------------------------
+.. autoclass:: miprometheus.problems.seq_to_seq.video_text_to_class.cog.COG
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -153,8 +153,15 @@ DistractionIgnore
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+ReadingSpan
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: ReadingSpan
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
 
-Dual Ignore
+
+Dual Interruption
 --------------------------------------------
 
 InterruptionNot
@@ -174,6 +181,13 @@ InterruptionReverseRecall
 InterruptionSwapRecall
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: InterruptionSwapRecall
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+OperationSpan
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: OperationSpan
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -206,6 +220,20 @@ ManipulationTemporalSwap
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+RepeatReverseRecallCommandLines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: RepeatReverseRecallCommandLines
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+ReverseRecallCommandLines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: ReverseRecallCommandLines
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
 SkipRecallCommandLines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: SkipRecallCommandLines
@@ -216,37 +244,9 @@ SkipRecallCommandLines
 Recall
 --------------------------------------------
 
-OperationSpan
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: OperationSpan
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-ReadingSpan
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: ReadingSpan
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-RepeatReverseRecallCommandLines
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: RepeatReverseRecallCommandLines
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
 RepeatSerialRecallCommandLines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: RepeatSerialRecallCommandLines
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-ReverseRecallCommandLines
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: ReverseRecallCommandLines
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
