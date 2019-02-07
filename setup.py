@@ -190,7 +190,7 @@ setup(
     package_data={  # Optional
         # 'miprometheus.config': ['default_config.yaml'],
         # we should list here some configs.yaml files that will be copied over with the data.
-    '':[path.join(here,'miprometheus/problems/seq_to_seq/vqa/cog/cog_utils/roboto.ttf')]},
+    '':[path.join(here,'miprometheus/problems/seq_to_seq/video_text_to_class/cog/cog_utils/roboto.ttf')]},
 
     include_package_data=True,
 

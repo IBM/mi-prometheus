@@ -66,7 +66,7 @@ MOCK_MODULES = ['torch', 'torch.nn', 'torch.utils', 'torch.optim',
                 
                 'psutil', 'numpy', 'yaml', 'nltk', 'h5py', 'tqdm',
 
-								 'miprometheus.problems.seq_to_seq.vqa.cog.cog_utils.constants']
+								 'miprometheus.problems.seq_to_seq.video_text_to_class.cog.cog_utils.constants']
 
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 # -- Project information -----------------------------------------------------
