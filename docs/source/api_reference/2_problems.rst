@@ -153,8 +153,15 @@ DistractionIgnore
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+ReadingSpan
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: ReadingSpan
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
 
-Dual Ignore
+
+Dual Interruption
 --------------------------------------------
 
 InterruptionNot
@@ -174,6 +181,13 @@ InterruptionReverseRecall
 InterruptionSwapRecall
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: InterruptionSwapRecall
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+OperationSpan
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: OperationSpan
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -215,20 +229,6 @@ SkipRecallCommandLines
 
 Recall
 --------------------------------------------
-
-OperationSpan
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: OperationSpan
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-ReadingSpan
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: ReadingSpan
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
 
 RepeatReverseRecallCommandLines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
