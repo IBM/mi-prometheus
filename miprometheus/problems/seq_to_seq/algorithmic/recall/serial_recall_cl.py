@@ -29,6 +29,7 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
     """
     Class generating sequences of random bit-patterns and targets forcing the
     system to learn serial recall problem (a.k.a. copy task).
+    Generates two sequences (input and target), where input sequence consists of two subsequences (data and "dummy"), separated with control markers.
 
     .. figure:: ../img/algorithmic/recall/serial_recall.png
         :scale: 80 %
@@ -42,9 +43,9 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         - beginning of storing/memorization and
         - beginning of recalling from memory.
 
-    2. For other elements of the source sequence the control bits are set to zero.
+    2. For other elements of the input sequence the control bits are set to zero.
 
-    3. Additionally, the source subsequence might contain (random) command lines (when number of control bits is > 2).
+    3. Additionally, the "dummy" part of the input subsequence might contain (random) command lines (when number of control bits is > 2).
 
     4. Generator returns a mask, which (by default) is used for masking the unimportant elements of the target sequence \
     (i.e. only outputs related to the second subsequence are taken into consideration)
