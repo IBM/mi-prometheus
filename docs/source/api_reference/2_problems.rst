@@ -83,15 +83,15 @@ SequenceToSequence Problems
 
 
 VideoTextToClass Problems
---------------------------------------------
-.. autoclass:: video_text_to_class/
+============================================
+.. autoclass:: VideoTextToClassProblem
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 COG
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: COG
+--------------------------------------------
+.. autoclass:: miprometheus.problems.seq_to_seq.video_text_to_class.cog.COG
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
