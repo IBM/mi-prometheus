@@ -204,7 +204,7 @@ if __name__ == "__main__":
     # Test different options.
     params.add_config_params({'data_folder': '~/data/mnist',
                                     'use_train_data': True,
-                                    'resize': [32, 32]
+                                    #'resize': [32, 32],
                                     })
 
     batch_size = 64
@@ -223,15 +223,14 @@ if __name__ == "__main__":
                             batch_size=batch_size, shuffle=True, num_workers=0)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
-    import time
-    s = time.time()
-    for i, batch in enumerate(dataloader):
-        print('Batch # {} - {}'.format(i, type(batch)))
-    print('Number of workers: {}'.format(dataloader.num_workers))
-    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
+    #import time
+    #s = time.time()
+    #for i, batch in enumerate(dataloader):
+        #print('Batch # {} - {}'.format(i, type(batch)))
+        #i = i
+    #print('Number of workers: {}'.format(dataloader.num_workers))
+    #print('Time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time()-s))
 
     # Display single sample (0) from batch.
     batch = next(iter(dataloader))
     mnist.show_sample(batch, 0)
-
-    print('Unit test completed')
