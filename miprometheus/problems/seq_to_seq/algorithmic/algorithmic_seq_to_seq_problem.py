@@ -357,7 +357,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         # Save params.
         self.curriculum_params = curriculum_params
         # Inform the user.
-        epoch_size = self.get_epoch_size(self.params["batch_size"])
+        epoch_size = self.length / (self.params["batch_size"])
         self.logger.info("Initializing curriculum learning! Will activate when all samples are exhausted" + \
             "(every {} episodes when using batch of size {})".format(epoch_size, self.params["batch_size"]))
 
@@ -379,12 +379,12 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
             # Read curriculum learning parameters.
             max_max_length = self.params['max_sequence_length']
             initial_max_sequence_length = self.curriculum_params['initial_max_sequence_length']
-            epoch_size = self.get_epoch_size(self.params["batch_size"])
+            #epoch_size = self.get_epoch_size(self.params["batch_size"])
 
             # Curriculum learning goes from the initial max length to the
             # max length in steps of size 1
-            max_length = initial_max_sequence_length + \
-                ((episode+1) // epoch_size)
+            max_length = initial_max_sequence_length + 1
+                #((episode+1) // epoch_size)
             if max_length > max_max_length:
                 max_length = max_max_length
             else:
