@@ -220,6 +220,20 @@ ManipulationTemporalSwap
     :special-members:
     :exclude-members: __dict__,__weakref__
 
+RepeatReverseRecallCommandLines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: RepeatReverseRecallCommandLines
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
+ReverseRecallCommandLines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: ReverseRecallCommandLines
+    :members:
+    :special-members:
+    :exclude-members: __dict__,__weakref__
+
 SkipRecallCommandLines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: SkipRecallCommandLines
@@ -230,23 +244,9 @@ SkipRecallCommandLines
 Recall
 --------------------------------------------
 
-RepeatReverseRecallCommandLines
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: RepeatReverseRecallCommandLines
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
 RepeatSerialRecallCommandLines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: RepeatSerialRecallCommandLines
-    :members:
-    :special-members:
-    :exclude-members: __dict__,__weakref__
-
-ReverseRecallCommandLines
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: ReverseRecallCommandLines
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
