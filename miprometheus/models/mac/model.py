@@ -92,6 +92,8 @@ class MACNetwork(Model):
         self.self_attention = params['self_attention']
         self.memory_gate = params['memory_gate']
         self.dropout = params['dropout']
+        self.memory_pass = params['memory_pass']
+        self.control_pass = params['control_pass']
 
         # Maximum number of embeddable words.
         self.vocabulary_size = problem_default_values_['embed_vocab_size']
@@ -268,7 +270,7 @@ class MACNetwork(Model):
             questions, questions_length, x)
 
             # recurrent MAC cells
-            memory, controls, memories = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories)
+            memory, controls, memories = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass )
 
             targets_reg = data_dict['targets_reg']
             targets_class = data_dict['targets_class']
@@ -280,7 +282,7 @@ class MACNetwork(Model):
             logits_pointing[:,i,:] = self.output_unit_pointing(memory, h)
 
 
-        return logits.cuda(), logits_pointing.cuda()
+        return logits, logits_pointing
 
     @staticmethod
     def generate_figure_layout():
@@ -622,6 +624,8 @@ if __name__ == '__main__':
 
     model_params = ParamInterface()
     model_params.add_config_params({'dim': dim,
+                                    'memory_pass' : False,
+                                    'control_pass' : False,
                                     'embed_hidden': embed_hidden,
                                     'max_step': 12,
                                     'self_attention': self_attention,

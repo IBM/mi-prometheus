@@ -125,7 +125,7 @@ class MACUnit(Module):
 
         return mask
 
-    def forward(self, context, question, knowledge, kb_proj,controls, memories):
+    def forward(self, context, question, knowledge, kb_proj, controls, memories, control_pass, memory_pass ):
         """
         Forward pass of the ``MACUnit``, which represents the recurrence over the \
         MACCell.
@@ -155,6 +155,14 @@ class MACUnit(Module):
             memory_mask = self.get_dropout_mask(memory, self.dropout)
             control = control * control_mask
             memory = memory * memory_mask
+
+        if not control_pass:
+
+            controls = [control]
+
+        if not memory_pass:
+
+            memories = [memory]
 
 
         # main loop of recurrence over the MACCell
@@ -193,6 +201,9 @@ class MACUnit(Module):
             if app_state.visualize:
                 self.cell_state_history.append(
                     (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach()))
+
+            print(len(memories))
+            print(len(controls))
 
 
         return memory, controls, memories

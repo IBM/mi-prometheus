@@ -53,5 +53,7 @@ model:
  self_attention: False
  memory_gate: False
  dropout: 0.15
+ memory_pass: False
+ control_pass: False
 
 
