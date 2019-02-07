@@ -202,8 +202,4 @@ class MACUnit(Module):
                 self.cell_state_history.append(
                     (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach()))
 
-            print(len(memories))
-            print(len(controls))
-
-
         return memory, controls, memories
