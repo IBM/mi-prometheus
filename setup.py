@@ -164,6 +164,7 @@ setup(
                       'tqdm',
                       'nltk',
                       'h5py',
+                      'sphinx_rtd_theme',
                       'pyqt5==5.10.1',  # to avoid PyQt5.sip being separated
                       # 'torch==0.4.0',  # can't install pytorch from pip, use conda
                       ],
