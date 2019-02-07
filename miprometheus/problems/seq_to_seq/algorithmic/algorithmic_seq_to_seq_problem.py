@@ -420,6 +420,30 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         else:
             return (1 - torch.abs(torch.round(torch.nn.functional.sigmoid(logits)) - data_dict['targets'])).mean()
 
+
+    def generate_ctrl_aux(self, min_num_ctr_bits):
+        """
+        Generates a 1D bit pattern, that will be used as control part of "dummy" part of the input sequence, \
+        It will contain (random) control lines, depending on the task settings.
+
+        :param min_num_ctr_bits: Number of control bits actually used in a given for indicating different subsequences/operation modes.
+
+        :return: 1D pattern with zeros or one bit set [CONTROL_BITS]
+        """
+        # Define control lines.
+        ctrl_aux = np.zeros(self.control_bits)
+        if self.use_control_lines:
+            if  self.control_bits > min_num_ctr_bits:
+                if self.randomize_control_lines:
+                    # Randomly pick one of the bits to be set.
+                    ctrl_bit = np.random.randint(min_num_ctr_bits, self.control_bits)
+                    ctrl_aux[ctrl_bit] = 1
+                else:
+                    # Set last.
+                    ctrl_aux[self.control_bits - 1] = 1
+        # Else: no control lines!
+        return ctrl_aux
+
     def add_ctrl(self, seq, ctrl, pos):
         """
         Adds control channels to a sequence.
