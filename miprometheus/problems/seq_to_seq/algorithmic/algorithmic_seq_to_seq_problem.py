@@ -52,7 +52,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
 
     First order categorization is based on the number and complexity of problems. \
-    For simple problems, the presence of data manipulation is the next level sub-category, with Serial Recall being a prime example of a problem without manipulation. \
+    For simple problems, the presence of data manipulation is the next level sub-category, with Serial Recall being a prime example of a problem without manipulation (thus Recall tasks). \
     The problems requiring manipulation we further categorized into spatial and temporal domains.
 
     .. figure:: ../img/algorithmic/problem_taxonomy_complex.png
