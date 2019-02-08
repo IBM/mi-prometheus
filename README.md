@@ -6,12 +6,16 @@
 ![Language](https://img.shields.io/badge/language-Python-blue.svg)
 [![GitHub license](https://img.shields.io/github/license/IBM/mi-prometheus.svg)](https://github.com/IBM/mi-prometheus/blob/master/LICENSE)
 [![GitHub version](https://badge.fury.io/gh/IBM%2Fmi-prometheus.svg)](https://badge.fury.io/gh/IBM%2Fmi-prometheus)
-[![Documentation Status](https://readthedocs.org/projects/mi-prometheus/badge/?version=develop)](https://mi-prometheus.readthedocs.io/en/latest/?badge=develop)
+
+[![Build Status](https://travis-ci.com/IBM/mi-prometheus.svg?branch=develop)](https://travis-ci.com/IBM/mi-prometheus)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/IBM/mi-prometheus.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/IBM/mi-prometheus/context:python)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/IBM/mi-prometheus.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/IBM/mi-prometheus/alerts/)
 [![Maintainability](https://api.codeclimate.com/v1/badges/84d1a013d1bd15bee324/maintainability)](https://codeclimate.com/github/IBM/mi-prometheus/maintainability)
 
 <!--- [![Test Coverage](https://api.codeclimate.com/v1/badges/84d1a013d1bd15bee324/test_coverage)](https://codeclimate.com/github/IBM/mi-prometheus/test_coverage) -->
+
+[![Documentation Status](https://readthedocs.org/projects/mi-prometheus/badge/?version=develop)](https://mi-prometheus.readthedocs.io/en/latest/?badge=develop)
+<!--- [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/mi-prometheus) -->
 
 - [Description](#description)
 - [Installation](#installation)
