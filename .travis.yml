@@ -13,7 +13,7 @@
 # limitations under the License.
 
 language: python
-python: 3.7
+python: 3.6
 
 # Safelist: focus Travis' attention on the master and develop branches only.
 branches:
