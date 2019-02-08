@@ -21,10 +21,8 @@ branches:
     - master
     - develop
 
-before_script:
-  # install dependencies.
-  - python3 setup.py install
-  - python3 -m pip install --upgrade --user flake8
+install:
+  - pip3 install -r requirements.txt
 
 script:
   # Test plake8 compatibility.
