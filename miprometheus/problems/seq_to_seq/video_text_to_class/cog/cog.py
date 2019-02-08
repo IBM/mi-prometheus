@@ -232,6 +232,29 @@ class COG(VideoTextToClassProblem):
 			self.logger.info("COG initialization complete.")
 			exit(0)
 
+		self.categories = ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
+						   'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
+						   'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
+						   'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
+						   'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
+						   'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape',
+						   'AndSimpleExistColorGo', 'AndSimpleExistGo', 'AndSimpleExistShapeGo', 'CompareColorGo',
+						   'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
+						   'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
+						   'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
+						   'SimpleExistGo', 'SimpleExistShapeGo', 'AndCompareColor', 'AndCompareShape',
+						   'AndSimpleCompareColor', 'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
+						   'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
+						   'ExistLastObjectSameObject', 'ExistLastShapeSameColor',
+						   'ExistShape', 'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'SimpleCompareColor',
+						   'SimpleCompareShape']
+
+		self.tuple_list = [[0, 0] for _ in range(len(self.categories))]
+
+		self.categories_stats = dict(zip(self.categories, self.tuple_list))
+
+
+
 	def evaluate_loss(self, data_dict, logits):
 		""" Calculates accuracy equal to mean number of correct predictions in a given batch.
 		WARNING: Applies mask to both logits and targets!
@@ -284,6 +307,55 @@ class COG(VideoTextToClassProblem):
 		total += hard_targets.numel() - (hard_targets == 0).sum().item()
 
 		return correct/total
+
+	def get_acc_per_family(self, data_dict, logits):
+		"""
+			        Compute the accuracy per family for the current batch. Also accumulates
+			        the number of correct predictions & questions per family in self.correct_pred_families (saved
+			        to file).
+
+
+			        .. note::
+
+			            To refactor.
+
+
+			        :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', \
+			        'targets', 'targets_string', 'index','imgfiles'})
+			        :type data_dict: :py:class:`miprometheus.utils.DataDict`
+
+			        :param logits: network predictions.
+			        :type logits: :py:class:`torch.Tensor`
+
+			        """
+
+		targets_reg = data_dict['targets_reg']
+		targets_class = data_dict['targets_class']
+		tasks = data_dict['tasks']
+
+		# Classification Accuracy
+		values, indices = torch.max(logits[0], 2)
+		correct = (indices == targets_class).sum(dim=1)  # + (targets==-1).sum().item()
+
+		# Pointing Accuracy
+		valuesp, indicesp = torch.max(logits[1], 2)
+		valuesp, hard_targetsp = torch.max(targets_reg, 2)
+
+		# Committing a minor inaccuracy here
+		correctp = (indicesp == hard_targetsp).sum(dim=1) - (indices == 0).sum(dim=1)
+
+		for i in range(correct.size(0)):
+			# update # of questions for the corresponding family
+			self.categories_stats[tasks[i]][1] += 2 * logits[0].size(1)
+
+			# update the # of correct predictions for the corresponding family
+			if correct[i] >= 1: self.categories_stats[tasks[i]][0] += correct[i].data[0]
+			if correctp[i] >= 1: self.categories_stats[tasks[i]][0] += correctp[i].data[0]
+
+		print(self.categories_stats)
+
+
+
 
 	def output_class_to_int(self,targets_class):
 		#for j, target in enumerate(targets_class):
@@ -526,6 +598,7 @@ class COG(VideoTextToClassProblem):
 
 		"""
 		stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
+		self.get_acc_per_family(self, data_dict, logits)
 		#stat_col['seq_len'] = self.sequence_length
 		#stat_col['max_mem'] = self.memory_length
 		#stat_col['max_distractors'] = self.max_distractors

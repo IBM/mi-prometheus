@@ -648,6 +648,7 @@ if __name__ == '__main__':
         #print('logits  of size :', logits.size())
         loss=cog_dataset.evaluate_loss(sample,logits)
         acc=cog_dataset.calculate_accuracy(sample,logits)
+        cog_dataset.get_acc_per_family(sample, logits)
         print(loss)
         print(acc)
         loss.backward()
