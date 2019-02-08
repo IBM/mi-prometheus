@@ -15,7 +15,7 @@
 <!--- [![Test Coverage](https://api.codeclimate.com/v1/badges/84d1a013d1bd15bee324/test_coverage)](https://codeclimate.com/github/IBM/mi-prometheus/test_coverage) -->
 
 [![Documentation Status](https://readthedocs.org/projects/mi-prometheus/badge/?version=develop)](https://mi-prometheus.readthedocs.io/en/latest/?badge=develop)
-<!--- [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/mi-prometheus) -->
+[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/mi-prometheus)
 
 - [Description](#description)
 - [Installation](#installation)
