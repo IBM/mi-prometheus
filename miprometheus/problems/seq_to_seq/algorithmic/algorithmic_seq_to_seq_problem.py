@@ -32,11 +32,60 @@ from miprometheus.utils.loss.masked_bce_with_logits_loss import MaskedBCEWithLog
 
 class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
     """
-    Base class for algorithmic sequential problems.
-
+    Base class for algorithmic (sequential) problems. \
     Provides some basic features useful in all problems of such nature.
 
-    .. info:
+    Majority of the derived problems are inspired by psychometric tests developed by cognitive psychologists. \
+    One of the fundamental goals of these tests is to measure individual differences and correlate to performance in reasoning and fluid intelligence. \
+    In this regard, memory capacity, retention and the ability to switch between tasks are the key predictors.
+    
+    .. figure:: ../img/algorithmic/psychometric_tests.png
+        :align: center
+
+        Exemplary psychometric tests that we used as inspiration
+
+    Given the large number of tests in the psychology literature and various categorizations by different researchers, we built a taxonomy of tasks \
+    and carefully selected tasks that seem to be the most representative for a given category. 
+
+    .. figure:: ../img/algorithmic/problem_taxonomy_simple.png
+            :align: center
+
+
+    First order categorization is based on the number and complexity of problems. \
+    For simple problems, the presence of data manipulation is the next level sub-category, with Serial Recall being a prime example of a problem without manipulation. \
+    The problems requiring manipulation we further categorized into spatial and temporal domains.
+
+    .. figure:: ../img/algorithmic/problem_taxonomy_complex.png
+            :align: center
+
+
+    The complex problems involve multiple sequential inputs or sub-tasks but not necessarily imply “multi-tasking”. \
+    We follow the framework of Clapp, Rubens, and Gazzaley (2009) to distinguish the sources of goal interference, \
+    i.e. Distraction (to-be-ignored) and Interruption (i.e. multi-tasking).
+    For example, in Operation Span the subjects had to attend and process the summation (Interruption) even though they did not need to recall the results afterwards, \
+    whereas in Reading Span (Daneman & Carpenter, 1980) subjects had to read sentences and recall the last word of each one. \
+    In addition to the classical psychometric tasks, we introduced several problems testing the effectiveness of attention control in memory (Ignore, Forget, Scratch Pad etc.).
+        
+    The input to every problem is a time-indexed stream of items. At a higher level, we view the input as a concatenation of various subsequences \
+    that represent different functional units of processing. For all "Simple" problems, there is only one type of subsequence, and the output will be reproduced \
+    from the memory with or without manipulation. The "Complex" problems may involve a secondary set of subsequences, which may or may not require immediate output.
+     
+    In the actual encoding of the input, we use a constant-sized set of special items (called Command Markers) to both mark the beginning of a subsequence as well as indicate its functional type. \
+    Important note is that the system does not know a priori what kind of operation is associated with a given type of marker and must learn that from data.
+
+    .. figure:: ../img/algorithmic/exemplary_sequence_markers.png
+            :align: center
+
+
+    Each subsequence is either real "data" or "dummy". The "dummy" subsequences represent elements in the input processing where a suitable target of the same length needs to be output. \
+    Introduction of dummies enables delays in the input processing for capturing memory retention and other aspects of tasks.
+
+    .. figure:: ../img/algorithmic/exemplary_sequence_data.png
+            :align: center
+
+
+
+    .. note::
 
         All derived classes will provide two operation modes:
             - "optimized": "__getitem__" in fact does nothing (returns index), \
@@ -48,16 +97,16 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
     Advantage of the "not_optimized" mode is that a single batch will contain sequences of varying length.
     This mode is around 10 times slower though.
 
-    .. warning:
+    .. warning::
 
         In both cases the derived classes will work as true data generators, \
         and not really care about the indices provided from the list. As a result,\
         each epoch will contain newly generated, thus different samples (for the same indices).
 
-    .. warning:
+    .. warning::
 
         "optimized" mode is not suited to be used with many dataloader workers, i.e. \
-        setting num_workers > 0 will in fact slow the whole generation (by 3-4 times!).
+        setting num_workers > 0 will in fact slow down the whole generation (by 3-4 times!).
 
     """
 
@@ -185,7 +234,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         """
         Generates a batch of samples of size ''batch_size'' on-the-fly.
         
-        ..note:
+        .. note::
 
             To be implemented in the derived algorithmic problem classes. 
 
@@ -195,7 +244,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
             - sequences: [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
             - sequences_length: [BATCH_SIZE, 1] (the same random value between self.min_sequence_length and self.max_sequence_length)
-            - targets: [BATCH_SIZE, , 2*SEQ_LENGTH+2, DATA_BITS]
+            - targets: [BATCH_SIZE, , 2*SEQ_LENGTH+2, DATA_BITS/1]
             - masks: [BATCH_SIZE, 2*SEQ_LENGTH+2, 1]
             - num_subsequences: [BATCH_SIZE, 1]
 
@@ -298,7 +347,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         .. warning::
 
-            As the name of the method suggests, the method does not generate the sample.
+            As the name of the method suggests, the method does not generate anything!
 
         :param index: index of the sample to returned (IGNORED).
 
@@ -316,7 +365,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         .. warning::
             The samples created by ``__getitem__`` are simply not used in this function.
             As``collate_fn`` generates on-the-fly a batch of samples relying on the underlying ''generate_batch''\
-            method, all having the same length (randomly selected thought).
+            method, all having the same length (randomly selected though).
 
         :param batch: **Not Used Here!**
 
