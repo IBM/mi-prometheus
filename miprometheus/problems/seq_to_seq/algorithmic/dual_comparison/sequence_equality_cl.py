@@ -48,6 +48,9 @@ class SequenceEqualityCommandLines(AlgorithmicSeqToSeqProblem):
         .. note::
             Can also work in ''inequality'' mode, i.e. return 1 when x1 != x2.
 
+        .. note::
+            Additionally, in ''hard'' mode, it randomly picks only ONE item from input sequence that will be changed.
+
     """
 
     def __init__(self, params):
@@ -101,7 +104,7 @@ class SequenceEqualityCommandLines(AlgorithmicSeqToSeqProblem):
 
             - sequences: [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
             - sequences_length: [BATCH_SIZE, 1] (the same random value between self.min_sequence_length and self.max_sequence_length)
-            - targets: [BATCH_SIZE, , 2*SEQ_LENGTH+2, DATA_BITS]
+            - targets: [BATCH_SIZE, , 2*SEQ_LENGTH+2, 1]
             - masks: [BATCH_SIZE, 2*SEQ_LENGTH+2, 1]
             - num_subsequences: [BATCH_SIZE, 1]
 
