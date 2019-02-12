@@ -470,6 +470,43 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
             return (1 - torch.abs(torch.round(torch.nn.functional.sigmoid(logits)) - data_dict['targets'])).mean()
 
 
+
+    def bit_shift(self, bit_seq, num_bits_shifted):
+        """
+            Bit-shifts each item from bit sequence by num_bits_shifted (to right). Two modes of operation include:
+
+                1.  -1 < num_bits_shifted < 1: relative mode, where num_bits_shifted \
+                represents the % of data bits by which every item will be shifted
+
+                2. otherwise: absolute number of bits by which every item in the sequence will be shifted.
+
+            :param bit_seq: Bit sequence [BATCH_SIZE x SEQ_LENGTH x DATA_BITS]
+
+            :param num_bits_shifted: Number of bits by which each item in the sequence will be shifted.
+
+            :return: Bit-shifted input bit sequence [BATCH_SIZE x SEQ_LENGTH x DATA_BITS]
+        """
+        num_total_bits = bit_seq.shape[2]
+
+        # Rotate sequence by shifting the bits to right: data_bits >> num_bits_shifted
+        num_bits_shifted = -num_bits_shifted
+
+        # Check if we are using relative or absolute rotation.
+        if -1 < num_bits_shifted < 1:
+            num_bits_shifted = num_bits_shifted * num_total_bits
+
+        # Round bitshift to int.
+        num_bits_shifted = np.round(num_bits_shifted)
+
+        # Modulo bitshift with data_bits.
+        num_bits_shifted = int(num_bits_shifted % num_total_bits)
+
+        # Apply items shift and return result.
+        return np.concatenate(
+            (bit_seq[:, :, num_bits_shifted:], bit_seq[:, :, :num_bits_shifted]), axis=2)
+
+
+
     def generate_ctrl_aux(self, min_num_ctr_bits):
         """
         Generates a 1D bit pattern, that will be used as control part of "dummy" part of the input sequence, \

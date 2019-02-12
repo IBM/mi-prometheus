@@ -72,25 +72,25 @@ class ManipulationSpatialNot(AlgorithmicSeqToSeqProblem):
 
     def generate_batch(self, batch_size):
         """
-        Generates a batch of samples of size ''batch_size'' on-the-fly.
+            Generates a batch of samples of size ''batch_size'' on-the-fly.
 
-       .. note::
+            .. note::
 
-            The sequence length is drawn randomly between ``self.min_sequence_length`` and \
-            ``self.max_sequence_length``.
+                The sequence length is drawn randomly between ``self.min_sequence_length`` and \
+                ``self.max_sequence_length``.
 
-       .. warning::
-            All the samples within the batch will have the same sequence lengt.
+            .. warning::
+                All the samples within the batch will have the same sequence length.
 
-        :param batch_size: Size of the batch to be returned. 
+            :param batch_size: Size of the batch to be returned. 
 
-        :return: DataDict({'sequences', 'sequences_length', 'targets', 'masks', 'num_subsequences'}), with:
+            :return: DataDict({'sequences', 'sequences_length', 'targets', 'masks', 'num_subsequences'}), with:
 
-            - sequences: [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
-            - sequences_length: [BATCH_SIZE, 1] (the same random value between self.min_sequence_length and self.max_sequence_length)
-            - targets: [BATCH_SIZE, , 2*SEQ_LENGTH+2, DATA_BITS]
-            - masks: [BATCH_SIZE, 2*SEQ_LENGTH+2, 1]
-            - num_subsequences: [BATCH_SIZE, 1]
+                - sequences: [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
+                - sequences_length: [BATCH_SIZE, 1] (the same random value between self.min_sequence_length and self.max_sequence_length)
+                - targets: [BATCH_SIZE, , 2*SEQ_LENGTH+2, DATA_BITS]
+                - masks: [BATCH_SIZE, 2*SEQ_LENGTH+2, 1]
+                - num_subsequences: [BATCH_SIZE, 1]
 
         """
 
