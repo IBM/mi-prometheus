@@ -338,8 +338,15 @@ class COG(VideoTextToClassProblem):
 		correct = (indices == targets_class).sum(dim=1)  # + (targets==-1).sum().item()
 
 		# Pointing Accuracy
-		valuesp, indicesp = torch.max(logits[1], 2)
-		valuesp, hard_targetsp = torch.max(targets_reg, 2)
+		#valuesp, indicesp = torch.max(logits[1], 2)
+		#valuesp, hard_targetsp = torch.max(targets_reg, 2)
+
+		indicesp= torch.nonzero(logits[1])
+		hard_targetsp= torch.nonzero(logits[1])
+
+		print('helo')
+		print(hard_targetsp)
+
 
 		# Committing a minor inaccuracy here
 		correctp = (indicesp == hard_targetsp).sum(dim=1) - (indices == 0).sum(dim=1)
@@ -352,7 +359,7 @@ class COG(VideoTextToClassProblem):
 			if correct[i] >= 1: self.categories_stats[tasks[i]][0] += correct[i].data[0]
 			if correctp[i] >= 1: self.categories_stats[tasks[i]][0] += correctp[i].data[0]
 
-		print(self.categories_stats)
+		#print(self.categories_stats)
 
 
 
