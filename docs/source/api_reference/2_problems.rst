@@ -213,9 +213,9 @@ ManipulationSpatialRotation
 Manipulation Temporal
 --------------------------------------------
 
-ManipulationTemporalSwap
+ManipulationTemporalRotation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: ManipulationTemporalSwap
+.. autoclass:: ManipulationTemporalRotation
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__

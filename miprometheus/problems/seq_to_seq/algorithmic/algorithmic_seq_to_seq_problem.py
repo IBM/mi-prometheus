@@ -170,7 +170,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
 
         # Set the default size of the dataset.
         # TODO: Should derive the actual theoretical limit instead of an arbitrary limit.
-        self.params.add_default_params({'size': 1000})
+        self.params.add_default_params({'size': 1000000})
         self.length = params['size']
 
         # Add parameter denoting 0-1 distribution (DEFAULT: 0.5 i.e. equal).

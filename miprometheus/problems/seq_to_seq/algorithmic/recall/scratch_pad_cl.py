@@ -15,8 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""scratch_pad.py: contains code of scratch recall data generation
-"""
 __author__ = "Younes Bouhadjar, Vincent Marois, Tomasz Kornuta"
 
 import torch
@@ -48,13 +46,12 @@ class ScratchPadCommandLines(AlgorithmicSeqToSeqProblem):
 
     4. Generator returns a mask, which (by default) is used for masking the unimportant elements of the target sequence \
     (i.e. only outputs related to the second subsequence are taken into consideration)
-
     """
 
     def __init__(self, params):
         """
         Constructor - stores parameters. Calls parent class ``AlgorithmicSeqToSeqProblem``\
-         initialization.
+        initialization.
 
         :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
         """
@@ -89,13 +86,12 @@ class ScratchPadCommandLines(AlgorithmicSeqToSeqProblem):
             - masks: [BATCH_SIZE, SEQ_LENGTH, 1]
             - num_subsequences: [BATCH_SIZE, 1] (number of subsequences)
 
-       .. note::
+        .. note::
             The sequence length is drawn randomly between ``self.min_sequence_length`` and \
             ``self.max_sequence_length``.
 
-       .. warning::
-            All the samples within the batch will have the same sequence length.
-            
+        .. warning::
+            All the samples within the batch will have the same sequence length.    
         """
         # Store marker.
         ctrl_store = np.zeros(self.control_bits)
@@ -176,37 +172,32 @@ if __name__ == "__main__":
                               'min_sequence_length': 1,
                               'max_sequence_length': 10,
                               'num_subseq_min': 2,
-                              'num_subseq_max': 4})
-    batch_size = 10
+                              'num_subseq_max': 4,
+                              'size': 1000
+                              })
+    batch_size = 64
     num_workers = 0
 
     # Create problem object.
-    scratchpad = ScratchPadCommandLines(params)
+    problem = ScratchPadCommandLines(params)
 
-    # get a sample
-    sample = scratchpad[0]
-    print(repr(sample))
-    print('__getitem__ works.')
-
-    # wrap DataLoader on top
+    # Create dataloader object.
     from torch.utils.data import DataLoader
-
-    problem = DataLoader(dataset=scratchpad, batch_size=batch_size, collate_fn=scratchpad.collate_fn,
-                         shuffle=False, num_workers=num_workers)
+    loader = DataLoader(dataset=problem, batch_size=batch_size, collate_fn=problem.collate_fn,
+                         shuffle=False, num_workers=num_workers, worker_init_fn=problem.worker_init_fn)
 
     # Measure generation time.
     #print("Measuring generation time. Please wait...") 
     #import time
     #s = time.time()
-    #for i, batch in enumerate(problem):
+    #for i, batch in enumerate(loader):
     #    #print('Batch # {} - {}'.format(i, type(batch)))
     #    pass
-
-    #print('Number of workers: {}'.format(problem.num_workers))
+    #print('Number of workers: {}'.format(loader.num_workers))
     #print('Time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
-    #      .format(len(dataset), batch_size, time.time() - s))
+    #      .format(len(problem), batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
-    batch = next(iter(problem))
-    scratchpad.show_sample(batch, 0)
+    batch = next(iter(loader))
+    problem.show_sample(batch, 0)
 
