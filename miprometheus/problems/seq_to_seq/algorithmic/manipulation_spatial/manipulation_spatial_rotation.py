@@ -19,7 +19,6 @@ __author__ = "Tomasz Kornuta, Younes Bouhadjar"
 
 import torch
 import numpy as np
-from miprometheus.utils.data_dict import DataDict
 from miprometheus.problems.seq_to_seq.algorithmic.algorithmic_seq_to_seq_problem import AlgorithmicSeqToSeqProblem
 
 
