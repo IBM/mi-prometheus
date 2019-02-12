@@ -134,28 +134,9 @@ class ManipulationTemporalRotation(AlgorithmicSeqToSeqProblem):
         # bits!)
         targets = np.zeros([batch_size, 2 * seq_length + 2,
                             self.data_bits], dtype=np.float32)
+        
         # Set bit sequence.
-
-        # Rotate sequence by shifting the items to right: seq >> num_items
-        # i.e num_items = 2 -> seq_items >> 2
-        # and num_items = -1 -> seq_items << 1
-        # For that reason we must change the sign of num_items
-        num_items = -self.num_items
-
-        # Check if we are using relative or absolute rotation.
-        if -1 < num_items < 1:
-            num_items = num_items * seq_length
-
-        # Round items shift  to int.
-        num_items = np.round(num_items)
-
-        # Modulo items shift with length of the sequence.
-        num_items = int(num_items % seq_length)
-
-        # Apply items shift
-        bit_seq = np.concatenate(
-            (bit_seq[:, num_items:, :], bit_seq[:, :num_items, :]), axis=1)
-        targets[:, seq_length + 2:, :] = bit_seq
+        targets[:, seq_length + 2:, :] = self.rotate_seq(bit_seq, self.num_items)
 
         # Generate target mask: [BATCH_SIZE, 2*SEQ_LENGTH+2]
         ptmask = torch.zeros([batch_size, 2 * seq_length + 2, 1]
@@ -175,11 +156,6 @@ class ManipulationTemporalRotation(AlgorithmicSeqToSeqProblem):
         data_dict['num_subsequences'] = 1
 
         return data_dict
-
-    # method for changing the maximum length, used mainly during curriculum
-    # learning
-    def set_max_length(self, max_length):
-        self.max_sequence_length = max_length
 
 
 if __name__ == "__main__":

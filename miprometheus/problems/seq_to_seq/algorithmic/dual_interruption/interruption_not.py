@@ -15,10 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-interruption_not.py: contains code of distraction carry data generation
-
-"""
 __author__ = "Younes Bouhadjar & Vincent Marois"
 
 import torch
@@ -340,11 +336,6 @@ class InterruptionNot(AlgorithmicSeqToSeqProblem):
 
         return data_dict
 
-     # method for changing the maximum length, used mainly during curriculum
-     # learning
-    def set_max_length(self, max_length):
-        self.max_sequence_length = max_length
-
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
@@ -359,36 +350,32 @@ if __name__ == "__main__":
                               'min_sequence_length': 1,
                               'max_sequence_length': 10,
                               'num_subseq_min': 1,
-                              'num_subseq_max': 4})
+                              'num_subseq_max': 4,
+                              'size': 1000
+                              })
     batch_size = 64
+    num_workers = 0
 
     # Create problem object.
-    interruptnot = InterruptionNot(params)
+    problem = InterruptionNot(params)
 
-    # get a sample
-    sample = interruptnot[0]
-    print(repr(sample))
-    print('__getitem__ works.')
-
-    # wrap DataLoader on top
+    # Create dataloader object.
     from torch.utils.data import DataLoader
+    loader = DataLoader(dataset=problem, batch_size=batch_size, collate_fn=problem.collate_fn,
+                         shuffle=False, num_workers=num_workers, worker_init_fn=problem.worker_init_fn)
 
-    problem = DataLoader(dataset=interruptnot, batch_size=batch_size, collate_fn=interruptnot.collate_fn,
-                         shuffle=False, num_workers=0)
-
-    # generate a batch
-    import time
-
-    s = time.time()
-    for i, batch in enumerate(problem):
-        print('Batch # {} - {}'.format(i, type(batch)))
-
-    print('Number of workers: {}'.format(problem.num_workers))
-    print('time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
-          .format(interruptnot.__len__(), batch_size, time.time() - s))
+    # Measure generation time.
+    #print("Measuring generation time. Please wait...") 
+    #import time
+    #s = time.time()
+    #for i, batch in enumerate(loader):
+    #    #print('Batch # {} - {}'.format(i, type(batch)))
+    #    pass
+    #print('Number of workers: {}'.format(loader.num_workers))
+    #print('Time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
+    #      .format(len(problem), batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
-    batch = next(iter(problem))
-    interruptnot.show_sample(batch, 0)
-    print('Unit test completed.')
+    batch = next(iter(loader))
+    problem.show_sample(batch, 0)
 

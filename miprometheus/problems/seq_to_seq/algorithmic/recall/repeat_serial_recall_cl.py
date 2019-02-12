@@ -188,7 +188,6 @@ class RepeatSerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         return data_dict
 
 
-
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
