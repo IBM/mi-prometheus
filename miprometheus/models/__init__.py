@@ -22,3 +22,9 @@ from .mental_model import *
 from .model import Model
 from .model_factory import ModelFactory
 from .sequential_model import SequentialModel
+
+__all__ = [
+    'Model',
+    'ModelFactory',
+    'SequentialModel'
+    ]
