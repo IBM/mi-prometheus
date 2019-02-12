@@ -71,41 +71,6 @@ class OperationSpan(AlgorithmicSeqToSeqProblem):
         self.num_subseq_max = params["num_subseq_max"]
         self.rotation = params['num_rotation']
 
-    def rotate(self, seq, rotation, length):
-        """
-        Rotate a sequence by shifting the items to the right: seq >> num_items.
-
-        # i.e num_items = 2 -> seq_items >> 2
-        # and num_items = -1 -> seq_items << 1
-
-        :param seq: The sequence to rotate.
-        :type seq: tensor
-
-        :param rotation: Rotation value.
-        :type rotation: float
-
-        :param length: length of the sequence
-        :type length: int
-
-        :return: rotated sequence.
-
-        """
-        # For that reason we must change the sign of num_items
-        # Check if we are using relative or absolute rotation.
-        if -1 <= rotation <= 1:
-            rotation = rotation * length
-
-        # Round bitshift  to int.
-        rotation = np.round(rotation)
-
-        # Modulo items shift with length of the sequence.
-        rotation = int(rotation % length)
-
-        # apply the shift
-        seq = np.concatenate(
-            (seq[:, :, rotation:], seq[:, :, :rotation]), axis=-1)
-
-        return seq
 
     def __getitem__(self, index):
         """
@@ -356,11 +321,6 @@ class OperationSpan(AlgorithmicSeqToSeqProblem):
 
         return data_dict
 
-    # method for changing the maximum length, used mainly during curriculum
-    # learning
-    def set_max_length(self, max_length):
-        self.max_sequence_length = max_length
-
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
@@ -376,36 +336,32 @@ if __name__ == "__main__":
                               'max_sequence_length': 4,
                               'num_subseq_min': 2,
                               'num_subseq_max': 4,
-                              'num_rotation': 0.5})
+                              'num_rotation': 0.5,
+                              'size': 1000
+                              })
     batch_size = 64
+    num_workers = 0
 
     # Create problem object.
-    operationspan = OperationSpan(params)
+    problem = OperationSpan(params)
 
-    # get a sample
-    sample = operationspan[0]
-    print(repr(sample))
-    print('__getitem__ works.')
-
-    # wrap DataLoader on top
+    # Create dataloader object.
     from torch.utils.data import DataLoader
+    loader = DataLoader(dataset=problem, batch_size=batch_size, collate_fn=problem.collate_fn,
+                         shuffle=False, num_workers=num_workers, worker_init_fn=problem.worker_init_fn)
 
-    problem = DataLoader(dataset=operationspan, batch_size=batch_size, collate_fn=operationspan.collate_fn,
-                         shuffle=False, num_workers=0)
-
-    # generate a batch
-    import time
-
-    s = time.time()
-    for i, batch in enumerate(problem):
-        print('Batch # {} - {}'.format(i, type(batch)))
-
-    print('Number of workers: {}'.format(problem.num_workers))
-    print('time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
-          .format(operationspan.__len__(), batch_size, time.time() - s))
+    # Measure generation time.
+    #print("Measuring generation time. Please wait...") 
+    #import time
+    #s = time.time()
+    #for i, batch in enumerate(loader):
+    #    #print('Batch # {} - {}'.format(i, type(batch)))
+    #    pass
+    #print('Number of workers: {}'.format(loader.num_workers))
+    #print('Time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
+    #      .format(len(problem), batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
-    batch = next(iter(problem))
-    operationspan.show_sample(batch, 0)
-    print('Unit test completed.')
+    batch = next(iter(loader))
+    problem.show_sample(batch, 0)
 

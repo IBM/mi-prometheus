@@ -15,10 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-sequence_symmetry_cl.py: Contains implementation of sequence symmetry task.
-
-"""
 __author__ = "Tomasz Kornuta"
 
 import torch
@@ -52,6 +48,8 @@ class SequenceSymmetryCommandLines(AlgorithmicSeqToSeqProblem):
         .. note::
             Can also work in ''antisymmetry'' mode, i.e. return 1 when x1 != reversed(x2).
 
+        .. note::
+            Additionally, in ''hard'' mode, it randomly picks only ONE item from input sequence that will be changed.
     """
 
     def __init__(self, params):
@@ -92,13 +90,12 @@ class SequenceSymmetryCommandLines(AlgorithmicSeqToSeqProblem):
         """
         Generates a batch of samples of size ''batch_size'' on-the-fly.
 
-       .. note::
-
+        .. note::
             The sequence length is drawn randomly between ``self.min_sequence_length`` and \
             ``self.max_sequence_length``.
 
-       .. warning::
-            All the samples within the batch will have the same sequence lengt.
+        .. warning::
+            All the samples within the batch will have the same sequence length.
 
         :param batch_size: Size of the batch to be returned. 
 
@@ -106,10 +103,9 @@ class SequenceSymmetryCommandLines(AlgorithmicSeqToSeqProblem):
 
             - sequences: [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
             - sequences_length: [BATCH_SIZE, 1] (the same random value between self.min_sequence_length and self.max_sequence_length)
-            - targets: [BATCH_SIZE, , 2*SEQ_LENGTH+2, DATA_BITS]
+            - targets: [BATCH_SIZE, , 2*SEQ_LENGTH+2, 1]
             - masks: [BATCH_SIZE, 2*SEQ_LENGTH+2, 1]
             - num_subsequences: [BATCH_SIZE, 1]
-
         """
         # Store marker.
         marker_start_main = np.zeros(self.control_bits)
@@ -226,37 +222,32 @@ if __name__ == "__main__":
                               #'antisymmetry': True,
                               'hard' : True,
                               'min_sequence_length': 3,
-                              'max_sequence_length': 5})
+                              'max_sequence_length': 5,
+                              'size': 1000
+                              })
     batch_size = 64
+    num_workers = 0
 
     # Create problem object.
-    seqsymcl = SequenceSymmetryCommandLines(params)
+    problem = SequenceSymmetryCommandLines(params)
 
-    # get a sample
-    sample = seqsymcl[0]
-    print(repr(sample))
-    print('__getitem__ works.')
-
-    # wrap DataLoader on top
+    # Create dataloader object.
     from torch.utils.data import DataLoader
-
-    problem = DataLoader(dataset=seqsymcl, batch_size=batch_size, collate_fn=seqsymcl.collate_fn,
-                         shuffle=False, num_workers=0)
+    loader = DataLoader(dataset=problem, batch_size=batch_size, collate_fn=problem.collate_fn,
+                         shuffle=False, num_workers=num_workers, worker_init_fn=problem.worker_init_fn)
 
     # Measure generation time.
     #print("Measuring generation time. Please wait...") 
     #import time
     #s = time.time()
-    #for i, batch in enumerate(problem):
+    #for i, batch in enumerate(loader):
     #    #print('Batch # {} - {}'.format(i, type(batch)))
     #    pass
-
-    #print('Number of workers: {}'.format(problem.num_workers))
+    #print('Number of workers: {}'.format(loader.num_workers))
     #print('Time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
-    #      .format(len(dataset), batch_size, time.time() - s))
+    #      .format(len(problem), batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
-    batch = next(iter(problem))
-    seqsymcl.show_sample(batch, 0)
-
+    batch = next(iter(loader))
+    problem.show_sample(batch, 0)
 

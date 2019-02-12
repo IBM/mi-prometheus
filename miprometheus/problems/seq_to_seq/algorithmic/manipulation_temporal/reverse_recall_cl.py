@@ -15,10 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-reverse_recall_cl.py: Contains definition of reverse recall problem with control markers and command lines
-"""
-__author__ = "Tomasz Kornuta, Ryan McAvoy, Vincent Marois"
+__author__ = "Tomasz Kornuta"
 
 import torch
 import numpy as np
@@ -48,7 +45,6 @@ class ReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
 
     4. Generator returns a mask, which (by default) is used for masking the unimportant elements of the target sequence \
     (i.e. only outputs related to the second subsequence are taken into consideration)
-
     """
 
     def __init__(self, params):
@@ -92,7 +88,7 @@ class ReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
             ``self.max_sequence_length``.
 
        .. warning::
-            All the samples within the batch will have the same sequence lengt.
+            All the samples within the batch will have the same sequence length.
 
         """
         # Store marker.
@@ -162,7 +158,6 @@ class ReverseRecallCommandLines(AlgorithmicSeqToSeqProblem):
         return data_dict
 
 
-
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
 
@@ -175,42 +170,32 @@ if __name__ == "__main__":
                               #'randomize_control_lines': False,
                               #'use_control_lines': False,
                               'min_sequence_length': 2,
-                              'max_sequence_length': 5})
+                              'max_sequence_length': 5,
+                              'size': 1000
+                              })
     batch_size = 64
+    num_workers = 0
 
     # Create problem object.
-    reverserecallcl = ReverseRecallCommandLines(params)
+    problem = ReverseRecallCommandLines(params)
 
-    # get a sample
-    sample = reverserecallcl[0]
-    print(repr(sample))
-    print('__getitem__ works.')
-
-    # wrap DataLoader on top
+    # Create dataloader object.
     from torch.utils.data import DataLoader
+    loader = DataLoader(dataset=problem, batch_size=batch_size, collate_fn=problem.collate_fn,
+                         shuffle=False, num_workers=num_workers, worker_init_fn=problem.worker_init_fn)
 
-
-    def init_fn(worker_id):
-        np.random.seed(seed=worker_id)
-
-
-    problem = DataLoader(dataset=reverserecallcl, batch_size=batch_size, collate_fn=reverserecallcl.collate_fn,
-                         shuffle=False, num_workers=0, worker_init_fn=init_fn)
-
-    # generate a batch
-    import time
-
-    s = time.time()
-    for i, batch in enumerate(problem):
-        #print('Batch # {} - {}'.format(i, type(batch)))
-        pass
-
-    print('Number of workers: {}'.format(problem.num_workers))
-    print('time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
-          .format(len(reverserecallcl), batch_size, time.time() - s))
+    # Measure generation time.
+    #print("Measuring generation time. Please wait...") 
+    #import time
+    #s = time.time()
+    #for i, batch in enumerate(loader):
+    #    #print('Batch # {} - {}'.format(i, type(batch)))
+    #    pass
+    #print('Number of workers: {}'.format(loader.num_workers))
+    #print('Time taken to exhaust a dataset of size {}, with a batch size of {}: {}s'
+    #      .format(len(problem), batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
-    batch = next(iter(problem))
-    reverserecallcl.show_sample(batch, 0)
-    print('Unit test completed.')
+    batch = next(iter(loader))
+    problem.show_sample(batch, 0)
 
