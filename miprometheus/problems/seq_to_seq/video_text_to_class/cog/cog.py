@@ -338,28 +338,31 @@ class COG(VideoTextToClassProblem):
 		correct = (indices == targets_class).sum(dim=1)  # + (targets==-1).sum().item()
 
 		# Pointing Accuracy
-		#valuesp, indicesp = torch.max(logits[1], 2)
-		#valuesp, hard_targetsp = torch.max(targets_reg, 2)
+		valuesp, indicesp = torch.max(logits[1], 2)
+		valuesp, hard_targetsp = torch.max(targets_reg, 2)
 
-		indicesp= torch.nonzero(logits[1])
-		hard_targetsp= torch.nonzero(logits[1])
+		#indicesp= torch.nonzero(logits[1])
+		#hard_targetsp= torch.nonzero(logits[1])
 
-		print('helo')
+		print(indicesp)
 		print(hard_targetsp)
 
 
 		# Committing a minor inaccuracy here
-		correctp = (indicesp == hard_targetsp).sum(dim=1) - (indices == 0).sum(dim=1)
+		#correctp = (indicesp == hard_targetsp).sum(dim=1) - (indices == 0).sum(dim=1)
+		correctp = (indicesp == hard_targetsp).sum(dim=1)
+
+		print(correctp)
 
 		for i in range(correct.size(0)):
 			# update # of questions for the corresponding family
 			self.categories_stats[tasks[i]][1] += 2 * logits[0].size(1)
 
 			# update the # of correct predictions for the corresponding family
-			if correct[i] >= 1: self.categories_stats[tasks[i]][0] += correct[i].data[0]
-			if correctp[i] >= 1: self.categories_stats[tasks[i]][0] += correctp[i].data[0]
+			self.categories_stats[tasks[i]][0] += correct.data[i]
+			self.categories_stats[tasks[i]][0] += correctp.data[i]
 
-		#print(self.categories_stats)
+		print( self.categories_stats )
 
 
 
