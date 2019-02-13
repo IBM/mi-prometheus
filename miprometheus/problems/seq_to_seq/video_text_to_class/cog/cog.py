@@ -357,13 +357,35 @@ class COG(VideoTextToClassProblem):
 			self.categories_stats[tasks[i]][0] += correct.data[i]
 			self.categories_stats[tasks[i]][0] += correctp.data[i]
 
-		print( self.categories_stats )
+		print (self.categories_stats)
+
+
+		for task in self.categories:
+
+			print (self.categories_stats[task][1])
+			print (self.categories_stats[task][0])
+
+			if self.categories_stats[task][1] == 0:
+				acc = 0
+			else:
+				print('hello')
+				a = self.categories_stats[task][0]
+				b = self.categories_stats[task][1]
+				a= a.numpy()
+				b=b.numpy()
+				acc = a/b
+
+			print('accuracy for task',task, '=' , acc )
+
+
 
 
 	def output_class_to_int(self,targets_class):
 		#for j, target in enumerate(targets_class):
 		targets_class = [-1 if a == 'invalid' else self.output_vocab.index(a) for a in targets_class]
 		targets_class = self.app_state.LongTensor(targets_class)
+
+
 
 		return targets_class
 
@@ -601,7 +623,7 @@ class COG(VideoTextToClassProblem):
 
 		"""
 		stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
-		self.get_acc_per_family(self, data_dict, logits)
+		self.get_acc_per_family(data_dict, logits)
 		#stat_col['seq_len'] = self.sequence_length
 		#stat_col['max_mem'] = self.memory_length
 		#stat_col['max_distractors'] = self.max_distractors
