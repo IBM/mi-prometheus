@@ -282,7 +282,7 @@ class MACNetwork(Model):
             logits_pointing[:,i,:] = self.output_unit_pointing(memory, h)
 
 
-        return logits.cuda(), logits_pointing.cuda()
+        return logits, logits_pointing
 
     @staticmethod
     def generate_figure_layout():
@@ -600,7 +600,7 @@ if __name__ == '__main__':
     #clevr_dataset = CLEVR(problem_params)
    # print('Problem {} instantiated.'.format(clevr_dataset.name))
 
-    tasks = ['GoColor']
+    tasks = ['GoColor', ]
     params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'),
                               'set': 'val',
                               'dataset_type': 'canonical',

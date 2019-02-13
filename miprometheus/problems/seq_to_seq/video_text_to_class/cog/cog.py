@@ -233,21 +233,16 @@ class COG(VideoTextToClassProblem):
 			exit(0)
 
 		self.categories = ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
-						   'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
-						   'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
-						   'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
-						   'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
-						   'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape',
-						   'AndSimpleExistColorGo', 'AndSimpleExistGo', 'AndSimpleExistShapeGo', 'CompareColorGo',
-						   'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
-						   'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
-						   'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
-						   'SimpleExistGo', 'SimpleExistShapeGo', 'AndCompareColor', 'AndCompareShape',
-						   'AndSimpleCompareColor', 'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
-						   'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
-						   'ExistLastObjectSameObject', 'ExistLastShapeSameColor',
-						   'ExistShape', 'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'SimpleCompareColor',
-						   'SimpleCompareShape']
+									 'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
+									 'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
+									 'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
+									 'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
+									 'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape', 'AndSimpleExistColorGo', 'AndSimpleExistGo', 'AndSimpleExistShapeGo', 'CompareColorGo',
+								 'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
+								 'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
+								 'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
+								 'SimpleExistGo','SimpleExistShapeGo']
+
 
 		self.tuple_list = [[0, 0] for _ in range(len(self.categories))]
 
@@ -303,8 +298,8 @@ class COG(VideoTextToClassProblem):
 
 		# Committing a minor inaccuracy here
 		correct += (indices == hard_targets).sum().item() - (indices == 0).sum().item()
-
 		total += hard_targets.numel() - (hard_targets == 0).sum().item()
+
 
 		return correct/total
 
@@ -333,38 +328,36 @@ class COG(VideoTextToClassProblem):
 		targets_class = data_dict['targets_class']
 		tasks = data_dict['tasks']
 
+
+
 		# Classification Accuracy
 		values, indices = torch.max(logits[0], 2)
+		targets_class_zeros = ( targets_class == -1)
+
 		correct = (indices == targets_class).sum(dim=1)  # + (targets==-1).sum().item()
 
+
 		# Pointing Accuracy
-		valuesp, indicesp = torch.max(logits[1], 2)
+		values, indicesp = torch.max(logits[1], 2)
 		valuesp, hard_targetsp = torch.max(targets_reg, 2)
 
-		#indicesp= torch.nonzero(logits[1])
-		#hard_targetsp= torch.nonzero(logits[1])
-
-		print(indicesp)
-		print(hard_targetsp)
-
+		hard_targetsp_zeros = (hard_targetsp == 0)
 
 		# Committing a minor inaccuracy here
 		#correctp = (indicesp == hard_targetsp).sum(dim=1) - (indices == 0).sum(dim=1)
 		correctp = (indicesp == hard_targetsp).sum(dim=1)
 
-		print(correctp)
-
 		for i in range(correct.size(0)):
 			# update # of questions for the corresponding family
-			self.categories_stats[tasks[i]][1] += 2 * logits[0].size(1)
+			self.categories_stats[tasks[i]][1] += (4 - targets_class_zeros[i].sum())
+			self.categories_stats[tasks[i]][1] += (4 - hard_targetsp_zeros[i].sum())
+
 
 			# update the # of correct predictions for the corresponding family
 			self.categories_stats[tasks[i]][0] += correct.data[i]
 			self.categories_stats[tasks[i]][0] += correctp.data[i]
 
 		print( self.categories_stats )
-
-
 
 
 	def output_class_to_int(self,targets_class):
@@ -634,7 +627,23 @@ if __name__ == "__main__":
 	# Define useful params
 	from miprometheus.utils.param_interface import ParamInterface
 	params = ParamInterface()
-	tasks = [ 'GetColor']
+	tasks = ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
+						   'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
+						   'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
+						   'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
+						   'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
+						   'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape',
+						   'AndSimpleExistColorGo', 'AndSimpleExistGo', 'AndSimpleExistShapeGo', 'CompareColorGo',
+						   'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
+						   'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
+						   'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
+						   'SimpleExistGo', 'SimpleExistShapeGo', 'AndCompareColor', 'AndCompareShape',
+						   'AndSimpleCompareColor', 'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
+						   'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
+						   'ExistLastObjectSameObject', 'ExistLastShapeSameColor',
+						   'ExistShape', 'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'SimpleCompareColor',
+						   'SimpleCompareShape']
+
 	params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'),
 							  'set': 'val',
 							  'dataset_type': 'canonical',
