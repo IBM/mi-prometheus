@@ -287,19 +287,34 @@ class COG(VideoTextToClassProblem):
 		targets_reg = data_dict['targets_reg']
 		targets_class = data_dict['targets_class']
 
-		# Classification Accuracy
+
+		# Classification Accuracy ###############################################
 		values, indices = torch.max(logits[0], 2)
 		correct = (indices == targets_class).sum().item()  # + (targets==-1).sum().item()
 		total = targets_class.numel() - (targets_class == -1).sum().item()
 
-		# Pointing Accuracy
-		values, indices = torch.max(logits[1], 2)
+
+
+		# Pointing Accuracy #####################################################
 		values, hard_targets = torch.max(targets_reg, 2)
+		y = torch.zeros(48, 4, 49)
+		z = torch.ones(48, 4, 49)
+		threshold_target = torch.where(targets_reg > 0.000001, z, y)
 
+		# print(threshold_target)
+		#values, indices = torch.max(logits[1],2)
+
+		view=logits[1].view(-1,49)
+		max_logits=(view == view.max(dim=1, keepdim=True)[0]).view_as(logits[1])
+
+		#technique1
+
+
+		correctp = max_logits * threshold_target.byte()
+		non_zero=torch.nonzero(correctp)
 		# Committing a minor inaccuracy here
-		correct += (indices == hard_targets).sum().item() - (indices == 0).sum().item()
+		correct += non_zero.size(0)
 		total += hard_targets.numel() - (hard_targets == 0).sum().item()
-
 
 		return correct/total
 
@@ -623,7 +638,7 @@ class COG(VideoTextToClassProblem):
 
 		"""
 		stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
-		self.get_acc_per_family(data_dict, logits)
+		#self.get_acc_per_family(data_dict, logits)
 		#stat_col['seq_len'] = self.sequence_length
 		#stat_col['max_mem'] = self.memory_length
 		#stat_col['max_distractors'] = self.max_distractors
@@ -649,22 +664,8 @@ if __name__ == "__main__":
 	# Define useful params
 	from miprometheus.utils.param_interface import ParamInterface
 	params = ParamInterface()
-	tasks = ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
-						   'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
-						   'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
-						   'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
-						   'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
-						   'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape',
-						   'AndSimpleExistColorGo', 'AndSimpleExistGo', 'AndSimpleExistShapeGo', 'CompareColorGo',
-						   'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
-						   'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
-						   'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
-						   'SimpleExistGo', 'SimpleExistShapeGo', 'AndCompareColor', 'AndCompareShape',
-						   'AndSimpleCompareColor', 'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
-						   'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
-						   'ExistLastObjectSameObject', 'ExistLastShapeSameColor',
-						   'ExistShape', 'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'SimpleCompareColor',
-						   'SimpleCompareShape']
+	tasks = ['AndCompareColor']
+
 
 	params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'),
 							  'set': 'val',

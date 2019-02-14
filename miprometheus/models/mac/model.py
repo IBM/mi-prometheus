@@ -600,7 +600,7 @@ if __name__ == '__main__':
     #clevr_dataset = CLEVR(problem_params)
    # print('Problem {} instantiated.'.format(clevr_dataset.name))
 
-    tasks = ['GoColor', ]
+    tasks = ['GoColor']
     params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'),
                               'set': 'val',
                               'dataset_type': 'canonical',
@@ -645,10 +645,11 @@ if __name__ == '__main__':
 
         print('Sample # {} - {}'.format(i_batch, sample['images'].shape), type(sample))
         logits = model(sample)
+        print()
         #print('logits  of size :', logits.size())
         loss=cog_dataset.evaluate_loss(sample,logits)
         acc=cog_dataset.calculate_accuracy(sample,logits)
-        cog_dataset.get_acc_per_family(sample, logits)
+        #cog_dataset.get_acc_per_family(sample, logits)
         print(loss)
         print(acc)
         loss.backward()
