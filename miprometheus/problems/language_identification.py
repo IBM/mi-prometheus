@@ -12,8 +12,49 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from miprometheus.problems import Problem
+from miprometheus.utils.data_dict import DataDict
 
 #torch.manual_seed(1)
+
+
+class SoftmaxClassifier(nn.Module): 
+    """
+    Simple Classifier consisting of fully connected layer with log softmax non-linearity.
+    """
+    def __init__(self, params, input_default_values):
+        """
+        Initializes the classifier.
+
+        :param params_: Dictionary of parameters (read from configuration ``.yaml`` file).
+
+        :param default_input_values_: Dictionary containing default_input_values.
+        """
+        # Call parent constructor.
+        super(SoftmaxClassifier, self).__init__()
+        self.name = "SoftmaxClassifier"
+
+        # Retrieve input (vocabulary) size and number of classes from default params.
+        self.input_size = input_default_values['encoded_input_size']
+        self.num_classes = input_default_values['num_classes']
+
+        # Simple classifier.
+        self.linear = nn.Linear(self.input_size, self.num_classes)
+
+
+    def forward(self, data_dict):
+        """
+        forward pass of the  model.
+
+        :param data_dict: DataDict({'encoded_inputs', ...}), where:
+
+            - encoded_input: [batch_size, input_size],
+
+        :return: Predictions (log_probs) [batch_size, target_size]
+
+        """
+        inputs = data_dict['encoded_inputs']
+        return F.log_softmax(self.linear(inputs), dim=1)
+
 
 class LanguageIdentification(Problem):
     """
@@ -41,11 +82,11 @@ class LanguageIdentification(Problem):
 
 
         # Set default data_definitions dict.
-        self.data_definitions = {'encoded_inputs': {'size': [-1, -1], 'type': [torch.Tensor]}, # encoded with BoW its is [BATCH_SIZE x VOCAB_SIZE] !
-                                 'sententes': {'size': [-1, 1], 'type': [list, str]}, # [BATCH x SENTENCE (list of words as single string)]
-                                 'target_classes': {'size': [-1, -1], 'type': [torch.Tensor]},
-                                 'target_labels': {'size': [-1, 1], 'type': [list, str]}
-                                 }
+        self.data_definitions = {'sentences': {'size': [-1, 1], 'type': [list, str]}, 
+                                # [BATCH x SENTENCE (list of words as a single string)]
+                                'languages': {'size': [-1, 1], 'type': [list, str]}
+                                # [BATCH x WORD (word as a single string)]
+                                }
 
         # Dummy data.
         self.data = [("me gusta comer en la cafeteria", "SPANISH"),
@@ -56,41 +97,12 @@ class LanguageIdentification(Problem):
         self.test_data = [("Yo creo que si", "SPANISH"),
                     ("it is lost on me", "ENGLISH")]
 
-        # word_to_ix maps each word in the vocab to a unique integer, which will be its
-        # index into the Bag of words vector
-        self.word_to_ix = {}
-        for sent, _ in self.data + self.test_data:
-            for word in sent.split():
-                if word not in self.word_to_ix:
-                    self.word_to_ix[word] = len(self.word_to_ix)
-        #print(word_to_ix)
-
-        self.label_to_ix = {"SPANISH": 0, "ENGLISH": 1}
-
         # Set length.
         self.length = len(self.data)
-
-        self.num_classes = len(self.label_to_ix)
-        self.item_size = len(self.word_to_ix)
-
-        # Define the default_values dict: holds parameters values that a model may need.
-        self.default_values = {'num_classes': self.num_classes,
-                               'input_size': self.item_size
-                               }
 
         # Set loss.
         self.loss_function = nn.NLLLoss()
 
-
-    def make_bow_vector(self, sentence):
-        vec = torch.zeros(len(self.word_to_ix))
-        for word in sentence.split():
-            vec[self.word_to_ix[word]] += 1
-        return vec
-
-
-    def make_target(self, label):
-        return torch.LongTensor([self.label_to_ix[label]])
 
     def __getitem__(self, index):
         """
@@ -108,61 +120,273 @@ class LanguageIdentification(Problem):
 
         # Return data_dict.
         data_dict = self.create_data_dict()
-        data_dict['encoded_inputs'] = self.make_bow_vector(sentence)
-        data_dict['sententes'] = sentence
-        data_dict['target_classes'] = self.make_target(language)
-        data_dict['target_labels'] = language
+        data_dict['sentences'] = sentence
+        data_dict['languages'] = language
         return data_dict
 
     def evaluate_loss(self, data_dict, logits):
         """ Calculates accuracy equal to mean number of correct predictions in a given batch.
 
-        :param data_dict: DataDict containing "target_classes" field.
+        :param data_dict: DataDict containing "encoded_targets" field.
         :param logits: Predictions (log_probs) being output of the model.
 
         """
-        targets = data_dict['target_classes'].squeeze(dim=1)
+        targets = data_dict['encoded_targets'].squeeze(dim=1)
         loss = self.loss_function(logits, targets)
         return loss
 
 
-#class BOWEncoder(object):
-#    def  __init__(self):
-#        self = word_to_ix
-#
-#    def encode():
-#        pass
-
-
-
-class BoWClassifier(nn.Module): 
-
-    def __init__(self, default_values):
-        # Call parent constructor.
-        super(BoWClassifier, self).__init__()
-
-        # Retrieve input (vocabulary) size and number of classes from default params.
-        self.input_size = default_values['input_size']
-        self.num_classes = default_values['num_classes']
-
-        # Simple classifier.
-        self.linear = nn.Linear(self.input_size, self.num_classes)
-
-
-    def forward(self, data_dict):
+class Encoder(object):
+    """
+    Default encoder class. Creates interface and provides generic methods for batch processing.
+    """
+    def __init__(self, name_, params_, default_input_values_):
         """
-        forward pass of the  model.
+        Initializes encoder object.
 
-        :param data_dict: DataDict({'encoded_inputs', ...}), where:
+        :param name_: Name of the encoder.
 
-            - encoded_input: [batch_size, input_size],
+        :param params_: Dictionary of parameters (read from configuration ``.yaml`` file).
 
-        :return: Predictions (log_probs) [batch_size, num_classes]
-
+        :param default_input_values_: Dictionary containing default_input_values.
         """
-        # get images
-        inputs = data_dict['encoded_inputs']
-        return F.log_softmax(self.linear(inputs), dim=1)
+        # Save name and params.
+        self.name = name_
+        self.params = params_
+        # Set default (empty) data definitions and default_values.
+        self.data_definitions = {}
+        self.default_values =  {}
+
+    def create_data_dict(self, data_definitions = None):
+        """
+        Returns a :py:class:`miprometheus.utils.DataDict` object with keys created on the \
+        problem data_definitions and empty values (None).
+
+        :param data_definitions: Data definitions that will be used (DEFAULT: None, meaninng that self.data_definitions will be used)
+
+        :return: new :py:class:`miprometheus.utils.DataDict` object.
+        """
+        # Use self.data_definitions as default.
+        data_definitions = data_definitions if data_definitions is not None else self.data_definitions
+
+        return DataDict({key: None for key in data_definitions.keys()})
+
+    def extend_data_dict(self, data_dict, data_definitions = None):
+        """
+        Copies and optionally extends a :py:class:`miprometheus.utils.DataDict` object by adding keys created on the \
+        problem data_definitions and empty values (None).
+
+        :param data_dict: :py:class:`miprometheus.utils.DataDict` object.
+
+        :param data_definitions: Data definitions that will be used (DEFAULT: None, meaninng that self.data_definitions will be used)
+
+        :return: new :py:class:`miprometheus.utils.DataDict` object.
+        """
+        # Use self.data_definitions as default.
+        data_definitions = data_definitions if data_definitions is not None else self.data_definitions
+
+        # Merge previous data dict with keys from data_definitions.
+        return DataDict({**data_dict, **{key: None for key in self.data_definitions.keys()} })
+
+    def extend_default_values(self, input_default_values):
+        """
+        Copies and extends list of default values.
+
+        :param default_input_values_: Dictionary containing default_input_values.
+
+        :return: Dictionary containing input defauls extended by values added by given component.
+        """
+        return {**input_default_values, **self.default_values}
+
+    def encode_sample(self, sample):
+        """
+        Method responsible for encoding of a single sample (interface).
+        """
+        pass
+
+    def decode_sample(self, encoded_sample):
+        """
+        Method responsible for decoding of a single encoded sample (interface).
+        """
+        pass    
+
+
+class BOWSentenceEncoder(Encoder):
+    """
+    Simple Bag-of-word type encoder that encodes the sentence into a vector.
+    """
+    def  __init__(self, params_, default_input_values_):
+        """
+        Initializes the bag-of-word encoded by creating dictionary mapping ALL words from training, validation and test sets into unique indices.
+
+        :param name_: Name of the encoder.
+
+        :param params_: Dictionary of parameters (read from configuration ``.yaml`` file).
+
+        :param default_input_values_: Dictionary containing default_input_values.
+        """
+        # Call base class constructor.
+        super(BOWSentenceEncoder, self).__init__('BOWSentenceEncoder', params_, default_input_values_)
+        
+        # Dummy data.
+        self.data = [("me gusta comer en la cafeteria", "SPANISH"),
+                ("Give it to me", "ENGLISH"),
+                ("No creo que sea una buena idea", "SPANISH"),
+                ("No it is not a good idea to get lost at sea", "ENGLISH")]
+
+        self.test_data = [("Yo creo que si", "SPANISH"),
+                    ("it is lost on me", "ENGLISH")]
+
+        # Dictionary word_to_ix maps each word in the vocab to a unique integer.
+        # It will later used as word index during encoding into the Bag of words vector.
+        self.word_to_ix = {}
+        for sent, _ in self.data + self.test_data:
+            for word in sent.split():
+                if word not in self.word_to_ix:
+                    self.word_to_ix[word] = len(self.word_to_ix)
+        #print(word_to_ix)
+
+        # Size of a single encoded item.
+        self.item_size = len(self.word_to_ix)
+
+        # Define the default_values dict: holds parameters values that a model may need.
+        self.default_values = {'encoded_input_size': self.item_size}
+        # Set default data_definitions dict.
+        # Encoded with BoW its is [BATCH_SIZE x VOCAB_SIZE] !
+        self.data_definitions = {'encoded_inputs': {'size': [-1, -1], 'type': [torch.Tensor]} }
+
+    def encode_batch(self, input_data_dict):
+        """
+        Encodes batch, or, in fact, only one field of bach ("sencentes").
+        Stores result in "encoded_inputs" field of output data_dict.
+
+        :param data_dict: :py:class:`miprometheus.utils.DataDict` object containing (among others):
+
+            - field "sencentes": list of samples.
+
+        :return: new :py:class:`miprometheus.utils.DataDict` object containing all inputs plus:
+
+            - field "encoded_inputs": tensor with encoded samples [BATCH_SIZE x INPUT_SIZE]
+        """
+        # Get inputs to be encoded.
+        batch = input_data_dict["sentences"]
+        encoded_batch_list = []
+        # Process samples 1 by one.
+        for sample in batch:
+            # Encode sample
+            encoded_sample = self.encode_sample(sample)
+            # Add to list plus unsqueeze batch dimension(!)
+            encoded_batch_list.append( encoded_sample.unsqueeze(0) )
+        # Concatenate batch.
+        encoded_batch = torch.cat(encoded_batch_list, dim=0)
+        # Create the returned tuple.
+        output_data_dict = self.extend_data_dict(input_data_dict)
+        output_data_dict["encoded_inputs"] = encoded_batch
+        return output_data_dict
+
+
+    def encode_sample(self, sentence):
+        """
+        Generates a bag-of-word vector of length `encoded_input_size`.
+
+        :return: torch.LongTensor [INPUT_SIZE]
+        """
+        # Create empty vector.
+        vector = torch.zeros(len(self.word_to_ix))
+        # Encode each word and add its "representation" to vector.
+        for word in sentence.split():
+            vector[self.word_to_ix[word]] += 1
+        return vector
+
+
+    def decode_sample(self, vector):
+        """
+         BoW transformation is unreversable! Thus method returns the original vector.
+        """
+        return vector
+
+class WordEncoder(Encoder):
+    """
+    Simple word encoder. Encodes a given input word into a unique index.
+    """
+    def  __init__(self, params_, default_input_values_):
+        """
+        Initializes the simple word encoded by creating dictionary mapping ALL words from training, validation and test sets into unique indices.
+
+        :param name_: Name of the encoder.
+
+        :param params_: Dictionary of parameters (read from configuration ``.yaml`` file).
+
+        :param default_input_values_: Dictionary containing default_input_values.
+        """
+        # Call base class constructor.
+        super(WordEncoder, self).__init__('WordEncoder', params_, default_input_values_)
+
+        # Dummy data.
+        self.word_to_ix = {"SPANISH": 0, "ENGLISH": 1}
+        self.ix_to_word = ["SPANISH", "ENGLISH"]
+        
+        self.num_classes = len(self.word_to_ix)
+
+        # Define the default_values dict: holds parameters values that a model may need.
+        self.default_values = {'num_classes': self.num_classes}
+        # Set default data_definitions dict.
+        self.data_definitions = {'encoded_targets': {'size': [-1, -1], 'type': [torch.Tensor]}}
+
+    def encode_batch(self, input_data_dict):
+        """
+        Encodes batch, or, in fact, only one field of bach ("targets").
+        Stores result in "encoded_inputs" field of output data_dict.
+
+        :param data_dict: :py:class:`miprometheus.utils.DataDict` object containing (among others):
+
+            - field "targets": list of words.
+
+        :return: new :py:class:`miprometheus.utils.DataDict` object containing all inputs plus:
+
+            - field "encoded_targets": tensor with encoded samples [BATCH_SIZE x 1]
+        """
+        # Get inputs to be encoded.
+        batch = input_data_dict["languages"]
+        encoded_batch_list = []
+        # Process samples 1 by one.
+        for sample in batch:
+            # Encode sample
+            encoded_sample = self.encode_sample(sample)
+            # Add to list plus unsqueeze batch dimension(!)
+            encoded_batch_list.append( encoded_sample.unsqueeze(0) )
+        # Concatenate batch.
+        encoded_batch = torch.cat(encoded_batch_list, dim=0)
+        # Create the returned tuple.
+        output_data_dict = self.extend_data_dict(input_data_dict)
+        output_data_dict["encoded_targets"] = encoded_batch
+        return output_data_dict
+
+    def encode_sample(self, word):
+        """
+        Encodes a single word.
+
+        :param word: A single word (string).
+
+        :return: torch.LongTensor [1] (i.e. tensor of size 1)
+        """
+        return torch.LongTensor([self.word_to_ix[word]])
+
+
+    def decode_sample(self, vector):
+        """
+        Decodes vector into a single word.
+        Handles with two types of inputs:
+
+            - a single index: returns the associated word.
+         
+            - a vector containing a probability distribution: returns word associated with index with with max probability.
+
+        :param vector: Single index or vector containing a probability distribution.
+
+        :return: torch.LongTensor [1] (i.e. tensor of size 1)
+        """
+        return self.ix_to_word[vector.argmax(dim=1)]
 
 
 if __name__ == "__main__":
@@ -180,7 +404,15 @@ if __name__ == "__main__":
 
     # Create problem and model.
     problem  = LanguageIdentification(params)
-    model = BoWClassifier(problem.default_values)
+    default_values = problem.default_values
+    # Input (sentence) encoder.
+    input_encoder = BOWSentenceEncoder(params, default_values)
+    default_values = input_encoder.extend_default_values(default_values)
+    # Output (word) encoder.
+    output_encoder = WordEncoder(params, default_values)
+    default_values = output_encoder.extend_default_values(default_values)
+    # Model.
+    model = SoftmaxClassifier(params, default_values)
 
     # wrap DataLoader on top of this Dataset subclass
     from torch.utils.data import DataLoader
@@ -201,6 +433,10 @@ if __name__ == "__main__":
             # We need to clear them out before each instance
             model.zero_grad()
 
+            # Encode batch.
+            batch = input_encoder.encode_batch(batch)
+            batch = output_encoder.encode_batch(batch)
+            print(batch)
 
             # Step 3. Run our forward pass.
             log_probs = model(batch)
