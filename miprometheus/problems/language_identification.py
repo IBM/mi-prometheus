@@ -15,9 +15,45 @@ from miprometheus.problems import Problem
 from miprometheus.utils.data_dict import DataDict
 
 #torch.manual_seed(1)
+class Component(object):
+    def __init__(self):
+        # Set default (empty) data definitions and default_values.
+        self.data_definitions = {}
+        self.default_values =  {}
+
+    def create_data_dict(self, data_definitions = None):
+        """
+        Returns a :py:class:`miprometheus.utils.DataDict` object with keys created on the \
+        problem data_definitions and empty values (None).
+
+        :param data_definitions: Data definitions that will be used (DEFAULT: None, meaninng that self.data_definitions will be used)
+
+        :return: new :py:class:`miprometheus.utils.DataDict` object.
+        """
+        # Use self.data_definitions as default.
+        data_definitions = data_definitions if data_definitions is not None else self.data_definitions
+
+        return DataDict({key: None for key in data_definitions.keys()})
+
+    def extend_data_dict(self, data_dict, data_definitions): #= None):
+        """
+        Copies and optionally extends a :py:class:`miprometheus.utils.DataDict` object by adding keys created on the \
+        problem data_definitions and empty values (None).
+
+        :param data_dict: :py:class:`miprometheus.utils.DataDict` object.
+
+        :param data_definitions: Data definitions that will be used (DEFAULT: None, meaninng that self.data_definitions will be used)
+
+        :return: new :py:class:`miprometheus.utils.DataDict` object.
+        """
+        # Use self.data_definitions as default.
+        #data_definitions = data_definitions if data_definitions is not None else self.data_definitions
+        for key in data_definitions.keys():
+            data_dict[key] = None
+        return data_dict
 
 
-class SoftmaxClassifier(nn.Module): 
+class SoftmaxClassifier(nn.Module, Component): 
     """
     Simple Classifier consisting of fully connected layer with log softmax non-linearity.
     """
@@ -39,22 +75,29 @@ class SoftmaxClassifier(nn.Module):
 
         # Simple classifier.
         self.linear = nn.Linear(self.input_size, self.num_classes)
+        
+        # Set default data_definitions dict.
+        # Encoded with BoW its is [BATCH_SIZE x NUM_CLASSES] !
+        self.data_definitions = {'predictions': {'size': [-1, self.num_classes], 'type': [torch.Tensor]} }
 
 
-    def forward(self, data_dict):
+    def forward(self, input_data_dict):
         """
         forward pass of the  model.
 
-        :param data_dict: DataDict({'encoded_inputs', ...}), where:
+        :param input_data_dict: DataDict({'encoded_inputs', ...}), where:
 
-            - encoded_input: [batch_size, input_size],
+            - encoded_inputs: [batch_size, input_size],
 
         :return: Predictions (log_probs) [batch_size, target_size]
 
         """
-        inputs = data_dict['encoded_inputs']
-        return F.log_softmax(self.linear(inputs), dim=1)
-
+        inputs = input_data_dict['encoded_inputs']
+        predictions = F.log_softmax(self.linear(inputs), dim=1)
+        # Add them to datadict.
+        output_data_dict = self.extend_data_dict(input_data_dict, {'predictions': None})
+        output_data_dict["predictions"] = predictions
+        return output_data_dict
 
 class LanguageIdentification(Problem):
     """
@@ -124,19 +167,23 @@ class LanguageIdentification(Problem):
         data_dict['languages'] = language
         return data_dict
 
-    def evaluate_loss(self, data_dict, logits):
+    def evaluate_loss(self, data_dict):
         """ Calculates accuracy equal to mean number of correct predictions in a given batch.
 
-        :param data_dict: DataDict containing "encoded_targets" field.
-        :param logits: Predictions (log_probs) being output of the model.
+        :param data_dict: DataDict containing:
+            - "encoded_targets": batch of targets (class indices) [BATCH_SIZE x NUM_CLASSES]
 
+            - "predictions": batch of predictions (log_probs) being outputs of the model [BATCH_SIZE x 1]
+
+        :return: loss calculated useing the loss function (negative log-likelihood).
         """
-        targets = data_dict['encoded_targets'].squeeze(dim=1)
-        loss = self.loss_function(logits, targets)
+        targets = data_dict['encoded_targets']
+        predictions = data_dict['predictions']
+        loss = self.loss_function(predictions, targets.squeeze(dim=1))
         return loss
 
 
-class Encoder(object):
+class Encoder(Component):
     """
     Default encoder class. Creates interface and provides generic methods for batch processing.
     """
@@ -153,40 +200,6 @@ class Encoder(object):
         # Save name and params.
         self.name = name_
         self.params = params_
-        # Set default (empty) data definitions and default_values.
-        self.data_definitions = {}
-        self.default_values =  {}
-
-    def create_data_dict(self, data_definitions = None):
-        """
-        Returns a :py:class:`miprometheus.utils.DataDict` object with keys created on the \
-        problem data_definitions and empty values (None).
-
-        :param data_definitions: Data definitions that will be used (DEFAULT: None, meaninng that self.data_definitions will be used)
-
-        :return: new :py:class:`miprometheus.utils.DataDict` object.
-        """
-        # Use self.data_definitions as default.
-        data_definitions = data_definitions if data_definitions is not None else self.data_definitions
-
-        return DataDict({key: None for key in data_definitions.keys()})
-
-    def extend_data_dict(self, data_dict, data_definitions = None):
-        """
-        Copies and optionally extends a :py:class:`miprometheus.utils.DataDict` object by adding keys created on the \
-        problem data_definitions and empty values (None).
-
-        :param data_dict: :py:class:`miprometheus.utils.DataDict` object.
-
-        :param data_definitions: Data definitions that will be used (DEFAULT: None, meaninng that self.data_definitions will be used)
-
-        :return: new :py:class:`miprometheus.utils.DataDict` object.
-        """
-        # Use self.data_definitions as default.
-        data_definitions = data_definitions if data_definitions is not None else self.data_definitions
-
-        # Merge previous data dict with keys from data_definitions.
-        return DataDict({**data_dict, **{key: None for key in self.data_definitions.keys()} })
 
     def extend_default_values(self, input_default_values):
         """
@@ -214,9 +227,12 @@ class Encoder(object):
 class BOWSentenceEncoder(Encoder):
     """
     Simple Bag-of-word type encoder that encodes the sentence into a vector.
+    
+    .. warning::
+        BoW transformation is inreversible, thus decode-related methods in fact return original inputs.
     """
     def  __init__(self, params_, default_input_values_):
-        """
+        """t
         Initializes the bag-of-word encoded by creating dictionary mapping ALL words from training, validation and test sets into unique indices.
 
         :param name_: Name of the encoder.
@@ -279,8 +295,8 @@ class BOWSentenceEncoder(Encoder):
             encoded_batch_list.append( encoded_sample.unsqueeze(0) )
         # Concatenate batch.
         encoded_batch = torch.cat(encoded_batch_list, dim=0)
-        # Create the returned tuple.
-        output_data_dict = self.extend_data_dict(input_data_dict)
+        # Create the returned dict.
+        output_data_dict = self.extend_data_dict(input_data_dict, {'encoded_inputs': None})
         output_data_dict["encoded_inputs"] = encoded_batch
         return output_data_dict
 
@@ -298,10 +314,15 @@ class BOWSentenceEncoder(Encoder):
             vector[self.word_to_ix[word]] += 1
         return vector
 
+    def decode_batch(self, input_data_dict):
+        """ 
+        Method returns the unchanged input data dict.
+        """ 
+        return input_data_dict
 
     def decode_sample(self, vector):
         """
-         BoW transformation is unreversable! Thus method returns the original vector.
+        Method returns the unchanged input vector.
         """
         return vector
 
@@ -331,7 +352,10 @@ class WordEncoder(Encoder):
         # Define the default_values dict: holds parameters values that a model may need.
         self.default_values = {'num_classes': self.num_classes}
         # Set default data_definitions dict.
-        self.data_definitions = {'encoded_targets': {'size': [-1, -1], 'type': [torch.Tensor]}}
+        self.data_definitions = {
+            'encoded_targets': {'size': [-1, -1], 'type': [torch.Tensor]},
+            'decoded_predictions': {'size': [-1, 1], 'type': [list, str]}
+            }
 
     def encode_batch(self, input_data_dict):
         """
@@ -348,18 +372,18 @@ class WordEncoder(Encoder):
         """
         # Get inputs to be encoded.
         batch = input_data_dict["languages"]
-        encoded_batch_list = []
+        encoded_targets_list = []
         # Process samples 1 by one.
         for sample in batch:
             # Encode sample
             encoded_sample = self.encode_sample(sample)
             # Add to list plus unsqueeze batch dimension(!)
-            encoded_batch_list.append( encoded_sample.unsqueeze(0) )
+            encoded_targets_list.append( encoded_sample.unsqueeze(0) )
         # Concatenate batch.
-        encoded_batch = torch.cat(encoded_batch_list, dim=0)
-        # Create the returned tuple.
-        output_data_dict = self.extend_data_dict(input_data_dict)
-        output_data_dict["encoded_targets"] = encoded_batch
+        encoded_targets = torch.cat(encoded_targets_list, dim=0)
+        # Create the returned dict.
+        output_data_dict = self.extend_data_dict(input_data_dict, {'encoded_targets': None})
+        output_data_dict["encoded_targets"] = encoded_targets
         return output_data_dict
 
     def encode_sample(self, word):
@@ -371,6 +395,25 @@ class WordEncoder(Encoder):
         :return: torch.LongTensor [1] (i.e. tensor of size 1)
         """
         return torch.LongTensor([self.word_to_ix[word]])
+
+    def decode_batch(self, input_data_dict):
+        """ 
+        Method returns the unchanged input data dict.
+        """ 
+        # Get inputs to be encoded.
+        predictions = input_data_dict["predictions"]
+        decoded_predictions_list = []
+        # Process samples 1 by one.
+        for sample in predictions.chunk(predictions.size(0), 0):
+            # Decode sample
+            decoded_sample = self.decode_sample(sample)
+            # Add to list plus unsqueeze batch dimension(!)
+            decoded_predictions_list.append( decoded_sample )
+
+        # Create the returned dict.
+        output_data_dict = self.extend_data_dict(input_data_dict, {'decoded_predictions': None})
+        output_data_dict["decoded_predictions"] = decoded_predictions_list
+        return output_data_dict
 
 
     def decode_sample(self, vector):
@@ -427,23 +470,27 @@ if __name__ == "__main__":
     # Usually you want to pass over the training data several times.
     # 100 is much bigger than on a real data set, but real datasets have more than
     # two instances.  Usually, somewhere between 5 and 30 epochs is reasonable.
-    for epoch in range(100):
+    for epoch in range(1000):
         for i, batch in enumerate(dataloader):
             # Step 1. Remember that PyTorch accumulates gradients.
             # We need to clear them out before each instance
             model.zero_grad()
 
-            # Encode batch.
+            # Encode inputs and targets.
             batch = input_encoder.encode_batch(batch)
             batch = output_encoder.encode_batch(batch)
-            print(batch)
 
             # Step 3. Run our forward pass.
-            log_probs = model(batch)
+            batch = model(batch)
+            
+            # Decode predictions.
+            batch = output_encoder.decode_batch(batch)
+            print(batch)
 
             # Step 4. Compute the loss, gradients, and update the parameters by
             # calling optimizer.step()
-            loss = problem.evaluate_loss(batch, log_probs)
+            loss = problem.evaluate_loss(batch)
+            print("Loss = ", loss)
 
             loss.backward()
             optimizer.step()
