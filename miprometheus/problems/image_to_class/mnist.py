@@ -157,8 +157,6 @@ class MNIST(ImageToClassProblem):
             - images: Image, resized if ``self.resize`` is set,
             - targets: Index of the target class
             - targets_label: Label of the target class (cf ``self.labels``)
-
-
         """
         # Get image and target.
         img, target = self.dataset.__getitem__(index)
