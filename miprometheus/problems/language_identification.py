@@ -485,7 +485,7 @@ if __name__ == "__main__":
             
             # Decode predictions.
             batch = output_encoder.decode_batch(batch)
-            print(batch)
+            print("targets: ", batch["languages"]," preds: " , batch["decoded_predictions"])
 
             # Step 4. Compute the loss, gradients, and update the parameters by
             # calling optimizer.step()
