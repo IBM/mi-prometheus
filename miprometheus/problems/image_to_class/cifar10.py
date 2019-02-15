@@ -215,10 +215,6 @@ if __name__ == "__main__":
     # Create problem.
     cifar10 = CIFAR10(params)
 
-    # get a sample
-    sample = cifar10[0]
-    print('__getitem__ works.\n')
-
     # wrap DataLoader on top of this Dataset subclass
     from torch.utils.data import DataLoader
 
@@ -226,15 +222,15 @@ if __name__ == "__main__":
                             batch_size=batch_size, shuffle=True, num_workers=0)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
-    import time
-    s = time.time()
-    for i, batch in enumerate(dataloader):
-        print('Batch # {} - {}'.format(i, type(batch)))
-    print('Number of workers: {}'.format(dataloader.num_workers))
-    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))
+    #import time
+    #s = time.time()
+    #for i, batch in enumerate(dataloader):
+    #    #print('Batch # {} - {}'.format(i, type(batch)))
+    #    pass
+    #print('Number of workers: {}'.format(dataloader.num_workers))
+    #print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
     batch = next(iter(dataloader))
     cifar10.show_sample(batch, 0)
 
-    print('Unit test completed')
