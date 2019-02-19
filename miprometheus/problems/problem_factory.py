@@ -82,19 +82,17 @@ class ProblemFactory(object):
 
 if __name__ == "__main__":
     """
-    Tests ProblemFactory.
+    Tests Problem Factory.
     """
     from miprometheus.utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_default_params({'name': 'SerialRecall',
-                               'control_bits': 3,
-                               'data_bits': 8,
-                               'batch_size': 1,
-                               'min_sequence_length': 1,
-                               'max_sequence_length': 10,
-                               'num_subseq_min': 1,
-                               'num_subseq_max': 5,
-                               'bias': 0.5})
+    params.add_default_params({
+        'name': 'SerialRecallCommandLines',
+        'control_bits': 3,
+        'data_bits': 8,
+        'min_sequence_length': 1,
+        'max_sequence_length': 5
+        })
 
-    problem = ProblemFactory.build_problem(params)
+    problem = ProblemFactory.build(params)
     print(type(problem))

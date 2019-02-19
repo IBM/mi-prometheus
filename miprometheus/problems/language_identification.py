@@ -6,6 +6,7 @@
 # Author: Robert Guthrie
 
 import os
+import csv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -71,6 +72,7 @@ class Component(object):
         # Use self.data_definitions as default.
         #data_definitions = data_definitions if data_definitions is not None else self.data_definitions
         for key in data_definitions.keys():
+            assert key not in data_dict.keys(), "Cannot extend DataDict, as {} already present in its keys!".format(key)
             data_dict[key] = None
 
     def extend_default_values(self, default_values):
@@ -138,7 +140,111 @@ class SoftmaxClassifier(nn.Module, Component):
         # For compatibility. TODO: remove return!
         return data_dict
 
-    
+class TokenEncoder(object):
+    """
+    Class representing 1hot (index) word encoder.
+    """
+    def __init__(self, params):
+        # Set default parameters.
+        params.add_default_params({
+            'data_folder': '~/data/language_identification',
+            'source_files': '', # Source files
+            'encodings_file': 'encodings.csv', # File containing encodings
+            'decode': False, # Mode - False: word to index, True: index to word
+            'regenerate': False # True means that it will be regenerated despite the existence of file.
+            })
+        # Read the actual configuration.
+        self.data_folder = params['data_folder']
+        self.source_files = params['source_files']
+        self.encodings_file = params['encodings_file']
+        self.mode_decode = params['decode']
+        self.mode_regenerate = params['regenerate']
+
+        # Encodings file.
+        encodings_file = os.path.expanduser(self.data_folder) + "/" + self.encodings_file
+
+        # Try to load dictionary from a file.
+        if self.mode_regenerate or not os.path.exists(encodings_file):
+            # Generate new encodings.
+            self.word_to_ix = self.create_encodings(self.data_folder, self.source_files)
+            assert (len(self.word_to_ix) > 0), "The encodings list cannot be empty!"
+            # Ok, save necodings, so next time we will simply load them.
+            self.save_encodings(self.encodings_file, self.word_to_ix)
+        else:
+            # Load encodings.
+            self.word_to_ix = self.load_encodings(self.encodings_file)
+        
+        # If dictionary is supposed to map indices to keys.
+        if self.mode_decode:
+            self.ix_to_word = dict((v,k) for k,v in self.word_to_ix.items())
+        
+        # Ok, we are ready to go!
+
+
+    def create_encodings(self, data_folder, source_files):
+        """
+        Load list of files (containing raw text) and creates a dictionary from all words (tokens).
+        Indexing starts from 0.
+
+        :return: Dictionary with mapping "word-to-index".
+        """
+        assert len(source_files) > 0, 'Cannot create dictionary: "source_files" is empty, please provide comma separated list of files to be processed'
+        # Get absolute path.
+        data_folder = os.path.expanduser(data_folder)
+
+        # Dictionary word_to_ix maps each word in the vocab to a unique integer.
+        word_to_ix = {}
+
+        for filename in source_files(','):
+            content = eval(open(data_folder+ '/' + filename).read())
+            # Parse tokens.
+            for word in content.split():
+                # If new token.
+                if word not in self.word_to_ix:
+                    word_to_ix[word] = len(word_to_ix)
+        return word_to_ix
+
+
+    def load_encodings(self, encodings_file):
+        """
+        Loads encodings from csv file.
+
+        .. warning::
+             There is an assumption that file will contain key:value pairs (no content checking for now!)
+
+        :param encodings_file: File with encodings (absolute path + filename).
+        :return: dictionary with word:index keys
+        """        
+        with open(encodings_file, mode='rb') as file:
+            # Check the presence of the header.
+            has_header = csv.Sniffer().has_header(file.read(1024))
+            file.seek(0)  # Rewind.
+            reader = csv.reader(file)
+            # Skip the header row.
+            if has_header:
+                next(reader)  
+            # Read the remaining rows.
+            encodings_dict = {rows[0]:rows[1] for rows in reader}
+        return encodings_dict
+
+
+    def save_encodings(self, encodings_file, word_to_ix):
+        """
+        Saves encodings (dictionary) to a file.
+
+        :param encodings_file: File with encodings (absolute path + filename).
+        :param word_to_ix: dictionary with word:index keys
+        """
+        with open(encodings_file, mode='w') as outfile:
+            # Create header.
+            fieldnames = ['word', 'index']
+            writer = csv.writer(outfile, fieldnames=fieldnames)
+            writer.writeheader()
+            # Write word-index pairs.
+            for (k,v) in word_to_ix:
+                writer.writerow({k : v})
+
+
 class LanguageIdentification(Problem, Component):
     """
     Language identification (classification) problem.
@@ -177,21 +283,20 @@ class LanguageIdentification(Problem, Component):
                                 # [BATCH x WORD (word as a single string)]
                                 }
 
-        # Dummy data.
-        self.data = [("me gusta comer en la cafeteria", "SPANISH"),
-                ("Give it to me", "ENGLISH"),
-                ("No creo que sea una buena idea", "SPANISH"),
-                ("No it is not a good idea to get lost at sea", "ENGLISH")]
-
-        self.test_data = [("Yo creo que si", "SPANISH"),
-                    ("it is lost on me", "ENGLISH")]
-
         # Set length.
         self.length = len(self.data)
 
         # Set loss.
         self.loss_function = nn.NLLLoss()
 
+    def generate_dummy_data(self):
+        """
+        Method generates dummy files (sentence-language) pairs (in two files).
+        Data taken from the _example.
+
+        .. _example: https://pytorch.org/tutorials/beginner/nlp/deep_learning_tutorial.html
+        """
+        
 
     def __getitem__(self, index):
         """
@@ -551,7 +656,7 @@ if __name__ == "__main__":
             
             # Decode predictions.
             output_encoder.decode_batch(batch)
-            print("sequences: {} targets: {} \t\t -> model predictions: {}".format(batch["sentences"], batch["languages"], batch["decoded_predictions"]))
+            print("sequences: {} targets: {} \t\t  -> model predictions: {}".format(batch["sentences"], batch["languages"], batch["decoded_predictions"]))
 
             # Step 4. Compute the loss, gradients, and update the parameters by
             # calling optimizer.step()
