@@ -272,6 +272,22 @@ class COG(VideoTextToClassProblem):
 		logsoftmax = nn.LogSoftmax(dim=2)
 		loss += torch.mean(torch.sum(-targets_reg * logsoftmax(logits[1]), 2))
 
+		#addition = torch.mean(torch.sum(-targets_reg * logsoftmax(logits[1]), 2))
+		#print('actual loss',addition )
+
+		#print(logits[1].type())
+		#targets_reg=targets_reg.long()
+		#print(targets_class.type())
+
+		# Pointing Loss 2
+
+		#loss2 = self.loss_function(logits[1][:, 0, :], targets_reg[:, 0]) / logits[1].size(1)
+		#for i in range(1, logits[1].size(1)):
+		#	loss2 += self.loss_function(logits[1][:, i, :], targets_reg[:, i]) / logits[1].size(1)
+
+		#print('new loss',loss2)
+
+
 		return loss
 
 	def calculate_accuracy(self, data_dict, logits):
@@ -439,12 +455,15 @@ class COG(VideoTextToClassProblem):
 		data_dict['images']	= images
 		data_dict['tasks']	= self.dataset[index]['family']
 		data_dict['questions'] = [self.dataset[index]['question']]
+		data_dict['questions_string'] = [self.dataset[index]['question']]
 		data_dict['questions'] = torch.LongTensor([self.input_vocab.index(word) for word in data_dict['questions'][0].split()])
 		if(data_dict['questions'].size(0) <= self.nwords):
 			prev_size = data_dict['questions'].size(0)
 			data_dict['questions'].resize_(self.nwords)
 			data_dict['questions'][prev_size:] = 0
 		answers = self.dataset[index]['answers']
+		data_dict['answers_string'] = self.dataset[index]['answers']
+
 		if data_dict['tasks'] in self.classification_tasks:
 			#data_dict['targets_reg']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
 			#data_dict['targets_reg'] = np.array([[-10,-10] for target in answers])
@@ -487,6 +506,8 @@ class COG(VideoTextToClassProblem):
 		data_dict['images'] = torch.stack([image['images'] for image in batch]).type(torch.FloatTensor)
 		data_dict['tasks']  = [task['tasks'] for task in batch]
 		data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.LongTensor)
+		data_dict['questions_string'] = [question['questions_string'] for question in batch]
+		data_dict['answers_string'] = [answer['answers_string'] for answer in batch]
 		data_dict['targets_reg'] = torch.stack([reg['targets_reg'] for reg in batch]).type(torch.FloatTensor)
 		data_dict['targets_class'] = torch.stack([tgclassif['targets_class'] for tgclassif in batch]).type(torch.LongTensor)
 		#data_dict['targets'] = torch.stack([target['targets'] for target in batch])

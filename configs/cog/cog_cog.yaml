@@ -19,7 +19,7 @@ training:
  terminal_conditions:
   epoch_limit: 40
   episodes: 100000000
- partial_validation_interval: 100
+ partial_validation_interval: 10
 
 testing:
  cuda: True
@@ -43,7 +43,7 @@ validation:
   set: val
   use_mask: False
   dataset_type: canonical
-partial_validation_interval: 100
+partial_validation_interval: 10
 
 model:
  name: MACNetwork
@@ -53,7 +53,7 @@ model:
  self_attention: False
  memory_gate: False
  dropout: 0.15
- memory_pass: False
- control_pass: False
+ memory_pass: True
+ control_pass: True
 
 

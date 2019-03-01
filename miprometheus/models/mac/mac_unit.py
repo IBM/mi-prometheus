@@ -202,4 +202,4 @@ class MACUnit(Module):
                 self.cell_state_history.append(
                     (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach()))
 
-        return memory, controls, memories
+        return memory, controls, memories , self.cell_state_history

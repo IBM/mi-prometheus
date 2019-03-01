@@ -52,6 +52,7 @@ __author__ = "Vincent Marois , Vincent Albouy"
 import os
 import nltk
 import torch
+import matplotlib.pylab
 import numpy as np
 from PIL import Image
 from torchvision import transforms
@@ -153,6 +154,9 @@ class MACNetwork(Model):
 
         # LSTM hidden units.
         self.lstm_hidden_units = 64
+
+        #history states
+        self.cell_states=[]
 
         # Input Image size
         self.image_size = [112, 112]
@@ -270,7 +274,10 @@ class MACNetwork(Model):
             questions, questions_length, x)
 
             # recurrent MAC cells
-            memory, controls, memories = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass )
+            memory, controls, memories, state_history = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass )
+
+
+            self.cell_states.append(state_history)
 
             targets_reg = data_dict['targets_reg']
             targets_class = data_dict['targets_class']
@@ -282,7 +289,7 @@ class MACNetwork(Model):
             logits_pointing[:,i,:] = self.output_unit_pointing(memory, h)
 
 
-        return logits.cuda(), logits_pointing.cuda()
+        return logits, logits_pointing
 
     @staticmethod
     def generate_figure_layout():
@@ -418,7 +425,7 @@ class MACNetwork(Model):
         self.cnn_linear1 = nn.Linear(layer_channels[3] * output_shape[0] * output_shape[1], 128)
 
 
-    def plot(self, data_dict, logits, sample=0):
+    def plot(self, data_dict, logits, sample=34):
         """
         Visualize the attention weights (``ControlUnit`` & ``ReadUnit``) on the \
         question & feature maps. Dynamic visualization throughout the reasoning \
@@ -449,98 +456,122 @@ class MACNetwork(Model):
 
         # unpack data_dict
         s_questions = data_dict['questions_string']
-        question_type = data_dict['questions_type']
-        answer_string = data_dict['targets_string']
-        imgfiles = data_dict['imgfiles']
-        prediction_string = data_dict['predictions_string']
-        clevr_dir = data_dict['clevr_dir']
+        s_answers = data_dict['answers_string']
+        #question_type = data_dict['questions_type']
+        #answer_string = data_dict['questions']
+        images= data_dict['images']
+        tasks= data_dict['tasks']
+        tasks=tasks[sample]
+        #imgfiles = data_dict['imgfiles']
+        #prediction_string = data_dict['predictions_string']
+        #clevr_dir = data_dict['clevr_dir']
 
         # needed for nltk.word.tokenize
         nltk.download('punkt')
         # tokenize question string using same processing as in the problem
         # class
-        words = nltk.word_tokenize(s_questions[sample])
-
+        #print(s_questions.type())
+        words=s_questions[sample][0]
+        words = nltk.word_tokenize(words)
         # Create figure template.
         fig = self.generate_figure_layout()
         # Get axes that artists will draw on.
         (ax_image, ax_attention_image, ax_attention_question, ax_step) = fig.axes
 
         # get the image
-        set = imgfiles[sample].split('_')[1]
-        image = os.path.join(clevr_dir, 'images', set, imgfiles[sample])
-        image = Image.open(image).convert('RGB')
-        image = self.transform(image)
-        image = image.permute(1, 2, 0)  # [300, 300, 3]
-
-        # get most probable answer -> prediction of the network
-        proba_answers = torch.nn.functional.softmax(logits, -1)
-        proba_answer = proba_answers[sample].detach().cpu()
-        proba_answer = proba_answer.max().numpy()
-
-        # image & attention sizes
-        width = image.size(0)
-        height = image.size(1)
+        #set = imgfiles[sample].split('_')[1]
+        #image = os.path.join(clevr_dir, 'images', set, images)
+        #image = Image.open(image).convert('RGB')
+        #image = self.transform(image)
+        #image = image.permute(1, 2, 0)  # [300, 300, 3]
 
         frames = []
-        for step, (attention_mask, attention_question) in zip(
-                range(self.max_step), self.mac_unit.cell_state_history):
-            # preprocess attention image, reshape
-            attention_size = int(np.sqrt(attention_mask.size(-1)))
-            # attention mask has size [batch_size x 1 x(H*W)]
-            attention_mask = attention_mask.view(-1, 1, attention_size, attention_size)
 
-            # upsample attention mask
-            m = torch.nn.Upsample(
-                size=[width, height], mode='bilinear', align_corners=True)
-            up_sample_attention_mask = m(attention_mask)
-            attention_mask = up_sample_attention_mask[sample, 0]
+        for i in range(images.size(1)):
+            print('enter')
 
-            # preprocess question, pick one sample number
-            attention_question = attention_question[sample]
+            image = images[sample][i]
+            answer = s_answers[sample][i]
+            image = image.permute(1, 2, 0)
 
-            # Create "Artists" drawing data on "ImageAxes".
-            num_artists = len(fig.axes) + 1
-            artists = [None] * num_artists
+            # get most probable answer -> prediction of the network
+            # proba_answers = torch.nn.functional.softmax(logits, -1)
+            # proba_answer = proba_answers[sample].detach().cpu()
+            # proba_answer = proba_answer.max().numpy()
 
-            # set title labels
-            ax_image.set_title(
-                'CLEVR image: {}'.format(imgfiles[sample]))
-            ax_attention_question.set_xticklabels(
-                ['h'] + words, rotation='vertical', fontsize=10)
-            ax_step.axis('off')
+            # image & attention sizes
 
-            # set axis attention labels
-            ax_attention_image.set_title(
-                'Predicted Answer: ' + prediction_string[sample] +
-                ' [ proba: ' + str.format("{0:.3f}", proba_answer) + ']  ' +
-                'Ground Truth: ' + answer_string[sample])
 
-            # Tell artists what to do:
-            artists[0] = ax_image.imshow(
-                image, interpolation='nearest', aspect='auto')
-            artists[1] = ax_attention_image.imshow(
-                image, interpolation='nearest', aspect='auto')
-            artists[2] = ax_attention_image.imshow(
-                attention_mask,
-                interpolation='nearest',
-                aspect='auto',
-                alpha=0.5,
-                cmap='Reds')
-            artists[3] = ax_attention_question.imshow(
-                attention_question.transpose(1, 0),
-                interpolation='nearest', aspect='auto', cmap='Reds')
-            artists[4] = ax_step.text(
-                0, 0.5, 'Reasoning step index: ' + str(step) + ' | Question type: ' + question_type[sample],
-                fontsize=15)
+            width = images.size(3)
+            height = images.size(4)
 
-            # Add "frame".
-            frames.append(artists)
+            for step, (attention_mask, attention_question) in zip(
+                   range(self.max_step), self.cell_states[i]):
 
-        # Plot figure and list of frames.
+
+
+
+                # preprocess attention image, reshape
+                attention_size = int(np.sqrt(attention_mask.size(-1)))
+                # attention mask has size [batch_size x 1 x(H*W)]
+                attention_mask = attention_mask.view(-1, 1, attention_size, attention_size)
+
+                # upsample attention mask
+                m = torch.nn.Upsample(
+                    size=[width, height], mode='bilinear', align_corners=True)
+                up_sample_attention_mask = m(attention_mask)
+                attention_mask = up_sample_attention_mask[sample, 0]
+
+
+
+                # preprocess question, pick one sample number
+                attention_question = attention_question[sample]
+
+                # Create "Artists" drawing data on "ImageAxes".
+                num_artists = len(fig.axes) + 1
+                artists = [None] * num_artists
+
+                # set title labels
+                ax_image.set_title(
+                    'COG image:')
+                ax_attention_question.set_xticklabels(
+                    ['h'] + words, rotation='vertical', fontsize=10)
+                ax_step.axis('off')
+
+                #set axis attention labels
+                ax_attention_image.set_title(
+                    'Predicted Answer: '  +
+                    'Ground Truth: ' )
+
+                # Tell artists what to do:
+                artists[0] = ax_image.imshow(
+                    image, interpolation='nearest', aspect='auto')
+                artists[1] = ax_attention_image.imshow(
+                    image, interpolation='nearest', aspect='auto')
+                artists[2] = ax_attention_image.imshow(
+                    attention_mask,
+                    interpolation='nearest',
+                    aspect='auto',
+                    alpha=0.5,
+                    cmap='Reds')
+                artists[3] = ax_attention_question.imshow(
+                    attention_question.transpose(1, 0),
+                    interpolation='nearest', aspect='auto', cmap='Reds')
+                artists[4] = ax_step.text(
+                    0, 0.5, 'Reasoning step index: ' + str(step) + ' | Question type: ' + tasks,
+                    fontsize=15)
+
+                # Add "frame".
+                frames.append(artists)
+
+            # Plot figure and list of frames.
         self.plotWindow.update(fig, frames)
 
-        return self.plotWindow.is_closed
+            # return self.plotWindow.is_closed
+
+
+
+
 
 
     def get_dropout_mask(self, x, dropout):
@@ -600,7 +631,7 @@ if __name__ == '__main__':
     #clevr_dataset = CLEVR(problem_params)
    # print('Problem {} instantiated.'.format(clevr_dataset.name))
 
-    tasks = ['GoColor']
+    tasks = ['Exist']
     params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'),
                               'set': 'val',
                               'dataset_type': 'canonical',
@@ -610,10 +641,16 @@ if __name__ == '__main__':
     cog_dataset = COG(params)
 
     # Get a sample - Go
-    sample = cog_dataset[0]
+    sample = cog_dataset[12]
     #print(repr(sample))
-    print(sample['images'].size())
-    print('hello')
+    #print(sample['images'][0][0].size())
+    #matplotlib.pyplot.imshow(sample['images'][0][0])
+    #matplotlib.pyplot.show()
+    #print(sample['questions_string'])
+
+    #print('hello')
+
+    #exit()
 
 
 
@@ -645,10 +682,11 @@ if __name__ == '__main__':
 
         print('Sample # {} - {}'.format(i_batch, sample['images'].shape), type(sample))
         logits = model(sample)
-        print()
         #print('logits  of size :', logits.size())
         loss=cog_dataset.evaluate_loss(sample,logits)
         acc=cog_dataset.calculate_accuracy(sample,logits)
+
+        plot=model.plot(sample,logits)
         #cog_dataset.get_acc_per_family(sample, logits)
         print(loss)
         print(acc)
