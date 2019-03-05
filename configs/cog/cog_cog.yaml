@@ -7,7 +7,7 @@ training:
   batch_size: 48
   tasks: &task all
   data_folder: '~/data/cog'
-  set: val
+  set: train 
   use_mask: False
   dataset_type: canonical
   # Set optimizer.
@@ -55,5 +55,4 @@ model:
  dropout: 0.15
  memory_pass: False
  control_pass: False
-
 

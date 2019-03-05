@@ -302,7 +302,7 @@ class COG(VideoTextToClassProblem):
 
 		targets_reg = data_dict['targets_reg']
 		targets_class = data_dict['targets_class']
-
+		targets_reg=targets_reg.cpu()
 
 		# Classification Accuracy ###############################################
 		values, indices = torch.max(logits[0], 2)
@@ -326,7 +326,7 @@ class COG(VideoTextToClassProblem):
 		#technique1
 
 
-		correctp = max_logits * threshold_target.byte()
+		correctp = max_logits.cpu() * threshold_target.byte()
 		non_zero=torch.nonzero(correctp)
 		# Committing a minor inaccuracy here
 		correct += non_zero.size(0)
