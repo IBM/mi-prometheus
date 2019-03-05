@@ -270,7 +270,7 @@ class MACNetwork(Model):
             questions, questions_length, x)
 
             # recurrent MAC cells
-            memory, controls, memories = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory )
+            memory, controls, memories = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory)
 
             targets_reg = data_dict['targets_reg']
             targets_class = data_dict['targets_class']
@@ -570,8 +570,8 @@ if __name__ == '__main__':
     dim = 128
     embed_hidden = 64
     max_step = 12
-    self_attention = True
-    memory_gate = True
+    self_attention = False
+    memory_gate = False
     nb_classes = 28
     dropout = 0.15
 
@@ -624,7 +624,7 @@ if __name__ == '__main__':
 
     model_params = ParamInterface()
     model_params.add_config_params({'dim': dim,
-                                    'memory_pass' : False,
+                                    'memory_pass' : True,
                                     'control_pass' : False,
                                     'embed_hidden': embed_hidden,
                                     'max_step': 12,

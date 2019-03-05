@@ -145,7 +145,6 @@ class MACUnit(Module):
         """
         batch_size = question.size(0)
 
-
         if not control_pass:
 
             controls = [control]
@@ -166,8 +165,8 @@ class MACUnit(Module):
                 ctrl_state=control)
 
             # apply variational dropout
-            if self.training:
-                control = control * control_mask
+            #if self.training:
+            #    control = control * control_mask
 
             # save new control state
             controls.append(control)
@@ -181,11 +180,12 @@ class MACUnit(Module):
                                 read_vector=read, ctrl_states=controls)
 
             # apply variational dropout
-            if self.training:
-                memory = memory * memory_mask
+            #if self.training:
+            #   memory = memory * memory_mask
 
             # save new memory state
             memories.append(memory)
+
 
             # store attention weights for visualization
             if app_state.visualize:
