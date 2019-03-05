@@ -299,12 +299,12 @@ class COG(VideoTextToClassProblem):
 		values, hard_targets = torch.max(targets_reg, 2)
 		y = torch.zeros(48, 4, 49)
 		z = torch.ones(48, 4, 49)
-		threshold_target = torch.where(targets_reg > 0.000001, z, y)
+		threshold_target = torch.where(targets_reg.cpu() > 0.000001, z, y)
 
 		# print(threshold_target)
 		#values, indices = torch.max(logits[1],2)
 
-		view=logits[1].view(-1,49)
+		view=logits[1].view(-1,49).cpu()
 		max_logits=(view == view.max(dim=1, keepdim=True)[0]).view_as(logits[1])
 
 		#technique1

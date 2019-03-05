@@ -270,7 +270,7 @@ class MACNetwork(Model):
             questions, questions_length, x)
 
             # recurrent MAC cells
-            memory, controls, memories = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass )
+            memory, controls, memories = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory )
 
             targets_reg = data_dict['targets_reg']
             targets_class = data_dict['targets_class']

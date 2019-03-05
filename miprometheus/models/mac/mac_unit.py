@@ -125,7 +125,7 @@ class MACUnit(Module):
 
         return mask
 
-    def forward(self, context, question, knowledge, kb_proj, controls, memories, control_pass, memory_pass ):
+    def forward(self, context, question, knowledge, kb_proj, controls, memories, control_pass, memory_pass, control, memory ):
         """
         Forward pass of the ``MACUnit``, which represents the recurrence over the \
         MACCell.
@@ -145,16 +145,6 @@ class MACUnit(Module):
         """
         batch_size = question.size(0)
 
-        # expand the hidden states to whole batch
-        control = self.control_0.expand(batch_size, self.dim)
-        memory = self.mem_0.expand(batch_size, self.dim)
-
-        # apply variational dropout during training
-        if self.training:  # TODO: check
-            control_mask = self.get_dropout_mask(control, self.dropout)
-            memory_mask = self.get_dropout_mask(memory, self.dropout)
-            control = control * control_mask
-            memory = memory * memory_mask
 
         if not control_pass:
 
