@@ -462,6 +462,7 @@ class COG(VideoTextToClassProblem):
 			data_dict['questions'].resize_(self.nwords)
 			data_dict['questions'][prev_size:] = 0
 		answers = self.dataset[index]['answers']
+
 		data_dict['answers_string'] = self.dataset[index]['answers']
 
 		if data_dict['tasks'] in self.classification_tasks:
@@ -488,6 +489,8 @@ class COG(VideoTextToClassProblem):
 		np.nan_to_num(soft_targets,copy=False)
 		data_dict['targets_reg'] = self.app_state.FloatTensor(soft_targets)
 
+		data_dict['vocab']=self.output_vocab
+
 
 		return data_dict
 
@@ -511,6 +514,7 @@ class COG(VideoTextToClassProblem):
 		data_dict['targets_reg'] = torch.stack([reg['targets_reg'] for reg in batch]).type(torch.FloatTensor)
 		data_dict['targets_class'] = torch.stack([tgclassif['targets_class'] for tgclassif in batch]).type(torch.LongTensor)
 		#data_dict['targets'] = torch.stack([target['targets'] for target in batch])
+		data_dict['vocab'] = self.output_vocab
 
 		return data_dict
 

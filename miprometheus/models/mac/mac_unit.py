@@ -92,11 +92,6 @@ class MACUnit(Module):
         self.write = WriteUnit(
             dim=dim, self_attention=self_attention, memory_gate=memory_gate)
 
-        # initialize hidden states
-        self.mem_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
-        self.control_0 = torch.nn.Parameter(
-            torch.zeros(1, dim).type(app_state.dtype))
-
         self.dim = dim
         self.max_step = max_step
         self.dropout = dropout
@@ -125,7 +120,7 @@ class MACUnit(Module):
 
         return mask
 
-    def forward(self, context, question, knowledge, kb_proj, controls, memories, control_pass, memory_pass ):
+    def forward(self, context, question, knowledge, kb_proj, controls, memories, control_pass, memory_pass, control, memory):
         """
         Forward pass of the ``MACUnit``, which represents the recurrence over the \
         MACCell.
@@ -145,9 +140,6 @@ class MACUnit(Module):
         """
         batch_size = question.size(0)
 
-        # expand the hidden states to whole batch
-        control = self.control_0.expand(batch_size, self.dim)
-        memory = self.mem_0.expand(batch_size, self.dim)
 
         # apply variational dropout during training
         if self.training:  # TODO: check
@@ -163,6 +155,8 @@ class MACUnit(Module):
         if not memory_pass:
 
             memories = [memory]
+
+        self.cell_state_history=[]
 
 
         # main loop of recurrence over the MACCell
@@ -203,3 +197,5 @@ class MACUnit(Module):
                     (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach()))
 
         return memory, controls, memories , self.cell_state_history
+
+

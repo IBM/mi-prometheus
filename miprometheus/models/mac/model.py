@@ -57,6 +57,7 @@ import numpy as np
 from PIL import Image
 from torchvision import transforms
 from miprometheus.models.model import Model
+from miprometheus.problems.seq_to_seq.video_text_to_class.cog.cog import COG
 import numpy as numpy
 import torch.nn as nn
 from miprometheus.utils.app_state import AppState
@@ -274,7 +275,7 @@ class MACNetwork(Model):
             questions, questions_length, x)
 
             # recurrent MAC cells
-            memory, controls, memories, state_history = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass )
+            memory, controls, memories, state_history = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass,control,memory )
 
 
             self.cell_states.append(state_history)
@@ -454,17 +455,22 @@ class MACNetwork(Model):
             from miprometheus.utils.time_plot import TimePlot
             self.plotWindow = TimePlot()
 
+
         # unpack data_dict
         s_questions = data_dict['questions_string']
         s_answers = data_dict['answers_string']
+
+        answer_string = s_answers[sample]
+        vocab = data_dict ['vocab']
         #question_type = data_dict['questions_type']
         #answer_string = data_dict['questions']
         images= data_dict['images']
         tasks= data_dict['tasks']
         tasks=tasks[sample]
-        #imgfiles = data_dict['imgfiles']
-        #prediction_string = data_dict['predictions_string']
-        #clevr_dir = data_dict['clevr_dir']
+
+        #prediction
+        values, indices = torch.max(logits[0], 2)
+        prediction=indices[sample]
 
         # needed for nltk.word.tokenize
         nltk.download('punkt')
@@ -478,37 +484,30 @@ class MACNetwork(Model):
         # Get axes that artists will draw on.
         (ax_image, ax_attention_image, ax_attention_question, ax_step) = fig.axes
 
-        # get the image
-        #set = imgfiles[sample].split('_')[1]
-        #image = os.path.join(clevr_dir, 'images', set, images)
-        #image = Image.open(image).convert('RGB')
-        #image = self.transform(image)
-        #image = image.permute(1, 2, 0)  # [300, 300, 3]
-
         frames = []
 
         for i in range(images.size(1)):
             print('enter')
 
             image = images[sample][i]
-            answer = s_answers[sample][i]
             image = image.permute(1, 2, 0)
-
-            # get most probable answer -> prediction of the network
-            # proba_answers = torch.nn.functional.softmax(logits, -1)
-            # proba_answer = proba_answers[sample].detach().cpu()
-            # proba_answer = proba_answer.max().numpy()
-
-            # image & attention sizes
-
-
             width = images.size(3)
             height = images.size(4)
 
+            if type(vocab[prediction[i]])==str:
+                pred = vocab[prediction[i]]
+            else:
+                pred = 'pointing_task'
+
+            if type(answer_string[i])==str:
+                ans = vocab[prediction[i]]
+            else:
+                ans = 'pointing_task'
+
+
+
             for step, (attention_mask, attention_question) in zip(
                    range(self.max_step), self.cell_states[i]):
-
-
 
 
                 # preprocess attention image, reshape
@@ -538,10 +537,6 @@ class MACNetwork(Model):
                     ['h'] + words, rotation='vertical', fontsize=10)
                 ax_step.axis('off')
 
-                #set axis attention labels
-                ax_attention_image.set_title(
-                    'Predicted Answer: '  +
-                    'Ground Truth: ' )
 
                 # Tell artists what to do:
                 artists[0] = ax_image.imshow(
@@ -558,8 +553,10 @@ class MACNetwork(Model):
                     attention_question.transpose(1, 0),
                     interpolation='nearest', aspect='auto', cmap='Reds')
                 artists[4] = ax_step.text(
-                    0, 0.5, 'Reasoning step index: ' + str(step) + ' | Question type: ' + tasks,
+                    0, 0.5, 'Reasoning step index: ' + str(step) + ' | Question type: ' + tasks + '         ' + 'Predicted Answer: '   + pred + '  ' +
+                    'Ground Truth: ' + ans ,
                     fontsize=15)
+
 
                 # Add "frame".
                 frames.append(artists)
@@ -685,8 +682,8 @@ if __name__ == '__main__':
         #print('logits  of size :', logits.size())
         loss=cog_dataset.evaluate_loss(sample,logits)
         acc=cog_dataset.calculate_accuracy(sample,logits)
-
-        plot=model.plot(sample,logits)
+        vocab=cog_dataset.output_vocab
+        plot=model.plot(sample,logits,vocab)
         #cog_dataset.get_acc_per_family(sample, logits)
         print(loss)
         print(acc)
