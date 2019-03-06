@@ -165,11 +165,13 @@ class MACUnit(Module):
                 ctrl_state=control)
 
             # apply variational dropout
-            #if self.training:
-            #    control = control * control_mask
+            control_mask = self.get_dropout_mask(control, self.dropout)
+
+            control = control * control_mask
 
             # save new control state
             controls.append(control)
+
 
             # read unit
             read = self.read(memory_states=memories, knowledge_base=knowledge,
@@ -180,8 +182,9 @@ class MACUnit(Module):
                                 read_vector=read, ctrl_states=controls)
 
             # apply variational dropout
-            #if self.training:
-            #   memory = memory * memory_mask
+
+            memory_mask=self.get_dropout_mask(memory, self.dropout)
+            memory = memory * memory_mask
 
             # save new memory state
             memories.append(memory)
