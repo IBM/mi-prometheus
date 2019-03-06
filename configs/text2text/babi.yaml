@@ -1,0 +1,59 @@
+training:
+    problem:
+        name: &name BABI
+        batch_size: &b 1
+        data_type: train
+        embedding_type: glove.6B.100d
+        embedding_size: 50
+        use_mask : false
+        joint_all: true
+        one_hot_embedding: true
+        tasks: [1, 2, 3]
+        ten_thousand_examples: true
+        truncation_length: 50
+        directory : ./
+
+
+    gradient_clipping: 20
+
+    seed_numpy: 847055145
+    seed_torch: 697881609
+
+    optimizer:
+        name: RMSprop
+        lr: 0.0001
+
+    # settings parameters
+    terminal_conditions:
+      loss_stop: 1.0e-2
+      epoch_limit: 100
+
+validation:
+      problem:
+          name: *name
+          batch_size: *b
+          data_type: valid
+          embedding_type: glove.6B.100d
+          joint_all: true
+          one_hot_embedding: true
+          tasks: [1, 2, 3]
+          ten_thousand_examples: true
+          truncation_length : 50
+
+testing:
+    problem:
+        name: *name
+        batch_size: *b
+        data_type: test
+        embedding_type: glove.6B.100d
+        joint_all: true
+        one_hot_embedding: true
+        tasks: [1, 2, 3]
+        ten_thousand_examples: true
+        truncation_length : 50
+
+model:
+    name: LSTM
+    # Hidden state.
+    hidden_state_size: 256
+    num_layers: 1

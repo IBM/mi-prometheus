@@ -20,10 +20,12 @@ seq_to_seq_problem.py: contains base class for all sequence to sequence problems
 
 """
 
-__author__ = "Tomasz Kornuta & Vincent Marois"
+__author__ = "Tomasz Kornuta & Vincent Marois & Vincent Albouy"
 
 from miprometheus.problems.problem import Problem
 import torch
+
+
 
 
 class SeqToSeqProblem(Problem):
@@ -73,6 +75,9 @@ class SeqToSeqProblem(Problem):
             loss = self.loss_function(logits, data_dict['targets'])
 
         return loss
+
+
+
 
 
 if __name__ == '__main__':

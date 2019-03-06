@@ -51,6 +51,7 @@ import re
 import torch
 import torch.nn as nn
 from miprometheus.problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
+from miprometheus.utils.app_state import AppState
 
 # global tokens
 PAD_token = 0
@@ -326,6 +327,85 @@ class TextToTextProblem(SeqToSeqProblem):
         """
         return [self.tensors_from_pair(pair, input_lang, output_lang) for pair in pairs]
 
+    def to_dictionary_indexes(self, dictionary, sentence):
+        """
+        Outputs indexes of the dictionary corresponding to the words in the sequence.
+        Case insensitive.
+        """
+
+        idxs = torch.tensor([dictionary[w.lower()] for w in sentence]).type(AppState().LongTensor)
+        return idxs
+
+    def indices_to_words(self, int_sentence):
+
+        sentences = []
+        for ind in int_sentence[0, :]:
+            sentences.append(self.itos_dict[ind])
+        return sentences
+
+    def embed_sentence_one_hot(self, sentence):
+        """
+        Embed an entire sentence using a pretrained embedding
+        :param sentence: A string containing the words to embed
+        :returns: FloatTensor of embedded vectors [max_sentence_length, embedding size]
+        """
+        size_hot = len(self.dictionaries)
+        outsentence = torch.zeros((len(sentence.split(" ")), size_hot))
+        # for key, value in self.dictionaries.items():
+        #    print(key, value)
+
+        # print(size_hot)
+        # embed a word at a time
+        for i, word in enumerate(sentence.split(" ")):
+            if not word.lower() == self.pad_token:
+                index = self.dictionaries[word.lower()]
+                # print(index, word)
+                outsentence[i, index] = 1
+                # print(outsentence[i,:])
+
+        return outsentence
+
+        # Change name to embed sentence
+
+    def embed_batch(self, minibatch):
+
+        ex = minibatch
+        sentence = " ".join(ex)
+
+        if self.one_hot_embedding:
+            sent_embed = self.embed_sentence_one_hot(sentence)
+        else:
+            sent_embed = self.language.embed_sentence(sentence)
+
+        return sent_embed
+
+    def tokenize(self, sentence):
+        return sentence.split(' ')
+
+        # list to string
+
+    def detokenize_story(self, minibatch):
+        a = []
+        for ex in minibatch:
+            b = []
+            # print(ex)
+            for sentence in ex:
+                b.append(" ".join(sentence))
+            a.append(b)
+        return a
+
+        # string to list
+
+    def tokenize_story(self, minibatch):
+        a = []
+        for ex in minibatch:
+            b = []
+            # print(ex)
+            for sentence in ex:
+                b.append(self.tokenize(sentence))
+            a.append(b)
+        return a
+
 
 class Lang(object):
     """
@@ -395,3 +475,5 @@ class Lang(object):
 
         else:  # this word has been seen before, simply update its occurrence
             self.word2count[word] += 1
+
+
