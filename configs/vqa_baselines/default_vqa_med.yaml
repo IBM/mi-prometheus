@@ -1,0 +1,46 @@
+training:
+    # Problem parameters:
+    problem:
+        name: &name VQAMED
+        batch_size: 64
+        questions:
+            embedding_type: random
+            embedding_dim: 300
+        settings:
+            data_folder: '/raid/data/cshivade/project_resources/radvisdial/imageclef_vqa_2019/ImageClef-2019-VQA-Med-Training'
+            split: 'train'
+    # Set optimizer.
+    optimizer:
+        name: Adam
+        lr: 0.005
+    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
+    gradient_clipping: 10
+    # Terminal condition parameters:
+    terminal_conditions:
+        loss_stop: 0.0001
+        episode_limit: 100000
+        epoch_limit: 20
+
+
+validation:
+    # Problem parameters:
+    problem:
+        name: *name
+        batch_size: 64
+        questions:
+            embedding_type: random
+            embedding_dim: 300
+        settings:
+            data_folder: '/raid/data/cshivade/project_resources/radvisdial/imageclef_vqa_2019/ImageClef-2019-VQA-Med-Validation'
+            split: 'valid'
+
+model:
+    name: CNN_LSTM
+    use_question_encoding: True
+    lstm:
+        hidden_size: 64
+        num_layers: 1
+        bidirectional: False
+        dropout: 0
+    classifier:
+        nb_hidden_nodes: 256
