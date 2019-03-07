@@ -249,6 +249,12 @@ class COG(VideoTextToClassProblem):
 		self.categories_stats = dict(zip(self.categories, self.tuple_list))
 
 
+		#Intitlize counters aggregator for accuracy
+
+		self.correct_total= 0
+
+		self.total_total = 0
+
 
 	def evaluate_loss(self, data_dict, logits):
 		""" Calculates accuracy equal to mean number of correct predictions in a given batch.
@@ -299,7 +305,8 @@ class COG(VideoTextToClassProblem):
 		values, hard_targets = torch.max(targets_reg, 2)
 		y = torch.zeros(48, 4, 49)
 		z = torch.ones(48, 4, 49)
-		threshold_target = torch.where(targets_reg.cpu() > 0.000001, z, y)
+		#threshold_target = torch.where(targets_reg.cpu() > 0.000001, z, y)
+		threshold_target = torch.where(targets_reg.cpu() > 0.001, z, y)
 
 		# print(threshold_target)
 		#values, indices = torch.max(logits[1],2)
@@ -312,11 +319,17 @@ class COG(VideoTextToClassProblem):
 
 		correctp = max_logits * threshold_target.byte()
 		non_zero=torch.nonzero(correctp)
+		print(threshold_target)
 		# Committing a minor inaccuracy here
 		correct += non_zero.size(0)
 		total += hard_targets.numel() - (hard_targets == 0).sum().item()
 
-		return correct/total
+		self.correct_total += correct
+		self.total_total  += total
+
+		#return correct/total
+		return self.correct_total / self.total_total
+
 
 	def get_acc_per_family(self, data_dict, logits):
 		"""
