@@ -165,9 +165,9 @@ class MACUnit(Module):
                 ctrl_state=control)
 
             # apply variational dropout
-            control_mask = self.get_dropout_mask(control, self.dropout)
+            #control_mask = self.get_dropout_mask(control, self.dropout)
 
-            control = control * control_mask
+            #control = control * control_mask
 
             # save new control state
             controls.append(control)
@@ -183,8 +183,8 @@ class MACUnit(Module):
 
             # apply variational dropout
 
-            memory_mask=self.get_dropout_mask(memory, self.dropout)
-            memory = memory * memory_mask
+            #memory_mask=self.get_dropout_mask(memory, self.dropout)
+            #memory = memory * memory_mask
 
             # save new memory state
             memories.append(memory)

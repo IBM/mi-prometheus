@@ -26,7 +26,7 @@ testing:
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
-  batch_size: 64
+  batch_size: 48
   tasks: *task
   data_folder: '~/data/cog'
   set: test
@@ -49,7 +49,7 @@ model:
  name: MACNetwork
  dim: 128
  embed_hidden: 64
- max_step: 8
+ max_step: 12
  self_attention: False
  memory_gate: False
  dropout: 0.15
