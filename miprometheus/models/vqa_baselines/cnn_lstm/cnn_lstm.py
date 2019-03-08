@@ -92,14 +92,15 @@ class CNN_LSTM(Model):
         try:
             self.height = problem_default_values_['height']
             self.width = problem_default_values_['width']
-            self.num_channels = problem_default_values_['num_channels']  # number of channels
+            self.num_channels = problem_default_values_['depth']  # number of channels
 
-            self.question_encoding_size = problem_default_values_['question_size']
+            self.question_encoding_size = problem_default_values_['question_encoding_size']
 
             self.nb_classes = problem_default_values_['num_classes']
 
-        except KeyError:
-            self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
+        except Exception as ex:
+            self.logger.error("Couldn't retrieve '{}' from 'problem default values':".format(ex))
+            exit(1)
 
         self.name = 'CNN_LSTM'
 

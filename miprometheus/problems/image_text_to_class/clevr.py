@@ -210,7 +210,13 @@ class CLEVR(ImageTextToClassProblem):
         self.parse_param_tree(params)
 
         # define the default_values dict: holds parameters values that a model may need.
-        self.default_values = {'nb_classes': 28}
+        self.default_values = {
+            'num_classes': 28,
+            'height':  480 if params['images']['raw_images'] else 14,
+            'width':  320 if params['images']['raw_images'] else 14,
+            'depth':  3 if params['images']['raw_images'] else 1024,
+            'question_encoding_size': 300
+            }
 
         # define the data_definitions dict: holds a description of the DataDict content
         self.data_definitions = {'images': {'size': [-1, 3, 480, 320] if params['images']['raw_images']

@@ -69,7 +69,8 @@ class VQAMED(ImageTextToClassProblem):
         }
 
     def parse_param_tree(self, params):
-        self.data_folder = params['settings']['data_folder']
+        # Retrieve path and expand it.
+        self.data_folder = os.path.expanduser(params['settings']['data_folder'])
         self.embedding_type = params['questions']['embedding_type']
         self.embedding_dim = params['questions']['embedding_dim']
 

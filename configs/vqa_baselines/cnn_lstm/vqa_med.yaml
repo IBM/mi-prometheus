@@ -1,0 +1,16 @@
+# Load the VQA_MED config first.
+default_configs:
+    configs/vqa_baselines/default_vqa_med.yaml
+
+# Model parameters:
+model:
+    name: CNN_LSTM
+    use_question_encoding: True
+    lstm:
+        hidden_size: 64
+        num_layers: 1
+        bidirectional: False
+        dropout: 0
+    classifier:
+        nb_hidden_nodes: 256
+

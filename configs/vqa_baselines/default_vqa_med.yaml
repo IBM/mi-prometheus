@@ -7,7 +7,7 @@ training:
             embedding_type: random
             embedding_dim: 300
         settings:
-            data_folder: '/raid/data/cshivade/project_resources/radvisdial/imageclef_vqa_2019/ImageClef-2019-VQA-Med-Training'
+            data_folder: '~/data/ImageClef-2019-VQA-Med-Training/'
             split: 'train'
     # Set optimizer.
     optimizer:
@@ -31,16 +31,5 @@ validation:
             embedding_type: random
             embedding_dim: 300
         settings:
-            data_folder: '/raid/data/cshivade/project_resources/radvisdial/imageclef_vqa_2019/ImageClef-2019-VQA-Med-Validation'
+            data_folder: '~/data/ImageClef-2019-VQA-Med-Validation/'
             split: 'valid'
-
-model:
-    name: CNN_LSTM
-    use_question_encoding: True
-    lstm:
-        hidden_size: 64
-        num_layers: 1
-        bidirectional: False
-        dropout: 0
-    classifier:
-        nb_hidden_nodes: 256
