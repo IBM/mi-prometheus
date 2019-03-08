@@ -687,7 +687,7 @@ class CLEVR(ImageTextToClassProblem):
         question_length = question.shape[0]
 
         # return everything
-        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+        data_dict = self.create_data_dict()
 
         data_dict['images'] = img
         data_dict['questions'] = question
@@ -723,29 +723,24 @@ class CLEVR(ImageTextToClassProblem):
         """
         batch_size = len(batch)
 
-        # get max question length, create tensor of shape [batch_size x maxQuestionLength] & sort questions by
-        # decreasing length
+        # Get max question length, create tensor of shape [batch_size x maxQuestionLength x embedding]
         max_len = max(map(lambda x: x['questions_length'], batch))
-        sort_by_len = sorted(batch, key=lambda x: x['questions_length'], reverse=True)
-
-        # create tensor containing the embedded questions
         questions = torch.zeros(batch_size, max_len, self.embedding_dim).type(torch.FloatTensor)
 
+        for i, length in enumerate([item['questions_length'] for item in batch]):
+            questions[i, :length, :] = batch[i]['questions']
+
         # construct the DataDict and fill it with the batch
-        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+        data_dict = self.create_data_dict()
 
-        data_dict['images'] = torch.stack([elt['images'] for elt in sort_by_len]).type(torch.FloatTensor)
-        data_dict['questions_length'] = [elt['questions_length'] for elt in sort_by_len]
-        data_dict['targets'] = torch.tensor([elt['targets'] for elt in sort_by_len]).type(torch.LongTensor)
-        data_dict['questions_string'] = [elt['questions_string'] for elt in sort_by_len]
-        data_dict['index'] = [elt['index'] for elt in sort_by_len]
-        data_dict['imgfiles'] = [elt['imgfiles'] for elt in sort_by_len]
-        data_dict['questions_type'] = [elt['questions_type'] for elt in sort_by_len]
-
-        for i, length in enumerate(data_dict['questions_length']):  # only way to do this?
-            questions[i, :length, :] = sort_by_len[i]['questions']
-
+        data_dict['images'] = torch.stack([item['images'] for item in batch]).type(torch.FloatTensor)
         data_dict['questions'] = questions
+        data_dict['questions_length'] = [item['questions_length'] for item in batch]
+        data_dict['targets'] = torch.tensor([item['targets'] for item in batch]).type(torch.LongTensor)
+        data_dict['questions_string'] = [item['questions_string'] for item in batch]
+        data_dict['index'] = [item['index'] for item in batch]
+        data_dict['imgfiles'] = [item['imgfiles'] for item in batch]
+        data_dict['questions_type'] = [item['questions_type'] for item in batch]
 
         return data_dict
 

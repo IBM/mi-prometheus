@@ -59,14 +59,28 @@ class VQAMED(ImageTextToClassProblem):
             # use the questions set to construct the embeddings vectors
             self.language.build_pretrained_vocab(self.questions, vectors=self.embedding_type)
 
-        # define the default_values dict: holds parameters values that a model may need.
+        # Define the default_values dict: holds parameters values that a model may need.
         self.default_values = {
-                'num_classes': self.nb_classes,
-                "height": self.height,
-                "width": self.width,
-                "num_channels": 3,
-                "question_size": 300
-        }
+            "height": self.height,
+            "width": self.width,
+            "depth": 3,
+            'num_classes': self.nb_classes,
+            "question_encoding_size": self.embedding_dim
+            }
+
+        # Define the data_definitions dict: holds a description of the DataDict content.
+        self.data_definitions = {
+            'images': {'size': [-1, 3, self.height, self.width], 'type': [torch.Tensor]},
+            'questions': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
+            'questions_length': {'size': [-1 ,1], 'type': [list, int]},
+            'questions_string': {'size': [-1, -1], 'type': [list, str]},
+            'targets': {'size': [-1, -1], 'type': [list, int]},
+
+            'targets_string': {'size': [-1, 1], 'type': [list, str]},
+            'index': {'size': [-1], 'type': [list, int]},
+            'image_id': {'size': [-1, -1], 'type': [list, str]}
+            }
+
 
     def parse_param_tree(self, params):
         # Retrieve path and expand it.
@@ -74,7 +88,6 @@ class VQAMED(ImageTextToClassProblem):
         self.embedding_type = params['questions']['embedding_type']
         self.embedding_dim = params['questions']['embedding_dim']
 
-        self.question_encoding_size = self.embedding_dim
         self.height = 224
         self.width = 224
         self.num_channels = 3
@@ -87,8 +100,6 @@ class VQAMED(ImageTextToClassProblem):
             self.image_source = os.path.join(self.data_folder, 'Val_images')
 
 
-
-
     def __getitem__(self, index):
         """
         Getter method to access the dataset and return a sample.
@@ -98,53 +109,90 @@ class VQAMED(ImageTextToClassProblem):
 
         :return: DataDict()
         """
-
+        # Get item.
         item = self.data[index]
-        question = item["tokenized_question"]
-        question_string = item["string_question"]
-        answer = item["tokenized_answer"]
-        answer_string = item["string_answer"]
-        img_id = item["image_id"]
 
+        # Load adequate image.
+        img_id = item["image_id"]
         extension = '.jpg'
         with open(os.path.join(self.image_source, img_id + extension),'rb') as f:
-            try:
-                img = torch.load(f)
-                img = torch.from_numpy(img).type(torch.FloatTensor).squeeze()
-            except Exception:
-                img = Image.open(f).convert('RGB')  # for the original images
-                # img = transforms.Resize(224,224)(img)
-                transfroms_com = transforms.Compose([
-                                                    transforms.Resize([128,128]),
-                                                     transforms.ToTensor()
-                                                    ])
-                img = transfroms_com(img).type(torch.FloatTensor).squeeze()
+            # Load image.
+            img = Image.open(f).convert('RGB')
+            # Resize it and transform to Torch Tensor.
+            transfroms_com = transforms.Compose([
+                    transforms.Resize([self.height,self.width]),
+                        transforms.ToTensor()
+                    ])
+            img = transfroms_com(img).type(torch.FloatTensor).squeeze()
 
-                # img = transforms.ToTensor()(img).type(torch.FloatTensor).squeeze()
-
+        # Process question.
+        question = item["tokenized_question"]
         if self.embedding_type == 'random':
             # embed question:
             question = self.embed_layer(torch.LongTensor(question)).type(torch.FloatTensor)
         else:
             # embed question
             question = self.language.embed_sentence(question_string)
-
         question_length = question.shape[0]
 
-        data_dict = DataDict()
+        # Create the resulting data dict.
+        data_dict = self.create_data_dict()
+
         data_dict['images'] = img
         data_dict['questions'] = question
         data_dict['questions_length'] = question_length
-        data_dict['questions_string'] = question_string
-        data_dict['targets'] = answer
-        data_dict['target_string'] = answer_string
+        data_dict['questions_string'] = item["string_question"]
+        data_dict['targets'] = item["tokenized_answer"]
+        data_dict['target_string'] = item["string_answer"]
         data_dict['index'] = index
         data_dict['image_id'] = img_id
 
         return data_dict
 
+
     def collate_fn(self, batch):
-        return self.__getitem__(0)
+        """
+        Combines a list of DataDict (retrieved with :py:func:`__getitem__`) into a batch.
+        Additionally pads all questions.
+
+        .. warning:
+            For now I am taking element 0 from the encoded target, so can apply our VQA models!
+
+        :param batch: list of individual samples to combine
+        :type batch: list
+
+        :return: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', 'targets', \
+        'targets_string', 'index','imgfiles'})
+
+        """
+        # Get batch size.
+        batch_size = len(batch)
+
+        # Create tensor of shape [batch_size x max question_length x embedding].
+        max_len = max(map(lambda x: x['questions_length'], batch))
+        questions = torch.zeros(batch_size, max_len, self.embedding_dim).type(torch.FloatTensor)
+        for i, length in enumerate([item['questions_length'] for item in batch]): 
+            questions[i, :length, :] = batch[i]['questions']
+
+        # construct the DataDict and fill it with the batch
+        data_dict = self.create_data_dict()
+
+        data_dict['images'] = torch.stack([item['images'] for item in batch]).type(torch.FloatTensor)
+        data_dict['questions'] = questions
+
+        data_dict['questions_length'] = [item['questions_length'] for item in batch]
+        data_dict['questions_string'] = [item['questions_string'] for item in batch]
+
+        # I am assumming here that target (answer) is really a single word (despite tokenization etc.)!!
+        #data_dict['targets'] = [item['targets'] for item in batch] # TODO: CHANGE TO CLASSIFICATION!?
+        data_dict['targets'] = [item['targets'][0] for item in batch]
+
+        data_dict['target_string'] =  [item['target_string'] for item in batch]
+        data_dict['index'] = [item['index'] for item in batch]
+        data_dict['image_id'] = [item['image_id'] for item in batch]
+
+        return data_dict
+        
 
     def load_questions(self):
         if self.split == 'train':
@@ -210,7 +258,7 @@ class VQAMED(ImageTextToClassProblem):
 
 if __name__ == '__main__':
     params = ParamInterface()
-    params.add_config_params({'settings': {'data_folder':'/raid/data/cshivade/project_resources/radvisdial/imageclef_vqa_2019/ImageClef-2019-VQA-Med-Training',
+    params.add_config_params({'settings': {'data_folder':'~/data/ImageClef-2019-VQA-Med-Training',
                                            'split': 'train',
                                            'dataset_variant': 'VQAMed2019'},
                               'images': {'raw_images': True,},

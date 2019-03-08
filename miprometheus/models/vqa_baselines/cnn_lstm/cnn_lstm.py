@@ -110,33 +110,25 @@ class CNN_LSTM(Model):
 
         feature_maps_flattened_dim = self.cnn.get_output_nb_filters() * output_height * output_width
 
-        # whether to use question encoding or not.
-        self.use_question_encoding = params['use_question_encoding']
+        # Instantiate LSTM for question encoding
+        self.hidden_size = params['lstm']['hidden_size']
+        self.num_layers = params['lstm']['num_layers']
 
-        if self.use_question_encoding:
-
-            # Instantiate LSTM for question encoding
-            self.hidden_size = params['lstm']['hidden_size']
-            self.num_layers = params['lstm']['num_layers']
-
-            self.bidirectional = params['lstm']['bidirectional']
-            if self.bidirectional:
-                self.num_dir = 2
-            else:
-                self.num_dir = 1
-
-            self.lstm = nn.LSTM(input_size=self.question_encoding_size,
-                                hidden_size=self.hidden_size,
-                                num_layers=self.num_layers,
-                                bias=True,
-                                batch_first=True,
-                                dropout=params['lstm']['dropout'],
-                                bidirectional=self.bidirectional)
-
-            output_question_dim = self.num_dir * self.hidden_size
-
+        self.bidirectional = params['lstm']['bidirectional']
+        if self.bidirectional:
+            self.num_dir = 2
         else:
-            output_question_dim = self.question_encoding_size
+            self.num_dir = 1
+
+        self.lstm = nn.LSTM(input_size=self.question_encoding_size,
+                            hidden_size=self.hidden_size,
+                            num_layers=self.num_layers,
+                            bias=True,
+                            batch_first=True,
+                            dropout=params['lstm']['dropout'],
+                            bidirectional=self.bidirectional)
+
+        output_question_dim = self.num_dir * self.hidden_size
 
         # Instantiate MLP for classifier
         input_size = feature_maps_flattened_dim + output_question_dim
@@ -179,14 +171,10 @@ class CNN_LSTM(Model):
         encoded_image_flattened = encoded_images.view(batch_size, -1)
 
         # 2. Encode the questions
-        if self.use_question_encoding:
-
-            # (h_0, c_0) are not provided -> default to zero
-            encoded_question, _ = self.lstm(questions)
-            # take layer's last output
-            encoded_question = encoded_question[:, -1, :]
-        else:
-            encoded_question = questions
+        # (h_0, c_0) are not provided -> default to zero
+        encoded_question, _ = self.lstm(questions)
+        # take layer's last output
+        encoded_question = encoded_question[:, -1, :]
 
         # 3. Classify based on the encodings
         combined = torch.cat([encoded_image_flattened, encoded_question], dim=-1)

@@ -5,7 +5,6 @@ default_configs:
 # Model parameters:
 model:
     name: CNN_LSTM
-    use_question_encoding: True
     lstm:
         hidden_size: 64
         num_layers: 1
