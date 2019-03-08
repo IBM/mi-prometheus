@@ -525,7 +525,13 @@ class CLEVR(ImageTextToClassProblem):
         self.logger.info('Loaded {} samples'.format(len(data['questions'])))
 
         # load the dict question_family_type -> question_type: Will allow to plot the acc per question category
-        with open(os.path.join(self.data_folder, 'questions/index_to_family.json')) as f:
+        # If the file does not exist - create mapping.
+        if not os.path.isfile(os.path.join(self.data_folder, 'generated_files/index_to_family.json')):
+            mapping = '{"0": "equal_integer", "1": "less_than", "2": "greater_than", "3": "equal_integer", "4": "less_than", "5": "greater_than", "6": "equal_integer", "7": "less_than", "8": "greater_than", "9": "equal_size", "10": "equal_color", "11": "equal_material", "12": "equal_shape", "13": "equal_size", "14": "equal_size", "15": "equal_size", "16": "equal_color", "17": "equal_color", "18": "equal_color", "19": "equal_material", "20": "equal_material", "21": "equal_material", "22": "equal_shape", "23": "equal_shape", "24": "equal_shape", "25": "count", "26": "exist", "27": "query_size", "28": "query_shape", "29": "query_color", "30": "query_material", "31": "count", "32": "query_size", "33": "query_color", "34": "query_material", "35": "query_shape", "36": "exist", "37": "exist", "38": "exist", "39": "exist", "40": "count", "41": "count", "42": "count", "43": "count", "44": "exist", "45": "exist", "46": "exist", "47": "exist", "48": "count", "49": "count", "50": "count", "51": "count", "52": "query_color", "53": "query_material", "54": "query_shape", "55": "query_size", "56": "query_material", "57": "query_shape", "58": "query_size", "59": "query_color", "60": "query_shape", "61": "query_size", "62": "query_color", "63": "query_material", "64": "count", "65": "count", "66": "count", "67": "count", "68": "count", "69": "count", "70": "count", "71": "count", "72": "count", "73": "exist", "74": "query_size", "75": "query_color", "76": "query_material", "77": "query_shape", "78": "count", "79": "exist", "80": "query_size", "81": "query_color", "82": "query_material", "83": "query_shape", "84": "count", "85": "exist", "86": "query_shape", "87": "query_material", "88": "query_color", "89": "query_size"}'
+            with open(os.path.join(self.data_folder, 'generated_files/index_to_family.json'), 'w+') as f:
+                f.write(mapping)
+        # Load dict.
+        with open(os.path.join(self.data_folder, 'generated_files/index_to_family.json')) as f:
             index_to_family = json.load(f)
 
         # start constructing vocab sets
