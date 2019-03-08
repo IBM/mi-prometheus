@@ -182,7 +182,7 @@ class CNN_LSTM(Model):
         if self.use_question_encoding:
 
             # (h_0, c_0) are not provided -> default to zero
-            encoded_question, _ = self.lstm(questions) #.unsqueeze(1))
+            encoded_question, _ = self.lstm(questions)
             # take layer's last output
             encoded_question = encoded_question[:, -1, :]
         else:
