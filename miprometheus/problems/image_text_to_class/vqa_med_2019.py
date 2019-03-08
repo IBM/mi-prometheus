@@ -222,7 +222,7 @@ class VQAMED(ImageTextToClassProblem):
             for qword in question_words:
                 try:
                     question_token.append(question_dict[qword])
-                except Exception:
+                except KeyError:
                     question_token.append(question_index)
                     question_dict[qword] = question_index
                     question_index += 1
@@ -235,7 +235,7 @@ class VQAMED(ImageTextToClassProblem):
             for aword in answer_words:
                 try:
                     answer_token.append(answer_dict[aword])
-                except:
+                except KeyError:
                     answer_token.append(answer_index)
                     answer_dict[aword] = answer_index
                     answer_index += 1
