@@ -87,6 +87,8 @@ class CNN_LSTM(Model):
         """
         # call base constructor
         super(CNN_LSTM, self).__init__(params, problem_default_values_)
+        self.name = 'CNN_LSTM'
+
 
         # Parse default values received from problem.
         try:
@@ -101,8 +103,6 @@ class CNN_LSTM(Model):
         except Exception as ex:
             self.logger.error("Couldn't retrieve '{}' from 'problem default values':".format(ex))
             exit(1)
-
-        self.name = 'CNN_LSTM'
 
         # Instantiate CNN for image encoding
         self.cnn = ConvInputModel()
@@ -165,6 +165,11 @@ class CNN_LSTM(Model):
         """
         images = data_dict['images'].type(self.app_state.dtype)
         questions = data_dict['questions']
+
+        print(images.size())
+        print(questions.size())
+
+
         # get batch_size
         batch_size = images.size(0)
 
@@ -177,7 +182,7 @@ class CNN_LSTM(Model):
         if self.use_question_encoding:
 
             # (h_0, c_0) are not provided -> default to zero
-            encoded_question, _ = self.lstm(questions.unsqueeze(1))
+            encoded_question, _ = self.lstm(questions) #.unsqueeze(1))
             # take layer's last output
             encoded_question = encoded_question[:, -1, :]
         else:
