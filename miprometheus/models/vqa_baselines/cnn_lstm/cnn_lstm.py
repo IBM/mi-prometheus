@@ -158,10 +158,6 @@ class CNN_LSTM(Model):
         images = data_dict['images'].type(self.app_state.dtype)
         questions = data_dict['questions']
 
-        print(images.size())
-        print(questions.size())
-
-
         # get batch_size
         batch_size = images.size(0)
 

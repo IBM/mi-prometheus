@@ -142,7 +142,7 @@ class VQAMED(ImageTextToClassProblem):
         data_dict['questions'] = question
         data_dict['questions_length'] = question_length
         data_dict['questions_string'] = item["string_question"]
-        data_dict['targets'] = item["tokenized_answer"]
+        data_dict['targets'] = item["answer_encoded"]
         data_dict['target_string'] = item["string_answer"]
         data_dict['index'] = index
         data_dict['image_id'] = img_id
@@ -183,9 +183,9 @@ class VQAMED(ImageTextToClassProblem):
         data_dict['questions_length'] = [item['questions_length'] for item in batch]
         data_dict['questions_string'] = [item['questions_string'] for item in batch]
 
-        # I am assumming here that target (answer) is really a single word (despite tokenization etc.)!!
-        #data_dict['targets'] = [item['targets'] for item in batch] # TODO: CHANGE TO CLASSIFICATION!?
-        data_dict['targets'] = [item['targets'][0] for item in batch]
+        # Answer is a single item.
+        #data_dict['targets'] = [item['targets'] for item in batch] 
+        data_dict['targets'] = torch.tensor([item['targets'] for item in batch])
 
         data_dict['target_string'] =  [item['target_string'] for item in batch]
         data_dict['index'] = [item['index'] for item in batch]
@@ -206,13 +206,15 @@ class VQAMED(ImageTextToClassProblem):
                          names=['ImageID','Question','Answer'])
 
         result = []
+        # Question related variables.
         question_dict = {}
-        answer_dict = {}
         question_index = 1  # 0 reserved for padding
-        answer_index = 1  # 0 reserved for padding
+        # Answer related variables.
+        answer_dict = {}
+        answer_index = 0 # No padding here.
 
         t = tqdm.tqdm(total=len(df.index))
-        num_classes = set()
+
         for index, row in df.iterrows():
             image_id = row['ImageID']
             question = row['Question']
@@ -227,29 +229,32 @@ class VQAMED(ImageTextToClassProblem):
                     question_dict[qword] = question_index
                     question_index += 1
 
+            # Process answer.
+            # We assume this is a classification problem, so need to create a seperate class for each answer.
+            # Number of classes = number of possible answers.
             answer = row['Answer']
-            num_classes.add(answer)
-            answer_words = nltk.word_tokenize(answer)
-            answer_token = []
 
-            for aword in answer_words:
-                try:
-                    answer_token.append(answer_dict[aword])
-                except KeyError:
-                    answer_token.append(answer_index)
-                    answer_dict[aword] = answer_index
-                    answer_index += 1
-
-            result.append({'tokenized_question': question_token,
-                          'string_question': question,
-                           'tokenized_answer': answer_token,
-                          'string_answer': answer,
-                          'image_id': image_id})
+            try:
+                answer_encoded = answer_dict[answer]
+            except KeyError:
+                # New word.
+                answer_dict[answer] = answer_index
+                answer_encoded = answer_index
+                answer_index += 1
+                
+            # Add record to result.
+            result.append({
+                'tokenized_question': question_token,
+                'string_question': question,
+                'answer_encoded': answer_encoded,
+                'string_answer': answer,
+                'image_id': image_id})
 
             t.update()
         t.close()
 
-        self.nb_classes = len(num_classes)
+        # Set number of answer classes.
+        self.nb_classes = len(answer_dict)
         self.logger.info('Constructed question word dictionary of length {}'.format(len(question_dict)))
         self.logger.info('Constructed answer word dictionary of length {}'.format(len(answer_dict)))
 

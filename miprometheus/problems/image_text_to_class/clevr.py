@@ -737,6 +737,7 @@ class CLEVR(ImageTextToClassProblem):
         data_dict['questions'] = questions
         data_dict['questions_length'] = [item['questions_length'] for item in batch]
         data_dict['targets'] = torch.tensor([item['targets'] for item in batch]).type(torch.LongTensor)
+
         data_dict['questions_string'] = [item['questions_string'] for item in batch]
         data_dict['index'] = [item['index'] for item in batch]
         data_dict['imgfiles'] = [item['imgfiles'] for item in batch]
