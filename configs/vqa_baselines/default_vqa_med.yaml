@@ -3,7 +3,10 @@ training:
     problem:
         name: &name VQAMED
         batch_size: 64
-        questions:
+        image: &image
+            width: 256
+            height: 128
+        question: &question
             embedding_type: random
             embedding_dim: 300
         settings:
@@ -27,9 +30,8 @@ validation:
     problem:
         name: *name
         batch_size: 64
-        questions:
-            embedding_type: random
-            embedding_dim: 300
+        image: *image
+        question: *question
         settings:
             data_folder: '~/data/ImageClef-2019-VQA-Med-Validation/'
             split: 'valid'

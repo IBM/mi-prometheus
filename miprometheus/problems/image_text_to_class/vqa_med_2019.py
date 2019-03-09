@@ -83,15 +83,18 @@ class VQAMED(ImageTextToClassProblem):
 
 
     def parse_param_tree(self, params):
-        # Retrieve path and expand it.
-        self.data_folder = os.path.expanduser(params['settings']['data_folder'])
-        self.embedding_type = params['questions']['embedding_type']
-        self.embedding_dim = params['questions']['embedding_dim']
+        # Load question settings.
+        self.embedding_type = params['question']['embedding_type']
+        self.embedding_dim = params['question']['embedding_dim']
 
-        self.height = 224
-        self.width = 224
+        # Load image size.
+        self.height = params['image']['height']
+        self.width = params['image']['width']
         self.num_channels = 3
 
+        # Retrieve path and expand it.
+        self.data_folder = os.path.expanduser(params['settings']['data_folder'])
+        # Set split-dependent data.
         if params['settings']['split'] == 'train':
             self.split = 'train'
             self.image_source = os.path.join(self.data_folder, 'Train_images')
