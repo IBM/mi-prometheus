@@ -1,6 +1,6 @@
-# Load the following (default) configs first.
+# Load the VQA_MED config first.
 default_configs:
-    configs/vqa_baselines/default_shape_color_query.yaml
+    configs/vqa_baselines/default_vqa_med.yaml
 
 # Model parameters:
 model:

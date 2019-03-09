@@ -92,7 +92,7 @@ class ConvInputModel(Module):
 
             Assuming dilatation=1.
             """
-            return np.floor(((dim + 2*padding - kernel_size)/stride) + 1)
+            return int(np.floor(((dim + 2*padding - kernel_size)/stride) + 1))
 
         height1 = get_output_dim(height, self.conv1.kernel_size[0], self.conv1.stride[0], self.conv1.padding[0])
         width1 = get_output_dim(width, self.conv1.kernel_size[1], self.conv1.stride[1], self.conv1.padding[1])

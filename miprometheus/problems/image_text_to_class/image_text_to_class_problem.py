@@ -63,30 +63,18 @@ class ImageTextToClassProblem(Problem):
 
             - Calls ``problems.problem.Problem`` class constructor,
             - Sets loss function to ``CrossEntropy``,
-            - sets ``self.data_definitions`` to:
-
-                >>>         self.data_definitions = {'texts': {'size': [-1, -1], 'type': [torch.Tensor]},
-                >>>                                  'images': {'size': [-1, -1, -1, 3], 'type': [torch.Tensor]},
-                >>>                                  'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
-                >>>                                 }
 
         :param params: Dictionary of parameters (read from configuration ``.yaml`` file).
 
         """
         # Call base class constructors.
         super(ImageTextToClassProblem, self).__init__(params)
+        # "Default" problem name.
+        self.name = 'ImageTextToClassProblem'
 
         # set default loss function
         self.loss_function = nn.CrossEntropyLoss()
 
-        # set default data_definitions dict
-        self.data_definitions = {'texts': {'size': [-1, -1], 'type': [torch.Tensor]},
-                                 'images': {'size': [-1, -1, -1, 3], 'type': [torch.Tensor]},
-                                 'targets': {'size': [-1, 1], 'type': [torch.Tensor]}
-                                 }
-
-        # "Default" problem name.
-        self.name = 'ImageTextToClassProblem'
 
     def calculate_accuracy(self, data_dict, logits):
         """
