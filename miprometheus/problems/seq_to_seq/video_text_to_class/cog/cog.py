@@ -303,22 +303,33 @@ class COG(VideoTextToClassProblem):
 
 		# Pointing Accuracy #####################################################
 		values, hard_targets = torch.max(targets_reg, 2)
-		y = torch.zeros(48, 4, 49)
-		z = torch.ones(48, 4, 49)
-		threshold_target = torch.where(targets_reg.cpu() > 0.001, z, y)
-
-		# print(threshold_target)
-		#values, indices = torch.max(logits[1],2)
-
-		view=logits[1].view(-1,49).cpu()
-		max_logits=(view == view.max(dim=1, keepdim=True)[0]).view_as(logits[1])
-
-		#technique1
+		#y = torch.zeros(48, 4, 49)
+		#z = torch.ones(48, 4, 49)
+		#threshold_target = torch.where(targets_reg.cpu() > 0.001, z, y)
 
 
-		correctp = max_logits * threshold_target.byte()
-		non_zero=torch.nonzero(correctp)
-		print(threshold_target)
+		print(logits[1].size())
+
+		softmax = nn.Softmax(dim=2)
+		sof=softmax(logits[1])
+		diff=(sof-targets_reg)
+		diff=diff*diff
+
+		diff=torch.sum(diff,dim=2)
+
+		y = torch.zeros(48, 4)
+		z = torch.ones(48, 4)
+
+
+		threshold_diff = torch.where(diff.cpu() > 0.0225, torch.zeros(48, 4), torch.ones(48, 4))
+
+
+		#correctp = max_logits * threshold_target.byte()
+		#non_zero=torch.nonzero(correctp)
+		#print(threshold_target)
+
+		non_zero = torch.nonzero(threshold_diff)
+
 		# Committing a minor inaccuracy here
 		correct += non_zero.size(0)
 		total += hard_targets.numel() - (hard_targets == 0).sum().item()
@@ -326,8 +337,8 @@ class COG(VideoTextToClassProblem):
 		self.correct_total += correct
 		self.total_total  += total
 
-		#return correct/total
-		return self.correct_total / self.total_total
+		return correct/total
+		#return self.correct_total / self.total_total
 
 
 	def get_acc_per_family(self, data_dict, logits):
