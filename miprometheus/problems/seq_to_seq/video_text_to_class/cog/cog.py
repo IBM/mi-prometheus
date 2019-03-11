@@ -305,7 +305,6 @@ class COG(VideoTextToClassProblem):
 		values, hard_targets = torch.max(targets_reg, 2)
 		y = torch.zeros(48, 4, 49)
 		z = torch.ones(48, 4, 49)
-		#threshold_target = torch.where(targets_reg.cpu() > 0.000001, z, y)
 		threshold_target = torch.where(targets_reg.cpu() > 0.001, z, y)
 
 		# print(threshold_target)
