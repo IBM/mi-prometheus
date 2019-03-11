@@ -141,13 +141,6 @@ class MACUnit(Module):
         batch_size = question.size(0)
 
 
-        # apply variational dropout during training
-        if self.training:  # TODO: check
-            control_mask = self.get_dropout_mask(control, self.dropout)
-            memory_mask = self.get_dropout_mask(memory, self.dropout)
-            control = control * control_mask
-            memory = memory * memory_mask
-
         if not control_pass:
 
             controls = [control]
@@ -169,9 +162,6 @@ class MACUnit(Module):
                 question_encoding=question,
                 ctrl_state=control)
 
-            # apply variational dropout
-            if self.training:
-                control = control * control_mask
 
             # save new control state
             controls.append(control)
@@ -184,9 +174,6 @@ class MACUnit(Module):
             memory = self.write(memory_states=memories,
                                 read_vector=read, ctrl_states=controls)
 
-            # apply variational dropout
-            if self.training:
-                memory = memory * memory_mask
 
             # save new memory state
             memories.append(memory)
