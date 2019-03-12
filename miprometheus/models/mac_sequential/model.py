@@ -280,7 +280,7 @@ class MACNetworkSequential(Model):
             logits_pointing[:,i,:] = self.output_unit_pointing(memory, h)
 
 
-        return logits, logits_pointing
+        return logits.cuda(), logits_pointing.cuda()
 
     @staticmethod
     def generate_figure_layout():
