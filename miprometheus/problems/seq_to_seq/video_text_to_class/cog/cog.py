@@ -308,7 +308,7 @@ class COG(VideoTextToClassProblem):
 		#threshold_target = torch.where(targets_reg.cpu() > 0.001, z, y)
 
 
-		print(logits[1].size())
+		#print(logits[1].size())
 
 		softmax = nn.Softmax(dim=2)
 		sof=softmax(logits[1])
@@ -321,7 +321,7 @@ class COG(VideoTextToClassProblem):
 		z = torch.ones(48, 4)
 
 
-		threshold_diff = torch.where(diff.cpu() > 0.0225, torch.zeros(48, 4), torch.ones(48, 4))
+		threshold_diff = torch.where(diff.cpu() > 0.03, torch.zeros(48, 4), torch.ones(48, 4))
 
 
 		#correctp = max_logits * threshold_target.byte()
