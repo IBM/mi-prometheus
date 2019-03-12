@@ -125,7 +125,7 @@ class MACUnit(Module):
 
         return mask
 
-    def forward(self, context, question, knowledge, kb_proj, controls, memories, control_pass, memory_pass, control, memory ):
+    def forward(self, context, question, knowledge, kb_proj):
         """
         Forward pass of the ``MACUnit``, which represents the recurrence over the \
         MACCell.
@@ -145,14 +145,20 @@ class MACUnit(Module):
         """
         batch_size = question.size(0)
 
-        if not control_pass:
+        # expand the hidden states to whole batch
+        control = self.control_0.expand(batch_size, self.dim)
+        memory = self.mem_0.expand(batch_size, self.dim)
 
-            controls = [control]
+        # apply variational dropout during training
+        if self.training:  # TODO: check
+            control_mask = self.get_dropout_mask(control, self.dropout)
+            memory_mask = self.get_dropout_mask(memory, self.dropout)
+            control = control * control_mask
+            memory = memory * memory_mask
 
-        if not memory_pass:
-
-            memories = [memory]
-
+        # start list of states
+        controls = [control]
+        memories = [memory]
 
         # main loop of recurrence over the MACCell
         for i in range(self.max_step):
@@ -165,13 +171,11 @@ class MACUnit(Module):
                 ctrl_state=control)
 
             # apply variational dropout
-            #control_mask = self.get_dropout_mask(control, self.dropout)
-
-            #control = control * control_mask
+            if self.training:
+                control = control * control_mask
 
             # save new control state
             controls.append(control)
-
 
             # read unit
             read = self.read(memory_states=memories, knowledge_base=knowledge,
@@ -182,17 +186,15 @@ class MACUnit(Module):
                                 read_vector=read, ctrl_states=controls)
 
             # apply variational dropout
-
-            #memory_mask=self.get_dropout_mask(memory, self.dropout)
-            #memory = memory * memory_mask
+            if self.training:
+                memory = memory * memory_mask
 
             # save new memory state
             memories.append(memory)
-
 
             # store attention weights for visualization
             if app_state.visualize:
                 self.cell_state_history.append(
                     (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach()))
 
-        return memory, controls, memories
+        return memory

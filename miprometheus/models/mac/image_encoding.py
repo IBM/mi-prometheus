@@ -68,7 +68,7 @@ class ImageProcessing(Module):
         # call base constructor
         super(ImageProcessing, self).__init__()
 
-        self.conv = torch.nn.Sequential(torch.nn.Conv2d(128, dim, 3, padding=1),
+        self.conv = torch.nn.Sequential(torch.nn.Conv2d(1024, dim, 3, padding=1),
                                         torch.nn.ELU(),
                                         torch.nn.Conv2d(dim, dim, 3, padding=1),
                                         torch.nn.ELU())

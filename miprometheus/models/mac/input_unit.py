@@ -111,7 +111,7 @@ class InputUnit(Module):
         batch_size = feature_maps.shape[0]
 
         # images processing
-        #feature_maps = self.conv(feature_maps)
+        feature_maps = self.conv(feature_maps)
 
         # reshape feature maps as channels first
         feature_maps = feature_maps.view(batch_size, self.dim, -1)
@@ -121,18 +121,15 @@ class InputUnit(Module):
             feature_maps.permute(0, 2, 1)).permute(0, 2, 1)
 
         # avoid useless computations on padding elements: pack sequences
-        #embed = torch.nn.utils.rnn.pack_padded_sequence(
-        #    questions, questions_len, batch_first=True)
-
-        embed = questions
-        embed=embed.float()
+        embed = torch.nn.utils.rnn.pack_padded_sequence(
+            questions, questions_len, batch_first=True)
 
         # LSTM layer: words & questions encodings
         lstm_out, (h, _) = self.lstm(embed)
 
         # reshape packed sequences to a padded tensor
-        #lstm_out, _ = torch.nn.utils.rnn.pad_packed_sequence(
-         #   lstm_out, batch_first=True)
+        lstm_out, _ = torch.nn.utils.rnn.pad_packed_sequence(
+            lstm_out, batch_first=True)
 
         # get final words encodings using linear layer
         lstm_out = self.lstm_proj(lstm_out)
