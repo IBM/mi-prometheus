@@ -1,0 +1,37 @@
+training:
+    # Problem parameters:
+    problem:
+        name: &name VQAMED
+        batch_size: 64
+        image: &image
+            width: 256
+            height: 128
+        question: &question
+            embedding_type: random
+            embedding_dim: 300
+        settings:
+            data_folder: '~/data/ImageClef-2019-VQA-Med-Training/'
+            split: 'train'
+    # Set optimizer.
+    optimizer:
+        name: Adam
+        lr: 0.005
+    # Optional parameter, its presence results in clipping gradient to a range (-gradient_clipping, gradient_clipping)
+    gradient_clipping: 10
+    # Terminal condition parameters:
+    terminal_conditions:
+        loss_stop: 0.0001
+        episode_limit: 100000
+        epoch_limit: 20
+
+
+validation:
+    # Problem parameters:
+    problem:
+        name: *name
+        batch_size: 64
+        image: *image
+        question: *question
+        settings:
+            data_folder: '~/data/ImageClef-2019-VQA-Med-Validation/'
+            split: 'valid'

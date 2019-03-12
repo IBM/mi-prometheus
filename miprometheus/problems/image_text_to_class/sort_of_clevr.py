@@ -103,7 +103,7 @@ class SortOfCLEVR(ImageTextToClassProblem):
         self.name = 'Sort-of-CLEVR'
 
         # Set default parameters.
-        self.params.add_default_params({'data_folder': '~/data/sort-of-clevr/',
+        self.params.add_default_params({
                                         'split': 'train',
                                         'regenerate': False,
                                         'size': 10000,
@@ -153,9 +153,9 @@ class SortOfCLEVR(ImageTextToClassProblem):
         # define the default_values dict: holds parameters values that a model may need.
         self.default_values = {'height': self.img_size,
                                'width': self.img_size,
-                               'num_channels': 3,
+                               'depth': 3,
                                'num_classes': 10,
-                               'question_size': 13}
+                               'question_encoding_size': 13}
 
         # define the data_definitions dict: holds a description of the DataDict content
         self.data_definitions = {'images': {'size': [-1, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
@@ -373,8 +373,8 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         """
         # "Decode" the color_query vector.
-        color = np.argmax(encoded_question[:self.NUM_COLORS])
-        question_code = np.argmax(encoded_question[self.NUM_COLORS:])
+        color = np.argmax(encoded_question[0, :self.NUM_COLORS])
+        question_code = np.argmax(encoded_question[0, self.NUM_COLORS:])
 
         # Return the question as a string.
         return self.question_type_template(question_code).format(self.color2str(color), 'object')
@@ -512,15 +512,16 @@ class SortOfCLEVR(ImageTextToClassProblem):
 
         :return the questions matrix (``np.array``)
         """
-        Q = np.zeros((len(objects) * self.NUM_QUESTIONS,
+        # Make question 3d tensor.
+        Q = np.zeros((len(objects) * self.NUM_QUESTIONS, 1,
                       self.NUM_COLORS + self.NUM_QUESTIONS), dtype=np.bool)
 
         for i, obj in enumerate(objects):
             v = np.zeros(self.NUM_COLORS)
             v[obj.color] = True
-            Q[i * self.NUM_QUESTIONS:(i + 1) * self.NUM_QUESTIONS,
+            Q[i * self.NUM_QUESTIONS:(i + 1) * self.NUM_QUESTIONS, 0, 
               :self.NUM_COLORS] = np.tile(v, (self.NUM_QUESTIONS, 1))
-            Q[i * self.NUM_QUESTIONS:(i + 1) * self.NUM_QUESTIONS,
+            Q[i * self.NUM_QUESTIONS:(i + 1) * self.NUM_QUESTIONS, 0,
               self.NUM_COLORS:] = np.diag(np.ones(self.NUM_QUESTIONS))
 
         return Q
@@ -658,18 +659,20 @@ if __name__ == "__main__":
 
     # "Loaded parameters".
     from miprometheus.utils.param_interface import ParamInterface
-    params = ParamInterface()  # using the default values
+    params = ParamInterface()
+    params.add_config_params({
+        'data_folder': '~/data/sort-of-clevr/'
+        })
 
     # create problem
     sortofclevr = SortOfCLEVR(params)
 
     batch_size = 64
-    print('Number of episodes to run to cover the set once: {}'.format(sortofclevr.get_epoch_size(batch_size)))
 
     # get a sample
-    sample = sortofclevr[0]
-    print(repr(sample))
-    print('__getitem__ works.')
+    #sample = sortofclevr[0]
+    #print(repr(sample))
+    #print('__getitem__ works.')
 
     # wrap DataLoader on top of this Dataset subclass
     from torch.utils.data import DataLoader
@@ -678,17 +681,13 @@ if __name__ == "__main__":
                             batch_size=batch_size, shuffle=True, num_workers=0)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
-    import time
-
-    s = time.time()
-    for i, batch in enumerate(dataloader):
-        print('Batch # {} - {}'.format(i, type(batch)))
-
-    print('Number of workers: {}'.format(dataloader.num_workers))
-    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))
+    #import time
+    #s = time.time()
+    #for i, batch in enumerate(dataloader):
+    #    print('Batch # {} - {}'.format(i, type(batch)))
+    #print('Number of workers: {}'.format(dataloader.num_workers))
+    #print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
     batch = next(iter(dataloader))
     sortofclevr.show_sample(batch, 0)
-
-    print('Unit test completed')

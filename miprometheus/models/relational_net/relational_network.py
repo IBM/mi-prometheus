@@ -238,9 +238,6 @@ if __name__ == '__main__':
     print('Model {} instantiated.'.format(model.name))
     model.app_state.visualize = True
 
-    # perform handshaking between RN & SortOfCLEVR
-    model.handshake_definitions(sort_of_clevr.data_definitions)
-
     # generate a batch
     for i_batch, sample in enumerate(problem):
         print('Sample # {} - {}'.format(i_batch, sample['images'].shape), type(sample))

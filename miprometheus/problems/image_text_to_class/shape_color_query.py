@@ -68,7 +68,7 @@ class ShapeColorQuery(SortOfCLEVR):
         self.name = 'Shape-Color-Query'
 
         # Add default values of parameters.
-        self.params.add_default_params({'data_folder': '~/data/shape-color-query/',
+        self.params.add_default_params({
                                         'split': 'train',
                                         'regenerate': False,
                                         'size': 10000,
@@ -84,13 +84,14 @@ class ShapeColorQuery(SortOfCLEVR):
                                  'scenes_description': {'size': [-1, -1], 'type': [list, str]},
                                  }
 
+
         # define the default_values dict: holds parameters values that a model may need.
         self.default_values = {'height': self.img_size,
                                'width': self.img_size,
-                               'num_channels': 3,
+                               'depth': 3,
                                'num_classes': 10,
-                               'question_size': 7,  # 'encoding' size of the shape, color & query
-                               'seq_length': 3}  # nb of elts in the question: shape, color, query
+                               'question_encoding_size': 7,  # 'encoding' size of the shape, color & query
+                               'seq_length': 3}  # nb of "words" in the question: shape, color, query
 
     def question2str(self, encoded_question):
         """
@@ -104,6 +105,7 @@ class ShapeColorQuery(SortOfCLEVR):
         :return: Question in the form of a string.
 
         """
+        print(encoded_question.shape)
         # "Decode" the question.
         if max(encoded_question[0, :]) == 0:
             shape = 'object'
@@ -162,17 +164,18 @@ if __name__ == "__main__":
     from miprometheus.utils.param_interface import ParamInterface
 
     params = ParamInterface()  # using the default values
+    params.add_config_params({
+        'data_folder': '~/data/shape-color-query/'
+        })
 
     # create problem
     shapecolorquery = ShapeColorQuery(params)
 
     batch_size = 64
-    print('Number of episodes to run to cover the set once: {}'.format(shapecolorquery.get_epoch_size(batch_size)))
-
     # get a sample
-    sample = shapecolorquery[0]
-    print(repr(sample))
-    print('__getitem__ works.')
+    #sample = shapecolorquery[0]
+    #print(repr(sample))
+    #print('__getitem__ works.')
 
     # wrap DataLoader on top of this Dataset subclass
     from torch.utils.data import DataLoader
@@ -181,17 +184,15 @@ if __name__ == "__main__":
                             batch_size=batch_size, shuffle=True, num_workers=0)
 
     # try to see if there is a speed up when generating batches w/ multiple workers
-    import time
+    #import time
+    #s = time.time()
+    #for i, batch in enumerate(dataloader):
+    #    print('Batch # {} - {}'.format(i, type(batch)))
 
-    s = time.time()
-    for i, batch in enumerate(dataloader):
-        print('Batch # {} - {}'.format(i, type(batch)))
-
-    print('Number of workers: {}'.format(dataloader.num_workers))
-    print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))
+    #print('Number of workers: {}'.format(dataloader.num_workers))
+    #print('time taken to exhaust the dataset for a batch size of {}: {}s'.format(batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
     batch = next(iter(dataloader))
     shapecolorquery.show_sample(batch, 0)
 
-    print('Unit test completed')

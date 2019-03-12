@@ -28,7 +28,9 @@ from miprometheus.problems.seq_to_seq.seq_to_seq_problem import SeqToSeqProblem
 
 class VideoTextToClassProblem(SeqToSeqProblem):
 	"""
-	Abstract base class for sequential VQA problems.
+	Abstract base class for "Sequential VQA" problems \
+		(i.e. problems, where the system is given a question and is supposed to provide \
+		sequence of answers, one per image from the image sequence).
 
 	COG inherits from it (for now).
 

@@ -129,7 +129,7 @@ setup(
     # project page. What does your project relate to?
     #
     # Note that this is a string of words separated by whitespace, not a list.
-    keywords='mi-prometheus machine-learning model problem worker grid-worker',  # Optional
+    keywords='mi-prometheus pytorch machine-learning model problem worker grid-worker',  # Optional
 
     # You can just specify package directories manually here if your project is
     # simple. Or you can use find_packages().
@@ -164,6 +164,7 @@ setup(
                       'tqdm',
                       'nltk',
                       'h5py',
+                      'sphinx_rtd_theme',
                       'pyqt5==5.10.1',  # to avoid PyQt5.sip being separated
                       # 'torch==0.4.0',  # can't install pytorch from pip, use conda
                       ],
@@ -189,7 +190,7 @@ setup(
     package_data={  # Optional
         # 'miprometheus.config': ['default_config.yaml'],
         # we should list here some configs.yaml files that will be copied over with the data.
-    '':[path.join(here,'miprometheus/problems/seq_to_seq/vqa/cog/cog_utils/roboto.ttf')]},
+    '':[path.join(here,'miprometheus/problems/seq_to_seq/video_text_to_class/cog/cog_utils/roboto.ttf')]},
 
     include_package_data=True,
 

@@ -210,7 +210,13 @@ class CLEVR(ImageTextToClassProblem):
         self.parse_param_tree(params)
 
         # define the default_values dict: holds parameters values that a model may need.
-        self.default_values = {'nb_classes': 28}
+        self.default_values = {
+            'num_classes': 28,
+            'height':  480 if params['images']['raw_images'] else 14,
+            'width':  320 if params['images']['raw_images'] else 14,
+            'depth':  3 if params['images']['raw_images'] else 1024,
+            'question_encoding_size': 300
+            }
 
         # define the data_definitions dict: holds a description of the DataDict content
         self.data_definitions = {'images': {'size': [-1, 3, 480, 320] if params['images']['raw_images']
@@ -525,7 +531,13 @@ class CLEVR(ImageTextToClassProblem):
         self.logger.info('Loaded {} samples'.format(len(data['questions'])))
 
         # load the dict question_family_type -> question_type: Will allow to plot the acc per question category
-        with open(os.path.join(self.data_folder, 'questions/index_to_family.json')) as f:
+        # If the file does not exist - create mapping.
+        if not os.path.isfile(os.path.join(self.data_folder, 'generated_files/index_to_family.json')):
+            mapping = '{"0": "equal_integer", "1": "less_than", "2": "greater_than", "3": "equal_integer", "4": "less_than", "5": "greater_than", "6": "equal_integer", "7": "less_than", "8": "greater_than", "9": "equal_size", "10": "equal_color", "11": "equal_material", "12": "equal_shape", "13": "equal_size", "14": "equal_size", "15": "equal_size", "16": "equal_color", "17": "equal_color", "18": "equal_color", "19": "equal_material", "20": "equal_material", "21": "equal_material", "22": "equal_shape", "23": "equal_shape", "24": "equal_shape", "25": "count", "26": "exist", "27": "query_size", "28": "query_shape", "29": "query_color", "30": "query_material", "31": "count", "32": "query_size", "33": "query_color", "34": "query_material", "35": "query_shape", "36": "exist", "37": "exist", "38": "exist", "39": "exist", "40": "count", "41": "count", "42": "count", "43": "count", "44": "exist", "45": "exist", "46": "exist", "47": "exist", "48": "count", "49": "count", "50": "count", "51": "count", "52": "query_color", "53": "query_material", "54": "query_shape", "55": "query_size", "56": "query_material", "57": "query_shape", "58": "query_size", "59": "query_color", "60": "query_shape", "61": "query_size", "62": "query_color", "63": "query_material", "64": "count", "65": "count", "66": "count", "67": "count", "68": "count", "69": "count", "70": "count", "71": "count", "72": "count", "73": "exist", "74": "query_size", "75": "query_color", "76": "query_material", "77": "query_shape", "78": "count", "79": "exist", "80": "query_size", "81": "query_color", "82": "query_material", "83": "query_shape", "84": "count", "85": "exist", "86": "query_shape", "87": "query_material", "88": "query_color", "89": "query_size"}'
+            with open(os.path.join(self.data_folder, 'generated_files/index_to_family.json'), 'w+') as f:
+                f.write(mapping)
+        # Load dict.
+        with open(os.path.join(self.data_folder, 'generated_files/index_to_family.json')) as f:
             index_to_family = json.load(f)
 
         # start constructing vocab sets
@@ -675,7 +687,7 @@ class CLEVR(ImageTextToClassProblem):
         question_length = question.shape[0]
 
         # return everything
-        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+        data_dict = self.create_data_dict()
 
         data_dict['images'] = img
         data_dict['questions'] = question
@@ -711,29 +723,25 @@ class CLEVR(ImageTextToClassProblem):
         """
         batch_size = len(batch)
 
-        # get max question length, create tensor of shape [batch_size x maxQuestionLength] & sort questions by
-        # decreasing length
+        # Get max question length, create tensor of shape [batch_size x maxQuestionLength x embedding]
         max_len = max(map(lambda x: x['questions_length'], batch))
-        sort_by_len = sorted(batch, key=lambda x: x['questions_length'], reverse=True)
-
-        # create tensor containing the embedded questions
         questions = torch.zeros(batch_size, max_len, self.embedding_dim).type(torch.FloatTensor)
 
+        for i, length in enumerate([item['questions_length'] for item in batch]):
+            questions[i, :length, :] = batch[i]['questions']
+
         # construct the DataDict and fill it with the batch
-        data_dict = DataDict({key: None for key in self.data_definitions.keys()})
+        data_dict = self.create_data_dict()
 
-        data_dict['images'] = torch.stack([elt['images'] for elt in sort_by_len]).type(torch.FloatTensor)
-        data_dict['questions_length'] = [elt['questions_length'] for elt in sort_by_len]
-        data_dict['targets'] = torch.tensor([elt['targets'] for elt in sort_by_len]).type(torch.LongTensor)
-        data_dict['questions_string'] = [elt['questions_string'] for elt in sort_by_len]
-        data_dict['index'] = [elt['index'] for elt in sort_by_len]
-        data_dict['imgfiles'] = [elt['imgfiles'] for elt in sort_by_len]
-        data_dict['questions_type'] = [elt['questions_type'] for elt in sort_by_len]
-
-        for i, length in enumerate(data_dict['questions_length']):  # only way to do this?
-            questions[i, :length, :] = sort_by_len[i]['questions']
-
+        data_dict['images'] = torch.stack([item['images'] for item in batch]).type(torch.FloatTensor)
         data_dict['questions'] = questions
+        data_dict['questions_length'] = [item['questions_length'] for item in batch]
+        data_dict['targets'] = torch.tensor([item['targets'] for item in batch]).type(torch.LongTensor)
+
+        data_dict['questions_string'] = [item['questions_string'] for item in batch]
+        data_dict['index'] = [item['index'] for item in batch]
+        data_dict['imgfiles'] = [item['imgfiles'] for item in batch]
+        data_dict['questions_type'] = [item['questions_type'] for item in batch]
 
         return data_dict
 

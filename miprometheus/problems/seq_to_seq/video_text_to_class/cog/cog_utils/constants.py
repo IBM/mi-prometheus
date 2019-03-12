@@ -17,7 +17,6 @@
 
 import itertools
 import string
-import numpy as np
 
 # RGB, from https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
 WORD2COLOR = {
@@ -101,12 +100,12 @@ MAXSEQLENGTH = 25
 #  prefs = (np.array([prefs_x, prefs_y]).astype('float32')).T
 #  return prefs
 
-GRID_SIZE = 7
-prefs_y, prefs_x = (np.mgrid[0:GRID_SIZE, 0:GRID_SIZE]) / (GRID_SIZE - 1.)
-prefs_x = prefs_x.flatten().astype('float32')
-prefs_y = prefs_y.flatten().astype('float32')
+#GRID_SIZE = 7
+#prefs_y, prefs_x = (np.mgrid[0:GRID_SIZE, 0:GRID_SIZE]) / (GRID_SIZE - 1.)
+#prefs_x = prefs_x.flatten().astype('float32')
+#prefs_y = prefs_y.flatten().astype('float32')
 
   # numpy array (Grid_size**2, 2)
-PREFS = (np.array([prefs_x, prefs_y]).astype('float32')).T
+#PREFS = (np.array([prefs_x, prefs_y]).astype('float32')).T
 #PREFS = get_prefs(GRID_SIZE)
 
