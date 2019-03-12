@@ -320,7 +320,7 @@ class COG(VideoTextToClassProblem):
 		threshold=0.15**2
 		threshold_diff = torch.where(diff.cpu() > threshold,x,z)
 
-   
+
         #number of correct answers
 
 		#non_zero = torch.nonzero(threshold_diff)
