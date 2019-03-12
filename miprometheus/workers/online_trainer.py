@@ -100,7 +100,7 @@ class OnlineTrainer(Trainer):
         self.logger.info('Epoch size in terms of training episodes: {}'.format(self.epoch_size))
 
         # Terminal condition III: max episodes. Mandatory.
-        self.params["training"]["terminal_conditions"].add_default_params({'episode_limit': 100000000})
+        self.params["training"]["terminal_conditions"].add_default_params({'episode_limit': 100000})
         self.episode_limit = self.params['training']['terminal_conditions']['episode_limit']
         if self.episode_limit <= 0:
             self.logger.error("OnLine Trainer relies on episodes, thus Episode Limit must be a positive number!")
