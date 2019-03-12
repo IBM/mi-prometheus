@@ -136,6 +136,7 @@ class VQAMED(ImageTextToClassProblem):
         else:
             # embed question
             question = self.language.embed_sentence(item["string_question"])
+        # Get length.
         question_length = question.shape[0]
 
         # Create the resulting data dict.
