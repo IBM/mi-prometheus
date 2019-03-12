@@ -336,8 +336,8 @@ class COG(VideoTextToClassProblem):
 		self.correct_total += correct
 		self.total_total  += total
 
-		#return correct/total
-		return pointing_accuracy
+		return correct/total
+		#return pointing_accuracy
 		#return self.correct_total / self.total_total
 
 
