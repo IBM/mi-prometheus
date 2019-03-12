@@ -161,12 +161,15 @@ class COG(VideoTextToClassProblem):
 		# Get the "hardcoded" image width/height.
 		self.img_size = 112  # self.params['img_size']
 
+		self.output_classes_pointing=49
+
 		# Set default values
 		self.default_values = {	'height': self.img_size,
 								'width': self.img_size,
 								'num_channels': 3,
 								'sequence_length' : self.sequence_length,
-								'num_classes': self.output_classes,
+								'nb_classes': self.output_classes,
+								'nb_classes_pointing': self.output_classes_pointing,
 								'embed_vocab_size': self.input_words}
 		
 		# Set data dictionary based on parsed dataset type
@@ -229,6 +232,30 @@ class COG(VideoTextToClassProblem):
 			self.logger.info("COG initialization complete.")
 			exit(0)
 
+		self.categories = ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
+									 'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
+									 'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
+									 'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
+									 'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
+									 'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape', 'AndSimpleExistColorGo', 'AndSimpleExistGo', 'AndSimpleExistShapeGo', 'CompareColorGo',
+								 'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
+								 'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
+								 'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
+								 'SimpleExistGo','SimpleExistShapeGo']
+
+
+		self.tuple_list = [[0, 0] for _ in range(len(self.categories))]
+
+		self.categories_stats = dict(zip(self.categories, self.tuple_list))
+
+
+		#Intitlize counters aggregator for accuracy
+
+		self.correct_total= 0
+
+		self.total_total = 0
+
+
 	def evaluate_loss(self, data_dict, logits):
 		""" Calculates accuracy equal to mean number of correct predictions in a given batch.
 		WARNING: Applies mask to both logits and targets!
@@ -241,8 +268,8 @@ class COG(VideoTextToClassProblem):
 
 		targets_reg = data_dict['targets_reg']
 		targets_class = data_dict['targets_class']
-		
-		# Classification Loss 
+
+		# Classification Loss ƒ
 		loss = self.loss_function(logits[0][:,0,:], targets_class[:,0]) /logits[0].size(1)
 		for i in range(1,logits[0].size(1)):
 			loss += self.loss_function(logits[0][:,i,:], targets_class[:,i]) /logits[0].size(1)
@@ -262,29 +289,142 @@ class COG(VideoTextToClassProblem):
 		:param logits: Predictions being output of the model.
 
 		"""
-		
+
 		targets_reg = data_dict['targets_reg']
 		targets_class = data_dict['targets_class']
-		
+
+
+		# Classification Accuracy ###############################################
+		values, indices = torch.max(logits[0], 2)
+		correct = (indices == targets_class).sum().item()  # + (targets==-1).sum().item()
+		total = targets_class.numel() - (targets_class == -1).sum().item()
+
+
+		# Pointing Accuracy #####################################################
+
+
+        #softmax logits pointing
+		softmax_pointing = nn.Softmax(dim=2)
+		logits_soft=softmax_pointing(logits[1])
+
+		#mean square error
+		diff_pointing=(logits_soft-targets_reg)
+		diff_pointing=diff_pointing**2
+
+		#sum over every frame
+		diff=torch.sum(diff_pointing,dim=2)
+
+        #apply  threshold
+		x = torch.zeros(targets_reg.size(0), targets_reg.size(1))
+		z = torch.ones(targets_reg.size(0), targets_reg.size(1))
+		threshold=0.15**2
+		threshold_diff = torch.where(diff.cpu() > threshold,x,z)
+
+
+        #number of correct answers
+
+		#non_zero = torch.nonzero(threshold_diff)
+		non_zero = torch.nonzero(correctp)
+
+		#increments counters
+		correct += non_zero.size(0)
+		values, hard_targets = torch.max(targets_reg, 2)
+		total += hard_targets.numel() - (hard_targets == 0).sum().item()
+
+		pointing_accuracy=non_zero.size(0)/(hard_targets.numel() - (hard_targets == 0).sum().item())
+
+		self.correct_total += correct
+		self.total_total  += total
+
+		#return correct/total
+		return pointing_accuracy
+		#return self.correct_total / self.total_total
+
+
+
+	def get_acc_per_family(self, data_dict, logits):
+		"""
+			        Compute the accuracy per family for the current batch. Also accumulates
+			        the number of correct predictions & questions per family in self.correct_pred_families (saved
+			        to file).
+
+
+			        .. note::
+
+			            To refactor.
+
+
+			        :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', \
+			        'targets', 'targets_string', 'index','imgfiles'})
+			        :type data_dict: :py:class:`miprometheus.utils.DataDict`
+
+			        :param logits: network predictions.
+			        :type logits: :py:class:`torch.Tensor`
+
+			        """
+
+		targets_reg = data_dict['targets_reg']
+		targets_class = data_dict['targets_class']
+		tasks = data_dict['tasks']
+
+
+
 		# Classification Accuracy
-		values, indices = torch.max(logits[0],2)
-		correct = (indices==targets_class).sum().item() #+ (targets==-1).sum().item()
-		total = targets_class.numel() - (targets_class==-1).sum().item()
+		values, indices = torch.max(logits[0], 2)
+		targets_class_zeros = ( targets_class == -1)
+
+		correct = (indices == targets_class).sum(dim=1)  # + (targets==-1).sum().item()
+
 
 		# Pointing Accuracy
-		values, indices = torch.max(logits[1],2)
-		values, hard_targets = torch.max(targets_reg,2)
-		
-		# Committing a minor inaccuracy here
-		correct += (indices==hard_targets).sum().item() - (indices==0).sum().item()
-		total += hard_targets.numel() - (hard_targets==0).sum().item()
+		values, indicesp = torch.max(logits[1], 2)
+		valuesp, hard_targetsp = torch.max(targets_reg, 2)
 
-		return correct/total
+		hard_targetsp_zeros = (hard_targetsp == 0)
+
+		# Committing a minor inaccuracy here
+		#correctp = (indicesp == hard_targetsp).sum(dim=1) - (indices == 0).sum(dim=1)
+		correctp = (indicesp == hard_targetsp).sum(dim=1)
+
+		for i in range(correct.size(0)):
+			# update # of questions for the corresponding family
+			self.categories_stats[tasks[i]][1] += (4 - targets_class_zeros[i].sum())
+			self.categories_stats[tasks[i]][1] += (4 - hard_targetsp_zeros[i].sum())
+
+
+			# update the # of correct predictions for the corresponding family
+			self.categories_stats[tasks[i]][0] += correct.data[i]
+			self.categories_stats[tasks[i]][0] += correctp.data[i]
+
+		print (self.categories_stats)
+
+
+		for task in self.categories:
+
+			print (self.categories_stats[task][1])
+			print (self.categories_stats[task][0])
+
+			if self.categories_stats[task][1] == 0:
+				acc = 0
+			else:
+				print('hello')
+				a = self.categories_stats[task][0]
+				b = self.categories_stats[task][1]
+				a= a.numpy()
+				b=b.numpy()
+				acc = a/b
+
+			print('accuracy for task',task, '=' , acc )
+
+
+
 
 	def output_class_to_int(self,targets_class):
 		#for j, target in enumerate(targets_class):
 		targets_class = [-1 if a == 'invalid' else self.output_vocab.index(a) for a in targets_class]
 		targets_class = self.app_state.LongTensor(targets_class)
+
+
 
 		return targets_class
 
@@ -352,6 +492,7 @@ class COG(VideoTextToClassProblem):
 			soft_targets[i,:] = soft_targets[i,:] / np.sum(soft_targets[i,:])
 		np.nan_to_num(soft_targets,copy=False)
 		data_dict['targets_reg'] = self.app_state.FloatTensor(soft_targets)
+
 
 		return data_dict
 
@@ -521,6 +662,7 @@ class COG(VideoTextToClassProblem):
 
 		"""
 		stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
+		#self.get_acc_per_family(data_dict, logits)
 		#stat_col['seq_len'] = self.sequence_length
 		#stat_col['max_mem'] = self.memory_length
 		#stat_col['max_distractors'] = self.max_distractors
@@ -546,7 +688,9 @@ if __name__ == "__main__":
 	# Define useful params
 	from miprometheus.utils.param_interface import ParamInterface
 	params = ParamInterface()
-	tasks = ['Go', 'CompareColor']
+	tasks = ['AndCompareColor']
+
+
 	params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'),
 							  'set': 'val',
 							  'dataset_type': 'canonical',
@@ -558,6 +702,7 @@ if __name__ == "__main__":
 	# Get a sample - Go
 	sample = cog_dataset[0]
 	print(repr(sample))
+	print('hello')
 
 	# Test whether data structures match expected definitions
 #	assert sample['images'].shape == torch.ones((4, 3, 112, 112)).shape
@@ -568,7 +713,7 @@ if __name__ == "__main__":
 #	assert sample['targets_class'][0] == ' '  
 
 	# Get another sample - CompareColor
-	sample2 = cog_dataset[1]
+	sample2 = cog_dataset[1000]
 	print(repr(sample2))
 
 	# Test whether data structures match expected definitions
@@ -580,6 +725,7 @@ if __name__ == "__main__":
 #	assert sample2['targets_class'][0] == 'invalid'  
 	
 	print('__getitem__ works')
+	print(cog_dataset.output_classes)
 	
 	# Set up Dataloader iterator
 	from torch.utils.data import DataLoader
@@ -667,6 +813,5 @@ if __name__ == "__main__":
 		print('Timing test completed, removing files.')
 		for i in range(testbatches):
 			os.remove(os.path.expanduser('~/data/cogtest/'+str(i)+'.npy'))
-	
 	print('Done!')
 

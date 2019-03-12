@@ -937,6 +937,7 @@ if __name__ == "__main__":
 
     # Display single sample (0) from batch.
     batch = next(iter(problem))
-    clevr_dataset.show_sample(batch, 0)
+    print(batch)
+    #clevr_dataset.show_sample(batch, 0)
 
     print('Unit test completed.')

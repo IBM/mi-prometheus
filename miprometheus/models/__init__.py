@@ -12,6 +12,7 @@ from .thalnet import *
 # VQA models.
 from .mac import *
 from .s_mac import *
+from .mac_sequential import *
 from .relational_net import *
 from .vision import *
 from .vqa_baselines import *
