@@ -309,9 +309,10 @@ class COG(VideoTextToClassProblem):
         #softmax logits pointing
 		softmax_pointing = nn.Softmax(dim=2)
 		logits_soft=softmax_pointing(logits[1])
+		targets_reg_soft=softmax_pointing(targets_reg)
 
 		#mean square error
-		diff_pointing=(logits_soft-targets_reg)
+		diff_pointing=(logits_soft-targets_reg_soft)
 		diff_pointing=diff_pointing**2
 
 		#sum over every frame
