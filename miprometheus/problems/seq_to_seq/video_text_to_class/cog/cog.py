@@ -323,9 +323,15 @@ class COG(VideoTextToClassProblem):
 		threshold=0.15**2
 		threshold_diff = torch.where(diff.cpu() > threshold,x,z)
 
+        #old acc
+		view = logits[1].view(-1, 49).cpu()
+		max_logits = (view == view.max(dim=1, keepdim=True)[0]).view_as(logits[1])
+		correctp = max_logits * threshold_target.byte()
+
+
         #number of correct answers
 		#non_zero = torch.nonzero(threshold_diff)
-		non_zero = torch.nonzero(threshold_target)
+		non_zero = torch.nonzero(correctp)
 
 		#increments counters
 		correct += non_zero.size(0)
