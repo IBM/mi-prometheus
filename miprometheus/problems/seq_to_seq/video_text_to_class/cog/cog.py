@@ -323,8 +323,8 @@ class COG(VideoTextToClassProblem):
 
         #number of correct answers
 
-		#non_zero = torch.nonzero(threshold_diff)
-		non_zero = torch.nonzero(correctp)
+		non_zero = torch.nonzero(threshold_diff)
+		#non_zero = torch.nonzero(correctp)
 
 		#increments counters
 		correct += non_zero.size(0)
