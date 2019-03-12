@@ -303,7 +303,7 @@ class COG(VideoTextToClassProblem):
 		# Pointing Accuracy #####################################################
 		values, hard_targets = torch.max(targets_reg, 2)
 		y = torch.zeros(targets_reg.size(0), targets_reg.size(1),  targets_reg.size(2))
-		z = torch.ones(targets_reg.size(0),targets_reg.size(1),  targets_reg.size(12))
+		z = torch.ones(targets_reg.size(0),targets_reg.size(1),  targets_reg.size(2))
 		threshold_target = torch.where(targets_reg.cpu() > 0.00001, z, y)
 
         #softmax logits pointing
