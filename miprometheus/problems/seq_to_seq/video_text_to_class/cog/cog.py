@@ -330,18 +330,22 @@ class COG(VideoTextToClassProblem):
 
 
         #number of correct answers
-		non_zero = torch.nonzero(threshold_diff)
-		#non_zero = torch.nonzero(correctp)
+		#non_zero = torch.nonzero(threshold_diff)
+		non_zero = torch.nonzero(correctp)
 
 		#increments counters
 		correct += non_zero.size(0)
 		total += hard_targets.numel() - (hard_targets == 0).sum().item()
 
+		pointing_accuracy=non_zero.size(0)/(hard_targets.numel() - (hard_targets == 0).sum().item())
+
 		self.correct_total += correct
 		self.total_total  += total
 
-		return correct/total
+		#return correct/total
+		return pointing_accuracy
 		#return self.correct_total / self.total_total
+
 
 
 	def get_acc_per_family(self, data_dict, logits):
