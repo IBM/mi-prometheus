@@ -9,8 +9,11 @@ from .statistics_aggregator import StatisticsAggregator
 from .time_plot import TimePlot
 from .data_dict import DataDict
 
-from .loss import *
-from .problems_utils import *
+from .loss.masked_cross_entropy_loss import MaskedCrossEntropyLoss
+from .loss.masked_bce_with_logits_loss import MaskedBCEWithLogitsLoss
+
+from .problems_utils.generate_feature_maps import GenerateFeatureMaps
+from .problems_utils.language import Language
 
 __all__ = [
     'AppState',
@@ -23,5 +26,9 @@ __all__ = [
     'StatisticsCollector',
     'StatisticsAggregator',
     'TimePlot',
-    'DataDict'
+    'DataDict',
+    'MaskedCrossEntropyLoss',
+    'MaskedBCEWithLogitsLoss',
+    'GenerateFeatureMaps',
+    'Language'
     ]

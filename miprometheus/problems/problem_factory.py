@@ -53,6 +53,12 @@ class ProblemFactory(object):
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger('ProblemFactory')
 
+        import pkgutil
+        #print([name for _, name, _ in pkgutil.iter_modules(['miprometheus.problems'])])
+        #print(inspect.getmembers(problems, inspect.ismodule))
+        #exit(1)
+
+
         # Check presence of the name
         if 'name' not in params:
             logger.error("Problem configuration section does not contain the key 'name'")
