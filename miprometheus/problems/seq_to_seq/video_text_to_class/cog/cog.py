@@ -300,37 +300,34 @@ class COG(VideoTextToClassProblem):
 		total = targets_class.numel() - (targets_class == -1).sum().item()
 
 
-
 		# Pointing Accuracy #####################################################
 		values, hard_targets = torch.max(targets_reg, 2)
 		#y = torch.zeros(48, 4, 49)
 		#z = torch.ones(48, 4, 49)
 		#threshold_target = torch.where(targets_reg.cpu() > 0.001, z, y)
 
+        #softmax logits pointing
+		softmax_pointing = nn.Softmax(dim=2)
+		logits_soft=softmax_pointing(logits[1])
 
-		#print(logits[1].size())
+		#mean square error
+		diff_pointing=(logits_soft-targets_reg)
+		diff_pointing=diff_pointing**2
 
-		softmax = nn.Softmax(dim=2)
-		sof=softmax(logits[1])
-		diff=(sof-targets_reg)
-		diff=diff*diff
+		#sum over every frame
+		diff=torch.sum(diff_pointing,dim=2)
 
-		diff=torch.sum(diff,dim=2)
+        #apply  threshold
+		x = torch.zeros(targets_reg.size(0), targets_reg.size(1))
+		z = torch.ones(targets_reg.size(0), targets_reg.size(1))
+		threshold=0.15**2
+		threshold_diff = torch.where(diff.cpu() > threshold,x,z)
 
-		y = torch.zeros(48, 4)
-		z = torch.ones(48, 4)
-
-
-		threshold_diff = torch.where(diff.cpu() > 0.03, torch.zeros(48, 4), torch.ones(48, 4))
-
-
-		#correctp = max_logits * threshold_target.byte()
-		#non_zero=torch.nonzero(correctp)
-		#print(threshold_target)
-
+        #number of correct answers
 		non_zero = torch.nonzero(threshold_diff)
+		#non_zero = torch.nonzero(threshold_target)
 
-		# Committing a minor inaccuracy here
+		#increments counters
 		correct += non_zero.size(0)
 		total += hard_targets.numel() - (hard_targets == 0).sum().item()
 
