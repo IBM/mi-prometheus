@@ -120,4 +120,7 @@ To be completed.
 Training the Sequential MAC model on the Cog dataset
 ------------------------------------------
 
+Make sure that you have Mi-Prometheus up and running. Please refer to the :ref:`installation` note, and do no hesitate to read the :ref:`explained` section, which provides in-depth information about Mi-Prometheus.
+
+
 
