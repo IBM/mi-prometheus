@@ -120,7 +120,30 @@ To be completed.
 Training the Sequential MAC model on the Cog dataset
 ------------------------------------------
 
-Make sure that you have Mi-Prometheus up and running. Please refer to the :ref:`installation` note, and do no hesitate to read the :ref:`explained` section, which provides in-depth information about Mi-Prometheus.
+In the following section, we use a modified version of the MAC model (Compositional Attention Networks for Machine Reasoning
+Drew A. Hudson, Christopher D. Manning - https://arxiv.org/abs/1803.03067) to train it on the COG dataset.
+We call it the Sequential MAC model because of its ability to handle sequences of images instead of a single image. 
+
+Please, first make sure that you have Mi-Prometheus up and running. Please refer to the :ref:`installation` note, and do no hesitate to read the :ref:`explained` section, which provides in-depth information about Mi-Prometheus.
+
+The experiment is to train :py:class:`miprometheus.models.mac_sequential.MACNetworkSequential
+on :py:class:`miprometheus.problems.Cog`.
+
+We will use the provided canonical dataset or hard dataset. This datasets include a training set, 
+a validation set and a test set. By default, the canonical dataset will be placed in '~/data/cog/data_4_3_1/' and the hard dataset in data  ~/data/cog/_8_7_10/'
+
+The configuration file is provided in 'mi-prometheus/configs/cog/cog_mac.yaml'
+
+This configuration file contains all the parameters for training & validation.
+
+Simply run
+
+    >>> mip-online-trainer --c cog_mac.yaml --tensorboard 0 (--gpu)
+
+The first option points to the configuration file.
+The second option will log statistics using a Tensorboard writer. This will allow us to visualize the models convergence plots.
+The last option, if passed, will enable training on the gpu if one is available.
+
 
 
 
