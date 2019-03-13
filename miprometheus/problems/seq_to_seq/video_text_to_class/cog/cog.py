@@ -146,9 +146,6 @@ class COG(VideoTextToClassProblem):
 		# Name
 		self.name = 'COG'
 
-		# Edit loss to add ignore_index
-		self.loss_function = nn.CrossEntropyLoss(ignore_index=-1)
-
 		# Initialize word lookup dictionary
 		self.word_lookup = {}
 
@@ -249,36 +246,49 @@ class COG(VideoTextToClassProblem):
 		self.categories_stats = dict(zip(self.categories, self.tuple_list))
 
 
-		#Intitlize counters aggregator for accuracy
-
-		self.correct_total= 0
-
-		self.total_total = 0
-
-
 	def evaluate_loss(self, data_dict, logits):
-		""" Calculates accuracy equal to mean number of correct predictions in a given batch.
-		WARNING: Applies mask to both logits and targets!
-
-		:param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask'}).
-
-		:param logits: Predictions being output of the model.
-
 		"""
+		Calculates accuracy equal to mean number of correct predictions in a given batch.
+		The function calculates two separate losses for answering and pointing actions and sums them up.
 
+
+		:param data_dict: DataDict({'targets_reg', 'targets_class', ...}).
+
+		:param logits: Predictions being output of the model, consisting of a tuple (logits_answer, logits_pointing).
+		"""
+		# Get targets.
 		targets_reg = data_dict['targets_reg']
 		targets_class = data_dict['targets_class']
 
-		# Classification Loss ƒ
-		loss = self.loss_function(logits[0][:,0,:], targets_class[:,0]) /logits[0].size(1)
-		for i in range(1,logits[0].size(1)):
-			loss += self.loss_function(logits[0][:,i,:], targets_class[:,i]) /logits[0].size(1)
+		# Get predictions.
+		predictions_class = logits[0]
+		predictions_reg = logits[1]
 
-		# Pointing Loss
-		logsoftmax = nn.LogSoftmax(dim=2)
-		loss += torch.mean(torch.sum(-targets_reg * logsoftmax(logits[1]), 2))
+		# Get sizes.
+		batch_size = logits[0].size(0)
+		img_seq_len = logits[0].size(1)
 
-		return loss
+
+		# Classification loss.
+		# Reshape predictions [BATCH_SIZE * IMG_SEQ_LEN x CLASSES]
+		predictions_class = predictions_class.view(batch_size*img_seq_len, -1)
+		# Reshape targets [BATCH_SIZE * IMG_SEQ_LEN]
+		targets_class = targets_class.view(batch_size*img_seq_len)
+		# Calculate loss.
+		# Ignore_index: specifies a target value that is ignored and does not contribute to the input gradient. 
+		# -1 is set when we do not use that action.
+		ce_loss_fn = nn.CrossEntropyLoss(ignore_index=-1)
+		self.loss_answer = ce_loss_fn(predictions_class, targets_class)
+
+		# Pointing loss.
+		# Calculate cross entropy [BATCH_SIZE x IMG_SEQ_LEN].
+		logsoftmax_fn = nn.LogSoftmax(dim=2)
+		ce_point = torch.sum((-targets_reg * logsoftmax_fn(predictions_reg)), dim=2)
+		# Calculate mean.
+		self.loss_pointing = torch.mean(ce_point)
+
+		# Both losses are averaged over batch size and sequence lengts - simply sum them.
+		return self.loss_answer + self.loss_pointing
 
 	def calculate_accuracy(self, data_dict, logits):
 		""" Calculates accuracy equal to mean number of correct predictions in a given batch.
@@ -333,12 +343,7 @@ class COG(VideoTextToClassProblem):
 
 		pointing_accuracy=non_zero.size(0)/(hard_targets.numel() - (hard_targets == 0).sum().item())
 
-		self.correct_total += correct
-		self.total_total  += total
-
-		return correct/total
-		#return pointing_accuracy
-		#return self.correct_total / self.total_total
+		return correct/total, correct/total, correct/total
 
 
 
@@ -456,8 +461,17 @@ class COG(VideoTextToClassProblem):
 			# mask_pnt: (n_epoch*batch_size)
 			# mask_word: (n_epoch*batch_size)		
 
-		output = jti.json_to_feeds([self.dataset[index]])[0]
-		images = ((torch.from_numpy(output)).permute(1,0,4,2,3)).squeeze()
+		# (in_imgs, in_rule, seq_length, out_pnt, out_pnt_xy, out_word, mask_pnt, mask_word)
+
+		output = jti.json_to_feeds([self.dataset[index]])
+		#print(output)
+		in_imgs = output[0]
+		#print(in_imgs.shape)
+		#exit(1)
+
+		images = ((torch.from_numpy(in_imgs)).permute(1,0,4,2,3)).squeeze()
+		#print(images.shape)
+		#exit(1)
 				
 		data_dict = self.create_data_dict()
 		data_dict['images']	= images
@@ -509,6 +523,10 @@ class COG(VideoTextToClassProblem):
 		data_dict = self.create_data_dict()
 		
 		data_dict['images'] = torch.stack([image['images'] for image in batch]).type(torch.FloatTensor)
+
+		#print(data_dict['images'].shape)
+		#exit(1)
+
 		data_dict['tasks']  = [task['tasks'] for task in batch]
 		data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.LongTensor)
 		data_dict['targets_reg'] = torch.stack([reg['targets_reg'] for reg in batch]).type(torch.FloatTensor)
@@ -646,7 +664,11 @@ class COG(VideoTextToClassProblem):
 		:param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
 		
 		"""
+		stat_col.add_statistic('loss_answer', '{:12.10f}')
+		stat_col.add_statistic('loss_pointing', '{:12.10f}')
 		stat_col.add_statistic('acc', '{:12.10f}')
+		stat_col.add_statistic('acc_answer', '{:12.10f}')
+		stat_col.add_statistic('acc_pointing', '{:12.10f}')
 		#stat_col.add_statistic('seq_len', '{:06d}')
 		#stat_col.add_statistic('max_mem', '{:06d}')
 		#stat_col.add_statistic('max_distractors', '{:06d}')
@@ -661,7 +683,15 @@ class COG(VideoTextToClassProblem):
 		:param logits: Prediction of the model (:py:class:`torch.Tensor`)
 
 		"""
-		stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
+		# Additional loss.
+		stat_col['loss_answer'] = self.loss_answer.cpu().item()
+		stat_col['loss_pointing'] = self.loss_pointing.cpu().item()
+
+		# Accuracy.
+		acc_total, acc_answer, acc_pointing = self.calculate_accuracy(data_dict, logits)
+		stat_col['acc'] = acc_total
+		stat_col['acc_answer'] = acc_answer
+		stat_col['acc_pointing'] = acc_pointing
 		#self.get_acc_per_family(data_dict, logits)
 		#stat_col['seq_len'] = self.sequence_length
 		#stat_col['max_mem'] = self.memory_length
@@ -680,7 +710,7 @@ if __name__ == "__main__":
 	sequence_nr = 1
 
 	# Timing test parameters
-	timing_test = True
+	timing_test = False
 	testbatches = 100
 
 	# -------------------------
@@ -700,9 +730,7 @@ if __name__ == "__main__":
 	cog_dataset = COG(params)
 
 	# Get a sample - Go
-	sample = cog_dataset[0]
-	print(repr(sample))
-	print('hello')
+	#sample = cog_dataset[0]
 
 	# Test whether data structures match expected definitions
 #	assert sample['images'].shape == torch.ones((4, 3, 112, 112)).shape
@@ -714,7 +742,7 @@ if __name__ == "__main__":
 
 	# Get another sample - CompareColor
 	sample2 = cog_dataset[1000]
-	print(repr(sample2))
+	#print(repr(sample2))
 
 	# Test whether data structures match expected definitions
 #	assert sample2['images'].shape == torch.ones((4, 3, 112, 112)).shape
@@ -724,9 +752,6 @@ if __name__ == "__main__":
 #	assert len(sample2['targets_class']) == 4
 #	assert sample2['targets_class'][0] == 'invalid'  
 	
-	print('__getitem__ works')
-	print(cog_dataset.output_classes)
-	
 	# Set up Dataloader iterator
 	from torch.utils.data import DataLoader
 	
@@ -735,15 +760,6 @@ if __name__ == "__main__":
 
 	# Display single sample (0) from batch.
 	batch = next(iter(dataloader))
-
-	# Test whether batches are formed correctly	
-#	assert batch['images'].shape == torch.ones((batch_size,4,3,112,112)).shape
-#	assert len(batch['tasks']) == batch_size
-#	assert len(batch['questions']) == batch_size
-	print(batch['questions'].size())
-#	assert batch['targets_reg'].shape == torch.ones((batch_size,4,2)).shape
-#	assert len(batch['targets_class']) == batch_size
-#	assert len(batch['targets_class'][0]) == 4 
 
 	# VQA expects 'targets', so change 'targets_class' to 'targets'
 	# Implement a data_dict.pop later.
@@ -759,7 +775,6 @@ if __name__ == "__main__":
 	# Show sample - Task 2
 	cog_dataset.show_sample(batch,1,sequence_nr)	
 
-	print('Unit test completed')
 
 	if timing_test:
 		# Test speed of generating images vs preloading generated images.
@@ -813,5 +828,6 @@ if __name__ == "__main__":
 		print('Timing test completed, removing files.')
 		for i in range(testbatches):
 			os.remove(os.path.expanduser('~/data/cogtest/'+str(i)+'.npy'))
+
 	print('Done!')
 

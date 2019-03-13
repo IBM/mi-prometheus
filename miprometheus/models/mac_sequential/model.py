@@ -133,10 +133,12 @@ class MACNetworkSequential(Model):
 
         self.image_encoding = ImageProcessing(dim=512)
 
-        self.output_unit = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
+        # Create two separate output units.
+        self.output_unit_answer = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
         self.output_unit_pointing = OutputUnit(dim=self.dim, nb_classes=self.nb_classes_pointing)
 
 
+        # TODO: The following definitions are not correct!!!!
         self.data_definitions = {'images': {'size': [-1, 1024, 14, 14], 'type': [np.ndarray]},
                                  'questions': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
                                  'questions_length': {'size': [-1], 'type': [list, int]},
@@ -210,17 +212,26 @@ class MACNetworkSequential(Model):
         if self.app_state.visualize:
             self.mac_unit.cell_state_history = []
 
-        # unpack data_dict
+        # Change the order of image dimensions, so we will loop over dimension 0: sequence elements.
         images = data_dict['images']
         images= images.permute(1, 0, 2, 3, 4)
 
+        # Get batch size and length of image sequence.
+        seq_len = images.size(0)
+        batch_size = images.size(1)
 
+        # Get and procecss questions.
+        questions = data_dict['questions']
+        # Embeddings.
+        questions = self.forward_lookup2embed(questions)
+        # Get questions size of all batch elements.
+        questions_length = questions.size(1)
+        # Convert questions length into a tensor
+        questions_length = torch.from_numpy(numpy.array(questions_length))
 
-        #logits placeholders
-        logits = torch.zeros( (data_dict['images'].size(0), images.size(0), self.nb_classes), requires_grad=False).type(self.dtype)
-        logits_pointing = torch.zeros( (data_dict['images'].size(0), images.size(0),self.nb_classes_pointing), requires_grad=False).type(self.dtype)
-
-        batch_size = data_dict['images'].size(0)
+        # Create placeholders for logits.
+        logits_answer = torch.zeros( (batch_size, seq_len, self.nb_classes), requires_grad=False).type(self.dtype)
+        logits_pointing = torch.zeros( (batch_size, seq_len,self.nb_classes_pointing), requires_grad=False).type(self.dtype)
 
         # expand the hidden states to whole batch for mac cell control states and memory states
         control = self.control_0.expand(batch_size, self.dim)
@@ -234,10 +245,10 @@ class MACNetworkSequential(Model):
         controls = [control]
         memories = [memory]
 
+        # Loop over all elements along the SEQUENCE dimension.
         for i in range(images.size(0)):
 
             #Cog like CNN - cf  cog  model
-
             x = self.conv1(images[i])
             x = self.maxpool1(x)
             x = nn.functional.relu(self.batchnorm1(x))
@@ -251,36 +262,17 @@ class MACNetworkSequential(Model):
             # out_conv4 = self.conv4(out_batchnorm3)
             x = self.maxpool4(x)
 
-
-            #get question from data dict
-
-            questions = data_dict['questions']
-            #print(questions.size())
-
-            questions = self.forward_lookup2embed(questions)
-
-            #get questions size of all batch elements
-            questions_length = questions.size(1)
-
-            #convert questions length into a tensor
-            questions_length = torch.from_numpy(numpy.array(questions_length))
-
             # input unit
-            img, kb_proj, lstm_out, h = self.input_unit(
-            questions, questions_length, x)
+            img, kb_proj, lstm_out, h = self.input_unit(questions, questions_length, x)
 
             # recurrent MAC cells
             memory, controls, memories = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory)
 
-            targets_reg = data_dict['targets_reg']
-            targets_class = data_dict['targets_class']
-
            # output unit
-            logits[:,i,:] = self.output_unit(memory, h)
+            logits_answer[:,i,:] = self.output_unit_answer(memory, h)
             logits_pointing[:,i,:] = self.output_unit_pointing(memory, h)
 
-
-        return logits, logits_pointing
+        return logits_answer, logits_pointing
 
     @staticmethod
     def generate_figure_layout():

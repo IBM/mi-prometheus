@@ -262,6 +262,7 @@ class CogModel(Model):
 
 		:param data_dict: dictionary of data with images, questions.
 
+		:return: Tuple with two predictions: batch with answers and batch with pointing actions 
 		"""
 		# Parse input
 		images = data_dict['images'].permute(1,0,2,3,4) / self.img_norm
@@ -331,7 +332,8 @@ class CogModel(Model):
 			output_class[:,j,:] = classification
 			output_point[:,j,:] = pointing
 
-		return output_class, output_point		
+		# Return tuple with two outputs.
+		return (output_class, output_point)		
 
 	def forward_lookup2embed(self,questions):
 		"""
