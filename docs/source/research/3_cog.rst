@@ -157,7 +157,7 @@ You can monitor your training using tensorboard, simply run:
     
     . note::
 
-    Training on the entire dataset will take ~ 24h on a Titan X GPU.
+        Training on the entire dataset will take ~ 24h on a Titan X GPU.
     
 Testing the trained models on the Cog test dataset
 ---------------------------------------------------
