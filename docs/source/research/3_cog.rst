@@ -120,13 +120,10 @@ Simply run:
     >>> mip-online-tester --c cog_cog.yaml --tensorboard 1 (--gpu) --model experiments/<timestamp> (path to model)
 
 
-Collecting the results
-----------------------
-
-To be completed.
 
 Training the Sequential MAC model on the Cog dataset
-------------------------------------------
+=================================================================================
+
 
 In the following section, we use a modified version of the MAC model (Compositional Attention Networks for Machine Reasoning
 Drew A. Hudson, Christopher D. Manning - https://arxiv.org/abs/1803.03067) to train it on the COG dataset.
@@ -158,6 +155,10 @@ You can monitor your training using tensorboard, simply run:
 
     >>> tensorboard --logdir=experiments/<timestamp>
     
+    . note::
+
+    Training on the entire dataset will take ~ 24h on a Titan X GPU.
+    
 Testing the trained models on the Cog test dataset
 ---------------------------------------------------
 
@@ -165,6 +166,29 @@ Once training is done, you can test your model, using the mip ``mip-online-teste
 Simply run:
 
     >>> mip-online-tester --c cog_mac.yaml --tensorboard 1 (--gpu) --model experiments/<timestamp> (path to model)
+    
+Visualization
+--------------
+
+Youu can visualize the model behaviour with the visualization tool.It shows the attentions over the questions and the images overtime:
+
+You need to add the option --visualize {-1,0,1,2,3} to your command. Activate dynamic visualization (Warning: will require user interaction):
+                        -1: disabled (DEFAULT)
+                        0: Only during training episodes.
+                        1: During both training and validation episodes.
+                        2: Only during validation episodes.
+                        3: Only during the last validation, after the training is completed.
+
+Simply run:
+
+    >>> mip-online-tester --c cog_mac.yaml ----visualize 1 (--gpu) --model experiments/<timestamp> (path to model)
+
+
+
+Training and testing the model on the Cog HARD test dataset
+-----------------------------------------------------------
+
+Simply repeat the above experiments by replacing "cog_mac.yaml" by  "cog_hard_mac.yaml"
 
 
 
