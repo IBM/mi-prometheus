@@ -135,7 +135,7 @@ The experiment is to train :py:class:`miprometheus.models.mac_sequential.MACNetw
 on :py:class:`miprometheus.problems.Cog`.
 
 We will use the provided canonical dataset or hard dataset. This datasets include a training set, 
-a validation set and a test set. By default, the canonical dataset will be placed in '~/data/cog/data_4_3_1/' and the hard dataset in data  ~/data/cog/_8_7_10/'
+a validation set and a test set. By default, the canonical dataset will be placed in '~/data/cog/data_4_3_1/' and the hard dataset in data  ~/data/cog/data_8_7_10/'
 
 The configuration file is provided in 'mi-prometheus/configs/cog/cog_mac.yaml'
 
@@ -170,7 +170,7 @@ Simply run:
 Visualization
 --------------
 
-Youu can visualize the model behaviour with the visualization tool.It shows the attentions over the questions and the images overtime:
+You can visualize the model behaviour with the visualization tool.It shows the attentions over the questions and the images overtime:
 
 You need to add the option --visualize {-1,0,1,2,3} to your command. Activate dynamic visualization (Warning: will require user interaction):
                         -1: disabled (DEFAULT)
