@@ -106,10 +106,18 @@ The last option, if passed, will enable training on the gpu if one is available.
 The :py:class:`miprometheus.workers.OnlineTrainer` (called by ``mip-online-trainer``) wil create a main
 experiments folder, named `experiments/<timestamp>` which will contain the statistics.
 
+You can monitor your training using tensorboard, simply run:
+
+    >>> tensorboard --logdir=experiments/<timestamp> (path to model)
+
+
 Testing the trained models on the Cog test dataset
 ---------------------------------------------------
 
-To be completed.
+Once training is done, you can test your model, using the mip ``mip-online-tester``
+Simply run:
+
+    >>> mip-online-tester --c cog_cog.yaml --tensorboard 1 (--gpu) --model experiments/<timestamp> (path to model)
 
 
 Collecting the results
@@ -136,13 +144,29 @@ The configuration file is provided in 'mi-prometheus/configs/cog/cog_mac.yaml'
 
 This configuration file contains all the parameters for training & validation.
 
-Simply run
+Simply run:
 
     >>> mip-online-trainer --c cog_mac.yaml --tensorboard 0 (--gpu)
 
 The first option points to the configuration file.
 The second option will log statistics using a Tensorboard writer. This will allow us to visualize the models convergence plots.
 The last option, if passed, will enable training on the gpu if one is available.
+The :py:class:`miprometheus.workers.OnlineTrainer` (called by ``mip-online-trainer``) wil create a main
+experiments folder, named `experiments/<timestamp>` which will contain the statistics.
+
+You can monitor your training using tensorboard, simply run:
+
+    >>> tensorboard --logdir=experiments/<timestamp>
+    
+Testing the trained models on the Cog test dataset
+---------------------------------------------------
+
+Once training is done, you can test your model, using the mip ``mip-online-tester``
+Simply run:
+
+    >>> mip-online-tester --c cog_mac.yaml --tensorboard 1 (--gpu) --model experiments/<timestamp> (path to model)
+
+
 
 
 
