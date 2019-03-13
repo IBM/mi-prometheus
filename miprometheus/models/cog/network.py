@@ -273,8 +273,7 @@ class CogModel(Model):
 									 					self.lstm_hidden_init.expand(-1,images.size(1),-1).contiguous(),
 														self.lstm_cell_init.expand(-1,images.size(1),-1).contiguous() ) )
 		
-		output_class = torch.zeros((images.size(1),images.size(0)
-,self.nr_classes),requires_grad=False).type(self.dtype)
+		output_class = torch.zeros((images.size(1),images.size(0) ,self.nr_classes),requires_grad=False).type(self.dtype)
 		output_point = torch.zeros((images.size(1),images.size(0),49),requires_grad=False).type(self.dtype)
 
 

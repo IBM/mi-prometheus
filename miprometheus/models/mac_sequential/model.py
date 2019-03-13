@@ -217,8 +217,8 @@ class MACNetworkSequential(Model):
 
 
         #logits placeholders
-        logits = torch.zeros(data_dict['images'].size(0), images.size(0), self.nb_classes)
-        logits_pointing = torch.zeros(data_dict['images'].size(0), images.size(0),self.nb_classes_pointing )
+        logits = torch.zeros( (data_dict['images'].size(0), images.size(0), self.nb_classes), requires_grad=False).type(self.dtype)
+        logits_pointing = torch.zeros( (data_dict['images'].size(0), images.size(0),self.nb_classes_pointing), requires_grad=False).type(self.dtype)
 
         batch_size = data_dict['images'].size(0)
 
