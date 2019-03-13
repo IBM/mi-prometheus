@@ -116,3 +116,8 @@ Collecting the results
 ----------------------
 
 To be completed.
+
+Training the Sequential MAC model on the Cog dataset
+------------------------------------------
+
+
