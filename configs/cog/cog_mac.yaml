@@ -17,15 +17,16 @@ training:
   weight_decay: 0.00002
  gradient_clipping: 10
  terminal_conditions:
-  epoch_limit: 20
+  epoch_limit: 40
   episodes: 100000000
+ partial_validation_interval: 100
 
 testing:
  cuda: True
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
-  batch_size: 64
+  batch_size: 48
   tasks: *task
   data_folder: '~/data/cog'
   set: test
@@ -42,8 +43,17 @@ validation:
   set: val
   use_mask: False
   dataset_type: canonical
- partial_validation_interval: 100
+partial_validation_interval: 100
 
 model:
- name: CogModel
+ name: MACNetworkSequential
+ dim: 128
+ embed_hidden: 64
+ max_step: 12
+ self_attention: False
+ memory_gate: False
+ dropout: 0.15
+ memory_pass: True
+ control_pass: False
+
 

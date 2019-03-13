@@ -135,7 +135,8 @@ class VQAMED(ImageTextToClassProblem):
             question = self.embed_layer(torch.LongTensor(question)).type(torch.FloatTensor)
         else:
             # embed question
-            question = self.language.embed_sentence(question_string)
+            question = self.language.embed_sentence(item["string_question"])
+        # Get length.
         question_length = question.shape[0]
 
         # Create the resulting data dict.

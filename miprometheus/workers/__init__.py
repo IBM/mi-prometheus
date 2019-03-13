@@ -1,4 +1,3 @@
-# Base workers.
 from .worker import Worker
 from .trainer import Trainer
 from .offline_trainer import OfflineTrainer
