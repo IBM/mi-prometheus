@@ -18,27 +18,8 @@
 """cnn_lstm.py: A simple bag-of-words baseline for Visual Question Answering (VQA). \
 This baseline concatenates the word features from the question and CNN features \
 from the image to predict the answer.
-
-Inspiration drawn partially from the following paper:
-
- @article{DBLP:journals/corr/ZhouTSSF15,
-  author    = {Bolei Zhou and
-               Yuandong Tian and
-               Sainbayar Sukhbaatar and
-               Arthur Szlam and
-               Rob Fergus},
-  title     = {Simple Baseline for Visual Question Answering},
-  journal   = {CoRR},
-  volume    = {abs/1512.02167},
-  year      = {2015},
-  url       = {http://arxiv.org/abs/1512.02167},
-  archivePrefix = {arXiv},
-  eprint    = {1512.02167},
-  timestamp = {Mon, 13 Aug 2018 16:47:29 +0200},
-  biburl    = {https://dblp.org/rec/bib/journals/corr/ZhouTSSF15},
-  bibsource = {dblp computer science bibliography, https://dblp.org}}
-
 """
+
 __author__ = "Vincent Marois & Younes Bouhadjar"
 
 import torch
@@ -67,7 +48,6 @@ class CNN_LSTM(Model):
         for now. It is planned in a future release to add support for ``torchvision`` models.
 
         This implementation has only been tested on ``SortOfCLEVR`` for now.
-
 
     """
 
@@ -150,6 +130,7 @@ class CNN_LSTM(Model):
 
             - images: [batch_size, num_channels, height, width],
             - questions: [batch_size, size_question_encoding]
+
         :type data_dict: utils.DataDict
 
         :returns: Predictions: [batch_size, output_classes]

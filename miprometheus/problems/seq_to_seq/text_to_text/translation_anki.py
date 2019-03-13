@@ -53,7 +53,7 @@ import torch
 import errno
 
 from miprometheus.utils.data_dict import DataDict
-from miprometheus.problems.seq_to_seq.text2text.text_to_text_problem import TextToTextProblem, Lang
+from miprometheus.problems.seq_to_seq.text_to_text.text_to_text_problem import TextToTextProblem, Lang
 
 
 class TranslationAnki(TextToTextProblem):

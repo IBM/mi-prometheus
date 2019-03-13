@@ -56,7 +56,9 @@ MOCK_MODULES = ['torch', 'torch.nn', 'torch.utils', 'torch.optim',
                 'torch.utils.data', 'torch.utils.data.sampler',
 
                 'torchvision', 'torchvision.models',
-                'torchtext', 
+                'torchtext',
+
+                'pandas', 
 
                 'matplotlib', 'matplotlib.pyplot', 'matplotlib.figure', 'matplotlib.backends.qt_compat',
                 'matplotlib.backends.backend_qt5agg', 'matplotlib.backends.backend_qt4agg',
@@ -78,7 +80,7 @@ author = 'Tomasz Kornuta, Vincent Marois, Ryan L. McAvoy, Younes Bouhadjar, Alex
          'Emre Sevgen, T.S. Jayram, Ahmet S. Ozcan'
 
 # The short X.Y version
-version = '0.3.1'
+version = '0.3.2'
 # The full version, including alpha/beta/rc tags
 release = 'master'
 

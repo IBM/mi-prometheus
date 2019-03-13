@@ -12,7 +12,7 @@ miprometheus.problems
 
 Problem
 ============================================
-.. autoclass:: miprometheus.problems.Problem
+.. autoclass:: Problem
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -26,7 +26,7 @@ ProblemFactory
 
 ImageTextToClass Problems
 ============================================
-.. autoclass:: miprometheus.problems.ImageTextToClassProblem
+.. autoclass:: ImageTextToClassProblem
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -91,7 +91,7 @@ VideoTextToClass Problems
 
 COG
 --------------------------------------------
-.. autoclass:: miprometheus.problems.seq_to_seq.video_text_to_class.cog.COG
+.. autoclass:: COG
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -268,14 +268,14 @@ SerialRecallCommandLines
 
 TextToText Problems
 ============================================
-.. automodule:: miprometheus.problems.seq_to_seq.text2text.text_to_text_problem
+.. autoclass:: TextToTextProblem
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 TranslationAnki
 --------------------------------------------
-.. autoclass:: miprometheus.problems.seq_to_seq.TranslationAnki
+.. autoclass:: TranslationAnki
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
@@ -283,21 +283,21 @@ TranslationAnki
 
 VideoToClass Problems
 ============================================
-.. autoclass:: miprometheus.problems.VideoToClassProblem
+.. autoclass:: VideoTextToClassProblem
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 Permuted Sequential Row Mnist
 --------------------------------------------
-.. autoclass:: miprometheus.problems.video_to_class.PermutedSequentialRowMnist
+.. autoclass:: PermutedSequentialRowMnist
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__
 
 Sequential Pixel MNIST
 --------------------------------------------
-.. autoclass:: miprometheus.problems.video_to_class.SequentialPixelMNIST
+.. autoclass:: SequentialPixelMNIST
     :members:
     :special-members:
     :exclude-members: __dict__,__weakref__

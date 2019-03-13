@@ -53,9 +53,9 @@ from .seq_to_seq.algorithmic.recall.repeat_serial_recall_cl import RepeatSerialR
 from .seq_to_seq.algorithmic.recall.scratch_pad_cl import ScratchPadCommandLines
 from .seq_to_seq.algorithmic.recall.serial_recall_cl import SerialRecallCommandLines
 
-# .seq_to_seq.text2text
-from .seq_to_seq.text2text.text_to_text_problem import TextToTextProblem, Lang
-from .seq_to_seq.text2text.translation_anki import TranslationAnki
+# .seq_to_seq.text_to_text
+from .seq_to_seq.text_to_text.text_to_text_problem import TextToTextProblem
+from .seq_to_seq.text_to_text.translation_anki import TranslationAnki
 
 # .seq_to_seq.video_text_to_class
 from .seq_to_seq.video_text_to_class.video_text_to_class_problem import VideoTextToClassProblem
@@ -92,7 +92,7 @@ __all__ = [
     # .seq_to_seq.algorithmic.recall
     'RepeatSerialRecallCommandLines', 'ScratchPadCommandLines', 'SerialRecallCommandLines',
     # .seq_to_seq.text2text
-    'TextToTextProblem', 'Lang', 'TranslationAnki',
+    'TextToTextProblem', 'TranslationAnki',
     # .seq_to_seq.video_text_to_class
     'VideoTextToClassProblem',
     'COG',

@@ -158,6 +158,7 @@ setup(
                       'torchtext',
                       'tensorboardX',
                       'matplotlib',
+                      'pandas',
                       'numpy',
                       'psutil',
                       'PyYAML',
