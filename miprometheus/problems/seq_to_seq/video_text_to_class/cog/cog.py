@@ -324,14 +324,13 @@ class COG(VideoTextToClassProblem):
 		mask_answer = (targets_answer != -1)
 		mask_pointing = (targets_answer == -1)
 
+		#print("targets_answer = ", targets_answer)
+		#print("preds_answer = ", preds_answer)
+		#print("mask_answer = ", mask_answer)
 
-		print("targets_answer = ", targets_answer)
-		print("preds_answer = ", preds_answer)
-		print("mask_answer = ", mask_answer)
-
-		print("targets_pointing = ", targets_pointing)
-		print("preds_pointing = ", preds_pointing)
-		print("mask_pointing = ", mask_pointing)
+		#print("targets_pointing = ", targets_pointing)
+		#print("preds_pointing = ", preds_pointing)
+		#print("mask_pointing = ", mask_pointing)
 
 
 		#########################################################################
