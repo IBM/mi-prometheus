@@ -359,9 +359,9 @@ class COG(VideoTextToClassProblem):
 
 		# Calculate accurary.
 		if mask_answer.sum() > 0:
-			acc_answer = (correct_answers.sum()/mask_answer.sum()).item()
+			acc_answer = float(correct_answers.sum().item()) / float(mask_answer.sum().item())
 		else:
-			acc_answer = 0
+			acc_answer = 0.0
 
 		#########################################################################
 		# Calculate accuracy for Pointing task.
@@ -381,18 +381,19 @@ class COG(VideoTextToClassProblem):
 		threshold=0.15**2
 
 		# Check correct pointings.
-		correct_pointing = (diff_pointing <= threshold) * mask_pointing
+		correct_pointing = (diff_pointing < threshold) * mask_pointing
 
 		# Calculate accurary.
 		if mask_pointing.sum() > 0:
-			acc_pointing = (correct_pointing.sum()/mask_pointing.sum()).item()
+			acc_pointing = float(correct_pointing.sum().item()) / float(mask_pointing.sum().item())
 		else:
-			acc_pointing = 0
+			acc_pointing = 0.0
 
 
 		#########################################################################
 		# Total accuracy.
-		acc_total = (correct_answers.sum() + correct_pointing.sum()) / (batch_size * img_seq_len)
+		acc_total = float(correct_answers.sum() + correct_pointing.sum()) / float( mask_answer.sum() + mask_pointing.sum() )
+		#acc_total = torch.mean(torch.cat( (correct_answers.type(torch.FloatTensor), correct_pointing.type(torch.FloatTensor)) ) )
 
 		# Return all three of them.
 		return acc_total, acc_answer, acc_pointing
@@ -514,7 +515,7 @@ class COG(VideoTextToClassProblem):
 			# mask_word: (n_epoch*batch_size)		
 
 		# Get values from JSON.
-		(in_imgs, in_rule, seq_length, out_pnt, out_pnt_xy, out_word, mask_pnt, mask_word, families) = jti.json_to_feeds([self.dataset[index]])
+		(in_imgs, _, _, _, _, _, mask_pnt, mask_word, _) = jti.json_to_feeds([self.dataset[index]])
 
 		# Images [BATCH_SIZE x IMG_SEQ_LEN x DEPTH x HEIGHT x WIDTH].
 		images = ((torch.from_numpy(in_imgs)).permute(1,0,4,2,3)).squeeze()
@@ -546,6 +547,8 @@ class COG(VideoTextToClassProblem):
 			data_dict['targets_answer'] 	= self.app_state.LongTensor([-1 for target in answers])
 			targets_pointing = np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
 
+		# TODO: INVESTIGATE THAT!!
+		###########################################
 		x, y = np.meshgrid(np.linspace(-1,1,7), np.linspace(-1,1,7))
 		mu = 0.1
 
@@ -557,6 +560,7 @@ class COG(VideoTextToClassProblem):
 			soft_targets[i,:] = soft_targets[i,:] / np.sum(soft_targets[i,:])
 		np.nan_to_num(soft_targets,copy=False)
 		data_dict['targets_pointing'] = self.app_state.FloatTensor(soft_targets)
+		###########################################
 
 
 		return data_dict
