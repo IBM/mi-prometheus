@@ -292,7 +292,7 @@ class COG(VideoTextToClassProblem):
 		# Pointing loss.
 		# Calculate cross entropy [BATCH_SIZE x IMG_SEQ_LEN].
 		logsoftmax_fn = nn.LogSoftmax(dim=2)
-		ce_point = torch.sum((-targets_pointing * logsoftmax_fn(preds_pointing)), dim=2) * mask_pointing.type(torch.FloatTensor)
+		ce_point = torch.sum((-targets_pointing * logsoftmax_fn(preds_pointing)), dim=2) * mask_pointing.type(torch.cuda.FloatTensor)
 		#print("mask_pointing =", mask_pointing)
 		#print("ce_point = ", ce_point)
 
@@ -379,10 +379,12 @@ class COG(VideoTextToClassProblem):
 
         # Apply  threshold.
 		threshold=0.15**2
-
+		
+                #		print('diff pointing', diff_pointing)
+		#print(mask_pointing)
 		# Check correct pointings.
 		correct_pointing = (diff_pointing < threshold) * mask_pointing
-
+		#print('corect poitning',correct_pointing)
 		# Calculate accurary.
 		if mask_pointing.sum() > 0:
 			acc_pointing = float(correct_pointing.sum().item()) / float(mask_pointing.sum().item())
