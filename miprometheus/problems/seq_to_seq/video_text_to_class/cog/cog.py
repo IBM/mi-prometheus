@@ -171,13 +171,15 @@ class COG(VideoTextToClassProblem):
 		
 		# Set data dictionary based on parsed dataset type
 		self.data_definitions = {
-		'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
-		'tasks':	{'size': [-1, 1], 'type': [list, str]},
-		'questions': 	{'size': [-1,self.nwords], 'type': [torch.Tensor]},
-		#'targets': {'size': [-1,self.sequence_length, self.output_classes], 'type': [torch.Tensor]},
-		'targets_pointing' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
-		'targets_answer':{'size': [-1, self.sequence_length, self.output_classes], 'type' : [list,str]}
-					}	
+			'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
+			'tasks':	{'size': [-1, 1], 'type': [list, str]},
+			'questions': 	{'size': [-1,self.nwords], 'type': [torch.Tensor]},
+			#'targets': {'size': [-1,self.sequence_length, self.output_classes], 'type': [torch.Tensor]},
+			'targets_pointing' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
+			'targets_answer':{'size': [-1, self.sequence_length, self.output_classes], 'type' : [list,str]},
+			'masks_pnt':{'size': [-1, self.sequence_length ], 'type' : [torch.Tensor]},
+			'masks_word':{'size': [-1, self.sequence_length], 'type' : [torch.Tensor]}
+		}	
 
 		# Check if dataset exists, download or generate if necessary.
 		self.source_dataset()
@@ -320,22 +322,25 @@ class COG(VideoTextToClassProblem):
 		# Reshape targets: pointings [BATCH_SIZE * IMG_SEQ_LEN x NUM_ACTIONS]
 		targets_pointing = targets_pointing.view(batch_size*img_seq_len, -1)
 
-		# Create "answer" and "pointing" masks.
-		mask_answer = (targets_answer != -1)
-		mask_pointing = (targets_answer == -1)
+		# Create "answer" and "pointing" masks, both of size [BATCH_SIZE * IMG_SEQ_LEN].
+		mask_answer = data_dict['masks_word']
+		mask_answer = mask_answer.view(batch_size*img_seq_len)
 
-		#print("targets_answer = ", targets_answer)
-		#print("preds_answer = ", preds_answer)
-		#print("mask_answer = ", mask_answer)
+		mask_pointing = data_dict['masks_pnt']
+		mask_pointing = mask_pointing.view(batch_size*img_seq_len)
 
-		#print("targets_pointing = ", targets_pointing)
-		#print("preds_pointing = ", preds_pointing)
-		#print("mask_pointing = ", mask_pointing)
+		print("targets_answer = ", targets_answer)
+		print("preds_answer = ", preds_answer)
+		print("mask_answer = ", mask_answer)
+
+		print("targets_pointing = ", targets_pointing)
+		print("preds_pointing = ", preds_pointing)
+		print("mask_pointing = ", mask_pointing)
 
 
 		#########################################################################
 		# Calculate accuracy for Answering task.
-		# Get answers.
+		# Get answers [BATCH_SIZE * IMG_SEQ_LEN]
 		_, indices = torch.max(preds_answer, 1)
 
 		# Calculate correct answers with additional "masking".
@@ -376,7 +381,7 @@ class COG(VideoTextToClassProblem):
 
 		#########################################################################
 		# Total accuracy.
-		acc_total = (acc_answer + acc_pointing) / (batch_size * img_seq_len)
+		acc_total = (correct_answers.sum() + correct_pointing.sum()) / (batch_size * img_seq_len)
 
 		# Return all three of them.
 		return acc_total, acc_answer, acc_pointing
@@ -497,15 +502,19 @@ class COG(VideoTextToClassProblem):
 			# mask_pnt: (n_epoch*batch_size)
 			# mask_word: (n_epoch*batch_size)		
 
-		# (in_imgs, in_rule, seq_length, out_pnt, out_pnt_xy, out_word, mask_pnt, mask_word)
+		# Get values from JSON.
+		(in_imgs, in_rule, seq_length, out_pnt, out_pnt_xy, out_word, mask_pnt, mask_word, families) = jti.json_to_feeds([self.dataset[index]])
 
-		output = jti.json_to_feeds([self.dataset[index]])
-		in_imgs = output[0]
 		# Images [BATCH_SIZE x IMG_SEQ_LEN x DEPTH x HEIGHT x WIDTH].
 		images = ((torch.from_numpy(in_imgs)).permute(1,0,4,2,3)).squeeze()
 				
+		# Create data dictionary.
 		data_dict = self.create_data_dict()
+
 		data_dict['images']	= images
+		data_dict['masks_pnt']	= torch.from_numpy(mask_pnt).type(torch.ByteTensor)
+		data_dict['masks_word']	= torch.from_numpy(mask_word).type(torch.ByteTensor)
+
 		data_dict['tasks']	= self.dataset[index]['family']
 		data_dict['questions'] = [self.dataset[index]['question']]
 		data_dict['questions'] = torch.LongTensor([self.input_vocab.index(word) for word in data_dict['questions'][0].split()])
@@ -553,12 +562,15 @@ class COG(VideoTextToClassProblem):
 		"""
 		data_dict = self.create_data_dict()
 		
-		data_dict['images'] = torch.stack([image['images'] for image in batch]).type(torch.FloatTensor)
-		data_dict['tasks']  = [task['tasks'] for task in batch]
-		data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.LongTensor)
-		data_dict['targets_pointing'] = torch.stack([reg['targets_pointing'] for reg in batch]).type(torch.FloatTensor)
-		data_dict['targets_answer'] = torch.stack([tgclassif['targets_answer'] for tgclassif in batch]).type(torch.LongTensor)
-		#data_dict['targets'] = torch.stack([target['targets'] for target in batch])
+		data_dict['images'] = torch.stack([sample['images'] for sample in batch]).type(torch.FloatTensor)
+		data_dict['tasks']  = [sample['tasks'] for sample in batch]
+		data_dict['questions'] = torch.stack([sample['questions'] for sample in batch]).type(torch.LongTensor)
+		# Targets.
+		data_dict['targets_pointing'] = torch.stack([sample['targets_pointing'] for sample in batch]).type(torch.FloatTensor)
+		data_dict['targets_answer'] = torch.stack([sample['targets_answer'] for sample in batch]).type(torch.LongTensor)
+		# Masks.
+		data_dict['masks_pnt']	= torch.stack([sample['masks_pnt'] for sample in batch]).type(torch.ByteTensor)
+		data_dict['masks_word']	= torch.stack([sample['masks_word'] for sample in batch]).type(torch.ByteTensor)
 
 		return data_dict
 
