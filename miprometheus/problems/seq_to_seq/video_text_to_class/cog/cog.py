@@ -270,6 +270,14 @@ class COG(VideoTextToClassProblem):
 		batch_size = logits[0].size(0)
 		img_seq_len = logits[0].size(1)
 
+		# Retrieve "answer" and "pointing" masks, both of size [BATCH_SIZE * IMG_SEQ_LEN].
+		#mask_answer = data_dict['masks_word']
+		#mask_answer = mask_answer.view(batch_size*img_seq_len)
+
+		mask_pointing = data_dict['masks_pnt']
+		#mask_pointing = mask_pointing.view(batch_size*img_seq_len)
+
+
 		# Classification loss.
 		# Reshape predictions [BATCH_SIZE * IMG_SEQ_LEN x CLASSES]
 		preds_answer = preds_answer.view(batch_size*img_seq_len, -1)
@@ -284,9 +292,12 @@ class COG(VideoTextToClassProblem):
 		# Pointing loss.
 		# Calculate cross entropy [BATCH_SIZE x IMG_SEQ_LEN].
 		logsoftmax_fn = nn.LogSoftmax(dim=2)
-		ce_point = torch.sum((-targets_pointing * logsoftmax_fn(preds_pointing)), dim=2)
-		# Calculate mean.
-		self.loss_pointing = torch.mean(ce_point)
+		ce_point = torch.sum((-targets_pointing * logsoftmax_fn(preds_pointing)), dim=2) * mask_pointing.type(torch.FloatTensor)
+		#print("mask_pointing =", mask_pointing)
+		#print("ce_point = ", ce_point)
+
+		# Calculate mean - manually, skipping all non-pointing elements of the targets.
+		self.loss_pointing = torch.sum(ce_point) / mask_pointing.sum() if mask_pointing.sum() != 0 else torch.tensor(0)
 
 		# Both losses are averaged over batch size and sequence lengts - so we can simply sum them.
 		return self.loss_answer + self.loss_pointing
@@ -322,20 +333,20 @@ class COG(VideoTextToClassProblem):
 		# Reshape targets: pointings [BATCH_SIZE * IMG_SEQ_LEN x NUM_ACTIONS]
 		targets_pointing = targets_pointing.view(batch_size*img_seq_len, -1)
 
-		# Create "answer" and "pointing" masks, both of size [BATCH_SIZE * IMG_SEQ_LEN].
+		# Retrieve "answer" and "pointing" masks, both of size [BATCH_SIZE * IMG_SEQ_LEN].
 		mask_answer = data_dict['masks_word']
 		mask_answer = mask_answer.view(batch_size*img_seq_len)
 
 		mask_pointing = data_dict['masks_pnt']
 		mask_pointing = mask_pointing.view(batch_size*img_seq_len)
 
-		print("targets_answer = ", targets_answer)
-		print("preds_answer = ", preds_answer)
-		print("mask_answer = ", mask_answer)
+		#print("targets_answer = ", targets_answer)
+		#print("preds_answer = ", preds_answer)
+		#print("mask_answer = ", mask_answer)
 
-		print("targets_pointing = ", targets_pointing)
-		print("preds_pointing = ", preds_pointing)
-		print("mask_pointing = ", mask_pointing)
+		#print("targets_pointing = ", targets_pointing)
+		#print("preds_pointing = ", preds_pointing)
+		#print("mask_pointing = ", mask_pointing)
 
 
 		#########################################################################

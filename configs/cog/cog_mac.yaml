@@ -4,8 +4,8 @@ training:
  problem:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
-  batch_size: 1
-  tasks: [CompareColor] # ,SimpleCompareColorGo]
+  batch_size: 2
+  tasks: [CompareColor ,SimpleCompareColorGo]
   data_folder: '~/data/cog'
   set: val
   use_mask: False
@@ -27,7 +27,7 @@ validation:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 1
-  tasks: [CompareColor] # ,SimpleCompareColorGo]
+  tasks: [CompareColor ,SimpleCompareColorGo]
   data_folder: '~/data/cog'
   set: val
   use_mask: False
