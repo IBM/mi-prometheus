@@ -262,6 +262,7 @@ class CogModel(Model):
 
 		:param data_dict: dictionary of data with images, questions.
 
+		:return: Tuple with two predictions: batch with answers and batch with pointing actions 
 		"""
 		# Parse input
 		images = data_dict['images'].permute(1,0,2,3,4) / self.img_norm
@@ -273,8 +274,7 @@ class CogModel(Model):
 									 					self.lstm_hidden_init.expand(-1,images.size(1),-1).contiguous(),
 														self.lstm_cell_init.expand(-1,images.size(1),-1).contiguous() ) )
 		
-		output_class = torch.zeros((images.size(1),images.size(0)
-,self.nr_classes),requires_grad=False).type(self.dtype)
+		output_class = torch.zeros((images.size(1),images.size(0) ,self.nr_classes),requires_grad=False).type(self.dtype)
 		output_point = torch.zeros((images.size(1),images.size(0),49),requires_grad=False).type(self.dtype)
 
 
@@ -332,7 +332,8 @@ class CogModel(Model):
 			output_class[:,j,:] = classification
 			output_point[:,j,:] = pointing
 
-		return output_class, output_point		
+		# Return tuple with two outputs.
+		return (output_class, output_point)		
 
 	def forward_lookup2embed(self,questions):
 		"""

@@ -39,6 +39,9 @@ class VideoTextToClassProblem(SeqToSeqProblem):
 	"""
 
 	def __init__(self, params):
+		# Default problem name.
+		self.name = 'VideoTextToClassProblem'
+
 		# Should 'questions' be [-1, 1] or [-1, -1, 1], as in an entry for each member of a sequence?
 		"""
 		Initializes problem:
@@ -71,8 +74,6 @@ class VideoTextToClassProblem(SeqToSeqProblem):
 								 'targets': {'size': [-1, -1,  1], 'type': [torch.Tensor]},
 								 'targets_label': {'size': [-1, 1], 'type': [list, str]}}
 
-		# Default problem name.
-		self.name = 'VQAProblem'
 
 	def show_sample(self, data_dict, sample_number=0, sequence_number=0):
 		"""

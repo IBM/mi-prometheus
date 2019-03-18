@@ -31,7 +31,7 @@
 
 """cog.py: Implementation of Google's COG dataset. https://arxiv.org/abs/1803.06092"""
 
-__author__ = "Emre Sevgen"
+__author__ = "Emre Sevgen, Tomasz Kornuta"
 
 import torch
 import torch.nn as nn
@@ -106,8 +106,8 @@ class COG(VideoTextToClassProblem):
 				>>> self.data_definitions = {'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
 				>>>                          'tasks': {'size': [-1, 1], 'type': [list, str]},
 				>>>                          'questions': {'size': [-1, 1], 'type': [list, str]},
-				>>>                          'targets_reg': {'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
-				>>>                          'targets_class': {'size': [-1, self.sequence_length, 1], 'type' : [list,str]}
+				>>>                          'targets_pointing': {'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
+				>>>                          'targets_answer': {'size': [-1, self.sequence_length, 1], 'type' : [list,str]}
 				>>>                         }
 
 
@@ -146,9 +146,6 @@ class COG(VideoTextToClassProblem):
 		# Name
 		self.name = 'COG'
 
-		# Edit loss to add ignore_index
-		self.loss_function = nn.CrossEntropyLoss(ignore_index=-1)
-
 		# Initialize word lookup dictionary
 		self.word_lookup = {}
 
@@ -174,13 +171,15 @@ class COG(VideoTextToClassProblem):
 		
 		# Set data dictionary based on parsed dataset type
 		self.data_definitions = {
-		'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
-		'tasks':	{'size': [-1, 1], 'type': [list, str]},
-		'questions': 	{'size': [-1,self.nwords], 'type': [torch.Tensor]},
-		#'targets': {'size': [-1,self.sequence_length, self.output_classes], 'type': [torch.Tensor]},
-		'targets_reg' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
-		'targets_class':{'size': [-1, self.sequence_length, self.output_classes], 'type' : [list,str]}
-					}	
+			'images': {'size': [-1, self.sequence_length, 3, self.img_size, self.img_size], 'type': [torch.Tensor]},
+			'tasks':	{'size': [-1, 1], 'type': [list, str]},
+			'questions': 	{'size': [-1,self.nwords], 'type': [torch.Tensor]},
+			#'targets': {'size': [-1,self.sequence_length, self.output_classes], 'type': [torch.Tensor]},
+			'targets_pointing' :	{'size': [-1, self.sequence_length, 2], 'type': [torch.Tensor]},
+			'targets_answer':{'size': [-1, self.sequence_length, self.output_classes], 'type' : [list,str]},
+			'masks_pnt':{'size': [-1, self.sequence_length ], 'type' : [torch.Tensor]},
+			'masks_word':{'size': [-1, self.sequence_length], 'type' : [torch.Tensor]}
+		}	
 
 		# Check if dataset exists, download or generate if necessary.
 		self.source_dataset()
@@ -249,36 +248,60 @@ class COG(VideoTextToClassProblem):
 		self.categories_stats = dict(zip(self.categories, self.tuple_list))
 
 
-		#Intitlize counters aggregator for accuracy
-
-		self.correct_total= 0
-
-		self.total_total = 0
-
-
 	def evaluate_loss(self, data_dict, logits):
-		""" Calculates accuracy equal to mean number of correct predictions in a given batch.
-		WARNING: Applies mask to both logits and targets!
-
-		:param data_dict: DataDict({'sequences', 'sequences_length', 'targets', 'mask'}).
-
-		:param logits: Predictions being output of the model.
-
 		"""
+		Calculates accuracy equal to mean number of correct predictions in a given batch.
+		The function calculates two separate losses for answering and pointing actions and sums them up.
 
-		targets_reg = data_dict['targets_reg']
-		targets_class = data_dict['targets_class']
 
-		# Classification Loss ƒ
-		loss = self.loss_function(logits[0][:,0,:], targets_class[:,0]) /logits[0].size(1)
-		for i in range(1,logits[0].size(1)):
-			loss += self.loss_function(logits[0][:,i,:], targets_class[:,i]) /logits[0].size(1)
+		:param data_dict: DataDict({'targets_pointing', 'targets_answer', ...}).
 
-		# Pointing Loss
-		logsoftmax = nn.LogSoftmax(dim=2)
-		loss += torch.mean(torch.sum(-targets_reg * logsoftmax(logits[1]), 2))
+		:param logits: Predictions being output of the model, consisting of a tuple (logits_answer, logits_pointing).
+		"""
+		# Get targets.
+		targets_answer = data_dict['targets_answer']
+		targets_pointing = data_dict['targets_pointing']
 
-		return loss
+		# Get predictions.
+		preds_answer = logits[0]
+		preds_pointing = logits[1]
+
+		# Get sizes.
+		batch_size = logits[0].size(0)
+		img_seq_len = logits[0].size(1)
+
+		# Retrieve "answer" and "pointing" masks, both of size [BATCH_SIZE * IMG_SEQ_LEN].
+		#mask_answer = data_dict['masks_word']
+		#mask_answer = mask_answer.view(batch_size*img_seq_len)
+
+		mask_pointing = data_dict['masks_pnt']
+		#mask_pointing = mask_pointing.view(batch_size*img_seq_len)
+
+
+		# Classification loss.
+		# Reshape predictions [BATCH_SIZE * IMG_SEQ_LEN x CLASSES]
+		preds_answer = preds_answer.view(batch_size*img_seq_len, -1)
+		# Reshape targets [BATCH_SIZE * IMG_SEQ_LEN]
+		targets_answer = targets_answer.view(batch_size*img_seq_len)
+		# Calculate loss.
+		# Ignore_index: specifies a target VALUE that is ignored and does not contribute to the input gradient. 
+		# -1 is set when we do not use that action.
+		ce_loss_fn = nn.CrossEntropyLoss(ignore_index=-1)
+		self.loss_answer = ce_loss_fn(preds_answer, targets_answer)
+
+		# Pointing loss.
+		# Calculate cross entropy [BATCH_SIZE x IMG_SEQ_LEN].
+		logsoftmax_fn = nn.LogSoftmax(dim=2)
+		ce_point = torch.sum((-targets_pointing * logsoftmax_fn(preds_pointing)), dim=2) * mask_pointing.type(torch.cuda.FloatTensor)
+		#print("mask_pointing =", mask_pointing)
+		#print("ce_point = ", ce_point)
+
+		# Calculate mean - manually, skipping all non-pointing elements of the targets.
+		self.loss_pointing = torch.sum(ce_point) / mask_pointing.sum() if mask_pointing.sum() != 0 else torch.tensor(0)
+
+		# Both losses are averaged over batch size and sequence lengts - so we can simply sum them.
+		return self.loss_answer + self.loss_pointing
+
 
 	def calculate_accuracy(self, data_dict, logits):
 		""" Calculates accuracy equal to mean number of correct predictions in a given batch.
@@ -289,56 +312,93 @@ class COG(VideoTextToClassProblem):
 		:param logits: Predictions being output of the model.
 
 		"""
+		# Get targets.
+		targets_answer = data_dict['targets_answer']
+		targets_pointing = data_dict['targets_pointing']
 
-		targets_reg = data_dict['targets_reg']
-		targets_class = data_dict['targets_class']
+		# Get predictions.
+		preds_answer = logits[0]
+		preds_pointing = logits[1]
+
+		# Get sizes.
+		batch_size = logits[0].size(0)
+		img_seq_len = logits[0].size(1)
+
+		# Reshape predictions [BATCH_SIZE * IMG_SEQ_LEN x CLASSES]
+		preds_answer = preds_answer.view(batch_size*img_seq_len, -1)
+		preds_pointing = preds_pointing.view(batch_size*img_seq_len, -1)
+
+		# Reshape targets: answers [BATCH_SIZE * IMG_SEQ_LEN]
+		targets_answer = targets_answer.view(batch_size*img_seq_len)
+		# Reshape targets: pointings [BATCH_SIZE * IMG_SEQ_LEN x NUM_ACTIONS]
+		targets_pointing = targets_pointing.view(batch_size*img_seq_len, -1)
+
+		# Retrieve "answer" and "pointing" masks, both of size [BATCH_SIZE * IMG_SEQ_LEN].
+		mask_answer = data_dict['masks_word']
+		mask_answer = mask_answer.view(batch_size*img_seq_len)
+
+		mask_pointing = data_dict['masks_pnt']
+		mask_pointing = mask_pointing.view(batch_size*img_seq_len)
+
+		#print("targets_answer = ", targets_answer)
+		#print("preds_answer = ", preds_answer)
+		#print("mask_answer = ", mask_answer)
+
+		#print("targets_pointing = ", targets_pointing)
+		#print("preds_pointing = ", preds_pointing)
+		#print("mask_pointing = ", mask_pointing)
 
 
-		# Classification Accuracy ###############################################
-		values, indices = torch.max(logits[0], 2)
-		correct = (indices == targets_class).sum().item()  # + (targets==-1).sum().item()
-		total = targets_class.numel() - (targets_class == -1).sum().item()
+		#########################################################################
+		# Calculate accuracy for Answering task.
+		# Get answers [BATCH_SIZE * IMG_SEQ_LEN]
+		_, indices = torch.max(preds_answer, 1)
 
+		# Calculate correct answers with additional "masking".
+		correct_answers = (indices == targets_answer) * mask_answer
 
-		# Pointing Accuracy #####################################################
+		# Calculate accurary.
+		if mask_answer.sum() > 0:
+			acc_answer = float(correct_answers.sum().item()) / float(mask_answer.sum().item())
+		else:
+			acc_answer = 0.0
 
+		#########################################################################
+		# Calculate accuracy for Pointing task.
 
-        #softmax logits pointing
-		softmax_pointing = nn.Softmax(dim=2)
-		logits_soft=softmax_pointing(logits[1])
+        # Normalize pointing with softmax.
+		softmax_pointing = nn.Softmax(dim=1)
+		preds_pointing=softmax_pointing(preds_pointing)
 
-		#mean square error
-		diff_pointing=(logits_soft-targets_reg)
+		# Calculate mean square error for every pointing action.
+		diff_pointing=(targets_pointing-preds_pointing)
 		diff_pointing=diff_pointing**2
+		# Sum all differences for a given answer.
+		# As a results we got 1D tensor of size [BATCH_SIZE * IMG_SEQ_LEN].
+		diff_pointing=torch.sum(diff_pointing,dim=1)
 
-		#sum over every frame
-		diff=torch.sum(diff_pointing,dim=2)
-
-        #apply  threshold
-		x = torch.zeros(targets_reg.size(0), targets_reg.size(1))
-		z = torch.ones(targets_reg.size(0), targets_reg.size(1))
+        # Apply  threshold.
 		threshold=0.15**2
-		threshold_diff = torch.where(diff.cpu() > threshold,x,z)
+		
+                #		print('diff pointing', diff_pointing)
+		#print(mask_pointing)
+		# Check correct pointings.
+		correct_pointing = (diff_pointing < threshold) * mask_pointing
+		#print('corect poitning',correct_pointing)
+		# Calculate accurary.
+		if mask_pointing.sum() > 0:
+			acc_pointing = float(correct_pointing.sum().item()) / float(mask_pointing.sum().item())
+		else:
+			acc_pointing = 0.0
 
 
-        #number of correct answers
+		#########################################################################
+		# Total accuracy.
+		acc_total = float(correct_answers.sum() + correct_pointing.sum()) / float( mask_answer.sum() + mask_pointing.sum() )
+		#acc_total = torch.mean(torch.cat( (correct_answers.type(torch.FloatTensor), correct_pointing.type(torch.FloatTensor)) ) )
 
-		non_zero = torch.nonzero(threshold_diff)
-		#non_zero = torch.nonzero(correctp)
-
-		#increments counters
-		correct += non_zero.size(0)
-		values, hard_targets = torch.max(targets_reg, 2)
-		total += hard_targets.numel() - (hard_targets == 0).sum().item()
-
-		pointing_accuracy=non_zero.size(0)/(hard_targets.numel() - (hard_targets == 0).sum().item())
-
-		self.correct_total += correct
-		self.total_total  += total
-
-		return correct/total
-		#return pointing_accuracy
-		#return self.correct_total / self.total_total
+		# Return all three of them.
+		return acc_total, acc_answer, acc_pointing
 
 
 
@@ -363,22 +423,22 @@ class COG(VideoTextToClassProblem):
 
 			        """
 
-		targets_reg = data_dict['targets_reg']
-		targets_class = data_dict['targets_class']
+		targets_pointing = data_dict['targets_pointing']
+		targets_answer = data_dict['targets_answer']
 		tasks = data_dict['tasks']
 
 
 
 		# Classification Accuracy
 		values, indices = torch.max(logits[0], 2)
-		targets_class_zeros = ( targets_class == -1)
+		targets_answer_zeros = ( targets_answer == -1)
 
-		correct = (indices == targets_class).sum(dim=1)  # + (targets==-1).sum().item()
+		correct = (indices == targets_answer).sum(dim=1)  # + (targets==-1).sum().item()
 
 
 		# Pointing Accuracy
 		values, indicesp = torch.max(logits[1], 2)
-		valuesp, hard_targetsp = torch.max(targets_reg, 2)
+		valuesp, hard_targetsp = torch.max(targets_pointing, 2)
 
 		hard_targetsp_zeros = (hard_targetsp == 0)
 
@@ -388,7 +448,7 @@ class COG(VideoTextToClassProblem):
 
 		for i in range(correct.size(0)):
 			# update # of questions for the corresponding family
-			self.categories_stats[tasks[i]][1] += (4 - targets_class_zeros[i].sum())
+			self.categories_stats[tasks[i]][1] += (4 - targets_answer_zeros[i].sum())
 			self.categories_stats[tasks[i]][1] += (4 - hard_targetsp_zeros[i].sum())
 
 
@@ -419,14 +479,14 @@ class COG(VideoTextToClassProblem):
 
 
 
-	def output_class_to_int(self,targets_class):
-		#for j, target in enumerate(targets_class):
-		targets_class = [-1 if a == 'invalid' else self.output_vocab.index(a) for a in targets_class]
-		targets_class = self.app_state.LongTensor(targets_class)
+	def output_class_to_int(self,targets_answer):
+		#for j, target in enumerate(targets_answer):
+		targets_answer = [-1 if a == 'invalid' else self.output_vocab.index(a) for a in targets_answer]
+		targets_answer = self.app_state.LongTensor(targets_answer)
 
 
 
-		return targets_class
+		return targets_answer
 
 
 	def __getitem__(self, index):
@@ -441,8 +501,8 @@ class COG(VideoTextToClassProblem):
 			- ``images``: Sequence of images,
 			- ``tasks``: Which task family sample belongs to,
 			- ``questions``: Question on the sequence (this is constant per sequence for COG),
-			- ``targets_reg``: Sequence of targets as tuple of floats for pointing tasks,
-			- ``targets_class``: Sequence of word targets for classification tasks.
+			- ``targets_pointing``: Sequence of targets as tuple of floats for pointing tasks,
+			- ``targets_answer``: Sequence of word targets for classification tasks.
 
 		"""
 		# This returns:
@@ -456,11 +516,19 @@ class COG(VideoTextToClassProblem):
 			# mask_pnt: (n_epoch*batch_size)
 			# mask_word: (n_epoch*batch_size)		
 
-		output = jti.json_to_feeds([self.dataset[index]])[0]
-		images = ((torch.from_numpy(output)).permute(1,0,4,2,3)).squeeze()
+		# Get values from JSON.
+		(in_imgs, _, _, _, _, _, mask_pnt, mask_word, _) = jti.json_to_feeds([self.dataset[index]])
+
+		# Images [BATCH_SIZE x IMG_SEQ_LEN x DEPTH x HEIGHT x WIDTH].
+		images = ((torch.from_numpy(in_imgs)).permute(1,0,4,2,3)).squeeze()
 				
+		# Create data dictionary.
 		data_dict = self.create_data_dict()
+
 		data_dict['images']	= images
+		data_dict['masks_pnt']	= torch.from_numpy(mask_pnt).type(torch.ByteTensor)
+		data_dict['masks_word']	= torch.from_numpy(mask_word).type(torch.ByteTensor)
+
 		data_dict['tasks']	= self.dataset[index]['family']
 		data_dict['questions'] = [self.dataset[index]['question']]
 		data_dict['questions'] = torch.LongTensor([self.input_vocab.index(word) for word in data_dict['questions'][0].split()])
@@ -470,28 +538,31 @@ class COG(VideoTextToClassProblem):
 			data_dict['questions'][prev_size:] = 0
 		answers = self.dataset[index]['answers']
 		if data_dict['tasks'] in self.classification_tasks:
-			#data_dict['targets_reg']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
-			#data_dict['targets_reg'] = np.array([[-10,-10] for target in answers])
-			targets_reg = np.array([[-10,-10] for target in answers])
-			data_dict['targets_class'] 	= self.output_class_to_int(answers)
+			#data_dict['targets_pointing']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
+			#data_dict['targets_pointing'] = np.array([[-10,-10] for target in answers])
+			targets_pointing = np.array([[-10,-10] for target in answers])
+			data_dict['targets_answer'] 	= self.output_class_to_int(answers)
 			#data_dict['targets'] = self.output_class_to_int(answers)
 			
 		else :
-			data_dict['targets_reg']	= np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
-			data_dict['targets_class'] 	= self.app_state.LongTensor([-1 for target in answers])
-			targets_reg = np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
+			data_dict['targets_pointing']	= np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
+			data_dict['targets_answer'] 	= self.app_state.LongTensor([-1 for target in answers])
+			targets_pointing = np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
 
+		# TODO: INVESTIGATE THAT!!
+		###########################################
 		x, y = np.meshgrid(np.linspace(-1,1,7), np.linspace(-1,1,7))
 		mu = 0.1
 
-		sequence_length = len(data_dict['targets_class'])
+		sequence_length = len(data_dict['targets_answer'])
 		soft_targets = np.zeros((sequence_length,49))
 		for i in range(sequence_length):
-			soft_targets[i,:] = np.exp( -((x-targets_reg[i,0])**2)/(2*(mu**2))
-																		-((y-targets_reg[i,1])**2)/(2*(mu**2)) ).flatten()
+			soft_targets[i,:] = np.exp( -((x-targets_pointing[i,0])**2)/(2*(mu**2))
+																		-((y-targets_pointing[i,1])**2)/(2*(mu**2)) ).flatten()
 			soft_targets[i,:] = soft_targets[i,:] / np.sum(soft_targets[i,:])
 		np.nan_to_num(soft_targets,copy=False)
-		data_dict['targets_reg'] = self.app_state.FloatTensor(soft_targets)
+		data_dict['targets_pointing'] = self.app_state.FloatTensor(soft_targets)
+		###########################################
 
 
 		return data_dict
@@ -503,17 +574,20 @@ class COG(VideoTextToClassProblem):
 		:param batch: individual :py:class:`miprometheus.utils.DataDict` samples to combine.
 		:type batch: list
 
-		:return: ``DataDict({'images', 'tasks', 'questions', 'targets_reg', 'targets_class'})`` containing the batch.
+		:return: ``DataDict({'images', 'tasks', 'questions', 'targets_pointing', 'targets_answer'})`` containing the batch.
 
 		"""
 		data_dict = self.create_data_dict()
 		
-		data_dict['images'] = torch.stack([image['images'] for image in batch]).type(torch.FloatTensor)
-		data_dict['tasks']  = [task['tasks'] for task in batch]
-		data_dict['questions'] = torch.stack([question['questions'] for question in batch]).type(torch.LongTensor)
-		data_dict['targets_reg'] = torch.stack([reg['targets_reg'] for reg in batch]).type(torch.FloatTensor)
-		data_dict['targets_class'] = torch.stack([tgclassif['targets_class'] for tgclassif in batch]).type(torch.LongTensor)
-		#data_dict['targets'] = torch.stack([target['targets'] for target in batch])
+		data_dict['images'] = torch.stack([sample['images'] for sample in batch]).type(torch.FloatTensor)
+		data_dict['tasks']  = [sample['tasks'] for sample in batch]
+		data_dict['questions'] = torch.stack([sample['questions'] for sample in batch]).type(torch.LongTensor)
+		# Targets.
+		data_dict['targets_pointing'] = torch.stack([sample['targets_pointing'] for sample in batch]).type(torch.FloatTensor)
+		data_dict['targets_answer'] = torch.stack([sample['targets_answer'] for sample in batch]).type(torch.LongTensor)
+		# Masks.
+		data_dict['masks_pnt']	= torch.stack([sample['masks_pnt'] for sample in batch]).type(torch.ByteTensor)
+		data_dict['masks_word']	= torch.stack([sample['masks_word'] for sample in batch]).type(torch.ByteTensor)
 
 		return data_dict
 
@@ -646,7 +720,11 @@ class COG(VideoTextToClassProblem):
 		:param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
 		
 		"""
+		stat_col.add_statistic('loss_answer', '{:12.10f}')
+		stat_col.add_statistic('loss_pointing', '{:12.10f}')
 		stat_col.add_statistic('acc', '{:12.10f}')
+		stat_col.add_statistic('acc_answer', '{:12.10f}')
+		stat_col.add_statistic('acc_pointing', '{:12.10f}')
 		#stat_col.add_statistic('seq_len', '{:06d}')
 		#stat_col.add_statistic('max_mem', '{:06d}')
 		#stat_col.add_statistic('max_distractors', '{:06d}')
@@ -661,12 +739,22 @@ class COG(VideoTextToClassProblem):
 		:param logits: Prediction of the model (:py:class:`torch.Tensor`)
 
 		"""
-		stat_col['acc'] = self.calculate_accuracy(data_dict, logits)
+		# Additional loss.
+		stat_col['loss_answer'] = self.loss_answer.cpu().item()
+		stat_col['loss_pointing'] = self.loss_pointing.cpu().item()
+
+		# Accuracy.
+		acc_total, acc_answer, acc_pointing = self.calculate_accuracy(data_dict, logits)
+		stat_col['acc'] = acc_total
+		stat_col['acc_answer'] = acc_answer
+		stat_col['acc_pointing'] = acc_pointing
 		#self.get_acc_per_family(data_dict, logits)
 		#stat_col['seq_len'] = self.sequence_length
 		#stat_col['max_mem'] = self.memory_length
 		#stat_col['max_distractors'] = self.max_distractors
 		#stat_col['task'] = data_dict['tasks']			
+
+
 
 if __name__ == "__main__":
 	
@@ -680,7 +768,7 @@ if __name__ == "__main__":
 	sequence_nr = 1
 
 	# Timing test parameters
-	timing_test = True
+	timing_test = False
 	testbatches = 100
 
 	# -------------------------
@@ -700,32 +788,27 @@ if __name__ == "__main__":
 	cog_dataset = COG(params)
 
 	# Get a sample - Go
-	sample = cog_dataset[0]
-	print(repr(sample))
-	print('hello')
+	#sample = cog_dataset[0]
 
 	# Test whether data structures match expected definitions
 #	assert sample['images'].shape == torch.ones((4, 3, 112, 112)).shape
 #	assert sample['tasks'] == ['Go']
 	#assert sample['questions'] == ['point now beige u']
-#	assert sample['targets_reg'].shape == torch.ones((4,2)).shape
-#	assert len(sample['targets_class']) == 4
-#	assert sample['targets_class'][0] == ' '  
+#	assert sample['targets_pointing'].shape == torch.ones((4,2)).shape
+#	assert len(sample['targets_answer']) == 4
+#	assert sample['targets_answer'][0] == ' '  
 
 	# Get another sample - CompareColor
 	sample2 = cog_dataset[1000]
-	print(repr(sample2))
+	#print(repr(sample2))
 
 	# Test whether data structures match expected definitions
 #	assert sample2['images'].shape == torch.ones((4, 3, 112, 112)).shape
 #	assert sample2['tasks'] == ['CompareColor']
 	#assert sample2['questions'] == ['color of latest g equal color of last1 v ?']
-#	assert sample2['targets_reg'].shape == torch.ones((4,2)).shape
-#	assert len(sample2['targets_class']) == 4
-#	assert sample2['targets_class'][0] == 'invalid'  
-	
-	print('__getitem__ works')
-	print(cog_dataset.output_classes)
+#	assert sample2['targets_pointing'].shape == torch.ones((4,2)).shape
+#	assert len(sample2['targets_answer']) == 4
+#	assert sample2['targets_answer'][0] == 'invalid'  
 	
 	# Set up Dataloader iterator
 	from torch.utils.data import DataLoader
@@ -736,19 +819,10 @@ if __name__ == "__main__":
 	# Display single sample (0) from batch.
 	batch = next(iter(dataloader))
 
-	# Test whether batches are formed correctly	
-#	assert batch['images'].shape == torch.ones((batch_size,4,3,112,112)).shape
-#	assert len(batch['tasks']) == batch_size
-#	assert len(batch['questions']) == batch_size
-	print(batch['questions'].size())
-#	assert batch['targets_reg'].shape == torch.ones((batch_size,4,2)).shape
-#	assert len(batch['targets_class']) == batch_size
-#	assert len(batch['targets_class'][0]) == 4 
-
-	# VQA expects 'targets', so change 'targets_class' to 'targets'
+	# VQA expects 'targets', so change 'targets_answer' to 'targets'
 	# Implement a data_dict.pop later.
-	batch['targets'] = batch['targets_reg']
-	batch['targets_label'] = batch['targets_class']
+	batch['targets'] = batch['targets_pointing']
+	batch['targets_label'] = batch['targets_answer']
 
 	# Convert image to uint8
 	batch['images'] = batch['images']/(np.iinfo(np.uint16).max)*255
@@ -759,7 +833,6 @@ if __name__ == "__main__":
 	# Show sample - Task 2
 	cog_dataset.show_sample(batch,1,sequence_nr)	
 
-	print('Unit test completed')
 
 	if timing_test:
 		# Test speed of generating images vs preloading generated images.
@@ -813,5 +886,6 @@ if __name__ == "__main__":
 		print('Timing test completed, removing files.')
 		for i in range(testbatches):
 			os.remove(os.path.expanduser('~/data/cogtest/'+str(i)+'.npy'))
+
 	print('Done!')
 
