@@ -292,7 +292,7 @@ class COG(VideoTextToClassProblem):
 		# Pointing loss.
 		# Calculate cross entropy [BATCH_SIZE x IMG_SEQ_LEN].
 		logsoftmax_fn = nn.LogSoftmax(dim=2)
-		ce_point = torch.sum((-targets_pointing * logsoftmax_fn(preds_pointing)), dim=2) * mask_pointing.type(torch.cuda.FloatTensor)
+		ce_point = torch.sum((-targets_pointing * logsoftmax_fn(preds_pointing)), dim=2) * mask_pointing.type(torch.FloatTensor)
 		#print("mask_pointing =", mask_pointing)
 		#print("ce_point = ", ce_point)
 
