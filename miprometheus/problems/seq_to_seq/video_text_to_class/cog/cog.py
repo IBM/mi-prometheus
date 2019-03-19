@@ -270,9 +270,8 @@ class COG(VideoTextToClassProblem):
 		batch_size = logits[0].size(0)
 		img_seq_len = logits[0].size(1)
 
-		# Retrieve "pointing" masks, both of size [BATCH_SIZE x IMG_SEQ_LEN].
-		mask_pointing = data_dict['masks_pnt']
-
+		# Retrieve "pointing" masks, both of size [BATCH_SIZE x IMG_SEQ_LEN] and transform it into floats.
+		mask_pointing = data_dict['masks_pnt'].type(self.app_state.FloatTensor)
 
 		# Classification loss.
 		# Reshape predictions [BATCH_SIZE * IMG_SEQ_LEN x CLASSES]
@@ -289,7 +288,7 @@ class COG(VideoTextToClassProblem):
 		# We will softmax over the third dimension of [BATCH_SIZE x IMG_SEQ_LEN x NUM_POINT_ACTIONS].
 		logsoftmax_fn = nn.LogSoftmax(dim=2)
 		# Calculate cross entropy [BATCH_SIZE x IMG_SEQ_LEN].
-		ce_point = torch.sum((-targets_pointing * logsoftmax_fn(preds_pointing)), dim=2) * mask_pointing.type(self.app_state.FloatTensor)
+		ce_point = torch.sum((-targets_pointing * logsoftmax_fn(preds_pointing)), dim=2) * mask_pointing
 		#print("mask_pointing =", mask_pointing)
 		#print("ce_point = ", ce_point)
 
