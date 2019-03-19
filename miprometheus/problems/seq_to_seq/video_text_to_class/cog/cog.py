@@ -480,10 +480,7 @@ class COG(VideoTextToClassProblem):
 	def output_class_to_int(self,targets_answer):
 		#for j, target in enumerate(targets_answer):
 		targets_answer = [-1 if a == 'invalid' else self.output_vocab.index(a) for a in targets_answer]
-		targets_answer = self.app_state.LongTensor(targets_answer)
-
-
-
+		targets_answer = torch.LongTensor(targets_answer)
 		return targets_answer
 
 
@@ -516,14 +513,15 @@ class COG(VideoTextToClassProblem):
 
 		# Get values from JSON.
 		(in_imgs, _, _, out_pnt, _, _, mask_pnt, mask_word, _) = jti.json_to_feeds([self.dataset[index]])
-
-		# Images [BATCH_SIZE x IMG_SEQ_LEN x DEPTH x HEIGHT x WIDTH].
-		images = ((torch.from_numpy(in_imgs)).permute(1,0,4,2,3)).squeeze()
 				
 		# Create data dictionary.
 		data_dict = self.create_data_dict()
 
+		# Images [BATCH_SIZE x IMG_SEQ_LEN x DEPTH x HEIGHT x WIDTH].
+		images = ((torch.from_numpy(in_imgs)).permute(1,0,4,2,3)).squeeze()
 		data_dict['images']	= images
+
+		# Set masks used in loss/accuracy calculations.
 		data_dict['masks_pnt']	= torch.from_numpy(mask_pnt).type(torch.ByteTensor)
 		data_dict['masks_word']	= torch.from_numpy(mask_word).type(torch.ByteTensor)
 
@@ -534,17 +532,16 @@ class COG(VideoTextToClassProblem):
 			prev_size = data_dict['questions'].size(0)
 			data_dict['questions'].resize_(self.nwords)
 			data_dict['questions'][prev_size:] = 0
+
+		# Set targets - depending on the answers.
 		answers = self.dataset[index]['answers']
 		if data_dict['tasks'] in self.classification_tasks:
-			data_dict['targets_answer'] 	= self.output_class_to_int(answers)
-			#data_dict['targets'] = self.output_class_to_int(answers)
-			
+			data_dict['targets_answer'] = self.output_class_to_int(answers)
 		else :
-			data_dict['targets_answer'] 	= self.app_state.LongTensor([-1 for target in answers])
+			data_dict['targets_answer'] = torch.LongTensor([-1 for target in answers])
 	
-
-		data_dict['targets_pointing'] = self.app_state.FloatTensor(out_pnt)
-
+		# Why are we always setting pointing targets, and answer targets only when required (-1 opposite)?
+		data_dict['targets_pointing'] = torch.FloatTensor(out_pnt)
 
 		return data_dict
 
@@ -560,15 +557,15 @@ class COG(VideoTextToClassProblem):
 		"""
 		data_dict = self.create_data_dict()
 		
-		data_dict['images'] = torch.stack([sample['images'] for sample in batch]).type(torch.FloatTensor)
+		data_dict['images'] = torch.stack([sample['images'] for sample in batch]).type(self.app_state.FloatTensor)
 		data_dict['tasks']  = [sample['tasks'] for sample in batch]
-		data_dict['questions'] = torch.stack([sample['questions'] for sample in batch]).type(torch.LongTensor)
+		data_dict['questions'] = torch.stack([sample['questions'] for sample in batch]).type(self.app_state.LongTensor)
 		# Targets.
-		data_dict['targets_pointing'] = torch.stack([sample['targets_pointing'] for sample in batch]).type(torch.FloatTensor)
-		data_dict['targets_answer'] = torch.stack([sample['targets_answer'] for sample in batch]).type(torch.LongTensor)
+		data_dict['targets_pointing'] = torch.stack([sample['targets_pointing'] for sample in batch]).type(self.app_state.FloatTensor)
+		data_dict['targets_answer'] = torch.stack([sample['targets_answer'] for sample in batch]).type(self.app_state.LongTensor)
 		# Masks.
-		data_dict['masks_pnt']	= torch.stack([sample['masks_pnt'] for sample in batch]).type(torch.ByteTensor)
-		data_dict['masks_word']	= torch.stack([sample['masks_word'] for sample in batch]).type(torch.ByteTensor)
+		data_dict['masks_pnt']	= torch.stack([sample['masks_pnt'] for sample in batch]).type(self.app_state.ByteTensor)
+		data_dict['masks_word']	= torch.stack([sample['masks_word'] for sample in batch]).type(self.app_state.ByteTensor)
 
 		return data_dict
 
