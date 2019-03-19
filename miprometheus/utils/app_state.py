@@ -71,7 +71,7 @@ class AppState(metaclass=SingletonMetaClass):
         if flag == 'char':
             self.itype = self.CharTensor
         elif flag == 'short':
-            self.itype = self.DoubleTensor
+            self.itype = self.ByteTensor
         elif flag == 'int':
             self.itype = self.IntTensor
         elif flag == 'long':
