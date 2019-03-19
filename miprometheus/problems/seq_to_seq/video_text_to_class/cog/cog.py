@@ -292,7 +292,7 @@ class COG(VideoTextToClassProblem):
 		# Pointing loss.
 		# Calculate cross entropy [BATCH_SIZE x IMG_SEQ_LEN].
 		logsoftmax_fn = nn.LogSoftmax(dim=2)
-		ce_point = torch.sum((-targets_pointing * logsoftmax_fn(preds_pointing)), dim=2) * mask_pointing.type(torch.cuda.FloatTensor)
+		ce_point = torch.sum((-targets_pointing * logsoftmax_fn(preds_pointing)), dim=2) * mask_pointing.type(torch.FloatTensor)
 		#print("mask_pointing =", mask_pointing)
 		#print("ce_point = ", ce_point)
 
@@ -515,7 +515,7 @@ class COG(VideoTextToClassProblem):
 			# mask_word: (n_epoch*batch_size)		
 
 		# Get values from JSON.
-		(in_imgs, _, _, _, _, _, mask_pnt, mask_word, _) = jti.json_to_feeds([self.dataset[index]])
+		(in_imgs, _, _, out_pnt, _, _, mask_pnt, mask_word, _) = jti.json_to_feeds([self.dataset[index]])
 
 		# Images [BATCH_SIZE x IMG_SEQ_LEN x DEPTH x HEIGHT x WIDTH].
 		images = ((torch.from_numpy(in_imgs)).permute(1,0,4,2,3)).squeeze()
@@ -536,31 +536,14 @@ class COG(VideoTextToClassProblem):
 			data_dict['questions'][prev_size:] = 0
 		answers = self.dataset[index]['answers']
 		if data_dict['tasks'] in self.classification_tasks:
-			#data_dict['targets_pointing']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
-			#data_dict['targets_pointing'] = np.array([[-10,-10] for target in answers])
-			targets_pointing = np.array([[-10,-10] for target in answers])
 			data_dict['targets_answer'] 	= self.output_class_to_int(answers)
 			#data_dict['targets'] = self.output_class_to_int(answers)
 			
 		else :
-			data_dict['targets_pointing']	= np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
 			data_dict['targets_answer'] 	= self.app_state.LongTensor([-1 for target in answers])
-			targets_pointing = np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
+	
 
-		# TODO: INVESTIGATE THAT!!
-		###########################################
-		x, y = np.meshgrid(np.linspace(-1,1,7), np.linspace(-1,1,7))
-		mu = 0.1
-
-		sequence_length = len(data_dict['targets_answer'])
-		soft_targets = np.zeros((sequence_length,49))
-		for i in range(sequence_length):
-			soft_targets[i,:] = np.exp( -((x-targets_pointing[i,0])**2)/(2*(mu**2))
-																		-((y-targets_pointing[i,1])**2)/(2*(mu**2)) ).flatten()
-			soft_targets[i,:] = soft_targets[i,:] / np.sum(soft_targets[i,:])
-		np.nan_to_num(soft_targets,copy=False)
-		data_dict['targets_pointing'] = self.app_state.FloatTensor(soft_targets)
-		###########################################
+		data_dict['targets_pointing'] = self.app_state.FloatTensor(out_pnt)
 
 
 		return data_dict

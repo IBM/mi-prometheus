@@ -5,7 +5,7 @@ training:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 48
-  tasks: [AndCompareColor, AndCompareShape , AndSimpleCompareColor AndSimpleCompareShape, CompareColor, CompareShape, Exist,ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape, ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape,ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace,GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
+  tasks: all
   data_folder: '~/data/cog'
   set: train
   use_mask: False
@@ -27,12 +27,7 @@ validation:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 48
-  tasks: [AndCompareColor, AndCompareShape , AndSimpleCompareColor,
- AndSimpleCompareShape, CompareColor, CompareShape, Exist,
- ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape,
- ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape,
- ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace,
- GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
+  tasks: all
   data_folder: '~/data/cog'
   set: val
   use_mask: False
@@ -45,15 +40,10 @@ testing:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 48
-  tasks: [AndCompareColor, AndCompareShape , AndSimpleCompareColor,
- AndSimpleCompareShape, CompareColor, CompareShape, Exist,
- ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape,
- ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape,
- ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace,
- GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
+  tasks: all
   data_folder: '~/data/cog'
   set: test
-  dataset_type: hard 
+  dataset_type: canonical
 
 model:
  name: MACNetworkSequential
