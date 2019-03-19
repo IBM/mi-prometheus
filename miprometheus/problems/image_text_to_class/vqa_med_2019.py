@@ -9,7 +9,6 @@ from torchvision import transforms
 
 from miprometheus.utils.problems_utils.language import Language
 from miprometheus.utils.param_interface import ParamInterface
-from miprometheus.utils.data_dict import DataDict
 from miprometheus.problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem
 
 

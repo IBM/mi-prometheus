@@ -19,7 +19,6 @@
 __author__ = "Alexis Asseman, Tomasz Kornuta"
 
 import torch
-from torch import nn
 
 from miprometheus.models.sequential_model import SequentialModel
 
@@ -55,16 +54,16 @@ class LSTM(SequentialModel):
         assert self.num_layers > 0, "Number of LSTM layers should be > 0"
 
         # Create the stacked LSTM.
-        self.lstm_layers = nn.ModuleList()
+        self.lstm_layers = torch.nn.ModuleList()
         # First layer.
-        self.lstm_layers.append(nn.LSTMCell(
+        self.lstm_layers.append(torch.nn.LSTMCell(
             self.input_item_size, self.hidden_state_size))
         # Following, stacked layers.
         self.lstm_layers.extend(
-            [nn.LSTMCell(self.hidden_state_size, self.hidden_state_size)
+            [torch.nn.LSTMCell(self.hidden_state_size, self.hidden_state_size)
              for _ in range(1, self.num_layers)])
         # Output linear layer.
-        self.linear = nn.Linear(self.hidden_state_size, self.output_item_size)
+        self.linear = torch.nn.Linear(self.hidden_state_size, self.output_item_size)
 
     def forward(self, data_dict):
         """

@@ -56,6 +56,8 @@ import os
 import csv
 import pickle
 from PIL import Image
+
+from torchvision import models
 from torchvision import transforms
 
 from miprometheus.utils.problems_utils.language import Language
@@ -442,9 +444,8 @@ class CLEVR(ImageTextToClassProblem):
             self.cnn_model = params['images']['feature_extractor']['cnn_model']
             self.image_source = os.path.join(self.data_folder, 'generated_files', self.cnn_model, self.set)
 
-            import torchvision as vision
-            assert self.cnn_model in dir(vision.models), "Did not find specified cnn_model in torchvision.models." \
-                                                         " Available models: {}".format(dir(vision.models))
+            assert self.cnn_model in dir(models), "Did not find specified cnn_model in torchvision.models." \
+                                                         " Available models: {}".format(dir(models))
             # this is too complex to check, not doing it.
             self.num_blocks = params['images']['feature_extractor']['num_blocks']
 

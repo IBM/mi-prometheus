@@ -380,8 +380,6 @@ class COG(VideoTextToClassProblem):
         # Apply  threshold.
 		threshold=0.15**2
 		
-                #		print('diff pointing', diff_pointing)
-		#print(mask_pointing)
 		# Check correct pointings.
 		correct_pointing = (diff_pointing < threshold) * mask_pointing
 		#print('corect poitning',correct_pointing)
@@ -404,24 +402,24 @@ class COG(VideoTextToClassProblem):
 
 	def get_acc_per_family(self, data_dict, logits):
 		"""
-			        Compute the accuracy per family for the current batch. Also accumulates
-			        the number of correct predictions & questions per family in self.correct_pred_families (saved
-			        to file).
+		Compute the accuracy per family for the current batch. Also accumulates
+		the number of correct predictions & questions per family in self.correct_pred_families (saved
+		to file).
 
 
-			        .. note::
+		.. note::
 
-			            To refactor.
+			To refactor.
 
 
-			        :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', \
-			        'targets', 'targets_string', 'index','imgfiles'})
-			        :type data_dict: :py:class:`miprometheus.utils.DataDict`
+		:param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', \
+		'targets', 'targets_string', 'index','imgfiles'})
+		:type data_dict: :py:class:`miprometheus.utils.DataDict`
 
-			        :param logits: network predictions.
-			        :type logits: :py:class:`torch.Tensor`
+		:param logits: network predictions.
+		:type logits: :py:class:`torch.Tensor`
 
-			        """
+		"""
 
 		targets_pointing = data_dict['targets_pointing']
 		targets_answer = data_dict['targets_answer']
@@ -511,7 +509,7 @@ class COG(VideoTextToClassProblem):
 			# in_rule: (max_seq_length, batch_size) the rule language input, type int32
 			# seq_length: (batch_size,) the length of each task instruction
 			# out_pnt: (n_epoch*batch_size, n_out_pnt)
-			# out_pnt_xy: (n_epoch*batch_size, 2)
+			# out_pnt_xy: (n_epoch*batch_size, -2)
 			# out_word: (n_epoch*batch_size, n_out_word)
 			# mask_pnt: (n_epoch*batch_size)
 			# mask_word: (n_epoch*batch_size)		
