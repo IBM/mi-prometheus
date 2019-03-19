@@ -538,33 +538,14 @@ class COG(VideoTextToClassProblem):
 			data_dict['questions'][prev_size:] = 0
 		answers = self.dataset[index]['answers']
 		if data_dict['tasks'] in self.classification_tasks:
-			#data_dict['targets_pointing']	= torch.FloatTensor([0,0]).expand(self.sequence_length,2)
-			#data_dict['targets_pointing'] = np.array([[-10,-10] for target in answers])
-			targets_pointing = np.array([[-10,-10] for target in answers])
 			data_dict['targets_answer'] 	= self.output_class_to_int(answers)
 			#data_dict['targets'] = self.output_class_to_int(answers)
 			
 		else :
-			data_dict['targets_pointing']	= np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
 			data_dict['targets_answer'] 	= self.app_state.LongTensor([-1 for target in answers])
-			targets_pointing = np.array([[-10,-10] if reg == 'invalid' else reg for reg in answers])
-
-		# TODO: INVESTIGATE THAT!!
-		###########################################
-		#x, y = np.meshgrid(np.linspace(-1,1,7), np.linspace(-1,1,7))
-		#mu = 0.1
-
-		#sequence_length = len(data_dict['targets_answer'])
-		#soft_targets = np.zeros((sequence_length,49))
-		#for i in range(sequence_length):
-		#	soft_targets[i,:] = np.exp( -((x-targets_pointing[i,0])**2)/(2*(mu**2))
-		#																-((y-targets_pointing[i,1])**2)/(2*(mu**2)) ).flatten()
-		#	soft_targets[i,:] = soft_targets[i,:] / np.sum(soft_targets[i,:])
-		#np.nan_to_num(soft_targets,copy=False)
-		#data_dict['targets_pointing'] = self.app_state.FloatTensor(soft_targets)
+	
 
 		data_dict['targets_pointing'] = self.app_state.FloatTensor(out_pnt)
-		###########################################
 
 
 		return data_dict
@@ -778,7 +759,7 @@ if __name__ == "__main__":
 	# Define useful params
 	from miprometheus.utils.param_interface import ParamInterface
 	params = ParamInterface()
-	tasks = ['GoColor']
+	tasks = ['AndCompareColor']
 
 
 	params.add_config_params({'data_folder': os.path.expanduser('~/data/cog'),
