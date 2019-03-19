@@ -9,7 +9,7 @@ training:
   data_folder: '~/data/cog'
   set: train
   use_mask: False
-  dataset_type: hard
+  dataset_type: canonical
   # Set optimizer.
  optimizer:
   name: Adam
@@ -36,7 +36,7 @@ validation:
   data_folder: '~/data/cog'
   set: val
   use_mask: False
-  dataset_type: hard
+  dataset_type: canonical
 partial_validation_interval: 100
 
 testing:
