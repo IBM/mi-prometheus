@@ -1,59 +1,16 @@
-# Problem parameters:
-training:
- cuda: True
- problem:
-  name: COG
-  # Size of generated input: [batch_size x sequence_length x classes].
-  batch_size: 48
-  tasks: all
-  data_folder: '~/data/cog'
-  set: train
-  use_mask: False
-  dataset_type: canonical
-  # Set optimizer.
- optimizer:
-  name: Adam
-  lr: 0.0002
-  weight_decay: 0.00002
- gradient_clipping: 10
- terminal_conditions:
-  epoch_limit: 40
-  episodes: 100000000
- partial_validation_interval: 100
-
-validation:
- cuda: True
- problem:
-  name: COG
-  # Size of generated input: [batch_size x sequence_length x classes].
-  batch_size: 48
-  tasks: all
-  data_folder: '~/data/cog'
-  set: val
-  use_mask: False
-  dataset_type: canonical
-partial_validation_interval: 100
-
-testing:
- cuda: True
- problem:
-  name: COG
-  # Size of generated input: [batch_size x sequence_length x classes].
-  batch_size: 48
-  tasks: all
-  data_folder: '~/data/cog'
-  set: test
-  dataset_type: canonical
+# Load the COG config first.
+default_configs:
+  configs/cog/default_cog.yaml
 
 model:
- name: MACNetworkSequential
- dim: 128
- embed_hidden: 64
- max_step: 12
- self_attention: False
- memory_gate: False
- dropout: 0.15
- memory_pass: True
- control_pass: False
+  name: MACNetworkSequential
+  dim: 128
+  embed_hidden: 64
+  max_step: 12
+  self_attention: False
+  memory_gate: False
+  dropout: 0.15
+  memory_pass: True
+  control_pass: False
 
 
