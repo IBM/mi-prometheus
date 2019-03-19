@@ -294,7 +294,10 @@ class COG(VideoTextToClassProblem):
 		#print("ce_point = ", ce_point)
 
 		# Calculate mean - manually, skipping all non-pointing elements of the targets.
-		self.loss_pointing = torch.sum(ce_point) / mask_pointing.sum() if mask_pointing.sum() != 0 else torch.tensor(0).type(self.app_state.FloatTensor)
+		if mask_pointing.sum().item() != 0:
+			self.loss_pointing = torch.sum(ce_point) / mask_pointing.sum() 
+		else:
+			self.loss_pointing = torch.tensor(0).type(self.app_state.FloatTensor)
 
 		# Both losses are averaged over batch size and sequence lengts - so we can simply sum them.
 		return self.loss_answer + self.loss_pointing
