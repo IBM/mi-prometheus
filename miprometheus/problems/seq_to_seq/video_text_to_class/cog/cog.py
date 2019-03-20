@@ -764,7 +764,6 @@ class COG(VideoTextToClassProblem):
 
 		# Accuracy.
 		acc_total, acc_answer, acc_pointing = self.calculate_accuracy(data_dict, logits)
-		self.get_acc_per_family(data_dict, logits)
 		stat_col['acc'] = acc_total
 		stat_col['acc_answer'] = acc_answer
 		stat_col['acc_pointing'] = acc_pointing
