@@ -774,6 +774,8 @@ class COG(VideoTextToClassProblem):
 		stat_col['acc'] = acc_total
 		stat_col['acc_answer'] = acc_answer
 		stat_col['acc_pointing'] = acc_pointing
+		if self.set == 'test' :
+			self.get_acc_per_family(data_dict, logits)
 		#self.get_acc_per_family(data_dict, logits)
 		#stat_col['seq_len'] = self.sequence_length
 		#stat_col['max_mem'] = self.memory_length
