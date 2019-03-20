@@ -153,6 +153,9 @@ class MACUnit(Module):
 
             memories = [memory]
 
+        #empty state history
+        self.cell_state_history = []
+
 
         # main loop of recurrence over the MACCell
         for i in range(self.max_step):
@@ -195,4 +198,4 @@ class MACUnit(Module):
                 self.cell_state_history.append(
                     (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach()))
 
-        return memory, controls, memories
+        return memory, controls, memories, self.cell_state_history

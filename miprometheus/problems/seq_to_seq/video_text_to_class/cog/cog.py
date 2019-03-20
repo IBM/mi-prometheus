@@ -568,6 +568,7 @@ class COG(VideoTextToClassProblem):
 
 		data_dict['tasks']	= self.dataset[index]['family']
 		data_dict['questions'] = [self.dataset[index]['question']]
+		data_dict['questions_string'] = [self.dataset[index]['question']]
 		data_dict['questions'] = torch.LongTensor([self.input_vocab.index(word) for word in data_dict['questions'][0].split()])
 		if(data_dict['questions'].size(0) <= self.nwords):
 			prev_size = data_dict['questions'].size(0)
@@ -576,6 +577,7 @@ class COG(VideoTextToClassProblem):
 
 		# Set targets - depending on the answers.
 		answers = self.dataset[index]['answers']
+		data_dict['answers_string'] = self.dataset[index]['answers']
 		if data_dict['tasks'] in self.classification_tasks:
 			data_dict['targets_answer'] = self.output_class_to_int(answers)
 		else :
@@ -607,6 +609,11 @@ class COG(VideoTextToClassProblem):
 		# Masks.
 		data_dict['masks_pnt']	= torch.stack([sample['masks_pnt'] for sample in batch]).type(self.app_state.ByteTensor)
 		data_dict['masks_word']	= torch.stack([sample['masks_word'] for sample in batch]).type(self.app_state.ByteTensor)
+		data_dict['vocab'] = self.output_vocab
+
+        #strings question and answer
+		data_dict['questions_string'] = [question['questions_string'] for question in batch]
+		data_dict['answers_string'] = [answer['answers_string'] for answer in batch]
 
 		return data_dict
 
