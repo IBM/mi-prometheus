@@ -324,7 +324,7 @@ class MACNetworkSequential(Model):
 
         # question ticks
         ax_attention_question.xaxis.set_major_locator(
-            matplotlib.ticker.MaxNLocator(nbins=40))
+            matplotlib.ticker.MaxNLocator(nbins=25))
 
         ax_step.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_step.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
@@ -423,13 +423,12 @@ class MACNetworkSequential(Model):
         question & feature maps. Dynamic visualization throughout the reasoning \
         steps is possible.
         :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', \
-        'targets', 'targets_string', 'index','imgfiles', 'prediction_string'})
+        'targets', 'targets_string', 'index', 'prediction_string'})
         :type data_dict: utils.DataDict
         :param logits: Prediction of the model.
         :type logits: torch.tensor
         :param sample: Index of sample in batch (Default: 0)
         :type sample: int
-        :return: True when the user closes the window, False if we do not need to visualize.
         """
 
         # check whether the visualization is required
@@ -449,23 +448,27 @@ class MACNetworkSequential(Model):
         tasks = data_dict['tasks']
         mask_pointing = data_dict['masks_pnt']
 
-        #### CLASSIFICATION VISU ######
+        # needed for nltk.word.tokenize
+        nltk.download('punkt')
+
+        # tokenize question string using same processing as in the problem
+        words = s_questions[sample][0]
+        words = nltk.word_tokenize(words)
+
+        # get images dimensions
+        width = images.size(3)
+        height = images.size(4)
+
+        # get task name
+        tasks = tasks[sample]
+
+        ###################### CLASSIFICATION VISUALIZATION ####################
 
         if mask_pointing.sum()==0:
-
-            # get samples
-            tasks = tasks[sample]
 
             # get prediction
             values, indices = torch.max(logits[0], 2)
             prediction = indices[sample]
-
-            # needed for nltk.word.tokenize
-            nltk.download('punkt')
-
-            # tokenize question string using same processing as in the problem
-            words = s_questions[sample][0]
-            words = nltk.word_tokenize(words)
 
             # Create figure template.
             fig = self.generate_figure_layout()
@@ -476,21 +479,18 @@ class MACNetworkSequential(Model):
             #initiate list of artists frames
             frames = []
 
-            #loop over the seqence of frames
+            #loop over the sequence of frames
             for i in range(images.size(1)):
 
                 #get image sample
                 image = images[sample][i]
-                image = image.permute(1, 2, 0)
 
-                #get images dimensions
-                width = images.size(3)
-                height = images.size(4)
+                # needs [W x H x Channels] for Matplolib.imshow
+                image = image.permute(1, 2, 0)
 
                 #get answer and prediction strings
                 pred = vocab[prediction[i]]
                 ans = s_answers[sample][i]
-
 
                 #loop over the k reasoning steps
                 for step, (attention_mask, attention_question) in zip(
@@ -519,8 +519,10 @@ class MACNetworkSequential(Model):
                     ax_image.set_title(
                         'COG image:')
                     ax_attention_question.set_xticklabels(
-                        ['h'] + words, rotation='vertical', fontsize=10)
+                        ['h'] + words, rotation='vertical', fontsize=15)
                     ax_step.axis('off')
+                    ax_attention_image.set_title(
+                        'Visual Attention:')
 
                     # Tell artists what to do:
                     artists[0] = ax_image.imshow(
@@ -550,26 +552,11 @@ class MACNetworkSequential(Model):
 
         else:
 
-            ###### POINTING VISUALIZATION #########
-
-            # get samples
-            tasks = tasks[sample]
+            ################### POINTING VISUALIZATION #######################
 
             #get distribution
             softmax_pointing = nn.Softmax(dim=1)
             preds_pointing = softmax_pointing(logits[1])
-
-
-            # get images dimensions
-            width = images.size(3)
-            height = images.size(4)
-
-            # needed for nltk.word.tokenize
-            nltk.download('punkt')
-
-            # tokenize question string using same processing as in the problem
-            words = s_questions[sample][0]
-            words = nltk.word_tokenize(words)
 
             # Create figure template.
             fig = self.generate_figure_layout()
@@ -585,8 +572,9 @@ class MACNetworkSequential(Model):
 
                 # get image sample
                 image = images[sample][i]
-                image = image.permute(1, 2, 0)
 
+                #needs [W x H x Channels] for Matplolib.imshow
+                image = image.permute(1, 2, 0)
 
                 # loop over the k reasoning steps
                 for step, (attention_mask, attention_question) in zip(
@@ -604,11 +592,11 @@ class MACNetworkSequential(Model):
                     attention_mask = up_sample_attention_mask[sample, 0]
 
                     # upsample attention mask
-                    preds_pointing = preds_pointing.view(48,4,7, -1)
+                    original_grid_size=7
+                    preds_pointing = preds_pointing.view(images.size(0),images.size(1),original_grid_size, -1)
                     mm =torch.nn.Upsample(size=[width, height] , mode= 'bilinear')
                     up_sample_preds_pointing = mm(preds_pointing)
                     up_sample_preds_pointing = up_sample_preds_pointing[sample][i]
-
 
                     # preprocess question, pick one sample number
                     attention_question = attention_question[sample]
@@ -624,7 +612,7 @@ class MACNetworkSequential(Model):
                         ['h'] + words, rotation='vertical', fontsize=10)
                     ax_step.axis('off')
                     ax_attention_image.set_title(
-                        'Pointing Distribution')
+                        'Pointing Distribution:')
 
                     # Tell artists what to do:
                     artists[0] = ax_image.imshow(
