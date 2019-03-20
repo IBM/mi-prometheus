@@ -420,56 +420,98 @@ class COG(VideoTextToClassProblem):
 
 		"""
 
-		targets_pointing = data_dict['targets_pointing']
+		# Get targets.
 		targets_answer = data_dict['targets_answer']
+		targets_pointing = data_dict['targets_pointing']
+
+		#Get tasks
 		tasks = data_dict['tasks']
 
+		# Get predictions.
+		preds_answer = logits[0]
+		preds_pointing = logits[1]
 
+		# Get sizes.
+		batch_size = logits[0].size(0)
+		img_seq_len = logits[0].size(1)
 
-		# Classification Accuracy
-		values, indices = torch.max(logits[0], 2)
-		targets_answer_zeros = ( targets_answer == -1)
+		# Reshape predictions [BATCH_SIZE * IMG_SEQ_LEN x CLASSES]
+		preds_answer = preds_answer.view(batch_size * img_seq_len, -1)
+		preds_pointing = preds_pointing.view(batch_size * img_seq_len, -1)
 
-		correct = (indices == targets_answer).sum(dim=1)  # + (targets==-1).sum().item()
+		# Reshape targets: answers [BATCH_SIZE * IMG_SEQ_LEN]
+		targets_answer = targets_answer.view(batch_size * img_seq_len)
+		# Reshape targets: pointings [BATCH_SIZE * IMG_SEQ_LEN x NUM_ACTIONS]
+		targets_pointing = targets_pointing.view(batch_size * img_seq_len, -1)
 
+		# Retrieve "answer" and "pointing" masks, both of size [BATCH_SIZE * IMG_SEQ_LEN].
+		mask_answer = data_dict['masks_word']
+		mask_answer_non_flatten = mask_answer
+		mask_answer = mask_answer.view(batch_size * img_seq_len)
 
-		# Pointing Accuracy
-		values, indicesp = torch.max(logits[1], 2)
-		valuesp, hard_targetsp = torch.max(targets_pointing, 2)
+		mask_pointing = data_dict['masks_pnt']
+		mask_pointing_non_flatten = mask_pointing
+		mask_pointing = mask_pointing.view(batch_size * img_seq_len)
 
-		hard_targetsp_zeros = (hard_targetsp == 0)
+		#########################################################################
+		# Calculate accuracy for Answering task.
+		# Get answers [BATCH_SIZE * IMG_SEQ_LEN]
+		_, indices = torch.max(preds_answer, 1)
 
-		# Committing a minor inaccuracy here
-		#correctp = (indicesp == hard_targetsp).sum(dim=1) - (indices == 0).sum(dim=1)
-		correctp = (indicesp == hard_targetsp).sum(dim=1)
+		# Calculate correct answers with additional "masking".
+		correct_answers = (indices == targets_answer) * mask_answer
 
-		for i in range(correct.size(0)):
+		#########################################################################
+		# Calculate accuracy for Pointing task.
+
+		# Normalize pointing with softmax.
+		softmax_pointing = nn.Softmax(dim=1)
+		preds_pointing = softmax_pointing(preds_pointing)
+
+		# Calculate mean square error for every pointing action.
+		diff_pointing = (targets_pointing - preds_pointing)
+		diff_pointing = diff_pointing ** 2
+		# Sum all differences for a given answer.
+		# As a results we got 1D tensor of size [BATCH_SIZE * IMG_SEQ_LEN].
+		diff_pointing = torch.sum(diff_pointing, dim=1)
+
+		# Apply  threshold.
+		threshold = 0.15 ** 2
+
+		# Check correct pointings.
+		correct_pointing = (diff_pointing < threshold) * mask_pointing
+
+        #count correct and total for each category
+		for i in range(batch_size):
+
 			# update # of questions for the corresponding family
-			self.categories_stats[tasks[i]][1] += (4 - targets_answer_zeros[i].sum())
-			self.categories_stats[tasks[i]][1] += (4 - hard_targetsp_zeros[i].sum())
+
+			#classification
+			correct_ans = correct_answers.view(batch_size, img_seq_len, -1)
+			self.categories_stats[tasks[i]][1] += float(correct_ans[i].sum().item())
+
+			#pointing
+			correct_pointing_non_flatten = correct_pointing.view(batch_size, img_seq_len, -1)
+			self.categories_stats[tasks[i]][1] += float(correct_pointing_non_flatten[i].sum().item())
+
+			#update the # of correct predictions for the corresponding family
+
+			# classification
+			self.categories_stats[tasks[i]][0] += float(mask_answer_non_flatten[i].sum().item())
+
+			# pointing
+			self.categories_stats[tasks[i]][0] += float(mask_pointing_non_flatten[i].sum().item())
 
 
-			# update the # of correct predictions for the corresponding family
-			self.categories_stats[tasks[i]][0] += correct.data[i]
-			self.categories_stats[tasks[i]][0] += correctp.data[i]
-
-		print (self.categories_stats)
-
-
+        #display accuracies per task
 		for task in self.categories:
 
-			print (self.categories_stats[task][1])
-			print (self.categories_stats[task][0])
-
-			if self.categories_stats[task][1] == 0:
-				acc = 0
+			if self.categories_stats[task][1] == 0.0:
+				acc = 0.0
 			else:
-				print('hello')
-				a = self.categories_stats[task][0]
-				b = self.categories_stats[task][1]
-				a= a.numpy()
-				b=b.numpy()
-				acc = a/b
+				total = self.categories_stats[task][0]
+				correct = self.categories_stats[task][1]
+				acc = correct/total
 
 			print('accuracy for task',task, '=' , acc )
 
@@ -722,6 +764,7 @@ class COG(VideoTextToClassProblem):
 
 		# Accuracy.
 		acc_total, acc_answer, acc_pointing = self.calculate_accuracy(data_dict, logits)
+		self.get_acc_per_family(data_dict, logits)
 		stat_col['acc'] = acc_total
 		stat_col['acc_answer'] = acc_answer
 		stat_col['acc_pointing'] = acc_pointing
