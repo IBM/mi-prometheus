@@ -49,12 +49,10 @@ model.py:
 """
 __author__ = "Vincent Marois , Vincent Albouy"
 
-import os
 import nltk
 import torch
 import numpy as np
 import matplotlib.pylab
-from PIL import Image
 from torchvision import transforms
 from miprometheus.models.model import Model
 import numpy as numpy
@@ -483,7 +481,7 @@ class MACNetworkSequential(Model):
             for i in range(images.size(1)):
 
                 #get image sample
-                image = images[sample][i]
+                image = images[sample][i]/255
 
                 # needs [W x H x Channels] for Matplolib.imshow
                 image = image.permute(1, 2, 0)
@@ -574,22 +572,11 @@ class MACNetworkSequential(Model):
                 image = images[sample][i]
 
                 #needs [W x H x Channels] for Matplolib.imshow
-                image = image.permute(1, 2, 0)
+                image = image.permute(1, 2, 0)/255
 
                 # loop over the k reasoning steps
                 for step, (attention_mask, attention_question) in zip(
                         range(self.max_step), self.cell_states[i]):
-                    # preprocess attention image, reshape
-                    attention_size = int(np.sqrt(attention_mask.size(-1)))
-
-                    # attention mask has size [batch_size x 1 x(H*W)]
-                    attention_mask = attention_mask.view(-1, 1, attention_size, attention_size)
-
-                    # upsample attention mask
-                    m = torch.nn.Upsample(
-                        size=[width, height], mode='bilinear', align_corners=True)
-                    up_sample_attention_mask = m(attention_mask)
-                    attention_mask = up_sample_attention_mask[sample, 0]
 
                     # upsample attention mask
                     original_grid_size=7
@@ -638,6 +625,8 @@ class MACNetworkSequential(Model):
 
             # Plot figure and list of frames.
             self.plotWindow.update(fig, frames)
+
+        return self.plotWindow.is_closed
 
 
     def get_dropout_mask(self, x, dropout):
