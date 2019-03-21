@@ -52,7 +52,6 @@ __author__ = "Vincent Marois , Vincent Albouy"
 import nltk
 import torch
 import numpy as np
-import matplotlib.pylab
 from torchvision import transforms
 from miprometheus.models.model import Model
 import numpy as numpy
