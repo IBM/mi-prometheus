@@ -188,12 +188,9 @@ class MNIST(ImageToClassProblem):
 
         """
 
-        collated_batch = DataDict({key: value for key, value in zip(batch[0].keys(),
+        return DataDict({key: value for key, value in zip(self.data_definitions.keys(),
                                                           super(MNIST, self).collate_fn(batch).values())})
 
-        print(collated_batch['targets'].device) 
-        print(type(collated_batch['targets']))
-        return collated_batch
 
 if __name__ == "__main__":
     """ Tests sequence generator - generates and displays a random sample"""
