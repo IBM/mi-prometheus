@@ -49,11 +49,11 @@ model.py:
 """
 __author__ = "Vincent Marois , Vincent Albouy"
 
-import os
 import nltk
 import torch
 import numpy as np
-from PIL import Image
+import matplotlib.pylab
+import matplotlib.animation
 from torchvision import transforms
 from miprometheus.models.model import Model
 import numpy as numpy
@@ -159,6 +159,9 @@ class MACNetworkSequential(Model):
         # Input Image size
         self.image_size = [112, 112]
 
+        # history states
+        self.cell_states = []
+
         # Visual memory shape. height x width.
         self.vstm_shape = np.array(self.image_size)
         for channel in self.visual_processing_channels:
@@ -245,6 +248,8 @@ class MACNetworkSequential(Model):
         controls = [control]
         memories = [memory]
 
+        self.cell_states=[]
+
         # Loop over all elements along the SEQUENCE dimension.
         for i in range(images.size(0)):
 
@@ -266,9 +271,12 @@ class MACNetworkSequential(Model):
             img, kb_proj, lstm_out, h = self.input_unit(questions, questions_length, x)
 
             # recurrent MAC cells
-            memory, controls, memories = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory)
+            memory, controls, memories , state_history = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory)
 
-           # output unit
+            #save state history
+            self.cell_states.append(state_history)
+
+            # output unit
             logits_answer[:,i,:] = self.output_unit_answer(memory, h)
             logits_pointing[:,i,:] = self.output_unit_pointing(memory, h)
 
@@ -315,7 +323,7 @@ class MACNetworkSequential(Model):
 
         # question ticks
         ax_attention_question.xaxis.set_major_locator(
-            matplotlib.ticker.MaxNLocator(nbins=40))
+            matplotlib.ticker.MaxNLocator(nbins=25))
 
         ax_step.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_step.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
@@ -413,19 +421,13 @@ class MACNetworkSequential(Model):
         Visualize the attention weights (``ControlUnit`` & ``ReadUnit``) on the \
         question & feature maps. Dynamic visualization throughout the reasoning \
         steps is possible.
-
         :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', \
-        'targets', 'targets_string', 'index','imgfiles', 'prediction_string'})
+        'targets', 'targets_string', 'index', 'prediction_string'})
         :type data_dict: utils.DataDict
-
         :param logits: Prediction of the model.
         :type logits: torch.tensor
-
         :param sample: Index of sample in batch (Default: 0)
         :type sample: int
-
-        :return: True when the user closes the window, False if we do not need to visualize.
-
         """
 
         # check whether the visualization is required
@@ -439,98 +441,193 @@ class MACNetworkSequential(Model):
 
         # unpack data_dict
         s_questions = data_dict['questions_string']
-        question_type = data_dict['questions_type']
-        answer_string = data_dict['targets_string']
-        imgfiles = data_dict['imgfiles']
-        prediction_string = data_dict['predictions_string']
-        clevr_dir = data_dict['clevr_dir']
+        s_answers = data_dict['answers_string']
+        vocab = data_dict['vocab']
+        images = data_dict['images']
+        tasks = data_dict['tasks']
+        mask_pointing = data_dict['masks_pnt']
 
         # needed for nltk.word.tokenize
         nltk.download('punkt')
+
         # tokenize question string using same processing as in the problem
-        # class
-        words = nltk.word_tokenize(s_questions[sample])
+        words = s_questions[sample][0]
+        words = nltk.word_tokenize(words)
 
-        # Create figure template.
-        fig = self.generate_figure_layout()
-        # Get axes that artists will draw on.
-        (ax_image, ax_attention_image, ax_attention_question, ax_step) = fig.axes
+        # get images dimensions
+        width = images.size(3)
+        height = images.size(4)
 
-        # get the image
-        set = imgfiles[sample].split('_')[1]
-        image = os.path.join(clevr_dir, 'images', set, imgfiles[sample])
-        image = Image.open(image).convert('RGB')
-        image = self.transform(image)
-        image = image.permute(1, 2, 0)  # [300, 300, 3]
+        # get task name
+        tasks = tasks[sample]
 
-        # get most probable answer -> prediction of the network
-        proba_answers = torch.nn.functional.softmax(logits, -1)
-        proba_answer = proba_answers[sample].detach().cpu()
-        proba_answer = proba_answer.max().numpy()
+        ###################### CLASSIFICATION VISUALIZATION ####################
 
-        # image & attention sizes
-        width = image.size(0)
-        height = image.size(1)
+        if mask_pointing.sum()==0:
 
-        frames = []
-        for step, (attention_mask, attention_question) in zip(
-                range(self.max_step), self.mac_unit.cell_state_history):
-            # preprocess attention image, reshape
-            attention_size = int(np.sqrt(attention_mask.size(-1)))
-            # attention mask has size [batch_size x 1 x(H*W)]
-            attention_mask = attention_mask.view(-1, 1, attention_size, attention_size)
+            # get prediction
+            values, indices = torch.max(logits[0], 2)
+            prediction = indices[sample]
 
-            # upsample attention mask
-            m = torch.nn.Upsample(
-                size=[width, height], mode='bilinear', align_corners=True)
-            up_sample_attention_mask = m(attention_mask)
-            attention_mask = up_sample_attention_mask[sample, 0]
+            # Create figure template.
+            fig = self.generate_figure_layout()
 
-            # preprocess question, pick one sample number
-            attention_question = attention_question[sample]
+            # Get axes that artists will draw on.
+            (ax_image, ax_attention_image, ax_attention_question, ax_step) = fig.axes
 
-            # Create "Artists" drawing data on "ImageAxes".
-            num_artists = len(fig.axes) + 1
-            artists = [None] * num_artists
+            #initiate list of artists frames
+            frames = []
 
-            # set title labels
-            ax_image.set_title(
-                'CLEVR image: {}'.format(imgfiles[sample]))
-            ax_attention_question.set_xticklabels(
-                ['h'] + words, rotation='vertical', fontsize=10)
-            ax_step.axis('off')
+            #loop over the sequence of frames
+            for i in range(images.size(1)):
 
-            # set axis attention labels
-            ax_attention_image.set_title(
-                'Predicted Answer: ' + prediction_string[sample] +
-                ' [ proba: ' + str.format("{0:.3f}", proba_answer) + ']  ' +
-                'Ground Truth: ' + answer_string[sample])
+                #get image sample
+                image = images[sample][i]/255
 
-            # Tell artists what to do:
-            artists[0] = ax_image.imshow(
-                image, interpolation='nearest', aspect='auto')
-            artists[1] = ax_attention_image.imshow(
-                image, interpolation='nearest', aspect='auto')
-            artists[2] = ax_attention_image.imshow(
-                attention_mask,
-                interpolation='nearest',
-                aspect='auto',
-                alpha=0.5,
-                cmap='Reds')
-            artists[3] = ax_attention_question.imshow(
-                attention_question.transpose(1, 0),
-                interpolation='nearest', aspect='auto', cmap='Reds')
-            artists[4] = ax_step.text(
-                0, 0.5, 'Reasoning step index: ' + str(step) + ' | Question type: ' + question_type[sample],
-                fontsize=15)
+                # needs [W x H x Channels] for Matplolib.imshow
+                image = image.permute(1, 2, 0)
 
-            # Add "frame".
-            frames.append(artists)
+                #get answer and prediction strings
+                pred = vocab[prediction[i]]
+                ans = s_answers[sample][i]
 
-        # Plot figure and list of frames.
-        self.plotWindow.update(fig, frames)
+                #loop over the k reasoning steps
+                for step, (attention_mask, attention_question) in zip(
+                        range(self.max_step), self.cell_states[i]):
 
-        return self.plotWindow.is_closed
+                    # preprocess attention image, reshape
+                    attention_size = int(np.sqrt(attention_mask.size(-1)))
+
+                    # attention mask has size [batch_size x 1 x(H*W)]
+                    attention_mask = attention_mask.view(-1, 1, attention_size, attention_size)
+
+                    # upsample attention mask
+                    m = torch.nn.Upsample(
+                        size=[width, height], mode='bilinear', align_corners=True)
+                    up_sample_attention_mask = m(attention_mask)
+                    attention_mask = up_sample_attention_mask[sample, 0]
+
+                    # preprocess question, pick one sample number
+                    attention_question = attention_question[sample]
+
+                    # Create "Artists" drawing data on "ImageAxes".
+                    num_artists = len(fig.axes) + 1
+                    artists = [None] * num_artists
+
+                    # set title labels
+                    ax_image.set_title(
+                        'COG image:')
+                    ax_attention_question.set_xticklabels(
+                        ['h'] + words, rotation='vertical', fontsize=15)
+                    ax_step.axis('off')
+                    ax_attention_image.set_title(
+                        'Visual Attention:')
+
+                    # Tell artists what to do:
+                    artists[0] = ax_image.imshow(
+                        image, interpolation='nearest', aspect='auto')
+                    artists[1] = ax_attention_image.imshow(
+                        image, interpolation='nearest', aspect='auto')
+                    artists[2] = ax_attention_image.imshow(
+                        attention_mask,
+                        interpolation='nearest',
+                        aspect='auto',
+                        alpha=0.5,
+                        cmap='Reds')
+                    artists[3] = ax_attention_question.imshow(
+                        attention_question.transpose(1, 0),
+                        interpolation='nearest', aspect='auto', cmap='Reds')
+                    artists[4] = ax_step.text(
+                        0, 0.5, 'Reasoning step index: ' + str(
+                            step) + ' | Question type: ' + tasks + '         ' + 'Predicted Answer: ' + pred + '  ' +
+                                'Ground Truth: ' + ans,
+                        fontsize=15)
+
+                    # Add "frames" to artist list
+                    frames.append(artists)
+
+            # Plot figure and list of frames.
+            self.plotWindow.update(fig, frames)
+
+        else:
+
+            ################### POINTING VISUALIZATION #######################
+
+            #get distribution
+            softmax_pointing = nn.Softmax(dim=1)
+            preds_pointing = softmax_pointing(logits[1])
+
+            # Create figure template.
+            fig = self.generate_figure_layout()
+
+            # Get axes that artists will draw on.
+            (ax_image, ax_attention_image, ax_attention_question, ax_step) = fig.axes
+
+            # initiate list of artists frames
+            frames = []
+
+            # loop over the seqence of frames
+            for i in range(images.size(1)):
+
+                # get image sample
+                image = images[sample][i]
+
+                #needs [W x H x Channels] for Matplolib.imshow
+                image = image.permute(1, 2, 0)/255
+
+                # loop over the k reasoning steps
+                for step, (attention_mask, attention_question) in zip(
+                        range(self.max_step), self.cell_states[i]):
+
+                    # upsample attention mask
+                    original_grid_size=7
+                    preds_pointing = preds_pointing.view(images.size(0),images.size(1),original_grid_size, -1)
+                    mm =torch.nn.Upsample(size=[width, height] , mode= 'bilinear')
+                    up_sample_preds_pointing = mm(preds_pointing)
+                    up_sample_preds_pointing = up_sample_preds_pointing[sample][i]
+
+                    # preprocess question, pick one sample number
+                    attention_question = attention_question[sample]
+
+                    # Create "Artists" drawing data on "ImageAxes".
+                    num_artists = len(fig.axes) + 1
+                    artists = [None] * num_artists
+
+                    # set title labels
+                    ax_image.set_title(
+                        'COG image:')
+                    ax_attention_question.set_xticklabels(
+                        ['h'] + words, rotation='vertical', fontsize=10)
+                    ax_step.axis('off')
+                    ax_attention_image.set_title(
+                        'Pointing Distribution:')
+
+                    # Tell artists what to do:
+                    artists[0] = ax_image.imshow(
+                        image, interpolation='nearest', aspect='auto')
+                    artists[1] = ax_attention_image.imshow(
+                        image, interpolation='nearest', aspect='auto')
+                    artists[2] = ax_attention_image.imshow(
+                        up_sample_preds_pointing.detach().numpy(),
+                        interpolation='nearest',
+                        aspect='auto',
+                        alpha=0.5,
+                        cmap='Blues')
+                    artists[3] = ax_attention_question.imshow(
+                        attention_question.transpose(1, 0),
+                        interpolation='nearest', aspect='auto', cmap='Reds')
+                    artists[4] = ax_step.text(
+                        0, 0.5, 'Reasoning step index: ' + str(
+                            step) + ' | Question type: ' + tasks,
+                        fontsize=15)
+
+                    # Add "frames" to artist list
+                    frames.append(artists)
+
+            # Plot figure and list of frames.
+            self.plotWindow.update(fig, frames)
+
+        #return self.plotWindow.is_closed
 
 
     def get_dropout_mask(self, x, dropout):

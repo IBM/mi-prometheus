@@ -41,7 +41,6 @@ import os
 import tarfile
 import string
 import numpy as np
-
 from miprometheus.problems.seq_to_seq.video_text_to_class.video_text_to_class_problem import VideoTextToClassProblem
 from miprometheus.problems.seq_to_seq.video_text_to_class.cog.cog_utils import json_to_img as jti
 
@@ -243,7 +242,7 @@ class COG(VideoTextToClassProblem):
 								 'SimpleExistGo','SimpleExistShapeGo']
 
 
-		self.tuple_list = [[0, 0] for _ in range(len(self.categories))]
+		self.tuple_list = [[0,0,0] for _ in range(len(self.categories))]
 
 		self.categories_stats = dict(zip(self.categories, self.tuple_list))
 
@@ -502,19 +501,15 @@ class COG(VideoTextToClassProblem):
 			# pointing
 			self.categories_stats[tasks[i]][0] += float(mask_pointing_non_flatten[i].sum().item())
 
+			#put task accuracy in third position of the dictionary
+			if self.categories_stats[tasks[i]][0]==0:
+				self.categories_stats[tasks[i]][2] = 0.0
 
-        #display accuracies per task
-		for task in self.categories:
-
-			if self.categories_stats[task][1] == 0.0:
-				acc = 0.0
 			else:
-				total = self.categories_stats[task][0]
-				correct = self.categories_stats[task][1]
-				acc = correct/total
+				self.categories_stats[tasks[i]][2] = self.categories_stats[tasks[i]][1]/self.categories_stats[tasks[i]][0]
 
-			print('accuracy for task',task, '=' , acc )
 
+		return self.categories_stats
 
 
 
@@ -568,6 +563,8 @@ class COG(VideoTextToClassProblem):
 
 		data_dict['tasks']	= self.dataset[index]['family']
 		data_dict['questions'] = [self.dataset[index]['question']]
+
+		data_dict['questions_string'] = [self.dataset[index]['question']]
 		data_dict['questions'] = torch.LongTensor([self.input_vocab.index(word) for word in data_dict['questions'][0].split()])
 		if(data_dict['questions'].size(0) <= self.nwords):
 			prev_size = data_dict['questions'].size(0)
@@ -576,6 +573,7 @@ class COG(VideoTextToClassProblem):
 
 		# Set targets - depending on the answers.
 		answers = self.dataset[index]['answers']
+		data_dict['answers_string'] = self.dataset[index]['answers']
 		if data_dict['tasks'] in self.classification_tasks:
 			data_dict['targets_answer'] = self.output_class_to_int(answers)
 		else :
@@ -607,6 +605,11 @@ class COG(VideoTextToClassProblem):
 		# Masks.
 		data_dict['masks_pnt']	= torch.stack([sample['masks_pnt'] for sample in batch]).type(self.app_state.ByteTensor)
 		data_dict['masks_word']	= torch.stack([sample['masks_word'] for sample in batch]).type(self.app_state.ByteTensor)
+		data_dict['vocab'] = self.output_vocab
+
+        #strings question and answer
+		data_dict['questions_string'] = [question['questions_string'] for question in batch]
+		data_dict['answers_string'] = [answer['answers_string'] for answer in batch]
 
 		return data_dict
 
@@ -744,10 +747,10 @@ class COG(VideoTextToClassProblem):
 		stat_col.add_statistic('acc', '{:12.10f}')
 		stat_col.add_statistic('acc_answer', '{:12.10f}')
 		stat_col.add_statistic('acc_pointing', '{:12.10f}')
-		#stat_col.add_statistic('seq_len', '{:06d}')
-		#stat_col.add_statistic('max_mem', '{:06d}')
-		#stat_col.add_statistic('max_distractors', '{:06d}')
-		#stat_col.add_statistic('task', '{}')
+		stat_col.add_statistic('acc_families', '{}')
+
+
+
 
 	def collect_statistics(self, stat_col, data_dict, logits):
 		"""
@@ -762,16 +765,15 @@ class COG(VideoTextToClassProblem):
 		stat_col['loss_answer'] = self.loss_answer.cpu().item()
 		stat_col['loss_pointing'] = self.loss_pointing.cpu().item()
 
-		# Accuracy.
+		# Accuracies.
 		acc_total, acc_answer, acc_pointing = self.calculate_accuracy(data_dict, logits)
 		stat_col['acc'] = acc_total
 		stat_col['acc_answer'] = acc_answer
 		stat_col['acc_pointing'] = acc_pointing
-		#self.get_acc_per_family(data_dict, logits)
-		#stat_col['seq_len'] = self.sequence_length
-		#stat_col['max_mem'] = self.memory_length
-		#stat_col['max_distractors'] = self.max_distractors
-		#stat_col['task'] = data_dict['tasks']			
+
+		#saving the entire dictionnary families[ correct, total, accuracy]  as a statistic 
+		stat_col['acc_families'] = self.get_acc_per_family(data_dict, logits)
+
 
 
 
