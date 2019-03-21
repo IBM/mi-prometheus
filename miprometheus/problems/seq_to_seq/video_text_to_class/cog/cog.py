@@ -41,7 +41,6 @@ import os
 import tarfile
 import string
 import numpy as np
-import matplotlib.pyplot as plt
 from miprometheus.problems.seq_to_seq.video_text_to_class.video_text_to_class_problem import VideoTextToClassProblem
 from miprometheus.problems.seq_to_seq.video_text_to_class.cog.cog_utils import json_to_img as jti
 
