@@ -627,7 +627,7 @@ class MACNetworkSequential(Model):
             # Plot figure and list of frames.
             self.plotWindow.update(fig, frames)
 
-        return self.plotWindow.is_closed
+        #return self.plotWindow.is_closed
 
 
     def get_dropout_mask(self, x, dropout):
