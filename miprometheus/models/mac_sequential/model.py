@@ -271,14 +271,14 @@ class MACNetworkSequential(Model):
             img, kb_proj, lstm_out, h = self.input_unit(questions, questions_length, x)
 
             # recurrent MAC cells
-            memory, controls, memories , state_history = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory)
+            new_memory, controls, memories , state_history = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory)
 
             #save state history
             self.cell_states.append(state_history)
 
             # output unit
-            logits_answer[:,i,:] = self.output_unit_answer(memory, h)
-            logits_pointing[:,i,:] = self.output_unit_pointing(memory, h)
+            logits_answer[:,i,:] = self.output_unit_answer(new_memory, h)
+            logits_pointing[:,i,:] = self.output_unit_pointing(new_memory, h)
 
         return logits_answer, logits_pointing
 
