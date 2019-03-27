@@ -195,7 +195,7 @@ class MACNetworkSequential(Model):
         self.control_0 = torch.nn.Parameter(
             torch.zeros(1, self.dim).type(app_state.dtype))
 
-        self.pointer1 = nn.Linear(6656, self.nb_classes_pointing)
+        self.pointer1 = nn.Linear(433, self.nb_classes_pointing)
         nn.init.xavier_uniform_(self.pointer1.weight)
         self.pointer1.bias.data.fill_(0.01)
 
@@ -275,7 +275,7 @@ class MACNetworkSequential(Model):
             img, kb_proj, lstm_out, h = self.input_unit(questions, questions_length, x)
 
             # recurrent MAC cells
-            new_memory, controls, memories, state_history = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory)
+            new_memory, controls, memories, state_history, attention = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory)
 
             #save state history
             self.cell_states.append(state_history)
@@ -284,7 +284,9 @@ class MACNetworkSequential(Model):
             logits_answer[:,i,:] = self.output_unit_answer(new_memory, h)
 
 
-            concat = torch.cat([new_memory, h, img.view(48,-1)], dim=1)
+            #concat = torch.cat([new_memory, h, img.view(48,-1)], dim=1)
+            concat = torch.cat([new_memory, h, attention.view(48,-1)], dim=1)
+
             logits_pointing[:, i, :]= self.pointer1(concat)
 
 

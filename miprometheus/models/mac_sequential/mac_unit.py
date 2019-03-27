@@ -177,7 +177,7 @@ class MACUnit(Module):
 
 
             # read unit
-            read = self.read(memory_states=memories, knowledge_base=knowledge,
+            read, attention = self.read(memory_states=memories, knowledge_base=knowledge,
                              ctrl_states=controls, kb_proj=kb_proj)
 
             # write unit
@@ -198,4 +198,4 @@ class MACUnit(Module):
                 self.cell_state_history.append(
                     (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach()))
 
-        return memory, controls, memories, self.cell_state_history
+        return memory, controls, memories, self.cell_state_history, attention

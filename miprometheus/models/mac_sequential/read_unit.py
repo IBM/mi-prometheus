@@ -123,4 +123,4 @@ class ReadUnit(Module):
         # apply attn weights on knowledge base elements & sum on (H*W)
         read_vector = (self.rvi * knowledge_base).sum(2)  # [batch_size x dim]
 
-        return read_vector
+        return read_vector, self.rvi
