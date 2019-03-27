@@ -195,7 +195,7 @@ class MACNetworkSequential(Model):
         self.control_0 = torch.nn.Parameter(
             torch.zeros(1, self.dim).type(app_state.dtype))
 
-        self.pointer1 = nn.Linear(384, self.nb_classes_pointing)
+        self.pointer1 = nn.Linear(6656, self.nb_classes_pointing)
         nn.init.xavier_uniform_(self.pointer1.weight)
         self.pointer1.bias.data.fill_(0.01)
 
@@ -283,10 +283,11 @@ class MACNetworkSequential(Model):
             # output unit
             logits_answer[:,i,:] = self.output_unit_answer(new_memory, h)
 
-            concat = torch.cat([new_memory, h], dim=1)
+
+            concat = torch.cat([new_memory, h, img.view(48,-1)], dim=1)
             logits_pointing[:, i, :]= self.pointer1(concat)
 
-        
+
             #logits_pointing[:,i,:] = self.output_unit_pointing(new_memory, h)
 
 
