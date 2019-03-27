@@ -195,9 +195,9 @@ class MACNetworkSequential(Model):
         self.control_0 = torch.nn.Parameter(
             torch.zeros(1, self.dim).type(app_state.dtype))
 
-        self.pointer1 = nn.Linear(433, self.nb_classes_pointing)
-        nn.init.xavier_uniform_(self.pointer1.weight)
-        self.pointer1.bias.data.fill_(0.01)
+        #self.pointer1 = nn.Linear(433, self.nb_classes_pointing)
+        #nn.init.xavier_uniform_(self.pointer1.weight)
+        #self.pointer1.bias.data.fill_(0.01)
 
 
 
