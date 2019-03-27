@@ -285,12 +285,12 @@ class MACNetworkSequential(Model):
 
 
             #concat = torch.cat([new_memory, h, img.view(48,-1)], dim=1)
-            concat = torch.cat([new_memory, h, attention.view(48,-1)], dim=1)
+            #concat = torch.cat([new_memory, h, attention.view(48,-1)], dim=1)
 
-            logits_pointing[:, i, :]= self.pointer1(concat)
+            #logits_pointing[:, i, :]= self.pointer1(concat)
 
 
-            #logits_pointing[:,i,:] = self.output_unit_pointing(new_memory, h)
+            logits_pointing[:,i,:] = self.output_unit_pointing(new_memory, h)
 
 
         return logits_answer, logits_pointing
