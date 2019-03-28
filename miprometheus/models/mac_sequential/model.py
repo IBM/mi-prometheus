@@ -64,6 +64,7 @@ from miprometheus.models.mac_sequential.input_unit import InputUnit
 from miprometheus.models.mac_sequential.mac_unit import MACUnit
 from miprometheus.models.mac_sequential.output_unit import OutputUnit
 from miprometheus.models.mac_sequential.image_encoding import ImageProcessing
+from miprometheus.models.mac_sequential.utils_mac import linear
 
 
 class MACNetworkSequential(Model):
@@ -134,8 +135,8 @@ class MACNetworkSequential(Model):
         self.image_encoding = ImageProcessing(dim=512)
 
         # Create two separate output units.
-        self.output_unit_answer = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
-        self.output_unit_pointing = OutputUnit(dim=self.dim, nb_classes=self.nb_classes_pointing)
+        self.output_unit_answer = OutputUnit(dim=384, nb_classes=self.nb_classes)
+        self.output_unit_pointing = OutputUnit(dim=305, nb_classes=self.nb_classes_pointing)
 
 
         # TODO: The following definitions are not correct!!!!
@@ -199,6 +200,8 @@ class MACNetworkSequential(Model):
         #nn.init.xavier_uniform_(self.pointer1.weight)
         #self.pointer1.bias.data.fill_(0.01)
 
+        self.linear_layer = linear(1664, 1, bias=True)
+
 
 
     def forward(self, data_dict, dropout=0.15):
@@ -247,6 +250,7 @@ class MACNetworkSequential(Model):
         memory_mask = self.get_dropout_mask(memory, self.dropout)
         control = control * control_mask
         memory = memory * memory_mask
+        memory_prev=memory
 
         # expand the hidden states to whole batch for mac cell control states and memory states
         controls = [control]
@@ -272,25 +276,42 @@ class MACNetworkSequential(Model):
             x = self.maxpool4(x)
 
             # input unit
-            img, kb_proj, lstm_out, h = self.input_unit(questions, questions_length, x)
+            img, kb_proj, lstm_out, question_encoding = self.input_unit(questions, questions_length, x)
 
             # recurrent MAC cells
-            new_memory, controls, memories, state_history, attention = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory)
+            new_memory, controls, memories, state_history, attention_current = self.mac_unit(lstm_out, question_encoding, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory)
 
             #save state history
             self.cell_states.append(state_history)
 
+
+            ##########################
+
+            #ATTENTION GATING
+
+            #concatenate the current memory state + question
+            concat_memory_question = torch.cat([new_memory,questions.view(questions.size(0),-1)],dim=1)
+
+            #get the gate value
+            gate=self.linear_layer(concat_memory_question)
+            gate = torch.sigmoid(gate)
+
+
+            #get the gated combination of attention vectors
+            if i==0:
+                attention_combination = attention_current.squeeze(dim=1)
+            else:
+                attention_combination = gate * attention_current.squeeze(dim=1) + (1 - gate) * attention_prev.squeeze(dim=1)
+
+
+            #output unit
+            logits_pointing[:,i,:] = self.output_unit_pointing(attention_combination, question_encoding)
+
+
+            attention_prev = attention_current
+
             # output unit
-            logits_answer[:,i,:] = self.output_unit_answer(new_memory, h)
-
-
-            #concat = torch.cat([new_memory, h, img.view(48,-1)], dim=1)
-            #concat = torch.cat([new_memory, h, attention.view(48,-1)], dim=1)
-
-            #logits_pointing[:, i, :]= self.pointer1(concat)
-
-
-            logits_pointing[:,i,:] = self.output_unit_pointing(new_memory, h)
+            logits_answer[:, i, :] = self.output_unit_answer(new_memory, question_encoding)
 
 
         return logits_answer, logits_pointing

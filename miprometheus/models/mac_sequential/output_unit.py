@@ -72,7 +72,7 @@ class OutputUnit(Module):
         super(OutputUnit, self).__init__()
 
         # define the 2-layers MLP & specify weights initialization
-        self.classifier = torch.nn.Sequential(linear(dim * 3, 128, bias=True),
+        self.classifier = torch.nn.Sequential(linear(dim, 128, bias=True),
                                               torch.nn.ELU(),
                                               linear(128, nb_classes, bias=True))
         torch.nn.init.kaiming_uniform_(self.classifier[0].weight)
@@ -91,7 +91,10 @@ class OutputUnit(Module):
 
         """
         # cat memory state & questions encodings
+
+
         concat = torch.cat([mem_state, question_encodings], dim=1)
+        #print(concat.size())
 
         # get logits
         logits = self.classifier(concat)
