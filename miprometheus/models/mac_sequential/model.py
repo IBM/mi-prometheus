@@ -135,8 +135,8 @@ class MACNetworkSequential(Model):
         self.image_encoding = ImageProcessing(dim=512)
 
         # Create two separate output units.
-        self.output_unit_answer = OutputUnit(dim=384, nb_classes=self.nb_classes)
-        self.output_unit_pointing = OutputUnit(dim=305, nb_classes=self.nb_classes_pointing)
+        self.output_unit_answer = OutputUnit(dim=433, nb_classes=self.nb_classes)
+        self.output_unit_pointing = OutputUnit(dim=433, nb_classes=self.nb_classes_pointing)
 
 
         # TODO: The following definitions are not correct!!!!
@@ -305,13 +305,13 @@ class MACNetworkSequential(Model):
 
 
             #output unit
-            logits_pointing[:,i,:] = self.output_unit_pointing(attention_combination, question_encoding)
+            logits_pointing[:,i,:] = self.output_unit_pointing(attention_combination, question_encoding, new_memory)
 
 
             attention_prev = attention_current
 
             # output unit
-            logits_answer[:, i, :] = self.output_unit_answer(new_memory, question_encoding)
+            logits_answer[:, i, :] = self.output_unit_answer(attention_combination,question_encoding, new_memory)
 
 
         return logits_answer, logits_pointing
