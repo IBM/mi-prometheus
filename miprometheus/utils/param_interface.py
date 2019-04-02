@@ -280,7 +280,7 @@ class ParamInterface(Mapping):
         # Open file and try to add that to list of parameter dictionaries.
         with open(yaml_path, 'r') as stream:
             # Load parameters.
-            params_from_yaml = yaml.load(stream)
+            params_from_yaml = yaml.safe_load(stream)
 
         # add config param
         self.add_config_params(params_from_yaml)
