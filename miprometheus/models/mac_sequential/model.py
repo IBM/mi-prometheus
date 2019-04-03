@@ -135,8 +135,8 @@ class MACNetworkSequential(Model):
         self.image_encoding = ImageProcessing(dim=512)
 
         # Create two separate output units.
-        self.output_unit_answer = OutputUnit(dim=433, nb_classes=self.nb_classes)
-        self.output_unit_pointing = OutputUnit(dim=433, nb_classes=self.nb_classes_pointing)
+        self.output_unit_answer = OutputUnit(dim=49, nb_classes=self.nb_classes)
+        self.output_unit_pointing = OutputUnit(dim=49, nb_classes=self.nb_classes_pointing)
 
 
         # TODO: The following definitions are not correct!!!!
