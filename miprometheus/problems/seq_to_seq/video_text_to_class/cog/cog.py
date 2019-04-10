@@ -244,7 +244,7 @@ class COG(VideoTextToClassProblem):
 
 		self.tuple_list = [[0,0,0] for _ in range(len(self.categories))]
 
-		self.categories_stats = dict(zip(self.categories, self.tuple_list))
+
 
 
 	def evaluate_loss(self, data_dict, logits):
@@ -418,6 +418,8 @@ class COG(VideoTextToClassProblem):
 		:type logits: :py:class:`torch.Tensor`
 
 		"""
+        #build statistics dictionnary
+		categories_stats = dict(zip(self.categories, self.tuple_list))
 
 		# Get targets.
 		targets_answer = data_dict['targets_answer']
@@ -487,29 +489,29 @@ class COG(VideoTextToClassProblem):
 
 			#classification
 			correct_ans = correct_answers.view(batch_size, img_seq_len, -1)
-			self.categories_stats[tasks[i]][1] += float(correct_ans[i].sum().item())
+			categories_stats[tasks[i]][1] += float(correct_ans[i].sum().item())
 
 			#pointing
 			correct_pointing_non_flatten = correct_pointing.view(batch_size, img_seq_len, -1)
-			self.categories_stats[tasks[i]][1] += float(correct_pointing_non_flatten[i].sum().item())
+			categories_stats[tasks[i]][1] += float(correct_pointing_non_flatten[i].sum().item())
 
 			#update the # of correct predictions for the corresponding family
 
 			# classification
-			self.categories_stats[tasks[i]][0] += float(mask_answer_non_flatten[i].sum().item())
+			categories_stats[tasks[i]][0] += float(mask_answer_non_flatten[i].sum().item())
 
 			# pointing
-			self.categories_stats[tasks[i]][0] += float(mask_pointing_non_flatten[i].sum().item())
+			categories_stats[tasks[i]][0] += float(mask_pointing_non_flatten[i].sum().item())
 
 			#put task accuracy in third position of the dictionary
-			if self.categories_stats[tasks[i]][0]==0:
-				self.categories_stats[tasks[i]][2] = 0.0
+			if categories_stats[tasks[i]][0]==0:
+				categories_stats[tasks[i]][2] = 0.0
 
 			else:
-				self.categories_stats[tasks[i]][2] = self.categories_stats[tasks[i]][1]/self.categories_stats[tasks[i]][0]
+				categories_stats[tasks[i]][2] = categories_stats[tasks[i]][1]/categories_stats[tasks[i]][0]
 
 
-		return self.categories_stats
+		return categories_stats
 
 
 
@@ -747,7 +749,53 @@ class COG(VideoTextToClassProblem):
 		stat_col.add_statistic('acc', '{:12.10f}')
 		stat_col.add_statistic('acc_answer', '{:12.10f}')
 		stat_col.add_statistic('acc_pointing', '{:12.10f}')
-		stat_col.add_statistic('acc_families', '{}')
+		stat_col.add_statistic('AndCompareColor', '{:12.10f}')
+		stat_col.add_statistic('AndCompareShape', '{:12.10f}')
+		stat_col.add_statistic('AndSimpleCompareColor', '{:12.10f}')
+		stat_col.add_statistic('AndSimpleCompareShape', '{:12.10f}')
+		stat_col.add_statistic('CompareColor', '{:12.10f}')
+		stat_col.add_statistic('CompareShape', '{:12.10f}')
+		stat_col.add_statistic('Exist', '{:12.10f}')
+		stat_col.add_statistic('ExistColor', '{:12.10f}')
+		stat_col.add_statistic('ExistColorOf', '{:12.10f}')
+		stat_col.add_statistic('ExistColorSpace', '{:12.10f}')
+		stat_col.add_statistic('ExistLastColorSameShape', '{:12.10f}')
+		stat_col.add_statistic('ExistLastObjectSameObject', '{:12.10f}')
+		stat_col.add_statistic('ExistLastShapeSameColor', '{:12.10f}')
+		stat_col.add_statistic('ExistShape', '{:12.10f}')
+		stat_col.add_statistic('ExistShapeOf', '{:12.10f}')
+		stat_col.add_statistic('ExistShapeSpace', '{:12.10f}')
+		stat_col.add_statistic('ExistSpace', '{:12.10f}')
+		stat_col.add_statistic('GetColor', '{:12.10f}')
+		stat_col.add_statistic('GetColorSpace', '{:12.10f}')
+		stat_col.add_statistic('GetShape', '{:12.10f}')
+		stat_col.add_statistic('GetShapeSpace','{:12.10f}')
+		stat_col.add_statistic('SimpleCompareShape', '{:12.10f}')
+		stat_col.add_statistic('SimpleCompareColor', '{:12.10f}')
+		stat_col.add_statistic('SimpleCompareShape', '{:12.10f}')
+		stat_col.add_statistic('AndSimpleExistColorGo', '{:12.10f}')
+		stat_col.add_statistic('AndSimpleExistGo', '{:12.10f}')
+		stat_col.add_statistic('AndSimpleExistShapeGo', '{:12.10f}')
+		stat_col.add_statistic('CompareColorGo', '{:12.10f}')
+		stat_col.add_statistic('CompareShapeGo', '{:12.10f}')
+		stat_col.add_statistic('ExistColorGo', '{:12.10f}')
+		stat_col.add_statistic('ExistColorSpaceGo', '{:12.10f}')
+		stat_col.add_statistic('ExistGo', '{:12.10f}')
+		stat_col.add_statistic('ExistShapeGo', '{:12.10f}')
+		stat_col.add_statistic('ExistShapeSpaceGo', '{:12.10f}')
+		stat_col.add_statistic('ExistSpaceGo', '{:12.10f}')
+		stat_col.add_statistic('Go', '{:12.10f}')
+		stat_col.add_statistic('GoColor', '{:12.10f}')
+		stat_col.add_statistic('GoColorOf', '{:12.10f}')
+		stat_col.add_statistic('GoShape', '{:12.10f}')
+		stat_col.add_statistic('GoShapeOf', '{:12.10f}')
+		stat_col.add_statistic('SimpleCompareColorGo', '{:12.10f}')
+		stat_col.add_statistic('SimpleCompareShapeGo', '{:12.10f}')
+		stat_col.add_statistic('SimpleExistColorGo', '{:12.10f}')
+		stat_col.add_statistic('SimpleExistGo','{:12.10f}')
+		stat_col.add_statistic('SimpleCompareShape', '{:12.10f}')
+		stat_col.add_statistic('SimpleExistShapeGo', '{:12.10f}')
+
 
 
 
@@ -771,9 +819,11 @@ class COG(VideoTextToClassProblem):
 		stat_col['acc_answer'] = acc_answer
 		stat_col['acc_pointing'] = acc_pointing
 
-		#saving the entire dictionnary families[ correct, total, accuracy]  as a statistic 
-		stat_col['acc_families'] = self.get_acc_per_family(data_dict, logits)
+		# Families Accuracies
+		families_accuracies_dic = self.get_acc_per_family(data_dict, logits)
 
+		for key in families_accuracies_dic:
+			stat_col[key]=families_accuracies_dic[key][2]
 
 
 
