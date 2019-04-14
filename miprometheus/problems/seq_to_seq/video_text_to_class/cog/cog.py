@@ -734,33 +734,72 @@ class COG(VideoTextToClassProblem):
 			os.remove(os.path.expanduser('~/data/downloaded'))
 			self.logger.info('\nClean-up complete! Dataset ready.')
 
-
 	def add_statistics(self, stat_col):
 		"""
-		Add :py:class:`COG`-specific stats to :py:class:`miprometheus.utils.StatisticsCollector`.
-		
-		:param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
-		
-		"""
+        Add :py:class:`COG`-specific stats to :py:class:`miprometheus.utils.StatisticsCollector`.
+
+        :param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
+
+        """
 		stat_col.add_statistic('loss_answer', '{:12.10f}')
 		stat_col.add_statistic('loss_pointing', '{:12.10f}')
 		stat_col.add_statistic('acc', '{:12.10f}')
 		stat_col.add_statistic('acc_answer', '{:12.10f}')
 		stat_col.add_statistic('acc_pointing', '{:12.10f}')
-		stat_col.add_statistic('acc_families', '{}')
-
-
-
+		stat_col.add_statistic('AndCompareColor', '{:12.10f}')
+		stat_col.add_statistic('AndCompareShape', '{:12.10f}')
+		stat_col.add_statistic('AndSimpleCompareColor', '{:12.10f}')
+		stat_col.add_statistic('AndSimpleCompareShape', '{:12.10f}')
+		stat_col.add_statistic('CompareColor', '{:12.10f}')
+		stat_col.add_statistic('CompareShape', '{:12.10f}')
+		stat_col.add_statistic('Exist', '{:12.10f}')
+		stat_col.add_statistic('ExistColor', '{:12.10f}')
+		stat_col.add_statistic('ExistColorOf', '{:12.10f}')
+		stat_col.add_statistic('ExistColorSpace', '{:12.10f}')
+		stat_col.add_statistic('ExistLastColorSameShape', '{:12.10f}')
+		stat_col.add_statistic('ExistLastObjectSameObject', '{:12.10f}')
+		stat_col.add_statistic('ExistLastShapeSameColor', '{:12.10f}')
+		stat_col.add_statistic('ExistShape', '{:12.10f}')
+		stat_col.add_statistic('ExistShapeOf', '{:12.10f}')
+		stat_col.add_statistic('ExistShapeSpace', '{:12.10f}')
+		stat_col.add_statistic('ExistSpace', '{:12.10f}')
+		stat_col.add_statistic('GetColor', '{:12.10f}')
+		stat_col.add_statistic('GetColorSpace', '{:12.10f}')
+		stat_col.add_statistic('GetShape', '{:12.10f}')
+		stat_col.add_statistic('GetShapeSpace', '{:12.10f}')
+		stat_col.add_statistic('SimpleCompareShape', '{:12.10f}')
+		stat_col.add_statistic('SimpleCompareColor', '{:12.10f}')
+		stat_col.add_statistic('SimpleCompareShape', '{:12.10f}')
+		stat_col.add_statistic('AndSimpleExistColorGo', '{:12.10f}')
+		stat_col.add_statistic('AndSimpleExistGo', '{:12.10f}')
+		stat_col.add_statistic('AndSimpleExistShapeGo', '{:12.10f}')
+		stat_col.add_statistic('CompareColorGo', '{:12.10f}')
+		stat_col.add_statistic('CompareShapeGo', '{:12.10f}')
+		stat_col.add_statistic('ExistColorGo', '{:12.10f}')
+		stat_col.add_statistic('ExistColorSpaceGo', '{:12.10f}')
+		stat_col.add_statistic('ExistGo', '{:12.10f}')
+		stat_col.add_statistic('ExistShapeGo', '{:12.10f}')
+		stat_col.add_statistic('ExistShapeSpaceGo', '{:12.10f}')
+		stat_col.add_statistic('ExistSpaceGo', '{:12.10f}')
+		stat_col.add_statistic('Go', '{:12.10f}')
+		stat_col.add_statistic('GoColor', '{:12.10f}')
+		stat_col.add_statistic('GoColorOf', '{:12.10f}')
+		stat_col.add_statistic('GoShape', '{:12.10f}')
+		stat_col.add_statistic('GoShapeOf', '{:12.10f}')
+		stat_col.add_statistic('SimpleCompareColorGo', '{:12.10f}')
+		stat_col.add_statistic('SimpleCompareShapeGo', '{:12.10f}')
+		stat_col.add_statistic('SimpleExistColorGo', '{:12.10f}')
+		stat_col.add_statistic('SimpleExistGo', '{:12.10f}')
+		stat_col.add_statistic('SimpleCompareShape', '{:12.10f}')
+		stat_col.add_statistic('SimpleExistShapeGo', '{:12.10f}')
 
 	def collect_statistics(self, stat_col, data_dict, logits):
 		"""
-		Collects dataset details.
-
-		:param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
-		:param data_dict: :py:class:`miprometheus.utils.DataDict` containing targets.
-		:param logits: Prediction of the model (:py:class:`torch.Tensor`)
-
-		"""
+        Collects dataset details.
+        :param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
+        :param data_dict: :py:class:`miprometheus.utils.DataDict` containing targets.
+        :param logits: Prediction of the model (:py:class:`torch.Tensor`)
+        """
 		# Additional loss.
 		stat_col['loss_answer'] = self.loss_answer.cpu().item()
 		stat_col['loss_pointing'] = self.loss_pointing.cpu().item()
@@ -771,8 +810,14 @@ class COG(VideoTextToClassProblem):
 		stat_col['acc_answer'] = acc_answer
 		stat_col['acc_pointing'] = acc_pointing
 
-		#saving the entire dictionnary families[ correct, total, accuracy]  as a statistic 
-		stat_col['acc_families'] = self.get_acc_per_family(data_dict, logits)
+		# Families Accuracies
+		families_accuracies_dic = self.get_acc_per_family(data_dict, logits)
+
+		for key in families_accuracies_dic:
+			stat_col[key] = families_accuracies_dic[key][2]
+
+
+
 
 
 
