@@ -244,8 +244,6 @@ class COG(VideoTextToClassProblem):
 
 		self.tuple_list = [[0,0,0] for _ in range(len(self.categories))]
 
-		self.categories_stats = dict(zip(self.categories, self.tuple_list))
-
 
 	def evaluate_loss(self, data_dict, logits):
 		"""
@@ -423,6 +421,28 @@ class COG(VideoTextToClassProblem):
 		targets_answer = data_dict['targets_answer']
 		targets_pointing = data_dict['targets_pointing']
 
+		#build dictionary to store acc families stats
+
+
+
+		categories = ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
+						   'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
+						   'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
+						   'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
+						   'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
+						   'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape',
+						   'AndSimpleExistColorGo', 'AndSimpleExistGo', 'AndSimpleExistShapeGo', 'CompareColorGo',
+						   'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
+						   'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
+						   'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
+						   'SimpleExistGo', 'SimpleExistShapeGo']
+
+		tuple_list = [[0, 0, 0] for _ in range(len(self.categories))]
+		categories_stats = dict(zip(categories, tuple_list))
+
+		print(categories_stats)
+
+
 		#Get tasks
 		tasks = data_dict['tasks']
 
@@ -487,29 +507,30 @@ class COG(VideoTextToClassProblem):
 
 			#classification
 			correct_ans = correct_answers.view(batch_size, img_seq_len, -1)
-			self.categories_stats[tasks[i]][1] += float(correct_ans[i].sum().item())
+			categories_stats[tasks[i]][1] += float(correct_ans[i].sum().item())
 
 			#pointing
 			correct_pointing_non_flatten = correct_pointing.view(batch_size, img_seq_len, -1)
-			self.categories_stats[tasks[i]][1] += float(correct_pointing_non_flatten[i].sum().item())
+			categories_stats[tasks[i]][1] += float(correct_pointing_non_flatten[i].sum().item())
 
 			#update the # of correct predictions for the corresponding family
 
 			# classification
-			self.categories_stats[tasks[i]][0] += float(mask_answer_non_flatten[i].sum().item())
+			categories_stats[tasks[i]][0] += float(mask_answer_non_flatten[i].sum().item())
 
 			# pointing
-			self.categories_stats[tasks[i]][0] += float(mask_pointing_non_flatten[i].sum().item())
+			categories_stats[tasks[i]][0] += float(mask_pointing_non_flatten[i].sum().item())
 
 			#put task accuracy in third position of the dictionary
-			if self.categories_stats[tasks[i]][0]==0:
-				self.categories_stats[tasks[i]][2] = 0.0
+			if categories_stats[tasks[i]][0]==0:
+				categories_stats[tasks[i]][2] = 0.0
 
 			else:
-				self.categories_stats[tasks[i]][2] = self.categories_stats[tasks[i]][1]/self.categories_stats[tasks[i]][0]
+				categories_stats[tasks[i]][2] = categories_stats[tasks[i]][1]/categories_stats[tasks[i]][0]
 
 
-		return self.categories_stats
+
+		return categories_stats
 
 
 
