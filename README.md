@@ -255,7 +255,24 @@ optional arguments:
   --n NUM_TESTS         Number of test experiments to run for each model.
 ```
 
- * Grid Analyzer: Similar options.
+ * Grid Analyzer: 
+
+
+```console
+foo@bar:~$ mip-grid-analyzer --h
+usage: mip-grid-analyzer [-h] [--expdir EXPDIR]
+                         [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                         [--li LOGGING_INTERVAL] [--agree]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --expdir EXPDIR       Path to the directory where the experiments folders will be / are stored. Affects all grid experiments. (DEFAULT: ./experiments)
+  --ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                        Log level for the experiments. (Default: INFO)
+  --li LOGGING_INTERVAL
+                        Statistics logging interval. Will impact logging to the logger and exporting to TensorBoard for the experiments. Do not affect the grid worker itself. Writing to the csv file is not impacted (interval of 1). (Default: 100, i.e. logs every 100 episodes).
+  --agree               Request user confirmation before starting the grid experiment. (Default: False)
+```
 
 **NOTES**: 
 * We primarily test MI-Prometheus on CUDA devices, as they are our main hardware setup and PyTorch mainly supports CUDA as a backend.
