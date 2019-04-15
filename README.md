@@ -21,7 +21,7 @@
 - [Installation](#installation)
 - [Core ideas](#core-ideas)
 - [Core features](#core-features)
-    - [Base Workers](#base-workers)
+    - [Workers](#workers)
     - [Grid Workers](#grid-workers)
 - [Documentation](#documentation)
 - [Getting Started](#getting-started)
@@ -95,9 +95,9 @@ The dependencies of MI-prometheus are:
 
 
 
-### Base workers
+### Workers
 
-The base workers are the main way you will use MI-Prometheus. They are parameterizable, OOP-designed scripts which will execute a specific task related to the supervised training or test of a Model on a Problem, following a Configuration.
+The workers are the main way you will use MI-Prometheus. They are parameterizable, OOP-designed scripts which will execute a specific task related to the supervised training or test of a Model on a Problem, following a Configuration.
 
    * Offline Trainer - A traditional trainer, epoch-based and well-suited for traditional supervised training.
 
@@ -201,7 +201,7 @@ optional arguments:
 
 ### Grid workers
 
-Grid Workers manage several experiments ("_grids_") by reusing the base workers, such as OfflineTrainer \& Tester.
+Grid Workers manage several experiments ("_grids_") by reusing the workers, such as OfflineTrainer \& Tester.
 There are 3 types of Grid Workers:
 
 - mip-grid-trainer-*, which span several trainings in parallel. Two versions are available: One for CPU cores (`GridTrainerCPU`) and one for GPUs (CUDA) (`GridTrainerGPU`),
