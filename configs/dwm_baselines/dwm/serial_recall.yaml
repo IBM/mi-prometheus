@@ -3,15 +3,32 @@ default_configs:
     configs/dwm_baselines/dwm/default_dwm.yaml,
     configs/dwm_baselines/default_settings_simple_task.yaml
 
+# Model parameters:
+model:
+    memory_addresses_size: -1
+
 # Then overwrite problem name(s).
 training:
     problem:
         name: &name SerialRecallCommandLines
+        # Size of generated input: [batch_size x sequence_length x number of control and data bits].
+        batch_size: 16
+        # Parameters denoting min and max lengths.
+        min_sequence_length: 1
+        max_sequence_length: 10
 
 validation:
     problem:
         name: *name 
+        batch_size: 16
+        size: 16
+        min_sequence_length: 10
+        max_sequence_length: 10
+        size: 16
 
 testing:
     problem:
         name: *name 
+        min_sequence_length: 100
+        max_sequence_length: 100
+        size: 16

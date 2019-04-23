@@ -109,7 +109,7 @@ class SerialRecallCommandLines(AlgorithmicSeqToSeqProblem):
         # Generate batch of random bit sequences [BATCH_SIZE x SEQ_LENGTH X
         # DATA_BITS]
         bit_seq = np.random.binomial(
-            1, self.bias, (batch_size, seq_length, self.data_bits))
+            1, self.bias, (batch_size, 1, self.data_bits))
 
         # 1. Generate inputs.
         # Generate input:  [BATCH_SIZE, 2*SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
