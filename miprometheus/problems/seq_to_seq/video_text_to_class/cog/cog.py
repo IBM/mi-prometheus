@@ -440,8 +440,6 @@ class COG(VideoTextToClassProblem):
 		tuple_list = [[0, 0, 0] for _ in range(len(self.categories))]
 		categories_stats = dict(zip(categories, tuple_list))
 
-		print(categories_stats)
-
 
 		#Get tasks
 		tasks = data_dict['tasks']
