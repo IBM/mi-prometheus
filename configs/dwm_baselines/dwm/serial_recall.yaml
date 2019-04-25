@@ -5,7 +5,7 @@ default_configs:
 
 # Model parameters:
 model:
-    memory_addresses_size: -1
+    memory_addresses_size: 5
 
 # Then overwrite problem name(s).
 training:
@@ -21,10 +21,10 @@ validation:
     problem:
         name: *name 
         batch_size: 16
-        size: 16
-        min_sequence_length: 10
-        max_sequence_length: 10
-        size: 16
+        size: 64
+        min_sequence_length: 20
+        max_sequence_length: 20
+
 
 testing:
     problem:
