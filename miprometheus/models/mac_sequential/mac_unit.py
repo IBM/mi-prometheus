@@ -51,6 +51,9 @@ from torch.nn import Module
 from miprometheus.models.mac_sequential.control_unit import ControlUnit
 from miprometheus.models.mac_sequential.read_unit import ReadUnit
 from miprometheus.models.mac_sequential.write_unit import WriteUnit
+from miprometheus.models.mac_sequential.read_memory import ReadMemory
+from miprometheus.models.mac_sequential.utils_mac import linear
+from miprometheus.models.dwm.tensor_utils import circular_conv
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
 
@@ -89,6 +92,7 @@ class MACUnit(Module):
         # instantiate the units
         self.control = ControlUnit(dim=dim, max_step=max_step)
         self.read = ReadUnit(dim=dim)
+        self.read_memory = ReadMemory(dim=dim)
         self.write = WriteUnit(
             dim=dim, self_attention=self_attention, memory_gate=memory_gate)
 
@@ -102,6 +106,28 @@ class MACUnit(Module):
         self.dropout = dropout
 
         self.cell_state_history = []
+
+        self.W = torch.zeros(48, 1, 4).type(app_state.dtype)
+
+        Wt_sequential_1 = torch.ones(48, 1).type(app_state.dtype)
+        Wt_sequential_2 = torch.zeros(48, 3).type(app_state.dtype)
+
+        # self.Wt_sequential=torch.zeros(48,1,4).type(app_state.dtype)
+
+        self.Wt_sequential = torch.cat([Wt_sequential_1, Wt_sequential_2], dim=1).unsqueeze(1)
+        # print(self.Wt_sequential.size())
+
+        self.linear_layer = linear(128, 1, bias=True)
+
+        self.linear_layer_history = linear(128, 1, bias=True)
+
+        self.linear_layer_mix_context = linear(128, 3, bias=True)
+
+        self.concat_contexts = torch.zeros(48, 128, requires_grad=False).type(app_state.dtype)
+
+        self.convolution_kernel = torch.tensor(
+            [[0., 0., 0., 1.], [1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.]]).type(app_state.dtype)
+        self.slots = 4
 
     def get_dropout_mask(self, x, dropout):
         """
@@ -125,7 +151,7 @@ class MACUnit(Module):
 
         return mask
 
-    def forward(self, context, question, knowledge, kb_proj, controls, memories, control_pass, memory_pass, control, memory ):
+    def forward(self, context, question, knowledge, kb_proj, controls, memories, control_pass, memory_pass, control, memory, history ):
         """
         Forward pass of the ``MACUnit``, which represents the recurrence over the \
         MACCell.
@@ -156,6 +182,14 @@ class MACUnit(Module):
         #empty state history
         self.cell_state_history = []
 
+        # initialize Wt_sequential at first slot position
+        Wt_sequential_1 = torch.ones(batch_size, 1).type(app_state.dtype)
+        Wt_sequential_2 = torch.zeros(batch_size, 3).type(app_state.dtype)
+
+        # self.Wt_sequential=torch.zeros(48,1,4).type(app_state.dtype)
+
+        Wt_sequential = torch.cat([Wt_sequential_1, Wt_sequential_2], dim=1).unsqueeze(1)
+
 
         # main loop of recurrence over the MACCell
         for i in range(self.max_step):
@@ -167,27 +201,83 @@ class MACUnit(Module):
                 question_encoding=question,
                 ctrl_state=control)
 
-            # apply variational dropout
-            #control_mask = self.get_dropout_mask(control, self.dropout)
-
-            #control = control * control_mask
 
             # save new control state
             controls.append(control)
 
 
             # read unit
-            read, attention = self.read(memory_states=memories, knowledge_base=knowledge,
+            read ,attention = self.read(memory_states=memories, knowledge_base=knowledge,
                              ctrl_states=controls, kb_proj=kb_proj)
+
+            # read memory
+
+            read_history,rvi_history  = self.read_memory(memory_states=memories, history=history,
+                             ctrl_states=controls)
+
+            # calculate two gates gKB and gM gates
+
+            gkb = self.linear_layer(read)
+            gkb = torch.sigmoid(gkb)
+
+            gmem = self.linear_layer_history(read_history)
+            gmem = torch.sigmoid(gmem)
+
+            # history update equation
+
+
+            # print(self.Wt_sequential.size())
+
+            W = (gmem * rvi_history.squeeze(1) + Wt_sequential.squeeze(1)*(1-gmem)).unsqueeze(1)
+
+
+            ######## Update history #########
+
+            #take the read vector and add one dimension [batch size, hidden dim, 1]
+            read_unsqueezed=read.unsqueeze(2)
+            added_object = read_unsqueezed.matmul(W)
+
+            unity_matrix = torch.ones(batch_size, self.dim, 1).type(app_state.dtype)
+            J = torch.ones(batch_size, self.dim,self.slots).type(app_state.dtype)
+
+            history=history*(J-unity_matrix.matmul(W))+added_object
+
+
+            ####### Update Wt_sequential ########
+
+            #calculate constants terms
+            first_term=(torch.ones(batch_size,1).type(app_state.dtype)-gmem)*gkb
+            second_term=torch.ones(batch_size,1).type(app_state.dtype)-first_term
+
+            #get convolved tensor
+
+            convolved_Wt_sequential=Wt_sequential.squeeze(1).matmul(self.convolution_kernel)
+
+
+            #final expression to update Wt_sequential
+            Wt_sequential = (convolved_Wt_sequential*first_term).unsqueeze(1)+(Wt_sequential.squeeze(1)*second_term).unsqueeze(1)
+
+
+            # choose between now, last, latest context to built the final read vector
+            now_context = gkb*read
+            last_context =  gmem*read_history
+            latest_context = (1-gkb)*last_context + now_context
+
+
+
+            #obtain neural network that mixes the 3 context (v1,v2,v3)
+            context_weighting_vector = self.linear_layer_mix_context(control)
+            context_weighting_vector = torch.nn.functional.softmax(context_weighting_vector,dim=1)
+            context_weighting_vector = context_weighting_vector.unsqueeze(1)
+
+            #final read vector
+            context_read_vector = context_weighting_vector[:,:,0]*now_context + context_weighting_vector[:,:,1]*last_context + context_weighting_vector[:,:,2]*latest_context
+
 
             # write unit
             memory = self.write(memory_states=memories,
-                                read_vector=read, ctrl_states=controls)
+                                read_vector= context_read_vector , ctrl_states=controls)
 
-            # apply variational dropout
-
-            #memory_mask=self.get_dropout_mask(memory, self.dropout)
-            #memory = memory * memory_mask
 
             # save new memory state
             memories.append(memory)
@@ -198,4 +288,4 @@ class MACUnit(Module):
                 self.cell_state_history.append(
                     (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach()))
 
-        return memory, controls, memories, self.cell_state_history, attention
+            return memory, controls, memories, self.cell_state_history, attention
