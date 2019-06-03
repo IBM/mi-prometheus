@@ -4,7 +4,7 @@ training:
     name: COG
     # Size of generated input: [batch_size x sequence_length x classes].
     batch_size: 48
-    tasks: [Go]
+    tasks: [AndCompareColor]
     data_folder: '~/data/cog'
     set: val
     use_mask: False
@@ -25,7 +25,7 @@ validation:
     name: COG
     # Size of generated input: [batch_size x sequence_length x classes].
     batch_size: 48
-    tasks: [Go]
+    tasks: [AndCompareColor]
     data_folder: '~/data/cog'
     set: val
     use_mask: False
@@ -36,7 +36,7 @@ testing:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 48
-  tasks: all
+  tasks: [AndCompareColor]
   data_folder: '~/data/cog'
   set: test
   dataset_type: canonical
