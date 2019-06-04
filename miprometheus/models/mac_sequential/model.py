@@ -254,7 +254,7 @@ class MACNetworkSequential(Model):
         memory = memory * memory_mask
 
 
-        # initialize empty memeory
+        # initialize empty memory
         history = torch.zeros(batch_size, self.dim, self.slot).type(app_state.dtype)
 
         # expand the hidden states to whole batch for mac cell control states and memory states

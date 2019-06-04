@@ -129,6 +129,14 @@ class MACUnit(Module):
             [[0., 0., 0., 1.], [1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.]]).type(app_state.dtype)
         self.slots = 4
 
+        self.linear_read = torch.nn.Sequential(linear(3*dim, dim, bias=True),
+                                              torch.nn.ELU(),
+                                              linear(dim, 1, bias=True))
+
+        self.linear_read_history = torch.nn.Sequential(linear(3*dim, dim, bias=True),
+                                               torch.nn.ELU(),
+                                               linear(dim, 1, bias=True))
+
     def get_dropout_mask(self, x, dropout):
         """
         Create a dropout mask to be applied on x.
@@ -217,10 +225,16 @@ class MACUnit(Module):
 
             # calculate two gates gKB and gM gates
 
-            gkb = self.linear_layer(read)
+            concat_read=torch.cat([question, read], dim=1)
+
+            gkb = self.linear_read(concat_read)
             gkb = torch.sigmoid(gkb)
 
-            gmem = self.linear_layer_history(read_history)
+
+            concat_read_history = torch.cat([question, read_history], dim=1)
+
+
+            gmem = self.linear_read_history(concat_read_history)
             gmem = torch.sigmoid(gmem)
 
             # history update equation
@@ -228,12 +242,14 @@ class MACUnit(Module):
 
             # print(self.Wt_sequential.size())
 
-            W = (gmem * rvi_history.squeeze(1) + Wt_sequential.squeeze(1)*(1-gmem)).unsqueeze(1)
+            W = (gmem * rvi_history.squeeze(1) + Wt_sequential.squeeze(1)*(1-gmem))*gkb
+            W= W.unsqueeze(1)
 
 
             ######## Update history #########
 
             #take the read vector and add one dimension [batch size, hidden dim, 1]
+            #print(read.size())
             read_unsqueezed=read.unsqueeze(2)
             added_object = read_unsqueezed.matmul(W)
 
@@ -241,7 +257,6 @@ class MACUnit(Module):
             J = torch.ones(batch_size, self.dim,self.slots).type(app_state.dtype)
 
             history=history*(J-unity_matrix.matmul(W))+added_object
-
 
             ####### Update Wt_sequential ########
 
@@ -251,11 +266,11 @@ class MACUnit(Module):
 
             #get convolved tensor
 
-            convolved_Wt_sequential=Wt_sequential.squeeze(1).matmul(self.convolution_kernel)
-
+            convolved_Wt_sequential=Wt_sequential.squeeze(1).matmul(self.convolution_kernel).unsqueeze(1)
 
             #final expression to update Wt_sequential
-            Wt_sequential = (convolved_Wt_sequential*first_term).unsqueeze(1)+(Wt_sequential.squeeze(1)*second_term).unsqueeze(1)
+
+            Wt_sequential = (convolved_Wt_sequential.squeeze(1)*first_term).unsqueeze(1)+(Wt_sequential.squeeze(1)*second_term).unsqueeze(1)
 
 
             # choose between now, last, latest context to built the final read vector
@@ -265,10 +280,11 @@ class MACUnit(Module):
 
 
 
-            #obtain neural network that mixes the 3 context (v1,v2,v3)
+            #obtain neural network that mixes the 3 context (v1,v2,v3)  #### COULD BE 2 LAYERS ? ######
             context_weighting_vector = self.linear_layer_mix_context(control)
             context_weighting_vector = torch.nn.functional.softmax(context_weighting_vector,dim=1)
             context_weighting_vector = context_weighting_vector.unsqueeze(1)
+
 
             #final read vector
             context_read_vector = context_weighting_vector[:,:,0]*now_context + context_weighting_vector[:,:,1]*last_context + context_weighting_vector[:,:,2]*latest_context
