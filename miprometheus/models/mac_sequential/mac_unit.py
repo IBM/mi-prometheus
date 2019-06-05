@@ -159,7 +159,7 @@ class MACUnit(Module):
 
         return mask
 
-    def forward(self, context, question, knowledge, kb_proj, controls, memories, control_pass, memory_pass, control, memory, history ):
+    def forward(self, context, question, knowledge, kb_proj, controls, memories, control_pass, memory_pass, control, memory, history,  Wt_sequential ):
         """
         Forward pass of the ``MACUnit``, which represents the recurrence over the \
         MACCell.
@@ -190,13 +190,6 @@ class MACUnit(Module):
         #empty state history
         self.cell_state_history = []
 
-        # initialize Wt_sequential at first slot position
-        Wt_sequential_1 = torch.ones(batch_size, 1).type(app_state.dtype)
-        Wt_sequential_2 = torch.zeros(batch_size, 3).type(app_state.dtype)
-
-        # self.Wt_sequential=torch.zeros(48,1,4).type(app_state.dtype)
-
-        Wt_sequential = torch.cat([Wt_sequential_1, Wt_sequential_2], dim=1).unsqueeze(1)
 
 
         # main loop of recurrence over the MACCell
@@ -304,4 +297,4 @@ class MACUnit(Module):
                 self.cell_state_history.append(
                     (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach()))
 
-        return memory, controls, memories, self.cell_state_history, attention
+        return memory, controls, memories, self.cell_state_history, attention, history, Wt_sequential

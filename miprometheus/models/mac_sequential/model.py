@@ -257,6 +257,14 @@ class MACNetworkSequential(Model):
         # initialize empty memory
         history = torch.zeros(batch_size, self.dim, self.slot).type(app_state.dtype)
 
+        # initialize Wt_sequential at first slot position
+        Wt_sequential_1 = torch.ones(batch_size, 1).type(app_state.dtype)
+        Wt_sequential_2 = torch.zeros(batch_size, 3).type(app_state.dtype)
+
+        # self.Wt_sequential=torch.zeros(48,1,4).type(app_state.dtype)
+
+        Wt_sequential = torch.cat([Wt_sequential_1, Wt_sequential_2], dim=1).unsqueeze(1)
+
         # expand the hidden states to whole batch for mac cell control states and memory states
         controls = [control]
         memories = [memory]
@@ -284,29 +292,12 @@ class MACNetworkSequential(Model):
             img, kb_proj, lstm_out, question_encoding = self.input_unit(questions, questions_length, x)
 
             # recurrent MAC cells
-            new_memory, controls, memories, state_history, attention_current = self.mac_unit(lstm_out, question_encoding, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory ,history)
+            new_memory, controls, memories, state_history, attention_current, history, Wt_sequential = self.mac_unit(lstm_out, question_encoding, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory ,history, Wt_sequential)
+
 
             #save state history
             self.cell_states.append(state_history)
 
-
-            ##########################
-
-            #ATTENTION GATING
-
-            #concatenate the current memory state + question
-            #concat_memory_question = torch.cat([new_memory,questions.view(questions.size(0),-1)],dim=1)
-
-            #get the gate value
-            #gate=self.linear_layer(concat_memory_question)
-            #gate = torch.sigmoid(gate)
-
-
-            #get the gated combination of attention vectors
-            #if i==0:
-             #   attention_combination = attention_current.squeeze(dim=1)
-            #else:
-            #    attention_combination = gate * attention_current.squeeze(dim=1) + (1 - gate) * attention_prev.squeeze(dim=1)
 
 
             #output unit
@@ -452,7 +443,7 @@ class MACNetworkSequential(Model):
         self.batchnorm4 = nn.BatchNorm2d(layer_channels[3])
 
         # Linear Layer
-        self.cnn_linear1 = nn.Linear(layer_channels[3] * output_shape[0] * output_shape[1], 128)
+        #self.cnn_linear1 = nn.Linear(layer_channels[3] * output_shape[0] * output_shape[1], 128)
 
 
     def plot(self, data_dict, logits, sample=0):

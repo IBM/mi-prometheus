@@ -74,7 +74,7 @@ class InputUnit(Module):
         self.dim = dim
 
         # instantiate image processing (2-layers CNN)
-        self.conv = ImageProcessing(dim)
+        #self.conv = ImageProcessing(dim)
 
         # define linear layer for the projection of the knowledge base
         self.kb_proj_layer = linear(dim, dim, bias=True)
