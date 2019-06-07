@@ -63,7 +63,6 @@ app_state = AppState()
 from miprometheus.models.mac_sequential.input_unit import InputUnit
 from miprometheus.models.mac_sequential.mac_unit import MACUnit
 from miprometheus.models.mac_sequential.output_unit import OutputUnit
-from miprometheus.models.mac_sequential.image_encoding import ImageProcessing
 from miprometheus.models.mac_sequential.utils_mac import linear
 
 
@@ -132,11 +131,8 @@ class MACNetworkSequential(Model):
             memory_gate=self.memory_gate,
             dropout=self.dropout)
 
-        self.image_encoding = ImageProcessing(dim=512)
-
         # Create two separate output units.
         self.output_unit_answer = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
-        self.output_unit_pointing = OutputUnit(dim=self.dim, nb_classes=self.nb_classes_pointing)
 
 
         # TODO: The following definitions are not correct!!!!
@@ -297,14 +293,6 @@ class MACNetworkSequential(Model):
 
             #save state history
             self.cell_states.append(state_history)
-
-
-
-            #output unit
-            logits_pointing[:,i,:] = self.output_unit_pointing(attention_current, question_encoding, new_memory)
-
-
-            #attention_prev = attention_current
 
             # output unit
             logits_answer[:, i, :] = self.output_unit_answer(attention_current, question_encoding, new_memory)

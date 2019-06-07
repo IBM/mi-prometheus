@@ -121,7 +121,12 @@ class MACUnit(Module):
 
         self.linear_layer_history = linear(128, 1, bias=True)
 
-        self.linear_layer_mix_context = linear(128, 3, bias=True)
+        self.linear_layer_mix_context = torch.nn.Sequential(linear(dim, dim, bias=True),
+                                               torch.nn.ELU(),
+                                               linear(dim, 3, bias=True))
+
+
+
 
         self.concat_contexts = torch.zeros(48, 128, requires_grad=False).type(app_state.dtype)
 
@@ -129,13 +134,13 @@ class MACUnit(Module):
             [[0., 0., 0., 1.], [1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.]]).type(app_state.dtype)
         self.slots = 4
 
-        self.linear_read = torch.nn.Sequential(linear(3*dim, dim, bias=True),
+        self.linear_read = torch.nn.Sequential(linear(2*dim,2*dim, bias=True),
                                               torch.nn.ELU(),
-                                              linear(dim, 1, bias=True))
+                                              linear(2*dim, 1, bias=True))
 
-        self.linear_read_history = torch.nn.Sequential(linear(3*dim, dim, bias=True),
+        self.linear_read_history = torch.nn.Sequential(linear(2*dim,2*dim, bias=True),
                                                torch.nn.ELU(),
-                                               linear(dim, 1, bias=True))
+                                               linear(2*dim, 1, bias=True))
 
     def get_dropout_mask(self, x, dropout):
         """
@@ -218,13 +223,13 @@ class MACUnit(Module):
 
             # calculate two gates gKB and gM gates
 
-            concat_read=torch.cat([question, read], dim=1)
+            concat_read=torch.cat([control, read], dim=1)
 
             gkb = self.linear_read(concat_read)
             gkb = torch.sigmoid(gkb)
 
 
-            concat_read_history = torch.cat([question, read_history], dim=1)
+            concat_read_history = torch.cat([control, read_history], dim=1)
 
 
             gmem = self.linear_read_history(concat_read_history)
