@@ -64,6 +64,7 @@ from miprometheus.models.mac_sequential.input_unit import InputUnit
 from miprometheus.models.mac_sequential.mac_unit import MACUnit
 from miprometheus.models.mac_sequential.output_unit import OutputUnit
 from miprometheus.models.mac_sequential.utils_mac import linear
+from matplotlib.colors import LinearSegmentedColormap
 
 
 class MACNetworkSequential(Model):
@@ -124,12 +125,15 @@ class MACNetworkSequential(Model):
         self.input_unit = InputUnit(
             dim=self.dim, embedded_dim=self.embed_hidden)
 
+        self.slot = 8
+
         self.mac_unit = MACUnit(
             dim=self.dim,
             max_step=self.max_step,
             self_attention=self.self_attention,
             memory_gate=self.memory_gate,
-            dropout=self.dropout)
+            dropout=self.dropout,
+            slots=self.slot)
 
         # Create two separate output units.
         self.output_unit_answer = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
@@ -198,7 +202,7 @@ class MACNetworkSequential(Model):
 
         self.linear_layer = linear(1664, 1, bias=True)
 
-        self.slot=4
+
 
 
 
@@ -255,7 +259,7 @@ class MACNetworkSequential(Model):
 
         # initialize Wt_sequential at first slot position
         Wt_sequential_1 = torch.ones(batch_size, 1).type(app_state.dtype)
-        Wt_sequential_2 = torch.zeros(batch_size, 3).type(app_state.dtype)
+        Wt_sequential_2 = torch.zeros(batch_size, self.slot-1).type(app_state.dtype)
 
         # self.Wt_sequential=torch.zeros(48,1,4).type(app_state.dtype)
 
@@ -323,13 +327,23 @@ class MACNetworkSequential(Model):
         fig = Figure()
 
         # Create a specific grid for MAC.
-        gs = matplotlib.gridspec.GridSpec(6, 2)
+        gs = matplotlib.gridspec.GridSpec(6, 4)
 
         # subplots: original image, attention on image & question, step index
+
         ax_image = fig.add_subplot(gs[2:6, 0])
         ax_attention_image = fig.add_subplot(gs[2:6, 1])
+        ax_history = fig.add_subplot(gs[2:6, 2])
+        ax_attention_history = fig.add_subplot(gs[2:3, 3])
+        ax_wt = fig.add_subplot(gs[3:4, 3])
+        ax_context = fig.add_subplot(gs[5:6, 3])
+
+
         ax_attention_question = fig.add_subplot(gs[0, :])
         ax_step = fig.add_subplot(gs[1, 0])
+
+
+
 
         # Set axis ticks
         ax_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
@@ -378,6 +392,32 @@ class MACNetworkSequential(Model):
 
             """
             self.Embedding = nn.Embedding(vocabulary_size, words_embed_length, padding_idx=0)
+
+    def grayscale_cmap(self,cmap):
+        """Return a grayscale version of the given colormap"""
+        cmap = matplotlib.pylab.cm.get_cmap(cmap)
+        colors = cmap(np.arange(cmap.N))
+
+        # convert RGBA to perceived grayscale luminance
+        # cf. http://alienryderflex.com/hsp.html
+        RGB_weight = [0.299, 0.587, 0.114]
+        luminance = np.sqrt(np.dot(colors[:, :3] ** 2, RGB_weight))
+        colors[:, :3] = luminance[:, np.newaxis]
+
+        return LinearSegmentedColormap.from_list(cmap.name + "_gray", colors, cmap.N)
+
+    def view_colormap(self, cmap):
+        """Plot a colormap with its grayscale equivalent"""
+        cmap = matplotlib.pylab.cm.get_cmap(cmap)
+        colors = cmap(np.arange(cmap.N))
+
+        cmap = self.grayscale_cmap(cmap)
+        grayscale = cmap(np.arange(cmap.N))
+
+        fig, ax = matplotlib.pylab.subplots(2, figsize=(6, 2),
+                               subplot_kw=dict(xticks=[], yticks=[]))
+        ax[0].imshow([colors], extent=[0, 10, 0, 1])
+        ax[1].imshow([grayscale], extent=[0, 10, 0, 1])
 
     def VisualProcessing(self, in_channels, layer_channels, feature_control_len, spatial_control_len, output_shape):
         """
@@ -490,8 +530,10 @@ class MACNetworkSequential(Model):
             # Create figure template.
             fig = self.generate_figure_layout()
 
+
+
             # Get axes that artists will draw on.
-            (ax_image, ax_attention_image, ax_attention_question, ax_step) = fig.axes
+            (ax_image, ax_attention_image, ax_history, ax_attention_history,ax_wt,ax_context, ax_attention_question, ax_step  ) = fig.axes
 
             #initiate list of artists frames
             frames = []
@@ -510,8 +552,9 @@ class MACNetworkSequential(Model):
                 ans = s_answers[sample][i]
 
                 #loop over the k reasoning steps
-                for step, (attention_mask, attention_question) in zip(
+                for step, (attention_mask, attention_question, history, W,gmem,gkb,Wt_seq , context) in zip(
                         range(self.max_step), self.cell_states[i]):
+
 
                     # preprocess attention image, reshape
                     attention_size = int(np.sqrt(attention_mask.size(-1)))
@@ -528,6 +571,12 @@ class MACNetworkSequential(Model):
                     # preprocess question, pick one sample number
                     attention_question = attention_question[sample]
 
+                    colors = ['red', 'brown', 'yellow', 'green', 'blue']
+                    cmap = LinearSegmentedColormap.from_list('name', colors)
+                    norm = matplotlib.pylab.Normalize(0, 1)
+                    norm2 = matplotlib.pylab.Normalize(0, 4)
+
+
                     # Create "Artists" drawing data on "ImageAxes".
                     num_artists = len(fig.axes) + 1
                     artists = [None] * num_artists
@@ -540,6 +589,20 @@ class MACNetworkSequential(Model):
                     ax_step.axis('off')
                     ax_attention_image.set_title(
                         'Visual Attention:')
+
+                    ax_history.set_title(
+                        'History:')
+
+                    ax_attention_history.set_title(
+                        'Attention over history:')
+
+                    ax_wt.set_title(
+                        'Sequential Attention:')
+
+                    ax_context.set_title(
+                        'Now        Last     Latest')
+
+                    #fig.colorbar(history[sample], cax=ax_history)
 
                     # Tell artists what to do:
                     artists[0] = ax_image.imshow(
@@ -554,12 +617,30 @@ class MACNetworkSequential(Model):
                         cmap='Reds')
                     artists[3] = ax_attention_question.imshow(
                         attention_question.transpose(1, 0),
-                        interpolation='nearest', aspect='auto', cmap='Reds')
+                        interpolation='nearest', aspect='auto', cmap='Greens', norm=norm)
                     artists[4] = ax_step.text(
                         0, 0.5, 'Reasoning step index: ' + str(
                             step) + ' | Question type: ' + tasks + '         ' + 'Predicted Answer: ' + pred + '  ' +
-                                'Ground Truth: ' + ans,
-                        fontsize=15)
+                                'Ground Truth: ' + ans +'  ' +'gmem'+ str(gmem[sample].data) + '  ' +'gkb'+ ' ' + str(gkb[sample].data),
+                        fontsize=10)
+
+                    artists[5] = ax_history.imshow(
+                        history[sample], interpolation='nearest', aspect='auto', cmap='Greens', norm=norm2)
+
+
+
+                    artists[6] = ax_attention_history.imshow(
+                        W[sample], interpolation='nearest',cmap='Greens', norm=norm , aspect='auto')
+
+                    artists[7] = ax_wt.imshow(
+                        Wt_seq[sample], interpolation='nearest', cmap='Greens', norm=norm, aspect='auto')
+
+                    artists[8] = ax_context.imshow(
+                        context[sample], interpolation='nearest', cmap='Greens', norm=norm, aspect='auto')
+
+
+
+                    self.view_colormap('Reds')
 
                     # Add "frames" to artist list
                     frames.append(artists)

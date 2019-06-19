@@ -48,7 +48,6 @@ import torch
 from torch.nn import Module
 
 from miprometheus.models.mac.utils_mac import linear
-from miprometheus.models.mac.image_encoding import ImageProcessing
 
 
 class InputUnit(Module):
@@ -74,7 +73,7 @@ class InputUnit(Module):
         self.dim = dim
 
         # instantiate image processing (2-layers CNN)
-        self.conv = ImageProcessing(dim)
+        #self.conv = ImageProcessing(dim)
 
         # define linear layer for the projection of the knowledge base
         self.kb_proj_layer = linear(dim, dim, bias=True)

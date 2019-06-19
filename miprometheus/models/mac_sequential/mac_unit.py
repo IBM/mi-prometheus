@@ -63,8 +63,8 @@ class MACUnit(Module):
     Implementation of the ``MACUnit`` (iteration over the MAC cell) of the MAC network.
     """
 
-    def __init__(self, dim, max_step=12, self_attention=False,
-                 memory_gate=False, dropout=0.15):
+    def __init__(self, dim, max_step=2, self_attention=False,
+                 memory_gate=False, dropout=0.15, slots=0):
         """
         Constructor for the ``MACUnit``, which represents the recurrence over the \
         MACCell.
@@ -96,6 +96,9 @@ class MACUnit(Module):
         self.write = WriteUnit(
             dim=dim, self_attention=self_attention, memory_gate=memory_gate)
 
+        self.slots = slots
+        print(self.slots)
+
         # initialize hidden states
         self.mem_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
         self.control_0 = torch.nn.Parameter(
@@ -107,15 +110,8 @@ class MACUnit(Module):
 
         self.cell_state_history = []
 
-        self.W = torch.zeros(48, 1, 4).type(app_state.dtype)
+        self.W = torch.zeros(48, 1, self.slots).type(app_state.dtype)
 
-        Wt_sequential_1 = torch.ones(48, 1).type(app_state.dtype)
-        Wt_sequential_2 = torch.zeros(48, 3).type(app_state.dtype)
-
-        # self.Wt_sequential=torch.zeros(48,1,4).type(app_state.dtype)
-
-        self.Wt_sequential = torch.cat([Wt_sequential_1, Wt_sequential_2], dim=1).unsqueeze(1)
-        # print(self.Wt_sequential.size())
 
         self.linear_layer = linear(128, 1, bias=True)
 
@@ -132,8 +128,13 @@ class MACUnit(Module):
 
         self.convolution_kernel = torch.tensor(
             [[0., 0., 0., 1.], [1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.]]).type(app_state.dtype)
-        self.slots = 4
 
+        self.convolution_kernel6 = torch.tensor(
+            [[0., 0., 0., 0.,0., 1.], [1., 0., 0., 0., 0., 0.], [0., 1., 0., 0., 0., 0.], [0., 0., 1., 0., 0., 0.], [0., 0., 0., 1., 0., 0.], [0., 0., 0., 0., 1., 0.]]).type(app_state.dtype)
+
+
+        self.convolution_kernel8 = torch.tensor(
+            [[0., 0., 0., 0.,0.,0.,0., 1.], [1., 0., 0., 0., 0., 0.,0., 0.], [0., 1., 0., 0., 0., 0.,0., 0.], [0., 0., 1., 0., 0., 0.,0., 0.], [0., 0., 0., 1., 0., 0., 0., 0.], [0., 0., 0., 0., 1., 0., 0., 0.],  [0., 0., 0., 0., 0., 1., 0., 0.], [0., 0., 0., 0., 0., 0., 1., 0.]]).type(app_state.dtype)
         self.linear_read = torch.nn.Sequential(linear(2*dim,2*dim, bias=True),
                                               torch.nn.ELU(),
                                               linear(2*dim, 1, bias=True))
@@ -141,6 +142,9 @@ class MACUnit(Module):
         self.linear_read_history = torch.nn.Sequential(linear(2*dim,2*dim, bias=True),
                                                torch.nn.ELU(),
                                                linear(2*dim, 1, bias=True))
+
+
+
 
     def get_dropout_mask(self, x, dropout):
         """
@@ -247,7 +251,7 @@ class MACUnit(Module):
             ######## Update history #########
 
             #take the read vector and add one dimension [batch size, hidden dim, 1]
-            #print(read.size())
+
             read_unsqueezed=read.unsqueeze(2)
             added_object = read_unsqueezed.matmul(W)
 
@@ -255,6 +259,7 @@ class MACUnit(Module):
             J = torch.ones(batch_size, self.dim,self.slots).type(app_state.dtype)
 
             history=history*(J-unity_matrix.matmul(W))+added_object
+            #print(added_object[0],added_object.size(),i)
 
             ####### Update Wt_sequential ########
 
@@ -264,11 +269,12 @@ class MACUnit(Module):
 
             #get convolved tensor
 
-            convolved_Wt_sequential=Wt_sequential.squeeze(1).matmul(self.convolution_kernel).unsqueeze(1)
+            convolved_Wt_sequential=Wt_sequential.squeeze(1).matmul(self.convolution_kernel8).unsqueeze(1)
 
             #final expression to update Wt_sequential
 
             Wt_sequential = (convolved_Wt_sequential.squeeze(1)*first_term).unsqueeze(1)+(Wt_sequential.squeeze(1)*second_term).unsqueeze(1)
+            #print(Wt_sequential[0],i)
 
 
             # choose between now, last, latest context to built the final read vector
@@ -300,6 +306,6 @@ class MACUnit(Module):
             # store attention weights for visualization
             if app_state.visualize:
                 self.cell_state_history.append(
-                    (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach()))
+                    (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach(),history.detach(), rvi_history.detach(),gmem,gkb, Wt_sequential, context_weighting_vector))
 
         return memory, controls, memories, self.cell_state_history, attention, history, Wt_sequential

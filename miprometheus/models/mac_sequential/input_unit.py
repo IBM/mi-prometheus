@@ -141,5 +141,6 @@ class InputUnit(Module):
         # (2*dim)]
         h = h.permute(1, 0, 2).contiguous().view(batch_size, -1)
 
+
         # return everything
         return feature_maps, kb_proj, lstm_out, h
