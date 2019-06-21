@@ -122,19 +122,28 @@ class MACUnit(Module):
                                                linear(dim, 3, bias=True))
 
 
+        if slots==4:
+            self.convolution_kernel = torch.tensor(
+                [[0., 0., 0., 1.], [1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.]]).type(app_state.dtype)
+
+        elif slots==6:
+            self.convolution_kernel = torch.tensor(
+                [[0., 0., 0., 0., 0., 1.], [1., 0., 0., 0., 0., 0.], [0., 1., 0., 0., 0., 0.], [0., 0., 1., 0., 0., 0.],
+                 [0., 0., 0., 1., 0., 0.], [0., 0., 0., 0., 1., 0.]]).type(app_state.dtype)
+
+        elif slots==8:
+            self.convolution_kernel = torch.tensor(
+                [[0., 0., 0., 0., 0., 0., 0., 1.], [1., 0., 0., 0., 0., 0., 0., 0.], [0., 1., 0., 0., 0., 0., 0., 0.],
+                 [0., 0., 1., 0., 0., 0., 0., 0.], [0., 0., 0., 1., 0., 0., 0., 0.], [0., 0., 0., 0., 1., 0., 0., 0.],
+                 [0., 0., 0., 0., 0., 1., 0., 0.], [0., 0., 0., 0., 0., 0., 1., 0.]]).type(app_state.dtype)
+
+        else:
+            exit()
 
 
         self.concat_contexts = torch.zeros(48, 128, requires_grad=False).type(app_state.dtype)
 
-        self.convolution_kernel = torch.tensor(
-            [[0., 0., 0., 1.], [1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.]]).type(app_state.dtype)
 
-        self.convolution_kernel6 = torch.tensor(
-            [[0., 0., 0., 0.,0., 1.], [1., 0., 0., 0., 0., 0.], [0., 1., 0., 0., 0., 0.], [0., 0., 1., 0., 0., 0.], [0., 0., 0., 1., 0., 0.], [0., 0., 0., 0., 1., 0.]]).type(app_state.dtype)
-
-
-        self.convolution_kernel8 = torch.tensor(
-            [[0., 0., 0., 0.,0.,0.,0., 1.], [1., 0., 0., 0., 0., 0.,0., 0.], [0., 1., 0., 0., 0., 0.,0., 0.], [0., 0., 1., 0., 0., 0.,0., 0.], [0., 0., 0., 1., 0., 0., 0., 0.], [0., 0., 0., 0., 1., 0., 0., 0.],  [0., 0., 0., 0., 0., 1., 0., 0.], [0., 0., 0., 0., 0., 0., 1., 0.]]).type(app_state.dtype)
         self.linear_read = torch.nn.Sequential(linear(2*dim,2*dim, bias=True),
                                               torch.nn.ELU(),
                                               linear(2*dim, 1, bias=True))
@@ -269,7 +278,7 @@ class MACUnit(Module):
 
             #get convolved tensor
 
-            convolved_Wt_sequential=Wt_sequential.squeeze(1).matmul(self.convolution_kernel8).unsqueeze(1)
+            convolved_Wt_sequential=Wt_sequential.squeeze(1).matmul(self.convolution_kernel).unsqueeze(1)
 
             #final expression to update Wt_sequential
 

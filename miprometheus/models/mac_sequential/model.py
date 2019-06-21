@@ -95,6 +95,7 @@ class MACNetworkSequential(Model):
         self.dropout = params['dropout']
         self.memory_pass = params['memory_pass']
         self.control_pass = params['control_pass']
+        self.slot =  params['slot']
 
         # Maximum number of embeddable words.
         self.vocabulary_size = problem_default_values_['embed_vocab_size']
@@ -125,7 +126,6 @@ class MACNetworkSequential(Model):
         self.input_unit = InputUnit(
             dim=self.dim, embedded_dim=self.embed_hidden)
 
-        self.slot = 8
 
         self.mac_unit = MACUnit(
             dim=self.dim,
