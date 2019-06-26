@@ -119,7 +119,7 @@ class MACUnit(Module):
 
         self.linear_layer_mix_context = torch.nn.Sequential(linear(dim, dim, bias=True),
                                                torch.nn.ELU(),
-                                               linear(dim, 3, bias=True))
+                                               linear(dim, 4, bias=True))
 
 
         if slots==4:
@@ -244,23 +244,47 @@ class MACUnit(Module):
             # calculate two gates gKB and gM gates
 
             concat_read=torch.cat([control, read], dim=1)
-
             gkb = self.linear_read(concat_read)
             gkb = torch.sigmoid(gkb)
 
 
             concat_read_history = torch.cat([control, read_history], dim=1)
-
-
             gmem = self.linear_read_history(concat_read_history)
             gmem = torch.sigmoid(gmem)
 
+
+            ######################
+
+
+            # choose between now, last, latest context to built the final read vector
+            now_context = gkb*read
+            last_context =  gmem*read_history
+            latest_context = (1-gkb)*last_context + now_context
+
+
+            ########################
+
+
+            #obtain neural network that mixes the 3 context (v1,v2,v3,v4)
+            context_weighting_vector = self.linear_layer_mix_context(control)
+            context_weighting_vector = torch.nn.functional.softmax(context_weighting_vector,dim=1)
+            context_weighting_vector = context_weighting_vector.unsqueeze(1)
+
+            T1=context_weighting_vector[:,:,0]
+            T2 = context_weighting_vector[:, :, 1]
+            T3 = context_weighting_vector[:, :, 2]
+            T4 = context_weighting_vector[:, :, 3]
+
+            #obtain alpha and beta
+
+
+            alpha = gmem * gkb * (T2+T3) * (1-T4)
+            beta = (1 - gmem) * gkb * (T2+T3) * (1-T4)
+
+
             # history update equation
 
-
-            # print(self.Wt_sequential.size())
-
-            W = (gmem * rvi_history.squeeze(1) + Wt_sequential.squeeze(1)*(1-gmem))*gkb
+            W = alpha * rvi_history.squeeze(1) + Wt_sequential.squeeze(1)*beta
             W= W.unsqueeze(1)
 
 
@@ -275,13 +299,9 @@ class MACUnit(Module):
             J = torch.ones(batch_size, self.dim,self.slots).type(app_state.dtype)
 
             history=history*(J-unity_matrix.matmul(W))+added_object
-            #print(added_object[0],added_object.size(),i)
+
 
             ####### Update Wt_sequential ########
-
-            #calculate constants terms
-            first_term=(torch.ones(batch_size,1).type(app_state.dtype)-gmem)*gkb
-            second_term=torch.ones(batch_size,1).type(app_state.dtype)-first_term
 
             #get convolved tensor
 
@@ -289,25 +309,10 @@ class MACUnit(Module):
 
             #final expression to update Wt_sequential
 
-            Wt_sequential = (convolved_Wt_sequential.squeeze(1)*first_term).unsqueeze(1)+(Wt_sequential.squeeze(1)*second_term).unsqueeze(1)
-            #print(Wt_sequential[0],i)
-
-
-            # choose between now, last, latest context to built the final read vector
-            now_context = gkb*read
-            last_context =  gmem*read_history
-            latest_context = (1-gkb)*last_context + now_context
-
-
-
-            #obtain neural network that mixes the 3 context (v1,v2,v3)  #### COULD BE 2 LAYERS ? ######
-            context_weighting_vector = self.linear_layer_mix_context(control)
-            context_weighting_vector = torch.nn.functional.softmax(context_weighting_vector,dim=1)
-            context_weighting_vector = context_weighting_vector.unsqueeze(1)
-
+            Wt_sequential = (convolved_Wt_sequential.squeeze(1)*beta).unsqueeze(1)+(Wt_sequential.squeeze(1)*(1-beta)).unsqueeze(1)
 
             #final read vector
-            context_read_vector = context_weighting_vector[:,:,0]*now_context + context_weighting_vector[:,:,1]*last_context + context_weighting_vector[:,:,2]*latest_context
+            context_read_vector = T1*now_context + T2*last_context + T3*latest_context
 
 
             # write unit
