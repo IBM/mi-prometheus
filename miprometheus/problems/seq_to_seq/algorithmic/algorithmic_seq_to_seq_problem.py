@@ -725,6 +725,7 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         """
 
         import matplotlib
+        #matplotlib.pyplot.set_cmap('inferno')
 
         # Generate "canvas".
         fig, (ax1, ax2, ax3) = matplotlib.pyplot.subplots(3, 1, sharex=True, sharey=False, gridspec_kw={
@@ -752,12 +753,22 @@ class AlgorithmicSeqToSeqProblem(SeqToSeqProblem):
         #print("\nnum_subsequences:", data_dict['num_subsequences'])
 
         # show data.
-        ax1.imshow(np.transpose(data_dict['sequences'][sample, :, :], [1, 0]),
-                interpolation='nearest', aspect='auto')
-        ax2.imshow(np.transpose(data_dict['targets'][sample, :, :], [1, 0]),
-                interpolation='nearest', aspect='auto')
-        ax3.imshow(np.transpose(data_dict['masks'][sample, :, :], [1, 0]), 
-                interpolation='nearest', aspect='auto')
+        # ax1.imshow(np.transpose(data_dict['sequences'][sample, :, :], [1, 0]),
+        #         interpolation='nearest', aspect='auto')
+        # ax2.imshow(np.transpose(data_dict['targets'][sample, :, :], [1, 0]),
+        #         interpolation='nearest', aspect='auto')
+        # ax3.imshow(np.transpose(data_dict['masks'][sample, :, :], [1, 0]),
+        #         interpolation='nearest', aspect='auto')
+        ax1.pcolormesh(np.transpose(data_dict['sequences'][sample, :, :], [1, 0]),
+                       edgecolors='m', linewidth=0.01)
+        ax1.invert_yaxis()
+        ax2.pcolormesh(np.transpose(data_dict['targets'][sample, :, :], [1, 0]),
+                       edgecolors='m', linewidth=0.01)
+        ax2.invert_yaxis()
+        ax3.pcolormesh(np.transpose(data_dict['masks'][sample, :, :], [1, 0]),
+                       edgecolors='m', linewidth=0.01)
+        ax3.invert_yaxis()
+
         # Plot!
         matplotlib.pyplot.tight_layout()
         matplotlib.pyplot.show()
