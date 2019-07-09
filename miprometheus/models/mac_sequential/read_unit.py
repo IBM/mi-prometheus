@@ -77,7 +77,7 @@ class ReadUnit(Module):
         # linear layer to compute attention weights
         self.attn = linear(dim, 1, bias=True)
 
-    def forward(self, memory_states, knowledge_base, ctrl_states, kb_proj):
+    def forward(self, memory_state, knowledge_base, ctrl_state, kb_proj):
         """
         Forward pass of the ``ReadUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
@@ -96,10 +96,6 @@ class ReadUnit(Module):
 
         """
         # assume mem_dim = ctrl_dim = nb_kernels = dim
-
-        # retrieve the last memory & control state
-        memory_state = memory_states[-1]
-        ctrl_state = ctrl_states[-1]
 
         # pass memory state through linear layer
         memory_state = self.mem_proj_layer(memory_state).unsqueeze(2)

@@ -89,54 +89,28 @@ class WriteUnit(Module):
         if self.memory_gate:
             self.control = linear(dim, 1, bias=True)
 
-    def forward(self, memory_states, read_vector, ctrl_states):
+    def forward(self, memory_state, read_vector, ctrl_state):
         """
         Forward pass of the ``WriteUnit``.
 
-        :param memory_states: All previous memory states, each of shape [batch_size x dim].
+        :param memory_states: previous memory states, each of shape [batch_size x dim].
         :type memory_states: list
 
         :param read_vector: current read vector (output of the read unit), shape [batch_size x dim].
         :type read_vector: torch.tensor
 
-        :param ctrl_states: All previous control states, each of shape [batch_size x dim].
-        :type ctrl_states: list
+        :param ctrl_state: previous control state, each of shape [batch_size x dim].
+        :type ctrl_state: list
 
         :return: current memory state, shape [batch_size x mem_dim]
 
         """
-        # retrieve the last memory state
-        memory_state = memory_states[-1]
+
 
         # combine the new read vector with the prior memory state (w1)
         mi_info = self.concat_layer(torch.cat([read_vector, memory_state], 1))
         next_memory_state = mi_info  # new memory state if no self-attention & memory-gating
 
-        if self.self_attention:
-            # compute attention weights from the relevance of each previous step to the current one (w2.1)
-            # [batch_size x dim x (i)],  i: current step index (we count the initial control state c0)
-            controls_cat = torch.stack(ctrl_states[:-1], 2)
-            # [batch_size x dim x 1] * [batch_size x dim * (i)] -> [batch_size x dim * (i)]
-            attn = ctrl_states[-1].unsqueeze(2) * controls_cat
-            attn = self.attn(attn.permute(0, 2, 1))  # [batch_size x (i) x 1]
-            attn = torch.nn.functional.softmax(attn, dim=1).permute(
-                0, 2, 1)  # [batch_size x 1 x (i)]
 
-            # compute weighted sum of the previous memory states (w2.2)
-            # [batch_size x dim x (i)], i: current step index (we count the initial memory state m0)
-            memories_cat = torch.stack(memory_states, dim=2)
-            mi_sa = (attn * memories_cat).sum(2)  # [batch_size x dim]
-
-            # project both vector separately and element-wise sum (w2.3)
-            next_memory_state = self.mi_sa_proj(
-                mi_sa) + self.mi_info_proj(mi_info)
-
-        if self.memory_gate:
-            # project current control state (w3.1)
-            control = self.control(ctrl_states[-1])
-            # gating (w3.2)
-            gate = torch.nn.functional.sigmoid(control)
-            next_memory_state = gate * memory_state + \
-                (1 - gate) * next_memory_state
 
         return next_memory_state

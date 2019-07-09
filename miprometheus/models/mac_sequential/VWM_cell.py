@@ -117,10 +117,6 @@ class VWMCell(Module):
 
         self.linear_layer_history = linear(128, 1, bias=True)
 
-        self.linear_layer_mix_context = torch.nn.Sequential(linear(dim, dim, bias=True),
-                                               torch.nn.ELU(),
-                                               linear(dim, 4, bias=True))
-
 
         if slots==4:
             self.convolution_kernel = torch.tensor(
@@ -184,7 +180,7 @@ class VWMCell(Module):
 
         return mask
 
-    def forward(self, context, question, knowledge, kb_proj, controls, memories, control, memory, history,  Wt_sequential ):
+    def forward(self, context, question, knowledge, kb_proj, control, memory, history,  Wt_sequential ):
         """
         Forward pass of the ``MACUnit``, which represents the recurrence over the \
         MACCell.
@@ -204,12 +200,6 @@ class VWMCell(Module):
         """
         batch_size = question.size(0)
 
-
-        #reinitialize controls and memories lists
-        controls = [control]
-
-        memories = [memory]
-
         #empty state history
         self.cell_state_history = []
 
@@ -219,25 +209,23 @@ class VWMCell(Module):
         for i in range(self.max_step):
 
             # control unit
-            control = self.question_driven_controller(
+            control, context_weighting_vector_T = self.question_driven_controller(
                 step=i,
                 contextual_words=context,
                 question_encoding=question,
                 ctrl_state=control)
 
 
-            # save new control state
-            controls.append(control)
 
 
             # read unit
-            read ,attention = self.read(memory_states=memories, knowledge_base=knowledge,
-                             ctrl_states=controls, kb_proj=kb_proj)
+            read ,attention = self.read(memory_state=memory, knowledge_base=knowledge,
+                             ctrl_state=control, kb_proj=kb_proj)
 
             # read memory
 
-            read_history,rvi_history  = self.read_memory(memory_states=memories, history=history,
-                             ctrl_states=controls)
+            read_history,rvi_history  = self.read_memory(memory_state=memory, history=history,
+                             ctrl_state=control)
 
             # calculate two gates gKB and gM gates
 
@@ -259,19 +247,11 @@ class VWMCell(Module):
             last_context =  gmem*read_history
             latest_context = (1-gkb)*last_context + now_context
 
-
-            ########################
-
-
-            #obtain neural network that mixes the 3 context (v1,v2,v3,v4)
-            context_weighting_vector = self.linear_layer_mix_context(control)
-            context_weighting_vector = torch.nn.functional.softmax(context_weighting_vector,dim=1)
-            context_weighting_vector = context_weighting_vector.unsqueeze(1)
-
-            T1=context_weighting_vector[:,:,0]
-            T2 = context_weighting_vector[:, :, 1]
-            T3 = context_weighting_vector[:, :, 2]
-            T4 = context_weighting_vector[:, :, 3]
+            context_weighting_vector_T=context_weighting_vector_T.unsqueeze(1)
+            T1=context_weighting_vector_T[:,:,0]
+            T2 = context_weighting_vector_T[:, :, 1]
+            T3 = context_weighting_vector_T[:, :, 2]
+            T4 = context_weighting_vector_T[:, :, 3]
 
             #obtain alpha and beta
 
@@ -314,12 +294,8 @@ class VWMCell(Module):
 
 
             # write unit
-            memory = self.write(memory_states=memories,
-                                read_vector= context_read_vector , ctrl_states=controls)
-
-
-            # save new memory state
-            memories.append(memory)
+            memory = self.write(memory_state=memory,
+                                read_vector= context_read_vector , ctrl_state=control)
 
 
             # store attention weights for visualization
@@ -327,4 +303,4 @@ class VWMCell(Module):
                 self.cell_state_history.append(
                     (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach(),history.detach(), rvi_history.detach(),gmem,gkb, Wt_sequential, context_weighting_vector))
 
-        return memory, controls, memories, self.cell_state_history, attention, history, Wt_sequential
+        return memory, self.cell_state_history, attention, history, Wt_sequential

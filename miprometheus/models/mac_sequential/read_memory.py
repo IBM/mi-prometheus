@@ -78,7 +78,7 @@ class ReadMemory(Module):
         # define linear layer for the projection of the knowledge base
         self.proj_layer = linear(dim, dim, bias=True)
 
-    def forward(self, memory_states, history, ctrl_states):
+    def forward(self, memory_state, history, ctrl_state):
         """
         Forward pass of the ``ReadUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
@@ -96,11 +96,6 @@ class ReadMemory(Module):
         # pass feature maps through linear layer
         kb_proj = self.proj_layer(
             history.permute(0, 2, 1)).permute(0, 2, 1)
-
-
-        # retrieve the last memory & control state
-        memory_state = memory_states[-1]
-        ctrl_state = ctrl_states[-1]
 
         # pass memory state through linear layer
         memory_state = self.mem_proj_layer(memory_state).unsqueeze(2)

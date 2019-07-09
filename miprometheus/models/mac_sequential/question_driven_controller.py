@@ -40,10 +40,9 @@
 # limitations under the License.
 
 """
-control_unit.py: Implementation of the Control Unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the \
-reference paper.
+question_driven_controller.py
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Albouy"
 
 import torch
 from torch.nn import Module
@@ -54,17 +53,17 @@ from miprometheus.models.mac_sequential.attention_module import Attention_Module
 
 class QuestionDrivenController(Module):
     """
-    Implementation of the ``ControlUnit`` of the MAC network.
+    Implementation of the ``QuestionDrivenController`` 
     """
 
     def __init__(self, dim, max_step):
         """
-        Constructor for the control unit.
+        Constructor for the QuestionDrivenController.
 
         :param dim: global 'd' hidden dimension
         :type dim: int
 
-        :param max_step: maximum number of steps -> number of MAC cells in the network.
+        :param max_step: maximum number of steps -> number of VWM cells in the network.
         :type max_step: int
 
         """
@@ -81,18 +80,25 @@ class QuestionDrivenController(Module):
         # define the linear layer used to create the cqi values
         self.ctrl_question = linear(2 * dim, dim, bias=True)
 
-        # define the linear layer used to create the attention weights. Should
-        # be one scalar weight per contextual word
-        self.attn = linear(dim, 1, bias=True)
+        # reasoning step number
         self.step = 0
 
+        # define the linear layer used to create the cqi values
+        self.projection= linear(2 * dim, dim, bias=True)
+
+        #instantiate attention module
         self.attention_module=Attention_Module(dim)
+
+        #instantiate neural network for T
+        self.linear_layer_mix_context = torch.nn.Sequential(linear(dim, dim, bias=True),
+                                                            torch.nn.ELU(),
+                                                            linear(dim, 4, bias=True))
 
     def forward(self, step, contextual_words, question_encoding, ctrl_state):
         """
-        Forward pass of the ``ControlUnit``.
+        Forward pass of the ``QuestionDrivenController``.
 
-        :param step: index of the current MAC cell.
+        :param step: index of the current VWM cell.
         :type step: int
 
         :param contextual_words: tensor of shape [batch_size x maxQuestionLength x dim] containing the words \
@@ -106,18 +112,30 @@ class QuestionDrivenController(Module):
         :param ctrl_state: previous control state, of shape [batch_size x dim]
         :type ctrl_state: torch.tensor
 
-        :return: new control state, [batch_size x dim]
+        :return: new control state, [batch_size x dim], context_weighting_vector_T (T1,T2,T3,T4)
 
         """
+
+        #step number
         self.step = step
-        # select current 'position aware' linear layer & pass questions through
-        # it
+        # select current 'position aware' linear layer & pass questions through it
         pos_aware_question_encoding = self.pos_aware_layers[step](
             question_encoding)
 
+        #concat control state and position aware question encoding
         cqi = torch.cat([ctrl_state, pos_aware_question_encoding], dim=-1)
 
-        c,ca=self.attention_module(cqi, contextual_words)
+        #project from 2dim to 1dim
+        cqi = self.projection(cqi)  # [batch_size x dim]
 
+        # retrieve content c + attention ca
+        c,ca = self.attention_module(cqi, contextual_words)
 
-        return c
+        # neural network  that mixes the 4 context (T1,T2,T3,T4)
+        context_weighting_vector_T = self.linear_layer_mix_context(c)
+
+        # apply softmax
+        context_weighting_vector_T = torch.nn.functional.softmax(context_weighting_vector_T, dim=1)
+
+        #return control  and the context_weighting_vector_T (T1,T2,T3,T4)
+        return c, context_weighting_vector_T

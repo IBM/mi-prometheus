@@ -67,21 +67,18 @@ class Attention_Module(Module):
         super(Attention_Module, self).__init__()
 
 
-        # define the linear layer used to create the cqi values
-        self.w_parameter= linear(2 * dim, dim, bias=True)
-
         # define the linear layer used to create the attention weights. Should
         # be one scalar weight per contextual word
         self.attn = linear(dim, 1, bias=True)
 
-    def forward(self, q,k):
+    def forward(self,q, K):
         """
         Forward pass of the ``VWM model Attention_Module``.
 
         :param  q : attention query 
         :type   tensor
 
-        :param k : attention key
+        :param K : attention Keys
         :type  tensor
 
         :return: c : content , ca : attention
@@ -89,17 +86,17 @@ class Attention_Module(Module):
         
         """
 
-        q = self.w_parameter(q)  # [batch_size x dim]
-
         # compute element-wise product between q & k
-        # [batch_size x maxLength x dim]
         # compute attention weights
 
-        cai = self.attn(q.unsqueeze(1) * k)  # [batch_size x maxLength x 1]
 
-        ca = torch.nn.functional.softmax(cai, dim=1)
+        cai = self.attn(q.unsqueeze(1) * K)  # [batch_size x maxLength x dim]
 
-        # compute c
-        c = (ca * k).sum(1)
+        # get attention distribution
+        ca = torch.nn.functional.softmax(cai, dim=1).squeeze(2)   # [batch_size x maxLength]
 
+        # compute content
+        c = (ca.unsqueeze(2) * K).sum(1) # [batch_size x dim]
+
+        #return content and attention tensors
         return c, ca
