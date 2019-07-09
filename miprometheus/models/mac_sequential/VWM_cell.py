@@ -216,8 +216,6 @@ class VWMCell(Module):
                 ctrl_state=control)
 
 
-
-
             # read unit
             read ,attention = self.read(memory_state=memory, knowledge_base=knowledge,
                              ctrl_state=control, kb_proj=kb_proj)
@@ -301,6 +299,6 @@ class VWMCell(Module):
             # store attention weights for visualization
             if app_state.visualize:
                 self.cell_state_history.append(
-                    (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach(),history.detach(), rvi_history.detach(),gmem,gkb, Wt_sequential, context_weighting_vector))
+                    (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach(),history.detach(), rvi_history.detach(),gmem,gkb, Wt_sequential, context_weighting_vector_T))
 
         return memory, self.cell_state_history, attention, history, Wt_sequential

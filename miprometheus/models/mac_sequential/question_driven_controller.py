@@ -80,17 +80,14 @@ class QuestionDrivenController(Module):
         # define the linear layer used to create the cqi values
         self.ctrl_question = linear(2 * dim, dim, bias=True)
 
-        # reasoning step number
-        self.step = 0
-
         # define the linear layer used to create the cqi values
         self.projection= linear(2 * dim, dim, bias=True)
 
         #instantiate attention module
         self.attention_module=Attention_Module(dim)
 
-        #instantiate neural network for T
-        self.linear_layer_mix_context = torch.nn.Sequential(linear(dim, dim, bias=True),
+        #instantiate neural network for T (temporal classifier that leads to 4 classes)
+        self.temporal_classifier = torch.nn.Sequential(linear(dim, dim, bias=True),
                                                             torch.nn.ELU(),
                                                             linear(dim, 4, bias=True))
 
@@ -116,8 +113,6 @@ class QuestionDrivenController(Module):
 
         """
 
-        #step number
-        self.step = step
         # select current 'position aware' linear layer & pass questions through it
         pos_aware_question_encoding = self.pos_aware_layers[step](
             question_encoding)
@@ -129,13 +124,10 @@ class QuestionDrivenController(Module):
         cqi = self.projection(cqi)  # [batch_size x dim]
 
         # retrieve content c + attention ca
-        c,ca = self.attention_module(cqi, contextual_words)
+        c,_ = self.attention_module(cqi, contextual_words)
 
         # neural network  that mixes the 4 context (T1,T2,T3,T4)
-        context_weighting_vector_T = self.linear_layer_mix_context(c)
-
-        # apply softmax
-        context_weighting_vector_T = torch.nn.functional.softmax(context_weighting_vector_T, dim=1)
+        temporal_class= torch.nn.functional.softmax(self.temporal_classifier(c), dim=1)
 
         #return control  and the context_weighting_vector_T (T1,T2,T3,T4)
-        return c, context_weighting_vector_T
+        return c, temporal_class

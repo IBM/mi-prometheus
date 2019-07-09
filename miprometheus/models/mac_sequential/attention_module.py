@@ -90,13 +90,13 @@ class Attention_Module(Module):
         # compute attention weights
 
 
-        cai = self.attn(q.unsqueeze(1) * K)  # [batch_size x maxLength x dim]
+        cai = self.attn(q[:,None,:] * K)  # [batch_size x maxLength x dim]
 
         # get attention distribution
-        ca = torch.nn.functional.softmax(cai, dim=1).squeeze(2)   # [batch_size x maxLength]
+        ca = torch.nn.functional.softmax(cai, dim=1)   # [batch_size x maxLength]
 
         # compute content
-        c = (ca.unsqueeze(2) * K).sum(1) # [batch_size x dim]
+        c = (ca * K).sum(1) # [batch_size x dim]
 
         #return content and attention tensors
         return c, ca
