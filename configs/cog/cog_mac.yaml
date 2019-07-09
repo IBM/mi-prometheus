@@ -6,8 +6,8 @@ model:
   name: MACNetworkSequential
   dim: 128
   embed_hidden: 64
-  max_step: 16
-  slot : 4
+  max_step: 12
+  slot : 8
   self_attention: False
   memory_gate: False
   dropout: 0.15
