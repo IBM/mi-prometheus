@@ -124,10 +124,10 @@ class QuestionDrivenController(Module):
         cqi = self.projection(cqi)  # [batch_size x dim]
 
         # retrieve content c + attention ca
-        c,_ = self.attention_module(cqi, contextual_words)
+        c,ca = self.attention_module(cqi, contextual_words, contextual_words)
 
         # neural network  that mixes the 4 context (T1,T2,T3,T4)
         temporal_class= torch.nn.functional.softmax(self.temporal_classifier(c), dim=1)
 
         #return control  and the context_weighting_vector_T (T1,T2,T3,T4)
-        return c, temporal_class
+        return c,ca, temporal_class

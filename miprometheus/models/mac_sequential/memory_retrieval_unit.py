@@ -40,7 +40,7 @@
 # limitations under the License.
 
 """
-read_unit.py: Implementation of the ``ReadUnit`` for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the \
+read_unit.py: Implementation of the ``MemoryRetrievalUnit`` for the VWM network. Cf https://arxiv.org/abs/1803.03067 for the \
 reference paper.
 """
 __author__ = "Vincent Albouy"
@@ -49,22 +49,24 @@ import torch
 from torch.nn import Module
 
 from miprometheus.models.mac_sequential.utils_mac import linear
+from miprometheus.models.mac_sequential.attention_module import Attention_Module
 
 
-class ReadMemory(Module):
+
+class MemoryRetrievalUnit(Module):
     """
-    Implementation of the ``ReadUnit`` of the MAC network.
+    Implementation of the ``MemoryRetrievalUnit`` of the MAC network.
     """
 
     def __init__(self, dim):
         """
-        Constructor for the ``ReadUnit``.
+        Constructor for the ``MemoryRetrievalUnit``.
         :param dim: global 'd' hidden dimension
         :type dim: int
         """
 
         # call base constructor
-        super(ReadMemory, self).__init__()
+        super(MemoryRetrievalUnit, self).__init__()
 
         # define linear layer for the projection of the previous memory state
         self.mem_proj_layer = linear(dim, dim, bias=True)
@@ -78,46 +80,43 @@ class ReadMemory(Module):
         # define linear layer for the projection of the knowledge base
         self.proj_layer = linear(dim, dim, bias=True)
 
-    def forward(self, memory_state, history, ctrl_state):
+        # instantiate attention module
+        self.attention_module = Attention_Module(dim)
+
+    def forward(self, summary_object, visual_working_memory, ctrl_state):
         """
-        Forward pass of the ``ReadUnit``. Assuming 1 scalar attention weight per \
+        Forward pass of the ``MemoryRetrievalUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
         :param memory_states: list of all previous memory states, each of shape [batch_size x mem_dim]
         :type memory_states: torch.tensor
-        :param knowledge_base: image representation (output of CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
-        :type knowledge_base: torch.tensor
+        :param  history: image representation (output of CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
+        :type history: torch.tensor
         :param ctrl_states: All previous control state, each of shape [batch_size x ctrl_dim].
         :type ctrl_states: list
-        :return: current read vector, shape [batch_size x read_dim]
+        :return: visual_output, visual_attention 
         """
         # assume mem_dim = ctrl_dim = nb_kernels = dim
 
 
         # pass feature maps through linear layer
-        kb_proj = self.proj_layer(
-            history.permute(0, 2, 1)).permute(0, 2, 1)
+        visual_working_memory_proj = self.proj_layer(
+            visual_working_memory.permute(0, 2, 1)).permute(0, 2, 1)
 
         # pass memory state through linear layer
-        memory_state = self.mem_proj_layer(memory_state).unsqueeze(2)
+        summary_object = self.mem_proj_layer(summary_object).unsqueeze(2)
         # memory_state: [batch_size x dim x 1]
 
         # compute I(i,h,w) elements (r1 equation)
         # [batch_size x dim x 1] * [batch_size x dim x (H*W)] -> [batch_size x dim x (H*W)]
-        I_elements = memory_state * kb_proj
+        I_elements = summary_object * visual_working_memory_proj
 
         # compute I' elements (r2 equation)
         concat = self.concat_layer(
-            torch.cat([I_elements, history],
+            torch.cat([I_elements,visual_working_memory],
                       dim=1).permute(0, 2, 1))  # [batch_size x (H*W) x dim]
 
         # compute attention weights
-        rai = self.attn(concat * ctrl_state.unsqueeze(1)
-                        ).squeeze(2)  # [batch_size x (H*W)]
-        # This is for the time plot
-        self.rvi = torch.nn.functional.softmax(rai, 1).unsqueeze(1)  # [batch_size x 1 x (H*W)]
+        memory_output, memory_attention = self.attention_module(ctrl_state, concat, visual_working_memory.permute(0, 2, 1))
 
 
-        # apply attn weights on knowledge base elements & sum on (H*W)
-        read_vector = (self.rvi * history).sum(2)  # [batch_size x dim]
-
-        return read_vector, self.rvi
+        return  memory_output, memory_attention

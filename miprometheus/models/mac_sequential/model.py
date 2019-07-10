@@ -156,9 +156,6 @@ class MACNetworkSequential(Model):
         self.linear_layer = linear(1664, 1, bias=True)
 
 
-
-
-
     def forward(self, data_dict, dropout=0.15):
         """
         Forward pass of the ``MAC`` network. Calls first the ``InputUnit``, then the recurrent \
@@ -207,7 +204,7 @@ class MACNetworkSequential(Model):
 
 
         # initialize empty memory
-        history = torch.zeros(batch_size, self.dim, self.slot).type(app_state.dtype)
+        visual_working_memory = torch.zeros(batch_size, self.dim, self.slot).type(app_state.dtype)
 
         # initialize Wt_sequential at first slot position
         Wt_sequential_1 = torch.ones(batch_size, 1).type(app_state.dtype)
@@ -216,10 +213,6 @@ class MACNetworkSequential(Model):
         # self.Wt_sequential=torch.zeros(48,1,4).type(app_state.dtype)
 
         Wt_sequential = torch.cat([Wt_sequential_1, Wt_sequential_2], dim=1).unsqueeze(1)
-
-        # expand the hidden states to whole batch for mac cell control states and memory states
-        controls = [control]
-        memories = [memory]
 
         self.cell_states=[]
 
@@ -230,10 +223,10 @@ class MACNetworkSequential(Model):
         for i in range(images.size(0)):
 
             # image encoder
-            feature_maps, kb_proj= self.image_encoder(images[i])
+            feature_maps= self.image_encoder(images[i])
 
             # recurrent MAC cells
-            new_memory, controls, memories, state_history, attention_current, history, Wt_sequential = self.VWM_cell(contextual_word_encoding, question_encoding, feature_maps, kb_proj, controls, memories, control, memory ,history, Wt_sequential)
+            new_memory, state_history, attention_current, visual_working_memory, Wt_sequential = self.VWM_cell(contextual_word_encoding, question_encoding, feature_maps, control, memory ,visual_working_memory, Wt_sequential)
 
             #save state history
             self.cell_states.append(state_history)

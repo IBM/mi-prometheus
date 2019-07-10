@@ -74,12 +74,6 @@ class ImageEncoder(Module):
 
         self.dim = dim
 
-        # instantiate image processing (2-layers CNN)
-        #self.conv = ImageProcessing(dim)
-
-        # define linear layer for the projection of the knowledge base
-        self.kb_proj_layer = linear(dim, dim, bias=True)
-
         # Number of channels in input Image
         self.image_channels = 3
 
@@ -164,13 +158,8 @@ class ImageEncoder(Module):
         # reshape feature maps as channels first
         feature_maps = feature_maps.view(batch_size, self.dim, -1)
 
-        # pass feature maps through linear layer
-        kb_proj = self.kb_proj_layer(
-            feature_maps.permute(0, 2, 1)).permute(0, 2, 1)
-
-
         # return everything
-        return feature_maps, kb_proj
+        return feature_maps
 
     def VisualProcessing(self, in_channels, layer_channels, feature_control_len, spatial_control_len, output_shape):
         """

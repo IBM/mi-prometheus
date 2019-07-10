@@ -49,9 +49,9 @@ import torch
 from torch.nn import Module
 
 from miprometheus.models.mac_sequential.question_driven_controller import QuestionDrivenController
-from miprometheus.models.mac_sequential.read_unit import ReadUnit
+from miprometheus.models.mac_sequential.visual_retrieval_unit import VisualRetrievalUnit
 from miprometheus.models.mac_sequential.write_unit import WriteUnit
-from miprometheus.models.mac_sequential.read_memory import ReadMemory
+from miprometheus.models.mac_sequential.memory_retrieval_unit import MemoryRetrievalUnit
 from miprometheus.models.mac_sequential.utils_mac import linear
 from miprometheus.models.dwm.tensor_utils import circular_conv
 from miprometheus.utils.app_state import AppState
@@ -91,8 +91,8 @@ class VWMCell(Module):
 
         # instantiate the units
         self.question_driven_controller = QuestionDrivenController(dim=dim, max_step=max_step)
-        self.read = ReadUnit(dim=dim)
-        self.read_memory = ReadMemory(dim=dim)
+        self.visual_retrieval_unit = VisualRetrievalUnit(dim=dim)
+        self.memory_retrieval_unit = MemoryRetrievalUnit(dim=dim)
         self.write = WriteUnit(
             dim=dim, self_attention=self_attention, memory_gate=memory_gate)
 
@@ -156,8 +156,6 @@ class VWMCell(Module):
                                                linear(2*dim, 1, bias=True))
 
 
-
-
     def get_dropout_mask(self, x, dropout):
         """
         Create a dropout mask to be applied on x.
@@ -180,7 +178,7 @@ class VWMCell(Module):
 
         return mask
 
-    def forward(self, context, question, knowledge, kb_proj, control, memory, history,  Wt_sequential ):
+    def forward(self, context, question, knowledge, control, memory, visual_working_memory,  Wt_sequential ):
         """
         Forward pass of the ``MACUnit``, which represents the recurrence over the \
         MACCell.
@@ -209,7 +207,7 @@ class VWMCell(Module):
         for i in range(self.max_step):
 
             # control unit
-            control, context_weighting_vector_T = self.question_driven_controller(
+            control, control_attention, context_weighting_vector_T = self.question_driven_controller(
                 step=i,
                 contextual_words=context,
                 question_encoding=question,
@@ -217,12 +215,12 @@ class VWMCell(Module):
 
 
             # read unit
-            read ,attention = self.read(memory_state=memory, knowledge_base=knowledge,
-                             ctrl_state=control, kb_proj=kb_proj)
+            read ,read_attention = self.visual_retrieval_unit(summary_object=memory, feature_maps=knowledge,
+                             ctrl_state=control)
 
             # read memory
 
-            read_history,rvi_history  = self.read_memory(memory_state=memory, history=history,
+            read_history,rvi_history  = self.memory_retrieval_unit(summary_object=memory, visual_working_memory=visual_working_memory,
                              ctrl_state=control)
 
             # calculate two gates gKB and gM gates
@@ -237,7 +235,7 @@ class VWMCell(Module):
             gmem = torch.sigmoid(gmem)
 
 
-            ######################
+
 
 
             # choose between now, last, latest context to built the final read vector
@@ -260,7 +258,7 @@ class VWMCell(Module):
 
             # history update equation
 
-            W = alpha * rvi_history.squeeze(1) + Wt_sequential.squeeze(1)*beta
+            W = alpha * rvi_history.squeeze(2) + Wt_sequential.squeeze(1)*beta
             W= W.unsqueeze(1)
 
 
@@ -274,7 +272,7 @@ class VWMCell(Module):
             unity_matrix = torch.ones(batch_size, self.dim, 1).type(app_state.dtype)
             J = torch.ones(batch_size, self.dim,self.slots).type(app_state.dtype)
 
-            history=history*(J-unity_matrix.matmul(W))+added_object
+            visual_working_memory=visual_working_memory*(J-unity_matrix.matmul(W))+added_object
 
 
             ####### Update Wt_sequential ########
@@ -299,6 +297,6 @@ class VWMCell(Module):
             # store attention weights for visualization
             if app_state.visualize:
                 self.cell_state_history.append(
-                    (self.read.rvi.cpu().detach(), self.control.cvi.cpu().detach(),history.detach(), rvi_history.detach(),gmem,gkb, Wt_sequential, context_weighting_vector_T))
+                    (read_attention.detach(), control_attention.detach(), visual_working_memory.detach(), rvi_history.detach(),gmem,gkb, Wt_sequential, context_weighting_vector_T))
 
-        return memory, self.cell_state_history, attention, history, Wt_sequential
+        return memory, self.cell_state_history, read_attention, visual_working_memory, Wt_sequential

@@ -71,7 +71,7 @@ class Attention_Module(Module):
         # be one scalar weight per contextual word
         self.attn = linear(dim, 1, bias=True)
 
-    def forward(self,q, K):
+    def forward(self,q, K ,V):
         """
         Forward pass of the ``VWM model Attention_Module``.
 
@@ -89,14 +89,13 @@ class Attention_Module(Module):
         # compute element-wise product between q & k
         # compute attention weights
 
-
         cai = self.attn(q[:,None,:] * K)  # [batch_size x maxLength x dim]
 
         # get attention distribution
         ca = torch.nn.functional.softmax(cai, dim=1)   # [batch_size x maxLength]
 
         # compute content
-        c = (ca * K).sum(1) # [batch_size x dim]
+        c = (ca * V).sum(1) # [batch_size x dim]
 
         #return content and attention tensors
         return c, ca

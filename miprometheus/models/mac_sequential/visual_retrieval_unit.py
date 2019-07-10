@@ -40,25 +40,26 @@
 # limitations under the License.
 
 """
-read_unit.py: Implementation of the ``ReadUnit`` for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the \
+read_unit.py: Implementation of the ``VisualRetrievalUnitt`` for the VWM network. Cf https://arxiv.org/abs/1803.03067 for the \
 reference paper.
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Albouy"
 
 import torch
 from torch.nn import Module
 
 from miprometheus.models.mac_sequential.utils_mac import linear
+from miprometheus.models.mac_sequential.attention_module import Attention_Module
 
 
-class ReadUnit(Module):
+class VisualRetrievalUnit(Module):
     """
-    Implementation of the ``ReadUnit`` of the MAC network.
+    Implementation of the ``VisualReadUnit`` of the VWM network.
     """
 
     def __init__(self, dim):
         """
-        Constructor for the ``ReadUnit``.
+        Constructor for the ``VisualReadUnit``.
 
         :param dim: global 'd' hidden dimension
         :type dim: int
@@ -66,27 +67,33 @@ class ReadUnit(Module):
         """
 
         # call base constructor
-        super(ReadUnit, self).__init__()
+        super(VisualRetrievalUnit, self).__init__()
 
         # define linear layer for the projection of the previous memory state
-        self.mem_proj_layer = linear(dim, dim, bias=True)
+        self.summary_proj_layer = linear(dim, dim, bias=True)
 
         # linear layer to define I'(i,h,w) elements (r2 equation)
-        self.concat_layer = linear(2 * dim, dim, bias=True)
+        self.aggregator = linear(2 * dim, dim, bias=True)
+
+        # instantiate attention module
+        self.attention_module = Attention_Module(dim)
 
         # linear layer to compute attention weights
         self.attn = linear(dim, 1, bias=True)
 
-    def forward(self, memory_state, knowledge_base, ctrl_state, kb_proj):
+        # define linear layer for the projection of the knowledge base
+        self.feature_maps_proj_layer = linear(dim, dim, bias=True)
+
+    def forward(self, summary_object, feature_maps, ctrl_state):
         """
-        Forward pass of the ``ReadUnit``. Assuming 1 scalar attention weight per \
+        Forward pass of the ``VisualRetrievalUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
 
         :param memory_states: list of all previous memory states, each of shape [batch_size x mem_dim]
         :type memory_states: torch.tensor
 
-        :param knowledge_base: image representation (output of CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
-        :type knowledge_base: torch.tensor
+        :param feature_maps: image representation (output of CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
+        :type feature_maps: torch.tensor
 
         :param ctrl_states: All previous control state, each of shape [batch_size x ctrl_dim].
         :type ctrl_states: list
@@ -98,25 +105,24 @@ class ReadUnit(Module):
         # assume mem_dim = ctrl_dim = nb_kernels = dim
 
         # pass memory state through linear layer
-        memory_state = self.mem_proj_layer(memory_state).unsqueeze(2)
+        summary_object = self.summary_proj_layer(summary_object).unsqueeze(2)
         # memory_state: [batch_size x dim x 1]
+
+        # pass feature maps through linear layer
+        feature_maps_proj = self.feature_maps_proj_layer(
+            feature_maps.permute(0, 2, 1)).permute(0, 2, 1)
 
         # compute I(i,h,w) elements (r1 equation)
         # [batch_size x dim x 1] * [batch_size x dim x (H*W)] -> [batch_size x dim x (H*W)]
-        I_elements = memory_state * kb_proj
+        I_elements = summary_object * feature_maps_proj
 
         # compute I' elements (r2 equation)
-        concat = self.concat_layer(
-            torch.cat([I_elements, knowledge_base],
+        concat = self.aggregator(
+            torch.cat([I_elements,feature_maps],
                       dim=1).permute(0, 2, 1))  # [batch_size x (H*W) x dim]
 
         # compute attention weights
-        rai = self.attn(concat * ctrl_state.unsqueeze(1)
-                        ).squeeze(2)  # [batch_size x (H*W)]
-        # This is for the time plot ####WHY IS RVI SELFED ? ######
-        self.rvi = torch.nn.functional.softmax(rai, 1).unsqueeze(1)  # [batch_size x 1 x (H*W)]
+        visual_output, visual_attention = self.attention_module(ctrl_state,concat,feature_maps.permute(0, 2, 1))
 
-        # apply attn weights on knowledge base elements & sum on (H*W)
-        read_vector = (self.rvi * knowledge_base).sum(2)  # [batch_size x dim]
 
-        return read_vector, self.rvi
+        return visual_output, visual_attention
