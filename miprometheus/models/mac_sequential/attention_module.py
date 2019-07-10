@@ -42,7 +42,7 @@
 """
 attention_module.py
 """
-__author__ = "Vincent Albouy"
+__author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
@@ -89,13 +89,16 @@ class Attention_Module(Module):
         # compute element-wise product between q & k
         # compute attention weights
 
-        cai = self.attn(q[:,None,:] * K)  # [batch_size x maxLength x dim]
+        cai = self.attn(q[:, None, :] * K).squeeze(-1)  # [batch_size x maxLength]
+        # print(f'Shape of cai = {cai.size()}')
 
         # get attention distribution
-        ca = torch.nn.functional.softmax(cai, dim=1)   # [batch_size x maxLength]
+        ca = torch.nn.functional.softmax(cai, dim=-1)  # [batch_size x maxLength]
+        # print(f'Shape of ca = {ca.size()}')
 
         # compute content
-        c = (ca * V).sum(1) # [batch_size x dim]
+        c = (ca[...,None] * V).sum(1)                  # [batch_size x dim]
+        # print(f'Shape of c = {c.size()}')
 
-        #return content and attention tensors
+        # return content and attention tensors
         return c, ca
