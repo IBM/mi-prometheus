@@ -1,0 +1,29 @@
+# Load the following (default) configs first.
+default_configs:
+    configs/dwm_baselines/lstm/default_lstm.yaml,
+    configs/dwm_baselines/default_settings_simple_task.yaml
+
+# Then overwrite problem name(s).
+training:
+    problem:
+        name: &name ParityCommandLines
+        batch_size: 16
+
+validation:
+    problem:
+        name: *name 
+        batch_size: 16
+
+testing:
+    problem:
+        name: *name
+        batch_size: 64
+        # Parameters denoting min and max lengths.
+        min_sequence_length: 500
+        max_sequence_length: 500
+
+
+model:
+    # Controller parameters.
+    num_layers: 1
+    hidden_state_size: 30

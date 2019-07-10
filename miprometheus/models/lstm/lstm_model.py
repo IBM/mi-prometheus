@@ -40,6 +40,13 @@ class LSTM(SequentialModel):
         """
         super(LSTM, self).__init__(params)
 
+        print('Params')
+        print(dict(params))
+        print('Problem default values')
+        print(dict(problem_default_values_))
+        input('Pause')
+
+
         # Parse default values received from problem.
         self.params.add_default_params({
             'input_item_size': problem_default_values_['input_item_size'],

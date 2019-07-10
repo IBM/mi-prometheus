@@ -78,9 +78,9 @@ class ParityCommandLines(AlgorithmicSeqToSeqProblem):
 
         :return: DataDict({'sequences', 'sequences_length', 'targets', 'masks', 'num_subsequences'}), with:
 
-            - sequences: [BATCH_SIZE, SEQ_LENGTH+2, CONTROL_BITS+DATA_BITS]
+            - sequences: [BATCH_SIZE, SEQ_LENGTH+3, CONTROL_BITS+DATA_BITS]
             - sequences_length: [BATCH_SIZE, 1] (the same random value between self.min_sequence_length and self.max_sequence_length)
-            - targets: [BATCH_SIZE, , SEQ_LENGTH+2, DATA_BITS]
+            - targets: [BATCH_SIZE, , SEQ_LENGTH+3, DATA_BITS]
             - masks: [BATCH_SIZE, SEQ_LENGTH+2, 1]
             - num_subsequences: [BATCH_SIZE, 1]
 
