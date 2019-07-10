@@ -40,8 +40,8 @@
 # limitations under the License.
 
 """
-write_unit.py: Implementation of the ``WriteUnit`` for the MAC network. Cf https://arxiv.org/abs/1803.03067 \
-for the reference paper.
+read_unit.py: Implementation of the ``MemoryRetrievalUnit`` for the VWM network. Cf https://arxiv.org/abs/1803.03067 for the \
+reference paper.
 """
 __author__ = "Vincent Albouy"
 
@@ -51,66 +51,50 @@ from torch.nn import Module
 from miprometheus.models.mac_sequential.utils_mac import linear
 
 
-class WriteUnit(Module):
+class MatchingUnit(Module):
     """
-    Implementation of the ``WriteUnit`` of the MAC network.
+    Implementation of the `` MatchingUnit`` of the VWM network.
     """
 
-    def __init__(self, dim, self_attention=False, memory_gate=False):
+    def __init__(self, dim):
         """
-        Constructor for the ``WriteUnit``.
-
+        Constructor for the `` MatchingUnit``.
         :param dim: global 'd' hidden dimension
         :type dim: int
-
-        :param self_attention: whether or not to use self-attention on the previous control states
-        :type self_attention: bool
-
-        :param memory_gate: whether or not to use memory gating.
-        :type memory_gate: bool
-
         """
 
         # call base constructor
-        super(WriteUnit, self).__init__()
+        super(MatchingUnit, self).__init__()
 
-        # linear layer for the concatenation of ri & mi-1
-        self.concat_layer = linear(2 * dim, dim, bias=True)
+        self.linear_read = torch.nn.Sequential(linear(2 * dim, 2 * dim, bias=True),
+                                               torch.nn.ELU(),
+                                               linear(2 * dim, 1, bias=True))
 
-        # self-attention & memory gating optional initializations
-        self.self_attention = self_attention
-        self.memory_gate = memory_gate
+        self.linear_read_history = torch.nn.Sequential(linear(2 * dim, 2 * dim, bias=True),
+                                                       torch.nn.ELU(),
+                                                       linear(2 * dim, 1, bias=True))
 
-        if self.self_attention:
-            self.attn = linear(dim, 1, bias=True)
-            self.mi_sa_proj = linear(dim, dim, bias=True)
-            self.mi_info_proj = linear(dim, dim, bias=True)
 
-        if self.memory_gate:
-            self.control = linear(dim, 1, bias=True)
-
-    def forward(self, memory_state, read_vector, ctrl_state):
+    def forward(self, control, read, read_history):
         """
-        Forward pass of the ``WriteUnit``.
-
-        :param memory_states: previous memory states, each of shape [batch_size x dim].
-        :type memory_states: list
-
-        :param read_vector: current read vector (output of the read unit), shape [batch_size x dim].
-        :type read_vector: torch.tensor
-
-        :param ctrl_state: previous control state, each of shape [batch_size x dim].
-        :type ctrl_state: list
-
-        :return: current memory state, shape [batch_size x mem_dim]
-
+        Forward pass of the ``MemoryRetrievalUnit``. Assuming 1 scalar attention weight per \
+        knowledge base elements.
+        :param memory_states: list of all previous memory states, each of shape [batch_size x mem_dim]
+        :type memory_states: torch.tensor
+        :param  history: image representation (output of CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
+        :type history: torch.tensor
+        :param ctrl_states: All previous control state, each of shape [batch_size x ctrl_dim].
+        :type ctrl_states: list
+        :return: gkb, gmem
         """
+        # calculate two gates gKB and gM gates
 
+        concat_read = torch.cat([control, read], dim=1)
+        gkb = self.linear_read(concat_read)
+        gkb = torch.sigmoid(gkb)
 
-        # combine the new read vector with the prior memory state (w1)
-        mi_info = self.concat_layer(torch.cat([read_vector, memory_state], 1))
-        next_memory_state = mi_info  # new memory state if no self-attention & memory-gating
+        concat_read_history = torch.cat([control, read_history], dim=1)
+        gmem = self.linear_read_history(concat_read_history)
+        gmem = torch.sigmoid(gmem)
 
-
-
-        return next_memory_state
+        return  gkb, gmem
