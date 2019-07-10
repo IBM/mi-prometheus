@@ -42,7 +42,7 @@
 """
 attention_module.py
 """
-__author__ = "Vincent Albouy"
+__author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
@@ -57,45 +57,42 @@ class Attention_Module(Module):
     def __init__(self, dim):
         """
         Constructor for the VWM model Attention_Module
-
         :param dim: global 'd' hidden dimension
         :type dim: int
-
         """
 
         # call base constructor
         super(Attention_Module, self).__init__()
 
-
         # define the linear layer used to create the attention weights. Should
         # be one scalar weight per contextual word
         self.attn = linear(dim, 1, bias=True)
 
-    def forward(self,q, K ,V):
+    def forward(self, q, K, V):
         """
         Forward pass of the ``VWM model Attention_Module``.
-
         :param  q : attention query 
         :type   tensor
-
         :param K : attention Keys
         :type  tensor
-
         :return: c : content , ca : attention
         :type  tensors 
-        
+
         """
 
         # compute element-wise product between q & k
         # compute attention weights
 
-        cai = self.attn(q[:,None,:] * K)  # [batch_size x maxLength x dim]
+        cai = self.attn(q[:, None, :] * K).squeeze(-1)  # [batch_size x maxLength]
+        # print(f'Shape of cai = {cai.size()}')
 
         # get attention distribution
-        ca = torch.nn.functional.softmax(cai, dim=1)   # [batch_size x maxLength]
+        ca = torch.nn.functional.softmax(cai, dim=-1)  # [batch_size x maxLength]
+        # print(f'Shape of ca = {ca.size()}')
 
         # compute content
-        c = (ca * V).sum(1) # [batch_size x dim]
+        c = (ca[..., None] * V).sum(1)  # [batch_size x dim]
+        # print(f'Shape of c = {c.size()}')
 
-        #return content and attention tensors
-        return c, ca.squeeze(2)
+        # return content and attention tensors
+        return c, ca
