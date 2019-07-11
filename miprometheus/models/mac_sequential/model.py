@@ -42,10 +42,7 @@
 """
 model.py:
 
-    - Implementation of the ``MAC`` network, reusing the different units implemented in separated files.
-    - Cf https://arxiv.org/abs/1803.03067 for the reference paper.
-
-
+    - Implementation of the ``VWMC`` network, reusing the different units implemented in separated files.
 """
 __author__ = "Vincent Marois , Vincent Albouy"
 
@@ -54,7 +51,6 @@ import torch
 import numpy as np
 import matplotlib.pylab
 import matplotlib.animation
-from torchvision import transforms
 from miprometheus.models.model import Model
 import numpy as numpy
 import torch.nn as nn
@@ -62,21 +58,19 @@ from miprometheus.utils.app_state import AppState
 app_state = AppState()
 from miprometheus.models.mac_sequential.question_encoder import QuestionEncoder
 from miprometheus.models.mac_sequential.image_encoder import ImageEncoder
-
 from miprometheus.models.mac_sequential.VWM_cell import VWMCell
 from miprometheus.models.mac_sequential.output_unit import OutputUnit
-from miprometheus.models.mac_sequential.utils_mac import linear
 from matplotlib.colors import LinearSegmentedColormap
 
 
 class MACNetworkSequential(Model):
     """
-    Implementation of the entire ``MAC`` network.
+    Implementation of the entire ``VWM`` network.
     """
 
     def __init__(self, params, problem_default_values_={}):
         """
-        Constructor for the ``MAC`` network.
+        Constructor for the ``VWM`` network.
 
         :param params: dict of parameters (read from configuration ``.yaml`` file).
         :type params: utils.ParamInterface
@@ -98,6 +92,9 @@ class MACNetworkSequential(Model):
         self.memory_pass = params['memory_pass']
         self.control_pass = params['control_pass']
         self.slot =  params['slot']
+        self.nb_classes_pointing = params['classes']
+        self.words_embed_length = params['words_embed_length']
+        self.nwords = params['nwords']
 
         # Maximum number of embeddable words.
         self.vocabulary_size = problem_default_values_['embed_vocab_size']
@@ -105,31 +102,25 @@ class MACNetworkSequential(Model):
         # Get dtype.
         self.dtype = self.app_state.dtype
 
-
         try:
             self.nb_classes = problem_default_values_['nb_classes']
             self.nb_classes_pointing = problem_default_values_['nb_classes_pointing']
         except KeyError:
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
-        self.nb_classes_pointing=49
-
-        self.name = 'MAC'
+        self.name = 'VWM'
 
         # instantiate units
-        self.question_encoder = QuestionEncoder( self.vocabulary_size,self.dtype,
-            dim=self.dim, embedded_dim=self.embed_hidden)
+        self.question_encoder = QuestionEncoder( self.vocabulary_size,self.dtype, self.words_embed_length, self.nwords, dim=self.dim, embedded_dim=self.embed_hidden )
 
         # instantiate units
         self.image_encoder = ImageEncoder(
             dim=self.dim)
 
-
+        #initialize VWM Cell
         self.VWM_cell = VWMCell(
             dim=self.dim,
             max_step=self.max_step,
-            self_attention=self.self_attention,
-            memory_gate=self.memory_gate,
             dropout=self.dropout,
             slots=self.slot)
 
@@ -137,29 +128,16 @@ class MACNetworkSequential(Model):
         self.output_unit_answer = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
 
 
-
-        self.data_definitions = {'images': {'size': [-1, 1024, 14, 14], 'type': [np.ndarray]},
-                                 'questions': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'questions_length': {'size': [-1], 'type': [list, int]},
-                                 'targets': {'size': [-1, self.nb_classes], 'type': [torch.Tensor]}
-                                 }
-
         # initialize hidden states for mac cell control states and memory states
         self.mem_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(app_state.dtype))
         self.control_0 = torch.nn.Parameter(
             torch.zeros(1, self.dim).type(app_state.dtype))
 
-        #self.pointer1 = nn.Linear(433, self.nb_classes_pointing)
-        #nn.init.xavier_uniform_(self.pointer1.weight)
-        #self.pointer1.bias.data.fill_(0.01)
-
-        self.linear_layer = linear(1664, 1, bias=True)
-
 
     def forward(self, data_dict, dropout=0.15):
         """
-        Forward pass of the ``MAC`` network. Calls first the ``InputUnit``, then the recurrent \
-        MAC cells and finally the ```OutputUnit``.
+        Forward pass of the ``VWM`` network. Calls first the ``ImageEncoder, QuestionEncoder``, then the recurrent \
+        VWM cells and finally the ```OutputUnit``.
 
         :param data_dict: input data batch.
         :type data_dict: utils.DataDict
@@ -187,6 +165,7 @@ class MACNetworkSequential(Model):
 
         # Get questions size of all batch elements.
         questions_length = questions.size(1)
+
         # Convert questions length into a tensor
         questions_length = torch.from_numpy(numpy.array(questions_length))
 
@@ -196,23 +175,17 @@ class MACNetworkSequential(Model):
 
         # expand the hidden states to whole batch for mac cell control states and memory states
         control = self.control_0.expand(batch_size, self.dim)
-        memory = self.mem_0.expand(batch_size, self.dim)
+        summary_object = self.mem_0.expand(batch_size, self.dim)
         control_mask = self.get_dropout_mask(control, self.dropout)
-        memory_mask = self.get_dropout_mask(memory, self.dropout)
+        memory_mask = self.get_dropout_mask(summary_object, self.dropout)
         control = control * control_mask
-        memory = memory * memory_mask
-
+        summary_object=  summary_object * memory_mask
 
         # initialize empty memory
         visual_working_memory = torch.zeros(batch_size, self.dim, self.slot).type(app_state.dtype)
 
         # initialize Wt_sequential at first slot position
-        Wt_sequential_1 = torch.ones(batch_size, 1).type(app_state.dtype)
-        Wt_sequential_2 = torch.zeros(batch_size, self.slot-1).type(app_state.dtype)
-
-        # self.Wt_sequential=torch.zeros(48,1,4).type(app_state.dtype)
-
-        Wt_sequential = torch.cat([Wt_sequential_1, Wt_sequential_2], dim=1).unsqueeze(1)
+        Wt_sequential = torch.cat([torch.ones(batch_size, 1).type(app_state.dtype), torch.zeros(batch_size, self.slot-1).type(app_state.dtype)], dim=1).unsqueeze(1)
 
         self.cell_states=[]
 
@@ -226,13 +199,13 @@ class MACNetworkSequential(Model):
             feature_maps= self.image_encoder(images[i])
 
             # recurrent MAC cells
-            new_memory, state_history, attention_current, visual_working_memory, Wt_sequential = self.VWM_cell(contextual_word_encoding, question_encoding, feature_maps, control, memory ,visual_working_memory, Wt_sequential)
+            new_summary_object, state_history, last_visual_attention, visual_working_memory, Wt_sequential = self.VWM_cell(contextual_word_encoding, question_encoding, feature_maps, control, summary_object ,visual_working_memory, Wt_sequential)
 
             #save state history
             self.cell_states.append(state_history)
 
             # output unit
-            logits_answer[:, i, :] = self.output_unit_answer(attention_current, question_encoding, new_memory)
+            logits_answer[:, i, :] = self.output_unit_answer(last_visual_attention, question_encoding, new_summary_object)
 
 
         return logits_answer, logits_pointing
@@ -278,9 +251,6 @@ class MACNetworkSequential(Model):
 
         #haut
         ax_step = fig.add_subplot(gs[0, :])
-
-
-
 
         # Set axis ticks
         ax_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))

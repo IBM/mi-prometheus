@@ -53,11 +53,10 @@ class QuestionEncoder(Module):
     Implementation of the ``QuestionEncoder`` of the MAC network.
     """
 
-    def __init__(self, vocabulary_size, dtype,  dim, embedded_dim):
+    def __init__(self, vocabulary_size, dtype, words_embed_length, nwords, embedded_dim, dim):
         """
         Constructor for the ``QuestionEncoder``.
-        
-        
+             
         :param dim: size of dictionnary
         :type dim: int
 
@@ -76,6 +75,10 @@ class QuestionEncoder(Module):
 
         self.dtype=dtype
 
+        self.nwords=nwords
+
+        self.words_embed_length=words_embed_length
+
         # create bidirectional LSTM layer
         self.lstm = torch.nn.LSTM(input_size=embedded_dim, hidden_size=self.dim,
                             num_layers=1, batch_first=True, bidirectional=True)
@@ -83,12 +86,7 @@ class QuestionEncoder(Module):
         # linear layer for projecting the word encodings from 2*dim to dim
         self.lstm_proj = torch.nn.Linear(2 * self.dim, self.dim)
 
-        # Length of vectoral representation of each word.
-        self.words_embed_length = 64
-
-        # This should be the length of the longest sentence encounterable
-        self.nwords = 24
-
+        print(self.words_embed_length)
         self.EmbedVocabulary(vocabulary_size,
                              self.words_embed_length)
 
@@ -105,19 +103,16 @@ class QuestionEncoder(Module):
         :return:
 
             - question encodings: [batch_size x 2*dim] (torch.tensor),
-            - word encodings: [batch_size x maxQuestionLength x dim] (torch.tensor),
+            - contextual_word_embedding: [batch_size x maxQuestionLength x dim] (torch.tensor),
           
         """
+        batch_size = questions.shape[0]
 
         # Embeddings.
         questions = self.forward_lookup2embed(questions)
 
-        batch_size = questions.shape[0]
-
-        embed=questions.float()
-
         # LSTM layer: words & questions encodings
-        lstm_out, (h, _) = self.lstm(embed)
+        lstm_out, (h, _) = self.lstm(questions.float())
 
         # get final words encodings using linear layer
         contextual_word_embedding = self.lstm_proj(lstm_out)
@@ -125,8 +120,8 @@ class QuestionEncoder(Module):
         # reshape last hidden states for questions encodings -> [batch_size x (2*dim)]
         question_encoding = h.permute(1, 0, 2).contiguous().view(batch_size, -1)
 
-        # return everything
         return  contextual_word_embedding, question_encoding
+
 
     def forward_lookup2embed(self, questions):
         """

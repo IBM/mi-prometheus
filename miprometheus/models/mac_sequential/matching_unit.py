@@ -40,15 +40,15 @@
 # limitations under the License.
 
 """
-read_unit.py: Implementation of the ``MemoryRetrievalUnit`` for the VWM network. Cf https://arxiv.org/abs/1803.03067 for the \
-reference paper.
+read_unit.py: Implementation of the ``MatchingUnit`` for the VWM network. 
+
 """
 __author__ = "Vincent Albouy"
 
 import torch
 from torch.nn import Module
 
-from miprometheus.models.mac_sequential.utils_mac import linear
+from miprometheus.models.mac_sequential.utils_VWM import linear
 
 
 class MatchingUnit(Module):
@@ -75,26 +75,28 @@ class MatchingUnit(Module):
                                                        linear(2 * dim, 1, bias=True))
 
 
-    def forward(self, control, read, read_history):
+    def forward(self, control, vo, mo):
         """
-        Forward pass of the ``MemoryRetrievalUnit``. Assuming 1 scalar attention weight per \
+        Forward pass of the ``MatchingUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
-        :param memory_states: list of all previous memory states, each of shape [batch_size x mem_dim]
-        :type memory_states: torch.tensor
-        :param  history: image representation (output of CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
-        :type history: torch.tensor
-        :param ctrl_states: All previous control state, each of shape [batch_size x ctrl_dim].
-        :type ctrl_states: list
-        :return: gkb, gmem
+        :param control: last control state
+        :type control: torch.tensor
+        :param  vo: visual output
+        :type vo: torch.tensor
+        :param  mo: memory output
+        :type mo: torch.tensor
+   
+        :return: gvt, gmt : visual gate and memory gate
         """
-        # calculate two gates gKB and gM gates
+        # calculate gate gvt
+        concat_read_visual = torch.cat([control, vo], dim=1)
+        gvt = self.linear_read(concat_read_visual )
+        gvt = torch.sigmoid(gvt)
 
-        concat_read = torch.cat([control, read], dim=1)
-        gkb = self.linear_read(concat_read)
-        gkb = torch.sigmoid(gkb)
+        # calculate gate gmt
+        concat_read_memory = torch.cat([control, mo], dim=1)
+        gmt = self.linear_read_history(concat_read_memory)
+        gmt = torch.sigmoid(gmt)
 
-        concat_read_history = torch.cat([control, read_history], dim=1)
-        gmem = self.linear_read_history(concat_read_history)
-        gmem = torch.sigmoid(gmem)
-
-        return  gkb, gmem
+        #return two gates gvt, gmt
+        return gvt, gmt

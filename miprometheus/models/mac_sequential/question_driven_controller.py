@@ -46,7 +46,7 @@ __author__ = "Vincent Albouy"
 
 import torch
 from torch.nn import Module
-from miprometheus.models.mac_sequential.utils_mac import linear
+from miprometheus.models.mac_sequential.utils_VWM import linear
 from miprometheus.models.mac_sequential.attention_module import Attention_Module
 
 
@@ -102,7 +102,6 @@ class QuestionDrivenController(Module):
         encodings ('representation of each word in the context of the question').
         :type contextual_words: torch.tensor
 
-
         :param question_encoding: question representation, of shape [batch_size x 2*dim].
         :type question_encoding: torch.tensor
 
@@ -129,5 +128,5 @@ class QuestionDrivenController(Module):
         # neural network  that mixes the 4 context (T1,T2,T3,T4)
         temporal_class= torch.nn.functional.softmax(self.temporal_classifier(c), dim=1)
 
-        #return control  and the context_weighting_vector_T (T1,T2,T3,T4)
+        #return control, control attention,  and the context_weighting_vector_T (T1,T2,T3,T4)
         return c,ca, temporal_class

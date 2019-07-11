@@ -50,7 +50,7 @@ from torch.nn import Module
 import torch.nn as nn
 
 class ImageEncoder(Module):
-    
+
     """
     Implementation of the ``ImageEncoder`` of the VWM network.
     """
@@ -70,7 +70,7 @@ class ImageEncoder(Module):
         self.dim = dim
 
         # Number of channels in input Image RGB
-        self.image_channels = 3
+        self.image_channels = 3 # [R,G,B]
 
         # CNN number of channels - Parameters for the CNN
         self.visual_processing_channels = [32, 64, 64, 128]

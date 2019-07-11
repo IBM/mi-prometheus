@@ -40,22 +40,19 @@
 # limitations under the License.
 
 """
-read_unit.py: Implementation of the ``MemoryRetrievalUnit`` for the VWM network. Cf https://arxiv.org/abs/1803.03067 for the \
-reference paper.
+read_unit.py: Implementation of the ``MemoryRetrievalUnit`` for the VWM network. 
 """
 __author__ = "Vincent Albouy"
 
 import torch
 from torch.nn import Module
 
-from miprometheus.models.mac_sequential.utils_mac import linear
+from miprometheus.models.mac_sequential.utils_VWM import linear
 from miprometheus.models.mac_sequential.attention_module import Attention_Module
-
-
 
 class MemoryRetrievalUnit(Module):
     """
-    Implementation of the ``MemoryRetrievalUnit`` of the MAC network.
+    Implementation of the ``MemoryRetrievalUnit`` of the VWM network.
     """
 
     def __init__(self, dim):
@@ -87,10 +84,11 @@ class MemoryRetrievalUnit(Module):
         """
         Forward pass of the ``MemoryRetrievalUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
+        
         :param memory_states: list of all previous memory states, each of shape [batch_size x mem_dim]
         :type memory_states: torch.tensor
-        :param  history: image representation (output of CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
-        :type history: torch.tensor
+        :param  visual_working_memory: memory shape [batch_size x nb_kernels x (feat_H * feat_W)]
+        :type visual_working_memory: torch.tensor
         :param ctrl_states: All previous control state, each of shape [batch_size x ctrl_dim].
         :type ctrl_states: list
         :return: visual_output, visual_attention 
