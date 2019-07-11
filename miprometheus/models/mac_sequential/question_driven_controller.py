@@ -88,8 +88,9 @@ class QuestionDrivenController(Module):
 
         # instantiate neural network for T (temporal classifier that leads to 4 classes)
         self.temporal_classifier = torch.nn.Sequential(linear(dim, dim, bias=True),
-                                                            torch.nn.ELU(),
-                                                            linear(dim, 4, bias=True))
+                                                       torch.nn.ELU(),
+                                                       linear(dim, 4, bias=True),
+                                                       torch.nn.Softmax(dim=-1))
 
     def forward(self, step, contextual_words, question_encoding, ctrl_state):
         """
@@ -109,7 +110,9 @@ class QuestionDrivenController(Module):
         :param ctrl_state: previous control state, of shape [batch_size x dim]
         :type ctrl_state: torch.tensor
 
-        :return: new control state, [batch_size x dim], context_weighting_vector_T (T1,T2,T3,T4)
+        :return: new control state: [batch_size x dim]
+        :return: temporal_class: soft classification representing \
+        temporal context now/last/latest/none of current step [batch_size x 4]
 
         """
 
@@ -124,10 +127,10 @@ class QuestionDrivenController(Module):
         cqi = self.projection(cqi)  # [batch_size x dim]
 
         # retrieve content c + attention ca
-        c, ca = self.attention_module(cqi, contextual_words, contextual_words)
+        c, ca = self.attention_module(cqi, contextual_words)
 
-        # neural network  that mixes the 4 context (T1,T2,T3,T4)
-        temporal_class= torch.nn.functional.softmax(self.temporal_classifier(c), dim=1)
+        # neural network  that returns temporal class weights
+        temporal_class = self.temporal_classifier(c)
 
-        #return control  and the context_weighting_vector_T (T1,T2,T3,T4)
-        return c,ca, temporal_class
+        # return control and the temporal class weights (T1,T2,T3,T4)
+        return c, ca, temporal_class
