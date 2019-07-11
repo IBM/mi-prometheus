@@ -245,8 +245,6 @@ class COG(VideoTextToClassProblem):
 		self.tuple_list = [[0,0,0] for _ in range(len(self.categories))]
 
 
-
-
 	def evaluate_loss(self, data_dict, logits):
 		"""
 		Calculates accuracy equal to mean number of correct predictions in a given batch.
@@ -418,12 +416,30 @@ class COG(VideoTextToClassProblem):
 		:type logits: :py:class:`torch.Tensor`
 
 		"""
-        #build statistics dictionnary
-		categories_stats = dict(zip(self.categories, self.tuple_list))
 
 		# Get targets.
 		targets_answer = data_dict['targets_answer']
 		targets_pointing = data_dict['targets_pointing']
+
+		#build dictionary to store acc families stats
+
+
+
+		categories = ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
+						   'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
+						   'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
+						   'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
+						   'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
+						   'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape',
+						   'AndSimpleExistColorGo', 'AndSimpleExistGo', 'AndSimpleExistShapeGo', 'CompareColorGo',
+						   'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
+						   'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
+						   'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
+						   'SimpleExistGo', 'SimpleExistShapeGo']
+
+		tuple_list = [[0, 0, 0] for _ in range(len(self.categories))]
+		categories_stats = dict(zip(categories, tuple_list))
+
 
 		#Get tasks
 		tasks = data_dict['tasks']
@@ -509,6 +525,7 @@ class COG(VideoTextToClassProblem):
 
 			else:
 				categories_stats[tasks[i]][2] = categories_stats[tasks[i]][1]/categories_stats[tasks[i]][0]
+
 
 
 		return categories_stats
@@ -736,14 +753,13 @@ class COG(VideoTextToClassProblem):
 			os.remove(os.path.expanduser('~/data/downloaded'))
 			self.logger.info('\nClean-up complete! Dataset ready.')
 
-
 	def add_statistics(self, stat_col):
 		"""
-		Add :py:class:`COG`-specific stats to :py:class:`miprometheus.utils.StatisticsCollector`.
-		
-		:param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
-		
-		"""
+        Add :py:class:`COG`-specific stats to :py:class:`miprometheus.utils.StatisticsCollector`.
+
+        :param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
+
+        """
 		stat_col.add_statistic('loss_answer', '{:12.10f}')
 		stat_col.add_statistic('loss_pointing', '{:12.10f}')
 		stat_col.add_statistic('acc', '{:12.10f}')
@@ -769,7 +785,7 @@ class COG(VideoTextToClassProblem):
 		stat_col.add_statistic('GetColor', '{:12.10f}')
 		stat_col.add_statistic('GetColorSpace', '{:12.10f}')
 		stat_col.add_statistic('GetShape', '{:12.10f}')
-		stat_col.add_statistic('GetShapeSpace','{:12.10f}')
+		stat_col.add_statistic('GetShapeSpace', '{:12.10f}')
 		stat_col.add_statistic('SimpleCompareShape', '{:12.10f}')
 		stat_col.add_statistic('SimpleCompareColor', '{:12.10f}')
 		stat_col.add_statistic('SimpleCompareShape', '{:12.10f}')
@@ -792,23 +808,17 @@ class COG(VideoTextToClassProblem):
 		stat_col.add_statistic('SimpleCompareColorGo', '{:12.10f}')
 		stat_col.add_statistic('SimpleCompareShapeGo', '{:12.10f}')
 		stat_col.add_statistic('SimpleExistColorGo', '{:12.10f}')
-		stat_col.add_statistic('SimpleExistGo','{:12.10f}')
+		stat_col.add_statistic('SimpleExistGo', '{:12.10f}')
 		stat_col.add_statistic('SimpleCompareShape', '{:12.10f}')
 		stat_col.add_statistic('SimpleExistShapeGo', '{:12.10f}')
 
-
-
-
-
 	def collect_statistics(self, stat_col, data_dict, logits):
 		"""
-		Collects dataset details.
-
-		:param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
-		:param data_dict: :py:class:`miprometheus.utils.DataDict` containing targets.
-		:param logits: Prediction of the model (:py:class:`torch.Tensor`)
-
-		"""
+        Collects dataset details.
+        :param stat_col: :py:class:`miprometheus.utils.StatisticsCollector`.
+        :param data_dict: :py:class:`miprometheus.utils.DataDict` containing targets.
+        :param logits: Prediction of the model (:py:class:`torch.Tensor`)
+        """
 		# Additional loss.
 		stat_col['loss_answer'] = self.loss_answer.cpu().item()
 		stat_col['loss_pointing'] = self.loss_pointing.cpu().item()
@@ -823,7 +833,11 @@ class COG(VideoTextToClassProblem):
 		families_accuracies_dic = self.get_acc_per_family(data_dict, logits)
 
 		for key in families_accuracies_dic:
-			stat_col[key]=families_accuracies_dic[key][2]
+			stat_col[key] = families_accuracies_dic[key][2]
+
+
+
+
 
 
 
@@ -959,4 +973,5 @@ if __name__ == "__main__":
 			os.remove(os.path.expanduser('~/data/cogtest/'+str(i)+'.npy'))
 
 	print('Done!')
+
 
