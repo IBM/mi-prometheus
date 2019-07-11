@@ -103,12 +103,13 @@ class VisualRetrievalUnit(Module):
         """
 
         # pass memory state through linear layer
-        summary_object = self.summary_proj_layer(summary_object).unsqueeze(2)
+        summary_object = self.summary_proj_layer(summary_object).unsqueeze(1)
         # memory_state: [batch_size x dim x 1]
 
         # pass feature maps through linear layer
         feature_maps_proj = self.feature_maps_proj_layer(
-            feature_maps.permute(0, 2, 1)).permute(0, 2, 1)
+            feature_maps)
+
 
         # compute I(i,h,w) elements (r1 equation)
         # [batch_size x dim x 1] * [batch_size x dim x (H*W)] -> [batch_size x dim x (H*W)]
@@ -117,10 +118,10 @@ class VisualRetrievalUnit(Module):
         # compute I' elements (r2 equation)
         concat = self.aggregator(
             torch.cat([I_elements,feature_maps],
-                      dim=1).permute(0, 2, 1))  # [batch_size x (H*W) x dim]
+                      dim=2))  # [batch_size x (H*W) x dim]
 
         # compute attention weights
-        visual_output, visual_attention = self.attention_module(ctrl_state,concat,feature_maps.permute(0, 2, 1))
+        visual_output, visual_attention = self.attention_module(ctrl_state,concat,feature_maps)
 
 
         return visual_output, visual_attention

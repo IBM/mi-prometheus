@@ -96,8 +96,8 @@ class ImageEncoder(Module):
         """
         Forward pass of the ``ImageEncoder``.
 
-        :param questions: tensor of the questions words, shape [batch_size x maxQuestionLength x embedded_dim].
-        :type questions: torch.tensor
+        :param images: tensor of the images, shape [batch_size x H X W].
+        :type images: torch.tensor
               
         :return:
         :param feature_maps: [batch_size x nb_kernels x feat_H x feat_W].
@@ -122,7 +122,7 @@ class ImageEncoder(Module):
 
 
         # reshape feature maps as channels first
-        feature_maps = feature_maps.view(batch_size, self.dim, -1)
+        feature_maps = feature_maps.view(batch_size, -1 , self.dim)
 
         # return feature_maps
         return feature_maps
