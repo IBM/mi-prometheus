@@ -40,65 +40,56 @@
 # limitations under the License.
 
 """
-attention_module.py
+write_unit.py: Implementation of the ``ThoughtUnit`` for the VWM network.
 """
-__author__ = "Vincent Albouy, T.S. Jayram"
+__author__ = "Vincent Albouy"
 
 import torch
 from torch.nn import Module
 from miprometheus.models.mac_sequential.utils_mac import linear
 
 
-class Attention_Module(Module):
+class ThoughtUnit(Module):
     """
-    Implementation of the Attention_Module for VWM model 
+    Implementation of the ``ThoughtUnit`` of the MAC network.
     """
 
     def __init__(self, dim):
         """
-        Constructor for the VWM model Attention_Module
+        Constructor for the ``ThoughtUnit``.
 
-        :param dim: common dimension of query vector and keys
+        :param dim: global 'd' hidden dimension
         :type dim: int
+
         """
 
         # call base constructor
-        super(Attention_Module, self).__init__()
+        super(ThoughtUnit, self).__init__()
 
-        # define the linear layer used to create the attention weights. Should
-        # be one scalar weight per contextual word
-        self.attn = linear(dim, 1, bias=True)
+        # linear layer for the concatenation of context_output and summary_output
+        self.concat_layer = linear(2 * dim, dim, bias=True)
 
-    def forward(self, q, K, V):
+
+    def forward(self, summary_output, context_output, ctrl_state):
         """
-        Forward pass of the ``VWM model Attention_Module``.
+        Forward pass of the ``ThoughtUnit``.
 
-        :param  q : attention query 
-        :type   tensor
+        :param summary_output: previous memory states, each of shape [batch_size x dim].
+        :type summary_output: list
 
-        :param K : attention Keys
-        :type  tensor
+        :param context_output: current read vector (output of the viusal retrieval unit), shape [batch_size x dim].
+        :type context_output: torch.tensor
 
-        :return: c : content , ca : attention
-        :type  tensors 
-        
+        :param ctrl_state: previous control state, each of shape [batch_size x dim].
+        :type ctrl_state: list
+
+        :return: current memory state, shape [batch_size x mem_dim]
+
         """
-        assert (q.size(-1) == K.size(-1))              # dimension match
-        assert (V.size(-2) == K.size(-2))              # num slots match
 
-        # compute element-wise product between q & K
-        # compute attention weights
+        # combine the new read vector with the prior memory state (w1)
+        mi_info = self.concat_layer(torch.cat([context_output, summary_output], 1))
+        next_context_output = mi_info  # new memory state if no self-attention & memory-gating
 
-        cai = self.attn(q[:, None, :] * K).squeeze(-1)  # [batch_size x maxLength]
-        # print(f'Shape of cai = {cai.size()}')
 
-        # get attention distribution
-        ca = torch.nn.functional.softmax(cai, dim=-1)  # [batch_size x maxLength]
-        # print(f'Shape of ca = {ca.size()}')
-
-        # compute content
-        c = (ca[...,None] * V).sum(1)                  # [batch_size x dim]
-        # print(f'Shape of c = {c.size()}')
-
-        # return content and attention tensors
-        return c, ca
+        return next_context_output

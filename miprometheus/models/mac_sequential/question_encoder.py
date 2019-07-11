@@ -40,23 +40,26 @@
 # limitations under the License.
 
 """
-input_unit.py: Implementation of the input unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for \
+input_unit.py: Implementation of the input unit for the VWM Network
 the reference paper.
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Albouy"
 import torch
 from torch.nn import Module
 import torch.nn as nn
 
-
 class QuestionEncoder(Module):
     """
-    Implementation of the ``InputUnit`` of the MAC network.
+    Implementation of the ``QuestionEncoder`` of the MAC network.
     """
 
-    def __init__(self, vocabulary_size,dtype,  dim, embedded_dim):
+    def __init__(self, vocabulary_size, dtype,  dim, embedded_dim):
         """
-        Constructor for the ``InputUnit``.
+        Constructor for the ``QuestionEncoder``.
+        
+        
+        :param dim: size of dictionnary
+        :type dim: int
 
         :param dim: global 'd' hidden dimension
         :type dim: int
@@ -70,15 +73,14 @@ class QuestionEncoder(Module):
         super(QuestionEncoder, self).__init__()
 
         self.dim = dim
-        self.dtype=dtype
 
+        self.dtype=dtype
 
         # create bidirectional LSTM layer
         self.lstm = torch.nn.LSTM(input_size=embedded_dim, hidden_size=self.dim,
                             num_layers=1, batch_first=True, bidirectional=True)
 
         # linear layer for projecting the word encodings from 2*dim to dim
-        # TODO: linear(2*self.dim, self.dim, bias=True) ?
         self.lstm_proj = torch.nn.Linear(2 * self.dim, self.dim)
 
         # Length of vectoral representation of each word.
@@ -92,7 +94,7 @@ class QuestionEncoder(Module):
 
     def forward(self, questions, questions_len):
         """
-        Forward pass of the ``InputUnit``.
+        Forward pass of the ``QuestionEncoder``.
 
         :param questions: tensor of the questions words, shape [batch_size x maxQuestionLength x embedded_dim].
         :type questions: torch.tensor
@@ -100,14 +102,11 @@ class QuestionEncoder(Module):
         :param questions_len: Unpadded questions length.
         :type questions_len: list
 
- 
-
         :return:
 
             - question encodings: [batch_size x 2*dim] (torch.tensor),
             - word encodings: [batch_size x maxQuestionLength x dim] (torch.tensor),
           
-
         """
 
         # Embeddings.
@@ -125,7 +124,6 @@ class QuestionEncoder(Module):
 
         # reshape last hidden states for questions encodings -> [batch_size x (2*dim)]
         question_encoding = h.permute(1, 0, 2).contiguous().view(batch_size, -1)
-
 
         # return everything
         return  contextual_word_embedding, question_encoding

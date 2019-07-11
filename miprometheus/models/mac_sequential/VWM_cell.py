@@ -43,17 +43,18 @@
 mac_unit.py: Implementation of the MAC Unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the \
 reference paper.
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Albouy"
 
 import torch
 from torch.nn import Module
 
 from miprometheus.models.mac_sequential.question_driven_controller import QuestionDrivenController
 from miprometheus.models.mac_sequential.visual_retrieval_unit import VisualRetrievalUnit
-from miprometheus.models.mac_sequential.write_unit import WriteUnit
+from miprometheus.models.mac_sequential.thought_unit import ThoughtUnit
 from miprometheus.models.mac_sequential.memory_retrieval_unit import MemoryRetrievalUnit
+from miprometheus.models.mac_sequential.matching_unit import MatchingUnit
+from miprometheus.models.mac_sequential.memory_update_unit import MemoryUpdateUnit
 from miprometheus.models.mac_sequential.utils_mac import linear
-from miprometheus.models.dwm.tensor_utils import circular_conv
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
 
@@ -93,11 +94,12 @@ class VWMCell(Module):
         self.question_driven_controller = QuestionDrivenController(dim=dim, max_step=max_step)
         self.visual_retrieval_unit = VisualRetrievalUnit(dim=dim)
         self.memory_retrieval_unit = MemoryRetrievalUnit(dim=dim)
-        self.write = WriteUnit(
-            dim=dim, self_attention=self_attention, memory_gate=memory_gate)
+        self.matching_unit = MatchingUnit(dim=dim)
+        self.memory_update_unit = MemoryUpdateUnit(dim=dim, slots=slots)
+        self.thought_unit = ThoughtUnit(
+            dim=dim)
 
-        self.slots = slots
-        print(self.slots)
+        self.slots=slots
 
         # initialize hidden states
         self.mem_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
@@ -117,43 +119,7 @@ class VWMCell(Module):
 
         self.linear_layer_history = linear(128, 1, bias=True)
 
-
-        if slots==4:
-            self.convolution_kernel = torch.tensor(
-                [[0., 0., 0., 1.], [1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.]]).type(app_state.dtype)
-
-        elif slots==6:
-            self.convolution_kernel = torch.tensor(
-                [[0., 0., 0., 0., 0., 1.], [1., 0., 0., 0., 0., 0.], [0., 1., 0., 0., 0., 0.], [0., 0., 1., 0., 0., 0.],
-                 [0., 0., 0., 1., 0., 0.], [0., 0., 0., 0., 1., 0.]]).type(app_state.dtype)
-
-        elif slots==8:
-            self.convolution_kernel = torch.tensor(
-                [[0., 0., 0., 0., 0., 0., 0., 1.], [1., 0., 0., 0., 0., 0., 0., 0.], [0., 1., 0., 0., 0., 0., 0., 0.],
-                 [0., 0., 1., 0., 0., 0., 0., 0.], [0., 0., 0., 1., 0., 0., 0., 0.], [0., 0., 0., 0., 1., 0., 0., 0.],
-                 [0., 0., 0., 0., 0., 1., 0., 0.], [0., 0., 0., 0., 0., 0., 1., 0.]]).type(app_state.dtype)
-
-
-        elif slots == 10:
-            self.convolution_kernel = torch.tensor(
-                [[0., 0., 0., 0., 0., 0., 0.,0.,0., 1.], [1., 0.,0.,0., 0., 0., 0., 0., 0., 0.], [0., 1., 0.,0.,0., 0., 0., 0., 0., 0.],
-                 [0., 0., 1., 0.,0.,0., 0., 0., 0., 0.], [0., 0., 0., 1., 0., 0., 0.,0.,0., 0.], [0., 0., 0., 0., 1., 0., 0.,0.,0., 0.],
-                 [0., 0., 0., 0., 0., 1., 0.,0.,0., 0.], [0., 0., 0., 0., 0., 0., 1.,0.,0., 0.], [0., 0., 0., 0., 0., 0., 0.,1.,0., 0.],[0., 0., 0., 0., 0., 0., 0.,0.,1., 0.]]).type(app_state.dtype)
-
-        else:
-            exit()
-
-
         self.concat_contexts = torch.zeros(48, 128, requires_grad=False).type(app_state.dtype)
-
-
-        self.linear_read = torch.nn.Sequential(linear(2*dim,2*dim, bias=True),
-                                              torch.nn.ELU(),
-                                              linear(2*dim, 1, bias=True))
-
-        self.linear_read_history = torch.nn.Sequential(linear(2*dim,2*dim, bias=True),
-                                               torch.nn.ELU(),
-                                               linear(2*dim, 1, bias=True))
 
 
     def get_dropout_mask(self, x, dropout):
@@ -178,9 +144,9 @@ class VWMCell(Module):
 
         return mask
 
-    def forward(self, context, question, knowledge, control, memory, visual_working_memory,  Wt_sequential ):
+    def forward(self, context, question, knowledge, control, summary_output, visual_working_memory,  Wt_sequential ):
         """
-        Forward pass of the ``MACUnit``, which represents the recurrence over the \
+        Forward pass of the ``VWMCell``, which represents the recurrence over the \
         MACCell.
 
         :param context: contextual words, shape [batch_size x maxQuestionLength x dim]
@@ -196,12 +162,9 @@ class VWMCell(Module):
         :return: list of the memory states.
 
         """
-        batch_size = question.size(0)
 
-        #empty state history
+        # empty state history
         self.cell_state_history = []
-
-
 
         # main loop of recurrence over the MACCell
         for i in range(self.max_step):
@@ -214,89 +177,28 @@ class VWMCell(Module):
                 ctrl_state=control)
 
 
-            # read unit
-            read ,read_attention = self.visual_retrieval_unit(summary_object=memory, feature_maps=knowledge,
+            # visual retrieval unit
+            vo, va = self.visual_retrieval_unit(summary_object=summary_output, feature_maps=knowledge,
                              ctrl_state=control)
 
-            # read memory
-
-            read_history,rvi_history  = self.memory_retrieval_unit(summary_object=memory, visual_working_memory=visual_working_memory,
+            # memory retrieval unit
+            mo, ma = self.memory_retrieval_unit(summary_object=summary_output, visual_working_memory=visual_working_memory,
                              ctrl_state=control)
 
-            # calculate two gates gKB and gM gates
+            # matching unit
+            gvt,gmt=self.matching_unit(control,vo,mo)
 
-            concat_read=torch.cat([control, read], dim=1)
-            gkb = self.linear_read(concat_read)
-            gkb = torch.sigmoid(gkb)
+            context_output = self.memory_update_unit(gvt, gmt, vo, mo, ma, visual_working_memory,
+                                        context_weighting_vector_T, Wt_sequential)
 
-
-            concat_read_history = torch.cat([control, read_history], dim=1)
-            gmem = self.linear_read_history(concat_read_history)
-            gmem = torch.sigmoid(gmem)
-
-
-
-
-
-            # choose between now, last, latest context to built the final read vector
-            now_context = gkb*read
-            last_context =  gmem*read_history
-            latest_context = (1-gkb)*last_context + now_context
-
-            context_weighting_vector_T=context_weighting_vector_T.unsqueeze(1)
-            T1=context_weighting_vector_T[:,:,0]
-            T2 = context_weighting_vector_T[:, :, 1]
-            T3 = context_weighting_vector_T[:, :, 2]
-            T4 = context_weighting_vector_T[:, :, 3]
-
-            #obtain alpha and beta
-
-
-            alpha = gmem * gkb * (T2+T3) * (1-T4)
-            beta = (1 - gmem) * gkb * (T2+T3) * (1-T4)
-
-
-            # history update equation
-
-            W = alpha * rvi_history.squeeze(2) + Wt_sequential.squeeze(1)*beta
-            W= W.unsqueeze(1)
-
-
-            ######## Update history #########
-
-            #take the read vector and add one dimension [batch size, hidden dim, 1]
-
-            read_unsqueezed=read.unsqueeze(2)
-            added_object = read_unsqueezed.matmul(W)
-
-            unity_matrix = torch.ones(batch_size, self.dim, 1).type(app_state.dtype)
-            J = torch.ones(batch_size, self.dim,self.slots).type(app_state.dtype)
-
-            visual_working_memory=visual_working_memory*(J-unity_matrix.matmul(W))+added_object
-
-
-            ####### Update Wt_sequential ########
-
-            #get convolved tensor
-
-            convolved_Wt_sequential=Wt_sequential.squeeze(1).matmul(self.convolution_kernel).unsqueeze(1)
-
-            #final expression to update Wt_sequential
-
-            Wt_sequential = (convolved_Wt_sequential.squeeze(1)*beta).unsqueeze(1)+(Wt_sequential.squeeze(1)*(1-beta)).unsqueeze(1)
-
-            #final read vector
-            context_read_vector = T1*now_context + T2*last_context + T3*latest_context
-
-
-            # write unit
-            memory = self.write(memory_state=memory,
-                                read_vector= context_read_vector , ctrl_state=control)
+            # thought Unit
+            summary_output = self.thought_unit(summary_output=summary_output,
+                                               context_output= context_output , ctrl_state=control)
 
 
             # store attention weights for visualization
             if app_state.visualize:
                 self.cell_state_history.append(
-                    (read_attention.detach(), control_attention.detach(), visual_working_memory.detach(), rvi_history.detach(),gmem,gkb, Wt_sequential, context_weighting_vector_T))
+                    (va.detach(), control_attention.detach(), visual_working_memory.detach(), ma.detach(),gvt,gmt, Wt_sequential, context_weighting_vector_T))
 
-        return memory, self.cell_state_history, read_attention, visual_working_memory, Wt_sequential
+        return summary_output, self.cell_state_history, va, visual_working_memory, Wt_sequential

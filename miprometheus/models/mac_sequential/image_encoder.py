@@ -40,32 +40,27 @@
 # limitations under the License.
 
 """
-input_unit.py: Implementation of the input unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for \
-the reference paper.
+Image_encoder.py: Implementation of the ImageEncoder for the VWM network.
+
 """
-__author__ = "Vincent Marois"
+
+__author__ = "Vincent Albouy"
 import torch
 from torch.nn import Module
 import torch.nn as nn
-import numpy as np
-
-from miprometheus.models.mac_sequential.utils_mac import linear
-
 
 class ImageEncoder(Module):
+    
     """
-    Implementation of the ``InputUnit`` of the MAC network.
+    Implementation of the ``ImageEncoder`` of the VWM network.
     """
 
-    def __init__(self, dim, embedded_dim):
+    def __init__(self, dim):
         """
-        Constructor for the ``InputUnit``.
+        Constructor for the ``ImageEncoder``.
 
         :param dim: global 'd' hidden dimension
         :type dim: int
-
-        :param embedded_dim: dimension of the word embeddings.
-        :type embedded_dim: int
 
         """
 
@@ -74,39 +69,19 @@ class ImageEncoder(Module):
 
         self.dim = dim
 
-        # Number of channels in input Image
+        # Number of channels in input Image RGB
         self.image_channels = 3
 
-        # CNN number of channels
+        # CNN number of channels - Parameters for the CNN
         self.visual_processing_channels = [32, 64, 64, 128]
 
-        # LSTM hidden units.
-        self.lstm_hidden_units = 64
-
-        # Input Image size
-        self.image_size = [112, 112]
-
-        # history states
-        self.cell_states = []
-
-        # Visual memory shape. height x width.
-        self.vstm_shape = np.array(self.image_size)
-        for channel in self.visual_processing_channels:
-            self.vstm_shape = np.floor((self.vstm_shape) / 2)
-        self.vstm_shape = [int(dim) for dim in self.vstm_shape]
-
-        # Number of GRU units in controller
-        self.controller_output_size = 768
-
+        #call utility class to buil the CNN layers
         self.VisualProcessing(self.image_channels,
-                              self.visual_processing_channels,
-                              self.lstm_hidden_units * 2,
-                              self.controller_output_size * 2,
-                              self.vstm_shape)
+                              self.visual_processing_channels)
+
 
         # Initialize weights and biases
         # -----------------------------------------------------------------
-        # Visual processing
         nn.init.xavier_uniform_(self.conv1.weight, gain=nn.init.calculate_gain('relu'))
         nn.init.xavier_uniform_(self.conv2.weight, gain=nn.init.calculate_gain('relu'))
         nn.init.xavier_uniform_(self.conv3.weight, gain=nn.init.calculate_gain('relu'))
@@ -119,28 +94,20 @@ class ImageEncoder(Module):
 
     def forward(self, images):
         """
-        Forward pass of the ``InputUnit``.
+        Forward pass of the ``ImageEncoder``.
 
         :param questions: tensor of the questions words, shape [batch_size x maxQuestionLength x embedded_dim].
         :type questions: torch.tensor
-
-        :param questions_len: Unpadded questions length.
-        :type questions_len: list
-
-        :param feature_maps: [batch_size x nb_kernels x feat_H x feat_W] coming from `ResNet101`.
+              
+        :return:
+        :param feature_maps: [batch_size x nb_kernels x feat_H x feat_W].
         :type feature_maps: torch.tensor
 
-        :return:
-
-            - question encodings: [batch_size x 2*dim] (torch.tensor),
-            - word encodings: [batch_size x maxQuestionLength x dim] (torch.tensor),
-            - images_encodings: [batch_size x nb_kernels x (H*W)] (torch.tensor).
-
-
+    
         """
         batch_size = images.shape[0]
 
-        # Cog like CNN - cf  cog  model
+        # Cog like CNN - cf cog  model
         x = self.conv1(images)
         x = self.maxpool1(x)
         x = nn.functional.relu(self.batchnorm1(x))
@@ -151,17 +118,16 @@ class ImageEncoder(Module):
         x = self.maxpool3(x)
         x = nn.functional.relu(self.batchnorm3(x))
         x = self.conv4(x)
-        # out_conv4 = self.conv4(out_batchnorm3)
         feature_maps = self.maxpool4(x)
 
 
         # reshape feature maps as channels first
         feature_maps = feature_maps.view(batch_size, self.dim, -1)
 
-        # return everything
+        # return feature_maps
         return feature_maps
 
-    def VisualProcessing(self, in_channels, layer_channels, feature_control_len, spatial_control_len, output_shape):
+    def VisualProcessing(self, in_channels, layer_channels):
         """
         Defines all layers pertaining to visual processing.
 
@@ -171,18 +137,7 @@ class ImageEncoder(Module):
         :param layer_channels: Number of feature maps in the CNN for each layer.
         :type layer_channels: List of Ints
 
-        :param feature_control_len: Input size to the Feature Attention linear layer.
-        :type feature_control_len: Int
-
-        :param spatial_control_len: Input size to the Spatial Attention linear layer.
-        :type spatial_control_len: Int
-
-        :param output_shape: Output dimensions of feature maps of last layer.
-        :type output_shape: Tuple of Ints
-
         """
-        # Initial Norm
-        # self.batchnorm0 = nn.BatchNorm2d(3)
 
         # First Layer
         self.conv1 = nn.Conv2d(in_channels, layer_channels[0], 3,
