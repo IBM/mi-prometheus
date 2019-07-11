@@ -127,13 +127,10 @@ class MemoryUpdateUnit(Module):
         T4 = context_weighting_vector_T[:, :, 3]
 
         # obtain alpha and beta
-
-
         alpha = gmem * gkb * (T2 + T3) * (1 - T4)
         beta = (1 - gmem) * gkb * (T2 + T3) * (1 - T4)
 
         # history update equation
-
         W = alpha * rvi_history + Wt_sequential.squeeze(1) * beta
         W = W.unsqueeze(1)
 

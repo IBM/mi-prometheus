@@ -78,7 +78,6 @@ class QuestionEncoder(Module):
                             num_layers=1, batch_first=True, bidirectional=True)
 
         # linear layer for projecting the word encodings from 2*dim to dim
-        # TODO: linear(2*self.dim, self.dim, bias=True) ?
         self.lstm_proj = torch.nn.Linear(2 * self.dim, self.dim)
 
         # Length of vectoral representation of each word.
@@ -100,14 +99,11 @@ class QuestionEncoder(Module):
         :param questions_len: Unpadded questions length.
         :type questions_len: list
 
- 
-
         :return:
 
             - question encodings: [batch_size x 2*dim] (torch.tensor),
             - word encodings: [batch_size x maxQuestionLength x dim] (torch.tensor),
           
-
         """
 
         # Embeddings.

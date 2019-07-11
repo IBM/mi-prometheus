@@ -43,7 +43,7 @@
 mac_unit.py: Implementation of the MAC Unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the \
 reference paper.
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Albouy"
 
 import torch
 from torch.nn import Module
@@ -55,7 +55,6 @@ from miprometheus.models.mac_sequential.memory_retrieval_unit import MemoryRetri
 from miprometheus.models.mac_sequential.matching_unit import MatchingUnit
 from miprometheus.models.mac_sequential.memory_update_unit import MemoryUpdateUnit
 from miprometheus.models.mac_sequential.utils_mac import linear
-from miprometheus.models.dwm.tensor_utils import circular_conv
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
 
@@ -98,7 +97,7 @@ class VWMCell(Module):
         self.matching_unit = MatchingUnit(dim=dim)
         self.memory_update_unit = MemoryUpdateUnit(dim=dim, slots=slots)
         self.thought_unit = ThoughtUnit(
-            dim=dim, self_attention=self_attention, memory_gate=memory_gate)
+            dim=dim)
 
         self.slots=slots
 
@@ -145,9 +144,9 @@ class VWMCell(Module):
 
         return mask
 
-    def forward(self, context, question, knowledge, control, memory, visual_working_memory,  Wt_sequential ):
+    def forward(self, context, question, knowledge, control, summary_output, visual_working_memory,  Wt_sequential ):
         """
-        Forward pass of the ``MACUnit``, which represents the recurrence over the \
+        Forward pass of the ``VWMCell``, which represents the recurrence over the \
         MACCell.
 
         :param context: contextual words, shape [batch_size x maxQuestionLength x dim]
@@ -163,12 +162,9 @@ class VWMCell(Module):
         :return: list of the memory states.
 
         """
-        batch_size = question.size(0)
 
-        #empty state history
+        # empty state history
         self.cell_state_history = []
-
-
 
         # main loop of recurrence over the MACCell
         for i in range(self.max_step):
@@ -182,27 +178,27 @@ class VWMCell(Module):
 
 
             # visual retrieval unit
-            read ,read_attention = self.visual_retrieval_unit(summary_object=memory, feature_maps=knowledge,
+            vo, va = self.visual_retrieval_unit(summary_object=summary_output, feature_maps=knowledge,
                              ctrl_state=control)
 
             # memory retrieval unit
-            read_history,rvi_history  = self.memory_retrieval_unit(summary_object=memory, visual_working_memory=visual_working_memory,
+            mo, ma = self.memory_retrieval_unit(summary_object=summary_output, visual_working_memory=visual_working_memory,
                              ctrl_state=control)
 
             # matching unit
-            gkb,gmem=self.matching_unit(control,read,read_history)
+            gvt,gmt=self.matching_unit(control,vo,mo)
 
-            context_read_vector = self.memory_update_unit(gkb, gmem, read, read_history, rvi_history, visual_working_memory,
+            context_output = self.memory_update_unit(gvt, gmt, vo, mo, ma, visual_working_memory,
                                         context_weighting_vector_T, Wt_sequential)
 
             # thought Unit
-            memory = self.thought_unit(memory_state=memory,
-                                read_vector= context_read_vector , ctrl_state=control)
+            summary_output = self.thought_unit(summary_output=summary_output,
+                                               context_output= context_output , ctrl_state=control)
 
 
             # store attention weights for visualization
             if app_state.visualize:
                 self.cell_state_history.append(
-                    (read_attention.detach(), control_attention.detach(), visual_working_memory.detach(), rvi_history.detach(),gmem,gkb, Wt_sequential, context_weighting_vector_T))
+                    (va.detach(), control_attention.detach(), visual_working_memory.detach(), ma.detach(),gvt,gmt, Wt_sequential, context_weighting_vector_T))
 
-        return memory, self.cell_state_history, read_attention, visual_working_memory, Wt_sequential
+        return summary_output, self.cell_state_history, va, visual_working_memory, Wt_sequential

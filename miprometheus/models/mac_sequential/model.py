@@ -122,7 +122,7 @@ class MACNetworkSequential(Model):
 
         # instantiate units
         self.image_encoder = ImageEncoder(
-            dim=self.dim, embedded_dim=self.embed_hidden)
+            dim=self.dim)
 
 
         self.VWM_cell = VWMCell(

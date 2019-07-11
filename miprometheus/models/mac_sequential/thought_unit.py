@@ -40,14 +40,12 @@
 # limitations under the License.
 
 """
-write_unit.py: Implementation of the ``WriteUnit`` for the MAC network. Cf https://arxiv.org/abs/1803.03067 \
-for the reference paper.
+write_unit.py: Implementation of the ``ThoughtUnit`` for the VWM network.
 """
 __author__ = "Vincent Albouy"
 
 import torch
 from torch.nn import Module
-
 from miprometheus.models.mac_sequential.utils_mac import linear
 
 
@@ -56,48 +54,31 @@ class ThoughtUnit(Module):
     Implementation of the ``ThoughtUnit`` of the MAC network.
     """
 
-    def __init__(self, dim, self_attention=False, memory_gate=False):
+    def __init__(self, dim):
         """
         Constructor for the ``ThoughtUnit``.
 
         :param dim: global 'd' hidden dimension
         :type dim: int
 
-        :param self_attention: whether or not to use self-attention on the previous control states
-        :type self_attention: bool
-
-        :param memory_gate: whether or not to use memory gating.
-        :type memory_gate: bool
-
         """
 
         # call base constructor
         super(ThoughtUnit, self).__init__()
 
-        # linear layer for the concatenation of ri & mi-1
+        # linear layer for the concatenation of context_output and summary_output
         self.concat_layer = linear(2 * dim, dim, bias=True)
 
-        # self-attention & memory gating optional initializations
-        self.self_attention = self_attention
-        self.memory_gate = memory_gate
 
-        if self.self_attention:
-            self.attn = linear(dim, 1, bias=True)
-            self.mi_sa_proj = linear(dim, dim, bias=True)
-            self.mi_info_proj = linear(dim, dim, bias=True)
-
-        if self.memory_gate:
-            self.control = linear(dim, 1, bias=True)
-
-    def forward(self, memory_state, read_vector, ctrl_state):
+    def forward(self, summary_output, context_output, ctrl_state):
         """
         Forward pass of the ``ThoughtUnit``.
 
-        :param memory_states: previous memory states, each of shape [batch_size x dim].
-        :type memory_states: list
+        :param summary_output: previous memory states, each of shape [batch_size x dim].
+        :type summary_output: list
 
-        :param read_vector: current read vector (output of the read unit), shape [batch_size x dim].
-        :type read_vector: torch.tensor
+        :param context_output: current read vector (output of the viusal retrieval unit), shape [batch_size x dim].
+        :type context_output: torch.tensor
 
         :param ctrl_state: previous control state, each of shape [batch_size x dim].
         :type ctrl_state: list
@@ -107,8 +88,8 @@ class ThoughtUnit(Module):
         """
 
         # combine the new read vector with the prior memory state (w1)
-        mi_info = self.concat_layer(torch.cat([read_vector, memory_state], 1))
-        next_memory_state = mi_info  # new memory state if no self-attention & memory-gating
+        mi_info = self.concat_layer(torch.cat([context_output, summary_output], 1))
+        next_context_output = mi_info  # new memory state if no self-attention & memory-gating
 
 
-        return next_memory_state
+        return next_context_output
