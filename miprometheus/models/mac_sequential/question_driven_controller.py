@@ -42,7 +42,7 @@
 """
 question_driven_controller.py
 """
-__author__ = "Vincent Albouy"
+__author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
@@ -83,10 +83,10 @@ class QuestionDrivenController(Module):
         # define the linear layer used to create the cqi values
         self.projection= linear(2 * dim, dim, bias=True)
 
-        #instantiate attention module
+        # instantiate attention module
         self.attention_module=Attention_Module(dim)
 
-        #instantiate neural network for T (temporal classifier that leads to 4 classes)
+        # instantiate neural network for T (temporal classifier that leads to 4 classes)
         self.temporal_classifier = torch.nn.Sequential(linear(dim, dim, bias=True),
                                                             torch.nn.ELU(),
                                                             linear(dim, 4, bias=True))
@@ -117,14 +117,14 @@ class QuestionDrivenController(Module):
         pos_aware_question_encoding = self.pos_aware_layers[step](
             question_encoding)
 
-        #concat control state and position aware question encoding
+        # concat control state and position aware question encoding
         cqi = torch.cat([ctrl_state, pos_aware_question_encoding], dim=-1)
 
-        #project from 2dim to 1dim
+        # project from 2dim to 1dim
         cqi = self.projection(cqi)  # [batch_size x dim]
 
         # retrieve content c + attention ca
-        c,ca = self.attention_module(cqi, contextual_words, contextual_words)
+        c, ca = self.attention_module(cqi, contextual_words, contextual_words)
 
         # neural network  that mixes the 4 context (T1,T2,T3,T4)
         temporal_class= torch.nn.functional.softmax(self.temporal_classifier(c), dim=1)

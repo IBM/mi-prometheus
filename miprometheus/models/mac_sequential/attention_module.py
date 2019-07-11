@@ -58,7 +58,7 @@ class Attention_Module(Module):
         """
         Constructor for the VWM model Attention_Module
 
-        :param dim: global 'd' hidden dimension
+        :param dim: common dimension of query vector and keys
         :type dim: int
 
         """
@@ -66,12 +66,11 @@ class Attention_Module(Module):
         # call base constructor
         super(Attention_Module, self).__init__()
 
-
         # define the linear layer used to create the attention weights. Should
         # be one scalar weight per contextual word
         self.attn = linear(dim, 1, bias=True)
 
-    def forward(self,q, K ,V):
+    def forward(self, q, K, V):
         """
         Forward pass of the ``VWM model Attention_Module``.
 
@@ -85,8 +84,10 @@ class Attention_Module(Module):
         :type  tensors 
         
         """
+        assert (q.size(-1) == K.size(-1))              # dimension match
+        assert (V.size(-2) == K.size(-2))              # num slots match
 
-        # compute element-wise product between q & k
+        # compute element-wise product between q & K
         # compute attention weights
 
         cai = self.attn(q[:, None, :] * K).squeeze(-1)  # [batch_size x maxLength]
@@ -101,4 +102,4 @@ class Attention_Module(Module):
         # print(f'Shape of c = {c.size()}')
 
         # return content and attention tensors
-        return c, ca
+        return c, ca[...,None]
