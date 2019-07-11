@@ -21,7 +21,7 @@
 - [Installation](#installation)
 - [Core ideas](#core-ideas)
 - [Core features](#core-features)
-    - [Base Workers](#base-workers)
+    - [Workers](#workers)
     - [Grid Workers](#grid-workers)
 - [Documentation](#documentation)
 - [Getting Started](#getting-started)
@@ -95,9 +95,9 @@ The dependencies of MI-prometheus are:
 
 
 
-### Base workers
+### Workers
 
-The base workers are the main way you will use MI-Prometheus. They are parameterizable, OOP-designed scripts which will execute a specific task related to the supervised training or test of a Model on a Problem, following a Configuration.
+The workers are the main way you will use MI-Prometheus. They are parameterizable, OOP-designed scripts which will execute a specific task related to the supervised training or test of a Model on a Problem, following a Configuration.
 
    * Offline Trainer - A traditional trainer, epoch-based and well-suited for traditional supervised training.
 
@@ -201,7 +201,7 @@ optional arguments:
 
 ### Grid workers
 
-Grid Workers manage several experiments ("_grids_") by reusing the base workers, such as OfflineTrainer \& Tester.
+Grid Workers manage several experiments ("_grids_") by reusing the workers, such as OfflineTrainer \& Tester.
 There are 3 types of Grid Workers:
 
 - mip-grid-trainer-*, which span several trainings in parallel. Two versions are available: One for CPU cores (`GridTrainerCPU`) and one for GPUs (CUDA) (`GridTrainerGPU`),
@@ -255,7 +255,24 @@ optional arguments:
   --n NUM_TESTS         Number of test experiments to run for each model.
 ```
 
- * Grid Analyzer: Similar options.
+ * Grid Analyzer: 
+
+
+```console
+foo@bar:~$ mip-grid-analyzer --h
+usage: mip-grid-analyzer [-h] [--expdir EXPDIR]
+                         [--ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                         [--li LOGGING_INTERVAL] [--agree]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --expdir EXPDIR       Path to the directory where the experiments folders will be / are stored. Affects all grid experiments. (DEFAULT: ./experiments)
+  --ll {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                        Log level for the experiments. (Default: INFO)
+  --li LOGGING_INTERVAL
+                        Statistics logging interval. Will impact logging to the logger and exporting to TensorBoard for the experiments. Do not affect the grid worker itself. Writing to the csv file is not impacted (interval of 1). (Default: 100, i.e. logs every 100 episodes).
+  --agree               Request user confirmation before starting the grid experiment. (Default: False)
+```
 
 **NOTES**: 
 * We primarily test MI-Prometheus on CUDA devices, as they are our main hardware setup and PyTorch mainly supports CUDA as a backend.
