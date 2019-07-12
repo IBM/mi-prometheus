@@ -46,9 +46,9 @@ __author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
-from miprometheus.models.mac_sequential.utils_VWM import linear
-from miprometheus.models.mac_sequential.attention_module import Attention_Module
 
+from miprometheus.models.mac_sequential.utils_VWM import linear
+from miprometheus.models.mac_sequential.attention_module import AttentionModule
 
 
 class QuestionDrivenController(Module):
@@ -84,7 +84,7 @@ class QuestionDrivenController(Module):
         self.projection= linear(2 * dim, dim, bias=True)
 
         # instantiate attention module
-        self.attention_module=Attention_Module(dim)
+        self.attention_module=AttentionModule(dim)
 
         # instantiate neural network for T (temporal classifier that outputs 4 classes)
         self.temporal_classifier = torch.nn.Sequential(linear(dim, dim, bias=True),
