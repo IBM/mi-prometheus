@@ -40,61 +40,65 @@
 # limitations under the License.
 
 """
-memory_retrieval.py: Implementation of the ``MemoryRetrievalUnit`` for the VWM network.
+validator_unit.py: Implementation of the ``ValidatorUnit`` for the VWM network. 
+
 """
-__author__ = "Vincent Albouy, T.S. Jayram"
+__author__ = "Vincent Albouy"
 
 import torch
 from torch.nn import Module
-
-from miprometheus.models.mac_sequential.interaction_module import InteractionModule
-from miprometheus.models.mac_sequential.attention_module import Attention_Module
+from miprometheus.models.mac_sequential.utils_VWM import linear
 
 
-class MemoryRetrievalUnit(Module):
+class ValidatorUnit(Module):
     """
-    Implementation of the ``MemoryRetrievalUnit`` of the VWM network.
+    Implementation of the `` ValidatorUnit`` of the VWM network.
     """
 
     def __init__(self, dim):
         """
-        Constructor for the ``MemoryRetrievalUnit``.
+        Constructor for the `` ValidatorUnit``.
         :param dim: global 'd' hidden dimension
         :type dim: int
         """
 
         # call base constructor
-        super(MemoryRetrievalUnit, self).__init__()
+        super(ValidatorUnit, self).__init__()
 
-        # instantiate interaction module
-        self.interaction_module = InteractionModule(dim)
 
-        # instantiate attention module
-        self.attention_module = Attention_Module(dim)
+        def two_layers_net():
+            return torch.nn.Sequential(linear(2 * dim, 2 * dim, bias=True),
+                                               torch.nn.ELU(),
+                                               linear(2 * dim, 1, bias=True),
+                                                torch.nn.Sigmoid())
 
-    def forward(self, summary_object, visual_working_memory, ctrl_state):
+        self.visual_object_validator = two_layers_net()
+
+        self.memory_object_validator =  two_layers_net()
+
+
+    def forward(self, control, vo, mo):
         """
-        Forward pass of the ``MemoryRetrievalUnit``. Assuming 1 scalar attention weight per \
+        Forward pass of the ``ValidatorUnitt``. Assuming 1 scalar attention weight per \
         knowledge base elements.
-        
-        :param summary_object:  previous summary_object [batch_size x dim]
-        :type summary_object: torch.tensor
-
-        :param  visual_working_memory: [batch_size x dim x (H*W)]
-        :type visual_working_memory: torch.tensor
-
-        :param ctrl_state:  previous control state [batch_size x dim].
-        :type ctrl_state: torch.tensor
-
-        :return: memory_output [batch_size x dim]
-        :return: memory_attention [batch_size x max_length]
+        :param control: last control state
+        :type control: torch.tensor
+        :param  vo: visual output
+        :type vo: torch.tensor
+        :param  mo: memory output
+        :type mo: torch.tensor
+   
+        :return: gvt, gmt : visual gate and memory gate
         """
+        # calculate gate gvt
+        concat_read_visual = torch.cat([control, vo], dim=1)
+        gvt = self.visual_object_validator(concat_read_visual )
+        #gvt = torch.sigmoid(gvt)
 
+        # calculate gate gmt
+        concat_read_memory = torch.cat([control, mo], dim=1)
+        gmt = self.memory_object_validator(concat_read_memory)
+        #gmt = torch.sigmoid(gmt)
 
-        vwm_modified = self.interaction_module(summary_object, visual_working_memory)
-
-        # compute attention weights
-        memory_output, memory_attention = \
-            self.attention_module(ctrl_state, vwm_modified, visual_working_memory)
-
-        return  memory_output, memory_attention
+        #return two gates gvt, gmt
+        return gvt, gmt
