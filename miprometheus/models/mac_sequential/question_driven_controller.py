@@ -46,7 +46,7 @@ __author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
-from miprometheus.models.mac_sequential.utils_mac import linear
+from miprometheus.models.mac_sequential.utils_VWM import linear
 from miprometheus.models.mac_sequential.attention_module import Attention_Module
 
 
@@ -102,7 +102,6 @@ class QuestionDrivenController(Module):
         :param contextual_words: tensor of shape [batch_size x maxQuestionLength x dim] containing the words \
         encodings ('representation of each word in the context of the question').
         :type contextual_words: torch.tensor
-
 
         :param question_encoding: question representation, of shape [batch_size x 2*dim].
         :type question_encoding: torch.tensor

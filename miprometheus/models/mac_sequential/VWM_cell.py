@@ -40,8 +40,7 @@
 # limitations under the License.
 
 """
-mac_unit.py: Implementation of the MAC Unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the \
-reference paper.
+mac_unit.py: Implementation of the VWM Cell for the VWM network. 
 """
 __author__ = "Vincent Albouy"
 
@@ -54,20 +53,18 @@ from miprometheus.models.mac_sequential.thought_unit import ThoughtUnit
 from miprometheus.models.mac_sequential.memory_retrieval_unit import MemoryRetrievalUnit
 from miprometheus.models.mac_sequential.matching_unit import MatchingUnit
 from miprometheus.models.mac_sequential.memory_update_unit import MemoryUpdateUnit
-from miprometheus.models.mac_sequential.utils_mac import linear
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
 
 
 class VWMCell(Module):
     """
-    Implementation of the ``MACUnit`` (iteration over the MAC cell) of the MAC network.
+    Implementation of the ``VWM Cell`` (iteration over the MAC cell) of the MAC network.
     """
 
-    def __init__(self, dim, max_step=2, self_attention=False,
-                 memory_gate=False, dropout=0.15, slots=0):
+    def __init__(self, dim, max_step=12, dropout=0.15, slots=0):
         """
-        Constructor for the ``MACUnit``, which represents the recurrence over the \
+        Constructor for the ``VWM Cell``, which represents the recurrence over the \
         MACCell.
 
         :param dim: global 'd' hidden dimension.
@@ -76,11 +73,6 @@ class VWMCell(Module):
         :param max_step: maximal number of MAC cells. Default: 12
         :type max_step: int
 
-        :param self_attention: whether or not to use self-attention in the ``WriteUnit``. Default: ``False``.
-        :type self_attention: bool
-
-        :param memory_gate: whether or not to use memory gating in the ``WriteUnit``. Default: ``False``.
-        :type memory_gate: bool
 
         :param dropout: dropout probability for the variational dropout mask. Default: 0.15
         :type dropout: float
@@ -99,27 +91,20 @@ class VWMCell(Module):
         self.thought_unit = ThoughtUnit(
             dim=dim)
 
-        self.slots=slots
 
         # initialize hidden states
         self.mem_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
         self.control_0 = torch.nn.Parameter(
             torch.zeros(1, dim).type(app_state.dtype))
 
+        #contantes values
         self.dim = dim
         self.max_step = max_step
         self.dropout = dropout
+        self.slots = slots
 
+        #Visualization
         self.cell_state_history = []
-
-        self.W = torch.zeros(48, 1, self.slots).type(app_state.dtype)
-
-
-        self.linear_layer = linear(128, 1, bias=True)
-
-        self.linear_layer_history = linear(128, 1, bias=True)
-
-        self.concat_contexts = torch.zeros(48, 128, requires_grad=False).type(app_state.dtype)
 
 
     def get_dropout_mask(self, x, dropout):
@@ -144,7 +129,7 @@ class VWMCell(Module):
 
         return mask
 
-    def forward(self, context, question, knowledge, control, summary_output, visual_working_memory,  Wt_sequential ):
+    def forward(self, context, question, features_maps, control, summary_output, visual_working_memory, Wt_sequential):
         """
         Forward pass of the ``VWMCell``, which represents the recurrence over the \
         MACCell.
@@ -155,11 +140,24 @@ class VWMCell(Module):
         :param question: questions encodings, shape [batch_size x 2*dim]
         :type question: torch.tensor
 
-        :param knowledge: knowledge_base (feature maps extracted by a CNN), shape \
+        :param feature maps: feature mapse (feature maps extracted by a CNN), shape \
         [batch_size x nb_kernels x (feat_H * feat_W)].
-        :type knowledge: torch.tensor
+        :type feature maps: torch.tensor
+        
+        :param control: control state
+        :type control: torch.tensor
+        
+        :param summary_output: summary_output
+        :type summary_output: torch.tensor
+        
+        :param visual_working_memory: visual_working_memory
+        :type visual_working_memory: torch.tensor
+           
+        :param Wt_sequential: Wt_sequential
+        :type Wt_sequential: torch.tensor
+               
 
-        :return: list of the memory states.
+        :return: summary_output, self.cell_state_history, va, visual_working_memory, Wt_sequential
 
         """
 
@@ -176,9 +174,8 @@ class VWMCell(Module):
                 question_encoding=question,
                 ctrl_state=control)
 
-
             # visual retrieval unit
-            vo, va = self.visual_retrieval_unit(summary_object=summary_output, feature_maps=knowledge,
+            vo, va = self.visual_retrieval_unit(summary_object=summary_output, feature_maps=features_maps,
                              ctrl_state=control)
 
             # memory retrieval unit
@@ -188,13 +185,13 @@ class VWMCell(Module):
             # matching unit
             gvt,gmt=self.matching_unit(control,vo,mo)
 
-            context_output = self.memory_update_unit(gvt, gmt, vo, mo, ma, visual_working_memory,
+            #update visual_working_memory , wt sequential and get the final context vector
+            context_output, visual_working_memory, Wt_sequential = self.memory_update_unit(gvt, gmt, vo, mo, ma, visual_working_memory,
                                         context_weighting_vector_T, Wt_sequential)
 
             # thought Unit
             summary_output = self.thought_unit(summary_output=summary_output,
-                                               context_output= context_output , ctrl_state=control)
-
+                                               context_output= context_output)
 
             # store attention weights for visualization
             if app_state.visualize:

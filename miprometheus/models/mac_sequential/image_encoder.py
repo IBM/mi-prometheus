@@ -50,7 +50,7 @@ from torch.nn import Module
 import torch.nn as nn
 
 class ImageEncoder(Module):
-    
+
     """
     Implementation of the ``ImageEncoder`` of the VWM network.
     """
@@ -70,7 +70,7 @@ class ImageEncoder(Module):
         self.dim = dim
 
         # Number of channels in input Image RGB
-        self.image_channels = 3
+        self.image_channels = 3 # [R,G,B]
 
         # CNN number of channels - Parameters for the CNN
         self.visual_processing_channels = [32, 64, 64, 128]
@@ -96,8 +96,8 @@ class ImageEncoder(Module):
         """
         Forward pass of the ``ImageEncoder``.
 
-        :param questions: tensor of the questions words, shape [batch_size x maxQuestionLength x embedded_dim].
-        :type questions: torch.tensor
+        :param images: tensor of the images, shape [batch_size x H X W].
+        :type images: torch.tensor
               
         :return:
         :param feature_maps: [batch_size x nb_kernels x feat_H x feat_W].
@@ -122,7 +122,7 @@ class ImageEncoder(Module):
 
 
         # reshape feature maps as channels first
-        feature_maps = feature_maps.view(batch_size, self.dim, -1)
+        feature_maps = feature_maps.view(batch_size, -1 , self.dim)
 
         # return feature_maps
         return feature_maps

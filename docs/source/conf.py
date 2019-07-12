@@ -60,7 +60,9 @@ MOCK_MODULES = ['torch', 'torch.nn', 'torch.utils', 'torch.optim',
 
                 'pandas', 
 
-                'matplotlib', 'matplotlib.pyplot', 'matplotlib.figure', 'matplotlib.backends.qt_compat',
+                'matplotlib', 'matplotlib.pyplot', 'matplotlib.figure', 
+                'matplotlib.animation', 'matplotlib.pylab', 
+                'matplotlib.backends.qt_compat',
                 'matplotlib.backends.backend_qt5agg', 'matplotlib.backends.backend_qt4agg',
                 'matplotlib.backends.qt_compat.QtWidgets',
 

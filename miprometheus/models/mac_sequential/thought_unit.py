@@ -46,7 +46,7 @@ __author__ = "Vincent Albouy"
 
 import torch
 from torch.nn import Module
-from miprometheus.models.mac_sequential.utils_mac import linear
+from miprometheus.models.mac_sequential.utils_VWM import linear
 
 
 class ThoughtUnit(Module):
@@ -70,7 +70,7 @@ class ThoughtUnit(Module):
         self.concat_layer = linear(2 * dim, dim, bias=True)
 
 
-    def forward(self, summary_output, context_output, ctrl_state):
+    def forward(self, summary_output, context_output):
         """
         Forward pass of the ``ThoughtUnit``.
 
@@ -80,16 +80,12 @@ class ThoughtUnit(Module):
         :param context_output: current read vector (output of the viusal retrieval unit), shape [batch_size x dim].
         :type context_output: torch.tensor
 
-        :param ctrl_state: previous control state, each of shape [batch_size x dim].
-        :type ctrl_state: list
-
-        :return: current memory state, shape [batch_size x mem_dim]
+        :return: next_context_output, shape [batch_size x mem_dim]
 
         """
 
         # combine the new read vector with the prior memory state (w1)
-        mi_info = self.concat_layer(torch.cat([context_output, summary_output], 1))
-        next_context_output = mi_info  # new memory state if no self-attention & memory-gating
+        next_context_output = self.concat_layer(torch.cat([context_output, summary_output], 1))
 
 
         return next_context_output

@@ -40,15 +40,14 @@
 # limitations under the License.
 
 """
-read_unit.py: Implementation of the ``VisualRetrievalUnitt`` for the VWM network. Cf https://arxiv.org/abs/1803.03067 for the \
-reference paper.
+read_unit.py: Implementation of the ``VisualRetrievalUnitt`` for the VWM network. 
 """
 __author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
 
-from miprometheus.models.mac_sequential.utils_mac import linear
+from miprometheus.models.mac_sequential.utils_VWM import linear
 from miprometheus.models.mac_sequential.attention_module import Attention_Module
 
 
@@ -84,13 +83,14 @@ class VisualRetrievalUnit(Module):
         # define linear layer for the projection of the knowledge base
         self.feature_maps_proj_layer = linear(dim, dim, bias=True)
 
+
     def forward(self, summary_object, feature_maps, ctrl_state):
         """
         Forward pass of the ``VisualRetrievalUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
 
-        :param memory_states: list of all previous memory states, each of shape [batch_size x mem_dim]
-        :type memory_states: torch.tensor
+        :param summary_object:  previous summary_object, each of shape [batch_size x mem_dim]
+        :type summary_object: torch.tensor
 
         :param feature_maps: image representation (output of CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
         :type feature_maps: torch.tensor
@@ -98,19 +98,18 @@ class VisualRetrievalUnit(Module):
         :param ctrl_states: All previous control state, each of shape [batch_size x ctrl_dim].
         :type ctrl_states: list
 
-
-        :return: current read vector, shape [batch_size x read_dim]
+        :return: visual_output [batch_size x read_dim], visual_attention [batch_size x max_length]
 
         """
-        # assume mem_dim = ctrl_dim = nb_kernels = dim
 
         # pass memory state through linear layer
-        summary_object = self.summary_proj_layer(summary_object).unsqueeze(2)
+        summary_object = self.summary_proj_layer(summary_object).unsqueeze(1)
         # memory_state: [batch_size x dim x 1]
 
         # pass feature maps through linear layer
         feature_maps_proj = self.feature_maps_proj_layer(
-            feature_maps.permute(0, 2, 1)).permute(0, 2, 1)
+            feature_maps)
+
 
         # compute I(i,h,w) elements (r1 equation)
         # [batch_size x dim x 1] * [batch_size x dim x (H*W)] -> [batch_size x dim x (H*W)]
@@ -119,10 +118,10 @@ class VisualRetrievalUnit(Module):
         # compute I' elements (r2 equation)
         concat = self.aggregator(
             torch.cat([I_elements,feature_maps],
-                      dim=1).permute(0, 2, 1))  # [batch_size x (H*W) x dim]
+                      dim=2))  # [batch_size x (H*W) x dim]
 
         # compute attention weights
-        visual_output, visual_attention = self.attention_module(ctrl_state,concat,feature_maps.permute(0, 2, 1))
+        visual_output, visual_attention = self.attention_module(ctrl_state,concat,feature_maps)
 
 
         return visual_output, visual_attention

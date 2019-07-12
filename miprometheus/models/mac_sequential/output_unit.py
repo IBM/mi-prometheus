@@ -48,7 +48,7 @@ __author__ = "Vincent Marois"
 import torch
 from torch.nn import Module
 
-from miprometheus.models.mac_sequential.utils_mac import linear
+from miprometheus.models.mac_sequential.utils_VWM import linear
 
 
 class OutputUnit(Module):
