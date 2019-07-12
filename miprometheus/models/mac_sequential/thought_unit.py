@@ -42,7 +42,7 @@
 """
 write_unit.py: Implementation of the ``ThoughtUnit`` for the VWM network.
 """
-__author__ = "Vincent Albouy"
+__author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module

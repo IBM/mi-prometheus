@@ -42,12 +42,12 @@
 """
 read_unit.py: Implementation of the ``VisualRetrievalUnitt`` for the VWM network. 
 """
-__author__ = "Vincent Albouy"
+__author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
 
-from miprometheus.models.mac_sequential.utils_VWM import linear
+from miprometheus.models.mac_sequential.interaction_module import InteractionModule
 from miprometheus.models.mac_sequential.attention_module import Attention_Module
 
 
@@ -68,60 +68,35 @@ class VisualRetrievalUnit(Module):
         # call base constructor
         super(VisualRetrievalUnit, self).__init__()
 
-        # define linear layer for the projection of the previous memory state
-        self.summary_proj_layer = linear(dim, dim, bias=True)
-
-        # linear layer to define I'(i,h,w) elements (r2 equation)
-        self.aggregator = linear(2 * dim, dim, bias=True)
+        # instantiate interaction module
+        self.interaction_module = InteractionModule(dim)
 
         # instantiate attention module
         self.attention_module = Attention_Module(dim)
-
-        # linear layer to compute attention weights
-        self.attn = linear(dim, 1, bias=True)
-
-        # define linear layer for the projection of the knowledge base
-        self.feature_maps_proj_layer = linear(dim, dim, bias=True)
-
 
     def forward(self, summary_object, feature_maps, ctrl_state):
         """
         Forward pass of the ``VisualRetrievalUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
 
-        :param summary_object:  previous summary_object, each of shape [batch_size x mem_dim]
+        :param summary_object:  previous summary_object [batch_size x dim]
         :type summary_object: torch.tensor
 
-        :param feature_maps: image representation (output of CNN), shape [batch_size x nb_kernels x (feat_H * feat_W)]
+        :param feature_maps: image representation (output of CNN) \
+               [batch_size x dim x (H*W)]
         :type feature_maps: torch.tensor
 
-        :param ctrl_states: All previous control state, each of shape [batch_size x ctrl_dim].
-        :type ctrl_states: list
+        :param ctrl_state:  previous control state [batch_size x dim].
+        :type ctrl_state: torch.tensor
 
-        :return: visual_output [batch_size x read_dim], visual_attention [batch_size x max_length]
+        :return: visual_output [batch_size x dim]
+        :return: visual_attention [batch_size x max_length]
 
         """
 
-        # pass memory state through linear layer
-        summary_object = self.summary_proj_layer(summary_object).unsqueeze(1)
-        # memory_state: [batch_size x dim x 1]
-
-        # pass feature maps through linear layer
-        feature_maps_proj = self.feature_maps_proj_layer(
-            feature_maps)
-
-
-        # compute I(i,h,w) elements (r1 equation)
-        # [batch_size x dim x 1] * [batch_size x dim x (H*W)] -> [batch_size x dim x (H*W)]
-        I_elements = summary_object * feature_maps_proj
-
-        # compute I' elements (r2 equation)
-        concat = self.aggregator(
-            torch.cat([I_elements,feature_maps],
-                      dim=2))  # [batch_size x (H*W) x dim]
-
+        feature_maps_modified = self.interaction_module(summary_object, feature_maps)
         # compute attention weights
-        visual_output, visual_attention = self.attention_module(ctrl_state,concat,feature_maps)
-
+        visual_output, visual_attention = \
+            self.attention_module(ctrl_state, feature_maps_modified, feature_maps)
 
         return visual_output, visual_attention

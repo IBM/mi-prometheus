@@ -57,42 +57,52 @@ class Attention_Module(Module):
     def __init__(self, dim):
         """
         Constructor for the VWM model Attention_Module
-        :param dim: global 'd' hidden dimension
+
+        :param dim: common dimension of query vector and keys
         :type dim: int
         """
 
         # call base constructor
         super(Attention_Module, self).__init__()
 
-        # define the linear layer used to create the attention weights. Should
+        # define the perceptron used to create the attention weights. Should
         # be one scalar weight per contextual word
-        self.attn = linear(dim, 1, bias=True)
+        self.attn = torch.nn.Sequential(linear(dim, 1, bias=False),
+                                        torch.nn.Softmax(dim=-1))
+        self.dim = dim
 
-    def forward(self, q, K, V):
+    def forward(self, q, keys, values=None):
         """
         Forward pass of the ``VWM model Attention_Module``.
-        :param  q : attention query 
+
+        :param  q : query
         :type   tensor
-        :param K : attention Keys
+
+        :param keys : Keys
         :type  tensor
+
+        :param values : Values
+        :type  tensor
+
         :return: c : content , ca : attention
         :type  tensors 
-
+        
         """
+        if values is None:
+            values = keys
 
-        # compute element-wise product between q & k
+        assert (q.size(-1) == self.dim, 'Dimension mismatch in query')
+        assert (keys.size(-1) == self.dim, 'Dimension mismatch in keys')
+        assert (values.size(-2) == keys.size(-2),
+                'Num slots mismatch between keys and values')
+
+        # compute element-wise product between q & K
         # compute attention weights
 
-        cai = self.attn(q[:, None, :] * K).squeeze(-1)  # [batch_size x maxLength]
-        # print(f'Shape of cai = {cai.size()}')
-
-        # get attention distribution
-        ca = torch.nn.functional.softmax(cai, dim=-1)  # [batch_size x maxLength]
-        # print(f'Shape of ca = {ca.size()}')
+        ca = self.attn(q[:, None, :] * keys)  # [batch_size x maxLength x 1]
 
         # compute content
-        c = (ca[..., None] * V).sum(1)  # [batch_size x dim]
-        # print(f'Shape of c = {c.size()}')
+        c = (ca * values).sum(1)     # [batch_size x dim]
 
-        # return content and attention tensors
+        ca = ca.squeeze(-1)     # [batch_size x maxLength]
         return c, ca

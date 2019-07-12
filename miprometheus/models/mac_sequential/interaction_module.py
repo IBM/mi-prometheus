@@ -40,8 +40,7 @@
 # limitations under the License.
 
 """
-read_unit.py: Implementation of the ``MatchingUnit`` for the VWM network. 
-
+interaction_module.py: Implementation of the ``Interaction Module`` for the VWM network.
 """
 __author__ = "Vincent Albouy, T.S. Jayram"
 
@@ -51,52 +50,58 @@ from torch.nn import Module
 from miprometheus.models.mac_sequential.utils_VWM import linear
 
 
-class MatchingUnit(Module):
+class InteractionModule(Module):
     """
-    Implementation of the `` MatchingUnit`` of the VWM network.
+    Implementation of the ``Interaction Unit`` of the VWM network.
     """
 
     def __init__(self, dim):
         """
-        Constructor for the `` MatchingUnit``.
+        Constructor for the ``InteractionModule``.
         :param dim: global 'd' hidden dimension
         :type dim: int
         """
 
         # call base constructor
-        super(MatchingUnit, self).__init__()
+        super(InteractionModule, self).__init__()
 
-        self.linear_read = torch.nn.Sequential(linear(2 * dim, 2 * dim, bias=True),
-                                               torch.nn.ELU(),
-                                               linear(2 * dim, 1, bias=True))
+        # linear layer for the projection of the query
+        self.base_object_proj_layer = linear(dim, dim, bias=True)
 
-        self.linear_read_history = torch.nn.Sequential(linear(2 * dim, 2 * dim, bias=True),
-                                                       torch.nn.ELU(),
-                                                       linear(2 * dim, 1, bias=True))
+        # linear layer for the projection of the keys
+        self.feature_objects_proj_layer = linear(dim, dim, bias=True)
 
+        # linear layer to define I'(i,h,w) elements
+        self.modifier = linear(2 * dim, dim, bias=True)
 
-    def forward(self, control, vo, mo):
+    def forward(self, base_object, feature_objects):
         """
-        Forward pass of the ``MatchingUnit``. Assuming 1 scalar attention weight per \
-        knowledge base elements.
-        :param control: last control state
-        :type control: torch.tensor
-        :param  vo: visual output
-        :type vo: torch.tensor
-        :param  mo: memory output
-        :type mo: torch.tensor
-   
-        :return: gvt, gmt : visual gate and memory gate
+        Forward pass of the ``InteractionModule``.
+
+        :param base_object: query [batch_size x dim]
+        :type base_object: torch.tensor
+
+        :param  feature_objects: [batch_size x dim x (H*W)]
+        :type feature_objects: torch.tensor
+
+        :return: feature_objects_modified [batch_size x dim x (H*W)]
         """
-        # calculate gate gvt
-        concat_read_visual = torch.cat([control, vo], dim=1)
-        gvt = self.linear_read(concat_read_visual )
-        gvt = torch.sigmoid(gvt)
 
-        # calculate gate gmt
-        concat_read_memory = torch.cat([control, mo], dim=1)
-        gmt = self.linear_read_history(concat_read_memory)
-        gmt = torch.sigmoid(gmt)
+        # pass query object through linear layer
+        base_object_proj = self.base_object_proj_layer(base_object)
+        # [batch_size x dim x 1]
+        print(f'Base shape: {base_object_proj.size()}')
 
-        #return two gates gvt, gmt
-        return gvt, gmt
+        # pass feature_objects through linear layer
+        feature_objects_proj = self.feature_objects_proj_layer(feature_objects)
+        # [batch_size x dim x(H * W)]
+        print(f'Feature shape: {feature_objects_proj.size()}')
+
+        # modify the projected feature objects using the projected base object
+        # [batch_size x dim] * [batch_size x dim x (H*W)] -> [batch_size x dim x (H*W)]
+        feature_objects_modified = torch.cat([
+            base_object_proj[:, None, :] * feature_objects_proj,
+            feature_objects], dim=-1)
+        feature_objects_modified = self.modifier(feature_objects_modified)
+
+        return feature_objects_modified

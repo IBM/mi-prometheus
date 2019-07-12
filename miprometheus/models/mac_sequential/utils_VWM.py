@@ -43,7 +43,7 @@
 utils_mac.py: Implementation of utils methods for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the \
 reference paper.
 """
-__author__ = "Vincent Marois, Vincent Albouy"
+__author__ = "Vincent Albouy, T.S. Jayram"
 
 from torch import nn
 
