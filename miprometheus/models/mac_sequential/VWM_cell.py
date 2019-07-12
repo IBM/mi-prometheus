@@ -51,7 +51,7 @@ from miprometheus.models.mac_sequential.question_driven_controller import Questi
 from miprometheus.models.mac_sequential.visual_retrieval_unit import VisualRetrievalUnit
 from miprometheus.models.mac_sequential.thought_unit import ThoughtUnit
 from miprometheus.models.mac_sequential.memory_retrieval_unit import MemoryRetrievalUnit
-from miprometheus.models.mac_sequential.matching_unit import MatchingUnit
+from miprometheus.models.mac_sequential.validator_unit import ValidatorUnit
 from miprometheus.models.mac_sequential.memory_update_unit import MemoryUpdateUnit
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
@@ -86,7 +86,7 @@ class VWMCell(Module):
         self.question_driven_controller = QuestionDrivenController(dim=dim, max_step=max_step)
         self.visual_retrieval_unit = VisualRetrievalUnit(dim=dim)
         self.memory_retrieval_unit = MemoryRetrievalUnit(dim=dim)
-        self.matching_unit = MatchingUnit(dim=dim)
+        self.validator_unit = ValidatorUnit(dim=dim)
         self.memory_update_unit = MemoryUpdateUnit(dim=dim, slots=slots)
         self.thought_unit = ThoughtUnit(
             dim=dim)
@@ -99,7 +99,6 @@ class VWMCell(Module):
 
         #contantes values
         self.dim = dim
-        self.max_step = max_step
         self.dropout = dropout
         self.slots = slots
 
@@ -107,29 +106,8 @@ class VWMCell(Module):
         self.cell_state_history = []
 
 
-    def get_dropout_mask(self, x, dropout):
-        """
-        Create a dropout mask to be applied on x.
 
-        :param x: tensor of arbitrary shape to apply the mask on.
-        :type x: torch.tensor
-
-        :param dropout: dropout rate.
-        :type dropout: float
-
-        :return: mask.
-
-        """
-        # create a binary mask, where the probability of 1's is (1-dropout)
-        mask = torch.empty_like(x).bernoulli_(
-            1 - dropout).type(app_state.dtype)
-
-        # normalize the mask so that the average value is 1 and not (1-dropout)
-        mask /= (1 - dropout)
-
-        return mask
-
-    def forward(self, context, question, features_maps, control, summary_output, visual_working_memory, Wt_sequential):
+    def forward(self, context, question, features_maps, control, summary_output, visual_working_memory, Wt_sequential,step):
         """
         Forward pass of the ``VWMCell``, which represents the recurrence over the \
         MACCell.
@@ -164,41 +142,37 @@ class VWMCell(Module):
         # empty state history
         self.cell_state_history = []
 
-        # main loop of recurrence over the MACCell
-        for i in range(self.max_step):
+        # control unit\
+        control, control_attention, context_weighting_vector_T = self.question_driven_controller(
+            step=step,
+            contextual_words=context,
+            question_encoding=question,
+            ctrl_state=control)
 
-            # control unit
-            control, control_attention, context_weighting_vector_T = self.question_driven_controller(
-                step=i,
-                contextual_words=context,
-                question_encoding=question,
-                ctrl_state=control)
+        # visual retrieval unit
+        #print(f'Shapes FM: {summary_output.size()}, {features_maps.size()}, {control.size()}')
 
-            # visual retrieval unit
-            print(f'Shapes1: {summary_output.size()}, {features_maps.size()}, {control.size()}')
+        vo, va = self.visual_retrieval_unit(summary_object=summary_output, feature_maps=features_maps,
+                         ctrl_state=control)
 
-            vo, va = self.visual_retrieval_unit(summary_object=summary_output, feature_maps=features_maps,
-                             ctrl_state=control)
+        # memory retrieval unit
+        #print(f'Shapes VWM: {summary_output.size()}, {visual_working_memory.size()}, {control.size()}')
+        mo, ma = self.memory_retrieval_unit(summary_object=summary_output, visual_working_memory=visual_working_memory,
+                          ctrl_state=control)
 
-            # memory retrieval unit
-            print(f'Shapes2: {summary_output.size()}, {visual_working_memory.size()}, {control.size()}')
-            mo, ma = self.memory_retrieval_unit(summary_object=summary_output, visual_working_memory=visual_working_memory,
-                             ctrl_state=control)
+        # matching unit
+        gvt,gmt=self.validator_unit(control,vo,mo)
 
-            # matching unit
-            gvt,gmt=self.matching_unit(control,vo,mo)
-
-            #update visual_working_memory , wt sequential and get the final context vector
-            context_output, visual_working_memory, Wt_sequential = self.memory_update_unit(gvt, gmt, vo, mo, ma, visual_working_memory,
+        #update visual_working_memory , wt sequential and get the final context vector
+        context_output, visual_working_memory, Wt_sequential = self.memory_update_unit(gvt, gmt, vo, mo, ma, visual_working_memory,
                                         context_weighting_vector_T, Wt_sequential)
 
-            # thought Unit
-            summary_output = self.thought_unit(summary_output=summary_output,
-                                               context_output= context_output)
+        # thought Unit
+        summary_output = self.thought_unit(summary_output=summary_output,
+                                            context_output= context_output)
 
-            # store attention weights for visualization
-            if app_state.visualize:
-                self.cell_state_history.append(
-                    (va.detach(), control_attention.detach(), visual_working_memory.detach(), ma.detach(),gvt,gmt, Wt_sequential, context_weighting_vector_T))
-
+        # store attention weights for visualization
+        if app_state.visualize:
+            self.cell_state_history.append(
+                (va.detach(), control_attention.detach(), visual_working_memory.detach(), ma.detach(),gvt,gmt, Wt_sequential, context_weighting_vector_T))
         return summary_output, self.cell_state_history, va, visual_working_memory, Wt_sequential

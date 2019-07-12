@@ -73,33 +73,6 @@ class MemoryUpdateUnit(Module):
         #number of slots in memory
         self.slots=slots
 
-        #initialize memory
-        if slots==4:
-            self.convolution_kernel = torch.tensor(
-                [[0., 0., 0., 1.], [1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.]]).type(app_state.dtype)
-
-        elif slots==6:
-            self.convolution_kernel = torch.tensor(
-                [[0., 0., 0., 0., 0., 1.], [1., 0., 0., 0., 0., 0.], [0., 1., 0., 0., 0., 0.], [0., 0., 1., 0., 0., 0.],
-                 [0., 0., 0., 1., 0., 0.], [0., 0., 0., 0., 1., 0.]]).type(app_state.dtype)
-
-        elif slots==8:
-            self.convolution_kernel = torch.tensor(
-                [[0., 0., 0., 0., 0., 0., 0., 1.], [1., 0., 0., 0., 0., 0., 0., 0.], [0., 1., 0., 0., 0., 0., 0., 0.],
-                 [0., 0., 1., 0., 0., 0., 0., 0.], [0., 0., 0., 1., 0., 0., 0., 0.], [0., 0., 0., 0., 1., 0., 0., 0.],
-                 [0., 0., 0., 0., 0., 1., 0., 0.], [0., 0., 0., 0., 0., 0., 1., 0.]]).type(app_state.dtype)
-
-
-        elif slots == 10:
-            self.convolution_kernel = torch.tensor(
-                [[0., 0., 0., 0., 0., 0., 0.,0.,0., 1.], [1., 0.,0.,0., 0., 0., 0., 0., 0., 0.], [0., 1., 0.,0.,0., 0., 0., 0., 0., 0.],
-                 [0., 0., 1., 0.,0.,0., 0., 0., 0., 0.], [0., 0., 0., 1., 0., 0., 0.,0.,0., 0.], [0., 0., 0., 0., 1., 0., 0.,0.,0., 0.],
-                 [0., 0., 0., 0., 0., 1., 0.,0.,0., 0.], [0., 0., 0., 0., 0., 0., 1.,0.,0., 0.], [0., 0., 0., 0., 0., 0., 0.,1.,0., 0.],[0., 0., 0., 0., 0., 0., 0.,0.,1., 0.]]).type(app_state.dtype)
-
-        else:
-            exit()
-
-
 
     def forward(self, gvt, gmt, vo, mo ,ma, visual_working_memory,  context_weighting_vector_T,  Wt_sequential ):
         """
@@ -136,22 +109,23 @@ class MemoryUpdateUnit(Module):
         beta = (1 - gmt) * gvt * (T2 + T3) * (1 - T4)
 
         # get W
-        W = (alpha * ma + Wt_sequential.squeeze(1) * beta).unsqueeze(1)
+        W = (alpha * ma + Wt_sequential.squeeze(2) * beta).unsqueeze(1)
 
         #create added object
-        added_object = vo.unsqueeze(2).matmul(W)
+        added_object =vo.unsqueeze(2).matmul(W)
 
         unity_matrix = torch.ones(batch_size, self.dim, 1).type(app_state.dtype)
         J = torch.ones(batch_size, self.dim, self.slots).type(app_state.dtype)
 
         # Update history
-        visual_working_memory = visual_working_memory * (J - unity_matrix.matmul(W)) + added_object
+        visual_working_memory = visual_working_memory * (J - unity_matrix.matmul(W)).permute(0,2,1)
+        visual_working_memory = visual_working_memory + added_object.permute(0,2,1)
 
         # get convolved tensor
-        convolved_Wt_sequential = Wt_sequential.squeeze(1).matmul(self.convolution_kernel).unsqueeze(1)
+        convolved_Wt_sequential=torch.cat((Wt_sequential[:,1:Wt_sequential.size(1)],Wt_sequential[:,0:1]),dim=1)
 
         # final expression to update Wt_sequential
-        Wt_sequential = (convolved_Wt_sequential.squeeze(1) * beta).unsqueeze(1) + (Wt_sequential.squeeze(1) * (1 - beta)).unsqueeze(1)
+        Wt_sequential = (convolved_Wt_sequential.squeeze(2) * beta).unsqueeze(2) + (Wt_sequential.squeeze(2) * (1 - beta)).unsqueeze(2)
 
         # final read vector
         context_read_vector = T1 * now_context + T2 * last_context + T3 * latest_context
