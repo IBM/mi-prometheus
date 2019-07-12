@@ -42,7 +42,7 @@
 """
 mac_unit.py: Implementation of the VWM Cell for the VWM network. 
 """
-__author__ = "Vincent Albouy"
+__author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module

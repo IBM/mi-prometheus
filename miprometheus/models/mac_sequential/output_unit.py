@@ -43,7 +43,7 @@
 output_unit.py: Implementation of the ``OutputUnit`` for the MAC network. Cf https://arxiv.org/abs/1803.03067 \
 for the reference paper.
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module

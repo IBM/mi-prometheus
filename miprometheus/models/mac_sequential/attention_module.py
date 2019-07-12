@@ -71,38 +71,38 @@ class Attention_Module(Module):
                                         torch.nn.Softmax(dim=-1))
         self.dim = dim
 
-    def forward(self, q, Keys, Values=None):
+    def forward(self, q, keys, values=None):
         """
         Forward pass of the ``VWM model Attention_Module``.
 
         :param  q : query
         :type   tensor
 
-        :param Keys : Keys
+        :param keys : Keys
         :type  tensor
 
-        :param Values : Values
+        :param values : Values
         :type  tensor
 
         :return: c : content , ca : attention
         :type  tensors 
         
         """
-        if Values is None:
-            Values = Keys
+        if values is None:
+            values = keys
 
         assert (q.size(-1) == self.dim, 'Dimension mismatch in query')
-        assert (Keys.size(-1) == self.dim, 'Dimension mismatch in keys')
-        assert (Values.size(-2) == Keys.size(-2),
+        assert (keys.size(-1) == self.dim, 'Dimension mismatch in keys')
+        assert (values.size(-2) == keys.size(-2),
                 'Num slots mismatch between keys and values')
 
         # compute element-wise product between q & K
         # compute attention weights
 
-        ca = self.attn(q[:, None, :] * Keys)  # [batch_size x maxLength x 1]
+        ca = self.attn(q[:, None, :] * keys)  # [batch_size x maxLength x 1]
 
         # compute content
-        c = (ca * Values).sum(1)     # [batch_size x dim]
+        c = (ca * values).sum(1)     # [batch_size x dim]
 
         ca = ca.squeeze(-1)     # [batch_size x maxLength]
         return c, ca

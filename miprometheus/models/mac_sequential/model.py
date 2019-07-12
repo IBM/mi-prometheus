@@ -44,7 +44,7 @@ model.py:
 
     - Implementation of the ``VWMC`` network, reusing the different units implemented in separated files.
 """
-__author__ = "Vincent Marois , Vincent Albouy"
+__author__ = "Vincent Marois , Vincent Albouy, T.S. Jayram"
 
 import nltk
 import torch

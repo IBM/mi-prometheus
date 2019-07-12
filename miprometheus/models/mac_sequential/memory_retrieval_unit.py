@@ -40,15 +40,16 @@
 # limitations under the License.
 
 """
-read_unit.py: Implementation of the ``MemoryRetrievalUnit`` for the VWM network. 
+memory_retrieval.py: Implementation of the ``MemoryRetrievalUnit`` for the VWM network.
 """
-__author__ = "Vincent Albouy"
+__author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
 
-from miprometheus.models.mac_sequential.utils_VWM import linear
+from miprometheus.models.mac_sequential.interaction_module import InteractionModule
 from miprometheus.models.mac_sequential.attention_module import Attention_Module
+
 
 class MemoryRetrievalUnit(Module):
     """
@@ -65,17 +66,8 @@ class MemoryRetrievalUnit(Module):
         # call base constructor
         super(MemoryRetrievalUnit, self).__init__()
 
-        # define linear layer for the projection of the previous memory state
-        self.mem_proj_layer = linear(dim, dim, bias=True)
-
-        # linear layer to define I'(i,h,w) elements (r2 equation)
-        self.concat_layer = linear(2 * dim, dim, bias=True)
-
-        # linear layer to compute attention weights
-        self.attn = linear(dim, 1, bias=True)
-
-        # define linear layer for the projection of the knowledge base
-        self.proj_layer = linear(dim, dim, bias=True)
+        # instantiate interaction module
+        self.interaction_module = InteractionModule(dim)
 
         # instantiate attention module
         self.attention_module = Attention_Module(dim)
@@ -85,36 +77,23 @@ class MemoryRetrievalUnit(Module):
         Forward pass of the ``MemoryRetrievalUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
         
-        :param memory_states: list of all previous memory states, each of shape [batch_size x mem_dim]
-        :type memory_states: torch.tensor
-        :param  visual_working_memory: memory shape [batch_size x nb_kernels x (feat_H * feat_W)]
+        :param summary_object:  previous summary_object [batch_size x dim]
+        :type summary_object: torch.tensor
+
+        :param  visual_working_memory: [batch_size x dim x (H*W)]
         :type visual_working_memory: torch.tensor
-        :param ctrl_states: All previous control state, each of shape [batch_size x ctrl_dim].
-        :type ctrl_states: list
-        :return: visual_output, visual_attention 
+
+        :param ctrl_state:  previous control state [batch_size x dim].
+        :type ctrl_state: torch.tensor
+
+        :return: memory_output [batch_size x dim]
+        :return: memory_attention [batch_size x max_length]
         """
-        # assume mem_dim = ctrl_dim = nb_kernels = dim
 
-
-        # pass feature maps through linear layer
-        visual_working_memory_proj = self.proj_layer(
-            visual_working_memory.permute(0, 2, 1)).permute(0, 2, 1)
-
-        # pass memory state through linear layer
-        summary_object = self.mem_proj_layer(summary_object).unsqueeze(2)
-        # memory_state: [batch_size x dim x 1]
-
-        # compute I(i,h,w) elements (r1 equation)
-        # [batch_size x dim x 1] * [batch_size x dim x (H*W)] -> [batch_size x dim x (H*W)]
-        I_elements = summary_object * visual_working_memory_proj
-
-        # compute I' elements (r2 equation)
-        concat = self.concat_layer(
-            torch.cat([I_elements,visual_working_memory],
-                      dim=1).permute(0, 2, 1))  # [batch_size x (H*W) x dim]
+        modified_vwm = self.interaction_module(summary_object, visual_working_memory)
 
         # compute attention weights
-        memory_output, memory_attention = self.attention_module(ctrl_state, concat, visual_working_memory.permute(0, 2, 1))
-
+        memory_output, memory_attention = \
+            self.attention_module(ctrl_state, modified_vwm, visual_working_memory)
 
         return  memory_output, memory_attention
