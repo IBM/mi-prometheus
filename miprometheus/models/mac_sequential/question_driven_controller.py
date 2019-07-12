@@ -86,7 +86,7 @@ class QuestionDrivenController(Module):
         # instantiate attention module
         self.attention_module=Attention_Module(dim)
 
-        # instantiate neural network for T (temporal classifier that leads to 4 classes)
+        # instantiate neural network for T (temporal classifier that outputs 4 classes)
         self.temporal_classifier = torch.nn.Sequential(linear(dim, dim, bias=True),
                                                        torch.nn.ELU(),
                                                        linear(dim, 4, bias=True),
@@ -131,5 +131,5 @@ class QuestionDrivenController(Module):
         # neural network  that returns temporal class weights
         temporal_class = self.temporal_classifier(c)
 
-        # return control and the temporal class weights (T1,T2,T3,T4)
+        # return control and the temporal class weights
         return c, ca, temporal_class
