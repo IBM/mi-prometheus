@@ -57,7 +57,7 @@ class InteractionModule(Module):
 
     def __init__(self, dim):
         """
-        Constructor for the ``MemoryRetrievalUnit``.
+        Constructor for the ``InteractionModule``.
         :param dim: global 'd' hidden dimension
         :type dim: int
         """
@@ -66,40 +66,42 @@ class InteractionModule(Module):
         super(InteractionModule, self).__init__()
 
         # linear layer for the projection of the query
-        self.query_proj_layer = linear(dim, dim, bias=True)
+        self.base_object_proj_layer = linear(dim, dim, bias=True)
 
         # linear layer for the projection of the keys
-        self.keys_proj_layer = linear(dim, dim, bias=True)
+        self.feature_objects_proj_layer = linear(dim, dim, bias=True)
 
         # linear layer to define I'(i,h,w) elements
         self.modifier = linear(2 * dim, dim, bias=True)
 
-    def forward(self, query_object, feature_objects):
+    def forward(self, base_object, feature_objects):
         """
-        Forward pass of the ``MemoryRetrievalUnit``. Assuming 1 scalar attention weight per \
-        knowledge base elements.
-        
-        :param query_object: query [batch_size x dim]
-        :type query_object: torch.tensor
+        Forward pass of the ``InteractionModule``.
+
+        :param base_object: query [batch_size x dim]
+        :type base_object: torch.tensor
 
         :param  feature_objects: [batch_size x dim x (H*W)]
         :type feature_objects: torch.tensor
 
-        :return: aggregate_objects [batch_size x dim x (H*W)]
+        :return: feature_objects_modified [batch_size x dim x (H*W)]
         """
 
-        # pass summary object through linear layer
-        query_object_proj = self.summary_proj_layer(query_object)  # [batch_size x dim x 1]
+        # pass query object through linear layer
+        base_object_proj = self.base_object_proj_layer(base_object)
+        # [batch_size x dim x 1]
+        print(f'Base shape: {base_object_proj.size()}')
 
-        # pass VWM through linear layer
-        feature_objects_proj = self.feature_objects(feature_objects)
+        # pass feature_objects through linear layer
+        feature_objects_proj = self.feature_objects_proj_layer(feature_objects)
+        # [batch_size x dim x(H * W)]
+        print(f'Feature shape: {feature_objects_proj.size()}')
 
-        # compute I(i,h,w) elements
+        # modify the projected feature objects using the projected base object
         # [batch_size x dim] * [batch_size x dim x (H*W)] -> [batch_size x dim x (H*W)]
-        I_elements = query_object_proj[:, None, :] * feature_objects_proj
+        feature_objects_modified = torch.cat([
+            base_object_proj[:, None, :] * feature_objects_proj,
+            feature_objects], dim=-1)
+        feature_objects_modified = self.modifier(feature_objects_modified)
 
-        # compute I' elements
-        modified_feature_objects = self.modifier(torch.cat(
-            [I_elements, feature_objects], dim=-1))  # [batch_size x dim x (H*W)]
-
-        return modified_feature_objects
+        return feature_objects_modified

@@ -90,10 +90,10 @@ class MemoryRetrievalUnit(Module):
         :return: memory_attention [batch_size x max_length]
         """
 
-        modified_vwm = self.interaction_module(summary_object, visual_working_memory)
+        vwm_modified = self.interaction_module(summary_object, visual_working_memory)
 
         # compute attention weights
         memory_output, memory_attention = \
-            self.attention_module(ctrl_state, modified_vwm, visual_working_memory)
+            self.attention_module(ctrl_state, vwm_modified, visual_working_memory)
 
         return  memory_output, memory_attention

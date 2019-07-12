@@ -175,10 +175,13 @@ class VWMCell(Module):
                 ctrl_state=control)
 
             # visual retrieval unit
+            print(f'Shapes1: {summary_output.size()}, {features_maps.size()}, {control.size()}')
+
             vo, va = self.visual_retrieval_unit(summary_object=summary_output, feature_maps=features_maps,
                              ctrl_state=control)
 
             # memory retrieval unit
+            print(f'Shapes2: {summary_output.size()}, {visual_working_memory.size()}, {control.size()}')
             mo, ma = self.memory_retrieval_unit(summary_object=summary_output, visual_working_memory=visual_working_memory,
                              ctrl_state=control)
 

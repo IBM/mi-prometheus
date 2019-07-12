@@ -94,9 +94,9 @@ class VisualRetrievalUnit(Module):
 
         """
 
-        modified_feature_maps = self.interaction_module(summary_object, feature_maps)
+        feature_maps_modified = self.interaction_module(summary_object, feature_maps)
         # compute attention weights
         visual_output, visual_attention = \
-            self.attention_module(ctrl_state, modified_feature_maps, feature_maps)
+            self.attention_module(ctrl_state, feature_maps_modified, feature_maps)
 
         return visual_output, visual_attention

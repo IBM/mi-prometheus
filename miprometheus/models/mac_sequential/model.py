@@ -193,19 +193,23 @@ class MACNetworkSequential(Model):
         contextual_word_encoding, question_encoding = self.question_encoder(questions, questions_length)
 
         # Loop over all elements along the SEQUENCE dimension.
-        for i in range(images.size(0)):
+        for f in range(images.size(0)):
 
             # image encoder
-            feature_maps= self.image_encoder(images[i])
+            feature_maps= self.image_encoder(images[f])
 
             # recurrent MAC cells
-            new_summary_object, state_history, last_visual_attention, visual_working_memory, Wt_sequential = self.VWM_cell(contextual_word_encoding, question_encoding, feature_maps, control, summary_object ,visual_working_memory, Wt_sequential)
+            new_summary_object, state_history, last_visual_attention, \
+            visual_working_memory, Wt_sequential \
+                = self.VWM_cell(contextual_word_encoding, question_encoding,
+                                feature_maps, control, summary_object,
+                                visual_working_memory, Wt_sequential)
 
             #save state history
             self.cell_states.append(state_history)
 
             # output unit
-            logits_answer[:, i, :] = self.output_unit_answer(last_visual_attention, question_encoding, new_summary_object)
+            logits_answer[:, f, :] = self.output_unit_answer(last_visual_attention, question_encoding, new_summary_object)
 
 
         return logits_answer, logits_pointing
