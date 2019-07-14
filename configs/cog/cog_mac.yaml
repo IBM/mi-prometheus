@@ -18,3 +18,17 @@ model:
   control_pass: False
 
 
+training:
+  # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0
+
+validation:
+  # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0
+
+testing:
+  # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0

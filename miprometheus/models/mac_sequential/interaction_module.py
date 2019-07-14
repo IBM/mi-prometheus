@@ -90,12 +90,10 @@ class InteractionModule(Module):
         # pass query object through linear layer
         base_object_proj = self.base_object_proj_layer(base_object)
         # [batch_size x dim]
-        print(f'Base shape: {base_object_proj.size()}')
 
         # pass feature_objects through linear layer
         feature_objects_proj = self.feature_objects_proj_layer(feature_objects)
         # [batch_size x num_objects x dim]
-        print(f'Feature shape: {feature_objects_proj.size()}')
 
         # modify the projected feature objects using the projected base object
         feature_objects_modified = torch.cat([

@@ -81,10 +81,10 @@ class QuestionDrivenController(Module):
         self.ctrl_question = linear(2 * dim, dim, bias=True)
 
         # define the linear layer used to create the cqi values
-        self.projection= linear(2 * dim, dim, bias=True)
+        self.projection = linear(2 * dim, dim, bias=True)
 
         # instantiate attention module
-        self.attention_module=AttentionModule(dim)
+        self.attention_module = AttentionModule(dim)
 
         # instantiate neural network for T (temporal classifier that outputs 4 classes)
         self.temporal_classifier = torch.nn.Sequential(linear(dim, dim, bias=True),
@@ -110,7 +110,7 @@ class QuestionDrivenController(Module):
         :type ctrl_state: torch.tensor
 
         :return: new control state: [batch_size x dim]
-        :return: temporal_class: soft classification representing \
+        :return: temporal_class_weights: soft classification representing \
         temporal context now/last/latest/none of current step [batch_size x 4]
 
         """
@@ -129,7 +129,7 @@ class QuestionDrivenController(Module):
         c, ca = self.attention_module(cqi, contextual_words)
 
         # neural network  that returns temporal class weights
-        temporal_class = self.temporal_classifier(c)
+        temporal_class_weights = self.temporal_classifier(c)
 
         # return control and the temporal class weights
-        return c, ca, temporal_class
+        return c, ca, temporal_class_weights

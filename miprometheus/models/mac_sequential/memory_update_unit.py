@@ -48,9 +48,9 @@ __author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
+
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
-
 
 
 class MemoryUpdateUnit(Module):
@@ -58,7 +58,7 @@ class MemoryUpdateUnit(Module):
     Implementation of the `` MemoryUpdateUnit`` of the VWM network.
     """
 
-    def __init__(self,dim,slots):
+    def __init__(self, dim, slots):
         """
         Constructor for the `` MemoryUpdateUnit``.
         :param dim: global 'd' hidden dimension
@@ -68,33 +68,37 @@ class MemoryUpdateUnit(Module):
         # call base constructor
         super(MemoryUpdateUnit, self).__init__()
 
-        self.dim=dim
+        self.dim = dim
 
-        #number of slots in memory
-        self.slots=slots
+        # number of slots in memory
+        self.slots = slots
 
-
-    def forward(self, gvt, gmt, vo, mo ,ma, visual_working_memory,  context_weighting_vector_T,  Wt_sequential ):
+    def forward(self, gvt, gmt, vo, mo, ma, visual_working_memory,
+                context_weighting_vector_T, Wt_sequential):
         """
         Forward pass of the ``MemoryUpdateUnit``. 
         
-        :param gvt :visual gate
-        :param gmt :memory gate
-        :param vo :visual ouput 
-        :param mo :memory ouput
-        :param ma :memory attention
-        :param visual_working_memory :visual_working_memory 
-        :param context_weighting_vector_T: matrix to get T1,T2,T3,T4 
-        :param Wt_sequential :Wt_sequential
+        :param valid_vo : whether visual object is valid
+        :param valid_mo : whether memory object is valid
+        :param vo : visual object
+        :param mo: memory object
+        :param ma: memory attention
+        :param vwm: vwm
+        :param temporal_class_weights: matrix to get T1,T2,T3,T4
+        :param wt_sequential :wt_sequential
         
-        :return: context_read_vector, visual_working_memory, Wt_sequential
+        :return: context_read_vector, vwm, wt_sequential
         """
-        #batch size
-        batch_size=vo.size(0)
+
+        batch_size = vo.size(0)
 
         # choose between now, last, latest context to built the final read vector
+
+        gvt = gvt[..., None]
+        gmt = gmt[..., None]
+
         now_context = gvt * vo
-        last_context = gmt * mo 
+        last_context = gmt * mo
         latest_context = (1 - gvt) * last_context + now_context
 
         #get T1,T2,T3,T4 from context_weighting_vector_T
@@ -109,23 +113,28 @@ class MemoryUpdateUnit(Module):
         beta = (1 - gmt) * gvt * (T2 + T3) * (1 - T4)
 
         # get W
-        W = (alpha * ma + Wt_sequential.squeeze(2) * beta).unsqueeze(1)
+        W = alpha * ma + Wt_sequential * beta
 
         #create added object
-        added_object =vo.unsqueeze(2).matmul(W)
 
-        unity_matrix = torch.ones(batch_size, self.dim, 1).type(app_state.dtype)
-        J = torch.ones(batch_size, self.dim, self.slots).type(app_state.dtype)
+        # create memory to be added by computing outer product
+        added_memory = W[..., None] * vo[..., None, :]
+
+        all_ones = torch.ones(batch_size, 1, self.dim).type(app_state.dtype)
+        J = torch.ones(batch_size, self.slots, self.dim).type(app_state.dtype)
+
+        # create memory to be erased by computing outer product
+        erased_memory = W[..., None] * all_ones
 
         # Update history
-        visual_working_memory = visual_working_memory * (J - unity_matrix.matmul(W)).permute(0,2,1)
-        visual_working_memory = visual_working_memory + added_object.permute(0,2,1)
+        visual_working_memory = visual_working_memory * (J - erased_memory) + added_memory
 
         # get convolved tensor
         convolved_Wt_sequential=torch.cat((Wt_sequential[:,1:Wt_sequential.size(1)],Wt_sequential[:,0:1]),dim=1)
 
         # final expression to update Wt_sequential
-        Wt_sequential = (convolved_Wt_sequential.squeeze(2) * beta).unsqueeze(2) + (Wt_sequential.squeeze(2) * (1 - beta)).unsqueeze(2)
+        # print(f'{Wt_sequential.size(), convolved_Wt_sequential.size(), beta.size()}')
+        Wt_sequential = (convolved_Wt_sequential * beta) + (Wt_sequential * (1 - beta))
 
         # final read vector
         context_read_vector = T1 * now_context + T2 * last_context + T3 * latest_context

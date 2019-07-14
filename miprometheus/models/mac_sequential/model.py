@@ -182,10 +182,12 @@ class MACNetworkSequential(Model):
         summary_object=  summary_object * memory_mask
 
         # initialize empty memory
-        visual_working_memory = torch.zeros(batch_size, self.slot ,self.dim).type(app_state.dtype)
+        visual_working_memory \
+            = torch.zeros(batch_size, self.slot ,self.dim).type(app_state.dtype)
 
         # initialize Wt_sequential at first slot position
-        Wt_sequential = torch.cat([torch.ones(batch_size, 1).type(app_state.dtype), torch.zeros(batch_size, self.slot-1).type(app_state.dtype)], dim=1).unsqueeze(2)
+        wt_sequential = torch.zeros(batch_size, self.slot).type(app_state.dtype)
+        wt_sequential[:, 0] = 1
 
         self.cell_states=[]
 
@@ -195,18 +197,20 @@ class MACNetworkSequential(Model):
         # Loop over all elements along the SEQUENCE dimension.
         for f in range(images.size(0)):
 
+            # WHERE IS THE RESET OF CONTROL and SUMMARY OBJECT
+
             # image encoder
             feature_maps= self.image_encoder(images[f])
 
             # recurrent MAC cells
             for i in range(self.max_step):
                 new_summary_object, state_history, last_visual_attention, \
-                visual_working_memory, Wt_sequential \
+                visual_working_memory, wt_sequential \
                     = self.VWM_cell(contextual_word_encoding, question_encoding,
                                     feature_maps, control, summary_object,
-                                    visual_working_memory, Wt_sequential,step=i)
+                                    visual_working_memory, wt_sequential, step=i)
 
-            #save state history
+            # save state history
             self.cell_states.append(state_history)
 
             # output unit
