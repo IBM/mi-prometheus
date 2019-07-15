@@ -81,25 +81,25 @@ class InteractionModule(Module):
         :param base_object: query [batch_size x dim]
         :type base_object: torch.tensor
 
-        :param  feature_objects: [batch_size x dim x (H*W)]
+        :param  feature_objects: [batch_size x num_objects x dim]
         :type feature_objects: torch.tensor
 
-        :return: feature_objects_modified [batch_size x dim x (H*W)]
+        :return: feature_objects_modified [batch_size x num_objects x dim]
         """
 
         # pass query object through linear layer
         base_object_proj = self.base_object_proj_layer(base_object)
-        # [batch_size x dim x 1]
+        # [batch_size x dim]
 
         # pass feature_objects through linear layer
         feature_objects_proj = self.feature_objects_proj_layer(feature_objects)
-        # [batch_size x dim x(H * W)]
+        # [batch_size x num_objects x dim]
 
         # modify the projected feature objects using the projected base object
-        # [batch_size x dim] * [batch_size x dim x (H*W)] -> [batch_size x dim x (H*W)]
         feature_objects_modified = torch.cat([
             base_object_proj[:, None, :] * feature_objects_proj,
             feature_objects], dim=-1)
         feature_objects_modified = self.modifier(feature_objects_modified)
+        # [batch_size x num_objects x dim]
 
         return feature_objects_modified

@@ -43,7 +43,7 @@
 validator_unit.py: Implementation of the ``ValidatorUnit`` for the VWM network. 
 
 """
-__author__ = "Vincent Albouy"
+__author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
@@ -65,22 +65,19 @@ class ValidatorUnit(Module):
         # call base constructor
         super(ValidatorUnit, self).__init__()
 
-
         def two_layers_net():
             return torch.nn.Sequential(linear(2 * dim, 2 * dim, bias=True),
-                                               torch.nn.ELU(),
-                                               linear(2 * dim, 1, bias=True),
-                                                torch.nn.Sigmoid())
+                                       torch.nn.ELU(),
+                                       linear(2 * dim, 1, bias=True),
+                                       torch.nn.Sigmoid())
 
         self.visual_object_validator = two_layers_net()
-
-        self.memory_object_validator =  two_layers_net()
-
+        self.memory_object_validator = two_layers_net()
 
     def forward(self, control, vo, mo):
         """
-        Forward pass of the ``ValidatorUnitt``. Assuming 1 scalar attention weight per \
-        knowledge base elements.
+        Forward pass of the ``ValidatorUnit``.
+
         :param control: last control state
         :type control: torch.tensor
         :param  vo: visual output
@@ -88,17 +85,17 @@ class ValidatorUnit(Module):
         :param  mo: memory output
         :type mo: torch.tensor
    
-        :return: gvt, gmt : visual gate and memory gate
+        :return: valid_vo : whether visual object is valid
+        :return: valid_mo : whether memory object is valid
         """
         # calculate gate gvt
         concat_read_visual = torch.cat([control, vo], dim=1)
-        gvt = self.visual_object_validator(concat_read_visual )
-        #gvt = torch.sigmoid(gvt)
+        valid_vo = self.visual_object_validator(concat_read_visual)
+        valid_vo = valid_vo.squeeze(-1)
 
         # calculate gate gmt
         concat_read_memory = torch.cat([control, mo], dim=1)
-        gmt = self.memory_object_validator(concat_read_memory)
-        #gmt = torch.sigmoid(gmt)
+        valid_mo = self.memory_object_validator(concat_read_memory)
+        valid_mo = valid_mo.squeeze(-1)
 
-        #return two gates gvt, gmt
-        return gvt, gmt
+        return valid_vo, valid_mo

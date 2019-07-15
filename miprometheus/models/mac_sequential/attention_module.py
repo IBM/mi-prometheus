@@ -46,10 +46,11 @@ __author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
+
 from miprometheus.models.mac_sequential.utils_VWM import linear
 
 
-class Attention_Module(Module):
+class AttentionModule(Module):
     """
     Implementation of the Attention_Module for VWM model 
     """
@@ -63,7 +64,7 @@ class Attention_Module(Module):
         """
 
         # call base constructor
-        super(Attention_Module, self).__init__()
+        super(AttentionModule, self).__init__()
 
         # define the perceptron used to create the attention weights. Should
         # be one scalar weight per contextual word
@@ -75,17 +76,20 @@ class Attention_Module(Module):
         """
         Forward pass of the ``VWM model Attention_Module``.
 
-        :param  q : query
+        :param  q : query         [batch_size x dim]
         :type   tensor
 
-        :param keys : Keys
+        :param keys : Keys        [batch_size x N x dim]
         :type  tensor
 
-        :param values : Values
+        :param values : Values    [batch_size x N x dim_other]
         :type  tensor
 
-        :return: c : content , ca : attention
-        :type  tensors 
+        :return: c : content      [batch_size x dim_other]
+        :type  tensor
+
+        :return: ca : attention   [batch_size x N]
+        :type  tensor
         
         """
         if values is None:
@@ -99,10 +103,10 @@ class Attention_Module(Module):
         # compute element-wise product between q & K
         # compute attention weights
 
-        ca = self.attn(q[:, None, :] * keys)  # [batch_size x maxLength x 1]
+        ca = self.attn(q[:, None, :] * keys)  # [batch_size x N x 1]
 
         # compute content
-        c = (ca * values).sum(1)     # [batch_size x dim]
+        c = (ca * values).sum(1)     # [batch_size x dim_other]
 
-        ca = ca.squeeze(-1)     # [batch_size x maxLength]
+        ca = ca.squeeze(-1)     # [batch_size x N]
         return c, ca

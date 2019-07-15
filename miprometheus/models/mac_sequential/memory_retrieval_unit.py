@@ -47,8 +47,8 @@ __author__ = "Vincent Albouy, T.S. Jayram"
 import torch
 from torch.nn import Module
 
+from miprometheus.models.mac_sequential.attention_module import AttentionModule
 from miprometheus.models.mac_sequential.interaction_module import InteractionModule
-from miprometheus.models.mac_sequential.attention_module import Attention_Module
 
 
 class MemoryRetrievalUnit(Module):
@@ -70,24 +70,24 @@ class MemoryRetrievalUnit(Module):
         self.interaction_module = InteractionModule(dim)
 
         # instantiate attention module
-        self.attention_module = Attention_Module(dim)
+        self.attention_module = AttentionModule(dim)
 
     def forward(self, summary_object, visual_working_memory, ctrl_state):
         """
         Forward pass of the ``MemoryRetrievalUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
         
-        :param summary_object:  previous summary_object [batch_size x dim]
+        :param summary_object:  previous summary object [batch_size x dim]
         :type summary_object: torch.tensor
 
-        :param  visual_working_memory: [batch_size x dim x (H*W)]
+        :param  visual_working_memory: batch_size x vwm_num_slots x dim
         :type visual_working_memory: torch.tensor
 
         :param ctrl_state:  previous control state [batch_size x dim].
         :type ctrl_state: torch.tensor
 
         :return: memory_output [batch_size x dim]
-        :return: memory_attention [batch_size x max_length]
+        :return: memory_attention [batch_size x vwm_num_slots]
         """
 
 
@@ -97,4 +97,4 @@ class MemoryRetrievalUnit(Module):
         memory_output, memory_attention = \
             self.attention_module(ctrl_state, vwm_modified, visual_working_memory)
 
-        return  memory_output, memory_attention
+        return memory_output, memory_attention
