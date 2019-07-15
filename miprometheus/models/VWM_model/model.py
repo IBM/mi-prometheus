@@ -42,38 +42,35 @@
 """
 model.py:
 
-    - Implementation of the ``MAC`` network, reusing the different units implemented in separated files.
-    - Cf https://arxiv.org/abs/1803.03067 for the reference paper.
-
-
+    - Implementation of the ``VWMC`` network, reusing the different units implemented in separated files.
 """
-__author__ = "Vincent Marois , Vincent Albouy"
+__author__ = "Vincent Marois , Vincent Albouy, T.S. Jayram"
 
 import nltk
 import torch
 import numpy as np
 import matplotlib.pylab
 import matplotlib.animation
-from torchvision import transforms
 from miprometheus.models.model import Model
 import numpy as numpy
 import torch.nn as nn
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
-from miprometheus.models.mac_sequential.input_unit import InputUnit
-from miprometheus.models.mac_sequential.mac_unit import MACUnit
+from miprometheus.models.mac_sequential.question_encoder import QuestionEncoder
+from miprometheus.models.mac_sequential.image_encoder import ImageEncoder
+from miprometheus.models.mac_sequential.VWM_cell import VWMCell
 from miprometheus.models.mac_sequential.output_unit import OutputUnit
-from miprometheus.models.mac_sequential.image_encoding import ImageProcessing
+from matplotlib.colors import LinearSegmentedColormap
 
 
 class MACNetworkSequential(Model):
     """
-    Implementation of the entire ``MAC`` network.
+    Implementation of the entire ``VWM`` network.
     """
 
     def __init__(self, params, problem_default_values_={}):
         """
-        Constructor for the ``MAC`` network.
+        Constructor for the ``VWM`` network.
 
         :param params: dict of parameters (read from configuration ``.yaml`` file).
         :type params: utils.ParamInterface
@@ -94,21 +91,16 @@ class MACNetworkSequential(Model):
         self.dropout = params['dropout']
         self.memory_pass = params['memory_pass']
         self.control_pass = params['control_pass']
+        self.slot =  params['slot']
+        self.nb_classes_pointing = params['classes']
+        self.words_embed_length = params['words_embed_length']
+        self.nwords = params['nwords']
 
         # Maximum number of embeddable words.
         self.vocabulary_size = problem_default_values_['embed_vocab_size']
 
-        # Length of vectoral representation of each word.
-        self.words_embed_length = 64
-
-        # This should be the length of the longest sentence encounterable
-        self.nwords = 24
-
         # Get dtype.
         self.dtype = self.app_state.dtype
-
-        self.EmbedVocabulary(self.vocabulary_size,
-                             self.words_embed_length)
 
         try:
             self.nb_classes = problem_default_values_['nb_classes']
@@ -116,79 +108,25 @@ class MACNetworkSequential(Model):
         except KeyError:
             self.logger.warning("Couldn't retrieve one or more value(s) from problem_default_values_.")
 
-        self.nb_classes_pointing=49
-
-        self.name = 'MAC'
+        self.name = 'VWM'
 
         # instantiate units
-        self.input_unit = InputUnit(
-            dim=self.dim, embedded_dim=self.embed_hidden)
+        self.question_encoder = QuestionEncoder( self.vocabulary_size,self.dtype, self.words_embed_length, self.nwords, dim=self.dim, embedded_dim=self.embed_hidden )
 
-        self.mac_unit = MACUnit(
+        # instantiate units
+        self.image_encoder = ImageEncoder(
+            dim=self.dim)
+
+        #initialize VWM Cell
+        self.VWM_cell = VWMCell(
             dim=self.dim,
             max_step=self.max_step,
-            self_attention=self.self_attention,
-            memory_gate=self.memory_gate,
-            dropout=self.dropout)
-
-        self.image_encoding = ImageProcessing(dim=512)
+            dropout=self.dropout,
+            slots=self.slot)
 
         # Create two separate output units.
         self.output_unit_answer = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
-        self.output_unit_pointing = OutputUnit(dim=self.dim, nb_classes=self.nb_classes_pointing)
 
-
-        # TODO: The following definitions are not correct!!!!
-        self.data_definitions = {'images': {'size': [-1, 1024, 14, 14], 'type': [np.ndarray]},
-                                 'questions': {'size': [-1, -1, -1], 'type': [torch.Tensor]},
-                                 'questions_length': {'size': [-1], 'type': [list, int]},
-                                 'targets': {'size': [-1, self.nb_classes], 'type': [torch.Tensor]}
-                                 }
-
-        ####### IMAGE PROCESSING ################
-
-        # Number of channels in input Image
-        self.image_channels = 3
-
-        # CNN number of channels
-        self.visual_processing_channels = [32, 64, 64, 128]
-
-        # LSTM hidden units.
-        self.lstm_hidden_units = 64
-
-        # Input Image size
-        self.image_size = [112, 112]
-
-        # history states
-        self.cell_states = []
-
-        # Visual memory shape. height x width.
-        self.vstm_shape = np.array(self.image_size)
-        for channel in self.visual_processing_channels:
-            self.vstm_shape = np.floor((self.vstm_shape) / 2)
-        self.vstm_shape = [int(dim) for dim in self.vstm_shape]
-
-        # Number of GRU units in controller
-        self.controller_output_size = 768
-
-        self.VisualProcessing(self.image_channels,
-                              self.visual_processing_channels,
-                              self.lstm_hidden_units * 2,
-                              self.controller_output_size * 2,
-                              self.vstm_shape)
-
-        # Initialize weights and biases
-        # -----------------------------------------------------------------
-        # Visual processing
-        nn.init.xavier_uniform_(self.conv1.weight, gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self.conv2.weight, gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self.conv3.weight, gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self.conv4.weight, gain=nn.init.calculate_gain('relu'))
-
-        self.conv1.bias.data.fill_(0.01)
-        self.conv2.bias.data.fill_(0.01)
-        self.conv3.bias.data.fill_(0.01)
-        self.conv4.bias.data.fill_(0.01)
 
         # initialize hidden states for mac cell control states and memory states
         self.mem_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(app_state.dtype))
@@ -196,11 +134,10 @@ class MACNetworkSequential(Model):
             torch.zeros(1, self.dim).type(app_state.dtype))
 
 
-
     def forward(self, data_dict, dropout=0.15):
         """
-        Forward pass of the ``MAC`` network. Calls first the ``InputUnit``, then the recurrent \
-        MAC cells and finally the ```OutputUnit``.
+        Forward pass of the ``VWM`` network. Calls first the ``ImageEncoder, QuestionEncoder``, then the recurrent \
+        VWM cells and finally the ```OutputUnit``.
 
         :param data_dict: input data batch.
         :type data_dict: utils.DataDict
@@ -225,10 +162,10 @@ class MACNetworkSequential(Model):
 
         # Get and procecss questions.
         questions = data_dict['questions']
-        # Embeddings.
-        questions = self.forward_lookup2embed(questions)
+
         # Get questions size of all batch elements.
         questions_length = questions.size(1)
+
         # Convert questions length into a tensor
         questions_length = torch.from_numpy(numpy.array(questions_length))
 
@@ -238,47 +175,49 @@ class MACNetworkSequential(Model):
 
         # expand the hidden states to whole batch for mac cell control states and memory states
         control = self.control_0.expand(batch_size, self.dim)
-        memory = self.mem_0.expand(batch_size, self.dim)
+        summary_object = self.mem_0.expand(batch_size, self.dim)
         control_mask = self.get_dropout_mask(control, self.dropout)
-        memory_mask = self.get_dropout_mask(memory, self.dropout)
+        memory_mask = self.get_dropout_mask(summary_object, self.dropout)
         control = control * control_mask
-        memory = memory * memory_mask
+        summary_object=  summary_object * memory_mask
 
-        # expand the hidden states to whole batch for mac cell control states and memory states
-        controls = [control]
-        memories = [memory]
+        # initialize empty memory
+        visual_working_memory \
+            = torch.zeros(batch_size, self.slot ,self.dim).type(app_state.dtype)
+
+        # initialize Wt_sequential at first slot position
+        wt_sequential = torch.zeros(batch_size, self.slot).type(app_state.dtype)
+        wt_sequential[:, 0] = 1
 
         self.cell_states=[]
 
+        # question encoder
+        contextual_word_encoding, question_encoding = self.question_encoder(questions, questions_length)
+
         # Loop over all elements along the SEQUENCE dimension.
-        for i in range(images.size(0)):
+        for f in range(images.size(0)):
 
-            #Cog like CNN - cf  cog  model
-            x = self.conv1(images[i])
-            x = self.maxpool1(x)
-            x = nn.functional.relu(self.batchnorm1(x))
-            x = self.conv2(x)
-            x = self.maxpool2(x)
-            x = nn.functional.relu(self.batchnorm2(x))
-            x = self.conv3(x)
-            x = self.maxpool3(x)
-            x = nn.functional.relu(self.batchnorm3(x))
-            x = self.conv4(x)
-            # out_conv4 = self.conv4(out_batchnorm3)
-            x = self.maxpool4(x)
+            #RESET OF CONTROL and SUMMARY OBJECT
+            new_summary_object = summary_object
+            new_control_state = control
 
-            # input unit
-            img, kb_proj, lstm_out, h = self.input_unit(questions, questions_length, x)
+            # image encoder
+            feature_maps= self.image_encoder(images[f])
 
-            # recurrent MAC cells
-            new_memory, controls, memories , state_history = self.mac_unit(lstm_out, h, img, kb_proj, controls, memories, self.control_pass, self.memory_pass, control, memory)
+            # recurrent VWM cells
+            for i in range(self.max_step):
+                new_summary_object, new_control_state, state_history, last_visual_attention, \
+                visual_working_memory, wt_sequential \
+                    = self.VWM_cell(contextual_word_encoding, question_encoding,
+                                    feature_maps, new_control_state, new_summary_object,
+                                    visual_working_memory, wt_sequential, step=i)
 
-            #save state history
+            # save state history
             self.cell_states.append(state_history)
 
-            # output unit
-            logits_answer[:,i,:] = self.output_unit_answer(new_memory, h)
-            logits_pointing[:,i,:] = self.output_unit_pointing(new_memory, h)
+        # output unit
+        logits_answer[:, f, :] = self.output_unit_answer(last_visual_attention, question_encoding, new_summary_object)
+
 
         return logits_answer, logits_pointing
 
@@ -305,13 +244,24 @@ class MACNetworkSequential(Model):
         fig = Figure()
 
         # Create a specific grid for MAC.
-        gs = matplotlib.gridspec.GridSpec(6, 2)
+        gs = matplotlib.gridspec.GridSpec(4, 9)
 
         # subplots: original image, attention on image & question, step index
-        ax_image = fig.add_subplot(gs[2:6, 0])
-        ax_attention_image = fig.add_subplot(gs[2:6, 1])
-        ax_attention_question = fig.add_subplot(gs[0, :])
-        ax_step = fig.add_subplot(gs[1, 0])
+
+        #bas
+        ax_image = fig.add_subplot(gs[2:4, 0:2])
+        ax_attention_image = fig.add_subplot(gs[2:4, 2:4])
+
+        ax_history = fig.add_subplot(gs[2:4, 5:7])
+        ax_attention_history = fig.add_subplot(gs[2:4, 4:5])
+        ax_wt = fig.add_subplot(gs[2:4, 7:8])
+
+        #milieu
+        ax_context = fig.add_subplot(gs[1, 6:8])
+        ax_attention_question = fig.add_subplot(gs[1, 0:6])
+
+        #haut
+        ax_step = fig.add_subplot(gs[0, :])
 
         # Set axis ticks
         ax_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
@@ -332,88 +282,32 @@ class MACNetworkSequential(Model):
 
         return fig
 
-    def forward_lookup2embed(self, questions):
-        """
-        Performs embedding of lookup-table questions with nn.Embedding.
+    def grayscale_cmap(self,cmap):
+        """Return a grayscale version of the given colormap"""
+        cmap = matplotlib.pylab.cm.get_cmap(cmap)
+        colors = cmap(np.arange(cmap.N))
 
-        :param questions: Tensor of questions in lookup format (Ints)
+        # convert RGBA to perceived grayscale luminance
+        # cf. http://alienryderflex.com/hsp.html
+        RGB_weight = [0.299, 0.587, 0.114]
+        luminance = np.sqrt(np.dot(colors[:, :3] ** 2, RGB_weight))
+        colors[:, :3] = luminance[:, np.newaxis]
 
-        """
+        return LinearSegmentedColormap.from_list(cmap.name + "_gray", colors, cmap.N)
 
-        out_embed = torch.zeros((questions.size(0), self.nwords, self.words_embed_length), requires_grad=False).type(
-            self.dtype)
-        for i, sentence in enumerate(questions):
-            out_embed[i, :, :] = (self.Embedding(sentence))
+    def view_colormap(self, cmap):
+        """Plot a colormap with its grayscale equivalent"""
+        cmap = matplotlib.pylab.cm.get_cmap(cmap)
+        colors = cmap(np.arange(cmap.N))
 
-        return out_embed
+        cmap = self.grayscale_cmap(cmap)
+        grayscale = cmap(np.arange(cmap.N))
 
-        # Embed vocabulary for all available task families
-    def EmbedVocabulary(self, vocabulary_size, words_embed_length):
-            """
-            Defines nn.Embedding for embedding of questions into float tensors.
+        fig, ax = matplotlib.pylab.subplots(2, figsize=(6, 2),
+                               subplot_kw=dict(xticks=[], yticks=[]))
+        ax[0].imshow([colors], extent=[0, 10, 0, 1])
+        ax[1].imshow([grayscale], extent=[0, 10, 0, 1])
 
-            :param vocabulary_size: Number of unique words possible.
-            :type vocabulary_size: Int
-
-            :param words_embed_length: Size of the vectors representing words post embedding.
-            :type words_embed_length: Int
-
-            """
-            self.Embedding = nn.Embedding(vocabulary_size, words_embed_length, padding_idx=0)
-
-    def VisualProcessing(self, in_channels, layer_channels, feature_control_len, spatial_control_len, output_shape):
-        """
-        Defines all layers pertaining to visual processing.
-
-        :param in_channels: Number of channels in images in dataset. Usually 3 (RGB).
-        :type in_channels: Int
-
-        :param layer_channels: Number of feature maps in the CNN for each layer.
-        :type layer_channels: List of Ints
-
-        :param feature_control_len: Input size to the Feature Attention linear layer.
-        :type feature_control_len: Int
-
-        :param spatial_control_len: Input size to the Spatial Attention linear layer.
-        :type spatial_control_len: Int
-
-        :param output_shape: Output dimensions of feature maps of last layer.
-        :type output_shape: Tuple of Ints
-
-        """
-        # Initial Norm
-        # self.batchnorm0 = nn.BatchNorm2d(3)
-
-        # First Layer
-        self.conv1 = nn.Conv2d(in_channels, layer_channels[0], 3,
-                               stride=1, padding=1, dilation=1, groups=1, bias=True)
-        self.maxpool1 = nn.MaxPool2d(2,
-                                     stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
-        self.batchnorm1 = nn.BatchNorm2d(layer_channels[0])
-
-        # Second Layer
-        self.conv2 = nn.Conv2d(layer_channels[0], layer_channels[1], 3,
-                               stride=1, padding=1, dilation=1, groups=1, bias=True)
-        self.maxpool2 = nn.MaxPool2d(2,
-                                     stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
-        self.batchnorm2 = nn.BatchNorm2d(layer_channels[1])
-
-        # Third Layer
-        self.conv3 = nn.Conv2d(layer_channels[1], layer_channels[2], 3,
-                               stride=1, padding=1, dilation=1, groups=1, bias=True)
-        self.maxpool3 = nn.MaxPool2d(2,
-                                     stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
-        self.batchnorm3 = nn.BatchNorm2d(layer_channels[2])
-
-        # Fourth Layer
-        self.conv4 = nn.Conv2d(layer_channels[2], layer_channels[3], 3,
-                               stride=1, padding=1, dilation=1, groups=1, bias=True)
-        self.maxpool4 = nn.MaxPool2d(2,
-                                     stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
-        self.batchnorm4 = nn.BatchNorm2d(layer_channels[3])
-
-        # Linear Layer
-        self.cnn_linear1 = nn.Linear(layer_channels[3] * output_shape[0] * output_shape[1], 128)
 
 
     def plot(self, data_dict, logits, sample=0):
@@ -454,6 +348,8 @@ class MACNetworkSequential(Model):
         words = s_questions[sample][0]
         words = nltk.word_tokenize(words)
 
+        color='magma'
+
         # get images dimensions
         width = images.size(3)
         height = images.size(4)
@@ -472,8 +368,10 @@ class MACNetworkSequential(Model):
             # Create figure template.
             fig = self.generate_figure_layout()
 
+
+
             # Get axes that artists will draw on.
-            (ax_image, ax_attention_image, ax_attention_question, ax_step) = fig.axes
+            (ax_image, ax_attention_image, ax_history, ax_attention_history,ax_wt,ax_context, ax_attention_question, ax_step  ) = fig.axes
 
             #initiate list of artists frames
             frames = []
@@ -492,8 +390,9 @@ class MACNetworkSequential(Model):
                 ans = s_answers[sample][i]
 
                 #loop over the k reasoning steps
-                for step, (attention_mask, attention_question) in zip(
+                for step, (attention_mask, attention_question, history, W,gmem,gkb,Wt_seq , context) in zip(
                         range(self.max_step), self.cell_states[i]):
+
 
                     # preprocess attention image, reshape
                     attention_size = int(np.sqrt(attention_mask.size(-1)))
@@ -510,38 +409,81 @@ class MACNetworkSequential(Model):
                     # preprocess question, pick one sample number
                     attention_question = attention_question[sample]
 
+                    colors = ['red', 'brown', 'yellow', 'green', 'blue']
+                    cmap = LinearSegmentedColormap.from_list('name', colors)
+                    norm = matplotlib.pylab.Normalize(0, 1)
+                    norm2 = matplotlib.pylab.Normalize(0, 4)
+
+
                     # Create "Artists" drawing data on "ImageAxes".
-                    num_artists = len(fig.axes) + 1
+                    num_artists = len(fig.axes) + 2
                     artists = [None] * num_artists
 
                     # set title labels
-                    ax_image.set_title(
-                        'COG image:')
+
                     ax_attention_question.set_xticklabels(
-                        ['h'] + words, rotation='vertical', fontsize=15)
+                        ['h'] + words, rotation=-45, fontsize=15)
                     ax_step.axis('off')
                     ax_attention_image.set_title(
                         'Visual Attention:')
 
+                    ax_history.set_title(
+                        'Visual Working Memory (VWM):')
+
+                    ax_attention_history.set_title(
+                        'VWM Attention :')
+
+                    ax_wt.set_title(
+                        'Sequential Attention:')
+
+                    ax_context.set_title(
+                        'Now        Last     Latest    None')
+
+                    #fig.colorbar(history[sample], cax=ax_history)
+
                     # Tell artists what to do:
-                    artists[0] = ax_image.imshow(
+                    artists[0] = ax_image.set_title('COG image:')
+                    artists[1] = ax_image.imshow(
                         image, interpolation='nearest', aspect='auto')
-                    artists[1] = ax_attention_image.imshow(
-                        image, interpolation='nearest', aspect='auto')
+
                     artists[2] = ax_attention_image.imshow(
+                        image, interpolation='nearest', aspect='auto')
+                    artists[3] = ax_attention_image.imshow(
                         attention_mask,
                         interpolation='nearest',
                         aspect='auto',
                         alpha=0.5,
-                        cmap='Reds')
-                    artists[3] = ax_attention_question.imshow(
+                        cmap=color)
+
+
+
+                    artists[4] = ax_attention_question.imshow(
                         attention_question.transpose(1, 0),
-                        interpolation='nearest', aspect='auto', cmap='Reds')
-                    artists[4] = ax_step.text(
+                        interpolation='nearest', aspect='auto', cmap=color, norm=norm)
+                    artists[5] = ax_step.text(
                         0, 0.5, 'Reasoning step index: ' + str(
-                            step) + ' | Question type: ' + tasks + '         ' + 'Predicted Answer: ' + pred + '  ' +
-                                'Ground Truth: ' + ans,
-                        fontsize=15)
+                            step+1) + '  frame ' + str(i+1) +' | Question type: ' + tasks + '         ' + 'Predicted Answer: ' + pred + '  ' +
+                                'Ground Truth: ' + ans +'  ' , fontsize=15)
+
+                    #+' gvt ' + str(gmem[sample].data) + '  ' + ' grt ' + ' ' + str(gkb[sample].data)
+                    artists[6] = ax_history.imshow(
+                        history[sample].transpose(1,0), interpolation='nearest', aspect='auto', cmap=color, norm=norm2  )
+
+
+
+                    artists[7] = ax_attention_history.imshow(
+                        W[sample].transpose(1,0), interpolation='nearest',cmap=color, norm=norm , aspect='auto')
+
+                    artists[8] = ax_wt.imshow(
+                        Wt_seq[sample].transpose(1,0), interpolation='nearest', cmap=color, norm=norm, aspect='auto')
+
+                    artists[9] = ax_context.imshow(
+                        context[sample], interpolation='nearest', cmap=color, norm=norm, aspect='auto')
+
+
+
+
+                    self.view_colormap('Reds')
 
                     # Add "frames" to artist list
                     frames.append(artists)
@@ -595,7 +537,7 @@ class MACNetworkSequential(Model):
 
                     # set title labels
                     ax_image.set_title(
-                        'COG image:')
+                        'COG image ' + str(i))
                     ax_attention_question.set_xticklabels(
                         ['h'] + words, rotation='vertical', fontsize=10)
                     ax_step.axis('off')

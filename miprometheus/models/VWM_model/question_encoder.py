@@ -40,25 +40,25 @@
 # limitations under the License.
 
 """
-input_unit.py: Implementation of the input unit for the MAC network. Cf https://arxiv.org/abs/1803.03067 for \
+input_unit.py: Implementation of the input unit for the VWM Network
 the reference paper.
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Albouy"
 import torch
 from torch.nn import Module
+import torch.nn as nn
 
-from miprometheus.models.mac_sequential.utils_mac import linear
-from miprometheus.models.mac_sequential.image_encoding import ImageProcessing
-
-
-class InputUnit(Module):
+class QuestionEncoder(Module):
     """
-    Implementation of the ``InputUnit`` of the MAC network.
+    Implementation of the ``QuestionEncoder`` of the MAC network.
     """
 
-    def __init__(self, dim, embedded_dim):
+    def __init__(self, vocabulary_size, dtype, words_embed_length, nwords, embedded_dim, dim):
         """
-        Constructor for the ``InputUnit``.
+        Constructor for the ``QuestionEncoder``.
+             
+        :param dim: size of dictionnary
+        :type dim: int
 
         :param dim: global 'd' hidden dimension
         :type dim: int
@@ -69,27 +69,30 @@ class InputUnit(Module):
         """
 
         # call base constructor
-        super(InputUnit, self).__init__()
+        super(QuestionEncoder, self).__init__()
 
         self.dim = dim
 
-        # instantiate image processing (2-layers CNN)
-        self.conv = ImageProcessing(dim)
+        self.dtype=dtype
 
-        # define linear layer for the projection of the knowledge base
-        self.kb_proj_layer = linear(dim, dim, bias=True)
+        self.nwords=nwords
+
+        self.words_embed_length=words_embed_length
 
         # create bidirectional LSTM layer
         self.lstm = torch.nn.LSTM(input_size=embedded_dim, hidden_size=self.dim,
                             num_layers=1, batch_first=True, bidirectional=True)
 
         # linear layer for projecting the word encodings from 2*dim to dim
-        # TODO: linear(2*self.dim, self.dim, bias=True) ?
         self.lstm_proj = torch.nn.Linear(2 * self.dim, self.dim)
 
-    def forward(self, questions, questions_len, feature_maps):
+        print(self.words_embed_length)
+        self.EmbedVocabulary(vocabulary_size,
+                             self.words_embed_length)
+
+    def forward(self, questions, questions_len):
         """
-        Forward pass of the ``InputUnit``.
+        Forward pass of the ``QuestionEncoder``.
 
         :param questions: tensor of the questions words, shape [batch_size x maxQuestionLength x embedded_dim].
         :type questions: torch.tensor
@@ -97,49 +100,53 @@ class InputUnit(Module):
         :param questions_len: Unpadded questions length.
         :type questions_len: list
 
-        :param feature_maps: [batch_size x nb_kernels x feat_H x feat_W] coming from `ResNet101`.
-        :type feature_maps: torch.tensor
-
         :return:
 
             - question encodings: [batch_size x 2*dim] (torch.tensor),
-            - word encodings: [batch_size x maxQuestionLength x dim] (torch.tensor),
-            - images_encodings: [batch_size x nb_kernels x (H*W)] (torch.tensor).
-
-
+            - contextual_word_embedding: [batch_size x maxQuestionLength x dim] (torch.tensor),
+          
         """
-        batch_size = feature_maps.shape[0]
+        batch_size = questions.shape[0]
 
-        # images processing
-        #feature_maps = self.conv(feature_maps)
-
-        # reshape feature maps as channels first
-        feature_maps = feature_maps.view(batch_size, self.dim, -1)
-
-        # pass feature maps through linear layer
-        kb_proj = self.kb_proj_layer(
-            feature_maps.permute(0, 2, 1)).permute(0, 2, 1)
-
-        # avoid useless computations on padding elements: pack sequences
-        #embed = torch.nn.utils.rnn.pack_padded_sequence(
-        #    questions, questions_len, batch_first=True)
-
-        embed = questions
-        embed=embed.float()
+        # Embeddings.
+        questions = self.forward_lookup2embed(questions)
 
         # LSTM layer: words & questions encodings
-        lstm_out, (h, _) = self.lstm(embed)
-
-        # reshape packed sequences to a padded tensor
-        #lstm_out, _ = torch.nn.utils.rnn.pad_packed_sequence(
-         #   lstm_out, batch_first=True)
+        lstm_out, (h, _) = self.lstm(questions.float())
 
         # get final words encodings using linear layer
-        lstm_out = self.lstm_proj(lstm_out)
+        contextual_word_embedding = self.lstm_proj(lstm_out)
 
-        # reshape last hidden states for questions encodings -> [batch_size x
-        # (2*dim)]
-        h = h.permute(1, 0, 2).contiguous().view(batch_size, -1)
+        # reshape last hidden states for questions encodings -> [batch_size x (2*dim)]
+        question_encoding = h.permute(1, 0, 2).contiguous().view(batch_size, -1)
 
-        # return everything
-        return feature_maps, kb_proj, lstm_out, h
+        return  contextual_word_embedding, question_encoding
+
+
+    def forward_lookup2embed(self, questions):
+        """
+        Performs embedding of lookup-table questions with nn.Embedding.
+
+        :param questions: Tensor of questions in lookup format (Ints)
+
+        """
+
+        out_embed = torch.zeros((questions.size(0), self.nwords, self.words_embed_length), requires_grad=False).type(
+            self.dtype)
+        for i, sentence in enumerate(questions):
+            out_embed[i, :, :] = (self.Embedding(sentence))
+
+        return out_embed
+
+    def EmbedVocabulary(self, vocabulary_size, words_embed_length):
+            """
+            Defines nn.Embedding for embedding of questions into float tensors.
+
+            :param vocabulary_size: Number of unique words possible.
+            :type vocabulary_size: Int
+
+            :param words_embed_length: Size of the vectors representing words post embedding.
+            :type words_embed_length: Int
+
+            """
+            self.Embedding = nn.Embedding(vocabulary_size, words_embed_length, padding_idx=0)

@@ -40,57 +40,61 @@
 # limitations under the License.
 
 """
-image_encoding.py: Implementation of the image processing done by the input unit in the MAC network. See \
-https://arxiv.org/pdf/1803.03067.pdf for the reference paper.
-
+memory_retrieval.py: Implementation of the ``MemoryRetrievalUnit`` for the VWM network.
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
 
+from miprometheus.models.mac_sequential.attention_module import AttentionModule
+from miprometheus.models.mac_sequential.interaction_module import InteractionModule
 
-class ImageProcessing(Module):
+
+class MemoryRetrievalUnit(Module):
     """
-    Image encoding using a 2-layers CNN assuming the images have been already \
-    preprocessed by `ResNet101`.
+    Implementation of the ``MemoryRetrievalUnit`` of the VWM network.
     """
 
     def __init__(self, dim):
         """
-        Constructor for the 2-layers CNN.
-
+        Constructor for the ``MemoryRetrievalUnit``.
         :param dim: global 'd' hidden dimension
         :type dim: int
-
         """
 
         # call base constructor
-        super(ImageProcessing, self).__init__()
+        super(MemoryRetrievalUnit, self).__init__()
 
-        self.conv = torch.nn.Sequential(torch.nn.Conv2d(128, dim, 3, padding=1),
-                                        torch.nn.ELU(),
-                                        torch.nn.Conv2d(dim, dim, 3, padding=1),
-                                        torch.nn.ELU())
-        # specify weights initialization
-        torch.nn.init.kaiming_uniform_(self.conv[0].weight)
-        self.conv[0].bias.data.zero_()
-        torch.nn.init.kaiming_uniform_(self.conv[2].weight)
-        self.conv[2].bias.data.zero_()
+        # instantiate interaction module
+        self.interaction_module = InteractionModule(dim)
 
-    def forward(self, feature_maps):
+        # instantiate attention module
+        self.attention_module = AttentionModule(dim)
+
+    def forward(self, summary_object, visual_working_memory, ctrl_state):
         """
-        Apply the constructed CNN model on the feature maps (coming from \
-        `ResNet101`).
+        Forward pass of the ``MemoryRetrievalUnit``. Assuming 1 scalar attention weight per \
+        knowledge base elements.
+        
+        :param summary_object:  previous summary object [batch_size x dim]
+        :type summary_object: torch.tensor
 
-        :param feature_maps: [batch_size x nb_kernels x feat_H x feat_W] coming from `ResNet101`. \
-               Should have [nb_kernels x feat_H x feat_W] = [1024 x 14 x 14].
-        :type feature_maps: torch.tensor
+        :param  visual_working_memory: batch_size x vwm_num_slots x dim
+        :type visual_working_memory: torch.tensor
 
-        :return feature_maps: feature map, shape [batch_size, dim, new_height, new_width]
+        :param ctrl_state:  previous control state [batch_size x dim].
+        :type ctrl_state: torch.tensor
 
+        :return: memory_output [batch_size x dim]
+        :return: memory_attention [batch_size x vwm_num_slots]
         """
 
-        new_feature_maps = self.conv(feature_maps)
 
-        return new_feature_maps
+        vwm_modified = self.interaction_module(summary_object, visual_working_memory)
+
+        # compute attention weights
+        memory_output, memory_attention = \
+            self.attention_module(ctrl_state, vwm_modified, visual_working_memory)
+
+        return memory_output, memory_attention

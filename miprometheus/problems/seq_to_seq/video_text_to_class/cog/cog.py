@@ -525,9 +525,7 @@ class COG(VideoTextToClassProblem):
 
 			else:
 				categories_stats[tasks[i]][2] = categories_stats[tasks[i]][1]/categories_stats[tasks[i]][0]
-
-
-
+        
 		return categories_stats
 
 

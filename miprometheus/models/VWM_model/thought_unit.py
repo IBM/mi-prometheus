@@ -40,36 +40,52 @@
 # limitations under the License.
 
 """
-utils_mac.py: Implementation of utils methods for the MAC network. Cf https://arxiv.org/abs/1803.03067 for the \
-reference paper.
+write_unit.py: Implementation of the ``ThoughtUnit`` for the VWM network.
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Albouy, T.S. Jayram"
 
-from torch import nn
+import torch
+from torch.nn import Module
+from miprometheus.models.mac_sequential.utils_VWM import linear
 
 
-def linear(input_dim, output_dim, bias=True):
+class ThoughtUnit(Module):
     """
-    Defines a Linear layer. Specifies Xavier as the initialization type of the weights, to respect the original \
-    implementation: https://github.com/stanfordnlp/mac-network/blob/master/ops.py#L20
-
-    :param input_dim: input dimension
-    :type input_dim: int
-
-    :param output_dim: output dimension
-    :type output_dim: int
-
-    :param bias:  If set to True, the layer will learn an additive bias initially set to true \
-    (as original implementation https://github.com/stanfordnlp/mac-network/blob/master/ops.py#L40)
-    :type bias: bool
-
-    :return: Initialized Linear layer
-
+    Implementation of the ``ThoughtUnit`` of the MAC network.
     """
 
-    linear_layer = nn.Linear(input_dim, output_dim, bias=bias)
-    nn.init.xavier_uniform_(linear_layer.weight)
-    if bias:
-        linear_layer.bias.data.zero_()
+    def __init__(self, dim):
+        """
+        Constructor for the ``ThoughtUnit``.
 
-    return linear_layer
+        :param dim: global 'd' hidden dimension
+        :type dim: int
+
+        """
+
+        # call base constructor
+        super(ThoughtUnit, self).__init__()
+
+        # linear layer for the concatenation of context_output and summary_output
+        self.concat_layer = linear(2 * dim, dim, bias=True)
+
+
+    def forward(self, summary_output, context_output):
+        """
+        Forward pass of the ``ThoughtUnit``.
+
+        :param summary_output: previous memory states, each of shape [batch_size x dim].
+        :type summary_output: list
+
+        :param context_output: current read vector (output of the viusal retrieval unit), shape [batch_size x dim].
+        :type context_output: torch.tensor
+
+        :return: next_context_output, shape [batch_size x mem_dim]
+
+        """
+
+        # combine the new read vector with the prior memory state (w1)
+        next_context_output = self.concat_layer(torch.cat([context_output, summary_output], 1))
+
+
+        return next_context_output

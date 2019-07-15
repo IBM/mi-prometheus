@@ -40,60 +40,66 @@
 # limitations under the License.
 
 """
-output_unit.py: Implementation of the ``OutputUnit`` for the MAC network. Cf https://arxiv.org/abs/1803.03067 \
-for the reference paper.
+interaction_module.py: Implementation of the ``Interaction Module`` for the VWM network.
 """
-__author__ = "Vincent Marois"
+__author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
 
-from miprometheus.models.mac_sequential.utils_mac import linear
+from miprometheus.models.mac_sequential.utils_VWM import linear
 
 
-class OutputUnit(Module):
+class InteractionModule(Module):
     """
-    Implementation of the ``OutputUnit`` of the MAC network.
+    Implementation of the ``Interaction Unit`` of the VWM network.
     """
 
-    def __init__(self, dim, nb_classes):
+    def __init__(self, dim):
         """
-        Constructor for the ``OutputUnit``.
-
-        :param dim: global 'd' dimension.
+        Constructor for the ``InteractionModule``.
+        :param dim: global 'd' hidden dimension
         :type dim: int
-
-        :param nb_classes: number of classes to consider (classification problem).
-        :type nb_classes: int
-
         """
 
         # call base constructor
-        super(OutputUnit, self).__init__()
+        super(InteractionModule, self).__init__()
 
-        # define the 2-layers MLP & specify weights initialization
-        self.classifier = torch.nn.Sequential(linear(dim * 3, dim, bias=True),
-                                              torch.nn.ELU(),
-                                              linear(dim, nb_classes, bias=True))
-        torch.nn.init.kaiming_uniform_(self.classifier[0].weight)
+        # linear layer for the projection of the query
+        self.base_object_proj_layer = linear(dim, dim, bias=True)
 
-    def forward(self, mem_state, question_encodings):
+        # linear layer for the projection of the keys
+        self.feature_objects_proj_layer = linear(dim, dim, bias=True)
+
+        # linear layer to define I'(i,h,w) elements
+        self.modifier = linear(2 * dim, dim, bias=True)
+
+    def forward(self, base_object, feature_objects):
         """
-        Forward pass of the ``OutputUnit``.
+        Forward pass of the ``InteractionModule``.
 
-        :param mem_state: final memory state, shape [batch_size x dim]
-        :type mem_state: torch.tensor
+        :param base_object: query [batch_size x dim]
+        :type base_object: torch.tensor
 
-        :param question_encodings: questions encodings, shape [batch_size x (2*dim)]
-        :type question_encodings: torch.tensor
+        :param  feature_objects: [batch_size x num_objects x dim]
+        :type feature_objects: torch.tensor
 
-        :return: probability distribution over the classes, [batch_size x nb_classes]
-
+        :return: feature_objects_modified [batch_size x num_objects x dim]
         """
-        # cat memory state & questions encodings
-        concat = torch.cat([mem_state, question_encodings], dim=1)
 
-        # get logits
-        logits = self.classifier(concat)
+        # pass query object through linear layer
+        base_object_proj = self.base_object_proj_layer(base_object)
+        # [batch_size x dim]
 
-        return logits
+        # pass feature_objects through linear layer
+        feature_objects_proj = self.feature_objects_proj_layer(feature_objects)
+        # [batch_size x num_objects x dim]
+
+        # modify the projected feature objects using the projected base object
+        feature_objects_modified = torch.cat([
+            base_object_proj[:, None, :] * feature_objects_proj,
+            feature_objects], dim=-1)
+        feature_objects_modified = self.modifier(feature_objects_modified)
+        # [batch_size x num_objects x dim]
+
+        return feature_objects_modified
