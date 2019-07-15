@@ -175,4 +175,5 @@ class VWMCell(Module):
         if app_state.visualize:
             self.cell_state_history.append(
                 (va.detach(), control_attention.detach(), visual_working_memory.detach(), ma.detach(),gvt,gmt, Wt_sequential, context_weighting_vector_T))
-        return summary_output, self.cell_state_history, va, visual_working_memory, Wt_sequential
+
+        return summary_output, control,  self.cell_state_history, va, visual_working_memory, Wt_sequential
