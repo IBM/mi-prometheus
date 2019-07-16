@@ -215,8 +215,8 @@ class MACNetworkSequential(Model):
             # save state history
             self.cell_states.append(state_history)
 
-        # output unit
-        logits_answer[:, f, :] = self.output_unit_answer(last_visual_attention, question_encoding, new_summary_object)
+            # output unit
+            logits_answer[:, f, :] = self.output_unit_answer(last_visual_attention, question_encoding, new_summary_object)
 
 
         return logits_answer, logits_pointing
