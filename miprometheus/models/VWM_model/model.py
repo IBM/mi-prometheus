@@ -150,7 +150,7 @@ class MACNetworkSequential(Model):
 
         # reset cell state history for visualization
         if self.app_state.visualize:
-            self.mac_unit.cell_state_history = []
+            self.VWM_cell.cell_state_history = []
 
         # Change the order of image dimensions, so we will loop over dimension 0: sequence elements.
         images = data_dict['images']
@@ -458,7 +458,8 @@ class MACNetworkSequential(Model):
 
 
                     artists[4] = ax_attention_question.imshow(
-                        attention_question.transpose(1, 0),
+                        #attention_question.transpose(1, 0),
+                        attention_question.unsqueeze(1).transpose(1,0),
                         interpolation='nearest', aspect='auto', cmap=color, norm=norm)
                     artists[5] = ax_step.text(
                         0, 0.5, 'Reasoning step index: ' + str(
@@ -472,7 +473,7 @@ class MACNetworkSequential(Model):
 
 
                     artists[7] = ax_attention_history.imshow(
-                        W[sample].transpose(1,0), interpolation='nearest',cmap=color, norm=norm , aspect='auto')
+                        W[sample].unsqueeze(1).transpose(1,0), interpolation='nearest',cmap=color, norm=norm , aspect='auto')
 
                     artists[8] = ax_wt.imshow(
                         Wt_seq[sample].transpose(1,0), interpolation='nearest', cmap=color, norm=norm, aspect='auto')
