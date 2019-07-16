@@ -47,12 +47,12 @@ __author__ = "Vincent Albouy, T.S. Jayram"
 import torch
 from torch.nn import Module
 
-from miprometheus.models.mac_sequential.question_driven_controller import QuestionDrivenController
-from miprometheus.models.mac_sequential.visual_retrieval_unit import VisualRetrievalUnit
-from miprometheus.models.mac_sequential.thought_unit import ThoughtUnit
-from miprometheus.models.mac_sequential.memory_retrieval_unit import MemoryRetrievalUnit
-from miprometheus.models.mac_sequential.validator_unit import ValidatorUnit
-from miprometheus.models.mac_sequential.memory_update_unit import MemoryUpdateUnit
+from miprometheus.models.VWM_model.question_driven_controller import QuestionDrivenController
+from miprometheus.models.VWM_model.visual_retrieval_unit import VisualRetrievalUnit
+from miprometheus.models.VWM_model.thought_unit import ThoughtUnit
+from miprometheus.models.VWM_model.memory_retrieval_unit import MemoryRetrievalUnit
+from miprometheus.models.VWM_model.validator_unit import ValidatorUnit
+from miprometheus.models.VWM_model.memory_update_unit import MemoryUpdateUnit
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
 

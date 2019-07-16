@@ -56,10 +56,10 @@ import numpy as numpy
 import torch.nn as nn
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
-from miprometheus.models.mac_sequential.question_encoder import QuestionEncoder
-from miprometheus.models.mac_sequential.image_encoder import ImageEncoder
-from miprometheus.models.mac_sequential.VWM_cell import VWMCell
-from miprometheus.models.mac_sequential.output_unit import OutputUnit
+from miprometheus.models.VWM_model.question_encoder import QuestionEncoder
+from miprometheus.models.VWM_model.image_encoder import ImageEncoder
+from miprometheus.models.VWM_model.VWM_cell import VWMCell
+from miprometheus.models.VWM_model.output_unit import OutputUnit
 from matplotlib.colors import LinearSegmentedColormap
 
 
