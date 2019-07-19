@@ -20,6 +20,7 @@ from .encoder_solver.maes_model import MAES
 
 # Other models.
 from .lstm.lstm_model import LSTM
+from .rnn.rnn_model import RNN
 from .mental_model.mental_model import MentalModel
 
 # VQA models.
@@ -57,6 +58,7 @@ __all__ = [
     'MAES',
     # Other models.
     'LSTM',
+    'RNN',
     'MentalModel',
     # VQA models.
     'MACNetwork',

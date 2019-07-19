@@ -1,0 +1,6 @@
+# Model parameters:
+model:
+    name: RNN
+    # Controller parameters.
+    num_layers: 3
+    hidden_state_size: 512
