@@ -150,7 +150,7 @@ class MACNetworkSequential(Model):
 
         # reset cell state history for visualization
         if self.app_state.visualize:
-            self.mac_unit.cell_state_history = []
+            self.VWM_cell.cell_state_history = []
 
         # Change the order of image dimensions, so we will loop over dimension 0: sequence elements.
         images = data_dict['images']
@@ -179,7 +179,7 @@ class MACNetworkSequential(Model):
         control_mask = self.get_dropout_mask(control, self.dropout)
         memory_mask = self.get_dropout_mask(summary_object, self.dropout)
         control = control * control_mask
-        summary_object=  summary_object * memory_mask
+        summary_object= summary_object * memory_mask
 
         # initialize empty memory
         visual_working_memory \
@@ -211,12 +211,14 @@ class MACNetworkSequential(Model):
                     = self.VWM_cell(contextual_word_encoding, question_encoding,
                                     feature_maps, new_control_state, new_summary_object,
                                     visual_working_memory, wt_sequential, step=i)
+            #print(last_visual_attention,new_summary_object)
+
 
             # save state history
             self.cell_states.append(state_history)
 
-        # output unit
-        logits_answer[:, f, :] = self.output_unit_answer(last_visual_attention, question_encoding, new_summary_object)
+            # output unit
+            logits_answer[:, f, :] = self.output_unit_answer(last_visual_attention, question_encoding, new_summary_object)
 
 
         return logits_answer, logits_pointing
@@ -458,7 +460,8 @@ class MACNetworkSequential(Model):
 
 
                     artists[4] = ax_attention_question.imshow(
-                        attention_question.transpose(1, 0),
+                        #attention_question.transpose(1, 0),
+                        attention_question.unsqueeze(1).transpose(1,0),
                         interpolation='nearest', aspect='auto', cmap=color, norm=norm)
                     artists[5] = ax_step.text(
                         0, 0.5, 'Reasoning step index: ' + str(
@@ -472,7 +475,7 @@ class MACNetworkSequential(Model):
 
 
                     artists[7] = ax_attention_history.imshow(
-                        W[sample].transpose(1,0), interpolation='nearest',cmap=color, norm=norm , aspect='auto')
+                        W[sample].unsqueeze(1).transpose(1,0), interpolation='nearest',cmap=color, norm=norm , aspect='auto')
 
                     artists[8] = ax_wt.imshow(
                         Wt_seq[sample].transpose(1,0), interpolation='nearest', cmap=color, norm=norm, aspect='auto')

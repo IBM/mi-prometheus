@@ -143,4 +143,4 @@ class MemoryUpdateUnit(Module):
         # output correct object for reasoning
         output_object = is_visual[..., None] * vo + is_mem[..., None] * mo
 
-        return output_object, vwm, new_wt_sequential
+        return output_object, visual_working_memory, new_wt_sequential

@@ -155,6 +155,7 @@ class VWMCell(Module):
         vo, va = self.visual_retrieval_unit(summary_object=summary_output, feature_maps=features_maps,
                          ctrl_state=control)
 
+
         # memory retrieval unit
         #print(f'Shapes VWM: {summary_output.size()}, {visual_working_memory.size()}, {control.size()}')
         mo, ma = self.memory_retrieval_unit(summary_object=summary_output, visual_working_memory=visual_working_memory,
@@ -174,6 +175,6 @@ class VWMCell(Module):
         # store attention weights for visualization
         if app_state.visualize:
             self.cell_state_history.append(
-                (va.detach(), control_attention.detach(), visual_working_memory.detach(), ma.detach(),gvt,gmt, Wt_sequential, context_weighting_vector_T))
+                (va.detach(), control_attention.detach(), visual_working_memory.detach(), ma.detach(),gvt.detach().numpy(),gmt.detach().numpy(), Wt_sequential.unsqueeze(1).detach().numpy(), context_weighting_vector_T.unsqueeze(1).detach().numpy()))
 
         return summary_output, control,  self.cell_state_history, va, visual_working_memory, Wt_sequential
