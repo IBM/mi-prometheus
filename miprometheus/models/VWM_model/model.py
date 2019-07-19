@@ -179,7 +179,7 @@ class MACNetworkSequential(Model):
         control_mask = self.get_dropout_mask(control, self.dropout)
         memory_mask = self.get_dropout_mask(summary_object, self.dropout)
         control = control * control_mask
-        summary_object=  summary_object * memory_mask
+        summary_object= summary_object * memory_mask
 
         # initialize empty memory
         visual_working_memory \
@@ -211,6 +211,8 @@ class MACNetworkSequential(Model):
                     = self.VWM_cell(contextual_word_encoding, question_encoding,
                                     feature_maps, new_control_state, new_summary_object,
                                     visual_working_memory, wt_sequential, step=i)
+            #print(last_visual_attention,new_summary_object)
+
 
             # save state history
             self.cell_states.append(state_history)

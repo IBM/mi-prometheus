@@ -69,7 +69,7 @@ class AttentionModule(Module):
         # define the perceptron used to create the attention weights. Should
         # be one scalar weight per contextual word
         self.attn = torch.nn.Sequential(linear(dim, 1, bias=False),
-                                        torch.nn.Softmax(dim=-1))
+                                        torch.nn.Softmax(dim=1))
         self.dim = dim
 
     def forward(self, q, keys, values=None):
@@ -109,4 +109,5 @@ class AttentionModule(Module):
         c = (ca * values).sum(1)     # [batch_size x dim_other]
 
         ca = ca.squeeze(-1)     # [batch_size x N]
+
         return c, ca
