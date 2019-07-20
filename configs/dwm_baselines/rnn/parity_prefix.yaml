@@ -6,7 +6,7 @@ default_configs:
 # Then overwrite problem name(s).
 training:
     problem:
-        name: &name Parity
+        name: &name ParityPrefix
         batch_size: 16
         data_bits: &data_bits 1
         control_bits: &control_bits 0
@@ -29,10 +29,10 @@ validation:
 testing:
     problem:
         name: *name
-        batch_size: 64
+        batch_size: 1
         # Parameters denoting min and max lengths.
-        min_sequence_length: 15
-        max_sequence_length: 15
+        min_sequence_length: 10
+        max_sequence_length: 10
         data_bits: *data_bits
         control_bits: *control_bits
 

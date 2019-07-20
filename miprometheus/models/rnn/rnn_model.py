@@ -92,7 +92,6 @@ class RNN(SequentialModel):
                 requires_grad=False).type(dtype) 
             for _ in range(self.num_layers)]
 
-
         outputs = []
         # Process items one-by-one.
         length = inputs_BxSxI.size(1)
@@ -102,12 +101,14 @@ class RNN(SequentialModel):
                 h[i] = self.rnn_layers[i](h[i - 1], h[i])
 
             out = self.linear(h[-1])
-            print(f'At step {k}: state={h[0]}')
-            print(f'    Prefix Parity = {inputs_BxSxI[:, 0:k+1, :].sum(dim=1) % 2}')
-            print(f'    Output logit = {out}')
-            print('===')
             outputs += [out]
-        print(f'Parity of input = {inputs_BxSxI.sum(dim=1) % 2}')
+            print(f'At step {k}: state={h[0][0]}')
+            print(f'    Prefix Parity = {inputs_BxSxI[0, 0:k, 0].sum(dim=0) % 2}')
+            print(f'    Output logit = {out[0, 0]}')
+            print('===')
+
+        print(f'Input = {inputs_BxSxI[0, :, 0]}')
+        print(f'Parity of input = {inputs_BxSxI[0, :length-1, 0].sum(dim=0) % 2}')
         input('pause')
         # exit(-1)
         outputs = torch.stack(outputs, 1)
