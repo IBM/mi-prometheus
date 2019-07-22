@@ -168,9 +168,11 @@ class VWMCell(Module):
         context_output, visual_working_memory, Wt_sequential = self.memory_update_unit(gvt, gmt, vo, mo, ma, visual_working_memory,
                                         context_weighting_vector_T, Wt_sequential)
 
+
         # thought Unit
         summary_output = self.thought_unit(summary_output=summary_output,
-                                            context_output= context_output)
+                                            context_output= vo)
+
 
         # store attention weights for visualization
         if app_state.visualize:

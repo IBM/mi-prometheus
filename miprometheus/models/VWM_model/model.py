@@ -211,7 +211,7 @@ class MACNetworkSequential(Model):
                     = self.VWM_cell(contextual_word_encoding, question_encoding,
                                     feature_maps, new_control_state, new_summary_object,
                                     visual_working_memory, wt_sequential, step=i)
-            #print(last_visual_attention,new_summary_object)
+
 
 
             # save state history
