@@ -122,7 +122,7 @@ class ImageEncoder(Module):
 
 
         # reshape feature maps as channels first
-        feature_maps = feature_maps.view(batch_size, -1 , self.dim)
+        feature_maps = x.view(batch_size, self.dim, -1).permute(0, 2, 1)
 
         # return feature_maps
         return feature_maps
