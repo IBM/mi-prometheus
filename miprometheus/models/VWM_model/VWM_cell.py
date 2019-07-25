@@ -171,7 +171,7 @@ class VWMCell(Module):
 
         # thought Unit
         summary_output = self.thought_unit(summary_output=summary_output,
-                                            context_output= vo)
+                                            context_output= context_output)
 
 
         # store attention weights for visualization
