@@ -350,7 +350,7 @@ class MACNetworkSequential(Model):
         words = s_questions[sample][0]
         words = nltk.word_tokenize(words)
 
-        color='magma'
+        color='plasma'
 
         # get images dimensions
         width = images.size(3)
@@ -396,6 +396,7 @@ class MACNetworkSequential(Model):
                         range(self.max_step), self.cell_states[i]):
 
 
+
                     # preprocess attention image, reshape
                     attention_size = int(np.sqrt(attention_mask.size(-1)))
 
@@ -411,8 +412,6 @@ class MACNetworkSequential(Model):
                     # preprocess question, pick one sample number
                     attention_question = attention_question[sample]
 
-                    colors = ['red', 'brown', 'yellow', 'green', 'blue']
-                    cmap = LinearSegmentedColormap.from_list('name', colors)
                     norm = matplotlib.pylab.Normalize(0, 1)
                     norm2 = matplotlib.pylab.Normalize(0, 4)
 
@@ -457,12 +456,11 @@ class MACNetworkSequential(Model):
                         alpha=0.5,
                         cmap=color)
 
-
-
                     artists[4] = ax_attention_question.imshow(
                         #attention_question.transpose(1, 0),
-                        attention_question.unsqueeze(1).transpose(1,0),
+                        attention_question.unsqueeze(1).transpose(1, 0),
                         interpolation='nearest', aspect='auto', cmap=color, norm=norm)
+
                     artists[5] = ax_step.text(
                         0, 0.5, 'Reasoning step index: ' + str(
                             step+1) + '  frame ' + str(i+1) +' | Question type: ' + tasks + '         ' + 'Predicted Answer: ' + pred + '  ' +
@@ -470,20 +468,16 @@ class MACNetworkSequential(Model):
 
                     #+' gvt ' + str(gmem[sample].data) + '  ' + ' grt ' + ' ' + str(gkb[sample].data)
                     artists[6] = ax_history.imshow(
-                        history[sample].transpose(1,0), interpolation='nearest', aspect='auto', cmap=color, norm=norm2  )
-
-
+                        history[sample], interpolation='nearest', aspect='auto', cmap=color, norm=norm2  )
 
                     artists[7] = ax_attention_history.imshow(
-                        W[sample].unsqueeze(1).transpose(1,0), interpolation='nearest',cmap=color, norm=norm , aspect='auto')
+                        W[sample].unsqueeze(1), interpolation='nearest',cmap=color, norm=norm , aspect='auto')
 
                     artists[8] = ax_wt.imshow(
                         Wt_seq[sample].transpose(1,0), interpolation='nearest', cmap=color, norm=norm, aspect='auto')
 
                     artists[9] = ax_context.imshow(
                         context[sample], interpolation='nearest', cmap=color, norm=norm, aspect='auto')
-
-
 
 
                     self.view_colormap('Reds')
@@ -524,6 +518,8 @@ class MACNetworkSequential(Model):
                 for step, (attention_mask, attention_question) in zip(
                         range(self.max_step), self.cell_states[i]):
 
+
+
                     # upsample attention mask
                     original_grid_size=7
                     preds_pointing = preds_pointing.view(images.size(0),images.size(1),original_grid_size, -1)
@@ -559,7 +555,7 @@ class MACNetworkSequential(Model):
                         alpha=0.5,
                         cmap='Blues')
                     artists[3] = ax_attention_question.imshow(
-                        attention_question.transpose(1, 0),
+                        attention_question,
                         interpolation='nearest', aspect='auto', cmap='Reds')
                     artists[4] = ax_step.text(
                         0, 0.5, 'Reasoning step index: ' + str(
