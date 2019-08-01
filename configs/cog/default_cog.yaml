@@ -4,7 +4,7 @@ training:
     name: COG
     # Size of generated input: [batch_size x sequence_length x classes].
     batch_size: 48
-    tasks: [AndCompareColor]
+    tasks: [AndCompareColor, AndCompareShape , AndSimpleCompareColor, AndSimpleCompareShape, CompareColor, CompareShape, Exist,ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape, ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape, ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace, GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
     words_embed_length : 64
     nwords : 24
     data_folder: '~/data/cog'
@@ -27,7 +27,7 @@ validation:
     name: COG
     # Size of generated input: [batch_size x sequence_length x classes].
     batch_size: 48
-    tasks: [AndCompareColor]
+    tasks: [AndCompareColor, AndCompareShape , AndSimpleCompareColor, AndSimpleCompareShape, CompareColor, CompareShape, Exist,ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape, ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape, ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace, GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
     data_folder: '~/data/cog'
     set: val
     use_mask: False
@@ -38,7 +38,7 @@ testing:
   name: COG
   # Size of generated input: [batch_size x sequence_length x classes].
   batch_size: 48
-  tasks: [CompareShape]
+  tasks: [AndCompareColor, AndCompareShape , AndSimpleCompareColor, AndSimpleCompareShape, CompareColor, CompareShape, Exist,ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape, ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape, ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace, GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
   data_folder: '~/data/cog'
   set: test
   dataset_type: canonical
