@@ -57,6 +57,7 @@ from .seq_to_seq.algorithmic.recall.serial_recall_cl import SerialRecallCommandL
 from .seq_to_seq.algorithmic.functional.parity_cl import ParityCommandLines
 from .seq_to_seq.algorithmic.functional.parity import Parity
 from .seq_to_seq.algorithmic.functional.parity_prefix import ParityPrefix
+from .seq_to_seq.algorithmic.functional.first_element import FirstElement
 
 # .seq_to_seq.text_to_text
 from .seq_to_seq.text_to_text.text_to_text_problem import TextToTextProblem
@@ -97,7 +98,7 @@ __all__ = [
     # .seq_to_seq.algorithmic.recall
     'RepeatSerialRecallCommandLines', 'ScratchPadCommandLines', 'SerialRecallCommandLines',
     # seq_to_seq.algorithmic.functional
-    'ParityCommandLines', 'Parity', 'ParityPrefix',
+    'ParityCommandLines', 'Parity', 'ParityPrefix', 'FirstElement',
     # .seq_to_seq.text2text
     'TextToTextProblem', 'TranslationAnki',
     # .seq_to_seq.video_text_to_class

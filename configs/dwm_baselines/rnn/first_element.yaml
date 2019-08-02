@@ -1,0 +1,43 @@
+# Load the following (default) configs first.
+default_configs:
+    configs/dwm_baselines/rnn/default_rnn.yaml,
+    configs/dwm_baselines/default_settings_simple_task.yaml
+
+# Then overwrite problem name(s).
+training:
+    problem:
+        name: &name FirstElement
+        batch_size: 16
+        data_bits: &data_bits 1
+        control_bits: &control_bits 0
+        size: &size 1000
+#    optimizer:
+#        name: SGD
+#        lr: 0.01
+#        momentum: 0.9
+
+
+
+validation:
+    problem:
+        name: *name 
+        batch_size: 32
+        data_bits: *data_bits
+        control_bits: *control_bits
+        size: *size
+
+testing:
+    problem:
+        name: *name
+        batch_size: 64
+        # Parameters denoting min and max lengths.
+        min_sequence_length: 15
+        max_sequence_length: 15
+        data_bits: *data_bits
+        control_bits: *control_bits
+
+
+model:
+    # Controller parameters.
+    num_layers: 1
+    hidden_state_size: 5
