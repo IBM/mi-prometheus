@@ -50,7 +50,6 @@ from torch.nn import Module
 from miprometheus.models.VWM_model.utils_VWM import linear
 from miprometheus.models.VWM_model.attention_module import AttentionModule
 
-
 class QuestionDrivenController(Module):
     """
     Implementation of the ``QuestionDrivenController`` 
@@ -71,8 +70,7 @@ class QuestionDrivenController(Module):
         # call base constructor
         super(QuestionDrivenController, self).__init__()
 
-        # define the linear layers (one per step) used to make the questions
-        # encoding
+        # define the linear layers (one per step) used to make the questions encoding
         self.pos_aware_layers = torch.nn.ModuleList()
         for _ in range(max_step):
             self.pos_aware_layers.append(linear(2 * dim, dim, bias=True))
@@ -109,7 +107,8 @@ class QuestionDrivenController(Module):
         :param ctrl_state: previous control state, of shape [batch_size x dim]
         :type ctrl_state: torch.tensor
 
-        :return: new control state: [batch_size x dim]
+        :return: new control state c: [batch_size x dim]
+        :return: new control state attention ca : [batch_size x maxQuestionLength]
         :return: temporal_class_weights: soft classification representing \
         temporal context now/last/latest/none of current step [batch_size x 4]
 

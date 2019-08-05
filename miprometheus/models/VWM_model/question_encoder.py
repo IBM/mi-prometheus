@@ -86,7 +86,7 @@ class QuestionEncoder(Module):
         # linear layer for projecting the word encodings from 2*dim to dim
         self.lstm_proj = torch.nn.Linear(2 * self.dim, self.dim)
 
-        print(self.words_embed_length)
+        #buid question embeddings
         self.EmbedVocabulary(vocabulary_size,
                              self.words_embed_length)
 
@@ -100,12 +100,14 @@ class QuestionEncoder(Module):
         :param questions_len: Unpadded questions length.
         :type questions_len: list
 
-        :return:
-
-            - question encodings: [batch_size x 2*dim] (torch.tensor),
-            - contextual_word_embedding: [batch_size x maxQuestionLength x dim] (torch.tensor),
+        :return question encodings: [batch_size x 2*dim] 
+        :type: question encodings: torch.tensor
+        
+        :return: contextual_word_embedding: [batch_size x maxQuestionLength x dim] 
+        :type: contextual_word_embedding: torch.tensor 
           
         """
+        #get batch size
         batch_size = questions.shape[0]
 
         # Embeddings.
@@ -130,23 +132,27 @@ class QuestionEncoder(Module):
         :param questions: Tensor of questions in lookup format (Ints)
 
         """
-
+        #initialize lookup table
         out_embed = torch.zeros((questions.size(0), self.nwords, self.words_embed_length), requires_grad=False).type(
             self.dtype)
+
+        #fill in lookup table
         for i, sentence in enumerate(questions):
             out_embed[i, :, :] = (self.Embedding(sentence))
 
         return out_embed
 
     def EmbedVocabulary(self, vocabulary_size, words_embed_length):
-            """
-            Defines nn.Embedding for embedding of questions into float tensors.
 
-            :param vocabulary_size: Number of unique words possible.
-            :type vocabulary_size: Int
+        """
+        Defines nn.Embedding for embedding of questions into float tensors.
 
-            :param words_embed_length: Size of the vectors representing words post embedding.
-            :type words_embed_length: Int
+        :param vocabulary_size: Number of unique words possible.
+        :type vocabulary_size: Int
 
-            """
-            self.Embedding = nn.Embedding(vocabulary_size, words_embed_length, padding_idx=0)
+        :param words_embed_length: Size of the vectors representing words post embedding.
+        :type words_embed_length: Int
+        
+        """
+
+        self.Embedding = nn.Embedding(vocabulary_size, words_embed_length, padding_idx=0)
