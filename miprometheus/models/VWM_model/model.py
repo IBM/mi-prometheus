@@ -483,7 +483,6 @@ class MACNetworkSequential(Model):
                     self.view_colormap('Reds')
 
                     # Add "frames" to artist list
-                    print(step)
                     frames.append(artists)
 
             # Plot figure and list of frames.
