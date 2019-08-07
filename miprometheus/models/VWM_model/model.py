@@ -370,8 +370,6 @@ class MACNetworkSequential(Model):
             # Create figure template.
             fig = self.generate_figure_layout()
 
-
-
             # Get axes that artists will draw on.
             (ax_image, ax_attention_image, ax_history, ax_attention_history,ax_wt,ax_context, ax_attention_question, ax_step  ) = fig.axes
 
@@ -396,7 +394,6 @@ class MACNetworkSequential(Model):
                         range(self.max_step), self.cell_states[i]):
 
 
-
                     # preprocess attention image, reshape
                     attention_size = int(np.sqrt(attention_mask.size(-1)))
 
@@ -414,7 +411,6 @@ class MACNetworkSequential(Model):
 
                     norm = matplotlib.pylab.Normalize(0, 1)
                     norm2 = matplotlib.pylab.Normalize(0, 4)
-
 
                     # Create "Artists" drawing data on "ImageAxes".
                     num_artists = len(fig.axes) + 2
@@ -466,7 +462,6 @@ class MACNetworkSequential(Model):
                             step+1) + '  frame ' + str(i+1) +' | Question type: ' + tasks + '         ' + 'Predicted Answer: ' + pred + '  ' +
                                 'Ground Truth: ' + ans +'  ' , fontsize=15)
 
-                    #+' gvt ' + str(gmem[sample].data) + '  ' + ' grt ' + ' ' + str(gkb[sample].data)
                     artists[6] = ax_history.imshow(
                         history[sample], interpolation='nearest', aspect='auto', cmap=color, norm=norm2  )
 
@@ -480,7 +475,7 @@ class MACNetworkSequential(Model):
                         context[sample], interpolation='nearest', cmap=color, norm=norm, aspect='auto')
 
 
-                    self.view_colormap('Reds')
+                  #  self.view_colormap('Reds')
 
                     # Add "frames" to artist list
                     frames.append(artists)
