@@ -204,18 +204,23 @@ class MACNetworkSequential(Model):
             # image encoder
             feature_maps= self.image_encoder(images[f])
 
+            #state history fo vizualisation
+            state_history=[]
+
             # recurrent VWM cells
             for i in range(self.max_step):
                 new_summary_object, new_control_state, state_history, last_visual_attention, \
                 visual_working_memory, wt_sequential \
                     = self.VWM_cell(contextual_word_encoding, question_encoding,
                                     feature_maps, new_control_state, new_summary_object,
-                                    visual_working_memory, wt_sequential, step=i)
+                                    visual_working_memory, wt_sequential, state_history, step=i)
+
 
 
 
             # save state history
             self.cell_states.append(state_history)
+
 
             # output unit
             logits_answer[:, f, :] = self.output_unit_answer(last_visual_attention, question_encoding, new_summary_object)
@@ -475,9 +480,10 @@ class MACNetworkSequential(Model):
                         context[sample], interpolation='nearest', cmap=color, norm=norm, aspect='auto')
 
 
-                  #  self.view_colormap('Reds')
+                    self.view_colormap('Reds')
 
                     # Add "frames" to artist list
+                    print(step)
                     frames.append(artists)
 
             # Plot figure and list of frames.

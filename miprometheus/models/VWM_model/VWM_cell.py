@@ -104,7 +104,7 @@ class VWMCell(Module):
 
 
 
-    def forward(self, context, question, features_maps, control, summary_output, visual_working_memory, Wt_sequential, step):
+    def forward(self, context, question, features_maps, control, summary_output, visual_working_memory, Wt_sequential,state_history, step):
 
         """
         Forward pass of the ``VWMCell`` of VWM network
@@ -154,9 +154,6 @@ class VWMCell(Module):
 
         """
 
-        # empty state history
-        self.cell_state_history = []
-
         # control unit\
         control, control_attention, context_weighting_vector_T = self.question_driven_controller(
             step=step,
@@ -188,7 +185,7 @@ class VWMCell(Module):
 
         # store attention weights for visualization
         if app_state.visualize:
-            self.cell_state_history.append(
+            state_history.append(
                 (va.detach(), control_attention.detach(), visual_working_memory.detach(), ma.detach(),gvt.detach().numpy(),gmt.detach().numpy(), Wt_sequential.unsqueeze(1).detach().numpy(), context_weighting_vector_T.unsqueeze(1).detach().numpy()))
 
-        return summary_output, control,  self.cell_state_history, va, visual_working_memory, Wt_sequential
+        return summary_output, control,  state_history, va, visual_working_memory, Wt_sequential
