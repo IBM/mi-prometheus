@@ -480,7 +480,7 @@ class MACNetworkSequential(Model):
                         context[sample], interpolation='nearest', cmap=color, norm=norm, aspect='auto')
 
 
-                    self.view_colormap('Reds')
+                    #self.view_colormap('Reds')
 
                     # Add "frames" to artist list
                     frames.append(artists)
