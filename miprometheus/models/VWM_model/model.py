@@ -419,12 +419,68 @@ class MACNetworkSequential(Model):
 
                     # Create "Artists" drawing data on "ImageAxes".
                     num_artists = len(fig.axes) + 2
-                    artists = [None] 
+                    artists = [None] * num_artists
+
                     # set title labels
 
+                    ax_attention_question.set_xticklabels(
+                        ['h'] + words, rotation=-45, fontsize=15)
+                    ax_step.axis('off')
+                    ax_attention_image.set_title(
+                        'Visual Attention:')
 
+                    ax_history.set_title(
+                        'Visual Working Memory (VWM):')
+
+                    ax_attention_history.set_title(
+                        'VWM Attention :')
+
+                    ax_wt.set_title(
+                        'Sequential Attention:')
+
+                    ax_context.set_title(
+                        'Now        Last     Latest    None')
+
+                    #fig.colorbar(history[sample], cax=ax_history)
+
+                    # Tell artists what to do:
+                    artists[0] = ax_image.set_title('COG image:')
                     artists[1] = ax_image.imshow(
                         image, interpolation='nearest', aspect='auto')
+
+                    artists[2] = ax_attention_image.imshow(
+                        image, interpolation='nearest', aspect='auto')
+                    artists[3] = ax_attention_image.imshow(
+                        attention_mask,
+                        interpolation='nearest',
+                        aspect='auto',
+                        alpha=0.5,
+                        cmap=color)
+
+                    artists[4] = ax_attention_question.imshow(
+                        #attention_question.transpose(1, 0),
+                        attention_question.unsqueeze(1).transpose(1, 0),
+                        interpolation='nearest', aspect='auto', cmap=color, norm=norm)
+
+                    artists[5] = ax_step.text(
+                        0, 0.5, 'Reasoning step index: ' + str(
+                            step+1) + '  frame ' + str(i+1) +' | Question type: ' + tasks + '         ' + 'Predicted Answer: ' + pred + '  ' +
+                                'Ground Truth: ' + ans +'  ' , fontsize=15)
+
+                    artists[6] = ax_history.imshow(
+                        history[sample], interpolation='nearest', aspect='auto', cmap=color, norm=norm2  )
+
+                    artists[7] = ax_attention_history.imshow(
+                        W[sample].unsqueeze(1), interpolation='nearest',cmap=color, norm=norm , aspect='auto')
+
+                    artists[8] = ax_wt.imshow(
+                        Wt_seq[sample].transpose(1,0), interpolation='nearest', cmap=color, norm=norm, aspect='auto')
+
+                    artists[9] = ax_context.imshow(
+                        context[sample], interpolation='nearest', cmap=color, norm=norm, aspect='auto')
+
+
+                    self.view_colormap('Reds')
 
                     # Add "frames" to artist list
                     frames.append(artists)
@@ -476,11 +532,35 @@ class MACNetworkSequential(Model):
 
                     # Create "Artists" drawing data on "ImageAxes".
                     num_artists = len(fig.axes) + 1
-                    artists = [None] 
+                    artists = [None] * num_artists
+
+                    # set title labels
+                    ax_image.set_title(
+                        'COG image ' + str(i))
+                    ax_attention_question.set_xticklabels(
+                        ['h'] + words, rotation='vertical', fontsize=10)
+                    ax_step.axis('off')
+                    ax_attention_image.set_title(
+                        'Pointing Distribution:')
 
                     # Tell artists what to do:
                     artists[0] = ax_image.imshow(
                         image, interpolation='nearest', aspect='auto')
+                    artists[1] = ax_attention_image.imshow(
+                        image, interpolation='nearest', aspect='auto')
+                    artists[2] = ax_attention_image.imshow(
+                        up_sample_preds_pointing.detach().numpy(),
+                        interpolation='nearest',
+                        aspect='auto',
+                        alpha=0.5,
+                        cmap='Blues')
+                    artists[3] = ax_attention_question.imshow(
+                        attention_question,
+                        interpolation='nearest', aspect='auto', cmap='Reds')
+                    artists[4] = ax_step.text(
+                        0, 0.5, 'Reasoning step index: ' + str(
+                            step) + ' | Question type: ' + tasks,
+                        fontsize=15)
 
                     # Add "frames" to artist list
                     frames.append(artists)
