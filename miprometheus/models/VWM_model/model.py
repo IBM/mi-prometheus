@@ -44,9 +44,12 @@ model.py:
 
     - Implementation of the ``VWMC`` network, reusing the different units implemented in separated files.
 """
-__author__ = "Vincent Marois , Vincent Albouy, T.S. Jayram"
+__author__ = "Vincent Marois, Vincent Albouy, T.S. Jayram, Tomasz Kornuta"
 
 import nltk
+# needed for nltk.word.tokenize - do it once!
+nltk.download('punkt')
+
 import torch
 import numpy as np
 import matplotlib.pylab
@@ -253,38 +256,60 @@ class MACNetworkSequential(Model):
         # Create a specific grid for MAC.
         gs = matplotlib.gridspec.GridSpec(4, 9)
 
-        # subplots: original image, attention on image & question, step index
+        ######################################################################
+        # Bottom left: Image section.
 
-        #bas
+        # Image.
         ax_image = fig.add_subplot(gs[2:4, 0:2])
-        ax_attention_image = fig.add_subplot(gs[2:4, 2:4])
+        ax_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
+        # Attention over the image.
+        ax_attention_image = fig.add_subplot(gs[2:4, 2:4])
+        ax_attention_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_attention_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+
+
+        ######################################################################
+        # Bottom Right: Memory section.
         ax_history = fig.add_subplot(gs[2:4, 5:7])
         ax_attention_history = fig.add_subplot(gs[2:4, 4:5])
         ax_wt = fig.add_subplot(gs[2:4, 7:8])
 
-        #milieu
+        ######################################################################
+        # Center: Question section.
+
+        # Time gate ;)
         ax_context = fig.add_subplot(gs[1, 6:8])
+        ax_context.set_yticklabels([])
+        ax_context.set_xticklabels(['Now','Last','Latest','None'])
+        #ax_context.set_title('Now        Last     Latest    None')
+        ax_context.set_title('Time Context')
+
+        # Question with attention.
         ax_attention_question = fig.add_subplot(gs[1, 0:6])
+        ax_attention_question.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=25))
+        ax_attention_question.set_yticklabels([])
 
-        #haut
+
+        ######################################################################
+        # Top: Statistics section.
         ax_step = fig.add_subplot(gs[0, :])
-
-        # Set axis ticks
-        ax_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-        ax_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-        ax_attention_image.xaxis.set_major_locator(
-            matplotlib.ticker.MaxNLocator(integer=True))
-        ax_attention_image.yaxis.set_major_locator(
-            matplotlib.ticker.MaxNLocator(integer=True))
-
-        # question ticks
-        ax_attention_question.xaxis.set_major_locator(
-            matplotlib.ticker.MaxNLocator(nbins=25))
-
         ax_step.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_step.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_step.axis('off')
 
+
+        ax_attention_image.set_title('Visual Attention:')
+
+        ax_history.set_title('Visual Working Memory (VWM):')
+
+        ax_attention_history.set_title('VWM Attention :')
+
+        ax_wt.set_title('Sequential Attention:')
+
+
+        # Set layout.
         fig.set_tight_layout(True)
 
         return fig
@@ -347,9 +372,6 @@ class MACNetworkSequential(Model):
         images = data_dict['images']
         tasks = data_dict['tasks']
         mask_pointing = data_dict['masks_pnt']
-
-        # needed for nltk.word.tokenize
-        nltk.download('punkt')
 
         # tokenize question string using same processing as in the problem
         words = s_questions[sample][0]
@@ -425,21 +447,6 @@ class MACNetworkSequential(Model):
 
                     ax_attention_question.set_xticklabels(
                         ['h'] + words, rotation=-45, fontsize=15)
-                    ax_step.axis('off')
-                    ax_attention_image.set_title(
-                        'Visual Attention:')
-
-                    ax_history.set_title(
-                        'Visual Working Memory (VWM):')
-
-                    ax_attention_history.set_title(
-                        'VWM Attention :')
-
-                    ax_wt.set_title(
-                        'Sequential Attention:')
-
-                    ax_context.set_title(
-                        'Now        Last     Latest    None')
 
                     #fig.colorbar(history[sample], cax=ax_history)
 
