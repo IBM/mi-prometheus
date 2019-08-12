@@ -270,7 +270,7 @@ class MACNetworkSequential(Model):
         # Top-center: Question + time context section.
         # Create a specific grid.
         gs_top = matplotlib.gridspec.GridSpec(1, 6)
-        gs_top.update(wspace=0.1, hspace=0.00, bottom=0.7, top=0.95, left=0.05, right=0.95)
+        gs_top.update(wspace=0.05, hspace=0.00, bottom=0.7, top=0.75, left=0.05, right=0.95)
         
         # Question with attention.
         ax_attention_question = fig.add_subplot(gs_top[0, 0:5])
@@ -283,13 +283,14 @@ class MACNetworkSequential(Model):
         ax_context = fig.add_subplot(gs_top[0, 5])
         ax_context.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
         ax_context.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([0,1,2,3]))
-        ax_context.set_xticklabels(['Now','Last','Latest','None'], rotation=-45, fontsize=10)
+        ax_context.set_xticklabels(['Now','Last','Latest','None'], rotation=-45, fontsize=12)
         ax_context.set_title('Time Context')
+
         ######################################################################
         # Bottom left: Image section.
         # Create a specific grid.
         gs_bottom_left = matplotlib.gridspec.GridSpec(1, 2)
-        gs_bottom_left.update(wspace=0.1, hspace=0.0, bottom=0.1, top=0.6, left=0.05, right=0.48)
+        gs_bottom_left.update(wspace=0.01, hspace=0.0, bottom=0.1, top=0.6, left=0.05, right=0.46)
 
         # Image.
         ax_image = fig.add_subplot(gs_bottom_left[0, 0])
@@ -306,12 +307,29 @@ class MACNetworkSequential(Model):
         ax_attention_image.set_xlabel('Width [px]', fontsize=8)
         ax_attention_image.set_title('Visual Attention')
 
+        ######################################################################
+        # Bottom Center: gates section.
+        # Create a specific grid - for gates.
+        gs_bottom_center = matplotlib.gridspec.GridSpec(2, 1)
+        gs_bottom_center.update(wspace=0.0, hspace=1, bottom=0.42, top=0.60, left=0.48, right=0.52)
+
+        # Image gate.
+        ax_image_gate = fig.add_subplot(gs_bottom_center[0, 0])
+        ax_image_gate.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_image_gate.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_image_gate.set_title('Image Gate')
+
+        # Image gate.
+        ax_memory_gate = fig.add_subplot(gs_bottom_center[1, 0])
+        ax_memory_gate.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_memory_gate.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_memory_gate.set_title('Memory Gate')
 
         ######################################################################
         # Bottom Right: Memory section.
         # Create a specific grid.
-        gs_bottom_right = matplotlib.gridspec.GridSpec(1, 4)
-        gs_bottom_right.update(wspace=0.1, hspace=0.0, bottom=0.1, top=0.6, left=0.52, right=0.95)
+        gs_bottom_right = matplotlib.gridspec.GridSpec(1, 8)
+        gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.1, top=0.6, left=0.54, right=0.95)
 
         # Read attention.
         ax_attention_history = fig.add_subplot(gs_bottom_right[0, 0])
@@ -320,13 +338,13 @@ class MACNetworkSequential(Model):
         ax_attention_history.set_title('Read Attention')
 
         # Memory
-        ax_history = fig.add_subplot(gs_bottom_right[0, 1:3])
+        ax_history = fig.add_subplot(gs_bottom_right[0, 1:7])
         ax_history.set_xlabel('Memory Content', fontsize=8)
         ax_history.set_title('Working Memory')
 
 
         # Write attention.
-        ax_wt = fig.add_subplot(gs_bottom_right[0, 3])
+        ax_wt = fig.add_subplot(gs_bottom_right[0, 7])
         ax_wt.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
         ax_wt.set_title('Write Attention')
 
@@ -412,14 +430,14 @@ class MACNetworkSequential(Model):
         if mask_pointing.sum()==0:
 
             # get prediction
-            values, indices = torch.max(logits[0], 2)
+            _, indices = torch.max(logits[0], 2)
             prediction = indices[sample]
 
             # Create figure template.
             fig = self.generate_figure_layout()
 
             # Get axes that artists will draw on.
-            (ax_attention_question, ax_context, ax_image, ax_attention_image, ax_attention_history, ax_history,ax_wt) = fig.axes
+            (ax_attention_question, ax_context, ax_image, ax_attention_image, ax_image_gate, ax_memory_gate, ax_attention_history, ax_history,ax_wt) = fig.axes
 
             #initiate list of artists frames
             frames = []
@@ -438,10 +456,12 @@ class MACNetworkSequential(Model):
                 ans = s_answers[sample][i]
 
                 #loop over the k reasoning steps
-                for step, (attention_mask, attention_question, history, W,gmem,gkb,Wt_seq , context) in zip(
+                for step, (attention_mask, attention_question, history, W, gmem, gkb, Wt_seq , context) in zip(
                         range(self.max_step), self.cell_states[i]):
 
-
+                    print("gmem: ", gmem[sample])
+                    print("gkb: ", gkb[sample])
+                    
                     # preprocess attention image, reshape
                     attention_size = int(np.sqrt(attention_mask.size(-1)))
 
@@ -458,7 +478,7 @@ class MACNetworkSequential(Model):
                     attention_question = attention_question[sample]
 
                     norm = matplotlib.pylab.Normalize(0, 1)
-                    norm2 = matplotlib.pylab.Normalize(0, 4)
+                    #norm2 = matplotlib.pylab.Normalize(0, 4)
 
                     # Create "Artists" drawing data on "ImageAxes".
                     artists = []
@@ -480,9 +500,8 @@ class MACNetworkSequential(Model):
                     ######################################################################
                     # Top-center: Question + time context section.
                     # Set words for question attention.
-                    ax_attention_question.set_xticklabels(['h'] + words, rotation=-45, fontsize=10)
+                    ax_attention_question.set_xticklabels(['h'] + words, rotation=-45, fontsize=12)
                     artists.append(ax_attention_question.imshow(
-                        #attention_question.transpose(1, 0),
                         attention_question.unsqueeze(1).transpose(1, 0),
                         interpolation='nearest', aspect='auto', cmap=color, norm=norm))
 
@@ -504,11 +523,17 @@ class MACNetworkSequential(Model):
                         alpha=0.5,
                         cmap=color))
 
+                    # Image gate.
+                    #artists.append(ax_image_gate.imshow(
+                    #    gkb[sample].unsqueeze(1), interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
+                    
+
                     ######################################################################
                     # Bottom Right: Memory section.
 
                     artists.append(ax_history.imshow(
-                        history[sample], interpolation='nearest', aspect='auto', cmap=color, norm=norm2  ))
+                        history[sample], interpolation='nearest', aspect='auto', cmap=color, norm=norm ))
+                    #    history[sample], interpolation='nearest', aspect='auto', cmap=color, norm=norm2  )) WHY DIFFERENT NORMALIZATION??
 
                     artists.append(ax_attention_history.imshow(
                         W[sample].unsqueeze(1), interpolation='nearest',cmap=color, norm=norm , aspect='auto'))
