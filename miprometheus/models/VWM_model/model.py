@@ -464,6 +464,7 @@ class MACNetworkSequential(Model):
                     artists = []
                     # Tell artists what to do:
                     
+                    ######################################################################
                     # Set header.
                     ax_header_left_labels.axis('off')
                     artists.append(ax_header_left_labels.text(
@@ -495,10 +496,12 @@ class MACNetworkSequential(Model):
                             '\n' + tasks,
                         fontsize=12, weight='bold'))
         
-                        ######################################################################
+                    ######################################################################
                     # Top-center: Question + time context section.
                     # Set words for question attention.
+                    # ax_attention_question.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=len(words))) NOT WORKING AS number of ticks != number of cells! :]
                     ax_attention_question.set_xticklabels(['h'] + words, rotation=-45, fontsize=12)
+
                     artists.append(ax_attention_question.imshow(
                         attention_question.unsqueeze(1).transpose(1, 0),
                         interpolation='nearest', aspect='auto', cmap=color, norm=norm))
