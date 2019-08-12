@@ -358,7 +358,7 @@ class MACNetworkSequential(Model):
         fig.lines.extend([l1, l2, l3,l4])
 
         # Set layout.
-        #fig.set_tight_layout(True)
+        fig.set_tight_layout(True)
 
         return fig
 
