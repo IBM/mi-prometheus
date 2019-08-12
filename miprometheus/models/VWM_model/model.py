@@ -256,14 +256,14 @@ class MACNetworkSequential(Model):
         fig = Figure()
 
         ######################################################################
-        # Top: Statistics section.
+        # Top: Header section.
         # Create a specific grid.
-        gs_statistics = matplotlib.gridspec.GridSpec(1, 8)
-        gs_statistics.update(wspace=0.00, hspace=1.00, bottom=0.9, top=0.901, left=0.05, right=0.95)
-        _ = fig.add_subplot(gs_statistics[0, 0])
-        _ = fig.add_subplot(gs_statistics[0, 1:5])
-        _ = fig.add_subplot(gs_statistics[0, 5])
-        _ = fig.add_subplot(gs_statistics[0, 6:8])
+        gs_header = matplotlib.gridspec.GridSpec(1, 8)
+        gs_header.update(wspace=0.00, hspace=1.00, bottom=0.9, top=0.901, left=0.05, right=0.95)
+        _ = fig.add_subplot(gs_header[0, 0])
+        _ = fig.add_subplot(gs_header[0, 1:5])
+        _ = fig.add_subplot(gs_header[0, 5])
+        _ = fig.add_subplot(gs_header[0, 6:8])
 
         ######################################################################
         # Top-center: Question + time context section.
@@ -416,7 +416,7 @@ class MACNetworkSequential(Model):
             fig = self.generate_figure_layout()
 
             # Get axes that artists will draw on.
-            (ax_statistics_left_labels, ax_statistics_left, ax_statistics_right_labels, ax_statistics_right,
+            (ax_header_left_labels, ax_header_left, ax_header_right_labels, ax_header_right,
                 ax_attention_question, ax_context,
                 ax_image, ax_attention_image,
                 ax_image_gate, ax_memory_gate,
@@ -464,31 +464,31 @@ class MACNetworkSequential(Model):
                     artists = []
                     # Tell artists what to do:
                     
-                    # Set statistics.
-                    ax_statistics_left_labels.axis('off')
-                    artists.append(ax_statistics_left_labels.text(
+                    # Set header.
+                    ax_header_left_labels.axis('off')
+                    artists.append(ax_header_left_labels.text(
                         0, 1.0,
                             'Question:         ' +
                             '\nPredicted Answer: ' + 
                             '\nGround Truth:     ',
                         fontsize=12))
-                    ax_statistics_left.axis('off')
-                    artists.append(ax_statistics_left.text(
+                    ax_header_left.axis('off')
+                    artists.append(ax_header_left.text(
                         0, 1.0,
                             question_words +
                             '\n' + pred +
                             '\n' + ans,
                         fontsize=12, weight='bold'))
     
-                    ax_statistics_right_labels.axis('off')
-                    artists.append(ax_statistics_right_labels.text(
+                    ax_header_right_labels.axis('off')
+                    artists.append(ax_header_right_labels.text(
                         0, 1.0,
                         'Frame: ' +
                             '\nReasoning Step:   ' +
                             '\nQuestion Type:    ',
                         fontsize=12))
-                    ax_statistics_right.axis('off')
-                    artists.append(ax_statistics_right.text(
+                    ax_header_right.axis('off')
+                    artists.append(ax_header_right.text(
                         0, 1.0,
                         str(i) +
                             '\n' + str(step) +
