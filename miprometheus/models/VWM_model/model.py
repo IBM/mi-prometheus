@@ -354,7 +354,7 @@ class MACNetworkSequential(Model):
         l1 = lines.Line2D([0, 1], [0.78, 0.78], transform=fig.transFigure, figure=fig, color='black')
         l2 = lines.Line2D([0, 1], [0.63, 0.63], transform=fig.transFigure, figure=fig, color='black')
         l3 = lines.Line2D([0.5, 0.5], [0.0, 0.2], transform=fig.transFigure, figure=fig, color='black')
-        l4 = lines.Line2D([0.5, 0.5], [0.40, 0.63], transform=fig.transFigure, figure=fig, color='black')
+        l4 = lines.Line2D([0.5, 0.5], [0.44, 0.63], transform=fig.transFigure, figure=fig, color='black')
         fig.lines.extend([l1, l2, l3,l4])
 
         # Set layout.
