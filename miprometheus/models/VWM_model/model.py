@@ -254,7 +254,8 @@ class MACNetworkSequential(Model):
         fig = Figure()
 
         # Create a specific grid for MAC.
-        gs = matplotlib.gridspec.GridSpec(4, 8)
+        gs = matplotlib.gridspec.GridSpec(3, 8)
+        gs.update(wspace=1, hspace=1)
 
         ######################################################################
         # Top: Statistics section.
@@ -264,10 +265,10 @@ class MACNetworkSequential(Model):
         #ax_step.axis('off')
 
         # We will use that for displaying "statistics" section.
-        statistics_text = 'Frame: ' + ' Reasoning step: '  + \
-            '\nQuestion type: ' + \
-            '\nPredicted Answer: ' + ' Ground Truth: ' + '\n'
-        fig.suptitle(statistics_text, fontsize=14)
+        #statistics_text = 'Frame: ' + ' Reasoning step: '  + \
+        #    '\nQuestion type: ' + \
+        #    '\nPredicted Answer: ' + ' Ground Truth: ' + '\n'
+        #fig.suptitle(statistics_text, fontsize=14)
 
         ######################################################################
         # Top-center: Question + time context section.
@@ -277,12 +278,13 @@ class MACNetworkSequential(Model):
         ax_attention_question.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=25))
         ax_attention_question.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
         #ax_attention_question.set_xticklabels(25*[''], rotation=-45, fontsize=10)
+        ax_attention_question.set_title('Question')
 
         # Time gate ;)
         ax_context = fig.add_subplot(gs[0, 7])
         ax_context.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
         ax_context.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([0,1,2,3]))
-        ax_context.set_xticklabels(['Now','Last','Latest','None'])
+        ax_context.set_xticklabels(['Now','Last','Latest','None'], rotation=-45, fontsize=10)
         ax_context.set_title('Time Context')
         ######################################################################
         # Bottom left: Image section.
@@ -291,12 +293,15 @@ class MACNetworkSequential(Model):
         ax_image = fig.add_subplot(gs[1:3, 0:2])
         ax_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_image.set_ylabel('Height [px]', fontsize=8)
+        ax_image.set_xlabel('Width [px]', fontsize=8)
         ax_image.set_title('Image')
 
         # Attention over the image.
         ax_attention_image = fig.add_subplot(gs[1:3, 2:4])
         ax_attention_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_attention_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_attention_image.set_xlabel('Width [px]', fontsize=8)
         ax_attention_image.set_title('Visual Attention')
 
 
@@ -306,10 +311,12 @@ class MACNetworkSequential(Model):
         # Read attention.
         ax_attention_history = fig.add_subplot(gs[1:3, 4])
         ax_attention_history.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_attention_history.set_ylabel('Memory Addresses', fontsize=8)
         ax_attention_history.set_title('Read Attention')
 
         # Memory
         ax_history = fig.add_subplot(gs[1:3, 5:7])
+        ax_history.set_xlabel('Memory Content', fontsize=8)
         ax_history.set_title('Working Memory')
 
 
@@ -448,17 +455,22 @@ class MACNetworkSequential(Model):
                     norm = matplotlib.pylab.Normalize(0, 1)
                     norm2 = matplotlib.pylab.Normalize(0, 4)
 
-                    # Set title.
-                    statistics_text = 'Frame: ' + str(i) + ' Reasoning step: ' + str(step) + \
-                        '\nQuestion type: ' + tasks + \
-                        '\nPredicted Answer: ' + pred + ' Ground Truth: ' + ans + '\n'
-                    fig.suptitle(statistics_text, fontsize=14)
-
-
                     # Create "Artists" drawing data on "ImageAxes".
                     artists = []
 
                     # Tell artists what to do:
+                    
+                    # Set title.
+                    statistics_text = 'Frame: ' + str(i) + ' Reasoning step: ' + str(step) + \
+                        '\nQuestion type: ' + tasks + \
+                        '\nPredicted Answer: ' + pred + ' Ground Truth: ' + ans + '\n'
+                    #fig.suptitle(statistics_text, fontsize=14)
+                    at = matplotlib.offsetbox.AnchoredText(statistics_text,
+                        loc='upper left', prop=dict(size=8), frameon=True,
+                        )
+                    #at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
+                    artists.append(at)
+
 
                     ######################################################################
                     # Top-center: Question + time context section.
