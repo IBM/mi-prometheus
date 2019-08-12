@@ -253,10 +253,6 @@ class MACNetworkSequential(Model):
         # Create figure object.
         fig = Figure()
 
-        # Create a specific grid for MAC.
-        gs = matplotlib.gridspec.GridSpec(3, 8)
-        gs.update(wspace=1, hspace=1)
-
         ######################################################################
         # Top: Statistics section.
         #ax_step = fig.add_subplot(gs[0, :])
@@ -272,25 +268,31 @@ class MACNetworkSequential(Model):
 
         ######################################################################
         # Top-center: Question + time context section.
-
+        # Create a specific grid.
+        gs_top = matplotlib.gridspec.GridSpec(1, 6)
+        gs_top.update(wspace=0.0, hspace=0.05, bottom=0.7, top=0.95)
+        
         # Question with attention.
-        ax_attention_question = fig.add_subplot(gs[0, 0:7])
+        ax_attention_question = fig.add_subplot(gs_top[0, 0:5])
         ax_attention_question.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=25))
         ax_attention_question.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
         #ax_attention_question.set_xticklabels(25*[''], rotation=-45, fontsize=10)
         ax_attention_question.set_title('Question')
 
         # Time gate ;)
-        ax_context = fig.add_subplot(gs[0, 7])
+        ax_context = fig.add_subplot(gs_top[0, 5])
         ax_context.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
         ax_context.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([0,1,2,3]))
         ax_context.set_xticklabels(['Now','Last','Latest','None'], rotation=-45, fontsize=10)
         ax_context.set_title('Time Context')
         ######################################################################
         # Bottom left: Image section.
+        # Create a specific grid.
+        gs_bottom_left = matplotlib.gridspec.GridSpec(1, 2)
+        gs_bottom_left.update(wspace=0.05, hspace=0.05, bottom=0.1, top=0.6, left=0.05, right=0.5)
 
         # Image.
-        ax_image = fig.add_subplot(gs[1:3, 0:2])
+        ax_image = fig.add_subplot(gs_bottom_left[0, 0])
         ax_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_image.set_ylabel('Height [px]', fontsize=8)
@@ -298,7 +300,7 @@ class MACNetworkSequential(Model):
         ax_image.set_title('Image')
 
         # Attention over the image.
-        ax_attention_image = fig.add_subplot(gs[1:3, 2:4])
+        ax_attention_image = fig.add_subplot(gs_bottom_left[0, 1])
         ax_attention_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_attention_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_attention_image.set_xlabel('Width [px]', fontsize=8)
@@ -307,21 +309,24 @@ class MACNetworkSequential(Model):
 
         ######################################################################
         # Bottom Right: Memory section.
+        # Create a specific grid.
+        gs_bottom_right = matplotlib.gridspec.GridSpec(1, 4)
+        gs_bottom_right.update(wspace=0.05, hspace=0.05, bottom=0.1, top=0.6, left=0.55, right=0.95)
 
         # Read attention.
-        ax_attention_history = fig.add_subplot(gs[1:3, 4])
+        ax_attention_history = fig.add_subplot(gs_bottom_right[0, 0])
         ax_attention_history.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
         ax_attention_history.set_ylabel('Memory Addresses', fontsize=8)
         ax_attention_history.set_title('Read Attention')
 
         # Memory
-        ax_history = fig.add_subplot(gs[1:3, 5:7])
+        ax_history = fig.add_subplot(gs_bottom_right[0, 1:3])
         ax_history.set_xlabel('Memory Content', fontsize=8)
         ax_history.set_title('Working Memory')
 
 
         # Write attention.
-        ax_wt = fig.add_subplot(gs[1:3, 7])
+        ax_wt = fig.add_subplot(gs_bottom_right[0, 3])
         ax_wt.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
         ax_wt.set_title('Write Attention')
 
