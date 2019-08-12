@@ -270,7 +270,7 @@ class MACNetworkSequential(Model):
         # Top-center: Question + time context section.
         # Create a specific grid.
         gs_top = matplotlib.gridspec.GridSpec(1, 6)
-        gs_top.update(wspace=0.0, hspace=0.05, bottom=0.7, top=0.95)
+        gs_top.update(wspace=0.1, hspace=0.00, bottom=0.7, top=0.95, left=0.05, right=0.95)
         
         # Question with attention.
         ax_attention_question = fig.add_subplot(gs_top[0, 0:5])
@@ -289,7 +289,7 @@ class MACNetworkSequential(Model):
         # Bottom left: Image section.
         # Create a specific grid.
         gs_bottom_left = matplotlib.gridspec.GridSpec(1, 2)
-        gs_bottom_left.update(wspace=0.05, hspace=0.05, bottom=0.1, top=0.6, left=0.05, right=0.5)
+        gs_bottom_left.update(wspace=0.1, hspace=0.0, bottom=0.1, top=0.6, left=0.05, right=0.48)
 
         # Image.
         ax_image = fig.add_subplot(gs_bottom_left[0, 0])
@@ -311,7 +311,7 @@ class MACNetworkSequential(Model):
         # Bottom Right: Memory section.
         # Create a specific grid.
         gs_bottom_right = matplotlib.gridspec.GridSpec(1, 4)
-        gs_bottom_right.update(wspace=0.05, hspace=0.05, bottom=0.1, top=0.6, left=0.55, right=0.95)
+        gs_bottom_right.update(wspace=0.1, hspace=0.0, bottom=0.1, top=0.6, left=0.52, right=0.95)
 
         # Read attention.
         ax_attention_history = fig.add_subplot(gs_bottom_right[0, 0])
