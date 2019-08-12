@@ -57,13 +57,15 @@ import matplotlib.animation
 from miprometheus.models.model import Model
 import numpy as numpy
 import torch.nn as nn
-from miprometheus.utils.app_state import AppState
-app_state = AppState()
+
 from miprometheus.models.VWM_model.question_encoder import QuestionEncoder
 from miprometheus.models.VWM_model.image_encoder import ImageEncoder
 from miprometheus.models.VWM_model.VWM_cell import VWMCell
 from miprometheus.models.VWM_model.output_unit import OutputUnit
+
 from matplotlib.colors import LinearSegmentedColormap
+import matplotlib.lines as lines
+        
 
 
 class MACNetworkSequential(Model):
@@ -132,9 +134,9 @@ class MACNetworkSequential(Model):
 
 
         # initialize hidden states for mac cell control states and memory states
-        self.mem_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(app_state.dtype))
+        self.mem_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(self.app_state.dtype))
         self.control_0 = torch.nn.Parameter(
-            torch.zeros(1, self.dim).type(app_state.dtype))
+            torch.zeros(1, self.dim).type(self.app_state.dtype))
 
 
     def forward(self, data_dict, dropout=0.15):
@@ -186,10 +188,10 @@ class MACNetworkSequential(Model):
 
         # initialize empty memory
         visual_working_memory \
-            = torch.zeros(batch_size, self.slot ,self.dim).type(app_state.dtype)
+            = torch.zeros(batch_size, self.slot ,self.dim).type(self.app_state.dtype)
 
         # initialize Wt_sequential at first slot position
-        wt_sequential = torch.zeros(batch_size, self.slot).type(app_state.dtype)
+        wt_sequential = torch.zeros(batch_size, self.slot).type(self.app_state.dtype)
         wt_sequential[:, 0] = 1
 
         self.cell_states=[]
@@ -255,16 +257,10 @@ class MACNetworkSequential(Model):
 
         ######################################################################
         # Top: Statistics section.
-        #ax_step = fig.add_subplot(gs[0, :])
-        #ax_step.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-        #ax_step.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-        #ax_step.axis('off')
-
-        # We will use that for displaying "statistics" section.
-        #statistics_text = 'Frame: ' + ' Reasoning step: '  + \
-        #    '\nQuestion type: ' + \
-        #    '\nPredicted Answer: ' + ' Ground Truth: ' + '\n'
-        #fig.suptitle(statistics_text, fontsize=14)
+        # Create a specific grid.
+        gs_statistics = matplotlib.gridspec.GridSpec(1, 1)
+        gs_statistics.update(wspace=0.00, hspace=1.00, bottom=0.8, top=0.801, left=0.05, right=0.95)
+        _ = fig.add_subplot(gs_statistics[0, 0])
 
         ######################################################################
         # Top-center: Question + time context section.
@@ -273,7 +269,7 @@ class MACNetworkSequential(Model):
         gs_top.update(wspace=0.05, hspace=0.00, bottom=0.7, top=0.75, left=0.05, right=0.95)
         
         # Question with attention.
-        ax_attention_question = fig.add_subplot(gs_top[0, 0:5])
+        ax_attention_question = fig.add_subplot(gs_top[0, 0:5], frameon=False)
         ax_attention_question.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=25))
         ax_attention_question.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
         #ax_attention_question.set_xticklabels(25*[''], rotation=-45, fontsize=10)
@@ -348,8 +344,6 @@ class MACNetworkSequential(Model):
         ax_wt.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
         ax_wt.set_title('Write Attention')
 
-        import matplotlib.lines as lines
-        
         # Lines between sections.
         l1 = lines.Line2D([0, 1], [0.78, 0.78], transform=fig.transFigure, figure=fig, color='black')
         l2 = lines.Line2D([0, 1], [0.63, 0.63], transform=fig.transFigure, figure=fig, color='black')
@@ -361,33 +355,6 @@ class MACNetworkSequential(Model):
         fig.set_tight_layout(True)
 
         return fig
-
-    def grayscale_cmap(self,cmap):
-        """Return a grayscale version of the given colormap"""
-        cmap = matplotlib.pylab.cm.get_cmap(cmap)
-        colors = cmap(np.arange(cmap.N))
-
-        # convert RGBA to perceived grayscale luminance
-        # cf. http://alienryderflex.com/hsp.html
-        RGB_weight = [0.299, 0.587, 0.114]
-        luminance = np.sqrt(np.dot(colors[:, :3] ** 2, RGB_weight))
-        colors[:, :3] = luminance[:, np.newaxis]
-
-        return LinearSegmentedColormap.from_list(cmap.name + "_gray", colors, cmap.N)
-
-    def view_colormap(self, cmap):
-        """Plot a colormap with its grayscale equivalent"""
-        cmap = matplotlib.pylab.cm.get_cmap(cmap)
-        colors = cmap(np.arange(cmap.N))
-
-        cmap = self.grayscale_cmap(cmap)
-        grayscale = cmap(np.arange(cmap.N))
-
-        _, ax = matplotlib.pylab.subplots(2, figsize=(6, 2),
-                               subplot_kw=dict(xticks=[], yticks=[]))
-        ax[0].imshow([colors], extent=[0, 10, 0, 1])
-        ax[1].imshow([grayscale], extent=[0, 10, 0, 1])
-
 
 
     def plot(self, data_dict, logits, sample=0):
@@ -422,8 +389,8 @@ class MACNetworkSequential(Model):
         mask_pointing = data_dict['masks_pnt']
 
         # tokenize question string using same processing as in the problem
-        words = s_questions[sample][0]
-        words = nltk.word_tokenize(words)
+        question_words = s_questions[sample][0]
+        words = nltk.word_tokenize(question_words)
 
         color='plasma'
 
@@ -446,7 +413,7 @@ class MACNetworkSequential(Model):
             fig = self.generate_figure_layout()
 
             # Get axes that artists will draw on.
-            (ax_attention_question, ax_context, ax_image, ax_attention_image, ax_image_gate, ax_memory_gate, ax_attention_history, ax_history,ax_wt) = fig.axes
+            (ax_statistics, ax_attention_question, ax_context, ax_image, ax_attention_image, ax_image_gate, ax_memory_gate, ax_attention_history, ax_history,ax_wt) = fig.axes
 
             #initiate list of artists frames
             frames = []
@@ -488,19 +455,20 @@ class MACNetworkSequential(Model):
 
                     # Create "Artists" drawing data on "ImageAxes".
                     artists = []
-
                     # Tell artists what to do:
                     
-                    # Set title.
-                    statistics_text = 'Frame: ' + str(i) + ' Reasoning step: ' + str(step) + \
-                        '\nQuestion type: ' + tasks + \
-                        '\nPredicted Answer: ' + pred + ' Ground Truth: ' + ans + '\n'
-                    #fig.suptitle(statistics_text, fontsize=14)
-                    at = matplotlib.offsetbox.AnchoredText(statistics_text,
-                        loc='upper left', prop=dict(size=8), frameon=True,
-                        )
-                    #at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
-                    artists.append(at)
+                    # Set statistics.
+                    #artists.append(ax_statistics)
+                    ax_statistics.axis('off')
+                    artists.append(ax_statistics.text(
+                        0, 1.0,
+                        'Frame: ' + str(i) +
+                            '\nReasoning step: ' + str(step) + \
+                            '\nQuestion type: ' + tasks + \
+                            '\nQuestion: ' + question_words + \
+                            '\nPredicted Answer: ' + pred +
+                            '\nGround Truth: ' + ans + '\n',
+                        fontsize=12))
 
                     ######################################################################
                     # Top-center: Question + time context section.
@@ -657,7 +625,7 @@ class MACNetworkSequential(Model):
         """
         # create a binary mask, where the probability of 1's is (1-dropout)
         mask = torch.empty_like(x).bernoulli_(
-            1 - dropout).type(app_state.dtype)
+            1 - dropout).type(self.app_state.dtype)
 
         # normalize the mask so that the average value is 1 and not (1-dropout)
         mask /= (1 - dropout)
