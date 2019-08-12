@@ -526,8 +526,8 @@ class MACNetworkSequential(Model):
             self.plotWindow.update(fig, frames)
 
         else:
-
-            # NOT OPERATIONAL!!!!
+            print("Visualization for pointing NOT OPERATIONAL!")
+            exit(-10)
 
             ################### POINTING VISUALIZATION #######################
 
