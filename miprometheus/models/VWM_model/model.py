@@ -290,7 +290,7 @@ class MACNetworkSequential(Model):
         # Bottom left: Image section.
         # Create a specific grid.
         gs_bottom_left = matplotlib.gridspec.GridSpec(1, 2)
-        gs_bottom_left.update(wspace=0.01, hspace=0.0, bottom=0.1, top=0.6, left=0.05, right=0.46)
+        gs_bottom_left.update(wspace=0.1, hspace=0.0, bottom=0.1, top=0.6, left=0.05, right=0.46)
 
         # Image.
         ax_image = fig.add_subplot(gs_bottom_left[0, 0])
@@ -311,7 +311,7 @@ class MACNetworkSequential(Model):
         # Bottom Center: gates section.
         # Create a specific grid - for gates.
         gs_bottom_center = matplotlib.gridspec.GridSpec(2, 1)
-        gs_bottom_center.update(wspace=0.0, hspace=1, bottom=0.42, top=0.60, left=0.48, right=0.52)
+        gs_bottom_center.update(wspace=0.0, hspace=1, bottom=0.22, top=0.40, left=0.48, right=0.52)
 
         # Image gate.
         ax_image_gate = fig.add_subplot(gs_bottom_center[0, 0])
@@ -348,6 +348,15 @@ class MACNetworkSequential(Model):
         ax_wt.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
         ax_wt.set_title('Write Attention')
 
+        import matplotlib.lines as lines
+        
+        # Lines between sections.
+        l1 = lines.Line2D([0, 1], [0.78, 0.78], transform=fig.transFigure, figure=fig, color='black')
+        l2 = lines.Line2D([0, 1], [0.63, 0.63], transform=fig.transFigure, figure=fig, color='black')
+        l3 = lines.Line2D([0.5, 0.5], [0.0, 0.2], transform=fig.transFigure, figure=fig, color='black')
+        l4 = lines.Line2D([0.5, 0.5], [0.40, 0.63], transform=fig.transFigure, figure=fig, color='black')
+        fig.lines.extend([l1, l2, l3,l4])
+
         # Set layout.
         #fig.set_tight_layout(True)
 
@@ -374,7 +383,7 @@ class MACNetworkSequential(Model):
         cmap = self.grayscale_cmap(cmap)
         grayscale = cmap(np.arange(cmap.N))
 
-        fig, ax = matplotlib.pylab.subplots(2, figsize=(6, 2),
+        _, ax = matplotlib.pylab.subplots(2, figsize=(6, 2),
                                subplot_kw=dict(xticks=[], yticks=[]))
         ax[0].imshow([colors], extent=[0, 10, 0, 1])
         ax[1].imshow([grayscale], extent=[0, 10, 0, 1])
@@ -459,9 +468,6 @@ class MACNetworkSequential(Model):
                 for step, (attention_mask, attention_question, history, W, gmem, gkb, Wt_seq , context) in zip(
                         range(self.max_step), self.cell_states[i]):
 
-                    print("gmem: ", gmem[sample])
-                    print("gkb: ", gkb[sample])
-                    
                     # preprocess attention image, reshape
                     attention_size = int(np.sqrt(attention_mask.size(-1)))
 
