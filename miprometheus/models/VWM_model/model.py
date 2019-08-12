@@ -258,15 +258,18 @@ class MACNetworkSequential(Model):
         ######################################################################
         # Top: Statistics section.
         # Create a specific grid.
-        gs_statistics = matplotlib.gridspec.GridSpec(1, 1)
-        gs_statistics.update(wspace=0.00, hspace=1.00, bottom=0.8, top=0.801, left=0.05, right=0.95)
+        gs_statistics = matplotlib.gridspec.GridSpec(1, 8)
+        gs_statistics.update(wspace=0.00, hspace=1.00, bottom=0.9, top=0.901, left=0.05, right=0.95)
         _ = fig.add_subplot(gs_statistics[0, 0])
+        _ = fig.add_subplot(gs_statistics[0, 1:5])
+        _ = fig.add_subplot(gs_statistics[0, 5])
+        _ = fig.add_subplot(gs_statistics[0, 6:8])
 
         ######################################################################
         # Top-center: Question + time context section.
         # Create a specific grid.
         gs_top = matplotlib.gridspec.GridSpec(1, 6)
-        gs_top.update(wspace=0.05, hspace=0.00, bottom=0.7, top=0.75, left=0.05, right=0.95)
+        gs_top.update(wspace=0.05, hspace=0.00, bottom=0.8, top=0.85, left=0.05, right=0.95)
         
         # Question with attention.
         ax_attention_question = fig.add_subplot(gs_top[0, 0:5], frameon=False)
@@ -286,7 +289,7 @@ class MACNetworkSequential(Model):
         # Bottom left: Image section.
         # Create a specific grid.
         gs_bottom_left = matplotlib.gridspec.GridSpec(1, 2)
-        gs_bottom_left.update(wspace=0.1, hspace=0.0, bottom=0.1, top=0.6, left=0.05, right=0.46)
+        gs_bottom_left.update(wspace=0.1, hspace=0.0, bottom=0.1, top=0.7, left=0.05, right=0.46)
 
         # Image.
         ax_image = fig.add_subplot(gs_bottom_left[0, 0])
@@ -307,7 +310,7 @@ class MACNetworkSequential(Model):
         # Bottom Center: gates section.
         # Create a specific grid - for gates.
         gs_bottom_center = matplotlib.gridspec.GridSpec(2, 1)
-        gs_bottom_center.update(wspace=0.0, hspace=1, bottom=0.22, top=0.40, left=0.48, right=0.52)
+        gs_bottom_center.update(wspace=0.0, hspace=1, bottom=0.27, top=0.45, left=0.48, right=0.52)
 
         # Image gate.
         ax_image_gate = fig.add_subplot(gs_bottom_center[0, 0])
@@ -325,7 +328,7 @@ class MACNetworkSequential(Model):
         # Bottom Right: Memory section.
         # Create a specific grid.
         gs_bottom_right = matplotlib.gridspec.GridSpec(1, 10)
-        gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.1, top=0.6, left=0.54, right=0.95)
+        gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.1, top=0.7, left=0.54, right=0.95)
 
         # Read attention.
         ax_attention_history = fig.add_subplot(gs_bottom_right[0, 0])
@@ -345,10 +348,10 @@ class MACNetworkSequential(Model):
         ax_wt.set_title('Write Attention')
 
         # Lines between sections.
-        l1 = lines.Line2D([0, 1], [0.78, 0.78], transform=fig.transFigure, figure=fig, color='black')
-        l2 = lines.Line2D([0, 1], [0.63, 0.63], transform=fig.transFigure, figure=fig, color='black')
-        l3 = lines.Line2D([0.5, 0.5], [0.0, 0.2], transform=fig.transFigure, figure=fig, color='black')
-        l4 = lines.Line2D([0.5, 0.5], [0.44, 0.63], transform=fig.transFigure, figure=fig, color='black')
+        l1 = lines.Line2D([0, 1], [0.88, 0.88], transform=fig.transFigure, figure=fig, color='black')
+        l2 = lines.Line2D([0, 1], [0.73, 0.73], transform=fig.transFigure, figure=fig, color='black')
+        l3 = lines.Line2D([0.5, 0.5], [0.0, 0.25], transform=fig.transFigure, figure=fig, color='black')
+        l4 = lines.Line2D([0.5, 0.5], [0.49, 0.73], transform=fig.transFigure, figure=fig, color='black')
         fig.lines.extend([l1, l2, l3,l4])
 
         # Set layout.
@@ -413,7 +416,11 @@ class MACNetworkSequential(Model):
             fig = self.generate_figure_layout()
 
             # Get axes that artists will draw on.
-            (ax_statistics, ax_attention_question, ax_context, ax_image, ax_attention_image, ax_image_gate, ax_memory_gate, ax_attention_history, ax_history,ax_wt) = fig.axes
+            (ax_statistics_left_labels, ax_statistics_left, ax_statistics_right_labels, ax_statistics_right,
+                ax_attention_question, ax_context,
+                ax_image, ax_attention_image,
+                ax_image_gate, ax_memory_gate,
+                ax_attention_history, ax_history,ax_wt) = fig.axes
 
             #initiate list of artists frames
             frames = []
@@ -458,19 +465,37 @@ class MACNetworkSequential(Model):
                     # Tell artists what to do:
                     
                     # Set statistics.
-                    #artists.append(ax_statistics)
-                    ax_statistics.axis('off')
-                    artists.append(ax_statistics.text(
+                    ax_statistics_left_labels.axis('off')
+                    artists.append(ax_statistics_left_labels.text(
                         0, 1.0,
-                        'Frame: ' + str(i) +
-                            '\nReasoning step: ' + str(step) + \
-                            '\nQuestion type: ' + tasks + \
-                            '\nQuestion: ' + question_words + \
-                            '\nPredicted Answer: ' + pred +
-                            '\nGround Truth: ' + ans + '\n',
+                            'Question:         ' +
+                            '\nPredicted Answer: ' + 
+                            '\nGround Truth:     ',
                         fontsize=12))
-
-                    ######################################################################
+                    ax_statistics_left.axis('off')
+                    artists.append(ax_statistics_left.text(
+                        0, 1.0,
+                            question_words +
+                            '\n' + pred +
+                            '\n' + ans,
+                        fontsize=12, weight='bold'))
+    
+                    ax_statistics_right_labels.axis('off')
+                    artists.append(ax_statistics_right_labels.text(
+                        0, 1.0,
+                        'Frame: ' +
+                            '\nReasoning Step:   ' +
+                            '\nQuestion Type:    ',
+                        fontsize=12))
+                    ax_statistics_right.axis('off')
+                    artists.append(ax_statistics_right.text(
+                        0, 1.0,
+                        str(i) +
+                            '\n' + str(step) +
+                            '\n' + tasks,
+                        fontsize=12, weight='bold'))
+        
+                        ######################################################################
                     # Top-center: Question + time context section.
                     # Set words for question attention.
                     ax_attention_question.set_xticklabels(['h'] + words, rotation=-45, fontsize=12)
