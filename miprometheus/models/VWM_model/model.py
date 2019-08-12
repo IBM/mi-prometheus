@@ -328,7 +328,7 @@ class MACNetworkSequential(Model):
         ######################################################################
         # Bottom Right: Memory section.
         # Create a specific grid.
-        gs_bottom_right = matplotlib.gridspec.GridSpec(1, 8)
+        gs_bottom_right = matplotlib.gridspec.GridSpec(1, 10)
         gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.1, top=0.6, left=0.54, right=0.95)
 
         # Read attention.
@@ -338,13 +338,13 @@ class MACNetworkSequential(Model):
         ax_attention_history.set_title('Read Attention')
 
         # Memory
-        ax_history = fig.add_subplot(gs_bottom_right[0, 1:7])
+        ax_history = fig.add_subplot(gs_bottom_right[0, 1:9])
         ax_history.set_xlabel('Memory Content', fontsize=8)
         ax_history.set_title('Working Memory')
 
 
         # Write attention.
-        ax_wt = fig.add_subplot(gs_bottom_right[0, 7])
+        ax_wt = fig.add_subplot(gs_bottom_right[0, 9])
         ax_wt.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
         ax_wt.set_title('Write Attention')
 
@@ -496,7 +496,6 @@ class MACNetworkSequential(Model):
                     #at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
                     artists.append(at)
 
-
                     ######################################################################
                     # Top-center: Question + time context section.
                     # Set words for question attention.
@@ -508,7 +507,6 @@ class MACNetworkSequential(Model):
                     # Time context.
                     artists.append(ax_context.imshow(
                         context[sample], interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
-    
     
                     ######################################################################
                     # Bottom left: Image section.
@@ -523,10 +521,16 @@ class MACNetworkSequential(Model):
                         alpha=0.5,
                         cmap=color))
 
-                    # Image gate.
-                    #artists.append(ax_image_gate.imshow(
-                    #    gkb[sample].unsqueeze(1), interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
+                    ######################################################################
+                    # Bottom center: gates section.
                     
+                    # Image gate.
+                    artists.append(ax_image_gate.imshow(
+                        [[ gkb[sample] ]], interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
+                    
+                    # Memory gate.
+                    artists.append(ax_memory_gate.imshow(
+                        [[ gmem[sample] ]], interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
 
                     ######################################################################
                     # Bottom Right: Memory section.
