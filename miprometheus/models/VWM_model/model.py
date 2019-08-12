@@ -254,19 +254,47 @@ class MACNetworkSequential(Model):
         fig = Figure()
 
         # Create a specific grid for MAC.
-        gs = matplotlib.gridspec.GridSpec(4, 9)
+        gs = matplotlib.gridspec.GridSpec(4, 8)
 
+        ######################################################################
+        # Top: Statistics section.
+        #ax_step = fig.add_subplot(gs[0, :])
+        #ax_step.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        #ax_step.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        #ax_step.axis('off')
+
+        # We will use that for displaying "statistics" section.
+        statistics_text = 'Frame: ' + ' Reasoning step: '  + \
+            '\nQuestion type: ' + \
+            '\nPredicted Answer: ' + ' Ground Truth: ' + '\n'
+        fig.suptitle(statistics_text, fontsize=14)
+
+        ######################################################################
+        # Top-center: Question + time context section.
+
+        # Question with attention.
+        ax_attention_question = fig.add_subplot(gs[0, 0:7])
+        ax_attention_question.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=25))
+        ax_attention_question.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        #ax_attention_question.set_xticklabels(25*[''], rotation=-45, fontsize=10)
+
+        # Time gate ;)
+        ax_context = fig.add_subplot(gs[0, 7])
+        ax_context.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_context.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([0,1,2,3]))
+        ax_context.set_xticklabels(['Now','Last','Latest','None'])
+        ax_context.set_title('Time Context')
         ######################################################################
         # Bottom left: Image section.
 
         # Image.
-        ax_image = fig.add_subplot(gs[2:4, 0:2])
+        ax_image = fig.add_subplot(gs[1:3, 0:2])
         ax_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_image.set_title('Image')
 
         # Attention over the image.
-        ax_attention_image = fig.add_subplot(gs[2:4, 2:4])
+        ax_attention_image = fig.add_subplot(gs[1:3, 2:4])
         ax_attention_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_attention_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_attention_image.set_title('Visual Attention')
@@ -276,50 +304,19 @@ class MACNetworkSequential(Model):
         # Bottom Right: Memory section.
 
         # Read attention.
-        ax_attention_history = fig.add_subplot(gs[2:4, 4:5])
-        ax_attention_history.set_xticklabels([])
+        ax_attention_history = fig.add_subplot(gs[1:3, 4])
+        ax_attention_history.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
         ax_attention_history.set_title('Read Attention')
 
         # Memory
-        ax_history = fig.add_subplot(gs[2:4, 5:7])
+        ax_history = fig.add_subplot(gs[1:3, 5:7])
         ax_history.set_title('Working Memory')
 
 
         # Write attention.
-        ax_wt = fig.add_subplot(gs[2:4, 7:8])
-        ax_wt.set_xticklabels([])
+        ax_wt = fig.add_subplot(gs[1:3, 7])
+        ax_wt.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
         ax_wt.set_title('Write Attention')
-
-        ######################################################################
-        # Center: Question section.
-
-        # Time gate ;)
-        ax_context = fig.add_subplot(gs[1, 6:8])
-        ax_context.set_yticklabels([])
-        ax_context.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([0,1,2,3]))
-        ax_context.set_xticklabels(['Now','Last','Latest','None'])
-        ax_context.set_title('Time Context')
-
-        # Question with attention.
-        ax_attention_question = fig.add_subplot(gs[1, 0:6])
-        ax_attention_question.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=25))
-        ax_attention_question.set_yticklabels([])
-        #ax_attention_question.set_xticklabels(25*[''], rotation=-45, fontsize=10)
-
-
-        ######################################################################
-        # Top: Statistics section.
-        ax_step = fig.add_subplot(gs[0, :])
-        ax_step.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-        ax_step.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-        ax_step.axis('off')
-
-
-
-        t = ("This is a really long string that I'd rather have wrapped so that it "
-            "doesn't go outside of the figure, but if it's long enough it will go "
-            "off the top or bottom!")
-        fig.text(4, 1, t, ha='left', rotation=15, wrap=True)
 
         # Set layout.
         #fig.set_tight_layout(True)
@@ -410,7 +407,7 @@ class MACNetworkSequential(Model):
             fig = self.generate_figure_layout()
 
             # Get axes that artists will draw on.
-            (ax_image, ax_attention_image, ax_history, ax_attention_history,ax_wt,ax_context, ax_attention_question, ax_step  ) = fig.axes
+            (ax_attention_question, ax_context, ax_image, ax_attention_image, ax_attention_history, ax_history,ax_wt) = fig.axes
 
             #initiate list of artists frames
             frames = []
@@ -451,21 +448,38 @@ class MACNetworkSequential(Model):
                     norm = matplotlib.pylab.Normalize(0, 1)
                     norm2 = matplotlib.pylab.Normalize(0, 4)
 
+                    # Set title.
+                    statistics_text = 'Frame: ' + str(i) + ' Reasoning step: ' + str(step) + \
+                        '\nQuestion type: ' + tasks + \
+                        '\nPredicted Answer: ' + pred + ' Ground Truth: ' + ans + '\n'
+                    fig.suptitle(statistics_text, fontsize=14)
+
+
                     # Create "Artists" drawing data on "ImageAxes".
                     artists = []
 
-                    # set title labels
-
-                    ax_attention_question.set_xticklabels(
-                        ['h'] + words, rotation=-45, fontsize=10)
-
-                    #fig.colorbar(history[sample], cax=ax_history)
-
                     # Tell artists what to do:
+
+                    ######################################################################
+                    # Top-center: Question + time context section.
+                    # Set words for question attention.
+                    ax_attention_question.set_xticklabels(['h'] + words, rotation=-45, fontsize=10)
+                    artists.append(ax_attention_question.imshow(
+                        #attention_question.transpose(1, 0),
+                        attention_question.unsqueeze(1).transpose(1, 0),
+                        interpolation='nearest', aspect='auto', cmap=color, norm=norm))
+
+                    # Time context.
+                    artists.append(ax_context.imshow(
+                        context[sample], interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
+    
+    
+                    ######################################################################
+                    # Bottom left: Image section.
                     artists.append(ax_image.imshow(image, interpolation='nearest', aspect='auto'))
 
+                    # Two artists painting on the same figure - image + attention.
                     artists.append(ax_attention_image.imshow(image, interpolation='nearest', aspect='auto'))
-
                     artists.append(ax_attention_image.imshow(
                         attention_mask,
                         interpolation='nearest',
@@ -473,15 +487,8 @@ class MACNetworkSequential(Model):
                         alpha=0.5,
                         cmap=color))
 
-                    artists.append(ax_attention_question.imshow(
-                        #attention_question.transpose(1, 0),
-                        attention_question.unsqueeze(1).transpose(1, 0),
-                        interpolation='nearest', aspect='auto', cmap=color, norm=norm))
-
-                    artists.append(ax_step.text(
-                        0, 0.5, 'Reasoning step index: ' + str(
-                            step+1) + '  frame ' + str(i+1) +' | Question type: ' + tasks + '         ' + 'Predicted Answer: ' + pred + '  ' +
-                                'Ground Truth: ' + ans +'  ' , fontsize=15))
+                    ######################################################################
+                    # Bottom Right: Memory section.
 
                     artists.append(ax_history.imshow(
                         history[sample], interpolation='nearest', aspect='auto', cmap=color, norm=norm2  ))
@@ -491,9 +498,6 @@ class MACNetworkSequential(Model):
 
                     artists.append(ax_wt.imshow(
                         Wt_seq[sample].transpose(1,0), interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
-
-                    artists.append(ax_context.imshow(
-                        context[sample], interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
 
                     # Add "frames" to artist list
                     frames.append(artists)
