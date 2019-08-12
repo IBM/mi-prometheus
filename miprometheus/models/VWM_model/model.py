@@ -263,18 +263,32 @@ class MACNetworkSequential(Model):
         ax_image = fig.add_subplot(gs[2:4, 0:2])
         ax_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_image.set_title('Image')
 
         # Attention over the image.
         ax_attention_image = fig.add_subplot(gs[2:4, 2:4])
         ax_attention_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_attention_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_attention_image.set_title('Visual Attention')
 
 
         ######################################################################
         # Bottom Right: Memory section.
-        ax_history = fig.add_subplot(gs[2:4, 5:7])
+
+        # Read attention.
         ax_attention_history = fig.add_subplot(gs[2:4, 4:5])
+        ax_attention_history.set_xticklabels([])
+        ax_attention_history.set_title('Read Attention')
+
+        # Memory
+        ax_history = fig.add_subplot(gs[2:4, 5:7])
+        ax_history.set_title('Working Memory')
+
+
+        # Write attention.
         ax_wt = fig.add_subplot(gs[2:4, 7:8])
+        ax_wt.set_xticklabels([])
+        ax_wt.set_title('Write Attention')
 
         ######################################################################
         # Center: Question section.
@@ -282,14 +296,15 @@ class MACNetworkSequential(Model):
         # Time gate ;)
         ax_context = fig.add_subplot(gs[1, 6:8])
         ax_context.set_yticklabels([])
+        ax_context.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([0,1,2,3]))
         ax_context.set_xticklabels(['Now','Last','Latest','None'])
-        #ax_context.set_title('Now        Last     Latest    None')
         ax_context.set_title('Time Context')
 
         # Question with attention.
         ax_attention_question = fig.add_subplot(gs[1, 0:6])
         ax_attention_question.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=25))
         ax_attention_question.set_yticklabels([])
+        #ax_attention_question.set_xticklabels(25*[''], rotation=-45, fontsize=10)
 
 
         ######################################################################
@@ -300,17 +315,14 @@ class MACNetworkSequential(Model):
         ax_step.axis('off')
 
 
-        ax_attention_image.set_title('Visual Attention:')
 
-        ax_history.set_title('Visual Working Memory (VWM):')
-
-        ax_attention_history.set_title('VWM Attention :')
-
-        ax_wt.set_title('Sequential Attention:')
-
+        t = ("This is a really long string that I'd rather have wrapped so that it "
+            "doesn't go outside of the figure, but if it's long enough it will go "
+            "off the top or bottom!")
+        fig.text(4, 1, t, ha='left', rotation=15, wrap=True)
 
         # Set layout.
-        fig.set_tight_layout(True)
+        #fig.set_tight_layout(True)
 
         return fig
 
@@ -440,54 +452,48 @@ class MACNetworkSequential(Model):
                     norm2 = matplotlib.pylab.Normalize(0, 4)
 
                     # Create "Artists" drawing data on "ImageAxes".
-                    num_artists = len(fig.axes) + 2
-                    artists = [None] * num_artists
+                    artists = []
 
                     # set title labels
 
                     ax_attention_question.set_xticklabels(
-                        ['h'] + words, rotation=-45, fontsize=15)
+                        ['h'] + words, rotation=-45, fontsize=10)
 
                     #fig.colorbar(history[sample], cax=ax_history)
 
                     # Tell artists what to do:
-                    artists[0] = ax_image.set_title('COG image:')
-                    artists[1] = ax_image.imshow(
-                        image, interpolation='nearest', aspect='auto')
+                    artists.append(ax_image.imshow(image, interpolation='nearest', aspect='auto'))
 
-                    artists[2] = ax_attention_image.imshow(
-                        image, interpolation='nearest', aspect='auto')
-                    artists[3] = ax_attention_image.imshow(
+                    artists.append(ax_attention_image.imshow(image, interpolation='nearest', aspect='auto'))
+
+                    artists.append(ax_attention_image.imshow(
                         attention_mask,
                         interpolation='nearest',
                         aspect='auto',
                         alpha=0.5,
-                        cmap=color)
+                        cmap=color))
 
-                    artists[4] = ax_attention_question.imshow(
+                    artists.append(ax_attention_question.imshow(
                         #attention_question.transpose(1, 0),
                         attention_question.unsqueeze(1).transpose(1, 0),
-                        interpolation='nearest', aspect='auto', cmap=color, norm=norm)
+                        interpolation='nearest', aspect='auto', cmap=color, norm=norm))
 
-                    artists[5] = ax_step.text(
+                    artists.append(ax_step.text(
                         0, 0.5, 'Reasoning step index: ' + str(
                             step+1) + '  frame ' + str(i+1) +' | Question type: ' + tasks + '         ' + 'Predicted Answer: ' + pred + '  ' +
-                                'Ground Truth: ' + ans +'  ' , fontsize=15)
+                                'Ground Truth: ' + ans +'  ' , fontsize=15))
 
-                    artists[6] = ax_history.imshow(
-                        history[sample], interpolation='nearest', aspect='auto', cmap=color, norm=norm2  )
+                    artists.append(ax_history.imshow(
+                        history[sample], interpolation='nearest', aspect='auto', cmap=color, norm=norm2  ))
 
-                    artists[7] = ax_attention_history.imshow(
-                        W[sample].unsqueeze(1), interpolation='nearest',cmap=color, norm=norm , aspect='auto')
+                    artists.append(ax_attention_history.imshow(
+                        W[sample].unsqueeze(1), interpolation='nearest',cmap=color, norm=norm , aspect='auto'))
 
-                    artists[8] = ax_wt.imshow(
-                        Wt_seq[sample].transpose(1,0), interpolation='nearest', cmap=color, norm=norm, aspect='auto')
+                    artists.append(ax_wt.imshow(
+                        Wt_seq[sample].transpose(1,0), interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
 
-                    artists[9] = ax_context.imshow(
-                        context[sample], interpolation='nearest', cmap=color, norm=norm, aspect='auto')
-
-
-                    #self.view_colormap('Reds')
+                    artists.append(ax_context.imshow(
+                        context[sample], interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
 
                     # Add "frames" to artist list
                     frames.append(artists)
@@ -496,6 +502,8 @@ class MACNetworkSequential(Model):
             self.plotWindow.update(fig, frames)
 
         else:
+
+            # NOT OPERATIONAL!!!!
 
             ################### POINTING VISUALIZATION #######################
 
