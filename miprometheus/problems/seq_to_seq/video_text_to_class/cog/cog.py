@@ -351,7 +351,7 @@ class COG(VideoTextToClassProblem):
 		_, indices = torch.max(preds_answer, 1)
 
 		# Calculate correct answers with additional "masking".
-		correct_answers = (indices == targets_answer) * mask_answer
+		correct_answers = (indices == targets_answer).type(self.app_state.ByteTensor) * mask_answer
 
 		# Calculate accurary.
 		if mask_answer.sum() > 0:
@@ -377,7 +377,7 @@ class COG(VideoTextToClassProblem):
 		threshold=0.15**2
 		
 		# Check correct pointings.
-		correct_pointing = (diff_pointing < threshold) * mask_pointing
+		correct_pointing = (diff_pointing < threshold).type(self.app_state.ByteTensor) * mask_pointing
 		#print('corect poitning',correct_pointing)
 		# Calculate accurary.
 		if mask_pointing.sum() > 0:
@@ -476,7 +476,7 @@ class COG(VideoTextToClassProblem):
 		_, indices = torch.max(preds_answer, 1)
 
 		# Calculate correct answers with additional "masking".
-		correct_answers = (indices == targets_answer) * mask_answer
+		correct_answers = (indices == targets_answer).type(self.app_state.ByteTensor) * mask_answer
 
 		#########################################################################
 		# Calculate accuracy for Pointing task.
@@ -496,7 +496,7 @@ class COG(VideoTextToClassProblem):
 		threshold = 0.15 ** 2
 
 		# Check correct pointings.
-		correct_pointing = (diff_pointing < threshold) * mask_pointing
+		correct_pointing = (diff_pointing < threshold).type(self.app_state.ByteTensor) * mask_pointing
 
         #count correct and total for each category
 		for i in range(batch_size):

@@ -155,7 +155,7 @@ class ScratchPadCommandLines(AlgorithmicSeqToSeqProblem):
         data_dict['sequences'] = torch.from_numpy(inputs).type(self.app_state.dtype)
         data_dict['targets'] = torch.from_numpy(targets).type(self.app_state.dtype)
         data_dict['masks'] = ptmasks
-        data_dict['sequences_length'] = torch.ones([batch_size,1]).type(torch.IntTensor) * seq_length
+        data_dict['sequences_length'] = torch.ones([batch_size,1]).type(torch.IntTensor) * seq_lengths
         data_dict['num_subsequences'] = torch.ones([batch_size, 1]).type(torch.CharTensor) * num_sub_seq
         return data_dict
 
