@@ -40,7 +40,7 @@
 # limitations under the License.
 
 """
-input_unit.py: Implementation of the input unit for the VWM Network
+question_encoder.py: Implementation of the Question Encoder for the VWM Network
 the reference paper.
 """
 __author__ = "Vincent Albouy"
@@ -53,12 +53,18 @@ class QuestionEncoder(Module):
     Implementation of the ``QuestionEncoder`` of the VWM network.
     """
 
-    def __init__(self, vocabulary_size, dtype, words_embed_length, nwords, embedded_dim, dim):
+    def __init__(self, vocabulary_size, dtype, words_embed_length, embedded_dim, dim):
         """
         Constructor for the ``QuestionEncoder``.
+        
+        :param vocabulary_size: size of dictionnary
+        :type vocabulary_size: int
+        
+        :param dtype: dtype
+        :type dtype: dtype
              
-        :param dim: size of dictionnary
-        :type dim: int
+        :param words_embed_length: size of embbedings dim
+        :type words_embed_length: int
 
         :param dim: global 'd' hidden dimension
         :type dim: int
@@ -75,10 +81,6 @@ class QuestionEncoder(Module):
 
         self.dtype=dtype
 
-        self.nwords=nwords
-
-        self.words_embed_length=words_embed_length
-
         # create bidirectional LSTM layer
         self.lstm = torch.nn.LSTM(input_size=embedded_dim, hidden_size=self.dim,
                             num_layers=1, batch_first=True, bidirectional=True)
@@ -88,6 +90,7 @@ class QuestionEncoder(Module):
 
         # Defines nn.Embedding for embedding of questions into float tensors.
         self.Embedding = nn.Embedding(vocabulary_size, words_embed_length, padding_idx=0)
+
 
     def forward(self, questions, questions_len):
         """
