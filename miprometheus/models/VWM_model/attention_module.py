@@ -95,10 +95,9 @@ class AttentionModule(Module):
         if values is None:
             values = keys
 
-        assert (q.size(-1) == self.dim, 'Dimension mismatch in query')
-        assert (keys.size(-1) == self.dim, 'Dimension mismatch in keys')
-        assert (values.size(-2) == keys.size(-2),
-                'Num slots mismatch between keys and values')
+        assert q.size(-1) == self.dim, 'Dimension mismatch in query'
+        assert keys.size(-1) == self.dim, 'Dimension mismatch in keys'
+        assert values.size(-2) == keys.size(-2), 'Num slots mismatch between keys and values'
 
         # compute element-wise product between q & K
         # compute attention weights

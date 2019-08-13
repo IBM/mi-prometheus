@@ -53,7 +53,7 @@ class QuestionEncoder(Module):
     Implementation of the ``QuestionEncoder`` of the VWM network.
     """
 
-    def __init__(self, vocabulary_size, dtype, words_embed_length, embedded_dim, dim):
+    def __init__(self, vocabulary_size, dtype, embedded_dim, dim):
         """
         Constructor for the ``QuestionEncoder``.
         
@@ -63,14 +63,12 @@ class QuestionEncoder(Module):
         :param dtype: dtype
         :type dtype: dtype
              
-        :param words_embed_length: size of embbedings dim
-        :type words_embed_length: int
+        :param embedded_dim: dimension of the word embeddings.
+        :type embedded_dim: int
 
         :param dim: global 'd' hidden dimension
         :type dim: int
 
-        :param embedded_dim: dimension of the word embeddings.
-        :type embedded_dim: int
 
         """
 
@@ -89,7 +87,7 @@ class QuestionEncoder(Module):
         self.lstm_proj = torch.nn.Linear(2 * self.dim, self.dim)
 
         # Defines nn.Embedding for embedding of questions into float tensors.
-        self.Embedding = nn.Embedding(vocabulary_size, words_embed_length, padding_idx=0)
+        self.Embedding = nn.Embedding(vocabulary_size, embedded_dim, padding_idx=0)
 
 
     def forward(self, questions, questions_len):
