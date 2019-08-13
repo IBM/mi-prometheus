@@ -25,7 +25,7 @@ from .mental_model.mental_model import MentalModel
 # VQA models.
 from .mac.model import MACNetwork
 from .s_mac.s_mac import sMacNetwork
-from .VWM_model.model import MACNetworkSequential
+from .VWM_model.model import VWM
 from .relational_net.relational_network import RelationalNetwork
 
 # .vqa_baselines
@@ -61,7 +61,7 @@ __all__ = [
     # VQA models.
     'MACNetwork',
     'sMacNetwork',
-    'MACNetworkSequential',
+    'VWM',
     'RelationalNetwork',
     # .vqa_baselines
     'CNN_LSTM',

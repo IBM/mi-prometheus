@@ -68,7 +68,7 @@ import matplotlib.lines as lines
         
 
 
-class MACNetworkSequential(Model):
+class VWM(Model):
     """
     Implementation of the entire ``VWM`` network.
     """
@@ -85,7 +85,7 @@ class MACNetworkSequential(Model):
         """
 
         # call base constructor
-        super(MACNetworkSequential, self).__init__(params, problem_default_values_)
+        super(VWM, self).__init__(params, problem_default_values_)
 
         # parse params dict
         self.dim = params['dim']

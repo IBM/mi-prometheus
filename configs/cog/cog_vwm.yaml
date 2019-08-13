@@ -3,7 +3,7 @@ default_configs:
   configs/cog/default_cog.yaml
 
 model:
-  name: MACNetworkSequential
+  name: VWM
   dim: 128
   embed_hidden: 64
   max_step: 12
