@@ -163,7 +163,7 @@ class VWMCell(Module):
 
         # visual retrieval unit, obtain visual output and visual attention
         vo, va = self.visual_retrieval_unit(summary_object=summary_output, feature_maps=features_maps,
-                         ctrl_state=control)
+                         control_state=control)
 
 
         # memory retrieval unit, obtain memory output and memory attention
