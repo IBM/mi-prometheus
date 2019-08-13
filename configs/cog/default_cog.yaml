@@ -1,16 +1,20 @@
 # Problem parameters:
 training:
   problem:
-    name: COG
+    name: &name COG
     # Size of generated input: [batch_size x sequence_length x classes].
-    batch_size: 48
-    tasks: [AndCompareColor, AndCompareShape , AndSimpleCompareColor, AndSimpleCompareShape, CompareColor, CompareShape, Exist,ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape, ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape, ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace, GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
-    words_embed_length : 64
-    nwords : 24
-    data_folder: '~/data/cog'
+    batch_size: &batch_size 1
+#    tasks: &tasks [AndCompareColor, AndCompareShape , AndSimpleCompareColor,
+#            AndSimpleCompareShape, CompareColor, CompareShape, Exist,
+#            ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape,
+#            ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape,
+#            ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace,
+#            GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
+    tasks: &tasks [AndCompareColor]
+    data_folder: &data_folder '~/data/cog'
     set: val
-    use_mask: False
-    dataset_type: canonical
+    use_mask: &use_mask False
+    dataset_type: &dataset_type canonical
   # Set optimizer.
   optimizer:
     name: Adam
@@ -24,21 +28,21 @@ training:
 validation:
   partial_validation_interval: 100
   problem:
-    name: COG
+    name: *name
     # Size of generated input: [batch_size x sequence_length x classes].
-    batch_size: 48
-    tasks: [AndCompareColor, AndCompareShape , AndSimpleCompareColor, AndSimpleCompareShape, CompareColor, CompareShape, Exist,ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape, ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape, ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace, GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
-    data_folder: '~/data/cog'
+    batch_size: *batch_size
+    tasks: *tasks
+    data_folder: *data_folder
     set: val
-    use_mask: False
-    dataset_type: canonical
+    use_mask: *use_mask
+    dataset_type: *dataset_type
 
 testing:
  problem:
-  name: COG
+  name: *name
   # Size of generated input: [batch_size x sequence_length x classes].
-  batch_size: 48
-  tasks: [AndCompareColor, AndCompareShape , AndSimpleCompareColor, AndSimpleCompareShape, CompareColor, CompareShape, Exist,ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape, ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape, ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace, GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
-  data_folder: '~/data/cog'
+  batch_size: *batch_size
+  tasks: *tasks
+  data_folder: *data_folder
   set: test
-  dataset_type: canonical
+  dataset_type: *dataset_type
