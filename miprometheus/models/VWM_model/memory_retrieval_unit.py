@@ -1,30 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# MIT License
-#
-# Copyright (c) 2018 Kim Seonghyeon
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-#
-# ------------------------------------------------------------------------------
-#
 # Copyright (C) IBM Corporation 2018
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,7 +20,6 @@ memory_retrieval.py: Implementation of the ``MemoryRetrievalUnit`` for the VWM n
 """
 __author__ = "Vincent Albouy, T.S. Jayram"
 
-import torch
 from torch.nn import Module
 
 from miprometheus.models.VWM_model.attention_module import AttentionModule
@@ -59,7 +34,7 @@ class MemoryRetrievalUnit(Module):
     def __init__(self, dim):
         """
         Constructor for the ``MemoryRetrievalUnit``.
-        :param dim: global 'd' hidden dimension
+        :param dim: dimension of feature vectors
         :type dim: int
         """
 
@@ -72,29 +47,24 @@ class MemoryRetrievalUnit(Module):
         # instantiate attention module
         self.attention_module = AttentionModule(dim)
 
-    def forward(self, summary_object, visual_working_memory, ctrl_state):
+    def forward(self, summary_object, visual_working_memory, control_state):
         """
         Forward pass of the ``MemoryRetrievalUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
         
         :param summary_object:  previous summary object [batch_size x dim]
-        :type summary_object: torch.tensor
-
-        :param  visual_working_memory: batch_size x vwm_num_slots x dim
-        :type visual_working_memory: torch.tensor
-
-        :param ctrl_state:  previous control state [batch_size x dim].
-        :type ctrl_state: torch.tensor
+        :param visual_working_memory: batch_size x vwm_num_slots x dim
+        :param control_state:  previous control state [batch_size x dim].
 
         :return: memory_output [batch_size x dim]
         :return: memory_attention [batch_size x vwm_num_slots]
         """
 
-
+        # Combine the summary object with VWM
         vwm_modified = self.interaction_module(summary_object, visual_working_memory)
 
         # compute attention weights
-        memory_output, memory_attention = \
-            self.attention_module(ctrl_state, vwm_modified, visual_working_memory)
+        memory_output, memory_attention = self.attention_module(
+            control_state, vwm_modified, visual_working_memory)
 
         return memory_output, memory_attention

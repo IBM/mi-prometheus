@@ -168,7 +168,7 @@ class VWMCell(Module):
 
         # memory retrieval unit, obtain memory output and memory attention
         mo, ma = self.memory_retrieval_unit(summary_object=summary_output, visual_working_memory=visual_working_memory,
-                          ctrl_state=control)
+                          control_state=control)
 
         # matching unit
         gvt,gmt=self.validator_unit(control,vo,mo)
