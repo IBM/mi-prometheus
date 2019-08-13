@@ -159,7 +159,7 @@ class VWMCell(Module):
             step=step,
             contextual_words=context,
             question_encoding=question,
-            ctrl_state=control)
+            control_state=control)
 
         # visual retrieval unit, obtain visual output and visual attention
         vo, va = self.visual_retrieval_unit(summary_object=summary_output, feature_maps=features_maps,
