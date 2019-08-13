@@ -228,8 +228,7 @@ class VWM(Model):
 
 
             # output unit
-            logits_answer[:, f, :] = self.output_unit_answer(last_visual_attention, question_encoding, new_summary_object)
-
+            logits_answer[:, f, :] = self.output_unit_answer(question_encoding, new_summary_object)
 
         return logits_answer, logits_pointing
 
