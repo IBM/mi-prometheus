@@ -134,9 +134,11 @@ class MACNetworkSequential(Model):
 
 
         # initialize hidden states for mac cell control states and memory states
-        self.mem_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(self.app_state.dtype))
+        self.mem_0 = torch.nn.Parameter(torch.zeros((1, self.dim), requires_grad=False).type(self.app_state.dtype))
         self.control_0 = torch.nn.Parameter(
-            torch.zeros(1, self.dim).type(self.app_state.dtype))
+            torch.zeros((1, self.dim), requires_grad=False).type(self.app_state.dtype))
+
+
 
 
     def forward(self, data_dict, dropout=0.15):
@@ -188,10 +190,10 @@ class MACNetworkSequential(Model):
 
         # initialize empty memory
         visual_working_memory \
-            = torch.zeros(batch_size, self.slot ,self.dim).type(self.app_state.dtype)
+            = torch.zeros((batch_size, self.slot ,self.dim), requires_grad=False).type(self.app_state.dtype)
 
         # initialize Wt_sequential at first slot position
-        wt_sequential = torch.zeros(batch_size, self.slot).type(self.app_state.dtype)
+        wt_sequential = torch.zeros((batch_size, self.slot),requires_grad=False).type(self.app_state.dtype)
         wt_sequential[:, 0] = 1
 
         self.cell_states=[]
