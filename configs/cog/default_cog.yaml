@@ -3,7 +3,7 @@ training:
   problem:
     name: &name COG
     # Size of generated input: [batch_size x sequence_length x classes].
-    batch_size: &batch_size 1
+    batch_size: &batch_size 48
 #    tasks: &tasks [AndCompareColor, AndCompareShape , AndSimpleCompareColor,
 #            AndSimpleCompareShape, CompareColor, CompareShape, Exist,
 #            ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape,
