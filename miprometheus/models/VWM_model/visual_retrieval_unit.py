@@ -16,8 +16,9 @@
 # limitations under the License.
 
 """
-read_unit.py: Implementation of the ``VisualRetrievalUnitt`` for the VWM network.
+visual_retrieval.py: Implementation of the ``VisualRetrievalUnitt`` for the VWM network.
 """
+
 __author__ = "Vincent Albouy, T.S. Jayram"
 
 from torch.nn import Module

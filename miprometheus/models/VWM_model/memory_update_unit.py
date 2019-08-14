@@ -1,30 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# MIT License
-#
-# Copyright (c) 2018 Kim Seonghyeon
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-#
-# ------------------------------------------------------------------------------
-#
 # Copyright (C) IBM Corporation 2018
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,8 +16,7 @@
 # limitations under the License.
 
 """
-read_unit.py: Implementation of the ``MemoryUpdateUnit`` for the VWM network.
-
+memory_update_unit.py: Implementation of the ``MemoryUpdateUnit`` for the VWM network.
 """
 
 __author__ = "Vincent Albouy, T.S. Jayram"
@@ -97,10 +72,6 @@ class MemoryUpdateUnit(Module):
 
         batch_size = visual_object.size(0)
 
-        # from miprometheus.models.VWM_model.utils_VWM import eval_predicate
-        # do_replace, do_add_new, is_visual, is_mem = eval_predicate(
-        #     temporal_class_weights, valid_vo, valid_mo)
-
         # pad extra dimension
         do_replace = do_replace[..., None]
         do_add_new = do_add_new[..., None]
@@ -131,8 +102,8 @@ class MemoryUpdateUnit(Module):
         shifted_wt_sequential = torch.roll(wt_sequential, shifts=1, dims=-1)
 
         # new sequential attention
-        new_wt_sequential = (shifted_wt_sequential * do_add_new) \
-                            + (wt_sequential * (1 - do_add_new))
+        new_wt_sequential = ((shifted_wt_sequential * do_add_new)
+                             + (wt_sequential * (1 - do_add_new)))
 
         return visual_working_memory, new_wt_sequential
 

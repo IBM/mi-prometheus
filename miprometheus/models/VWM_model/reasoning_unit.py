@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """
-validator_unit.py: Implementation of the ``ValidatorUnit`` for the VWM network.
+reasoning_unit.py: Implementation of the ``ReasoningUnit`` for the VWM network.
 
 """
 __author__ = "Vincent Albouy, T.S. Jayram"
@@ -26,20 +26,20 @@ from torch.nn import Module
 from miprometheus.models.VWM_model.utils_VWM import linear
 
 
-class ValidatorUnit(Module):
+class ReasoningUnit(Module):
     """
-    Implementation of the `` ValidatorUnit`` of the VWM network.
+    Implementation of the `` ReasoningUnit`` of the VWM network.
     """
 
     def __init__(self, dim):
         """
-        Constructor for the `` ValidatorUnit``.
+        Constructor for the `` ReasoningUnit``.
         :param dim: dimension of feature vectors
         :type dim: int
         """
 
         # call base constructor
-        super(ValidatorUnit, self).__init__()
+        super(ReasoningUnit, self).__init__()
 
         def two_layers_net():
             return torch.nn.Sequential(linear(2 * dim, 2 * dim, bias=True),
@@ -52,7 +52,7 @@ class ValidatorUnit(Module):
 
     def forward(self, control_state, visual_object, memory_object, temporal_class_weights):
         """
-        Forward pass of the ``ValidatorUnit``.
+        Forward pass of the ``ReasoningUnit``.
 
         :param control_state: last control state
         :param visual_object: visual output
@@ -72,8 +72,36 @@ class ValidatorUnit(Module):
         valid_mo = self.memory_object_validator(concat_read_memory)
         valid_mo = valid_mo.squeeze(-1)
 
-        from miprometheus.models.VWM_model.utils_VWM import eval_predicate
-        do_replace, do_add_new, is_visual, is_mem = eval_predicate(
+        do_replace, do_add_new, is_visual, is_mem = ReasoningUnit.eval_predicate(
             temporal_class_weights, valid_vo, valid_mo)
 
         return valid_vo, valid_mo, do_replace, do_add_new, is_visual, is_mem
+
+    @staticmethod
+    def eval_predicate(temporal_class_weights, valid_vo, valid_mo):
+        # get t1,t2,t3,t4 from temporal_class_weights
+        # corresponds to now, last, latest, or none
+        t1 = temporal_class_weights[:, 0]
+        t2 = temporal_class_weights[:, 1]
+        t3 = temporal_class_weights[:, 2]
+        t4 = temporal_class_weights[:, 3]
+
+        # if the temporal context last or latest,
+        # then do we replace the existing memory object?
+        do_replace = valid_mo * valid_vo * (t2 + t3) * (1 - t4)
+
+        # otherwise do we add a new one to memory?
+        do_add_new = (1 - valid_mo) * valid_vo * (t2 + t3) * (1 - t4)
+
+        # final read vector
+        # (now or latest) and valid visual object?
+        is_visual = (t1 + t3) * valid_vo
+        # optional extra check that it is neither last nor none
+        # is_visual = is_visual * (1 - t2) * (1 - t4)
+
+        # (now or (latest and (not valid visual object))) and valid memory object?
+        is_mem = (t2 + t3 * (1 - valid_vo)) * valid_mo
+        # optional extra check that it is neither now nor none
+        # is_mem = is_mem * (1 - t1) * (1 - t4)
+
+        return do_replace, do_add_new, is_visual, is_mem

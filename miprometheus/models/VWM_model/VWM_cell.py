@@ -51,7 +51,7 @@ from miprometheus.models.VWM_model.question_driven_controller import QuestionDri
 from miprometheus.models.VWM_model.visual_retrieval_unit import VisualRetrievalUnit
 from miprometheus.models.VWM_model.summary_unit import SummaryUpdateUnit
 from miprometheus.models.VWM_model.memory_retrieval_unit import MemoryRetrievalUnit
-from miprometheus.models.VWM_model.validator_unit import ValidatorUnit
+from miprometheus.models.VWM_model.reasoning_unit import ReasoningUnit
 from miprometheus.models.VWM_model.memory_update_unit import MemoryUpdateUnit
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
@@ -84,7 +84,7 @@ class VWMCell(Module):
         self.question_driven_controller = QuestionDrivenController(dim=dim, max_step=max_step)
         self.visual_retrieval_unit = VisualRetrievalUnit(dim=dim)
         self.memory_retrieval_unit = MemoryRetrievalUnit(dim=dim)
-        self.reasoning_unit = ValidatorUnit(dim=dim)
+        self.reasoning_unit = ReasoningUnit(dim=dim)
         self.memory_update_unit = MemoryUpdateUnit(dim=dim, slots=slots)
         self.summary_unit = SummaryUpdateUnit(
             dim=dim)
