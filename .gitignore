@@ -39,3 +39,17 @@ miprometheus/models/VWM_model_validator/summary_unit.py
 miprometheus/models/VWM_model_validator/utils_VWM.py
 miprometheus/models/VWM_model_validator/visual_retrieval_unit.py
 miprometheus/models/VWM_model_validator/VWM_cell.py
+miprometheus/models/VWM_validator/attention_module.py
+miprometheus/models/VWM_validator/image_encoder.py
+miprometheus/models/VWM_validator/interaction_module.py
+miprometheus/models/VWM_validator/memory_retrieval_unit.py
+miprometheus/models/VWM_validator/memory_update_unit.py
+miprometheus/models/VWM_validator/model.py
+miprometheus/models/VWM_validator/output_unit.py
+miprometheus/models/VWM_validator/question_driven_controller.py
+miprometheus/models/VWM_validator/question_encoder.py
+miprometheus/models/VWM_validator/reasoning_unit.py
+miprometheus/models/VWM_validator/summary_unit.py
+miprometheus/models/VWM_validator/utils_VWM.py
+miprometheus/models/VWM_validator/visual_retrieval_unit.py
+miprometheus/models/VWM_validator/VWM_cell.py
