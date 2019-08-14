@@ -1,30 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# MIT License
-#
-# Copyright (c) 2018 Kim Seonghyeon
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-#
-# ------------------------------------------------------------------------------
-#
 # Copyright (C) IBM Corporation 2018
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,18 +38,15 @@ class VWMCell(Module):
     Implementation of the ``VWM Cell`` (iteration over the MAC cell) of the MAC network.
     """
 
-    def __init__(self, dim, max_step=12, dropout=0.15, slots=0):
+    def __init__(self, dim, max_step=12):
         """
         Constructor for the ``VWM Cell``, which represents the recurrent cell of VWM_model.
 
-        :param dim: global 'd' hidden dimension.
+        :param dim: dimension of feature vectors
         :type dim: int
 
         :param max_step: maximal number of MAC cells. Default: 12
         :type max_step: int
-
-        :param dropout: dropout probability for the variational dropout mask. Default: 0.15
-        :type dropout: float
 
         """
 
@@ -81,41 +54,35 @@ class VWMCell(Module):
         super(VWMCell, self).__init__()
 
         # instantiate all the units within VWM_cell
-        self.question_driven_controller = QuestionDrivenController(dim=dim, max_step=max_step)
-        self.visual_retrieval_unit = VisualRetrievalUnit(dim=dim)
-        self.memory_retrieval_unit = MemoryRetrievalUnit(dim=dim)
-        self.reasoning_unit = ReasoningUnit(dim=dim)
-        self.summary_unit = SummaryUpdateUnit(
-            dim=dim)
-
+        self.question_driven_controller = QuestionDrivenController(dim, max_step)
+        self.visual_retrieval_unit = VisualRetrievalUnit(dim)
+        self.memory_retrieval_unit = MemoryRetrievalUnit(dim)
+        self.reasoning_unit = ReasoningUnit(dim)
+        self.summary_unit = SummaryUpdateUnit(dim)
 
         # initialize hidden states
         self.mem_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
-        self.control_0 = torch.nn.Parameter(
-            torch.zeros(1, dim).type(app_state.dtype))
+        self.control_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
 
-        #contantes values
-        self.dim = dim
-        self.dropout = dropout
-
-        #Visualization container
-        self.cell_state_history = []
-
-    def forward(self, step, contextual_words, question_encoding, feature_maps, control_state,
-                summary_object, visual_working_memory, wt_sequential, state_history):
+    def forward(self, step, contextual_words, question_encoding,
+                feature_maps, control_state, summary_object,
+                visual_working_memory, wt_sequential, cell_state_history):
 
         """
         Forward pass of the ``VWMCell`` of VWM network
 
+        :param step: step
+        :type step: int
+
         :param contextual_words: contextual words, shape [batch_size x maxQuestionLength x dim]
         :type contextual_words: torch.tensor
 
-        :param question_encoding: questions encodings, shape [batch_size x 2*dim]
+        :param question_encoding: questions encodings, shape [batch_size x (2*dim)]
         :type question_encoding: torch.tensor
 
-        :param feature maps: feature maps (feature maps extracted by a CNN), shape \
+        :param feature_maps: feature maps (feature maps extracted by a CNN), shape \
         [batch_size x nb_kernels x (feat_H * feat_W)].
-        :type feature maps: torch.tensor
+        :type feature_maps: torch.tensor
         
         :param control_state: control_state state
         :type control_state: torch.tensor
@@ -128,21 +95,19 @@ class VWMCell(Module):
            
         :param wt_sequential: wt_sequential
         :type wt_sequential: torch.tensor
-        
-        :param step: step 
-        :type step: int
-               
+
+        :param cell_state_history: [[note: modified in the method]]
+        :type cell_state_history: list
+
+
         :return summary_object, shape [batch_size x dim]
         :type summary_object: torch.tensor
-            
-        :return self.cell_state_history
-        :type self.cell_state_history: list
-        
+
         :return: control_state: shape [batch_size x dim]
         :type  control_state: torch.tensor
         
-        :return: va: shape [batch_size x HxW]
-        :type:  va: torch.tensor
+        :return: visual_attention: shape [batch_size x HxW]
+        :type:  visual_attention: torch.tensor
         
         :return: visual_working_memory: shape [batch_size x slots x dim]
         :type  visual_working_memory: torch.tensor
@@ -158,29 +123,34 @@ class VWMCell(Module):
             step, contextual_words, question_encoding, control_state)
 
         # visual retrieval unit, obtain visual output and visual attention
-        vo, va = self.visual_retrieval_unit(summary_object, feature_maps,
-                                            control_state)
+        visual_object, visual_attention = self.visual_retrieval_unit(
+            summary_object, feature_maps, control_state)
 
         # memory retrieval unit, obtain memory output and memory attention
-        mo, ma = self.memory_retrieval_unit(
+        memory_object, memory_attention = self.memory_retrieval_unit(
             summary_object, visual_working_memory, control_state)
 
-        # matching unit
-        valid_vo, valid_mo, do_replace, do_add_new, is_visual, is_mem = self.reasoning_unit(
-            control_state, vo, mo, temporal_class_weights)
+        # reason about the objects
+        do_replace, do_add_new, is_visual, is_mem = self.reasoning_unit(
+            control_state, visual_object, memory_object, temporal_class_weights)
 
-        # update visual_working_memory, wt sequential and get the final contextual_words output vector
+        # update visual_working_memory, and wt sequential
         visual_working_memory, wt_sequential = memory_update(
-            vo, ma, visual_working_memory, wt_sequential, do_replace, do_add_new)
+            visual_object, memory_attention, visual_working_memory,
+            wt_sequential, do_replace, do_add_new)
 
         # summary update Unit
         summary_object = self.summary_unit(
-            is_visual, vo, is_mem, mo, summary_object)
+            is_visual, visual_object, is_mem, memory_object, summary_object)
 
         # store attention weights for visualization
         if app_state.visualize:
-            state_history.append(
-                (va.detach(), control_attention.detach(), visual_working_memory.detach(), ma.detach(), gvt.detach().numpy(), gmt.detach().numpy(), wt_sequential.unsqueeze(1).detach().numpy(), temporal_class_weights.unsqueeze(1).detach().numpy()))
+            cell_state_history.append(
+                (visual_attention.detach(), control_attention.detach(),
+                 visual_working_memory.detach(), memory_attention.detach(),
+                 is_visual.detach().numpy(), is_mem.detach().numpy(),
+                 wt_sequential.unsqueeze(1).detach().numpy(),
+                 temporal_class_weights.unsqueeze(1).detach().numpy()))
 
-        return (summary_object, control_state, state_history, va,
-                visual_working_memory, wt_sequential)
+        return (summary_object, control_state, visual_attention, visual_working_memory,
+                wt_sequential)

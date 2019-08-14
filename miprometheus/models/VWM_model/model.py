@@ -63,7 +63,6 @@ from miprometheus.models.VWM_model.image_encoder import ImageEncoder
 from miprometheus.models.VWM_model.VWM_cell import VWMCell
 from miprometheus.models.VWM_model.output_unit import OutputUnit
 
-from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.lines as lines
         
 
@@ -116,7 +115,7 @@ class VWM(Model):
         self.name = 'VWM'
 
         # instantiate units
-        self.question_encoder = QuestionEncoder(self.vocabulary_size, self.words_embed_length, dim=self.dim, embedded_dim=self.embed_hidden )
+        self.question_encoder = QuestionEncoder(self.vocabulary_size, dim=self.dim, embedded_dim=self.embed_hidden )
 
         # instantiate units
         self.image_encoder = ImageEncoder(
@@ -125,19 +124,17 @@ class VWM(Model):
         #initialize VWM Cell
         self.VWM_cell = VWMCell(
             dim=self.dim,
-            max_step=self.max_step,
-            dropout=self.dropout,
-            slots=self.slot)
+            max_step=self.max_step)
 
         # Create two separate output units.
         self.output_unit_answer = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
-
 
         # initialize hidden states for mac cell control states and memory states
         self.mem_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(self.app_state.dtype))
         self.control_0 = torch.nn.Parameter(
             torch.zeros(1, self.dim).type(self.app_state.dtype))
 
+        self.cell_states = []
 
     def forward(self, data_dict, dropout=0.15):
         """
@@ -152,10 +149,6 @@ class VWM(Model):
 
         :return: Predictions of the model.
         """
-
-        # reset cell state history for visualization
-        if self.app_state.visualize:
-            self.VWM_cell.cell_state_history = []
 
         # Change the order of image dimensions, so we will loop over dimension 0: sequence elements.
         images = data_dict['images']
@@ -178,13 +171,13 @@ class VWM(Model):
         logits_answer = torch.zeros( (batch_size, seq_len, self.nb_classes), requires_grad=False).type(self.dtype)
         logits_pointing = torch.zeros( (batch_size, seq_len,self.nb_classes_pointing), requires_grad=False).type(self.dtype)
 
-        # expand the hidden states to whole batch for mac cell control_state states and memory states
-        control_state = self.control_0.expand(batch_size, self.dim)
-        summary_object = self.mem_0.expand(batch_size, self.dim)
-        control_mask = self.get_dropout_mask(control_state, self.dropout)
-        memory_mask = self.get_dropout_mask(summary_object, self.dropout)
-        control_state = control_state * control_mask
-        summary_object= summary_object * memory_mask
+        # expand the hidden states to whole batch for mac cell control_state_init states and memory states
+        control_state_init = self.control_0.expand(batch_size, self.dim)
+        summary_object_init = self.mem_0.expand(batch_size, self.dim)
+        control_mask = self.get_dropout_mask(control_state_init, self.dropout)
+        memory_mask = self.get_dropout_mask(summary_object_init, self.dropout)
+        control_state_init = control_state_init * control_mask
+        summary_object_init= summary_object_init * memory_mask
 
         # initialize empty memory
         visual_working_memory = torch.zeros(
@@ -194,7 +187,7 @@ class VWM(Model):
         wt_sequential = torch.zeros(batch_size, self.slot).type(self.app_state.dtype)
         wt_sequential[:, 0] = 1
 
-        self.cell_states=[]
+        self.cell_states = []
 
         # question encoder
         contextual_words, question_encoding = self.question_encoder(
@@ -204,29 +197,28 @@ class VWM(Model):
         for f in range(images.size(0)):
 
             # RESET OF CONTROL and SUMMARY OBJECT
-            new_summary_object = summary_object
-            new_control_state = control_state
+            summary_object = summary_object_init
+            control_state = control_state_init
 
             # image encoder
             feature_maps= self.image_encoder(images[f])
 
             # state history fo vizualisation
-            state_history = []
+            cell_state_history = []
 
             # recurrent VWM cells
             for step in range(self.max_step):
-                (new_summary_object, new_control_state, state_history,
-                 last_visual_attention, visual_working_memory,
-                 wt_sequential) = self.VWM_cell(
-                    step, contextual_words, question_encoding, feature_maps, new_control_state,
-                    new_summary_object, visual_working_memory, wt_sequential,
-                    state_history)
+                (summary_object, control_state, last_visual_attention,
+                 visual_working_memory, wt_sequential) = self.VWM_cell(
+                    step, contextual_words, question_encoding, feature_maps,
+                    control_state, summary_object, visual_working_memory,
+                    wt_sequential, cell_state_history)
 
             # save state history
-            self.cell_states.append(state_history)
+            self.cell_states.append(cell_state_history)
 
             # output unit
-            logits_answer[:, f, :] = self.output_unit_answer(question_encoding, new_summary_object)
+            logits_answer[:, f, :] = self.output_unit_answer(question_encoding, summary_object)
 
         return logits_answer, logits_pointing
 

@@ -32,16 +32,13 @@ class QuestionEncoder(Module):
     Implementation of the ``QuestionEncoder`` of the VWM network.
     """
 
-    def __init__(self, vocabulary_size, words_embed_length, embedded_dim, dim):
+    def __init__(self, vocabulary_size, embedded_dim, dim):
         """
         Constructor for the ``QuestionEncoder``.
         
         :param vocabulary_size: size of dictionnary
         :type vocabulary_size: int
         
-        :param words_embed_length: size of embeddings dim
-        :type words_embed_length: int
-
         :param embedded_dim: dimension of the word embeddings.
         :type embedded_dim: int
 
@@ -62,7 +59,7 @@ class QuestionEncoder(Module):
         self.lstm_proj = torch.nn.Linear(2 * dim, dim)
 
         # Defines nn.Embedding for embedding of questions into float tensors.
-        self.Embedding = nn.Embedding(vocabulary_size, words_embed_length, padding_idx=0)
+        self.Embedding = nn.Embedding(vocabulary_size, embedded_dim, padding_idx=0)
 
     def forward(self, questions, questions_len):
         """
@@ -74,12 +71,9 @@ class QuestionEncoder(Module):
         :param questions_len: Unpadded questions length.
         :type questions_len: list
 
-        :return question encodings: [batch_size x 2*dim] 
-        :type: question encodings: torch.tensor
-        
+        :return question encodings: [batch_size x (2*dim)]
         :return: contextual_word_embedding: [batch_size x maxQuestionLength x dim] 
-        :type: contextual_word_embedding: torch.tensor 
-          
+
         """
         # get batch size
         batch_size = questions.shape[0]

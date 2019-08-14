@@ -75,7 +75,7 @@ class ReasoningUnit(Module):
         do_replace, do_add_new, is_visual, is_mem = ReasoningUnit.eval_predicate(
             temporal_class_weights, valid_vo, valid_mo)
 
-        return valid_vo, valid_mo, do_replace, do_add_new, is_visual, is_mem
+        return do_replace, do_add_new, is_visual, is_mem
 
     @staticmethod
     def eval_predicate(temporal_class_weights, valid_vo, valid_mo):
