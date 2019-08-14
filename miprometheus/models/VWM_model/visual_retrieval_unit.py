@@ -40,7 +40,7 @@
 # limitations under the License.
 
 """
-read_unit.py: Implementation of the ``VisualRetrievalUnitt`` for the VWM network. 
+visual_retrievial_unit.py: Implementation of the ``VisualRetrievalUnit`` for the VWM network. 
 """
 __author__ = "Vincent Albouy, T.S. Jayram"
 
@@ -53,12 +53,12 @@ from miprometheus.models.VWM_model.attention_module import AttentionModule
 
 class VisualRetrievalUnit(Module):
     """
-    Implementation of the ``VisualReadUnit`` of the VWM network.
+    Implementation of the ``VisualRetrievalUnit`` of the VWM network.
     """
 
     def __init__(self, dim):
         """
-        Constructor for the ``VisualReadUnit``.
+        Constructor for the ``VisualRetrievalUnit``.
 
         :param dim: global 'd' hidden dimension
         :type dim: int
@@ -75,6 +75,7 @@ class VisualRetrievalUnit(Module):
         self.attention_module = AttentionModule(dim)
 
     def forward(self, summary_object, feature_maps, ctrl_state):
+
         """
         Forward pass of the ``VisualRetrievalUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
@@ -90,12 +91,17 @@ class VisualRetrievalUnit(Module):
         :type ctrl_state: torch.tensor
 
         :return: visual_output [batch_size x dim]
+        :type: visual_output: torch.tensor
+        
         :return: visual_attention [batch_size x (H*W)]
+        :type:  visual_attention: torch.tensor
 
         """
 
+        # combine feature maps with summary object with interaction_module
         feature_maps_modified = self.interaction_module(summary_object, feature_maps)
-        # compute attention weights
+
+        # compute attention weights with attention_module
         visual_output, visual_attention = \
             self.attention_module(ctrl_state, feature_maps_modified, feature_maps)
 

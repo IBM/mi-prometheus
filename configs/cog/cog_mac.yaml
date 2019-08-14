@@ -11,6 +11,7 @@ model:
   classes : 49
   words_embed_length : 64
   nwords : 24
+  trainable_init : False
   self_attention: False
   memory_gate: False
   dropout: 0.15

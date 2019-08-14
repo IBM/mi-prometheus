@@ -47,8 +47,8 @@ __author__ = "Vincent Albouy, T.S. Jayram"
 
 from torch import nn
 
-
 def linear(input_dim, output_dim, bias=True):
+
     """
     Defines a Linear layer. Specifies Xavier as the initialization type of the weights, to respect the original \
     implementation: https://github.com/stanfordnlp/mac-network/blob/master/ops.py#L20
@@ -64,11 +64,17 @@ def linear(input_dim, output_dim, bias=True):
     :type bias: bool
 
     :return: Initialized Linear layer
+    :type: torch layer
 
     """
 
+    #define linear layer from torch.nn library
     linear_layer = nn.Linear(input_dim, output_dim, bias=bias)
+
+    #initialize weights
     nn.init.xavier_uniform_(linear_layer.weight)
+
+    #initialize biases
     if bias:
         linear_layer.bias.data.zero_()
 

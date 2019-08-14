@@ -40,7 +40,7 @@
 # limitations under the License.
 
 """
-write_unit.py: Implementation of the ``ThoughtUnit`` for the VWM network.
+thought_unit.py: Implementation of the ``ThoughtUnit`` for the VWM network.
 """
 __author__ = "Vincent Albouy, T.S. Jayram"
 
@@ -48,8 +48,8 @@ import torch
 from torch.nn import Module
 from miprometheus.models.VWM_model.utils_VWM import linear
 
-
 class ThoughtUnit(Module):
+
     """
     Implementation of the ``ThoughtUnit`` of the MAC network.
     """
@@ -71,20 +71,22 @@ class ThoughtUnit(Module):
 
 
     def forward(self, summary_output, context_output):
+
         """
         Forward pass of the ``ThoughtUnit``.
 
         :param summary_output: previous memory states, each of shape [batch_size x dim].
-        :type summary_output: list
+        :type summary_output: torch.tensor
 
         :param context_output: current read vector (output of the viusal retrieval unit), shape [batch_size x dim].
         :type context_output: torch.tensor
 
-        :return: next_context_output, shape [batch_size x mem_dim]
+        :return: next_context_output: shape [batch_size x dim]
+        :type: next_context_output: torch.tensor
 
         """
 
-        # combine the new read vector with the prior memory state (w1)
+        # combine the new context_output with the summary_output along dimension 1
         next_context_output = self.concat_layer(torch.cat([context_output, summary_output], 1))
 
 

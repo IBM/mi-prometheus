@@ -58,6 +58,7 @@ class ValidatorUnit(Module):
     def __init__(self, dim):
         """
         Constructor for the `` ValidatorUnit``.
+        
         :param dim: global 'd' hidden dimension
         :type dim: int
         """
@@ -80,22 +81,38 @@ class ValidatorUnit(Module):
 
         :param control: last control state
         :type control: torch.tensor
+        
         :param  vo: visual output
         :type vo: torch.tensor
+        
         :param  mo: memory output
         :type mo: torch.tensor
    
-        :return: valid_vo : whether visual object is valid
-        :return: valid_mo : whether memory object is valid
+        :return: valid_vo : whether visual object is valid - shape: [batch_size] of floats in range [0,1]
+        :type: valid_vo: torch.tensor
+        
+        :return: valid_mo : whether memory object is valid - shape: [batch_size] of floats in range [0,1]
+        :type: valid_mo: torch.tensor
         """
+
         # calculate gate gvt
+        # concat control sate and visual output
         concat_read_visual = torch.cat([control, vo], dim=1)
+
+        #send concat_read_visual through a two layer linear neural network
         valid_vo = self.visual_object_validator(concat_read_visual)
+
+        #collapse last dimension to keep shape: [batch_size] of floats in range [0,1]
         valid_vo = valid_vo.squeeze(-1)
 
         # calculate gate gmt
+        # concat control sate and memory output
         concat_read_memory = torch.cat([control, mo], dim=1)
+
+        # send concat_read_memory through a two layer linear neural network
         valid_mo = self.memory_object_validator(concat_read_memory)
+
+        # collapse last dimension to keep shape: [batch_size] of floats in range [0,1]
         valid_mo = valid_mo.squeeze(-1)
 
         return valid_vo, valid_mo
