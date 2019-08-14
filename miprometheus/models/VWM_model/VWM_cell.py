@@ -49,7 +49,7 @@ from torch.nn import Module
 
 from miprometheus.models.VWM_model.question_driven_controller import QuestionDrivenController
 from miprometheus.models.VWM_model.visual_retrieval_unit import VisualRetrievalUnit
-from miprometheus.models.VWM_model.thought_unit import ThoughtUnit
+from miprometheus.models.VWM_model.summary_unit import SummaryUpdateUnit
 from miprometheus.models.VWM_model.memory_retrieval_unit import MemoryRetrievalUnit
 from miprometheus.models.VWM_model.reasoning_unit import ReasoningUnit
 from miprometheus.models.VWM_model.memory_update_unit import MemoryUpdateUnit
@@ -86,7 +86,7 @@ class VWMCell(Module):
         self.memory_retrieval_unit = MemoryRetrievalUnit(dim=dim)
         self.reasoning_unit = ReasoningUnit(dim=dim)
         self.memory_update_unit = MemoryUpdateUnit(dim=dim, slots=slots)
-        self.thought_unit = ThoughtUnit(
+        self.summary_unit = SummaryUpdateUnit(
             dim=dim)
 
 
@@ -174,17 +174,18 @@ class VWMCell(Module):
             control,vo,mo,context_weighting_vector_T)
 
         # update visual_working_memory, wt sequential and get the final context output vector
-        relevant_object, visual_working_memory, wt_sequential = self.memory_update_unit(
+        (relevant_object, visual_working_memory,
+         wt_sequential, is_visual, is_mem) = self.memory_update_unit(
             valid_vo, valid_mo, vo, mo, ma, visual_working_memory,
             context_weighting_vector_T, wt_sequential,
             do_replace, is_visual, is_mem)
 
 
-        # thought Unit
         # summary update Unit
-        summary_object = self.thought_unit(relevant_object, summary_object)
+        summary_object = self.summary_unit(
+            is_visual, vo, is_mem, mo, summary_object)
 
-        # summary_object = self.thought_unit(summary_object=summary_object,
+        # summary_object = self.summary_unit(summary_object=summary_object,
         #                                     context_output= context_output)
 
         # store attention weights for visualization

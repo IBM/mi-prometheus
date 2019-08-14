@@ -156,6 +156,4 @@ class MemoryUpdateUnit(Module):
         relevant_object = (is_visual[..., None] * visual_object
                            + is_mem[..., None] * memory_object)
 
-        # print(output_object[0], visual_working_memory[0], new_wt_sequential[0])
-
-        return relevant_object, visual_working_memory, new_wt_sequential
+        return relevant_object, visual_working_memory, new_wt_sequential, is_visual, is_mem
