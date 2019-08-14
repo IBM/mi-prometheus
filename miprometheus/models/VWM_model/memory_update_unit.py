@@ -76,7 +76,7 @@ class MemoryUpdateUnit(Module):
     def forward(self, valid_vo, valid_mo, visual_object, memory_object,
                 memory_attention, visual_working_memory,
                 temporal_class_weights, wt_sequential,
-                do_replace, is_visual, is_mem):
+                do_replace, do_add_new, is_visual, is_mem):
         """
         Forward pass of the ``MemoryUpdateUnit``. 
         
@@ -97,16 +97,9 @@ class MemoryUpdateUnit(Module):
 
         batch_size = visual_object.size(0)
 
-        # get t1,t2,t3,t4 from temporal_class_weights
-        # corresponds to now, last, latest, or none
-        t1 = temporal_class_weights[:, 0]
-        t2 = temporal_class_weights[:, 1]
-        t3 = temporal_class_weights[:, 2]
-        t4 = temporal_class_weights[:, 3]
-
-        # if the temporal context last or latest,
-        # do we add a new one to memory?
-        do_add_new = (1 - valid_mo) * valid_vo * (t2 + t3) * (1 - t4)
+        # from miprometheus.models.VWM_model.utils_VWM import eval_predicate
+        # do_replace, do_add_new, is_visual, is_mem = eval_predicate(
+        #     temporal_class_weights, valid_vo, valid_mo)
 
         # pad extra dimension
         do_replace = do_replace[..., None]
@@ -141,19 +134,5 @@ class MemoryUpdateUnit(Module):
         new_wt_sequential = (shifted_wt_sequential * do_add_new) \
                             + (wt_sequential * (1 - do_add_new))
 
-        # final read vector
-        # (now or latest) and valid visual object?
-        is_visual = (t1 + t3) * valid_vo
-        # optional extra check that it is neither last nor none
-        # is_visual = is_visual * (1 - t2) * (1 - t4)
+        return visual_working_memory, new_wt_sequential, is_visual, is_mem
 
-        # (now or (latest and (not valid visual object))) and valid memory object?
-        is_mem = (t2 + t3 * (1 - valid_vo)) * valid_mo
-        # optional extra check that it is neither now nor none
-        # is_mem = is_mem * (1 - t1) * (1 - t4)
-
-        # compute new relevant object for reasoning
-        relevant_object = (is_visual[..., None] * visual_object
-                           + is_mem[..., None] * memory_object)
-
-        return relevant_object, visual_working_memory, new_wt_sequential, is_visual, is_mem

@@ -79,3 +79,34 @@ def linear(input_dim, output_dim, bias=True):
         linear_layer.bias.data.zero_()
 
     return linear_layer
+
+
+def eval_predicate(temporal_class_weights, valid_vo, valid_mo):
+    # get t1,t2,t3,t4 from temporal_class_weights
+    # corresponds to now, last, latest, or none
+    t1 = temporal_class_weights[:, 0]
+    t2 = temporal_class_weights[:, 1]
+    t3 = temporal_class_weights[:, 2]
+    t4 = temporal_class_weights[:, 3]
+
+    # if the temporal context last or latest,
+    # then do we replace the existing memory object?
+    do_replace = valid_mo * valid_vo * (t2 + t3) * (1 - t4)
+
+    # otherwise do we add a new one to memory?
+    do_add_new = (1 - valid_mo) * valid_vo * (t2 + t3) * (1 - t4)
+
+    # final read vector
+    # (now or latest) and valid visual object?
+    is_visual = (t1 + t3) * valid_vo
+    # optional extra check that it is neither last nor none
+    # is_visual = is_visual * (1 - t2) * (1 - t4)
+
+    # (now or (latest and (not valid visual object))) and valid memory object?
+    is_mem = (t2 + t3 * (1 - valid_vo)) * valid_mo
+    # optional extra check that it is neither now nor none
+    # is_mem = is_mem * (1 - t1) * (1 - t4)
+
+    return do_replace, do_add_new, is_visual, is_mem
+
+

@@ -51,7 +51,7 @@ from miprometheus.models.VWM_model.question_driven_controller import QuestionDri
 from miprometheus.models.VWM_model.visual_retrieval_unit import VisualRetrievalUnit
 from miprometheus.models.VWM_model.summary_unit import SummaryUpdateUnit
 from miprometheus.models.VWM_model.memory_retrieval_unit import MemoryRetrievalUnit
-from miprometheus.models.VWM_model.reasoning_unit import ReasoningUnit
+from miprometheus.models.VWM_model.validator_unit import ValidatorUnit
 from miprometheus.models.VWM_model.memory_update_unit import MemoryUpdateUnit
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
@@ -84,7 +84,7 @@ class VWMCell(Module):
         self.question_driven_controller = QuestionDrivenController(dim=dim, max_step=max_step)
         self.visual_retrieval_unit = VisualRetrievalUnit(dim=dim)
         self.memory_retrieval_unit = MemoryRetrievalUnit(dim=dim)
-        self.reasoning_unit = ReasoningUnit(dim=dim)
+        self.reasoning_unit = ValidatorUnit(dim=dim)
         self.memory_update_unit = MemoryUpdateUnit(dim=dim, slots=slots)
         self.summary_unit = SummaryUpdateUnit(
             dim=dim)
@@ -102,24 +102,24 @@ class VWMCell(Module):
         #Visualization container
         self.cell_state_history = []
 
-    def forward(self, context, question, features_maps, control,
-                summary_object, visual_working_memory, wt_sequential, state_history, step):
+    def forward(self, step, contextual_words, question_encoding, feature_maps, control_state,
+                summary_object, visual_working_memory, wt_sequential, state_history):
 
         """
         Forward pass of the ``VWMCell`` of VWM network
 
-        :param context: contextual words, shape [batch_size x maxQuestionLength x dim]
-        :type context: torch.tensor
+        :param contextual_words: contextual words, shape [batch_size x maxQuestionLength x dim]
+        :type contextual_words: torch.tensor
 
-        :param question: questions encodings, shape [batch_size x 2*dim]
-        :type question: torch.tensor
+        :param question_encoding: questions encodings, shape [batch_size x 2*dim]
+        :type question_encoding: torch.tensor
 
         :param feature maps: feature maps (feature maps extracted by a CNN), shape \
         [batch_size x nb_kernels x (feat_H * feat_W)].
         :type feature maps: torch.tensor
         
-        :param control: control state
-        :type control: torch.tensor
+        :param control_state: control_state state
+        :type control_state: torch.tensor
         
         :param summary_object: summary_object
         :type summary_object: torch.tensor
@@ -139,8 +139,8 @@ class VWMCell(Module):
         :return self.cell_state_history
         :type self.cell_state_history: list
         
-        :return: control: shape [batch_size x dim]
-        :type  control: torch.tensor
+        :return: control_state: shape [batch_size x dim]
+        :type  control_state: torch.tensor
         
         :return: va: shape [batch_size x HxW]
         :type:  va: torch.tensor
@@ -153,45 +153,36 @@ class VWMCell(Module):
 
         """
 
-        # control unit\
-        control, control_attention, context_weighting_vector_T = self.question_driven_controller(
-            step=step,
-            contextual_words=context,
-            question_encoding=question,
-            control_state=control)
+        # control_state unit
+        (control_state, control_attention,
+         temporal_class_weights) = self.question_driven_controller(
+            step, contextual_words, question_encoding, control_state)
 
         # visual retrieval unit, obtain visual output and visual attention
-        vo, va = self.visual_retrieval_unit(summary_object=summary_object, feature_maps=features_maps,
-                                            control_state=control)
-
+        vo, va = self.visual_retrieval_unit(summary_object, feature_maps,
+                                            control_state)
 
         # memory retrieval unit, obtain memory output and memory attention
-        mo, ma = self.memory_retrieval_unit(summary_object=summary_object, visual_working_memory=visual_working_memory,
-                                            control_state=control)
+        mo, ma = self.memory_retrieval_unit(
+            summary_object, visual_working_memory, control_state)
 
         # matching unit
         valid_vo, valid_mo, do_replace, do_add_new, is_visual, is_mem = self.reasoning_unit(
-            control,vo,mo,context_weighting_vector_T)
+            control_state, vo, mo, temporal_class_weights)
 
-        # update visual_working_memory, wt sequential and get the final context output vector
-        (relevant_object, visual_working_memory,
-         wt_sequential, is_visual, is_mem) = self.memory_update_unit(
+        # update visual_working_memory, wt sequential and get the final contextual_words output vector
+        visual_working_memory, wt_sequential, is_visual, is_mem = self.memory_update_unit(
             valid_vo, valid_mo, vo, mo, ma, visual_working_memory,
-            context_weighting_vector_T, wt_sequential,
-            do_replace, is_visual, is_mem)
-
+            temporal_class_weights, wt_sequential, do_replace, do_add_new, is_visual, is_mem)
 
         # summary update Unit
         summary_object = self.summary_unit(
             is_visual, vo, is_mem, mo, summary_object)
 
-        # summary_object = self.summary_unit(summary_object=summary_object,
-        #                                     context_output= context_output)
-
         # store attention weights for visualization
         if app_state.visualize:
             state_history.append(
-                (va.detach(), control_attention.detach(), visual_working_memory.detach(), ma.detach(), gvt.detach().numpy(), gmt.detach().numpy(), wt_sequential.unsqueeze(1).detach().numpy(), context_weighting_vector_T.unsqueeze(1).detach().numpy()))
+                (va.detach(), control_attention.detach(), visual_working_memory.detach(), ma.detach(), gvt.detach().numpy(), gmt.detach().numpy(), wt_sequential.unsqueeze(1).detach().numpy(), temporal_class_weights.unsqueeze(1).detach().numpy()))
 
-        return (summary_object, control, state_history, va,
+        return (summary_object, control_state, state_history, va,
                 visual_working_memory, wt_sequential)
