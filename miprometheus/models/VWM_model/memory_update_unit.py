@@ -22,88 +22,42 @@ memory_update_unit.py: Implementation of the ``MemoryUpdateUnit`` for the VWM ne
 __author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
-from torch.nn import Module
-
-from miprometheus.utils.app_state import AppState
-app_state = AppState()
 
 
-class MemoryUpdateUnit(Module):
+def memory_update(visual_object, memory_attention,
+                  visual_working_memory, wt_sequential,
+                  do_replace, do_add_new):
     """
-    Implementation of the `` MemoryUpdateUnit`` of the VWM network.
+    Memory update.
+
+    :param visual_object:  [batch_size x dim]
+    :param memory_attention:  [batch_size x N_v x dim]
+    :param visual_working_memory: [batch_size x (H*W) x dim]
+    :param wt_sequential: attention over VWM [batch_size x N_v]
+    :param do_replace: replace existing object in VWM? [batch_size]
+    :param do_add_new: or add new visual object     [batch_size]
+
+    :return: new_visual_working_memory
+    :return: new_wt_sequential
     """
 
-    def __init__(self, dim, slots):
-        """
-        Constructor for the `` MemoryUpdateUnit``.
-        :param dim: global 'd' hidden dimension
-        :type dim: int
-        """
+    # pad extra dimension
+    do_replace = do_replace[..., None]
+    do_add_new = do_add_new[..., None]
 
-        # call base constructor
-        super(MemoryUpdateUnit, self).__init__()
+    # get attention on the correct slot in memory based on the 2 predicates
+    # attention defaults to 0 if neither condition holds
+    wt = do_replace * memory_attention + do_add_new * wt_sequential
 
-        self.dim = dim
+    # Update visual_working_memory
+    new_visual_working_memory = (visual_working_memory * (1 - wt)[..., None]
+                                 + wt[..., None] * visual_object[..., None, :])
 
-        # number of slots in memory
-        self.slots = slots
+    # compute shifted sequential head to right
+    shifted_wt_sequential = torch.roll(wt_sequential, shifts=1, dims=-1)
 
-    def forward(self, visual_object, memory_object,
-                memory_attention, visual_working_memory,
-                temporal_class_weights, wt_sequential,
-                do_replace, do_add_new):
-        """
-        Forward pass of the ``MemoryUpdateUnit``. 
-        
-        :param valid_vo : whether visual object is valid
-        :param valid_mo : whether memory object is valid
-        :param visual_object : visual object
-        :param memory_object: memory object
-        :param memory_attention: memory attention
-        :param visual_working_memory: visual working memory
-        :param temporal_class_weights: matrix to get t1,t2,t3,t4
-        :param wt_sequential :wt_sequential
-        :param do_replace
-        :param is_visual
-        :param is_mem
+    # new sequential attention
+    new_wt_sequential = ((shifted_wt_sequential * do_add_new)
+                         + (wt_sequential * (1 - do_add_new)))
 
-        :return: relevant_object, visual_working_memory, wt_sequential
-        """
-
-        batch_size = visual_object.size(0)
-
-        # pad extra dimension
-        do_replace = do_replace[..., None]
-        do_add_new = do_add_new[..., None]
-
-        # get attention on the correct slot in memory based on the 2 predicates
-        # attention defaults to 0 if neither condition holds
-        wt = do_replace * memory_attention + do_add_new * wt_sequential
-
-        # Update visual_working_memory
-        # visual_working_memory = (
-        #         visual_working_memory
-        #         + wt[..., None] * (visual_object[..., None, :] - visual_working_memory)
-        #         )
-
-        # # create memory to be added by computing outer product
-        added_memory = wt[..., None] * visual_object[..., None, :]
-
-        all_ones = torch.ones(batch_size, 1, self.dim).type(app_state.dtype)
-        J = torch.ones(batch_size, self.slots, self.dim).type(app_state.dtype)
-
-        # create memory to be erased by computing outer product
-        erased_memory = wt[..., None] * all_ones
-
-        # Update history
-        visual_working_memory = visual_working_memory * (J - erased_memory) + added_memory
-
-        # compute shifted sequential head to right
-        shifted_wt_sequential = torch.roll(wt_sequential, shifts=1, dims=-1)
-
-        # new sequential attention
-        new_wt_sequential = ((shifted_wt_sequential * do_add_new)
-                             + (wt_sequential * (1 - do_add_new)))
-
-        return visual_working_memory, new_wt_sequential
-
+    return new_visual_working_memory, new_wt_sequential

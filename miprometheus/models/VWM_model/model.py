@@ -116,7 +116,7 @@ class VWM(Model):
         self.name = 'VWM'
 
         # instantiate units
-        self.question_encoder = QuestionEncoder( self.vocabulary_size,self.dtype, self.words_embed_length, dim=self.dim, embedded_dim=self.embed_hidden )
+        self.question_encoder = QuestionEncoder(self.vocabulary_size, self.words_embed_length, dim=self.dim, embedded_dim=self.embed_hidden )
 
         # instantiate units
         self.image_encoder = ImageEncoder(

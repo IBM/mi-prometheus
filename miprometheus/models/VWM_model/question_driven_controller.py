@@ -72,17 +72,16 @@ class QuestionDrivenController(Module):
         :param step: index of the current VWM cell.
         :type step: int
 
-        :param contextual_words: tensor of shape [batch_size x maxQuestionLength x dim] containing the words \
-        encodings ('representation of each word in the context of the question').
-        :type contextual_words: torch.tensor
+        :param contextual_words: containing the words encodings
+        ('representation of each word in the context of the question')
+        [batch_size x maxQuestionLength x dim]
 
-        :param question_encoding: question representation, of shape [batch_size x 2*dim].
-        :type question_encoding: torch.tensor
+        :param question_encoding: global representation of sentence
+        [batch_size x (2*dim)]
 
-        :param control_state: previous control state, of shape [batch_size x dim]
-        :type control_state: torch.tensor
+        :param control_state: previous control state [batch_size x dim]
 
-        :return: new control state: [batch_size x dim]
+        :return: new_control_state: [batch_size x dim]
         :return: temporal_class_weights: soft classification representing \
         temporal context now/last/latest/none of current step [batch_size x 4]
 
@@ -98,11 +97,11 @@ class QuestionDrivenController(Module):
         # project from 2dim to 1dim
         cqi = self.ctrl_question(cqi)  # [batch_size x dim]
 
-        # retrieve content c + attention ca
-        c, ca = self.attention_module(cqi, contextual_words)
+        # retrieve content new_control_state + attention control_attention
+        new_control_state, control_attention = self.attention_module(cqi, contextual_words)
 
         # neural network  that returns temporal class weights
-        temporal_class_weights = self.temporal_classifier(c)
+        temporal_class_weights = self.temporal_classifier(new_control_state)
 
         # return control and the temporal class weights
-        return c, ca, temporal_class_weights
+        return new_control_state, control_attention, temporal_class_weights

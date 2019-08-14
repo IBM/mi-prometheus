@@ -25,6 +25,7 @@ __author__ = "Vincent Albouy, T.S. Jayram"
 from torch.nn import Module
 import torch.nn as nn
 
+
 class ImageEncoder(Module):
 
     """

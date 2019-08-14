@@ -79,6 +79,7 @@ class ReasoningUnit(Module):
 
     @staticmethod
     def eval_predicate(temporal_class_weights, valid_vo, valid_mo):
+
         # get t1,t2,t3,t4 from temporal_class_weights
         # corresponds to now, last, latest, or none
         t1 = temporal_class_weights[:, 0]
@@ -93,7 +94,6 @@ class ReasoningUnit(Module):
         # otherwise do we add a new one to memory?
         do_add_new = (1 - valid_mo) * valid_vo * (t2 + t3) * (1 - t4)
 
-        # final read vector
         # (now or latest) and valid visual object?
         is_visual = (t1 + t3) * valid_vo
         # optional extra check that it is neither last nor none

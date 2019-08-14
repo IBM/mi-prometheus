@@ -52,7 +52,7 @@ from miprometheus.models.VWM_model.visual_retrieval_unit import VisualRetrievalU
 from miprometheus.models.VWM_model.summary_unit import SummaryUpdateUnit
 from miprometheus.models.VWM_model.memory_retrieval_unit import MemoryRetrievalUnit
 from miprometheus.models.VWM_model.reasoning_unit import ReasoningUnit
-from miprometheus.models.VWM_model.memory_update_unit import MemoryUpdateUnit
+from miprometheus.models.VWM_model.memory_update_unit import memory_update
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
 
@@ -85,7 +85,6 @@ class VWMCell(Module):
         self.visual_retrieval_unit = VisualRetrievalUnit(dim=dim)
         self.memory_retrieval_unit = MemoryRetrievalUnit(dim=dim)
         self.reasoning_unit = ReasoningUnit(dim=dim)
-        self.memory_update_unit = MemoryUpdateUnit(dim=dim, slots=slots)
         self.summary_unit = SummaryUpdateUnit(
             dim=dim)
 
@@ -171,9 +170,8 @@ class VWMCell(Module):
             control_state, vo, mo, temporal_class_weights)
 
         # update visual_working_memory, wt sequential and get the final contextual_words output vector
-        visual_working_memory, wt_sequential = self.memory_update_unit(
-            vo, mo, ma, visual_working_memory,
-            temporal_class_weights, wt_sequential, do_replace, do_add_new)
+        visual_working_memory, wt_sequential = memory_update(
+            vo, ma, visual_working_memory, wt_sequential, do_replace, do_add_new)
 
         # summary update Unit
         summary_object = self.summary_unit(
