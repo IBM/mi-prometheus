@@ -69,25 +69,32 @@ class ThoughtUnit(Module):
         # linear layer for the concatenation of context_output and summary_output
         self.concat_layer = linear(2 * dim, dim, bias=True)
 
-
-    def forward(self, summary_output, context_output):
-
+    def forward(self, relevant_object, summary_object):
         """
-        Forward pass of the ``ThoughtUnit``.
+        Forward pass of the ``SummaryUpdateUnit``.
 
-        :param summary_output: previous memory states, each of shape [batch_size x dim].
-        :type summary_output: torch.tensor
+        # :param is_visual
+        # :param visual_object
+        # :param is_mem
+        # :param memory_object
+        :param relevant_object
+        :param summary_object
 
-        :param context_output: current read vector (output of the viusal retrieval unit), shape [batch_size x dim].
-        :type context_output: torch.tensor
-
-        :return: next_context_output: shape [batch_size x dim]
-        :type: next_context_output: torch.tensor
-
+        :return: new_summary_object
         """
 
-        # combine the new context_output with the summary_output along dimension 1
-        next_context_output = self.concat_layer(torch.cat([context_output, summary_output], 1))
+        # # combine the new context_output with the summary_output along dimension 1
+        # next_context_output = self.concat_layer(torch.cat([context_output, summary_output], 1))
+        #
+        #
+        # return next_context_output
 
+        # compute new relevant object
+        # relevant_object = (is_visual[..., None] * visual_object
+        #                    + is_mem[..., None] * memory_object)
 
-        return next_context_output
+        # combine the new read vector with the prior memory state (w1)
+        new_summary_object = self.concat_layer(
+            torch.cat([relevant_object, summary_object], dim=1))
+
+        return new_summary_object

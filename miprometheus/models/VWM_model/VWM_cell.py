@@ -51,7 +51,7 @@ from miprometheus.models.VWM_model.question_driven_controller import QuestionDri
 from miprometheus.models.VWM_model.visual_retrieval_unit import VisualRetrievalUnit
 from miprometheus.models.VWM_model.thought_unit import ThoughtUnit
 from miprometheus.models.VWM_model.memory_retrieval_unit import MemoryRetrievalUnit
-from miprometheus.models.VWM_model.validator_unit import ValidatorUnit
+from miprometheus.models.VWM_model.reasoning_unit import ReasoningUnit
 from miprometheus.models.VWM_model.memory_update_unit import MemoryUpdateUnit
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
@@ -84,7 +84,7 @@ class VWMCell(Module):
         self.question_driven_controller = QuestionDrivenController(dim=dim, max_step=max_step)
         self.visual_retrieval_unit = VisualRetrievalUnit(dim=dim)
         self.memory_retrieval_unit = MemoryRetrievalUnit(dim=dim)
-        self.validator_unit = ValidatorUnit(dim=dim)
+        self.reasoning_unit = ReasoningUnit(dim=dim)
         self.memory_update_unit = MemoryUpdateUnit(dim=dim, slots=slots)
         self.thought_unit = ThoughtUnit(
             dim=dim)
@@ -102,9 +102,8 @@ class VWMCell(Module):
         #Visualization container
         self.cell_state_history = []
 
-
-
-    def forward(self, context, question, features_maps, control, summary_output, visual_working_memory, Wt_sequential,state_history, step):
+    def forward(self, context, question, features_maps, control,
+                summary_object, visual_working_memory, wt_sequential, state_history, step):
 
         """
         Forward pass of the ``VWMCell`` of VWM network
@@ -122,20 +121,20 @@ class VWMCell(Module):
         :param control: control state
         :type control: torch.tensor
         
-        :param summary_output: summary_output
-        :type summary_output: torch.tensor
+        :param summary_object: summary_object
+        :type summary_object: torch.tensor
         
         :param visual_working_memory: visual_working_memory
         :type visual_working_memory: torch.tensor
            
-        :param Wt_sequential: Wt_sequential
-        :type Wt_sequential: torch.tensor
+        :param wt_sequential: wt_sequential
+        :type wt_sequential: torch.tensor
         
         :param step: step 
         :type step: int
                
-        :return summary_output, shape [batch_size x dim]
-        :type summary_output: torch.tensor
+        :return summary_object, shape [batch_size x dim]
+        :type summary_object: torch.tensor
             
         :return self.cell_state_history
         :type self.cell_state_history: list
@@ -149,8 +148,8 @@ class VWMCell(Module):
         :return: visual_working_memory: shape [batch_size x slots x dim]
         :type  visual_working_memory: torch.tensor
                
-        :return: Wt_sequential: shape [batch_size x slots]
-        :type  Wt_sequential: torch.tensor
+        :return: wt_sequential: shape [batch_size x slots]
+        :type  wt_sequential: torch.tensor
 
         """
 
@@ -162,30 +161,36 @@ class VWMCell(Module):
             control_state=control)
 
         # visual retrieval unit, obtain visual output and visual attention
-        vo, va = self.visual_retrieval_unit(summary_object=summary_output, feature_maps=features_maps,
-                         control_state=control)
+        vo, va = self.visual_retrieval_unit(summary_object=summary_object, feature_maps=features_maps,
+                                            control_state=control)
 
 
         # memory retrieval unit, obtain memory output and memory attention
-        mo, ma = self.memory_retrieval_unit(summary_object=summary_output, visual_working_memory=visual_working_memory,
-                          control_state=control)
+        mo, ma = self.memory_retrieval_unit(summary_object=summary_object, visual_working_memory=visual_working_memory,
+                                            control_state=control)
 
         # matching unit
-        gvt,gmt=self.validator_unit(control,vo,mo)
+        valid_vo, valid_mo, do_replace, do_add_new, is_visual, is_mem = self.reasoning_unit(
+            control,vo,mo,context_weighting_vector_T)
 
         # update visual_working_memory, wt sequential and get the final context output vector
-        context_output, visual_working_memory, Wt_sequential = self.memory_update_unit(gvt, gmt, vo, mo, ma, visual_working_memory,
-                                        context_weighting_vector_T, Wt_sequential)
+        relevant_object, visual_working_memory, wt_sequential = self.memory_update_unit(
+            valid_vo, valid_mo, vo, mo, ma, visual_working_memory,
+            context_weighting_vector_T, wt_sequential,
+            do_replace, is_visual, is_mem)
 
 
         # thought Unit
-        summary_output = self.thought_unit(summary_output=summary_output,
-                                            context_output= context_output)
+        # summary update Unit
+        summary_object = self.thought_unit(relevant_object, summary_object)
 
+        # summary_object = self.thought_unit(summary_object=summary_object,
+        #                                     context_output= context_output)
 
         # store attention weights for visualization
         if app_state.visualize:
             state_history.append(
-                (va.detach(), control_attention.detach(), visual_working_memory.detach(), ma.detach(),gvt.detach().numpy(),gmt.detach().numpy(), Wt_sequential.unsqueeze(1).detach().numpy(), context_weighting_vector_T.unsqueeze(1).detach().numpy()))
+                (va.detach(), control_attention.detach(), visual_working_memory.detach(), ma.detach(), gvt.detach().numpy(), gmt.detach().numpy(), wt_sequential.unsqueeze(1).detach().numpy(), context_weighting_vector_T.unsqueeze(1).detach().numpy()))
 
-        return summary_output, control,  state_history, va, visual_working_memory, Wt_sequential
+        return (summary_object, control, state_history, va,
+                visual_working_memory, wt_sequential)

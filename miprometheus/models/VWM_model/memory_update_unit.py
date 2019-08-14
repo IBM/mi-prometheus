@@ -73,76 +73,89 @@ class MemoryUpdateUnit(Module):
         # number of slots in memory
         self.slots = slots
 
-    def forward(self, valid_vo, valid_mo, vo, mo, ma, vwm,
-                temporal_class_weights, wt_sequential):
+    def forward(self, valid_vo, valid_mo, visual_object, memory_object,
+                memory_attention, visual_working_memory,
+                temporal_class_weights, wt_sequential,
+                do_replace, is_visual, is_mem):
         """
         Forward pass of the ``MemoryUpdateUnit``. 
         
         :param valid_vo : whether visual object is valid
         :param valid_mo : whether memory object is valid
-        :param vo : visual object
-        :param mo: memory object
-        :param ma: memory attention
-        :param vwm: visual working memory
-        :param temporal_class_weights: matrix to get T1,T2,T3,T4
+        :param visual_object : visual object
+        :param memory_object: memory object
+        :param memory_attention: memory attention
+        :param visual_working_memory: visual working memory
+        :param temporal_class_weights: matrix to get t1,t2,t3,t4
         :param wt_sequential :wt_sequential
-        
-        :return: context_read_vector, vwm, wt_sequential
+        :param do_replace
+        :param is_visual
+        :param is_mem
+
+        :return: relevant_object, visual_working_memory, wt_sequential
         """
 
-        batch_size = vo.size(0)
+        batch_size = visual_object.size(0)
 
-        # get T1,T2,T3,T4 from temporal_class_weights
+        # get t1,t2,t3,t4 from temporal_class_weights
         # corresponds to now, last, latest, or none
-        T1 = temporal_class_weights[:, 0]
-        T2 = temporal_class_weights[:, 1]
-        T3 = temporal_class_weights[:, 2]
-        T4 = temporal_class_weights[:, 3]
+        t1 = temporal_class_weights[:, 0]
+        t2 = temporal_class_weights[:, 1]
+        t3 = temporal_class_weights[:, 2]
+        t4 = temporal_class_weights[:, 3]
 
-        # obtain alpha and beta
-        alpha = valid_mo * valid_vo * (T2 + T3) * (1 - T4)
-        beta = (1 - valid_mo) * valid_vo * (T2 + T3) * (1 - T4)
+        # if the temporal context last or latest,
+        # do we add a new one to memory?
+        do_add_new = (1 - valid_mo) * valid_vo * (t2 + t3) * (1 - t4)
 
         # pad extra dimension
-        alpha = alpha[..., None]
-        beta = beta[..., None]
+        do_replace = do_replace[..., None]
+        do_add_new = do_add_new[..., None]
 
-        # get w
-        w = alpha * ma + beta * wt_sequential
+        # get attention on the correct slot in memory based on the 2 predicates
+        # attention defaults to 0 if neither condition holds
+        wt = do_replace * memory_attention + do_add_new * wt_sequential
 
-        # create memory to be added by computing outer product
-        added_memory = w[..., None] * vo[..., None, :]
+        # Update visual_working_memory
+        # visual_working_memory = (
+        #         visual_working_memory
+        #         + wt[..., None] * (visual_object[..., None, :] - visual_working_memory)
+        #         )
+
+        # # create memory to be added by computing outer product
+        added_memory = wt[..., None] * visual_object[..., None, :]
 
         all_ones = torch.ones(batch_size, 1, self.dim).type(app_state.dtype)
         J = torch.ones(batch_size, self.slots, self.dim).type(app_state.dtype)
 
         # create memory to be erased by computing outer product
-        erased_memory = w[..., None] * all_ones
+        erased_memory = wt[..., None] * all_ones
 
         # Update history
-        visual_working_memory = vwm * (J - erased_memory) + added_memory
+        visual_working_memory = visual_working_memory * (J - erased_memory) + added_memory
 
         # compute shifted sequential head to right
         shifted_wt_sequential = torch.roll(wt_sequential, shifts=1, dims=-1)
 
         # new sequential attention
-        new_wt_sequential = (shifted_wt_sequential * beta) \
-                            + (wt_sequential * (1 - beta))
+        new_wt_sequential = (shifted_wt_sequential * do_add_new) \
+                            + (wt_sequential * (1 - do_add_new))
 
         # final read vector
         # (now or latest) and valid visual object?
-        is_visual = (T1 + T3) * valid_vo
+        is_visual = (t1 + t3) * valid_vo
         # optional extra check that it is neither last nor none
-        # is_visual = is_visual * (1 - T2) * (1 - T4)
+        # is_visual = is_visual * (1 - t2) * (1 - t4)
 
         # (now or (latest and (not valid visual object))) and valid memory object?
-        is_mem = (T2 + T3 * (1 - valid_vo)) * valid_mo
+        is_mem = (t2 + t3 * (1 - valid_vo)) * valid_mo
         # optional extra check that it is neither now nor none
-        # is_mem = is_mem * (1 - T1) * (1 - T4)
+        # is_mem = is_mem * (1 - t1) * (1 - t4)
 
-        # output correct object for reasoning
-        output_object = is_visual[..., None] * vo + is_mem[..., None] * mo
+        # compute new relevant object for reasoning
+        relevant_object = (is_visual[..., None] * visual_object
+                           + is_mem[..., None] * memory_object)
 
-        #print(output_object[0], visual_working_memory[0], new_wt_sequential[0])
+        # print(output_object[0], visual_working_memory[0], new_wt_sequential[0])
 
-        return output_object, visual_working_memory, new_wt_sequential
+        return relevant_object, visual_working_memory, new_wt_sequential
