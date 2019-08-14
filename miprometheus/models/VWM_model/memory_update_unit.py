@@ -73,10 +73,10 @@ class MemoryUpdateUnit(Module):
         # number of slots in memory
         self.slots = slots
 
-    def forward(self, valid_vo, valid_mo, visual_object, memory_object,
+    def forward(self, visual_object, memory_object,
                 memory_attention, visual_working_memory,
                 temporal_class_weights, wt_sequential,
-                do_replace, do_add_new, is_visual, is_mem):
+                do_replace, do_add_new):
         """
         Forward pass of the ``MemoryUpdateUnit``. 
         
@@ -134,5 +134,5 @@ class MemoryUpdateUnit(Module):
         new_wt_sequential = (shifted_wt_sequential * do_add_new) \
                             + (wt_sequential * (1 - do_add_new))
 
-        return visual_working_memory, new_wt_sequential, is_visual, is_mem
+        return visual_working_memory, new_wt_sequential
 

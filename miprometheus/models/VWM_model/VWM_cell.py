@@ -171,9 +171,9 @@ class VWMCell(Module):
             control_state, vo, mo, temporal_class_weights)
 
         # update visual_working_memory, wt sequential and get the final contextual_words output vector
-        visual_working_memory, wt_sequential, is_visual, is_mem = self.memory_update_unit(
-            valid_vo, valid_mo, vo, mo, ma, visual_working_memory,
-            temporal_class_weights, wt_sequential, do_replace, do_add_new, is_visual, is_mem)
+        visual_working_memory, wt_sequential = self.memory_update_unit(
+            vo, mo, ma, visual_working_memory,
+            temporal_class_weights, wt_sequential, do_replace, do_add_new)
 
         # summary update Unit
         summary_object = self.summary_unit(
