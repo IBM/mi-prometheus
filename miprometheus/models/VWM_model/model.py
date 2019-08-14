@@ -100,6 +100,7 @@ class MACNetworkSequential(Model):
         self.nb_classes_pointing = params['classes']
         self.words_embed_length = params['words_embed_length']
         self.nwords = params['nwords']
+        self.trainable_init = params ['trainable_init']
 
         # Maximum number of embeddable words.
         self.vocabulary_size = problem_default_values_['embed_vocab_size']
@@ -134,9 +135,9 @@ class MACNetworkSequential(Model):
 
 
         # initialize hidden states for mac cell control states and memory states
-        self.mem_0 = torch.nn.Parameter(torch.zeros((1, self.dim), requires_grad=False).type(self.app_state.dtype))
+        self.mem_0 = torch.nn.Parameter(torch.zeros((1, self.dim), requires_grad=self.trainable_init).type(self.app_state.dtype))
         self.control_0 = torch.nn.Parameter(
-            torch.zeros((1, self.dim), requires_grad=False).type(self.app_state.dtype))
+            torch.zeros((1, self.dim), requires_grad=self.trainable_init).type(self.app_state.dtype))
 
 
 
@@ -189,11 +190,12 @@ class MACNetworkSequential(Model):
         summary_object= summary_object * memory_mask
 
         # initialize empty memory
+
         visual_working_memory \
-            = torch.zeros((batch_size, self.slot ,self.dim), requires_grad=False).type(self.app_state.dtype)
+            = torch.zeros((batch_size, self.slot, self.dim), requires_grad=self.trainable_init).type(self.app_state.dtype)
 
         # initialize Wt_sequential at first slot position
-        wt_sequential = torch.zeros((batch_size, self.slot),requires_grad=False).type(self.app_state.dtype)
+        wt_sequential = torch.zeros((batch_size, self.slot), requires_grad=self.trainable_init).type(self.app_state.dtype)
         wt_sequential[:, 0] = 1
 
         self.cell_states=[]
