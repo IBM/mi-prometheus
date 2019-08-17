@@ -56,15 +56,15 @@ class MemoryRetrievalUnit(Module):
         :param visual_working_memory: batch_size x vwm_num_slots x dim
         :param control_state:  previous control state [batch_size x dim].
 
-        :return: memory_output [batch_size x dim]
-        :return: memory_attention [batch_size x vwm_num_slots]
+        :return: memory_object [batch_size x dim]
+        :return: read_head [batch_size x vwm_num_slots]
         """
 
         # Combine the summary object with VWM
         vwm_modified = self.interaction_module(summary_object, visual_working_memory)
 
         # compute attention weights
-        memory_output, memory_attention = self.attention_module(
+        memory_object, read_head = self.attention_module(
             control_state, vwm_modified, visual_working_memory)
 
-        return memory_output, memory_attention
+        return memory_object, read_head

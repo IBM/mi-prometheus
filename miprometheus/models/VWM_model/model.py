@@ -134,7 +134,7 @@ class VWM(Model):
         self.control_0 = torch.nn.Parameter(
             torch.zeros(1, self.dim).type(self.app_state.dtype))
 
-        self.cell_states = []
+        self.frame_history = []
 
     def forward(self, data_dict, dropout=0.15):
         """
@@ -184,10 +184,10 @@ class VWM(Model):
             batch_size, self.slot ,self.dim).type(self.app_state.dtype)
 
         # initialize Wt_sequential at first slot position
-        wt_sequential = torch.zeros(batch_size, self.slot).type(self.app_state.dtype)
-        wt_sequential[:, 0] = 1
+        write_head = torch.zeros(batch_size, self.slot).type(self.app_state.dtype)
+        write_head[:, 0] = 1
 
-        self.cell_states = []
+        self.frame_history = []
 
         # question encoder
         contextual_words, question_encoding = self.question_encoder(
@@ -200,22 +200,21 @@ class VWM(Model):
             summary_object = summary_object_init
             control_state = control_state_init
 
+            cell_state = (control_state, summary_object, visual_working_memory, write_head)
+
             # image encoder
             feature_maps= self.image_encoder(images[f])
 
             # state history fo vizualisation
-            self.VWM_cell.state_history = []
+            self.VWM_cell.cell_history = []
 
             # recurrent VWM cells
             for step in range(self.max_step):
-                (control_state, summary_object, visual_working_memory,
-                 wt_sequential) = self.VWM_cell(
-                    step, contextual_words, question_encoding, feature_maps,
-                    control_state, summary_object, visual_working_memory,
-                    wt_sequential)
+                cell_state = self.VWM_cell(
+                    step, contextual_words, question_encoding, feature_maps, cell_state)
 
             # save state history
-            self.cell_states.append(self.VWM_cell.state_history)
+            self.frame_history.append(self.VWM_cell.cell_history)
 
             # output unit
             logits_answer[:, f, :] = self.output_unit_answer(question_encoding, summary_object)
@@ -429,7 +428,7 @@ class VWM(Model):
 
                 #loop over the k reasoning steps
                 for step, (attention_mask, attention_question, history, W, gmem, gkb, Wt_seq , context) in zip(
-                        range(self.max_step), self.cell_states[i]):
+                        range(self.max_step), self.frame_history[i]):
 
                     # preprocess attention image, reshape
                     attention_size = int(np.sqrt(attention_mask.size(-1)))
@@ -572,7 +571,7 @@ class VWM(Model):
 
                 # loop over the k reasoning steps
                 for step, (attention_mask, attention_question) in zip(
-                        range(self.max_step), self.cell_states[i]):
+                        range(self.max_step), self.frame_history[i]):
 
 
 
