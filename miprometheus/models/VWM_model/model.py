@@ -183,7 +183,7 @@ class VWM(Model):
         visual_working_memory = torch.zeros(
             batch_size, self.slot ,self.dim).type(self.app_state.dtype)
 
-        # initialize Wt_sequential at first slot position
+        # initialize read head at first slot position
         write_head = torch.zeros(batch_size, self.slot).type(self.app_state.dtype)
         write_head[:, 0] = 1
 
@@ -270,7 +270,7 @@ class VWM(Model):
         ax_context = fig.add_subplot(gs_top[0, 5])
         ax_context.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
         ax_context.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([0,1,2,3]))
-        ax_context.set_xticklabels(['Now','Last','Latest','None'], rotation=-45, fontsize=12)
+        ax_context.set_xticklabels(['Now','Last','Latest','None'], rotation=-45, fontsize=14)
         ax_context.set_title('Time Context')
 
         ######################################################################
@@ -283,15 +283,15 @@ class VWM(Model):
         ax_image = fig.add_subplot(gs_bottom_left[0, 0])
         ax_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-        ax_image.set_ylabel('Height [px]', fontsize=8)
-        ax_image.set_xlabel('Width [px]', fontsize=8)
+        ax_image.set_ylabel('Height [px]', fontsize=12)
+        ax_image.set_xlabel('Width [px]', fontsize=12)
         ax_image.set_title('Image')
 
         # Attention over the image.
         ax_attention_image = fig.add_subplot(gs_bottom_left[0, 1])
         ax_attention_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax_attention_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-        ax_attention_image.set_xlabel('Width [px]', fontsize=8)
+        ax_attention_image.set_xlabel('Width [px]', fontsize=12)
         ax_attention_image.set_title('Visual Attention')
 
         ######################################################################
@@ -301,16 +301,16 @@ class VWM(Model):
         gs_bottom_center.update(wspace=0.0, hspace=1, bottom=0.27, top=0.45, left=0.48, right=0.52)
 
         # Image gate.
-        ax_image_gate = fig.add_subplot(gs_bottom_center[0, 0])
-        ax_image_gate.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
-        ax_image_gate.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
-        ax_image_gate.set_title('Image Gate')
+        ax_image_match = fig.add_subplot(gs_bottom_center[0, 0])
+        ax_image_match.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_image_match.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_image_match.set_title('Image Match')
 
         # Image gate.
-        ax_memory_gate = fig.add_subplot(gs_bottom_center[1, 0])
-        ax_memory_gate.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
-        ax_memory_gate.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
-        ax_memory_gate.set_title('Memory Gate')
+        ax_memory_match = fig.add_subplot(gs_bottom_center[1, 0])
+        ax_memory_match.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_memory_match.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_memory_match.set_title('Memory Match')
 
         ######################################################################
         # Bottom Right: Memory section.
@@ -319,21 +319,21 @@ class VWM(Model):
         gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.1, top=0.7, left=0.54, right=0.95)
 
         # Read attention.
-        ax_attention_history = fig.add_subplot(gs_bottom_right[0, 0])
+        ax_attention_history = fig.add_subplot(gs_bottom_right[0, 1])
         ax_attention_history.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
-        ax_attention_history.set_ylabel('Memory Addresses', fontsize=8)
-        ax_attention_history.set_title('Read Attention')
+        ax_attention_history.set_ylabel('Memory Addresses', fontsize=12)
+        ax_attention_history.set_title('Read Head')
 
         # Memory
-        ax_history = fig.add_subplot(gs_bottom_right[0, 1:9])
-        ax_history.set_xlabel('Memory Content', fontsize=8)
-        ax_history.set_title('Working Memory')
+        ax_visual_working_memory = fig.add_subplot(gs_bottom_right[0, 2:9])
+        ax_visual_working_memory.set_xlabel('Memory Content', fontsize=12)
+        ax_visual_working_memory.set_title('Working Memory')
 
 
         # Write attention.
         ax_wt = fig.add_subplot(gs_bottom_right[0, 9])
         ax_wt.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
-        ax_wt.set_title('Write Attention')
+        ax_wt.set_title('Write Head')
 
         # Lines between sections.
         l1 = lines.Line2D([0, 1], [0.88, 0.88], transform=fig.transFigure, figure=fig, color='black')
@@ -407,8 +407,8 @@ class VWM(Model):
             (ax_header_left_labels, ax_header_left, ax_header_right_labels, ax_header_right,
                 ax_attention_question, ax_context,
                 ax_image, ax_attention_image,
-                ax_image_gate, ax_memory_gate,
-                ax_attention_history, ax_history,ax_wt) = fig.axes
+                ax_image_match, ax_memory_match,
+                ax_attention_history, ax_visual_working_memory,ax_wt) = fig.axes
 
             #initiate list of artists frames
             frames = []
@@ -427,23 +427,21 @@ class VWM(Model):
                 ans = s_answers[sample][i]
 
                 #loop over the k reasoning steps
-                for step, (attention_mask, attention_question, history, W, gmem, gkb, Wt_seq , context) in zip(
-                        range(self.max_step), self.frame_history[i]):
+                for (step, visual_attention, control_attention, visual_working_memory,
+                     read_head, image_match, memory_match, write_head,
+                     temporal_class_weights) in self.frame_history[i]:
 
                     # preprocess attention image, reshape
-                    attention_size = int(np.sqrt(attention_mask.size(-1)))
+                    attention_size = int(np.sqrt(visual_attention.size(-1)))
 
                     # attention mask has size [batch_size x 1 x(H*W)]
-                    attention_mask = attention_mask.view(-1, 1, attention_size, attention_size)
+                    attention_mask = visual_attention.view(-1, 1, attention_size, attention_size)
 
                     # upsample attention mask
                     m = torch.nn.Upsample(
                         size=[width, height], mode='bilinear', align_corners=True)
                     up_sample_attention_mask = m(attention_mask)
                     attention_mask = up_sample_attention_mask[sample, 0]
-
-                    # preprocess question, pick one sample number
-                    attention_question = attention_question[sample]
 
                     norm = matplotlib.pylab.Normalize(0, 1)
                     #norm2 = matplotlib.pylab.Normalize(0, 4)
@@ -460,14 +458,14 @@ class VWM(Model):
                             'Question:         ' +
                             '\nPredicted Answer: ' + 
                             '\nGround Truth:     ',
-                        fontsize=12))
+                        fontsize=13))
                     ax_header_left.axis('off')
                     artists.append(ax_header_left.text(
                         0, 1.0,
                             question_words +
                             '\n' + pred +
                             '\n' + ans,
-                        fontsize=12, weight='bold'))
+                        fontsize=13, weight='bold'))
     
                     ax_header_right_labels.axis('off')
                     artists.append(ax_header_right_labels.text(
@@ -475,35 +473,37 @@ class VWM(Model):
                         'Frame: ' +
                             '\nReasoning Step:   ' +
                             '\nQuestion Type:    ',
-                        fontsize=12))
+                        fontsize=14))
                     ax_header_right.axis('off')
                     artists.append(ax_header_right.text(
                         0, 1.0,
                         str(i) +
                             '\n' + str(step) +
                             '\n' + tasks,
-                        fontsize=12, weight='bold'))
+                        fontsize=14, weight='bold'))
         
                     ######################################################################
                     # Top-center: Question + time context section.
                     # Set words for question attention.
                     # ax_attention_question.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=len(words))) NOT WORKING AS number of ticks != number of cells! :]
-                    ax_attention_question.set_xticklabels(['h'] + words, rotation=-45, fontsize=12)
+                    ax_attention_question.set_xticklabels(['h'] + words, rotation=-45, fontsize=14)
 
                     artists.append(ax_attention_question.imshow(
-                        attention_question.unsqueeze(1).transpose(1, 0),
-                        interpolation='nearest', aspect='auto', cmap=color, norm=norm))
+                        control_attention[sample][..., None], interpolation='nearest',
+                        aspect='auto', cmap=color, norm=norm))
 
                     # Time context.
                     artists.append(ax_context.imshow(
-                        context[sample], interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
+                        temporal_class_weights[sample], interpolation='nearest',
+                        cmap=color, norm=norm, aspect='auto'))
     
                     ######################################################################
                     # Bottom left: Image section.
                     artists.append(ax_image.imshow(image, interpolation='nearest', aspect='auto'))
 
                     # Two artists painting on the same figure - image + attention.
-                    artists.append(ax_attention_image.imshow(image, interpolation='nearest', aspect='auto'))
+                    artists.append(ax_attention_image.imshow(
+                        image, interpolation='nearest', aspect='auto'))
                     artists.append(ax_attention_image.imshow(
                         attention_mask,
                         interpolation='nearest',
@@ -515,25 +515,29 @@ class VWM(Model):
                     # Bottom center: gates section.
                     
                     # Image gate.
-                    artists.append(ax_image_gate.imshow(
-                        [[ gkb[sample] ]], interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
+                    artists.append(ax_image_match.imshow(
+                        image_match[[sample], None], interpolation='nearest', cmap=color,
+                        norm=norm, aspect='auto'))
                     
                     # Memory gate.
-                    artists.append(ax_memory_gate.imshow(
-                        [[ gmem[sample] ]], interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
+                    artists.append(ax_memory_match.imshow(
+                        memory_match[[sample], None], interpolation='nearest', cmap=color,
+                        norm=norm, aspect='auto'))
 
                     ######################################################################
                     # Bottom Right: Memory section.
 
-                    artists.append(ax_history.imshow(
-                        history[sample], interpolation='nearest', aspect='auto', cmap=color, norm=norm ))
-                    #    history[sample], interpolation='nearest', aspect='auto', cmap=color, norm=norm2  )) WHY DIFFERENT NORMALIZATION??
+                    artists.append(ax_visual_working_memory.imshow(
+                        visual_working_memory[sample], interpolation='nearest', aspect='auto',
+                        cmap=color, norm=norm ))
 
                     artists.append(ax_attention_history.imshow(
-                        W[sample].unsqueeze(1), interpolation='nearest',cmap=color, norm=norm , aspect='auto'))
+                        read_head[sample][..., None], interpolation='nearest',cmap=color,
+                        norm=norm , aspect='auto'))
 
                     artists.append(ax_wt.imshow(
-                        Wt_seq[sample].transpose(1,0), interpolation='nearest', cmap=color, norm=norm, aspect='auto'))
+                        write_head[sample][..., None], interpolation='nearest', cmap=color,
+                        norm=norm, aspect='auto'))
 
                     # Add "frames" to artist list
                     frames.append(artists)
@@ -570,7 +574,7 @@ class VWM(Model):
                 image = image.permute(1, 2, 0)/255
 
                 # loop over the k reasoning steps
-                for step, (attention_mask, attention_question) in zip(
+                for step, (attention_mask, control_attention) in zip(
                         range(self.max_step), self.frame_history[i]):
 
 
@@ -583,7 +587,7 @@ class VWM(Model):
                     up_sample_preds_pointing = up_sample_preds_pointing[sample][i]
 
                     # preprocess question, pick one sample number
-                    attention_question = attention_question[sample]
+                    control_attention = control_attention[sample]
 
                     # Create "Artists" drawing data on "ImageAxes".
                     num_artists = len(fig.axes) + 1
@@ -610,7 +614,7 @@ class VWM(Model):
                         alpha=0.5,
                         cmap='Blues')
                     artists[3] = ax_attention_question.imshow(
-                        attention_question,
+                        control_attention,
                         interpolation='nearest', aspect='auto', cmap='Reds')
                     artists[4] = ax_step.text(
                         0, 0.5, 'Reasoning step index: ' + str(

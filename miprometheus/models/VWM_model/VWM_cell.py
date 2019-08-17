@@ -130,8 +130,10 @@ class VWMCell(Module):
         if app_state.visualize:
             cell_info = [x.detach() for x in [
                 visual_attention, control_attention, visual_working_memory,
-                read_head, image_match, memory_match, write_head.unsqueeze(1),
+                read_head, image_match, memory_match, write_head,
                 temporal_class_weights.unsqueeze(1)]]
+
+            cell_info.insert(0, step)
 
             self.cell_history.append(tuple(cell_info))
 
