@@ -59,7 +59,7 @@ class ReasoningUnit(Module):
         :param memory_object: memory output
         :param temporal_class_weights
 
-        :return: is_visual, is_mem, do_replace, do_add_new
+        :return: image_match, memory_match, do_replace, do_add_new
         """
 
         # the visual object validator
@@ -72,10 +72,10 @@ class ReasoningUnit(Module):
         valid_mo = self.memory_object_validator(concat_read_memory)
         valid_mo = valid_mo.squeeze(-1)
 
-        do_replace, do_add_new, is_visual, is_mem = ReasoningUnit.eval_predicate(
+        do_replace, do_add_new, image_match, memory_match = ReasoningUnit.eval_predicate(
             temporal_class_weights, valid_vo, valid_mo)
 
-        return do_replace, do_add_new, is_visual, is_mem
+        return image_match, memory_match, do_replace, do_add_new
 
     @staticmethod
     def eval_predicate(temporal_class_weights, valid_vo, valid_mo):

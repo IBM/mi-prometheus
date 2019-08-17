@@ -24,9 +24,9 @@ training:
     seed_numpy: 0
     problem:
       batch_size: &batch_size 1
-#    dataloader: &dataloader
-#      shuffle: False
-#      num_workers: 0
+    dataloader: &dataloader
+      shuffle: False
+      num_workers: 0
 
 validation:
   # fix the seeds
@@ -34,7 +34,7 @@ validation:
     seed_numpy: 0
     problem:
       batch_size: *batch_size
-#    dataloader: *dataloader
+    dataloader: *dataloader
 
 testing:
   # fix the seeds
@@ -42,5 +42,4 @@ testing:
     seed_numpy: 0
     problem:
       batch_size: *batch_size
-    batch_size: *batch_size
-#    dataloader: *dataloader
+    dataloader: *dataloader

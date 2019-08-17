@@ -64,9 +64,11 @@ class VWMCell(Module):
         self.mem_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
         self.control_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
 
+        self.state_history = []
+
     def forward(self, step, contextual_words, question_encoding,
                 feature_maps, control_state, summary_object,
-                visual_working_memory, wt_sequential, cell_state_history):
+                visual_working_memory, write_head):
 
         """
         Forward pass of the ``VWMCell`` of VWM network
@@ -93,27 +95,27 @@ class VWMCell(Module):
         :param visual_working_memory: visual_working_memory
         :type visual_working_memory: torch.tensor
            
-        :param wt_sequential: wt_sequential
-        :type wt_sequential: torch.tensor
+        :param write_head: wt_sequential
+        :type write_head: torch.tensor
 
-        :param cell_state_history: [[note: modified in the method]]
-        :type cell_state_history: list
+        :param state_history: [[note: modified in the method]]
+        :type state_history: list
 
+
+        :return: control_state: shape [batch_size x dim]
+        :type  control_state: torch.tensor
 
         :return summary_object, shape [batch_size x dim]
         :type summary_object: torch.tensor
 
-        :return: control_state: shape [batch_size x dim]
-        :type  control_state: torch.tensor
-        
         :return: visual_attention: shape [batch_size x HxW]
         :type:  visual_attention: torch.tensor
         
         :return: visual_working_memory: shape [batch_size x slots x dim]
         :type  visual_working_memory: torch.tensor
                
-        :return: wt_sequential: shape [batch_size x slots]
-        :type  wt_sequential: torch.tensor
+        :return: write_head: shape [batch_size x slots]
+        :type  write_head: torch.tensor
 
         """
 
@@ -127,30 +129,29 @@ class VWMCell(Module):
             summary_object, feature_maps, control_state)
 
         # memory retrieval unit, obtain memory output and memory attention
-        memory_object, memory_attention = self.memory_retrieval_unit(
+        memory_object, read_head = self.memory_retrieval_unit(
             summary_object, visual_working_memory, control_state)
 
         # reason about the objects
-        do_replace, do_add_new, is_visual, is_mem = self.reasoning_unit(
+        image_match, memory_match, do_replace, do_add_new = self.reasoning_unit(
             control_state, visual_object, memory_object, temporal_class_weights)
 
         # update visual_working_memory, and wt sequential
-        visual_working_memory, wt_sequential = memory_update(
-            visual_object, memory_attention, visual_working_memory,
-            wt_sequential, do_replace, do_add_new)
+        visual_working_memory, write_head = memory_update(
+            visual_object, visual_working_memory, read_head, write_head,
+            do_replace, do_add_new)
 
         # summary update Unit
         summary_object = self.summary_unit(
-            is_visual, visual_object, is_mem, memory_object, summary_object)
+            image_match, visual_object, memory_match, memory_object, summary_object)
 
         # store attention weights for visualization
         if app_state.visualize:
-            cell_state_history.append(
-                (visual_attention.detach(), control_attention.detach(),
-                 visual_working_memory.detach(), memory_attention.detach(),
-                 is_visual.detach().numpy(), is_mem.detach().numpy(),
-                 wt_sequential.unsqueeze(1).detach().numpy(),
-                 temporal_class_weights.unsqueeze(1).detach().numpy()))
+            cell_states = [x.detach() for x in [
+                visual_attention, control_attention, visual_working_memory,
+                read_head, image_match, memory_match, write_head.unsqueeze(1),
+                temporal_class_weights.unsqueeze(1)]]
 
-        return (summary_object, control_state, visual_attention, visual_working_memory,
-                wt_sequential)
+            self.state_history.append(tuple(cell_states))
+
+        return control_state, summary_object, visual_working_memory, write_head

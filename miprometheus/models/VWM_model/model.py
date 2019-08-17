@@ -204,18 +204,18 @@ class VWM(Model):
             feature_maps= self.image_encoder(images[f])
 
             # state history fo vizualisation
-            cell_state_history = []
+            self.VWM_cell.state_history = []
 
             # recurrent VWM cells
             for step in range(self.max_step):
-                (summary_object, control_state, last_visual_attention,
-                 visual_working_memory, wt_sequential) = self.VWM_cell(
+                (control_state, summary_object, visual_working_memory,
+                 wt_sequential) = self.VWM_cell(
                     step, contextual_words, question_encoding, feature_maps,
                     control_state, summary_object, visual_working_memory,
-                    wt_sequential, cell_state_history)
+                    wt_sequential)
 
             # save state history
-            self.cell_states.append(cell_state_history)
+            self.cell_states.append(self.VWM_cell.state_history)
 
             # output unit
             logits_answer[:, f, :] = self.output_unit_answer(question_encoding, summary_object)
