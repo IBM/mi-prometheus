@@ -66,8 +66,8 @@ class VWMCell(Module):
 
         self.cell_history = []
 
-    def forward(self, step, contextual_words, question_encoding,
-                feature_maps, control_state, summary_object, visual_working_memory, write_head):
+    def forward(self, step, contextual_words, question_encoding, feature_maps,
+                control_state, summary_object, visual_working_memory, write_head):
 
         """
         Forward pass of the ``VWMCell`` of VWM network
@@ -82,53 +82,52 @@ class VWMCell(Module):
         :param feature_maps: feature maps (feature maps extracted by a CNN)
         [batch_size x nb_kernels x (feat_H * feat_W)].
 
-        :param cell_state: tuple consisting of
-         1. control_state:   [batch_size x dim]
-         2. summary_object:  [batch_size x dim]
-         3. visual_working_memory: [batch_size x slots x dim]
-         4. write_head: wt_sequential [batch_size x num_slots]
-        :type: cell_state: tuple
+        :param control_state: recurrent  [batch_size x dim]
+        :param summary_object:  recurrent [batch_size x dim]
+        :param visual_working_memory: recurrent [batch_size x slots x dim]
+        :param write_head: recurrent [batch_size x num_slots]
 
-        :return: new_cell_state
-        :type: new_cell_state: tuple
+        :return: new_control_state, new_summary_object, new_visual_working_memory,
+                 new_write_head
 
         """
 
-        # control_state unit
-        (control_state, control_attention,
+        # new_control_state unit
+        (new_control_state, control_attention,
          temporal_class_weights) = self.question_driven_controller(
             step, contextual_words, question_encoding, control_state)
 
         # visual retrieval unit, obtain visual output and visual attention
         visual_object, visual_attention = self.visual_retrieval_unit(
-            summary_object, feature_maps, control_state)
+            summary_object, feature_maps, new_control_state)
 
         # memory retrieval unit, obtain memory output and memory attention
         memory_object, read_head = self.memory_retrieval_unit(
-            summary_object, visual_working_memory, control_state)
+            summary_object, visual_working_memory, new_control_state)
 
         # reason about the objects
         image_match, memory_match, do_replace, do_add_new = self.reasoning_unit(
-            control_state, visual_object, memory_object, temporal_class_weights)
+            new_control_state, visual_object, memory_object, temporal_class_weights)
 
         # update visual_working_memory, and wt sequential
-        visual_working_memory, write_head = memory_update(
+        new_visual_working_memory, new_write_head = memory_update(
             visual_object, visual_working_memory, read_head, write_head,
             do_replace, do_add_new)
 
         # summary update Unit
-        summary_object = self.summary_unit(
+        new_summary_object = self.summary_unit(
             image_match, visual_object, memory_match, memory_object, summary_object)
 
         # store attention weights for visualization
         if app_state.visualize:
             cell_info = [x.detach() for x in [
-                visual_attention, control_attention, visual_working_memory,
-                read_head, image_match, memory_match, write_head,
+                visual_attention, control_attention, new_visual_working_memory,
+                read_head, image_match, memory_match, new_write_head,
                 temporal_class_weights.unsqueeze(1)]]
 
             cell_info.insert(0, step)
 
             self.cell_history.append(tuple(cell_info))
 
-        return control_state, summary_object, visual_working_memory, write_head
+        return (new_control_state, new_summary_object,
+                new_visual_working_memory, new_write_head)
