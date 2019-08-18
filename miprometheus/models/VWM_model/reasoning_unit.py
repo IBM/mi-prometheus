@@ -80,28 +80,28 @@ class ReasoningUnit(Module):
     @staticmethod
     def eval_predicate(temporal_class_weights, valid_vo, valid_mo):
 
-        # get t1,t2,t3,t4 from temporal_class_weights
+        # get t_now,t_last,t_latest,t_none from temporal_class_weights
         # corresponds to now, last, latest, or none
-        t1 = temporal_class_weights[:, 0]
-        t2 = temporal_class_weights[:, 1]
-        t3 = temporal_class_weights[:, 2]
-        t4 = temporal_class_weights[:, 3]
+        t_now = temporal_class_weights[:, 0]
+        t_last = temporal_class_weights[:, 1]
+        t_latest = temporal_class_weights[:, 2]
+        t_none = temporal_class_weights[:, 3]
 
         # if the temporal context last or latest,
         # then do we replace the existing memory object?
-        do_replace = valid_mo * valid_vo * (t2 + t3) * (1 - t4)
+        do_replace = valid_mo * valid_vo * (t_last + t_latest) * (1 - t_none)
 
         # otherwise do we add a new one to memory?
-        do_add_new = (1 - valid_mo) * valid_vo * (t2 + t3) * (1 - t4)
+        do_add_new = (1 - valid_mo) * valid_vo * (t_last + t_latest) * (1 - t_none)
 
         # (now or latest) and valid visual object?
-        is_visual = (t1 + t3) * valid_vo
+        is_visual = (t_now + t_latest) * valid_vo
         # optional extra check that it is neither last nor none
-        # is_visual = is_visual * (1 - t2) * (1 - t4)
+        # is_visual = is_visual * (1 - t_last) * (1 - t_none)
 
         # (now or (latest and (not valid visual object))) and valid memory object?
-        is_mem = (t2 + t3 * (1 - valid_vo)) * valid_mo
+        is_mem = (t_last + t_latest * (1 - valid_vo)) * valid_mo
         # optional extra check that it is neither now nor none
-        # is_mem = is_mem * (1 - t1) * (1 - t4)
+        # is_mem = is_mem * (1 - t_now) * (1 - t_none)
 
         return do_replace, do_add_new, is_visual, is_mem
