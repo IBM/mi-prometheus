@@ -67,7 +67,7 @@ class VWMCell(Module):
         self.cell_history = []
 
     def forward(self, step, contextual_words, question_encoding,
-                feature_maps, cell_state):
+                feature_maps, control_state, summary_object, visual_working_memory, write_head):
 
         """
         Forward pass of the ``VWMCell`` of VWM network
@@ -94,37 +94,31 @@ class VWMCell(Module):
 
         """
 
-        (control_state, summary_object,
-         visual_working_memory, write_head) = cell_state
-
         # control_state unit
-        (new_control_state, control_attention,
+        (control_state, control_attention,
          temporal_class_weights) = self.question_driven_controller(
             step, contextual_words, question_encoding, control_state)
 
         # visual retrieval unit, obtain visual output and visual attention
         visual_object, visual_attention = self.visual_retrieval_unit(
-            summary_object, feature_maps, new_control_state)
+            summary_object, feature_maps, control_state)
 
         # memory retrieval unit, obtain memory output and memory attention
         memory_object, read_head = self.memory_retrieval_unit(
-            summary_object, visual_working_memory, new_control_state)
+            summary_object, visual_working_memory, control_state)
 
         # reason about the objects
         image_match, memory_match, do_replace, do_add_new = self.reasoning_unit(
-            new_control_state, visual_object, memory_object, temporal_class_weights)
+            control_state, visual_object, memory_object, temporal_class_weights)
 
         # update visual_working_memory, and wt sequential
-        new_visual_working_memory, new_write_head = memory_update(
+        visual_working_memory, write_head = memory_update(
             visual_object, visual_working_memory, read_head, write_head,
             do_replace, do_add_new)
 
         # summary update Unit
-        new_summary_object = self.summary_unit(
+        summary_object = self.summary_unit(
             image_match, visual_object, memory_match, memory_object, summary_object)
-
-        new_cell_state = (new_control_state, new_summary_object,
-                          new_visual_working_memory, new_write_head)
 
         # store attention weights for visualization
         if app_state.visualize:
@@ -137,4 +131,4 @@ class VWMCell(Module):
 
             self.cell_history.append(tuple(cell_info))
 
-        return new_cell_state
+        return control_state, summary_object, visual_working_memory, write_head

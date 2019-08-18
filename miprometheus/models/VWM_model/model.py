@@ -200,8 +200,6 @@ class VWM(Model):
             summary_object = summary_object_init
             control_state = control_state_init
 
-            cell_state = (control_state, summary_object, visual_working_memory, write_head)
-
             # image encoder
             feature_maps= self.image_encoder(images[f])
 
@@ -210,8 +208,9 @@ class VWM(Model):
 
             # recurrent VWM cells
             for step in range(self.max_step):
-                cell_state = self.VWM_cell(
-                    step, contextual_words, question_encoding, feature_maps, cell_state)
+                control_state, summary_object, visual_working_memory, write_head = self.VWM_cell(
+                    step, contextual_words, question_encoding, feature_maps,
+                    control_state, summary_object, visual_working_memory, write_head)
 
             # save state history
             self.frame_history.append(self.VWM_cell.cell_history)
@@ -343,7 +342,7 @@ class VWM(Model):
         fig.lines.extend([l1, l2, l3,l4])
 
         # Set layout.
-        fig.set_tight_layout(True)
+        # fig.set_tight_layout(True)
 
         return fig
 
