@@ -25,7 +25,7 @@ from .mental_model.mental_model import MentalModel
 # VQA models.
 from .mac.model import MACNetwork
 from .s_mac.s_mac import sMacNetwork
-from .VWM_model.model import VWM
+from .vwm_model.model import VWM
 from .relational_net.relational_network import RelationalNetwork
 
 # .vqa_baselines

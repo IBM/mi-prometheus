@@ -22,8 +22,8 @@ __author__ = "Vincent Albouy, T.S. Jayram"
 
 from torch.nn import Module
 
-from miprometheus.models.VWM_model.attention_module import AttentionModule
-from miprometheus.models.VWM_model.interaction_module import InteractionModule
+from miprometheus.models.vwm_model.attention_module import AttentionModule
+from miprometheus.models.vwm_model.interaction_module import InteractionModule
 
 
 class MemoryRetrievalUnit(Module):

@@ -16,30 +16,3 @@ model:
   dropout: 0.15
   memory_pass: False
   control_pass: False
-
-
-training:
-  # fix the seeds
-    seed_torch: 0
-    seed_numpy: 0
-    problem:
-      batch_size: &batch_size 1
-    dataloader: &dataloader
-      shuffle: False
-      num_workers: 0
-
-validation:
-  # fix the seeds
-    seed_torch: 0
-    seed_numpy: 0
-    problem:
-      batch_size: *batch_size
-    dataloader: *dataloader
-
-testing:
-  # fix the seeds
-    seed_torch: 0
-    seed_numpy: 0
-    problem:
-      batch_size: *batch_size
-    dataloader: *dataloader

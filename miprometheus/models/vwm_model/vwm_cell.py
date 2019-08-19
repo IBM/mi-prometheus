@@ -16,19 +16,19 @@
 # limitations under the License.
 
 """
-VWM_cell.py: Implementation of the VWM Cell for the VWM network. 
+vwm_cell.py: Implementation of the VWM Cell for the VWM network.
 """
 __author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
 
-from miprometheus.models.VWM_model.question_driven_controller import QuestionDrivenController
-from miprometheus.models.VWM_model.visual_retrieval_unit import VisualRetrievalUnit
-from miprometheus.models.VWM_model.summary_unit import SummaryUpdateUnit
-from miprometheus.models.VWM_model.memory_retrieval_unit import MemoryRetrievalUnit
-from miprometheus.models.VWM_model.reasoning_unit import ReasoningUnit
-from miprometheus.models.VWM_model.memory_update_unit import memory_update
+from miprometheus.models.vwm_model.question_driven_controller import QuestionDrivenController
+from miprometheus.models.vwm_model.visual_retrieval_unit import VisualRetrievalUnit
+from miprometheus.models.vwm_model.summary_unit import SummaryUpdateUnit
+from miprometheus.models.vwm_model.memory_retrieval_unit import MemoryRetrievalUnit
+from miprometheus.models.vwm_model.reasoning_unit import ReasoningUnit
+from miprometheus.models.vwm_model.memory_update_unit import memory_update
 from miprometheus.utils.app_state import AppState
 app_state = AppState()
 
@@ -40,7 +40,7 @@ class VWMCell(Module):
 
     def __init__(self, dim, max_step=12):
         """
-        Constructor for the ``VWM Cell``, which represents the recurrent cell of VWM_model.
+        Constructor for the ``VWM Cell``, which represents the recurrent cell of vwm_model.
 
         :param dim: dimension of feature vectors
         :type dim: int

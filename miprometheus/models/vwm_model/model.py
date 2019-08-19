@@ -37,10 +37,10 @@ from miprometheus.models.model import Model
 import numpy as numpy
 import torch.nn as nn
 
-from miprometheus.models.VWM_model.question_encoder import QuestionEncoder
-from miprometheus.models.VWM_model.image_encoder import ImageEncoder
-from miprometheus.models.VWM_model.VWM_cell import VWMCell
-from miprometheus.models.VWM_model.output_unit import OutputUnit
+from miprometheus.models.vwm_model.question_encoder import QuestionEncoder
+from miprometheus.models.vwm_model.image_encoder import ImageEncoder
+from miprometheus.models.vwm_model.vwm_cell import VWMCell
+from miprometheus.models.vwm_model.output_unit import OutputUnit
 
 # needed for nltk.word.tokenize - do it once!
 nltk.download('punkt')

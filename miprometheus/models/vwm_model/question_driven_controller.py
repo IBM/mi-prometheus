@@ -23,8 +23,8 @@ __author__ = "Vincent Albouy, T.S. Jayram"
 import torch
 from torch.nn import Module
 
-from miprometheus.models.VWM_model.utils_VWM import linear
-from miprometheus.models.VWM_model.attention_module import AttentionModule
+from miprometheus.models.vwm_model.utils_VWM import linear
+from miprometheus.models.vwm_model.attention_module import AttentionModule
 
 
 class QuestionDrivenController(Module):
