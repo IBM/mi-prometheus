@@ -1,30 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# MIT License
-#
-# Copyright (c) 2018 Kim Seonghyeon
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-#
-# ------------------------------------------------------------------------------
-#
 # Copyright (C) IBM Corporation 2018
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,18 +18,21 @@
 """
 model.py:
 
-    - Implementation of the ``VWMC`` network, reusing the different units implemented in separated files.
+    - Implementation of the ``VWM`` model, reusing the different units implemented in separated files.
 """
-__author__ = "Vincent Marois, Vincent Albouy, T.S. Jayram, Tomasz Kornuta"
+__author__ = "Vincent Albouy, T.S. Jayram, Tomasz Kornuta"
 
 import nltk
-# needed for nltk.word.tokenize - do it once!
-nltk.download('punkt')
 
 import torch
 import numpy as np
 import matplotlib.pylab
 import matplotlib.animation
+from matplotlib.gridspec import GridSpec
+from matplotlib.figure import Figure
+import matplotlib.ticker as ticker
+import matplotlib.lines as lines
+
 from miprometheus.models.model import Model
 import numpy as numpy
 import torch.nn as nn
@@ -63,8 +42,8 @@ from miprometheus.models.VWM_model.image_encoder import ImageEncoder
 from miprometheus.models.VWM_model.VWM_cell import VWMCell
 from miprometheus.models.VWM_model.output_unit import OutputUnit
 
-import matplotlib.lines as lines
-        
+# needed for nltk.word.tokenize - do it once!
+nltk.download('punkt')
 
 
 class VWM(Model):
@@ -72,7 +51,7 @@ class VWM(Model):
     Implementation of the entire ``VWM`` network.
     """
 
-    def __init__(self, params, problem_default_values_={}):
+    def __init__(self, params, problem_default_values_=None):
         """
         Constructor for the ``VWM`` network.
 
@@ -82,6 +61,9 @@ class VWM(Model):
         :param problem_default_values_: default values coming from the ``Problem`` class.
         :type problem_default_values_: dict
         """
+
+        if problem_default_values_ is None:
+            problem_default_values_ = {}
 
         # call base constructor
         super(VWM, self).__init__(params, problem_default_values_)
@@ -95,7 +77,7 @@ class VWM(Model):
         self.dropout = params['dropout']
         self.memory_pass = params['memory_pass']
         self.control_pass = params['control_pass']
-        self.slot =  params['slot']
+        self.slot = params['slot']
         self.nb_classes_pointing = params['classes']
         self.words_embed_length = params['words_embed_length']
         self.nwords = params['nwords']
@@ -115,13 +97,14 @@ class VWM(Model):
         self.name = 'VWM'
 
         # instantiate units
-        self.question_encoder = QuestionEncoder(self.vocabulary_size, dim=self.dim, embedded_dim=self.embed_hidden )
+        self.question_encoder = QuestionEncoder(
+            self.vocabulary_size, dim=self.dim, embedded_dim=self.embed_hidden)
 
         # instantiate units
         self.image_encoder = ImageEncoder(
             dim=self.dim)
 
-        #initialize VWM Cell
+        # initialize VWM Cell
         self.VWM_cell = VWMCell(
             dim=self.dim,
             max_step=self.max_step)
@@ -138,7 +121,8 @@ class VWM(Model):
 
     def forward(self, data_dict, dropout=0.15):
         """
-        Forward pass of the ``VWM`` network. Calls first the ``ImageEncoder, QuestionEncoder``, then the recurrent \
+        Forward pass of the ``VWM`` network. Calls first the
+        ``ImageEncoder, QuestionEncoder``, then the recurrent
         VWM cells and finally the ```OutputUnit``.
 
         :param data_dict: input data batch.
@@ -150,9 +134,10 @@ class VWM(Model):
         :return: Predictions of the model.
         """
 
-        # Change the order of image dimensions, so we will loop over dimension 0: sequence elements.
+        # Change the order of image dimensions, so we will loop over
+        # dimension 0: sequence elements.
         images = data_dict['images']
-        images= images.permute(1, 0, 2, 3, 4)
+        images = images.permute(1, 0, 2, 3, 4)
 
         # Get batch size and length of image sequence.
         seq_len = images.size(0)
@@ -168,20 +153,23 @@ class VWM(Model):
         questions_length = torch.from_numpy(numpy.array(questions_length))
 
         # Create placeholders for logits.
-        logits_answer = torch.zeros( (batch_size, seq_len, self.nb_classes), requires_grad=False).type(self.dtype)
-        logits_pointing = torch.zeros( (batch_size, seq_len,self.nb_classes_pointing), requires_grad=False).type(self.dtype)
+        logits_answer = torch.zeros(
+            (batch_size, seq_len, self.nb_classes), requires_grad=False).type(self.dtype)
+        logits_pointing = torch.zeros(
+            (batch_size, seq_len, self.nb_classes_pointing), requires_grad=False).type(self.dtype)
 
-        # expand the hidden states to whole batch for mac cell control_state_init states and memory states
+        # expand the hidden states to whole batch for mac cell control_state_init states and
+        # memory states
         control_state_init = self.control_0.expand(batch_size, self.dim)
         summary_object_init = self.mem_0.expand(batch_size, self.dim)
         control_mask = self.get_dropout_mask(control_state_init, self.dropout)
         memory_mask = self.get_dropout_mask(summary_object_init, self.dropout)
         control_state_init = control_state_init * control_mask
-        summary_object_init= summary_object_init * memory_mask
+        summary_object_init = summary_object_init * memory_mask
 
         # initialize empty memory
         visual_working_memory = torch.zeros(
-            batch_size, self.slot ,self.dim).type(self.app_state.dtype)
+            batch_size, self.slot, self.dim).type(self.app_state.dtype)
 
         # initialize read head at first slot position
         write_head = torch.zeros(batch_size, self.slot).type(self.app_state.dtype)
@@ -201,7 +189,7 @@ class VWM(Model):
             control_state = control_state_init
 
             # image encoder
-            feature_maps= self.image_encoder(images[f])
+            feature_maps = self.image_encoder(images[f])
 
             # state history fo vizualisation
             self.VWM_cell.cell_history = []
@@ -229,8 +217,6 @@ class VWM(Model):
         :return: figure layout.
 
         """
-        import matplotlib
-        from matplotlib.figure import Figure
 
         params = {'axes.titlesize': 'large',
                   'axes.labelsize': 'large',
@@ -245,7 +231,7 @@ class VWM(Model):
         ######################################################################
         # Top: Header section.
         # Create a specific grid.
-        gs_header = matplotlib.gridspec.GridSpec(1, 8)
+        gs_header = GridSpec(1, 8)
         gs_header.update(wspace=0.00, hspace=1.00, bottom=0.9, top=0.901, left=0.05, right=0.95)
         _ = fig.add_subplot(gs_header[0, 0])
         _ = fig.add_subplot(gs_header[0, 1:5])
@@ -255,71 +241,71 @@ class VWM(Model):
         ######################################################################
         # Top-center: Question + time context section.
         # Create a specific grid.
-        gs_top = matplotlib.gridspec.GridSpec(1, 6)
+        gs_top = GridSpec(1, 6)
         gs_top.update(wspace=0.05, hspace=0.00, bottom=0.8, top=0.85, left=0.05, right=0.95)
         
         # Question with attention.
         ax_attention_question = fig.add_subplot(gs_top[0, 0:5], frameon=False)
-        ax_attention_question.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=25))
-        ax_attention_question.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
-        #ax_attention_question.set_xticklabels(25*[''], rotation=-45, fontsize=10)
+        ax_attention_question.xaxis.set_major_locator(ticker.MaxNLocator(nbins=25))
+        ax_attention_question.yaxis.set_major_locator(ticker.NullLocator())
+        # ax_attention_question.set_xticklabels(25*[''], rotation=-45, fontsize=10)
         ax_attention_question.set_title('Question')
 
         # Time gate ;)
         ax_context = fig.add_subplot(gs_top[0, 5])
-        ax_context.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
-        ax_context.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([0,1,2,3]))
+        ax_context.yaxis.set_major_locator(ticker.NullLocator())
+        ax_context.xaxis.set_major_locator(ticker.FixedLocator([0, 1, 2, 3]))
         ax_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'], rotation=-45, fontsize=14)
         ax_context.set_title('Time Context')
 
         ######################################################################
         # Bottom left: Image section.
         # Create a specific grid.
-        gs_bottom_left = matplotlib.gridspec.GridSpec(1, 2)
+        gs_bottom_left = GridSpec(1, 2)
         gs_bottom_left.update(wspace=0.1, hspace=0.0, bottom=0.1, top=0.7, left=0.05, right=0.46)
 
         # Image.
         ax_image = fig.add_subplot(gs_bottom_left[0, 0])
-        ax_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-        ax_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_image.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_image.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax_image.set_ylabel('Height [px]', fontsize=12)
         ax_image.set_xlabel('Width [px]', fontsize=12)
         ax_image.set_title('Image')
 
         # Attention over the image.
         ax_attention_image = fig.add_subplot(gs_bottom_left[0, 1])
-        ax_attention_image.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-        ax_attention_image.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax_attention_image.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax_attention_image.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax_attention_image.set_xlabel('Width [px]', fontsize=12)
         ax_attention_image.set_title('Visual Attention')
 
         ######################################################################
         # Bottom Center: gates section.
         # Create a specific grid - for gates.
-        gs_bottom_center = matplotlib.gridspec.GridSpec(2, 1)
+        gs_bottom_center = GridSpec(2, 1)
         gs_bottom_center.update(wspace=0.0, hspace=1, bottom=0.27, top=0.45, left=0.48, right=0.52)
 
         # Image gate.
         ax_image_match = fig.add_subplot(gs_bottom_center[0, 0])
-        ax_image_match.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
-        ax_image_match.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_image_match.xaxis.set_major_locator(ticker.NullLocator())
+        ax_image_match.yaxis.set_major_locator(ticker.NullLocator())
         ax_image_match.set_title('Image Match')
 
         # Image gate.
         ax_memory_match = fig.add_subplot(gs_bottom_center[1, 0])
-        ax_memory_match.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
-        ax_memory_match.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_memory_match.xaxis.set_major_locator(ticker.NullLocator())
+        ax_memory_match.yaxis.set_major_locator(ticker.NullLocator())
         ax_memory_match.set_title('Memory Match')
 
         ######################################################################
         # Bottom Right: Memory section.
         # Create a specific grid.
-        gs_bottom_right = matplotlib.gridspec.GridSpec(1, 10)
+        gs_bottom_right = GridSpec(1, 10)
         gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.1, top=0.7, left=0.54, right=0.95)
 
         # Read attention.
         ax_attention_history = fig.add_subplot(gs_bottom_right[0, 1])
-        ax_attention_history.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_attention_history.xaxis.set_major_locator(ticker.NullLocator())
         ax_attention_history.set_ylabel('Memory Addresses', fontsize=12)
         ax_attention_history.set_title('Read Head')
 
@@ -328,31 +314,34 @@ class VWM(Model):
         ax_visual_working_memory.set_xlabel('Memory Content', fontsize=12)
         ax_visual_working_memory.set_title('Working Memory')
 
-
         # Write attention.
         ax_wt = fig.add_subplot(gs_bottom_right[0, 9])
-        ax_wt.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
+        ax_wt.xaxis.set_major_locator(ticker.NullLocator())
         ax_wt.set_title('Write Head')
 
         # Lines between sections.
-        l1 = lines.Line2D([0, 1], [0.88, 0.88], transform=fig.transFigure, figure=fig, color='black')
-        l2 = lines.Line2D([0, 1], [0.73, 0.73], transform=fig.transFigure, figure=fig, color='black')
-        l3 = lines.Line2D([0.5, 0.5], [0.0, 0.25], transform=fig.transFigure, figure=fig, color='black')
-        l4 = lines.Line2D([0.5, 0.5], [0.49, 0.73], transform=fig.transFigure, figure=fig, color='black')
-        fig.lines.extend([l1, l2, l3,l4])
+        l1 = lines.Line2D([0, 1], [0.88, 0.88], transform=fig.transFigure,
+                          figure=fig, color='black')
+        l2 = lines.Line2D([0, 1], [0.73, 0.73], transform=fig.transFigure,
+                          figure=fig, color='black')
+        l3 = lines.Line2D([0.5, 0.5], [0.0, 0.25], transform=fig.transFigure,
+                          figure=fig, color='black')
+        l4 = lines.Line2D([0.5, 0.5], [0.49, 0.73], transform=fig.transFigure,
+                          figure=fig, color='black')
+        fig.lines.extend([l1, l2, l3, l4])
 
         # Set layout.
         # fig.set_tight_layout(True)
 
         return fig
 
-
     def plot(self, data_dict, logits, sample=0):
         """
         Visualize the attention weights (``ControlUnit`` & ``ReadUnit``) on the \
         question & feature maps. Dynamic visualization throughout the reasoning \
         steps is possible.
-        :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', \
+        :param data_dict: DataDict({'images','questions', 'questions_length',
+        'questions_string', 'questions_type', \
         'targets', 'targets_string', 'index', 'prediction_string'})
         :type data_dict: utils.DataDict
         :param logits: Prediction of the model.
@@ -382,7 +371,7 @@ class VWM(Model):
         question_words = s_questions[sample][0]
         words = nltk.word_tokenize(question_words)
 
-        color='plasma'
+        color = 'plasma'
 
         # get images dimensions
         width = images.size(3)
@@ -391,9 +380,9 @@ class VWM(Model):
         # get task name
         tasks = tasks[sample]
 
-        ###################### CLASSIFICATION VISUALIZATION ####################
+        # ##################### CLASSIFICATION VISUALIZATION ####################
 
-        if mask_pointing.sum()==0:
+        if mask_pointing.sum() == 0:
 
             # get prediction
             _, indices = torch.max(logits[0], 2)
@@ -407,25 +396,25 @@ class VWM(Model):
                 ax_attention_question, ax_context,
                 ax_image, ax_attention_image,
                 ax_image_match, ax_memory_match,
-                ax_attention_history, ax_visual_working_memory,ax_wt) = fig.axes
+                ax_attention_history, ax_visual_working_memory, ax_wt) = fig.axes
 
-            #initiate list of artists frames
+            # initiate list of artists frames
             frames = []
 
-            #loop over the sequence of frames
+            # loop over the sequence of frames
             for i in range(images.size(1)):
 
-                #get image sample
+                # get image sample
                 image = images[sample][i]/255
 
                 # needs [W x H x Channels] for Matplolib.imshow
                 image = image.permute(1, 2, 0)
 
-                #get answer and prediction strings
+                # get answer and prediction strings
                 pred = vocab[prediction[i]]
                 ans = s_answers[sample][i]
 
-                #loop over the k reasoning steps
+                # loop over the k reasoning steps
                 for (step, visual_attention, control_attention, visual_working_memory,
                      read_head, image_match, memory_match, write_head,
                      temporal_class_weights) in self.frame_history[i]:
@@ -443,7 +432,7 @@ class VWM(Model):
                     attention_mask = up_sample_attention_mask[sample, 0]
 
                     norm = matplotlib.pylab.Normalize(0, 1)
-                    #norm2 = matplotlib.pylab.Normalize(0, 4)
+                    # norm2 = matplotlib.pylab.Normalize(0, 4)
 
                     # Create "Artists" drawing data on "ImageAxes".
                     artists = []
@@ -454,37 +443,39 @@ class VWM(Model):
                     ax_header_left_labels.axis('off')
                     artists.append(ax_header_left_labels.text(
                         0, 1.0,
-                            'Question:         ' +
-                            '\nPredicted Answer: ' + 
-                            '\nGround Truth:     ',
+                        'Question:         ' +
+                        '\nPredicted Answer: ' +
+                        '\nGround Truth:     ',
                         fontsize=13))
                     ax_header_left.axis('off')
                     artists.append(ax_header_left.text(
                         0, 1.0,
-                            question_words +
-                            '\n' + pred +
-                            '\n' + ans,
+                        question_words +
+                        '\n' + pred +
+                        '\n' + ans,
                         fontsize=13, weight='bold'))
     
                     ax_header_right_labels.axis('off')
                     artists.append(ax_header_right_labels.text(
                         0, 1.0,
                         'Frame: ' +
-                            '\nReasoning Step:   ' +
-                            '\nQuestion Type:    ',
+                        '\nReasoning Step:   ' +
+                        '\nQuestion Type:    ',
                         fontsize=14))
                     ax_header_right.axis('off')
                     artists.append(ax_header_right.text(
                         0, 1.0,
                         str(i) +
-                            '\n' + str(step) +
-                            '\n' + tasks,
+                        '\n' + str(step) +
+                        '\n' + tasks,
                         fontsize=14, weight='bold'))
         
                     ######################################################################
                     # Top-center: Question + time context section.
                     # Set words for question attention.
-                    # ax_attention_question.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=len(words))) NOT WORKING AS number of ticks != number of cells! :]
+                    # ax_attention_question.xaxis.set_major_locator(
+                    # ticker.MaxNLocator(nbins=len(words)))
+                    # NOT WORKING AS number of ticks != number of cells! :]
                     ax_attention_question.set_xticklabels(['h'] + words, rotation=-45, fontsize=14)
 
                     artists.append(ax_attention_question.imshow(
@@ -530,11 +521,11 @@ class VWM(Model):
 
                     artists.append(ax_visual_working_memory.imshow(
                         visual_working_memory[sample], interpolation='nearest', aspect='auto',
-                        cmap=color, norm=norm ))
+                        cmap=color, norm=norm))
 
                     artists.append(ax_attention_history.imshow(
-                        read_head[sample][..., None], interpolation='nearest',cmap=color,
-                        norm=norm , aspect='auto'))
+                        read_head[sample][..., None], interpolation='nearest', cmap=color,
+                        norm=norm, aspect='auto'))
 
                     artists.append(ax_wt.imshow(
                         write_head[sample][..., None], interpolation='nearest', cmap=color,
@@ -550,9 +541,9 @@ class VWM(Model):
             print("Visualization for pointing NOT OPERATIONAL!")
             exit(-10)
 
-            ################### POINTING VISUALIZATION #######################
+            # ################## POINTING VISUALIZATION #######################
 
-            #get distribution
+            # get distribution
             softmax_pointing = nn.Softmax(dim=1)
             preds_pointing = softmax_pointing(logits[1])
 
@@ -571,19 +562,18 @@ class VWM(Model):
                 # get image sample
                 image = images[sample][i]
 
-                #needs [W x H x Channels] for Matplolib.imshow
+                # needs [W x H x Channels] for Matplolib.imshow
                 image = image.permute(1, 2, 0)/255
 
                 # loop over the k reasoning steps
                 for step, (attention_mask, control_attention) in zip(
                         range(self.max_step), self.frame_history[i]):
 
-
-
                     # upsample attention mask
-                    original_grid_size=7
-                    preds_pointing = preds_pointing.view(images.size(0),images.size(1),original_grid_size, -1)
-                    mm =torch.nn.Upsample(size=[width, height] , mode= 'bilinear')
+                    original_grid_size = 7
+                    preds_pointing = preds_pointing.view(
+                        images.size(0), images.size(1), original_grid_size, -1)
+                    mm = torch.nn.Upsample(size=[width, height], mode='bilinear')
                     up_sample_preds_pointing = mm(preds_pointing)
                     up_sample_preds_pointing = up_sample_preds_pointing[sample][i]
 
@@ -628,8 +618,7 @@ class VWM(Model):
             # Plot figure and list of frames.
             self.plotWindow.update(fig, frames)
 
-        #return self.plotWindow.is_closed
-
+        # return self.plotWindow.is_closed
 
     def get_dropout_mask(self, x, dropout):
         """
