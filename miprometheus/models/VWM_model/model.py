@@ -269,7 +269,7 @@ class VWM(Model):
         ax_context = fig.add_subplot(gs_top[0, 5])
         ax_context.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
         ax_context.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([0,1,2,3]))
-        ax_context.set_xticklabels(['Now','Last','Latest','None'], rotation=-45, fontsize=14)
+        ax_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'], rotation=-45, fontsize=14)
         ax_context.set_title('Time Context')
 
         ######################################################################
@@ -492,8 +492,10 @@ class VWM(Model):
                         aspect='auto', cmap=color, norm=norm))
 
                     # Time context.
+                    # temporal_class_weights hs them in order now, last, latest, none
+                    # visualization in different order last, latest, now, none
                     artists.append(ax_context.imshow(
-                        temporal_class_weights[sample], interpolation='nearest',
+                        temporal_class_weights[[[sample]], [[1, 2, 0, 3]]], interpolation='nearest',
                         cmap=color, norm=norm, aspect='auto'))
     
                     ######################################################################

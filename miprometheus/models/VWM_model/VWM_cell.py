@@ -123,7 +123,7 @@ class VWMCell(Module):
             cell_info = [x.detach() for x in [
                 visual_attention, control_attention, new_visual_working_memory,
                 read_head, image_match, memory_match, new_write_head,
-                temporal_class_weights.unsqueeze(1)]]
+                temporal_class_weights]]
 
             cell_info.insert(0, step)
 
