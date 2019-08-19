@@ -492,7 +492,7 @@ class VWM(Model):
                         aspect='auto', cmap=color, norm=norm))
 
                     # Time context.
-                    # temporal_class_weights hs them in order now, last, latest, none
+                    # temporal_class_weights given by order now, last, latest, none
                     # visualization in different order last, latest, now, none
                     artists.append(ax_context.imshow(
                         temporal_class_weights[[[sample]], [[1, 2, 0, 3]]], interpolation='nearest',
