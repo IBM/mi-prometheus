@@ -72,16 +72,7 @@ class ReasoningUnit(Module):
         valid_mo = self.memory_object_validator(concat_read_memory)
         valid_mo = valid_mo.squeeze(-1)
 
-        do_replace, do_add_new, image_match, memory_match = ReasoningUnit.eval_predicate(
-            temporal_class_weights, valid_vo, valid_mo)
-
-        return image_match, memory_match, do_replace, do_add_new
-
-    @staticmethod
-    def eval_predicate(temporal_class_weights, valid_vo, valid_mo):
-
-        # get t_now,t_last,t_latest,t_none from temporal_class_weights
-        # corresponds to now, last, latest, or none
+        # get t_now, t_last, t_latest, t_none from temporal_class_weights
         t_now = temporal_class_weights[:, 0]
         t_last = temporal_class_weights[:, 1]
         t_latest = temporal_class_weights[:, 2]
@@ -95,13 +86,13 @@ class ReasoningUnit(Module):
         do_add_new = (1 - valid_mo) * valid_vo * (t_last + t_latest) * (1 - t_none)
 
         # (now or latest) and valid visual object?
-        is_visual = (t_now + t_latest) * valid_vo
+        image_match = (t_now + t_latest) * valid_vo
         # optional extra check that it is neither last nor none
-        # is_visual = is_visual * (1 - t_last) * (1 - t_none)
+        # image_match = image_match * (1 - t_last) * (1 - t_none)
 
         # (now or (latest and (not valid visual object))) and valid memory object?
-        is_mem = (t_last + t_latest * (1 - valid_vo)) * valid_mo
+        memory_match = (t_last + t_latest * (1 - valid_vo)) * valid_mo
         # optional extra check that it is neither now nor none
-        # is_mem = is_mem * (1 - t_now) * (1 - t_none)
+        # memory_match = memory_match * (1 - t_now) * (1 - t_none)
 
-        return do_replace, do_add_new, is_visual, is_mem
+        return image_match, memory_match, do_replace, do_add_new
