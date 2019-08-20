@@ -66,8 +66,8 @@ class AttentionModule(Module):
 
         assert query.size(-1) == self.dim, 'Dimension mismatch in query'
         assert keys.size(-1) == self.dim, 'Dimension mismatch in keys'
-        assert values.size(-2) == keys.size(-2),\
-            'Number of entities mismatch between keys and values'
+        assert values.size(-2) == keys.size(-2), (
+            'Number of entities mismatch between keys and values')
 
         # compute element-wise weighted product between query and keys
         # and normalize them

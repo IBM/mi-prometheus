@@ -31,11 +31,14 @@ class InteractionModule(Module):
     Implementation of the ``Interaction Unit`` of the VWM network.
     """
 
-    def __init__(self, dim):
+    def __init__(self, dim, do_project=True):
         """
         Constructor for the ``InteractionModule``.
         :param dim: dimension of feature vectors
         :type dim: int
+
+        :param do_project: flag indicating whether we need to project the keys
+        :type do_project: Boolean
         """
 
         # call base constructor
@@ -45,27 +48,38 @@ class InteractionModule(Module):
         self.base_object_proj_layer = linear(dim, dim, bias=True)
 
         # linear layer for the projection of the keys
-        self.feature_objects_proj_layer = linear(dim, dim, bias=True)
+        if do_project:
+            self.feature_objects_proj_layer = linear(dim, dim, bias=True)
 
-        # linear layer to define I'(i,h,w) elements
+        self.do_project = do_project
+
+        # linear layer to define the modulation of feature objects by base object
         self.modifier = linear(2 * dim, dim, bias=True)
 
-    def forward(self, base_object, feature_objects):
+    def forward(self, base_object, feature_objects, feature_objects_proj=None):
         """
         Forward pass of the ``InteractionModule``.
 
         :param base_object: query [batch_size x dim]
         :param  feature_objects: [batch_size x num_objects x dim]
+        :param  feature_objects_proj: [batch_size x num_objects x dim]
 
         :return: feature_objects_modified [batch_size x num_objects x dim]
         """
+
+        if self.do_project:
+            assert feature_objects_proj is None
+        else:
+            assert feature_objects.size() == feature_objects_proj.size(), (
+                'Shape mismatch between feature_objects and feature_objects_proj')
 
         # pass query object through linear layer
         base_object_proj = self.base_object_proj_layer(base_object)
         # [batch_size x dim]
 
         # pass feature_objects through linear layer
-        feature_objects_proj = self.feature_objects_proj_layer(feature_objects)
+        if self.do_project:
+            feature_objects_proj = self.feature_objects_proj_layer(feature_objects)
         # [batch_size x num_objects x dim]
 
         # modify the projected feature objects using the projected base object

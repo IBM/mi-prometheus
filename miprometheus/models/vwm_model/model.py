@@ -34,6 +34,7 @@ import matplotlib.ticker as ticker
 import matplotlib.lines as lines
 
 from miprometheus.models.model import Model
+from miprometheus.models.vwm_model.utils_VWM import linear
 import numpy as numpy
 import torch.nn as nn
 
@@ -105,6 +106,9 @@ class VWM(Model):
 
         # instantiate units
         self.image_encoder = ImageEncoder(dim=self.dim)
+
+        # linear layer for the projection of image features
+        self.feature_maps_proj_layer = linear(self.dim, self.dim, bias=True)
 
         # initialize VWM Cell
         self.VWM_cell = VWMCell(dim=self.dim)
@@ -198,6 +202,7 @@ class VWM(Model):
 
             # image encoder
             feature_maps = self.image_encoder(images[f])
+            feature_maps_proj = self.feature_maps_proj_layer(feature_maps)
 
             # state history fo vizualisation
             self.VWM_cell.cell_history = []
@@ -206,7 +211,7 @@ class VWM(Model):
             for step in range(self.max_step):
 
                 summary_object, visual_working_memory, write_head = self.VWM_cell(
-                    control_history[step], feature_maps,
+                    control_history[step], feature_maps, feature_maps_proj,
                     summary_object, visual_working_memory, write_head)
 
             # save state history

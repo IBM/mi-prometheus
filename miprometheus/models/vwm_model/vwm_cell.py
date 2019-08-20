@@ -20,7 +20,6 @@ vwm_cell.py: Implementation of the VWM Cell for the VWM network.
 """
 __author__ = "Vincent Albouy, T.S. Jayram"
 
-import torch
 from torch.nn import Module
 
 from miprometheus.models.vwm_model.visual_retrieval_unit import VisualRetrievalUnit
@@ -55,13 +54,9 @@ class VWMCell(Module):
         self.reasoning_unit = ReasoningUnit(dim)
         self.summary_unit = SummaryUpdateUnit(dim)
 
-        # initialize hidden states
-        # self.mem_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
-        # self.control_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
-
         self.cell_history = []
 
-    def forward(self, control_all, feature_maps,
+    def forward(self, control_all, feature_maps, feature_maps_proj,
                 summary_object, visual_working_memory, write_head):
 
         """
@@ -72,6 +67,9 @@ class VWMCell(Module):
         :type control_all: tuple
 
         :param feature_maps: feature maps (feature maps extracted by a CNN)
+        [batch_size x nb_kernels x (feat_H * feat_W)].
+
+        :param feature_maps_proj: linear projection of feature maps
         [batch_size x nb_kernels x (feat_H * feat_W)].
 
         :param summary_object:  recurrent [batch_size x dim]
@@ -87,7 +85,7 @@ class VWMCell(Module):
 
         # visual retrieval unit, obtain visual output and visual attention
         visual_object, visual_attention = self.visual_retrieval_unit(
-            summary_object, feature_maps, control_state)
+            summary_object, feature_maps, feature_maps_proj, control_state)
 
         # memory retrieval unit, obtain memory output and memory attention
         memory_object, read_head = self.memory_retrieval_unit(

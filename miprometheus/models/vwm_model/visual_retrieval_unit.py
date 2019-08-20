@@ -45,25 +45,27 @@ class VisualRetrievalUnit(Module):
         super(VisualRetrievalUnit, self).__init__()
 
         # instantiate interaction module
-        self.interaction_module = InteractionModule(dim)
+        self.interaction_module = InteractionModule(dim, do_project=False)
 
         # instantiate attention module
         self.attention_module = AttentionModule(dim)
 
-    def forward(self, summary_object, feature_maps, control_state):
+    def forward(self, summary_object, feature_maps, feature_maps_proj, control_state):
         """
         Forward pass of the ``VisualRetrievalUnit``. Assuming 1 scalar attention weight per \
         knowledge base elements.
 
         :param summary_object:  previous summary object [batch_size x dim]
         :param feature_maps: image representation (output of CNN)  [batch_size x (H*W) x dim]
+        :param feature_maps_proj: [batch_size x num_objects x dim]
         :param control_state:  previous control state [batch_size x dim].
 
         :return: visual_object [batch_size x dim]
         :return: visual_attention [batch_size x (H*W)]
 
         """
-        feature_maps_modified = self.interaction_module(summary_object, feature_maps)
+        feature_maps_modified = self.interaction_module(
+            summary_object, feature_maps, feature_maps_proj)
 
         # compute attention weights
         visual_object, visual_attention = self.attention_module(
