@@ -38,6 +38,7 @@ import numpy as numpy
 import torch.nn as nn
 
 from miprometheus.models.vwm_model.question_encoder import QuestionEncoder
+from miprometheus.models.vwm_model.question_driven_controller import QuestionDrivenController
 from miprometheus.models.vwm_model.image_encoder import ImageEncoder
 from miprometheus.models.vwm_model.vwm_cell import VWMCell
 from miprometheus.models.vwm_model.output_unit import OutputUnit
@@ -100,14 +101,13 @@ class VWM(Model):
         self.question_encoder = QuestionEncoder(
             self.vocabulary_size, dim=self.dim, embedded_dim=self.embed_hidden)
 
+        self.question_driven_controller = QuestionDrivenController(self.dim, self.max_step)
+
         # instantiate units
-        self.image_encoder = ImageEncoder(
-            dim=self.dim)
+        self.image_encoder = ImageEncoder(dim=self.dim)
 
         # initialize VWM Cell
-        self.VWM_cell = VWMCell(
-            dim=self.dim,
-            max_step=self.max_step)
+        self.VWM_cell = VWMCell(dim=self.dim)
 
         # Create two separate output units.
         self.output_unit_answer = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
@@ -181,12 +181,20 @@ class VWM(Model):
         contextual_words, question_encoding = self.question_encoder(
             questions, questions_length)
 
+        control_state = control_state_init
+        control_history = []
+
+        for step in range(self.max_step):
+            control_state, *control_other = self.question_driven_controller(
+                step, contextual_words, question_encoding, control_state)
+
+            control_history.append((control_state, *control_other, step))
+
         # Loop over all elements along the SEQUENCE dimension.
         for f in range(images.size(0)):
 
             # RESET OF CONTROL and SUMMARY OBJECT
             summary_object = summary_object_init
-            control_state = control_state_init
 
             # image encoder
             feature_maps = self.image_encoder(images[f])
@@ -196,9 +204,10 @@ class VWM(Model):
 
             # recurrent VWM cells
             for step in range(self.max_step):
-                control_state, summary_object, visual_working_memory, write_head = self.VWM_cell(
-                    step, contextual_words, question_encoding, feature_maps,
-                    control_state, summary_object, visual_working_memory, write_head)
+
+                summary_object, visual_working_memory, write_head = self.VWM_cell(
+                    control_history[step], feature_maps,
+                    summary_object, visual_working_memory, write_head)
 
             # save state history
             self.frame_history.append(self.VWM_cell.cell_history)
