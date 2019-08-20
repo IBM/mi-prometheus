@@ -60,10 +60,6 @@ class VWMCell(Module):
         self.reasoning_unit = ReasoningUnit(dim)
         self.summary_unit = SummaryUpdateUnit(dim)
 
-        # initialize hidden states
-        self.mem_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
-        self.control_0 = torch.nn.Parameter(torch.zeros(1, dim).type(app_state.dtype))
-
         self.cell_history = []
 
     def forward(self, step, contextual_words, question_encoding, feature_maps,
