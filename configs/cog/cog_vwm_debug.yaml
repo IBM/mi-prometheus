@@ -1,0 +1,47 @@
+# Load the COG config first.
+default_configs:
+  configs/cog/default_cog.yaml
+
+model:
+  name: VWM
+  dim: 128
+  embed_hidden: 64
+  max_step: 12
+  slot : 8
+  classes : 49
+  words_embed_length : 64
+  nwords : 24
+  self_attention: False
+  memory_gate: False
+  dropout: 0.15
+  memory_pass: False
+  control_pass: False
+
+training:
+  # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0
+    problem:
+      batch_size: &batch_size 1
+      tasks: &tasks [AndCompareColor]
+    dataloader: &dataloader
+      shuffle: False
+      num_workers: 0
+
+validation:
+  # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0
+    problem:
+      batch_size: *batch_size
+      tasks: *tasks
+    dataloader: *dataloader
+
+testing:
+  # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0
+    problem:
+      batch_size: *batch_size
+      tasks: *tasks
+    dataloader: *dataloader

@@ -4,15 +4,14 @@ training:
     name: &name COG
     # Size of generated input: [batch_size x sequence_length x classes].
     batch_size: &batch_size 48
-#    tasks: &tasks [AndCompareColor, AndCompareShape , AndSimpleCompareColor,
-#            AndSimpleCompareShape, CompareColor, CompareShape, Exist,
-#            ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape,
-#            ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape,
-#            ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace,
-#            GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
-    tasks: &tasks [AndCompareColor]
+    tasks: &tasks [AndCompareColor, AndCompareShape , AndSimpleCompareColor,
+            AndSimpleCompareShape, CompareColor, CompareShape, Exist,
+            ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape,
+            ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape,
+            ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace,
+            GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
     data_folder: &data_folder '~/data/cog'
-    set: val
+    set: train
     use_mask: &use_mask False
     dataset_type: &dataset_type canonical
   # Set optimizer.
