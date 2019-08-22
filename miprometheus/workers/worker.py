@@ -445,7 +445,7 @@ class Worker(object):
         acc_values = stat_col['acc']
 
         # Calculate default aggregates.
-        stat_agg.aggregators['loss'] = torch.mean(torch.tensor(acc_values))
+        stat_agg.aggregators['acc'] = torch.mean(torch.tensor(acc_values))
         stat_agg.aggregators['loss'] = torch.mean(torch.tensor(loss_values))
         stat_agg.aggregators['loss_min'] = min(loss_values)
         stat_agg.aggregators['loss_max'] = max(loss_values)
