@@ -410,7 +410,8 @@ class Worker(object):
 
         # Add default statistical aggregators for the loss (indicating a formatting).
         # Represents the average loss, but stying with loss for TensorBoard "variable compatibility".
-        stat_agg.add_aggregator('loss', '{:12.10f}')  
+        stat_agg.add_aggregator('loss', '{:12.10f}')
+        stat_agg.add_aggregator('acc', '{:12.10f}')
         stat_agg.add_aggregator('loss_min', '{:12.10f}')
         stat_agg.add_aggregator('loss_max', '{:12.10f}')
         stat_agg.add_aggregator('loss_std', '{:12.10f}')
@@ -441,8 +442,10 @@ class Worker(object):
 
         # Get loss values.
         loss_values = stat_col['loss']
+        acc_values = stat_col['acc']
 
         # Calculate default aggregates.
+        stat_agg.aggregators['acc'] = torch.mean(torch.tensor(acc_values))
         stat_agg.aggregators['loss'] = torch.mean(torch.tensor(loss_values))
         stat_agg.aggregators['loss_min'] = min(loss_values)
         stat_agg.aggregators['loss_max'] = max(loss_values)

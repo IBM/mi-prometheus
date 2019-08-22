@@ -276,6 +276,11 @@ class OfflineTrainer(Trainer):
 
                         # Do not save the model: OfflineTrainer uses the full set to determine whether to save or not.
 
+                        # Violating above rule for now
+                        # Save the model using the latest validation statistics.
+                        self.model.save(self.model_dir, training_status, self.training_stat_col,
+                                        self.validation_stat_col)
+
                     # III. The episodes number limit has been reached.
                     if episode+1 >= self.episode_limit:
                         training_status = "Not converged: Episode Limit reached"
