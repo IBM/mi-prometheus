@@ -16,3 +16,4 @@ model:
   dropout: 0.15
   memory_pass: False
   control_pass: False
+  save_intermediate: True
