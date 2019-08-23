@@ -31,7 +31,7 @@
 
 """cog.py: Implementation of Google's COG dataset. https://arxiv.org/abs/1803.06092"""
 
-__author__ = "Emre Sevgen, Tomasz Kornuta"
+__author__ = "Emre Sevgen, Tomasz Kornuta, Vincent Albouy"
 
 import torch
 import torch.nn as nn
@@ -827,24 +827,14 @@ class COG(VideoTextToClassProblem):
 		stat_col['acc_answer'] = acc_answer
 		stat_col['acc_pointing'] = acc_pointing
 
-		# Families Accuracies
-	#	categories = ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
-          #                                         'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
-         #                                          'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
-        #                                           'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
-       #                                            'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
-      #                                             'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape',
-     #                                              'AndSimpleExistColorGo', 'AndSimpleExistGo', 'AndSimpleExistShapeGo', 'CompareColorGo',
-    #                                               'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
-   #                                                'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
-  #                                                 'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
- #                                                  'SimpleExistGo', 'SimpleExistShapeGo']
-#		tuple_list = [[0, 0, 0] for _ in range(len(self.categories))]
-#		categories_stats = dict(zip(categories, tuple_list))
-		self.categories_stats = self.get_acc_per_family(data_dict, logits, self.categories_stats)
-		for key in self.categories_stats:
-			stat_col[key] = self.categories_stats[key][2]
-#		print(self.categories_stats)
+
+		categories = self.categories_stats
+		categories = self.get_acc_per_family(data_dict, logits, categories)
+		for key in categories:
+			stat_col[key] = categories[key][2]
+
+
+
 
 
 
