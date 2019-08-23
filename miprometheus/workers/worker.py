@@ -410,8 +410,8 @@ class Worker(object):
 
         # Add default statistical aggregators for the loss (indicating a formatting).
         # Represents the average loss, but stying with loss for TensorBoard "variable compatibility".
-        stat_agg.add_aggregator('loss', '{:12.10f}') 
-        stat_agg.add_aggregator('acc', '{:12.10f}') 
+        stat_agg.add_aggregator('loss', '{:12.10f}')
+        stat_agg.add_aggregator('acc', '{:12.10f}')
         stat_agg.add_aggregator('loss_min', '{:12.10f}')
         stat_agg.add_aggregator('loss_max', '{:12.10f}')
         stat_agg.add_aggregator('loss_std', '{:12.10f}')
