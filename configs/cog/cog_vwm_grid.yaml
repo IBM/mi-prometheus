@@ -7,7 +7,7 @@ grid_tasks:
 
 grid_settings:
   # Set number of repetitions of each experiments.
-  experiment_repetitions: 5
+  experiment_repetitions: 10
   # Set number of concurrent running experiments (will be limited by the actual number of available CPUs/GPUs).
   max_concurrent_runs: 7
   # Set trainer.
