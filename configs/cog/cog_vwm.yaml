@@ -6,13 +6,11 @@ model:
   name: VWM
   dim: 128
   embed_hidden: 64
-  max_step: 12
+  max_step: 16
   slot : 8
   classes : 49
   words_embed_length : 64
   nwords : 24
-  self_attention: False
-  memory_gate: False
   dropout: 0.15
-  memory_pass: False
-  control_pass: False
+  save_intermediate: True
+
