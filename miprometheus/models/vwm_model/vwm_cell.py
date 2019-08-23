@@ -61,6 +61,9 @@ class VWMCell(Module):
         self.summary_unit = SummaryUpdateUnit(dim)
 
         self.cell_history = []
+        self.mem_0 = torch.nn.Parameter(torch.zeros(1, dim))
+        self.control_0 = torch.nn.Parameter(
+            torch.zeros(1, dim))
 
     def forward(self, step, contextual_words, question_encoding, feature_maps,
                 control_state, summary_object, visual_working_memory, write_head):
