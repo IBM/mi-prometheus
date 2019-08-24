@@ -14,3 +14,7 @@ model:
   dropout: 0.15
   save_intermediate: True
 
+
+validation:
+  problem:
+    batch_size: 400

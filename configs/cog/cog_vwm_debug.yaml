@@ -25,7 +25,7 @@ validation:
   seed_numpy: 0
 
   problem:
-    batch_size: 1
+    batch_size: 400
     tasks: *tasks
 
   dataloader: *dataloader
