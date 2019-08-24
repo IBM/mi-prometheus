@@ -90,7 +90,7 @@ class ReasoningUnit(Module):
         # optional extra check that it is neither last nor none
         # image_match = image_match * (1 - t_last) * (1 - t_none)
 
-        # (now or (latest and (not valid visual object))) and valid memory object?
+        # (last or (latest and (not valid visual object))) and valid memory object?
         memory_match = (t_last + t_latest * (1 - valid_vo)) * valid_mo
         # optional extra check that it is neither now nor none
         # memory_match = memory_match * (1 - t_now) * (1 - t_none)
