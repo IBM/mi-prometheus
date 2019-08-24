@@ -829,7 +829,8 @@ class COG(VideoTextToClassProblem):
 
 
 		#categories = self.categories_stats
-		categories = self.get_acc_per_family(data_dict, logits, self.categories_stats)
+		categories = dict(zip(self.categories, self.tuple_list))
+		categories = self.get_acc_per_family(data_dict, logits, categories)
 		for key in categories:
 			stat_col[key] = categories[key][2]
 
