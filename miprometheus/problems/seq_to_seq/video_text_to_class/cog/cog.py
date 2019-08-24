@@ -828,8 +828,8 @@ class COG(VideoTextToClassProblem):
 		stat_col['acc_pointing'] = acc_pointing
 
 
-		categories = self.categories_stats
-		categories = self.get_acc_per_family(data_dict, logits, categories)
+		#categories = self.categories_stats
+		categories = self.get_acc_per_family(data_dict, logits, self.categories_stats)
 		for key in categories:
 			stat_col[key] = categories[key][2]
 
