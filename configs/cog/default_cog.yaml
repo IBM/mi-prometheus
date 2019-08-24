@@ -4,13 +4,13 @@ training:
     name: &name COG
     # Size of generated input: [batch_size x sequence_length x classes].
     batch_size: &batch_size 48
-#    tasks: &tasks [AndCompareColor, AndCompareShape , AndSimpleCompareColor,
-#            AndSimpleCompareShape, CompareColor, CompareShape, Exist,
-#            ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape,
-#            ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape,
-#            ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace,
-#            GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
-    tasks: &tasks [AndCompareColor]
+    tasks: &tasks [AndCompareColor, AndCompareShape , AndSimpleCompareColor,
+            AndSimpleCompareShape, CompareColor, CompareShape, Exist,
+            ExistColor, ExistColorOf, ExistColorSpace, ExistLastColorSameShape,
+            ExistLastObjectSameObject, ExistLastShapeSameColor, ExistShape,
+            ExistShapeOf, ExistShapeSpace, ExistSpace, GetColor, GetColorSpace,
+            GetShape, GetShapeSpace, SimpleCompareColor, SimpleCompareShape]
+#    tasks: &tasks [AndCompareColor]
     data_folder: &data_folder '~/data/cog'
     set: val
     use_mask: &use_mask False
@@ -26,7 +26,7 @@ training:
     episodes: 100000000
 
 validation:
-  partial_validation_interval: 10
+  partial_validation_interval: 200
   problem:
     name: *name
     # Size of generated input: [batch_size x sequence_length x classes].
