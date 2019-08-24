@@ -25,11 +25,11 @@ training:
     episodes: 100000000
 
 validation:
-  partial_validation_interval: 100
+  partial_validation_interval: 200
   problem:
     name: *name
     # Size of generated input: [batch_size x sequence_length x classes].
-    batch_size: *batch_size
+    batch_size: 192
     tasks: *tasks
     data_folder: *data_folder
     set: val

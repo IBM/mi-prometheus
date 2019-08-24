@@ -2,36 +2,42 @@
 default_configs:
   configs/cog/cog_vwm.yaml
 
-model:
-  save_intermediate: True
-
 training:
   # fix the seeds
-    seed_torch: 0
-    seed_numpy: 0
-    problem:
-      batch_size: &batch_size 1
-      tasks: &tasks [AndCompareColor]
-      set: val
-    dataloader: &dataloader
-      shuffle: False
-      num_workers: 0
+  seed_torch: 0
+  seed_numpy: 0
+
+  problem:
+    batch_size: 1
+    tasks: &tasks [AndCompareColor]
+    set: val
+
+  dataloader: &dataloader
+    shuffle: False
+    num_workers: 0
+
 
 validation:
+  partial_validation_interval: 1
+
   # fix the seeds
-    seed_torch: 0
-    seed_numpy: 0
-    problem:
-      batch_size: *batch_size
-      tasks: *tasks
-    dataloader: *dataloader
+  seed_torch: 0
+  seed_numpy: 0
+
+  problem:
+    batch_size: 1
+    tasks: *tasks
+
+  dataloader: *dataloader
+
 
 testing:
   # fix the seeds
-    seed_torch: 0
-    seed_numpy: 0
-    problem:
-      batch_size: 48
-      tasks: *tasks
-      set: val
-    dataloader: *dataloader
+  seed_torch: 0
+  seed_numpy: 0
+
+  problem:
+    batch_size: 48
+    tasks: *tasks
+
+  dataloader: *dataloader

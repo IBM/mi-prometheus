@@ -31,7 +31,7 @@
 
 """cog.py: Implementation of Google's COG dataset. https://arxiv.org/abs/1803.06092"""
 
-__author__ = "Emre Sevgen, Tomasz Kornuta"
+__author__ = "Emre Sevgen, Tomasz Kornuta, Vincent Albouy"
 
 import torch
 import torch.nn as nn
@@ -243,7 +243,7 @@ class COG(VideoTextToClassProblem):
 
 
 		self.tuple_list = [[0,0,0] for _ in range(len(self.categories))]
-
+		self.categories_stats = dict(zip(self.categories, self.tuple_list))
 
 	def evaluate_loss(self, data_dict, logits):
 		"""
@@ -827,14 +827,12 @@ class COG(VideoTextToClassProblem):
 		stat_col['acc_answer'] = acc_answer
 		stat_col['acc_pointing'] = acc_pointing
 
-		# Families Accuracies
-		families_accuracies_dic = self.get_acc_per_family(data_dict, logits)
 
-		for key in families_accuracies_dic:
-			stat_col[key] = families_accuracies_dic[key][2]
+		categories_dic = self.get_acc_per_family(data_dict, logits)
+		for key in categories_dic:
+			stat_col[key] = categories_dic[key][2]
 
-
-
+		# print(categories_dic)
 
 
 
