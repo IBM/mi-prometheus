@@ -396,7 +396,7 @@ class COG(VideoTextToClassProblem):
 
 
 
-	def get_acc_per_family(self, data_dict, logits, categories_stats):
+	def get_acc_per_family(self, data_dict, logits):
 		"""
 		Compute the accuracy per family for the current batch. Also accumulates
 		the number of correct predictions & questions per family in self.correct_pred_families (saved
@@ -425,20 +425,20 @@ class COG(VideoTextToClassProblem):
 
 
 
-		#categories = ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
-		#				   'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
-		#				   'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
-		#				   'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
-		#				   'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
-		#				   'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape',
-		#				   'AndSimpleExistColorGo', 'AndSimpleExistGo', 'AndSimpleExistShapeGo', 'CompareColorGo',
-		#				   'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
-		#				   'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
-		#				   'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
-		#				   'SimpleExistGo', 'SimpleExistShapeGo']
+		categories = ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
+						   'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
+						   'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
+						   'ExistLastObjectSameObject', 'ExistLastShapeSameColor', 'ExistShape',
+						   'ExistShapeOf', 'ExistShapeSpace', 'ExistSpace', 'GetColor', 'GetColorSpace',
+						   'GetShape', 'GetShapeSpace', 'SimpleCompareColor', 'SimpleCompareShape',
+						   'AndSimpleExistColorGo', 'AndSimpleExistGo', 'AndSimpleExistShapeGo', 'CompareColorGo',
+						   'CompareShapeGo', 'ExistColorGo', 'ExistColorSpaceGo', 'ExistGo', 'ExistShapeGo',
+						   'ExistShapeSpaceGo', 'ExistSpaceGo', 'Go', 'GoColor', 'GoColorOf', 'GoShape',
+						   'GoShapeOf', 'SimpleCompareColorGo', 'SimpleCompareShapeGo', 'SimpleExistColorGo',
+						   'SimpleExistGo', 'SimpleExistShapeGo']
 
-		#tuple_list = [[0, 0, 0] for _ in range(len(self.categories))]
-		#categories_stats = dict(zip(categories, tuple_list))
+		tuple_list = [[0, 0, 0] for _ in range(len(self.categories))]
+		categories_stats = dict(zip(categories, tuple_list))
 
 
 		#Get tasks
@@ -828,19 +828,11 @@ class COG(VideoTextToClassProblem):
 		stat_col['acc_pointing'] = acc_pointing
 
 
-		#categories = self.categories_stats
-		categories = dict(zip(self.categories, self.tuple_list))
-		categories_dic = self.get_acc_per_family(data_dict, logits, categories)
-		for key in categories:
-			stat_col[key] = categories[key][2]
+		categories_dic = self.get_acc_per_family(data_dict, logits)
+		for key in categories_dic:
+			stat_col[key] = categories_dic[key][2]
 
 		print(categories_dic)
-
-
-
-
-
-
 
 
 
