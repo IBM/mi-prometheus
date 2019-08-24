@@ -833,7 +833,7 @@ class COG(VideoTextToClassProblem):
 		for key in categories:
 			stat_col[key] = categories[key][2]
 
-		#print(categories)
+		print(categories)
 
 
 
