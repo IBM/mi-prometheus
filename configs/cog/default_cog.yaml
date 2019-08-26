@@ -23,6 +23,7 @@ training:
   terminal_conditions:
     epoch_limit: 40
     episodes: 100000000
+    episode_limit: 100000000
 
 validation:
   partial_validation_interval: 200
