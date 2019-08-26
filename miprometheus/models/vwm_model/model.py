@@ -113,7 +113,7 @@ class VWM(Model):
         self.output_unit_answer = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
 
         # initialize hidden states for mac cell control states and memory states
-        self.summary_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(self.app_state.dtype))
+        self.mem_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(self.app_state.dtype))
         self.control_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(self.app_state.dtype))
 
         self.dropout_layer = torch.nn.Dropout(self.dropout_param)
@@ -163,7 +163,7 @@ class VWM(Model):
         control_state_init = self.control_0.expand(batch_size, -1)
         control_state_init = self.dropout_layer(control_state_init)
 
-        summary_object_init = self.summary_0.expand(batch_size, -1)
+        summary_object_init = self.mem_0.expand(batch_size, -1)
         summary_object_init = self.dropout_layer(summary_object_init)
 
         # initialize empty memory
