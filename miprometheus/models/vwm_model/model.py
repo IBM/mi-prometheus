@@ -74,7 +74,7 @@ class VWM(Model):
         self.dim = params['dim']
         self.embed_hidden = params['embed_hidden']  # embedding dimension
         self.max_step = params['max_step']
-        self.dropout = params['dropout']
+        self.dropout_param = params['dropout']
         self.slot = params['slot']
         self.nb_classes_pointing = params['classes']
         self.words_embed_length = params['words_embed_length']
@@ -113,13 +113,14 @@ class VWM(Model):
         self.output_unit_answer = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
 
         # initialize hidden states for mac cell control states and memory states
-        self.mem_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(self.app_state.dtype))
-        self.control_0 = torch.nn.Parameter(
-            torch.zeros(1, self.dim).type(self.app_state.dtype))
+        self.summary_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(self.app_state.dtype))
+        self.control_0 = torch.nn.Parameter(torch.zeros(1, self.dim).type(self.app_state.dtype))
+
+        self.dropout_layer = torch.nn.Dropout(self.dropout_param)
 
         self.frame_history = []
 
-    def forward(self, data_dict, dropout=0.15):
+    def forward(self, data_dict):
         """
         Forward pass of the ``VWM`` network. Calls first the
         ``ImageEncoder, QuestionEncoder``, then the recurrent
@@ -127,9 +128,6 @@ class VWM(Model):
 
         :param data_dict: input data batch.
         :type data_dict: utils.DataDict
-
-        :param dropout: dropout rate.
-        :type dropout: float
 
         :return: Predictions of the model.
         """
@@ -154,22 +152,23 @@ class VWM(Model):
 
         # Create placeholders for logits.
         logits_answer = torch.zeros(
-            (batch_size, seq_len, self.nb_classes), requires_grad=False).type(self.dtype)
-        logits_pointing = torch.zeros(
-            (batch_size, seq_len, self.nb_classes_pointing), requires_grad=False).type(self.dtype)
+            (batch_size, seq_len, self.nb_classes),
+            requires_grad=False).type(self.dtype)
 
-        # expand the hidden states to whole batch for mac cell control_state_init states and
-        # memory states
-        control_state_init = self.control_0.expand(batch_size, self.dim)
-        summary_object_init = self.mem_0.expand(batch_size, self.dim)
-        control_mask = self.get_dropout_mask(control_state_init, self.dropout)
-        memory_mask = self.get_dropout_mask(summary_object_init, self.dropout)
-        control_state_init = control_state_init * control_mask
-        summary_object_init = summary_object_init * memory_mask
+        logits_pointing = torch.zeros(
+            (batch_size, seq_len, self.nb_classes_pointing),
+            requires_grad=False).type(self.dtype)
+
+        # Apply dropout to VWM cell control_state_init states and summary object states
+        control_state_init = self.control_0.expand(batch_size, -1)
+        control_state_init = self.dropout_layer(control_state_init)
+
+        summary_object_init = self.summary_0.expand(batch_size, -1)
+        summary_object_init = self.dropout_layer(summary_object_init)
 
         # initialize empty memory
-        visual_working_memory = torch.zeros(
-            batch_size, self.slot, self.dim).type(self.app_state.dtype)
+        visual_working_memory = (0.01 * torch.ones(
+            batch_size, self.slot, self.dim)).type(self.app_state.dtype)
 
         # initialize read head at first slot position
         write_head = torch.zeros(batch_size, self.slot).type(self.app_state.dtype)
@@ -205,7 +204,6 @@ class VWM(Model):
 
             # recurrent VWM cells
             for step in range(self.max_step):
-
                 summary_object, visual_working_memory, write_head = self.VWM_cell(
                     control_history[step], feature_maps, feature_maps_proj,
                     summary_object, visual_working_memory, write_head)
@@ -253,7 +251,7 @@ class VWM(Model):
         # Create a specific grid.
         gs_top = GridSpec(1, 6)
         gs_top.update(wspace=0.05, hspace=0.00, bottom=0.8, top=0.85, left=0.05, right=0.95)
-        
+
         # Question with attention.
         ax_attention_question = fig.add_subplot(gs_top[0, 0:5], frameon=False)
         ax_attention_question.xaxis.set_major_locator(ticker.MaxNLocator(nbins=25))
@@ -403,10 +401,10 @@ class VWM(Model):
 
             # Get axes that artists will draw on.
             (ax_header_left_labels, ax_header_left, ax_header_right_labels, ax_header_right,
-                ax_attention_question, ax_context,
-                ax_image, ax_attention_image,
-                ax_image_match, ax_memory_match,
-                ax_attention_history, ax_visual_working_memory, ax_wt) = fig.axes
+             ax_attention_question, ax_context,
+             ax_image, ax_attention_image,
+             ax_image_match, ax_memory_match,
+             ax_attention_history, ax_visual_working_memory, ax_wt) = fig.axes
 
             # initiate list of artists frames
             frames = []
@@ -415,7 +413,7 @@ class VWM(Model):
             for i in range(images.size(1)):
 
                 # get image sample
-                image = images[sample][i]/255
+                image = images[sample][i] / 255
 
                 # needs [W x H x Channels] for Matplolib.imshow
                 image = image.permute(1, 2, 0)
@@ -428,7 +426,6 @@ class VWM(Model):
                 for (step, visual_attention, control_attention, visual_working_memory,
                      read_head, image_match, memory_match, write_head,
                      temporal_class_weights) in self.frame_history[i]:
-
                     # preprocess attention image, reshape
                     attention_size = int(np.sqrt(visual_attention.size(-1)))
 
@@ -447,7 +444,7 @@ class VWM(Model):
                     # Create "Artists" drawing data on "ImageAxes".
                     artists = []
                     # Tell artists what to do:
-                    
+
                     ######################################################################
                     # Set header.
                     ax_header_left_labels.axis('off')
@@ -464,7 +461,7 @@ class VWM(Model):
                         '\n' + pred +
                         '\n' + ans,
                         fontsize=13, weight='bold'))
-    
+
                     ax_header_right_labels.axis('off')
                     artists.append(ax_header_right_labels.text(
                         0, 1.0,
@@ -479,7 +476,7 @@ class VWM(Model):
                         '\n' + str(step) +
                         '\n' + tasks,
                         fontsize=14, weight='bold'))
-        
+
                     ######################################################################
                     # Top-center: Question + time context section.
                     # Set words for question attention.
@@ -498,7 +495,7 @@ class VWM(Model):
                     artists.append(ax_context.imshow(
                         temporal_class_weights[[[sample]], [[1, 2, 0, 3]]], interpolation='nearest',
                         cmap=color, norm=norm, aspect='auto'))
-    
+
                     ######################################################################
                     # Bottom left: Image section.
                     artists.append(ax_image.imshow(image, interpolation='nearest', aspect='auto'))
@@ -515,12 +512,12 @@ class VWM(Model):
 
                     ######################################################################
                     # Bottom center: gates section.
-                    
+
                     # Image gate.
                     artists.append(ax_image_match.imshow(
                         image_match[[sample], None], interpolation='nearest', cmap=color,
                         norm=norm, aspect='auto'))
-                    
+
                     # Memory gate.
                     artists.append(ax_memory_match.imshow(
                         memory_match[[sample], None], interpolation='nearest', cmap=color,
@@ -573,12 +570,11 @@ class VWM(Model):
                 image = images[sample][i]
 
                 # needs [W x H x Channels] for Matplolib.imshow
-                image = image.permute(1, 2, 0)/255
+                image = image.permute(1, 2, 0) / 255
 
                 # loop over the k reasoning steps
                 for step, (attention_mask, control_attention) in zip(
                         range(self.max_step), self.frame_history[i]):
-
                     # upsample attention mask
                     original_grid_size = 7
                     preds_pointing = preds_pointing.view(
@@ -629,25 +625,3 @@ class VWM(Model):
             self.plotWindow.update(fig, frames)
 
         # return self.plotWindow.is_closed
-
-    def get_dropout_mask(self, x, dropout):
-        """
-        Create a dropout mask to be applied on x.
-
-        :param x: tensor of arbitrary shape to apply the mask on.
-        :type x: torch.tensor
-
-        :param dropout: dropout rate.
-        :type dropout: float
-
-        :return: mask.
-
-        """
-        # create a binary mask, where the probability of 1's is (1-dropout)
-        mask = torch.empty_like(x).bernoulli_(
-            1 - dropout).type(self.app_state.dtype)
-
-        # normalize the mask so that the average value is 1 and not (1-dropout)
-        mask /= (1 - dropout)
-
-        return mask

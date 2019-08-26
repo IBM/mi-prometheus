@@ -8,7 +8,7 @@ training:
   seed_numpy: 0
 
   problem:
-    batch_size: 1
+    batch_size: 2
     tasks: &tasks [AndCompareColor]
     set: val
 
@@ -25,7 +25,7 @@ validation:
   seed_numpy: 0
 
   problem:
-    batch_size: 1
+    batch_size: 4
     tasks: *tasks
 
   dataloader: *dataloader
@@ -37,7 +37,7 @@ testing:
   seed_numpy: 0
 
   problem:
-    batch_size: 48
+    batch_size: 8
     tasks: *tasks
 
   dataloader: *dataloader

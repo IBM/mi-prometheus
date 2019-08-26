@@ -45,13 +45,13 @@ class SummaryUpdateUnit(Module):
         # linear layer for the concatenation of context_output and summary_output
         self.concat_layer = linear(2 * dim, dim, bias=True)
 
-    def forward(self, is_visual, visual_object, is_mem, memory_object, summary_object):
+    def forward(self, image_match, visual_object, memory_match, memory_object, summary_object):
         """
         Forward pass of the ``SummaryUpdateUnit``.
 
-        :param is_visual
+        :param image_match
         :param visual_object
-        :param is_mem
+        :param memory_match
         :param memory_object
         :param summary_object
 
@@ -59,8 +59,8 @@ class SummaryUpdateUnit(Module):
         """
 
         # compute new relevant object
-        relevant_object = (is_visual[..., None] * visual_object
-                           + is_mem[..., None] * memory_object)
+        relevant_object = (image_match[..., None] * visual_object
+                           + memory_match[..., None] * memory_object)
 
         # combine the new read vector with the prior memory state (w1)
         new_summary_object = self.concat_layer(
