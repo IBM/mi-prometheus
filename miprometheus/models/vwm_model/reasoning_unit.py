@@ -78,21 +78,29 @@ class ReasoningUnit(Module):
         t_latest = temporal_class_weights[:, 2]
         t_none = temporal_class_weights[:, 3]
 
-        # if the temporal context last or latest,
-        # then do we replace the existing memory object?
-        do_replace = valid_mo * valid_vo * (t_last + t_latest) * (1 - t_none)
+        # check if temporal context is last or latest
+        temporal_test_1 = torch.relu(t_last + t_latest - t_now - t_none)
 
-        # otherwise do we add a new one to memory?
-        do_add_new = (1 - valid_mo) * valid_vo * (t_last + t_latest) * (1 - t_none)
+        # conditioned on temporal context,
+        # check if we should replace existing memory object
+        do_replace = valid_mo * valid_vo * temporal_test_1
 
-        # (now or latest) and valid visual object?
-        image_match = (t_now + t_latest) * valid_vo
-        # optional extra check that it is neither last nor none
-        # image_match = image_match * (1 - t_last) * (1 - t_none)
+        # otherwise, conditioned on temporal context,
+        # check if we should add a new one to VWM
+        do_add_new = (1 - valid_mo) * valid_vo * temporal_test_1
 
-        # (last or (latest and (not valid visual object))) and valid memory object?
-        memory_match = (t_last + t_latest * (1 - valid_vo)) * valid_mo
-        # optional extra check that it is neither now nor none
-        # memory_match = memory_match * (1 - t_now) * (1 - t_none)
+        # check if temporal context is now or latest
+        temporal_test_2 = torch.relu(t_now + t_latest - t_last - t_none)
+
+        # conditioned on temporal context, check if we have a valid visual object
+        image_match = valid_vo * temporal_test_2
+
+        # check if temporal context is either last, or latest but there is no visual object
+
+        temporal_test_3 = torch.relu(t_last + t_latest * (1 - valid_vo) - t_now - t_none)
+
+        # conditioned on temporal context, check if we have a valid memory object
+
+        memory_match = valid_mo * temporal_test_3
 
         return image_match, memory_match, do_replace, do_add_new
