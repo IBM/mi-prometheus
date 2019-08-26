@@ -45,25 +45,18 @@ class SummaryUpdateUnit(Module):
         # linear layer for the concatenation of context_output and summary_output
         self.concat_layer = linear(2 * dim, dim, bias=True)
 
-    def forward(self, image_match, visual_object, memory_match, memory_object, summary_object):
+    def forward(self, summary_object, visual_object):
         """
         Forward pass of the ``SummaryUpdateUnit``.
 
-        :param image_match
-        :param visual_object
-        :param memory_match
-        :param memory_object
         :param summary_object
+        :param visual_object
 
         :return: new_summary_object
         """
 
         # compute new relevant object
-        relevant_object = (image_match[..., None] * visual_object
-                           + memory_match[..., None] * memory_object)
-
-        # combine the new read vector with the prior memory state (w1)
         new_summary_object = self.concat_layer(
-            torch.cat([relevant_object, summary_object], dim=1))
+            torch.cat([visual_object, summary_object], dim=1))
 
         return new_summary_object

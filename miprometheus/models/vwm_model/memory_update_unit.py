@@ -24,15 +24,15 @@ __author__ = "Vincent Albouy, T.S. Jayram"
 import torch
 
 
-def memory_update(visual_object, visual_working_memory, read_head, write_head,
-                  do_replace, do_add_new):
+def memory_update(visual_working_memory, write_head,
+                  visual_object, read_head, do_replace, do_add_new):
     """
     Memory update.
 
-    :param visual_object:  [batch_size x dim]
     :param visual_working_memory: [batch_size x (H*W) x dim]
-    :param read_head:  [batch_size x N_v x dim]
     :param write_head: attention over VWM [batch_size x N_v]
+    :param visual_object:  [batch_size x dim]
+    :param read_head:  [batch_size x N_v x dim]
     :param do_replace: replace existing object in VWM? [batch_size]
     :param do_add_new: or add new visual object     [batch_size]
 

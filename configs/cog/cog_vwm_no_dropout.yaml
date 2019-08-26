@@ -11,7 +11,7 @@ model:
   classes : 49
   words_embed_length : 64
   nwords : 24
-  dropout: 0.15
+  dropout: 0.0
   save_intermediate: True
 
 

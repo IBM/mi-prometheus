@@ -59,12 +59,6 @@ class QuestionDrivenController(Module):
         # instantiate attention module
         self.attention_module = AttentionModule(dim)
 
-        # instantiate neural network for T (temporal classifier that outputs 4 classes)
-        self.temporal_classifier = torch.nn.Sequential(linear(dim, dim, bias=True),
-                                                       torch.nn.ELU(),
-                                                       linear(dim, 4, bias=True),
-                                                       torch.nn.Softmax(dim=-1))
-
     def forward(self, step, contextual_words, question_encoding, control_state):
         """
         Forward pass of the ``QuestionDrivenController``.
@@ -82,8 +76,6 @@ class QuestionDrivenController(Module):
         :param control_state: previous control state [batch_size x dim]
 
         :return: new_control_state: [batch_size x dim]
-        :return: temporal_class_weights: soft classification representing \
-        temporal context now/last/latest/none of current step [batch_size x 4]
 
         """
 
@@ -100,8 +92,5 @@ class QuestionDrivenController(Module):
         # retrieve content new_control_state + attention control_attention
         new_control_state, control_attention = self.attention_module(cqi, contextual_words)
 
-        # neural network  that returns temporal class weights
-        temporal_class_weights = self.temporal_classifier(new_control_state)
-
         # return control and the temporal class weights
-        return new_control_state, control_attention, temporal_class_weights
+        return new_control_state, control_attention
