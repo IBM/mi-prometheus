@@ -239,18 +239,18 @@ class VWM(Model):
         ######################################################################
         # Top: Header section.
         # Create a specific grid.
-        gs_header = GridSpec(1, 8)
-        gs_header.update(wspace=0.00, hspace=1.00, bottom=0.9, top=0.901, left=0.05, right=0.95)
-        _ = fig.add_subplot(gs_header[0, 0])
-        _ = fig.add_subplot(gs_header[0, 1:5])
-        _ = fig.add_subplot(gs_header[0, 5])
-        _ = fig.add_subplot(gs_header[0, 6:8])
+        gs_header = GridSpec(1, 20)
+        gs_header.update(wspace=0.00, hspace=0.00, bottom=0.9, top=0.901, left=0.01, right=0.99)
+        _ = fig.add_subplot(gs_header[0, 0:2])
+        _ = fig.add_subplot(gs_header[0, 2:14])
+        _ = fig.add_subplot(gs_header[0, 14:16])
+        _ = fig.add_subplot(gs_header[0, 16:20])
 
         ######################################################################
         # Top-center: Question + time context section.
         # Create a specific grid.
         gs_top = GridSpec(1, 6)
-        gs_top.update(wspace=0.05, hspace=0.00, bottom=0.8, top=0.85, left=0.05, right=0.95)
+        gs_top.update(wspace=0.05, hspace=0.00, bottom=0.8, top=0.83, left=0.01, right=0.99)
 
         # Question with attention.
         ax_attention_question = fig.add_subplot(gs_top[0, 0:5], frameon=False)
@@ -263,28 +263,28 @@ class VWM(Model):
         ax_context = fig.add_subplot(gs_top[0, 5])
         ax_context.yaxis.set_major_locator(ticker.NullLocator())
         ax_context.xaxis.set_major_locator(ticker.FixedLocator([0, 1, 2, 3]))
-        ax_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'], rotation=-45, fontsize=14)
+        ax_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'], rotation=-45, fontsize=13)
         ax_context.set_title('Time Context')
 
         ######################################################################
         # Bottom left: Image section.
         # Create a specific grid.
         gs_bottom_left = GridSpec(1, 2)
-        gs_bottom_left.update(wspace=0.1, hspace=0.0, bottom=0.1, top=0.7, left=0.05, right=0.46)
+        gs_bottom_left.update(wspace=0.04, hspace=0.0, bottom=0.02, top=0.63, left=0.01, right=0.44)
 
         # Image.
         ax_image = fig.add_subplot(gs_bottom_left[0, 0])
-        ax_image.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_image.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_image.set_ylabel('Height [px]', fontsize=12)
-        ax_image.set_xlabel('Width [px]', fontsize=12)
+        ax_image.xaxis.set_major_locator(ticker.NullLocator())
+        ax_image.yaxis.set_major_locator(ticker.NullLocator())
+        #ax_image.set_ylabel('Height [px]', fontsize=10)
+        #ax_image.set_xlabel('Width [px]', fontsize=10)
         ax_image.set_title('Image')
 
         # Attention over the image.
         ax_attention_image = fig.add_subplot(gs_bottom_left[0, 1])
-        ax_attention_image.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_attention_image.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        ax_attention_image.set_xlabel('Width [px]', fontsize=12)
+        ax_attention_image.xaxis.set_major_locator(ticker.NullLocator())
+        ax_attention_image.yaxis.set_major_locator(ticker.NullLocator())
+        #ax_attention_image.set_xlabel('Width [px]', fontsize=10)
         ax_attention_image.set_title('Visual Attention')
 
         ######################################################################
@@ -308,33 +308,36 @@ class VWM(Model):
         ######################################################################
         # Bottom Right: Memory section.
         # Create a specific grid.
-        gs_bottom_right = GridSpec(1, 10)
-        gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.1, top=0.7, left=0.54, right=0.95)
+        gs_bottom_right = GridSpec(1, 20)
+        gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.02, top=0.63, left=0.52, right=0.99)
 
         # Read attention.
-        ax_attention_history = fig.add_subplot(gs_bottom_right[0, 1])
+        ax_attention_history = fig.add_subplot(gs_bottom_right[0, 3])
         ax_attention_history.xaxis.set_major_locator(ticker.NullLocator())
         ax_attention_history.set_ylabel('Memory Addresses', fontsize=12)
         ax_attention_history.set_title('Read Head')
 
         # Memory
-        ax_visual_working_memory = fig.add_subplot(gs_bottom_right[0, 2:9])
-        ax_visual_working_memory.set_xlabel('Memory Content', fontsize=12)
+        ax_visual_working_memory = fig.add_subplot(gs_bottom_right[0, 4:18])
+        #ax_visual_working_memory.set_xlabel('Memory Content', fontsize=10)
+        ax_visual_working_memory.xaxis.set_major_locator(ticker.NullLocator())
+        ax_visual_working_memory.yaxis.set_ticklabels([])
         ax_visual_working_memory.set_title('Working Memory')
 
         # Write attention.
-        ax_wt = fig.add_subplot(gs_bottom_right[0, 9])
+        ax_wt = fig.add_subplot(gs_bottom_right[0, 18])
         ax_wt.xaxis.set_major_locator(ticker.NullLocator())
+        ax_wt.yaxis.set_ticklabels([])
         ax_wt.set_title('Write Head')
 
         # Lines between sections.
         l1 = lines.Line2D([0, 1], [0.88, 0.88], transform=fig.transFigure,
                           figure=fig, color='black')
-        l2 = lines.Line2D([0, 1], [0.73, 0.73], transform=fig.transFigure,
+        l2 = lines.Line2D([0, 1], [0.68, 0.68], transform=fig.transFigure,
                           figure=fig, color='black')
         l3 = lines.Line2D([0.5, 0.5], [0.0, 0.25], transform=fig.transFigure,
                           figure=fig, color='black')
-        l4 = lines.Line2D([0.5, 0.5], [0.49, 0.73], transform=fig.transFigure,
+        l4 = lines.Line2D([0.5, 0.5], [0.49, 0.68], transform=fig.transFigure,
                           figure=fig, color='black')
         fig.lines.extend([l1, l2, l3, l4])
 
@@ -451,16 +454,16 @@ class VWM(Model):
                     artists.append(ax_header_left_labels.text(
                         0, 1.0,
                         'Question:         ' +
-                        '\nPredicted Answer: ' +
+                        '\nPrediction: ' +
                         '\nGround Truth:     ',
-                        fontsize=13))
+                        fontsize=12))
                     ax_header_left.axis('off')
                     artists.append(ax_header_left.text(
                         0, 1.0,
                         question_words +
                         '\n' + pred +
                         '\n' + ans,
-                        fontsize=13, weight='bold'))
+                        fontsize=12, weight='bold'))
 
                     ax_header_right_labels.axis('off')
                     artists.append(ax_header_right_labels.text(
@@ -468,14 +471,14 @@ class VWM(Model):
                         'Frame: ' +
                         '\nReasoning Step:   ' +
                         '\nQuestion Type:    ',
-                        fontsize=14))
+                        fontsize=12))
                     ax_header_right.axis('off')
                     artists.append(ax_header_right.text(
                         0, 1.0,
                         str(i) +
                         '\n' + str(step) +
                         '\n' + tasks,
-                        fontsize=14, weight='bold'))
+                        fontsize=12, weight='bold'))
 
                     ######################################################################
                     # Top-center: Question + time context section.
@@ -483,7 +486,7 @@ class VWM(Model):
                     # ax_attention_question.xaxis.set_major_locator(
                     # ticker.MaxNLocator(nbins=len(words)))
                     # NOT WORKING AS number of ticks != number of cells! :]
-                    ax_attention_question.set_xticklabels(['h'] + words, rotation=-45, fontsize=14)
+                    ax_attention_question.set_xticklabels(['h'] + words, rotation=-45, fontsize=13)
 
                     artists.append(ax_attention_question.imshow(
                         control_attention[sample][..., None], interpolation='nearest',
