@@ -1,0 +1,54 @@
+# Load the COG config first.
+default_configs:
+  configs/cog/default_cog.yaml
+
+model:
+  name: VWM
+  dim: 128
+  embed_hidden: 64
+  max_step: 16
+  slot : 8
+  classes : 49
+  words_embed_length : 64
+  nwords : 24
+  dropout: 0.15
+  save_intermediate: True
+
+
+validation:
+  problem:
+    batch_size: 400
+
+testing:
+  problem:
+    batch_size: 256
+    tasks: [
+            AndCompareColor, AndCompareShape ,
+            ExistColorSpace, ExistShapeSpace, ExistColorSpace,
+            AndSimpleCompareColor, AndSimpleCompareShape,
+            SimpleCompareColor, SimpleCompareShape,
+            CompareColor, CompareShape,
+            Exist, ExistColor, ExistShape,
+            ExistColorOf, ExistShapeOf,
+            ExistLastColorSameShape, ExistLastObjectSameObject, ExistLastShapeSameColor, 
+            GetColor, GetShape,
+            GetShapeSpace, GetColorSpace,
+           ]
+
+
+    # tasks: [
+    #         AndCompareColor, AndCompareShape ,
+    #         AndSimpleCompareColor, AndSimpleCompareShape,
+    #         SimpleCompareColor, SimpleCompareShape,
+    #         CompareColor, CompareShape,
+    #         Exist, ExistColor, ExistShape,
+    #         ExistColorOf, ExistShapeOf,
+    #         ExistLastColorSameShape, ExistLastObjectSameObject, ExistLastShapeSameColor, 
+    #         GetColor, GetShape,
+    #         GetShapeSpace, GetColorSpace,
+    #        ]
+
+
+  
+    
+  
