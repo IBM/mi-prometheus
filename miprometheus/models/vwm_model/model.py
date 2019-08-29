@@ -263,7 +263,7 @@ class VWM(Model):
         ax_context = fig.add_subplot(gs_top[0, 5])
         ax_context.yaxis.set_major_locator(ticker.NullLocator())
         ax_context.xaxis.set_major_locator(ticker.FixedLocator([0, 1, 2, 3]))
-        ax_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'], rotation=-45, fontsize=14)
+        ax_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'], rotation=-45, fontsize=12)
         ax_context.set_title('Time Context')
 
         ######################################################################
@@ -468,14 +468,14 @@ class VWM(Model):
                         'Frame: ' +
                         '\nReasoning Step:   ' +
                         '\nQuestion Type:    ',
-                        fontsize=14))
+                        fontsize=12))
                     ax_header_right.axis('off')
                     artists.append(ax_header_right.text(
                         0, 1.0,
                         str(i) +
                         '\n' + str(step) +
                         '\n' + tasks,
-                        fontsize=14, weight='bold'))
+                        fontsize=12, weight='bold'))
 
                     ######################################################################
                     # Top-center: Question + time context section.
@@ -483,18 +483,27 @@ class VWM(Model):
                     # ax_attention_question.xaxis.set_major_locator(
                     # ticker.MaxNLocator(nbins=len(words)))
                     # NOT WORKING AS number of ticks != number of cells! :]
-                    ax_attention_question.set_xticklabels(['h'] + words, rotation=-45, fontsize=14)
+                    ax_attention_question.set_xticklabels(['h'] + words, rotation=-45, fontsize=12)
 
-                    artists.append(ax_attention_question.imshow(
-                        control_attention[sample][..., None], interpolation='nearest',
-                        aspect='auto', cmap=color, norm=norm))
+                    # artists.append(ax_attention_question.imshow(
+                    #     control_attention[sample][..., None, :], interpolation='nearest',
+                    #     aspect='auto', cmap=color, norm=norm))
 
                     # Time context.
                     # temporal_class_weights given by order now, last, latest, none
                     # visualization in different order last, latest, now, none
-                    artists.append(ax_context.imshow(
-                        temporal_class_weights[[[sample]], [[1, 2, 0, 3]]], interpolation='nearest',
-                        cmap=color, norm=norm, aspect='auto'))
+                    # artists.append(ax_context.imshow(
+
+                    #     temporal_class_weights[[[sample]], [[1, 2, 0, 3]]], interpolation='nearest',
+                    #     cmap=color, norm=norm, aspect='auto'))
+
+                    params = {'edgecolor': 'black', 'cmap': 'inferno', 'linewidths': 1.4e-3}
+
+                    artists.append(ax_attention_question.pcolormesh(
+                        control_attention[sample][..., None, :], vmin=0.0, vmax=1.0, **params))
+
+                    artists.append(ax_context.pcolormesh(
+                        temporal_class_weights[[[sample]], [[1, 2, 0, 3]]], vmin=0.0, vmax=1.0, **params))
 
                     ######################################################################
                     # Bottom left: Image section.
@@ -514,29 +523,47 @@ class VWM(Model):
                     # Bottom center: gates section.
 
                     # Image gate.
-                    artists.append(ax_image_match.imshow(
-                        image_match[[sample], None], interpolation='nearest', cmap=color,
-                        norm=norm, aspect='auto'))
+                    # artists.append(ax_image_match.imshow(
+                    #     image_match[[sample], None], interpolation='nearest', cmap=color,
+                    #     norm=norm, aspect='auto'))
+                    #
+                    # # Memory gate.
+                    # artists.append(ax_memory_match.imshow(
+                    #     memory_match[[sample], None], interpolation='nearest', cmap=color,
+                    #     norm=norm, aspect='auto'))
+
+                    artists.append(ax_image_match.pcolormesh(
+                        image_match[[sample], None], vmin=0.0, vmax=1.0, **params))
 
                     # Memory gate.
-                    artists.append(ax_memory_match.imshow(
-                        memory_match[[sample], None], interpolation='nearest', cmap=color,
-                        norm=norm, aspect='auto'))
+                    artists.append(ax_memory_match.pcolormesh(
+                        memory_match[[sample], None], vmin=0.0, vmax=1.0, **params))
 
                     ######################################################################
                     # Bottom Right: Memory section.
 
-                    artists.append(ax_visual_working_memory.imshow(
-                        visual_working_memory[sample], interpolation='nearest', aspect='auto',
-                        cmap=color, norm=norm))
+                    # artists.append(ax_visual_working_memory.imshow(
+                    #     visual_working_memory[sample], interpolation='nearest', aspect='auto',
+                    #     cmap=color, norm=norm))
+                    #
+                    # artists.append(ax_attention_history.imshow(
+                    #     read_head[sample][..., None], interpolation='nearest', cmap=color,
+                    #     norm=norm, aspect='auto'))
+                    #
+                    # artists.append(ax_wt.imshow(
+                    #     write_head[sample][..., None], interpolation='nearest', cmap=color,
+                    #     norm=norm, aspect='auto'))
 
-                    artists.append(ax_attention_history.imshow(
-                        read_head[sample][..., None], interpolation='nearest', cmap=color,
-                        norm=norm, aspect='auto'))
+                    # print(visual_working_memory[sample])
+                    # print(write_head[sample])
+                    artists.append(ax_visual_working_memory.pcolormesh(
+                        visual_working_memory[sample], vmin=-3.0, vmax=3.0, **params))
 
-                    artists.append(ax_wt.imshow(
-                        write_head[sample][..., None], interpolation='nearest', cmap=color,
-                        norm=norm, aspect='auto'))
+                    artists.append(ax_attention_history.pcolormesh(
+                        read_head[sample][..., None], vmin=0.0, vmax=1.0, **params))
+
+                    artists.append(ax_wt.pcolormesh(
+                        write_head[sample][..., None], vmin=0.0, vmax=1.0, **params))
 
                     # Add "frames" to artist list
                     frames.append(artists)
