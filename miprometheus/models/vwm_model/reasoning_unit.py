@@ -43,7 +43,7 @@ class ReasoningUnit(Module):
 
         def two_layers_net():
             return torch.nn.Sequential(linear(2 * dim, 2 * dim, bias=True),
-                                       torch.nn.ELU(),
+                                       torch.nn.ReLU(),
                                        linear(2 * dim, 1, bias=True),
                                        torch.nn.Sigmoid())
 

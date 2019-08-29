@@ -23,30 +23,17 @@ testing:
   problem:
     batch_size: 256
     tasks: [
-            AndCompareColor, AndCompareShape ,
-            ExistColorSpace, ExistShapeSpace, ExistColorSpace,
-            AndSimpleCompareColor, AndSimpleCompareShape,
-            SimpleCompareColor, SimpleCompareShape,
-            CompareColor, CompareShape,
-            Exist, ExistColor, ExistShape,
-            ExistColorOf, ExistShapeOf,
-            ExistLastColorSameShape, ExistLastObjectSameObject, ExistLastShapeSameColor, 
-            GetColor, GetShape,
+            Exist, ExistShape, ExistColor,
+            ExistShapeOf, ExistColorOf,
+            GetShape, GetColor,
             GetShapeSpace, GetColorSpace,
+            CompareShape, CompareColor,
+            SimpleCompareShape, SimpleCompareColor,
+            AndSimpleCompareShape, AndSimpleCompareColor,
+            ExistLastColorSameShape, ExistLastShapeSameColor, ExistLastObjectSameObject,
+            AndCompareShape, AndCompareColor,
+            ExistSpace, ExistShapeSpace, ExistColorSpace,
            ]
-
-
-    # tasks: [
-    #         AndCompareColor, AndCompareShape ,
-    #         AndSimpleCompareColor, AndSimpleCompareShape,
-    #         SimpleCompareColor, SimpleCompareShape,
-    #         CompareColor, CompareShape,
-    #         Exist, ExistColor, ExistShape,
-    #         ExistColorOf, ExistShapeOf,
-    #         ExistLastColorSameShape, ExistLastObjectSameObject, ExistLastShapeSameColor, 
-    #         GetColor, GetShape,
-    #         GetShapeSpace, GetColorSpace,
-    #        ]
 
 
   
