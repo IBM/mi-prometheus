@@ -226,10 +226,12 @@ class VWM(Model):
 
         """
 
-        params = {'axes.titlesize': 'large',
-                  'axes.labelsize': 'large',
-                  'xtick.labelsize': 'medium',
-                  'ytick.labelsize': 'medium'}
+        params = {'axes.titlesize': 'xx-large',
+                  'axes.labelsize': 'xx-large',
+                  'xtick.labelsize': 'x-large',
+                  'ytick.labelsize': 'large',
+                  }
+
         matplotlib.pylab.rcParams.update(params)
 
         # Prepare "generic figure template".
@@ -249,21 +251,20 @@ class VWM(Model):
         ######################################################################
         # Top-center: Question + time context section.
         # Create a specific grid.
-        gs_top = GridSpec(1, 6)
+        gs_top = GridSpec(1, 24)
         gs_top.update(wspace=0.05, hspace=0.00, bottom=0.8, top=0.83, left=0.01, right=0.99)
 
         # Question with attention.
-        ax_attention_question = fig.add_subplot(gs_top[0, 0:5], frameon=False)
+        ax_attention_question = fig.add_subplot(gs_top[0, 0:19], frameon=False)
         ax_attention_question.xaxis.set_major_locator(ticker.MaxNLocator(nbins=25))
         ax_attention_question.yaxis.set_major_locator(ticker.NullLocator())
-        # ax_attention_question.set_xticklabels(25*[''], rotation=-45, fontsize=10)
         ax_attention_question.set_title('Question')
 
         # Time gate ;)
-        ax_context = fig.add_subplot(gs_top[0, 5])
+        ax_context = fig.add_subplot(gs_top[0, 20:24])
         ax_context.yaxis.set_major_locator(ticker.NullLocator())
         ax_context.xaxis.set_major_locator(ticker.FixedLocator([0, 1, 2, 3]))
-        ax_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'], rotation=-45, fontsize=13)
+        ax_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'], horizontalalignment='left', rotation=-45, rotation_mode='anchor')
         ax_context.set_title('Time Context')
 
         ######################################################################
@@ -276,15 +277,12 @@ class VWM(Model):
         ax_image = fig.add_subplot(gs_bottom_left[0, 0])
         ax_image.xaxis.set_major_locator(ticker.NullLocator())
         ax_image.yaxis.set_major_locator(ticker.NullLocator())
-        #ax_image.set_ylabel('Height [px]', fontsize=10)
-        #ax_image.set_xlabel('Width [px]', fontsize=10)
         ax_image.set_title('Image')
 
         # Attention over the image.
         ax_attention_image = fig.add_subplot(gs_bottom_left[0, 1])
         ax_attention_image.xaxis.set_major_locator(ticker.NullLocator())
         ax_attention_image.yaxis.set_major_locator(ticker.NullLocator())
-        #ax_attention_image.set_xlabel('Width [px]', fontsize=10)
         ax_attention_image.set_title('Visual Attention')
 
         ######################################################################
@@ -314,12 +312,11 @@ class VWM(Model):
         # Read attention.
         ax_attention_history = fig.add_subplot(gs_bottom_right[0, 3])
         ax_attention_history.xaxis.set_major_locator(ticker.NullLocator())
-        ax_attention_history.set_ylabel('Memory Addresses', fontsize=12)
+        ax_attention_history.set_ylabel('Memory Addresses')
         ax_attention_history.set_title('Read Head')
 
         # Memory
         ax_visual_working_memory = fig.add_subplot(gs_bottom_right[0, 4:18])
-        #ax_visual_working_memory.set_xlabel('Memory Content', fontsize=10)
         ax_visual_working_memory.xaxis.set_major_locator(ticker.NullLocator())
         ax_visual_working_memory.yaxis.set_ticklabels([])
         ax_visual_working_memory.set_title('Working Memory')
@@ -382,7 +379,7 @@ class VWM(Model):
         question_words = s_questions[sample][0]
         words = nltk.word_tokenize(question_words)
 
-        color = 'plasma'
+        color = 'inferno'
 
         # get images dimensions
         width = images.size(3)
@@ -456,14 +453,16 @@ class VWM(Model):
                         'Question:         ' +
                         '\nPrediction: ' +
                         '\nGround Truth:     ',
-                        fontsize=12))
+                        fontsize='x-large'
+                    ))
                     ax_header_left.axis('off')
                     artists.append(ax_header_left.text(
                         0, 1.0,
                         question_words +
                         '\n' + pred +
                         '\n' + ans,
-                        fontsize=12, weight='bold'))
+                        fontsize='x-large',
+                        weight='bold'))
 
                     ax_header_right_labels.axis('off')
                     artists.append(ax_header_right_labels.text(
@@ -471,14 +470,17 @@ class VWM(Model):
                         'Frame: ' +
                         '\nReasoning Step:   ' +
                         '\nQuestion Type:    ',
-                        fontsize=12))
+                        fontsize='x-large'
+                    ))
+
                     ax_header_right.axis('off')
                     artists.append(ax_header_right.text(
                         0, 1.0,
                         str(i) +
                         '\n' + str(step) +
                         '\n' + tasks,
-                        fontsize=12, weight='bold'))
+                        fontsize='x-large',
+                        weight='bold'))
 
                     ######################################################################
                     # Top-center: Question + time context section.
@@ -486,18 +488,18 @@ class VWM(Model):
                     # ax_attention_question.xaxis.set_major_locator(
                     # ticker.MaxNLocator(nbins=len(words)))
                     # NOT WORKING AS number of ticks != number of cells! :]
-                    ax_attention_question.set_xticklabels(['h'] + words, rotation=-45, fontsize=13)
+                    ax_attention_question.set_xticklabels(words, horizontalalignment='left', rotation=-45, rotation_mode='anchor')
 
-                    artists.append(ax_attention_question.imshow(
-                        control_attention[sample][..., None], interpolation='nearest',
-                        aspect='auto', cmap=color, norm=norm))
+                    params = {'edgecolor': 'black', 'linewidth': 1.4e-3}
+
+                    artists.append(ax_attention_question.pcolormesh(
+                        control_attention[sample][..., None, :], vmin=0.0, vmax=1.0, **params))
 
                     # Time context.
                     # temporal_class_weights given by order now, last, latest, none
                     # visualization in different order last, latest, now, none
-                    artists.append(ax_context.imshow(
-                        temporal_class_weights[[[sample]], [[1, 2, 0, 3]]], interpolation='nearest',
-                        cmap=color, norm=norm, aspect='auto'))
+                    artists.append(ax_context.pcolormesh(
+                        temporal_class_weights[[[sample]], [[1, 2, 0, 3]]], vmin=0.0, vmax=1.0, **params))
 
                     ######################################################################
                     # Bottom left: Image section.
@@ -517,29 +519,25 @@ class VWM(Model):
                     # Bottom center: gates section.
 
                     # Image gate.
-                    artists.append(ax_image_match.imshow(
-                        image_match[[sample], None], interpolation='nearest', cmap=color,
-                        norm=norm, aspect='auto'))
+                    artists.append(ax_image_match.pcolormesh(
+                        image_match[[sample], None], vmin=0.0, vmax=1.0, **params))
 
                     # Memory gate.
-                    artists.append(ax_memory_match.imshow(
-                        memory_match[[sample], None], interpolation='nearest', cmap=color,
-                        norm=norm, aspect='auto'))
+                    artists.append(ax_memory_match.pcolormesh(
+                        memory_match[[sample], None], vmin=0.0, vmax=1.0, **params))
 
                     ######################################################################
                     # Bottom Right: Memory section.
 
-                    artists.append(ax_visual_working_memory.imshow(
-                        visual_working_memory[sample], interpolation='nearest', aspect='auto',
-                        cmap=color, norm=norm))
+                    params2 = {'edgecolor': 'black', 'linewidth': 1.4e-4}
+                    artists.append(ax_visual_working_memory.pcolormesh(
+                        visual_working_memory[sample], **params2))
 
-                    artists.append(ax_attention_history.imshow(
-                        read_head[sample][..., None], interpolation='nearest', cmap=color,
-                        norm=norm, aspect='auto'))
+                    artists.append(ax_attention_history.pcolormesh(
+                        read_head[sample][..., None], vmin=0.0, vmax=1.0, **params))
 
-                    artists.append(ax_wt.imshow(
-                        write_head[sample][..., None], interpolation='nearest', cmap=color,
-                        norm=norm, aspect='auto'))
+                    artists.append(ax_wt.pcolormesh(
+                        write_head[sample][..., None], vmin=0.0, vmax=1.0, **params))
 
                     # Add "frames" to artist list
                     frames.append(artists)
