@@ -32,7 +32,7 @@ class QuestionDrivenController(Module):
     Implementation of the ``QuestionDrivenController`` 
     """
 
-    def __init__(self, dim, max_step):
+    def __init__(self, dim, max_step, dtype):
         """
         Constructor for the QuestionDrivenController.
 
@@ -41,6 +41,8 @@ class QuestionDrivenController(Module):
 
         :param max_step: maximum number of steps -> number of VWM cells in the network.
         :type max_step: int
+
+        :param dtype
 
         """
 
@@ -62,10 +64,11 @@ class QuestionDrivenController(Module):
         # instantiate neural network for T (temporal classifier that outputs 4 classes)
         self.temporal_classifier = torch.nn.Sequential(linear(dim, dim, bias=True),
                                                        torch.nn.ReLU(),
-                                                       linear(dim, 4, bias=True),
-                                                       torch.nn.Softmax(dim=-1))
+                                                       linear(dim, 4, bias=True))
 
-    def forward(self, step, contextual_words, question_encoding, control_state):
+        self.sharpen = torch.nn.Parameter(torch.ones(1,).type(dtype))
+
+    def forward(self, step, contextual_words, question_encoding, control_state, eps_tensor):
         """
         Forward pass of the ``QuestionDrivenController``.
 
@@ -80,6 +83,8 @@ class QuestionDrivenController(Module):
         [batch_size x (2*dim)]
 
         :param control_state: previous control state [batch_size x dim]
+
+        :param eps_tensor
 
         :return: new_control_state: [batch_size x dim]
         :return: temporal_class_weights: soft classification representing \
@@ -101,7 +106,12 @@ class QuestionDrivenController(Module):
         new_control_state, control_attention = self.attention_module(cqi, contextual_words)
 
         # neural network  that returns temporal class weights
-        temporal_class_weights = self.temporal_classifier(new_control_state)
+        tcw = self.temporal_classifier(new_control_state)
+
+        tcw_smax = torch.softmax(tcw, dim=-1)
+        tcw_power = (tcw_smax + eps_tensor) ** self.sharpen
+        tcw_sum = torch.max(torch.sum(tcw_power, dim=-1, keepdim=True), eps_tensor)
+        temporal_class_weights = tcw_power / tcw_sum
 
         # return control and the temporal class weights
         return new_control_state, control_attention, temporal_class_weights

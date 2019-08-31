@@ -24,8 +24,10 @@ __author__ = "Vincent Albouy, T.S. Jayram, Tomasz Kornuta"
 
 import nltk
 
-import torch
 import numpy as np
+import torch
+import torch.nn as nn
+
 import matplotlib.pylab
 import matplotlib.animation
 from matplotlib.gridspec import GridSpec
@@ -35,8 +37,6 @@ import matplotlib.lines as lines
 
 from miprometheus.models.model import Model
 from miprometheus.models.vwm_model.utils_VWM import linear
-import numpy as numpy
-import torch.nn as nn
 
 from miprometheus.models.vwm_model.question_encoder import QuestionEncoder
 from miprometheus.models.vwm_model.question_driven_controller import QuestionDrivenController
@@ -98,7 +98,8 @@ class VWM(Model):
         self.question_encoder = QuestionEncoder(
             self.vocabulary_size, dim=self.dim, embedded_dim=self.embed_hidden)
 
-        self.question_driven_controller = QuestionDrivenController(self.dim, self.max_step)
+        self.question_driven_controller = QuestionDrivenController(
+            self.dim, self.max_step, self.app_state.dtype)
 
         # instantiate units
         self.image_encoder = ImageEncoder(dim=self.dim)
@@ -148,7 +149,7 @@ class VWM(Model):
         questions_length = questions.size(1)
 
         # Convert questions length into a tensor
-        questions_length = torch.from_numpy(numpy.array(questions_length))
+        questions_length = torch.from_numpy(np.array(questions_length))
 
         # Create placeholders for logits.
         logits_answer = torch.zeros(
@@ -183,9 +184,10 @@ class VWM(Model):
         control_state = control_state_init
         control_history = []
 
+        eps_tensor = torch.tensor([torch.finfo().eps]).type(self.app_state.dtype)
         for step in range(self.max_step):
             control_state, *control_other = self.question_driven_controller(
-                step, contextual_words, question_encoding, control_state)
+                step, contextual_words, question_encoding, control_state, eps_tensor)
 
             control_history.append((control_state, *control_other, step))
 
@@ -264,7 +266,8 @@ class VWM(Model):
         ax_context = fig.add_subplot(gs_top[0, 20:24])
         ax_context.yaxis.set_major_locator(ticker.NullLocator())
         ax_context.xaxis.set_major_locator(ticker.FixedLocator([0, 1, 2, 3]))
-        ax_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'], horizontalalignment='left', rotation=-45, rotation_mode='anchor')
+        ax_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'], horizontalalignment='left',
+                                   rotation=-45, rotation_mode='anchor')
         ax_context.set_title('Time Context')
 
         ######################################################################
@@ -438,7 +441,7 @@ class VWM(Model):
                     up_sample_attention_mask = m(attention_mask)
                     attention_mask = up_sample_attention_mask[sample, 0]
 
-                    norm = matplotlib.pylab.Normalize(0, 1)
+                    # norm = matplotlib.pylab.Normalize(0, 1)
                     # norm2 = matplotlib.pylab.Normalize(0, 4)
 
                     # Create "Artists" drawing data on "ImageAxes".

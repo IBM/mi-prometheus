@@ -18,6 +18,6 @@ testing:
   problem:
     batch_size: 1
     tasks: [
-      CompareColor,
+      SimpleCompareColor,
       # ExistColorSpace, ExistShapeSpace, ExistColorSpace,
     ]
