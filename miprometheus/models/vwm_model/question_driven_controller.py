@@ -109,8 +109,12 @@ class QuestionDrivenController(Module):
         tcw = self.temporal_classifier(new_control_state)
 
         tcw_smax = torch.softmax(tcw, dim=-1)
-        tcw_power = (tcw_smax + eps_tensor) ** self.sharpen
+
+        sharpen = 1 + torch.nn.functional.softplus(self.sharpen)
+        tcw_power = (tcw_smax + eps_tensor) ** sharpen
+
         tcw_sum = torch.max(torch.sum(tcw_power, dim=-1, keepdim=True), eps_tensor)
+
         temporal_class_weights = tcw_power / tcw_sum
 
         # return control and the temporal class weights
