@@ -6,7 +6,7 @@ model:
   name: VWM
   dim: 128
   embed_hidden: 64
-  max_step: 16
+  max_step: 8
   slot : 8
   classes : 49
   words_embed_length : 64
