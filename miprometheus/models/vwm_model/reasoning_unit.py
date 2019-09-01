@@ -102,4 +102,9 @@ class ReasoningUnit(Module):
         # conditioned on temporal context, check if we have a valid memory object
         memory_match = valid_mo * temporal_test_3
 
+        # print("T class: ", t_last, t_latest, t_now, t_none)
+        # print("T test: ", temporal_test_1, temporal_test_2, temporal_test_3)
+        # print("Valis: ", valid_vo, valid_mo)
+        # print()
+
         return image_match, memory_match, do_replace, do_add_new

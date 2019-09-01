@@ -210,6 +210,9 @@ class VWM(Model):
                     control_history[step], feature_maps, feature_maps_proj,
                     summary_object, visual_working_memory, write_head)
 
+            # print('Done with frame')
+            # input('pp')
+
             # save state history
             self.frame_history.append(self.VWM_cell.cell_history)
 

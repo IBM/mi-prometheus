@@ -62,9 +62,9 @@ class QuestionDrivenController(Module):
         self.attention_module = AttentionModule(dim)
 
         # instantiate neural network for T (temporal classifier that outputs 4 classes)
-        self.temporal_classifier = torch.nn.Sequential(linear(dim, dim, bias=True),
+        self.temporal_classifier = torch.nn.Sequential(linear(2*dim, 2*dim, bias=True),
                                                        torch.nn.ReLU(),
-                                                       linear(dim, 4, bias=True))
+                                                       linear(2*dim, 4, bias=True))
 
         self.sharpen = torch.nn.Parameter(torch.ones(1,).type(dtype))
 
@@ -106,7 +106,8 @@ class QuestionDrivenController(Module):
         new_control_state, control_attention = self.attention_module(cqi, contextual_words)
 
         # neural network  that returns temporal class weights
-        tcw = self.temporal_classifier(new_control_state)
+        new_cqi = torch.cat([new_control_state, pos_aware_question_encoding], dim=-1)
+        tcw = self.temporal_classifier(new_cqi)
 
         tcw_smax = torch.softmax(tcw, dim=-1)
 
@@ -117,5 +118,14 @@ class QuestionDrivenController(Module):
 
         temporal_class_weights = tcw_power / tcw_sum
 
+        # # get t_now, t_last, t_latest, t_none from temporal_class_weights
+        # t_now = temporal_class_weights[:, 0]
+        # t_last = temporal_class_weights[:, 1]
+        # t_latest = temporal_class_weights[:, 2]
+        # t_none = temporal_class_weights[:, 3]
+        # print(f'sharpness = {sharpen}')
+        # print(t_last, t_latest, t_now, t_none)
+        #
+        #
         # return control and the temporal class weights
         return new_control_state, control_attention, temporal_class_weights
