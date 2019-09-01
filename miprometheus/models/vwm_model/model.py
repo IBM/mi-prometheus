@@ -183,7 +183,6 @@ class VWM(Model):
         control_state = control_state_init
         control_history = []
 
-        eps_tensor = torch.tensor([torch.finfo().eps]).type(self.app_state.dtype)
         for step in range(self.max_step):
             control_state, *control_other = self.question_driven_controller(
                 step, contextual_words, question_encoding, control_state)
