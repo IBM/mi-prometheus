@@ -98,8 +98,7 @@ class VWM(Model):
         self.question_encoder = QuestionEncoder(
             self.vocabulary_size, dim=self.dim, embedded_dim=self.embed_hidden)
 
-        self.question_driven_controller = QuestionDrivenController(
-            self.dim, self.max_step, self.app_state.dtype)
+        self.question_driven_controller = QuestionDrivenController(self.dim, self.max_step)
 
         # instantiate units
         self.image_encoder = ImageEncoder(dim=self.dim)
@@ -187,7 +186,7 @@ class VWM(Model):
         eps_tensor = torch.tensor([torch.finfo().eps]).type(self.app_state.dtype)
         for step in range(self.max_step):
             control_state, *control_other = self.question_driven_controller(
-                step, contextual_words, question_encoding, control_state, eps_tensor)
+                step, contextual_words, question_encoding, control_state)
 
             control_history.append((control_state, *control_other, step))
 
@@ -209,9 +208,6 @@ class VWM(Model):
                 summary_object, visual_working_memory, write_head = self.VWM_cell(
                     control_history[step], feature_maps, feature_maps_proj,
                     summary_object, visual_working_memory, write_head)
-
-            # print('Done with frame')
-            # input('pp')
 
             # save state history
             self.frame_history.append(self.VWM_cell.cell_history)

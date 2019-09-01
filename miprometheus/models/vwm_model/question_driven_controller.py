@@ -32,7 +32,7 @@ class QuestionDrivenController(Module):
     Implementation of the ``QuestionDrivenController`` 
     """
 
-    def __init__(self, dim, max_step, dtype):
+    def __init__(self, dim, max_step):
         """
         Constructor for the QuestionDrivenController.
 
@@ -41,8 +41,6 @@ class QuestionDrivenController(Module):
 
         :param max_step: maximum number of steps -> number of VWM cells in the network.
         :type max_step: int
-
-        :param dtype
 
         """
 
@@ -62,13 +60,12 @@ class QuestionDrivenController(Module):
         self.attention_module = AttentionModule(dim)
 
         # instantiate neural network for T (temporal classifier that outputs 4 classes)
-        self.temporal_classifier = torch.nn.Sequential(linear(2*dim, 2*dim, bias=True),
+        self.temporal_classifier = torch.nn.Sequential(linear(dim, dim, bias=True),
                                                        torch.nn.ReLU(),
-                                                       linear(2*dim, 4, bias=True))
+                                                       linear(dim, 4, bias=True),
+                                                       torch.nn.Softmax(dim=-1))
 
-        self.sharpen = torch.nn.Parameter(torch.ones(1,).type(dtype))
-
-    def forward(self, step, contextual_words, question_encoding, control_state, eps_tensor):
+    def forward(self, step, contextual_words, question_encoding, control_state):
         """
         Forward pass of the ``QuestionDrivenController``.
 
@@ -83,8 +80,6 @@ class QuestionDrivenController(Module):
         [batch_size x (2*dim)]
 
         :param control_state: previous control state [batch_size x dim]
-
-        :param eps_tensor
 
         :return: new_control_state: [batch_size x dim]
         :return: temporal_class_weights: soft classification representing \
@@ -106,26 +101,7 @@ class QuestionDrivenController(Module):
         new_control_state, control_attention = self.attention_module(cqi, contextual_words)
 
         # neural network  that returns temporal class weights
-        new_cqi = torch.cat([new_control_state, pos_aware_question_encoding], dim=-1)
-        tcw = self.temporal_classifier(new_cqi)
+        temporal_class_weights = self.temporal_classifier(new_control_state)
 
-        tcw_smax = torch.softmax(tcw, dim=-1)
-
-        sharpen = 1 + torch.nn.functional.softplus(self.sharpen)
-        tcw_power = (tcw_smax + eps_tensor) ** sharpen
-
-        tcw_sum = torch.max(torch.sum(tcw_power, dim=-1, keepdim=True), eps_tensor)
-
-        temporal_class_weights = tcw_power / tcw_sum
-
-        # # get t_now, t_last, t_latest, t_none from temporal_class_weights
-        # t_now = temporal_class_weights[:, 0]
-        # t_last = temporal_class_weights[:, 1]
-        # t_latest = temporal_class_weights[:, 2]
-        # t_none = temporal_class_weights[:, 3]
-        # print(f'sharpness = {sharpen}')
-        # print(t_last, t_latest, t_now, t_none)
-        #
-        #
         # return control and the temporal class weights
         return new_control_state, control_attention, temporal_class_weights
