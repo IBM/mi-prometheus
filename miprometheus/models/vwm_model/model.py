@@ -482,7 +482,6 @@ class VWM(Model):
                         fontsize='x-large',
                         weight='bold'))
 
-                    ax_header_right.axis('off')
                     artists.append(ax_header_right.text(
                         0, 1.0,
                         str(f+1) +
