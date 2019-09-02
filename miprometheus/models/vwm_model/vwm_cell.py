@@ -28,7 +28,6 @@ from miprometheus.models.vwm_model.memory_retrieval_unit import MemoryRetrievalU
 from miprometheus.models.vwm_model.reasoning_unit import ReasoningUnit
 from miprometheus.models.vwm_model.memory_update_unit import memory_update
 from miprometheus.utils.app_state import AppState
-app_state = AppState()
 
 
 class VWMCell(Module):
@@ -54,7 +53,7 @@ class VWMCell(Module):
         self.reasoning_unit = ReasoningUnit(dim)
         self.summary_unit = SummaryUpdateUnit(dim)
 
-        self.cell_history = []
+        self.cell_history = None
 
     def forward(self, control_all, feature_maps, feature_maps_proj,
                 summary_object, visual_working_memory, write_head):
@@ -105,8 +104,8 @@ class VWMCell(Module):
             image_match, visual_object, memory_match, memory_object, summary_object)
 
         # store attention weights for visualization
-        if app_state.visualize:
-            cell_info = [step] + [x.clone().detach() for x in [
+        if AppState().visualize:
+            cell_info = [step] + [x.detach() for x in [
                 visual_attention, control_attention, new_visual_working_memory,
                 read_head, image_match, memory_match, new_write_head,
                 temporal_class_weights]]
