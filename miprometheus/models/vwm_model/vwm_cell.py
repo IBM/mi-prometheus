@@ -105,7 +105,7 @@ class VWMCell(Module):
 
         # store attention weights for visualization
         if AppState().visualize:
-            cell_info = [step] + [x.detach() for x in [
+            cell_info = [step] + [x.clone().detach() for x in [
                 visual_attention, control_attention, new_visual_working_memory,
                 read_head, image_match, memory_match, new_write_head,
                 temporal_class_weights]]
