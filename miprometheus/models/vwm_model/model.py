@@ -44,6 +44,8 @@ from miprometheus.models.vwm_model.image_encoder import ImageEncoder
 from miprometheus.models.vwm_model.vwm_cell import VWMCell
 from miprometheus.models.vwm_model.output_unit import OutputUnit
 
+from miprometheus.utils.app_state import AppState
+
 # needed for nltk.word.tokenize - do it once!
 nltk.download('punkt')
 
@@ -118,7 +120,7 @@ class VWM(Model):
 
         self.dropout_layer = torch.nn.Dropout(self.dropout_param)
 
-        self.frame_history = []
+        self.frame_history = None
 
     def forward(self, data_dict):
         """
@@ -200,7 +202,8 @@ class VWM(Model):
             feature_maps_proj = self.feature_maps_proj_layer(feature_maps)
 
             # state history fo vizualisation
-            self.VWM_cell.cell_history = []
+            if AppState().visualize:
+                self.VWM_cell.cell_history = []
 
             # recurrent VWM cells
             for step in range(self.max_step):
@@ -209,7 +212,8 @@ class VWM(Model):
                     summary_object, visual_working_memory, write_head)
 
             # save state history
-            self.frame_history.append(self.VWM_cell.cell_history)
+            if AppState().visualize:
+                self.frame_history.append(self.VWM_cell.cell_history)
 
             # output unit
             logits_answer[:, f, :] = self.output_unit_answer(question_encoding, summary_object)
@@ -243,10 +247,33 @@ class VWM(Model):
         # Create a specific grid.
         gs_header = GridSpec(1, 20)
         gs_header.update(wspace=0.00, hspace=0.00, bottom=0.9, top=0.901, left=0.01, right=0.99)
-        _ = fig.add_subplot(gs_header[0, 0:2])
-        _ = fig.add_subplot(gs_header[0, 2:14])
-        _ = fig.add_subplot(gs_header[0, 14:16])
-        _ = fig.add_subplot(gs_header[0, 16:20])
+
+        ax_header_left_labels = fig.add_subplot(gs_header[0, 0:2])
+        ax_header_left = fig.add_subplot(gs_header[0, 2:14])
+        ax_header_right_labels = fig.add_subplot(gs_header[0, 14:16])
+        ax_header_right = fig.add_subplot(gs_header[0, 16:20])
+
+        ax_header_left_labels.axis('off')
+        ax_header_left_labels.text(
+            0, 1.0,
+            'Question:         ' +
+            '\nPrediction: ' +
+            '\nGround Truth:     ',
+            fontsize='x-large'
+        )
+
+        ax_header_left.axis('off')
+
+        ax_header_right_labels.axis('off')
+        ax_header_right_labels.text(
+            0, 1.0,
+            'Frame: ' +
+            '\nReasoning Step:   ' +
+            '\nQuestion Type:    ',
+            fontsize='x-large'
+        )
+
+        ax_header_right.axis('off')
 
         ######################################################################
         # Top-center: Question + time context section.
@@ -409,6 +436,7 @@ class VWM(Model):
 
             # initiate list of artists frames
             frames = []
+            pcm_params = {'edgecolor': 'black', 'linewidth': 1.4e-3}
 
             # loop over the sequence of frames
             for f in range(images.size(1)):
@@ -445,15 +473,7 @@ class VWM(Model):
 
                     ######################################################################
                     # Set header.
-                    ax_header_left_labels.axis('off')
-                    artists.append(ax_header_left_labels.text(
-                        0, 1.0,
-                        'Question:         ' +
-                        '\nPrediction: ' +
-                        '\nGround Truth:     ',
-                        fontsize='x-large'
-                    ))
-                    ax_header_left.axis('off')
+
                     artists.append(ax_header_left.text(
                         0, 1.0,
                         question_words +
@@ -462,20 +482,11 @@ class VWM(Model):
                         fontsize='x-large',
                         weight='bold'))
 
-                    ax_header_right_labels.axis('off')
-                    artists.append(ax_header_right_labels.text(
-                        0, 1.0,
-                        'Frame: ' +
-                        '\nReasoning Step:   ' +
-                        '\nQuestion Type:    ',
-                        fontsize='x-large'
-                    ))
-
                     ax_header_right.axis('off')
                     artists.append(ax_header_right.text(
                         0, 1.0,
-                        str(f) +
-                        '\n' + str(step) +
+                        str(f+1) +
+                        '\n' + str(step+1) +
                         '\n' + tasks,
                         fontsize='x-large',
                         weight='bold'))
@@ -483,16 +494,11 @@ class VWM(Model):
                     ######################################################################
                     # Top-center: Question + time context section.
                     # Set words for question attention.
-                    # ax_attention_question.xaxis.set_major_locator(
-                    # ticker.MaxNLocator(nbins=len(words)))
-                    # NOT WORKING AS number of ticks != number of cells! :]
                     ax_attention_question.set_xticklabels(
                         words, horizontalalignment='left', rotation=-45, rotation_mode='anchor')
 
-                    cm_params = {'edgecolor': 'black', 'linewidth': 1.4e-3}
-
                     artists.append(ax_attention_question.pcolormesh(
-                        control_attention[sample][..., None, :], vmin=0.0, vmax=1.0, **cm_params))
+                        control_attention[sample][..., None, :], vmin=0.0, vmax=1.0, **pcm_params))
 
                     def annotate(x, fs='x-large'):
                         return dict(horizontalalignment='center',
@@ -505,7 +511,7 @@ class VWM(Model):
                     # visualization in different order last, latest, now, none
                     tcw_permute = temporal_class_weights[[[sample]], [[1, 2, 0, 3]]]
                     artists.append(ax_context.pcolormesh(tcw_permute, vmin=0.0, vmax=1.0,
-                                                         **cm_params))
+                                                         **pcm_params))
 
                     for ix in range(4):
                         val = tcw_permute[0, ix].item()
@@ -531,14 +537,14 @@ class VWM(Model):
 
                     # Image gate.
                     artists.append(ax_image_match.pcolormesh(
-                        image_match[[sample], None], vmin=0.0, vmax=1.0, **cm_params))
+                        image_match[[sample], None], vmin=0.0, vmax=1.0, **pcm_params))
                     val = image_match[sample].item()
                     artists.append(ax_image_match.text(0.5, 0.5, f'{val:6.4f}',
                                                        **annotate(val)))
 
                     # Memory gate.
                     artists.append(ax_memory_match.pcolormesh(
-                        memory_match[[sample], None], vmin=0.0, vmax=1.0, **cm_params))
+                        memory_match[[sample], None], vmin=0.0, vmax=1.0, **pcm_params))
                     val = memory_match[sample].item()
                     artists.append(ax_memory_match.text(0.5, 0.5, f'{val:6.4f}',
                                                         **annotate(val)))
@@ -550,10 +556,10 @@ class VWM(Model):
                         visual_working_memory[sample], edgecolor='black', linewidth=1.4e-4))
 
                     artists.append(ax_attention_history.pcolormesh(
-                        read_head[sample][..., None], vmin=0.0, vmax=1.0, **cm_params))
+                        read_head[sample][..., None], vmin=0.0, vmax=1.0, **pcm_params))
 
                     artists.append(ax_wt.pcolormesh(
-                        write_head[sample][..., None], vmin=0.0, vmax=1.0, **cm_params))
+                        write_head[sample][..., None], vmin=0.0, vmax=1.0, **pcm_params))
 
                     # Add "frames" to artist list
                     frames.append(artists)
