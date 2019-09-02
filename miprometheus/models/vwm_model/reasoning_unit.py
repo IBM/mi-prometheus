@@ -63,12 +63,12 @@ class ReasoningUnit(Module):
         """
 
         # the visual object validator
-        concat_read_visual = torch.cat([control_state, visual_object], dim=1)
+        concat_read_visual = torch.cat([control_state, visual_object], dim=-1)
         valid_vo = self.visual_object_validator(concat_read_visual)
         valid_vo = valid_vo.squeeze(-1)
 
         # the memory object validator
-        concat_read_memory = torch.cat([control_state, memory_object], dim=1)
+        concat_read_memory = torch.cat([control_state, memory_object], dim=-1)
         valid_mo = self.memory_object_validator(concat_read_memory)
         valid_mo = valid_mo.squeeze(-1)
 

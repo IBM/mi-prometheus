@@ -24,8 +24,10 @@ __author__ = "Vincent Albouy, T.S. Jayram, Tomasz Kornuta"
 
 import nltk
 
-import torch
 import numpy as np
+import torch
+import torch.nn as nn
+
 import matplotlib.pylab
 import matplotlib.animation
 from matplotlib.gridspec import GridSpec
@@ -35,8 +37,6 @@ import matplotlib.lines as lines
 
 from miprometheus.models.model import Model
 from miprometheus.models.vwm_model.utils_VWM import linear
-import numpy as numpy
-import torch.nn as nn
 
 from miprometheus.models.vwm_model.question_encoder import QuestionEncoder
 from miprometheus.models.vwm_model.question_driven_controller import QuestionDrivenController
@@ -148,7 +148,7 @@ class VWM(Model):
         questions_length = questions.size(1)
 
         # Convert questions length into a tensor
-        questions_length = torch.from_numpy(numpy.array(questions_length))
+        questions_length = torch.from_numpy(np.array(questions_length))
 
         # Create placeholders for logits.
         logits_answer = torch.zeros(
@@ -167,7 +167,7 @@ class VWM(Model):
         summary_object_init = self.dropout_layer(summary_object_init)
 
         # initialize empty memory
-        visual_working_memory = (0.01 * torch.ones(
+        visual_working_memory = (torch.zeros(
             batch_size, self.slot, self.dim)).type(self.app_state.dtype)
 
         # initialize read head at first slot position
@@ -264,7 +264,8 @@ class VWM(Model):
         ax_context = fig.add_subplot(gs_top[0, 20:24])
         ax_context.yaxis.set_major_locator(ticker.NullLocator())
         ax_context.xaxis.set_major_locator(ticker.FixedLocator([0, 1, 2, 3]))
-        ax_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'], horizontalalignment='left', rotation=-45, rotation_mode='anchor')
+        ax_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'], horizontalalignment='left',
+                                   rotation=-45, rotation_mode='anchor')
         ax_context.set_title('Time Context')
 
         ######################################################################
@@ -410,22 +411,22 @@ class VWM(Model):
             frames = []
 
             # loop over the sequence of frames
-            for i in range(images.size(1)):
+            for f in range(images.size(1)):
 
                 # get image sample
-                image = images[sample][i] / 255
+                image = images[sample][f] / 255
 
                 # needs [W x H x Channels] for Matplolib.imshow
                 image = image.permute(1, 2, 0)
 
                 # get answer and prediction strings
-                pred = vocab[prediction[i]]
-                ans = s_answers[sample][i]
+                pred = vocab[prediction[f]]
+                ans = s_answers[sample][f]
 
                 # loop over the k reasoning steps
                 for (step, visual_attention, control_attention, visual_working_memory,
                      read_head, image_match, memory_match, write_head,
-                     temporal_class_weights) in self.frame_history[i]:
+                     temporal_class_weights) in self.frame_history[f]:
                     # preprocess attention image, reshape
                     attention_size = int(np.sqrt(visual_attention.size(-1)))
 
@@ -437,9 +438,6 @@ class VWM(Model):
                         size=[width, height], mode='bilinear', align_corners=True)
                     up_sample_attention_mask = m(attention_mask)
                     attention_mask = up_sample_attention_mask[sample, 0]
-
-                    norm = matplotlib.pylab.Normalize(0, 1)
-                    # norm2 = matplotlib.pylab.Normalize(0, 4)
 
                     # Create "Artists" drawing data on "ImageAxes".
                     artists = []
@@ -476,7 +474,7 @@ class VWM(Model):
                     ax_header_right.axis('off')
                     artists.append(ax_header_right.text(
                         0, 1.0,
-                        str(i) +
+                        str(f) +
                         '\n' + str(step) +
                         '\n' + tasks,
                         fontsize='x-large',
@@ -488,18 +486,31 @@ class VWM(Model):
                     # ax_attention_question.xaxis.set_major_locator(
                     # ticker.MaxNLocator(nbins=len(words)))
                     # NOT WORKING AS number of ticks != number of cells! :]
-                    ax_attention_question.set_xticklabels(words, horizontalalignment='left', rotation=-45, rotation_mode='anchor')
+                    ax_attention_question.set_xticklabels(
+                        words, horizontalalignment='left', rotation=-45, rotation_mode='anchor')
 
-                    params = {'edgecolor': 'black', 'linewidth': 1.4e-3}
+                    cm_params = {'edgecolor': 'black', 'linewidth': 1.4e-3}
 
                     artists.append(ax_attention_question.pcolormesh(
-                        control_attention[sample][..., None, :], vmin=0.0, vmax=1.0, **params))
+                        control_attention[sample][..., None, :], vmin=0.0, vmax=1.0, **cm_params))
+
+                    def annotate(x, fs='x-large'):
+                        return dict(horizontalalignment='center',
+                                    verticalalignment='center',
+                                    fontsize=fs,
+                                    color='black' if x > 0.5 else 'white')
 
                     # Time context.
                     # temporal_class_weights given by order now, last, latest, none
                     # visualization in different order last, latest, now, none
-                    artists.append(ax_context.pcolormesh(
-                        temporal_class_weights[[[sample]], [[1, 2, 0, 3]]], vmin=0.0, vmax=1.0, **params))
+                    tcw_permute = temporal_class_weights[[[sample]], [[1, 2, 0, 3]]]
+                    artists.append(ax_context.pcolormesh(tcw_permute, vmin=0.0, vmax=1.0,
+                                                         **cm_params))
+
+                    for ix in range(4):
+                        val = tcw_permute[0, ix].item()
+                        artists.append(ax_context.text(
+                            ix+0.5, 0.5, f'{val:6.4f}', **annotate(val, fs='large')))
 
                     ######################################################################
                     # Bottom left: Image section.
@@ -520,24 +531,29 @@ class VWM(Model):
 
                     # Image gate.
                     artists.append(ax_image_match.pcolormesh(
-                        image_match[[sample], None], vmin=0.0, vmax=1.0, **params))
+                        image_match[[sample], None], vmin=0.0, vmax=1.0, **cm_params))
+                    val = image_match[sample].item()
+                    artists.append(ax_image_match.text(0.5, 0.5, f'{val:6.4f}',
+                                                       **annotate(val)))
 
                     # Memory gate.
                     artists.append(ax_memory_match.pcolormesh(
-                        memory_match[[sample], None], vmin=0.0, vmax=1.0, **params))
+                        memory_match[[sample], None], vmin=0.0, vmax=1.0, **cm_params))
+                    val = memory_match[sample].item()
+                    artists.append(ax_memory_match.text(0.5, 0.5, f'{val:6.4f}',
+                                                        **annotate(val)))
 
                     ######################################################################
                     # Bottom Right: Memory section.
 
-                    params2 = {'edgecolor': 'black', 'linewidth': 1.4e-4}
                     artists.append(ax_visual_working_memory.pcolormesh(
-                        visual_working_memory[sample], **params2))
+                        visual_working_memory[sample], edgecolor='black', linewidth=1.4e-4))
 
                     artists.append(ax_attention_history.pcolormesh(
-                        read_head[sample][..., None], vmin=0.0, vmax=1.0, **params))
+                        read_head[sample][..., None], vmin=0.0, vmax=1.0, **cm_params))
 
                     artists.append(ax_wt.pcolormesh(
-                        write_head[sample][..., None], vmin=0.0, vmax=1.0, **params))
+                        write_head[sample][..., None], vmin=0.0, vmax=1.0, **cm_params))
 
                     # Add "frames" to artist list
                     frames.append(artists)
@@ -548,81 +564,3 @@ class VWM(Model):
         else:
             print("Visualization for pointing NOT OPERATIONAL!")
             exit(-10)
-
-            # ################## POINTING VISUALIZATION #######################
-
-            # get distribution
-            softmax_pointing = nn.Softmax(dim=1)
-            preds_pointing = softmax_pointing(logits[1])
-
-            # Create figure template.
-            fig = self.generate_figure_layout()
-
-            # Get axes that artists will draw on.
-            (ax_image, ax_attention_image, ax_attention_question, ax_step) = fig.axes
-
-            # initiate list of artists frames
-            frames = []
-
-            # loop over the seqence of frames
-            for i in range(images.size(1)):
-
-                # get image sample
-                image = images[sample][i]
-
-                # needs [W x H x Channels] for Matplolib.imshow
-                image = image.permute(1, 2, 0) / 255
-
-                # loop over the k reasoning steps
-                for step, (attention_mask, control_attention) in zip(
-                        range(self.max_step), self.frame_history[i]):
-                    # upsample attention mask
-                    original_grid_size = 7
-                    preds_pointing = preds_pointing.view(
-                        images.size(0), images.size(1), original_grid_size, -1)
-                    mm = torch.nn.Upsample(size=[width, height], mode='bilinear')
-                    up_sample_preds_pointing = mm(preds_pointing)
-                    up_sample_preds_pointing = up_sample_preds_pointing[sample][i]
-
-                    # preprocess question, pick one sample number
-                    control_attention = control_attention[sample]
-
-                    # Create "Artists" drawing data on "ImageAxes".
-                    num_artists = len(fig.axes) + 1
-                    artists = [None] * num_artists
-
-                    # set title labels
-                    ax_image.set_title(
-                        'COG image ' + str(i))
-                    ax_attention_question.set_xticklabels(
-                        ['h'] + words, rotation='vertical', fontsize=10)
-                    ax_step.axis('off')
-                    ax_attention_image.set_title(
-                        'Pointing Distribution:')
-
-                    # Tell artists what to do:
-                    artists[0] = ax_image.imshow(
-                        image, interpolation='nearest', aspect='auto')
-                    artists[1] = ax_attention_image.imshow(
-                        image, interpolation='nearest', aspect='auto')
-                    artists[2] = ax_attention_image.imshow(
-                        up_sample_preds_pointing.detach().numpy(),
-                        interpolation='nearest',
-                        aspect='auto',
-                        alpha=0.5,
-                        cmap='Blues')
-                    artists[3] = ax_attention_question.imshow(
-                        control_attention,
-                        interpolation='nearest', aspect='auto', cmap='Reds')
-                    artists[4] = ax_step.text(
-                        0, 0.5, 'Reasoning step index: ' + str(
-                            step) + ' | Question type: ' + tasks,
-                        fontsize=15)
-
-                    # Add "frames" to artist list
-                    frames.append(artists)
-
-            # Plot figure and list of frames.
-            self.plotWindow.update(fig, frames)
-
-        # return self.plotWindow.is_closed
