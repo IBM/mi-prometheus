@@ -98,7 +98,7 @@ class VWMCell(Module):
 
         # summary update Unit
         new_summary_object = self.summary_unit(
-            image_match, visual_object, memory_match, memory_object, summary_object)
+            summary_object, image_match, visual_object, memory_match, memory_object)
 
         # store attention weights for visualization
         # if AppState().visualize:
