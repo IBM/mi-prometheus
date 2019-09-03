@@ -43,8 +43,9 @@ from miprometheus.models.vwm_model.question_driven_controller import QuestionDri
 from miprometheus.models.vwm_model.image_encoder import ImageEncoder
 from miprometheus.models.vwm_model.vwm_cell import VWMCell
 from miprometheus.models.vwm_model.output_unit import OutputUnit
+from miprometheus.models.vwm_model.memory_update_unit import memory_update
 
-from miprometheus.utils.app_state import AppState
+# from miprometheus.utils.app_state import AppState
 
 # needed for nltk.word.tokenize - do it once!
 nltk.download('punkt')
@@ -109,7 +110,7 @@ class VWM(Model):
         self.feature_maps_proj_layer = linear(self.dim, self.dim, bias=True)
 
         # initialize VWM Cell
-        self.VWM_cell = VWMCell(dim=self.dim)
+        self.vwm_cell = VWMCell(dim=self.dim)
 
         # Create two separate output units.
         self.output_unit_answer = OutputUnit(dim=self.dim, nb_classes=self.nb_classes)
@@ -176,25 +177,23 @@ class VWM(Model):
         write_head = torch.zeros(batch_size, self.slot).type(self.app_state.dtype)
         write_head[:, 0] = 1
 
-        self.frame_history = []
-
         # question encoder
         contextual_words, question_encoding = self.question_encoder(
             questions, questions_length)
 
         control_state = control_state_init
         control_history = []
-
         for step in range(self.max_step):
-            control_state, *control_other = self.question_driven_controller(
+            (control_state, control_attention,
+             temporal_class_weights) = self.question_driven_controller(
                 step, contextual_words, question_encoding, control_state)
 
-            control_history.append((control_state, *control_other, step))
+            control_history.append((control_state, control_attention, temporal_class_weights))
 
         # Loop over all elements along the SEQUENCE dimension.
         for f in range(images.size(0)):
 
-            # RESET OF CONTROL and SUMMARY OBJECT
+            # RESET OF SUMMARY OBJECT
             summary_object = summary_object_init
 
             # image encoder
@@ -202,18 +201,23 @@ class VWM(Model):
             feature_maps_proj = self.feature_maps_proj_layer(feature_maps)
 
             # state history fo vizualisation
-            if AppState().visualize:
-                self.VWM_cell.cell_history = []
+            vwm_cell_hist = []
 
             # recurrent VWM cells
             for step in range(self.max_step):
-                summary_object, visual_working_memory, write_head = self.VWM_cell(
-                    control_history[step], feature_maps, feature_maps_proj,
-                    summary_object, visual_working_memory, write_head)
+                summary_object, vwm_cell_state_other = self.vwm_cell(
+                    summary_object, step, control_history[step],
+                    feature_maps, feature_maps_proj, visual_working_memory)
 
-            # save state history
-            if AppState().visualize:
-                self.frame_history.append(self.VWM_cell.cell_history)
+                vwm_cell_hist.append(vwm_cell_state_other)
+
+            # VWM update
+            for step in range(self.max_step):
+                # update VWM contents and write head
+                visual_object, read_head, do_replace, do_add_new = vwm_cell_hist[step]
+                visual_working_memory, write_head = memory_update(
+                    visual_working_memory, write_head,
+                    visual_object, read_head, do_replace, do_add_new)
 
             # output unit
             logits_answer[:, f, :] = self.output_unit_answer(question_encoding, summary_object)
@@ -468,27 +472,25 @@ class VWM(Model):
                     attention_mask = up_sample_attention_mask[sample, 0]
 
                     # Create "Artists" drawing data on "ImageAxes".
-                    artists = []
                     # Tell artists what to do:
-
                     ######################################################################
                     # Set header.
-
-                    artists.append(ax_header_left.text(
-                        0, 1.0,
-                        question_words +
-                        '\n' + pred +
-                        '\n' + ans,
-                        fontsize='x-large',
-                        weight='bold'))
-
-                    artists.append(ax_header_right.text(
-                        0, 1.0,
-                        str(f+1) +
-                        '\n' + str(step+1) +
-                        '\n' + tasks,
-                        fontsize='x-large',
-                        weight='bold'))
+                    artists = [
+                        ax_header_left.text(
+                            0, 1.0,
+                            question_words +
+                            '\n' + pred +
+                            '\n' + ans,
+                            fontsize='x-large',
+                            weight='bold'),
+                        ax_header_right.text(
+                            0, 1.0,
+                            str(f + 1) +
+                            '\n' + str(step + 1) +
+                            '\n' + tasks,
+                            fontsize='x-large',
+                            weight='bold')
+                    ]
 
                     ######################################################################
                     # Top-center: Question + time context section.
