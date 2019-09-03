@@ -160,12 +160,14 @@ class VWM(Model):
 
         # expand the hidden states to whole batch for mac cell control_state_init states and
         # memory states
+
         control_state_init = self.control_0.expand(batch_size, self.dim)
         summary_object_init = self.mem_0.expand(batch_size, self.dim)
-        control_mask = self.get_dropout_mask(control_state_init, self.dropout)
-        memory_mask = self.get_dropout_mask(summary_object_init, self.dropout)
-        control_state_init = control_state_init * control_mask
-        summary_object_init = summary_object_init * memory_mask
+        if self.training:
+            control_mask = self.get_dropout_mask(control_state_init, self.dropout)
+            memory_mask = self.get_dropout_mask(summary_object_init, self.dropout)
+            control_state_init = control_state_init * control_mask
+            summary_object_init = summary_object_init * memory_mask
 
         # initialize empty memory
         visual_working_memory = torch.zeros(
