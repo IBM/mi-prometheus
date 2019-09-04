@@ -9,6 +9,6 @@ grid_settings:
   # Set number of repetitions of each experiments.
   experiment_repetitions: 10
   # Set number of concurrent running experiments (will be limited by the actual number of available CPUs/GPUs).
-  max_concurrent_runs: 7
+  max_concurrent_runs: 3
   # Set trainer.
-  trainer: mip-offline-trainer
+  trainer: mip-online-trainer
