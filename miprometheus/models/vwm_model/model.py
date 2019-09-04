@@ -222,12 +222,11 @@ class VWM(Model):
                 do_replace = vwm_cell_hist[step]['do_r']
                 do_add_new = vwm_cell_hist[step]['do_a']
 
-                kw = dict(vwm=visual_working_memory, whd=write_head)
-
                 visual_working_memory, write_head = memory_update(
                     visual_working_memory, write_head,
                     visual_object, read_head, do_replace, do_add_new)
 
+                kw = dict(vwm=visual_working_memory, whd=write_head)
                 vwm_cell_hist[step].update(kw)
 
             # output unit
@@ -306,18 +305,20 @@ class VWM(Model):
         ax_attention_question.set_title('Question')
 
         # Time gate ;)
-        ax_context = fig.add_subplot(gs_top[0, 20:24])
-        ax_context.yaxis.set_major_locator(ticker.NullLocator())
-        ax_context.xaxis.set_major_locator(ticker.FixedLocator([0, 1, 2, 3]))
-        ax_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'], horizontalalignment='left',
-                                   rotation=-45, rotation_mode='anchor')
-        ax_context.set_title('Time Context')
+        ax_temporal_context = fig.add_subplot(gs_top[0, 20:24])
+        ax_temporal_context.yaxis.set_major_locator(ticker.NullLocator())
+        ax_temporal_context.xaxis.set_major_locator(ticker.FixedLocator([0, 1, 2, 3]))
+        ax_temporal_context.set_xticklabels(['Last', 'Latest', 'Now', 'None'],
+                                            horizontalalignment='left',
+                                            rotation=-45, rotation_mode='anchor')
+        ax_temporal_context.set_title('Time Context')
 
         ######################################################################
         # Bottom left: Image section.
         # Create a specific grid.
         gs_bottom_left = GridSpec(1, 2)
-        gs_bottom_left.update(wspace=0.04, hspace=0.0, bottom=0.02, top=0.63, left=0.01, right=0.44)
+        gs_bottom_left.update(wspace=0.04, hspace=0.0, bottom=0.02, top=0.63,
+                              left=0.01, right=0.44)
 
         # Image.
         ax_image = fig.add_subplot(gs_bottom_left[0, 0])
@@ -335,7 +336,8 @@ class VWM(Model):
         # Bottom Center: gates section.
         # Create a specific grid - for gates.
         gs_bottom_center = GridSpec(2, 1)
-        gs_bottom_center.update(wspace=0.0, hspace=1, bottom=0.27, top=0.45, left=0.48, right=0.52)
+        gs_bottom_center.update(wspace=0.0, hspace=1, bottom=0.27, top=0.45,
+                                left=0.48, right=0.52)
 
         # Image gate.
         ax_image_match = fig.add_subplot(gs_bottom_center[0, 0])
@@ -353,13 +355,14 @@ class VWM(Model):
         # Bottom Right: Memory section.
         # Create a specific grid.
         gs_bottom_right = GridSpec(1, 20)
-        gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.02, top=0.63, left=0.52, right=0.99)
+        gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.02, top=0.63,
+                               left=0.52, right=0.99)
 
         # Read attention.
-        ax_attention_history = fig.add_subplot(gs_bottom_right[0, 3])
-        ax_attention_history.xaxis.set_major_locator(ticker.NullLocator())
-        ax_attention_history.set_ylabel('Memory Addresses')
-        ax_attention_history.set_title('Read Head')
+        ax_read_head = fig.add_subplot(gs_bottom_right[0, 3])
+        ax_read_head.xaxis.set_major_locator(ticker.NullLocator())
+        ax_read_head.set_ylabel('Memory Addresses')
+        ax_read_head.set_title('Read Head')
 
         # Memory
         ax_visual_working_memory = fig.add_subplot(gs_bottom_right[0, 4:18])
@@ -368,10 +371,10 @@ class VWM(Model):
         ax_visual_working_memory.set_title('Working Memory')
 
         # Write attention.
-        ax_wt = fig.add_subplot(gs_bottom_right[0, 18])
-        ax_wt.xaxis.set_major_locator(ticker.NullLocator())
-        ax_wt.yaxis.set_ticklabels([])
-        ax_wt.set_title('Write Head')
+        ax_write_head = fig.add_subplot(gs_bottom_right[0, 18])
+        ax_write_head.xaxis.set_major_locator(ticker.NullLocator())
+        ax_write_head.yaxis.set_ticklabels([])
+        ax_write_head.set_title('Write Head')
 
         # Lines between sections.
         l1 = lines.Line2D([0, 1], [0.88, 0.88], transform=fig.transFigure,
@@ -447,10 +450,10 @@ class VWM(Model):
 
             # Get axes that artists will draw on.
             (ax_header_left_labels, ax_header_left, ax_header_right_labels, ax_header_right,
-             ax_attention_question, ax_context,
+             ax_attention_question, ax_temporal_context,
              ax_image, ax_attention_image,
              ax_image_match, ax_memory_match,
-             ax_attention_history, ax_visual_working_memory, ax_wt) = fig.axes
+             ax_read_head, ax_visual_working_memory, ax_write_head) = fig.axes
 
             # initiate list of artists frames
             frames = []
@@ -495,6 +498,24 @@ class VWM(Model):
                     up_sample_attention_mask = m(attention_mask)
                     attention_mask = up_sample_attention_mask[sample, 0]
 
+                    ######################################################################
+                    # Helper method to produce a heatmap, potentially annotated
+                    def heatmap(ax, x, fs='large', annotate=True):
+                        artists.append(ax.pcolormesh(
+                            x, vmin=0.0, vmax=1.0, edgecolor='black', linewidth=1.4e-3))
+
+                        if annotate:
+                            for i in range(x.size(0)):
+                                for j in range(x.size(1)):
+                                    val = x[i,j].item()
+                                    artists.append(ax.text(
+                                        j+0.5, i+0.5, f'{val:4.2f}',
+                                        horizontalalignment='center',
+                                        verticalalignment='center',
+                                        fontsize=fs,
+                                        color='black' if val > 0.5 else 'white'))
+
+                    ######################################################################
                     # Create "Artists" drawing data on "ImageAxes".
                     # Tell artists what to do:
                     ######################################################################
@@ -521,27 +542,13 @@ class VWM(Model):
                     # Set words for question attention.
                     ax_attention_question.set_xticklabels(
                         words, horizontalalignment='left', rotation=-45, rotation_mode='anchor')
-
-                    artists.append(ax_attention_question.pcolormesh(
-                        control_attention[sample][..., None, :], vmin=0.0, vmax=1.0, **pcm_params))
-
-                    def annotate(ax, i, j, val, fs='x-large'):
-                        artists.append(ax.text(
-                            i+0.5, j+0.5, f'{val:4.2f}',
-                            horizontalalignment='center',
-                            verticalalignment='center',
-                            fontsize=fs,
-                            color='black' if val > 0.5 else 'white'))
+                    heatmap(ax_attention_question, control_attention[[sample], :], annotate=False)
 
                     # Time context.
                     # temporal_class_weights given by order now, last, latest, none
                     # visualization in different order last, latest, now, none
                     tcw_permute = temporal_class_weights[[[sample]], [[1, 2, 0, 3]]]
-                    artists.append(ax_context.pcolormesh(tcw_permute, vmin=0.0, vmax=1.0,
-                                                         **pcm_params))
-
-                    for ix in range(4):
-                        annotate(ax_context, ix, 0, tcw_permute[0, ix].item(), fs='large')
+                    heatmap(ax_temporal_context, tcw_permute)
 
                     ######################################################################
                     # Bottom left: Image section.
@@ -561,14 +568,10 @@ class VWM(Model):
                     # Bottom center: gates section.
 
                     # Image gate.
-                    artists.append(ax_image_match.pcolormesh(
-                        image_match[[sample], None], vmin=0.0, vmax=1.0, **pcm_params))
-                    annotate(ax_image_match, 0, 0, image_match[sample].item())
+                    heatmap(ax_image_match, image_match[[sample], None])
 
                     # Memory gate.
-                    artists.append(ax_memory_match.pcolormesh(
-                        memory_match[[sample], None], vmin=0.0, vmax=1.0, **pcm_params))
-                    annotate(ax_memory_match, 0, 0, memory_match[sample].item())
+                    heatmap(ax_memory_match, memory_match[[sample], None])
 
                     ######################################################################
                     # Bottom Right: Memory section.
@@ -576,17 +579,9 @@ class VWM(Model):
                     artists.append(ax_visual_working_memory.pcolormesh(
                         visual_working_memory[sample], edgecolor='black', linewidth=1.4e-4))
 
-                    artists.append(ax_attention_history.pcolormesh(
-                        read_head[sample][..., None], vmin=0.0, vmax=1.0, **pcm_params))
+                    heatmap(ax_read_head, read_head[sample][:, None], fs='medium')
 
-                    for ix in range(read_head.size(1)):
-                        annotate(ax_attention_history, 0, ix, read_head[sample, ix].item(), fs='small')
-
-                    artists.append(ax_wt.pcolormesh(
-                        write_head[sample][..., None], vmin=0.0, vmax=1.0, **pcm_params))
-
-                    for ix in range(read_head.size(1)):
-                        annotate(ax_wt, 0, ix, write_head[sample, ix].item(), fs='small')
+                    heatmap(ax_write_head, write_head[sample][:, None], fs='medium')
 
                     # Add "frames" to artist list
                     frames.append(artists)
