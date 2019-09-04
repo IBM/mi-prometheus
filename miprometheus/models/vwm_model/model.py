@@ -542,7 +542,7 @@ class VWM(Model):
                     # Set words for question attention.
                     ax_attention_question.set_xticklabels(
                         words, horizontalalignment='left', rotation=-45, rotation_mode='anchor')
-                    heatmap(ax_attention_question, control_attention[[sample], :], annotate=False)
+                    heatmap(ax_attention_question, control_attention[[sample], :])
 
                     # Time context.
                     # temporal_class_weights given by order now, last, latest, none
@@ -568,10 +568,10 @@ class VWM(Model):
                     # Bottom center: gates section.
 
                     # Image gate.
-                    heatmap(ax_image_match, image_match[[sample], None])
+                    heatmap(ax_image_match, image_match[[sample], None], fs='x-large')
 
                     # Memory gate.
-                    heatmap(ax_memory_match, memory_match[[sample], None])
+                    heatmap(ax_memory_match, memory_match[[sample], None], fs='x-large')
 
                     ######################################################################
                     # Bottom Right: Memory section.
