@@ -135,6 +135,7 @@ class VWM(Model):
         :return: Predictions of the model.
         """
 
+        print('New Run')
         # Change the order of image dimensions, so we will loop over
         # dimension 0: sequence elements.
         images = data_dict['images']
@@ -221,11 +222,12 @@ class VWM(Model):
                 do_replace = vwm_cell_hist[step]['do_r']
                 do_add_new = vwm_cell_hist[step]['do_a']
 
+                kw = dict(vwm=visual_working_memory, whd=write_head)
+
                 visual_working_memory, write_head = memory_update(
                     visual_working_memory, write_head,
                     visual_object, read_head, do_replace, do_add_new)
 
-                kw = dict(vwm=visual_working_memory, whd=write_head)
                 vwm_cell_hist[step].update(kw)
 
             # output unit
@@ -470,16 +472,16 @@ class VWM(Model):
                 # loop over the k reasoning steps
                 for step, tensor_dict in enumerate(self.frame_history[f]):
 
-                    numpy_dict = {key: x.clone().detach() for key, x in tensor_dict.items()}
+                    val_dict = {key: x.clone().detach() for key, x in tensor_dict.items()}
 
-                    control_attention = numpy_dict['ca']
-                    temporal_class_weights = numpy_dict['tcw']
-                    visual_attention = numpy_dict['va']
-                    read_head = numpy_dict['rhd']
-                    image_match = numpy_dict['im_m']
-                    memory_match = numpy_dict['mem_m']
-                    visual_working_memory = numpy_dict['vwm']
-                    write_head = numpy_dict['whd']
+                    control_attention = val_dict['ca']
+                    temporal_class_weights = val_dict['tcw']
+                    visual_attention = val_dict['va']
+                    read_head = val_dict['rhd']
+                    image_match = val_dict['im_m']
+                    memory_match = val_dict['mem_m']
+                    visual_working_memory = val_dict['vwm']
+                    write_head = val_dict['whd']
 
                     # preprocess attention image, reshape
                     attention_size = int(np.sqrt(visual_attention.size(-1)))
@@ -523,11 +525,13 @@ class VWM(Model):
                     artists.append(ax_attention_question.pcolormesh(
                         control_attention[sample][..., None, :], vmin=0.0, vmax=1.0, **pcm_params))
 
-                    def annotate(x, fs='x-large'):
-                        return dict(horizontalalignment='center',
-                                    verticalalignment='center',
-                                    fontsize=fs,
-                                    color='black' if x > 0.5 else 'white')
+                    def annotate(ax, i, j, val, fs='x-large'):
+                        artists.append(ax.text(
+                            i+0.5, j+0.5, f'{val:4.2f}',
+                            horizontalalignment='center',
+                            verticalalignment='center',
+                            fontsize=fs,
+                            color='black' if val > 0.5 else 'white'))
 
                     # Time context.
                     # temporal_class_weights given by order now, last, latest, none
@@ -537,9 +541,7 @@ class VWM(Model):
                                                          **pcm_params))
 
                     for ix in range(4):
-                        val = tcw_permute[0, ix].item()
-                        artists.append(ax_context.text(
-                            ix+0.5, 0.5, f'{val:6.4f}', **annotate(val, fs='large')))
+                        annotate(ax_context, ix, 0, tcw_permute[0, ix].item(), fs='large')
 
                     ######################################################################
                     # Bottom left: Image section.
@@ -561,16 +563,12 @@ class VWM(Model):
                     # Image gate.
                     artists.append(ax_image_match.pcolormesh(
                         image_match[[sample], None], vmin=0.0, vmax=1.0, **pcm_params))
-                    val = image_match[sample].item()
-                    artists.append(ax_image_match.text(0.5, 0.5, f'{val:6.4f}',
-                                                       **annotate(val)))
+                    annotate(ax_image_match, 0, 0, image_match[sample].item())
 
                     # Memory gate.
                     artists.append(ax_memory_match.pcolormesh(
                         memory_match[[sample], None], vmin=0.0, vmax=1.0, **pcm_params))
-                    val = memory_match[sample].item()
-                    artists.append(ax_memory_match.text(0.5, 0.5, f'{val:6.4f}',
-                                                        **annotate(val)))
+                    annotate(ax_memory_match, 0, 0, memory_match[sample].item())
 
                     ######################################################################
                     # Bottom Right: Memory section.
@@ -581,8 +579,14 @@ class VWM(Model):
                     artists.append(ax_attention_history.pcolormesh(
                         read_head[sample][..., None], vmin=0.0, vmax=1.0, **pcm_params))
 
+                    for ix in range(read_head.size(1)):
+                        annotate(ax_attention_history, 0, ix, read_head[sample, ix].item(), fs='small')
+
                     artists.append(ax_wt.pcolormesh(
                         write_head[sample][..., None], vmin=0.0, vmax=1.0, **pcm_params))
+
+                    for ix in range(read_head.size(1)):
+                        annotate(ax_wt, 0, ix, write_head[sample, ix].item(), fs='small')
 
                     # Add "frames" to artist list
                     frames.append(artists)
