@@ -247,10 +247,10 @@ class VWM(Model):
 
         """
 
-        params = {'axes.titlesize': 'xx-large',
-                  'axes.labelsize': 'xx-large',
-                  'xtick.labelsize': 'x-large',
-                  'ytick.labelsize': 'large',
+        params = {'axes.titlesize': 'x-large',
+                  'axes.labelsize': 'x-large',
+                  'xtick.labelsize': 'large',
+                  'ytick.labelsize': 'medium',
                   }
 
         matplotlib.pylab.rcParams.update(params)
@@ -262,13 +262,13 @@ class VWM(Model):
         ######################################################################
         # Top: Header section.
         # Create a specific grid.
-        gs_header = GridSpec(1, 20)
-        gs_header.update(wspace=0.00, hspace=0.00, bottom=0.77, top=0.86, left=0.01, right=0.99)
+        gs_header = GridSpec(1, 80)
+        gs_header.update(wspace=0.00, hspace=0.00, bottom=0.77, top=0.84, left=0.01, right=0.99)
 
-        ax_header_left_labels = fig.add_subplot(gs_header[0, 0:2])
-        ax_header_left = fig.add_subplot(gs_header[0, 2:14])
-        ax_header_right_labels = fig.add_subplot(gs_header[0, 14:16])
-        ax_header_right = fig.add_subplot(gs_header[0, 16:20])
+        ax_header_left_labels = fig.add_subplot(gs_header[0, 0:8])
+        ax_header_left = fig.add_subplot(gs_header[0, 8:52])
+        ax_header_right_labels = fig.add_subplot(gs_header[0, 52:61])
+        ax_header_right = fig.add_subplot(gs_header[0, 61:80])
 
         ax_header_left_labels.axis('off')
         ax_header_left_labels.text(
@@ -501,7 +501,7 @@ class VWM(Model):
 
                     ######################################################################
                     # Helper method to produce a heatmap, potentially annotated
-                    def heatmap(ax, x, fs='large', annotate=True):
+                    def heatmap(ax, x, fs='medium', annotate=True, threshold=0.13):
                         artists.append(ax.pcolormesh(
                             x, vmin=0.0, vmax=1.0, edgecolor='black', linewidth=1.4e-3))
 
@@ -509,8 +509,9 @@ class VWM(Model):
                             for i in range(x.size(0)):
                                 for j in range(x.size(1)):
                                     val = x[i,j].item()
+                                    fmt = f'{val:4.2f}' if (val > threshold) else ''
                                     artists.append(ax.text(
-                                        j+0.5, i+0.5, f'{val:4.2f}',
+                                        j+0.5, i+0.5, fmt,
                                         horizontalalignment='center',
                                         verticalalignment='center',
                                         fontsize=fs,
@@ -522,7 +523,7 @@ class VWM(Model):
                     ######################################################################
                     # Set header.
                     qw_split = question_words.split(' ')
-                    num_by_2 = max(len(qw_split)//2, 15)
+                    num_by_2 = max(len(qw_split)//2, 12)
                     qw_line1 = ' '.join(qw_split[:num_by_2])
                     qw_line2 = '   ' + ' '.join(qw_split[num_by_2: ])
                     artists = [
@@ -548,13 +549,13 @@ class VWM(Model):
                     # Set words for question attention.
                     ax_attention_question.set_xticklabels(
                         words, horizontalalignment='left', rotation=-45, rotation_mode='anchor')
-                    heatmap(ax_attention_question, control_attention[[sample], :], fs='medium')
+                    heatmap(ax_attention_question, control_attention[[sample], :])
 
                     # Time context.
                     # temporal_class_weights given by order now, last, latest, none
                     # visualization in different order last, latest, now, none
                     tcw_permute = temporal_class_weights[[[sample]], [[1, 2, 0, 3]]]
-                    heatmap(ax_temporal_context, tcw_permute, fs='medium')
+                    heatmap(ax_temporal_context, tcw_permute)
 
                     ######################################################################
                     # Bottom left: Image section.
