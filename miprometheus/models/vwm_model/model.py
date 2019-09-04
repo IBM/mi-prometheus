@@ -501,7 +501,7 @@ class VWM(Model):
 
                     ######################################################################
                     # Helper method to produce a heatmap, potentially annotated
-                    def heatmap(ax, x, fs='medium', annotate=True, threshold=0.13):
+                    def heatmap(ax, x, fs='medium', annotate=True, threshold=0.05):
                         artists.append(ax.pcolormesh(
                             x, vmin=0.0, vmax=1.0, edgecolor='black', linewidth=1.4e-3))
 

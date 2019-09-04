@@ -17,8 +17,8 @@ model:
 testing:
   problem:
     batch_size: 1
-    tasks: [
+    tasks: [ SimpleCompareColor,
              # AndCompareShape,
-      ExistLastObjectSameObject,
+      # ExistLastObjectSameObject,
       # ExistColorSpace, ExistShapeSpace, ExistColorSpace,
     ]
