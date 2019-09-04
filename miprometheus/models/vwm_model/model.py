@@ -263,7 +263,7 @@ class VWM(Model):
         # Top: Header section.
         # Create a specific grid.
         gs_header = GridSpec(1, 20)
-        gs_header.update(wspace=0.00, hspace=0.00, bottom=0.9, top=0.901, left=0.01, right=0.99)
+        gs_header.update(wspace=0.00, hspace=0.00, bottom=0.77, top=0.86, left=0.01, right=0.99)
 
         ax_header_left_labels = fig.add_subplot(gs_header[0, 0:2])
         ax_header_left = fig.add_subplot(gs_header[0, 2:14])
@@ -274,7 +274,7 @@ class VWM(Model):
         ax_header_left_labels.text(
             0, 1.0,
             'Question:         ' +
-            '\nPrediction: ' +
+            '\n\n\nPrediction: ' +
             '\nGround Truth:     ',
             fontsize='x-large'
         )
@@ -284,9 +284,9 @@ class VWM(Model):
         ax_header_right_labels.axis('off')
         ax_header_right_labels.text(
             0, 1.0,
-            'Frame: ' +
-            '\nReasoning Step:   ' +
-            '\nQuestion Type:    ',
+            'Question Type:    ' +
+            '\n\n\nFrame: ' +
+            '\nReasoning Step:   ',
             fontsize='x-large'
         )
 
@@ -296,7 +296,7 @@ class VWM(Model):
         # Top-center: Question + time context section.
         # Create a specific grid.
         gs_top = GridSpec(1, 24)
-        gs_top.update(wspace=0.05, hspace=0.00, bottom=0.8, top=0.83, left=0.01, right=0.99)
+        gs_top.update(wspace=0.05, hspace=0.00, bottom=0.70, top=0.75, left=0.01, right=0.99)
 
         # Question with attention.
         ax_attention_question = fig.add_subplot(gs_top[0, 0:19], frameon=False)
@@ -317,7 +317,7 @@ class VWM(Model):
         # Bottom left: Image section.
         # Create a specific grid.
         gs_bottom_left = GridSpec(1, 2)
-        gs_bottom_left.update(wspace=0.04, hspace=0.0, bottom=0.02, top=0.63,
+        gs_bottom_left.update(wspace=0.04, hspace=0.0, bottom=0.02, top=0.50,
                               left=0.01, right=0.44)
 
         # Image.
@@ -336,7 +336,7 @@ class VWM(Model):
         # Bottom Center: gates section.
         # Create a specific grid - for gates.
         gs_bottom_center = GridSpec(2, 1)
-        gs_bottom_center.update(wspace=0.0, hspace=1, bottom=0.27, top=0.45,
+        gs_bottom_center.update(wspace=0.0, hspace=1, bottom=0.15, top=0.30,
                                 left=0.48, right=0.52)
 
         # Image gate.
@@ -355,12 +355,13 @@ class VWM(Model):
         # Bottom Right: Memory section.
         # Create a specific grid.
         gs_bottom_right = GridSpec(1, 20)
-        gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.02, top=0.63,
+        gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.02, top=0.50,
                                left=0.52, right=0.99)
 
         # Read attention.
         ax_read_head = fig.add_subplot(gs_bottom_right[0, 3])
         ax_read_head.xaxis.set_major_locator(ticker.NullLocator())
+
         ax_read_head.set_ylabel('Memory Addresses')
         ax_read_head.set_title('Read Head')
 
@@ -377,13 +378,13 @@ class VWM(Model):
         ax_write_head.set_title('Write Head')
 
         # Lines between sections.
-        l1 = lines.Line2D([0, 1], [0.88, 0.88], transform=fig.transFigure,
+        l1 = lines.Line2D([0, 1], [0.82, 0.82], transform=fig.transFigure,
+                           figure=fig, color='black')
+        l2 = lines.Line2D([0, 1], [0.58, 0.58], transform=fig.transFigure,
                           figure=fig, color='black')
-        l2 = lines.Line2D([0, 1], [0.68, 0.68], transform=fig.transFigure,
+        l3 = lines.Line2D([0.5, 0.5], [0.0, 0.12], transform=fig.transFigure,
                           figure=fig, color='black')
-        l3 = lines.Line2D([0.5, 0.5], [0.0, 0.25], transform=fig.transFigure,
-                          figure=fig, color='black')
-        l4 = lines.Line2D([0.5, 0.5], [0.49, 0.68], transform=fig.transFigure,
+        l4 = lines.Line2D([0.5, 0.5], [0.36, 0.58], transform=fig.transFigure,
                           figure=fig, color='black')
         fig.lines.extend([l1, l2, l3, l4])
 
@@ -520,19 +521,24 @@ class VWM(Model):
                     # Tell artists what to do:
                     ######################################################################
                     # Set header.
+                    qw_split = question_words.split(' ')
+                    num_by_2 = max(len(qw_split)//2, 15)
+                    qw_line1 = ' '.join(qw_split[:num_by_2])
+                    qw_line2 = '   ' + ' '.join(qw_split[num_by_2: ])
                     artists = [
                         ax_header_left.text(
                             0, 1.0,
-                            question_words +
-                            '\n' + pred +
+                            qw_line1 +
+                            '\n' + qw_line2 +
+                            '\n\n' + pred +
                             '\n' + ans,
                             fontsize='x-large',
                             weight='bold'),
                         ax_header_right.text(
                             0, 1.0,
-                            str(f + 1) +
-                            '\n' + str(step + 1) +
-                            '\n' + tasks,
+                             tasks +
+                            '\n\n\n' + str(f + 1) +
+                            '\n' + str(step + 1),
                             fontsize='x-large',
                             weight='bold')
                     ]
@@ -580,6 +586,9 @@ class VWM(Model):
                         visual_working_memory[sample], edgecolor='black', linewidth=1.4e-4))
 
                     heatmap(ax_read_head, read_head[sample][:, None], fs='small')
+                    num_ticks = np.arange(read_head[sample].size(0))
+                    ax_read_head.set_yticks(num_ticks + 0.5, minor=False)
+                    ax_read_head.set_yticklabels(num_ticks+1)
 
                     heatmap(ax_write_head, write_head[sample][:, None], fs='small')
 
