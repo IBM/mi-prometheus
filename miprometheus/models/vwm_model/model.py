@@ -542,13 +542,13 @@ class VWM(Model):
                     # Set words for question attention.
                     ax_attention_question.set_xticklabels(
                         words, horizontalalignment='left', rotation=-45, rotation_mode='anchor')
-                    heatmap(ax_attention_question, control_attention[[sample], :])
+                    heatmap(ax_attention_question, control_attention[[sample], :], fs='medium')
 
                     # Time context.
                     # temporal_class_weights given by order now, last, latest, none
                     # visualization in different order last, latest, now, none
                     tcw_permute = temporal_class_weights[[[sample]], [[1, 2, 0, 3]]]
-                    heatmap(ax_temporal_context, tcw_permute)
+                    heatmap(ax_temporal_context, tcw_permute, fs='medium')
 
                     ######################################################################
                     # Bottom left: Image section.
@@ -568,10 +568,10 @@ class VWM(Model):
                     # Bottom center: gates section.
 
                     # Image gate.
-                    heatmap(ax_image_match, image_match[[sample], None], fs='x-large')
+                    heatmap(ax_image_match, image_match[[sample], None], fs='large')
 
                     # Memory gate.
-                    heatmap(ax_memory_match, memory_match[[sample], None], fs='x-large')
+                    heatmap(ax_memory_match, memory_match[[sample], None], fs='large')
 
                     ######################################################################
                     # Bottom Right: Memory section.
@@ -579,9 +579,9 @@ class VWM(Model):
                     artists.append(ax_visual_working_memory.pcolormesh(
                         visual_working_memory[sample], edgecolor='black', linewidth=1.4e-4))
 
-                    heatmap(ax_read_head, read_head[sample][:, None], fs='medium')
+                    heatmap(ax_read_head, read_head[sample][:, None], fs='small')
 
-                    heatmap(ax_write_head, write_head[sample][:, None], fs='medium')
+                    heatmap(ax_write_head, write_head[sample][:, None], fs='small')
 
                     # Add "frames" to artist list
                     frames.append(artists)
