@@ -26,7 +26,7 @@ from miprometheus.models.vwm_model.visual_retrieval_unit import VisualRetrievalU
 from miprometheus.models.vwm_model.summary_unit import SummaryUpdateUnit
 from miprometheus.models.vwm_model.memory_retrieval_unit import MemoryRetrievalUnit
 from miprometheus.models.vwm_model.reasoning_unit import ReasoningUnit
-# from miprometheus.utils.app_state import AppState
+from miprometheus.utils.app_state import AppState
 
 
 class VWMCell(Module):
@@ -52,18 +52,13 @@ class VWMCell(Module):
         self.reasoning_unit = ReasoningUnit(dim)
         self.summary_unit = SummaryUpdateUnit(dim)
 
-        self.cell_history = None
-
-    def forward(self, summary_object, step, control_all,
+    def forward(self, summary_object, control_all,
                 feature_maps, feature_maps_proj, visual_working_memory):
 
         """
         Forward pass of the ``VWMCell`` of VWM network
 
         :param summary_object:  recurrent [batch_size x dim]
-
-        :param step
-        :type step: int
 
         :param control_all: tuple of all info from the question driven controller
         and equals (control_state, control_attention, temporal_class_weights)
@@ -100,13 +95,11 @@ class VWMCell(Module):
         new_summary_object = self.summary_unit(
             summary_object, image_match, visual_object, memory_match, memory_object)
 
-        # store attention weights for visualization
-        # if AppState().visualize:
-        #     cell_info = [step] + [x.clone().detach() for x in [
-        #         visual_attention, control_attention, new_visual_working_memory,
-        #         read_head, image_match, memory_match, new_write_head,
-        #         temporal_class_weights]]
-        #
-        #     self.cell_history.append(tuple(cell_info))
+        # package all the vwm cell state info
+        vwm_cell_info = dict(
+            cs=control_state, ca=control_attention, tcw=temporal_class_weights,
+            vo=visual_object, va=visual_attention,
+            mo=memory_object, rhd=read_head,
+            im_m=image_match, mem_m=memory_match, do_r=do_replace, do_a=do_add_new)
 
-        return new_summary_object, (visual_object, read_head, do_replace, do_add_new)
+        return new_summary_object, vwm_cell_info

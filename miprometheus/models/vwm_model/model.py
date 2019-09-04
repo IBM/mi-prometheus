@@ -45,7 +45,7 @@ from miprometheus.models.vwm_model.vwm_cell import VWMCell
 from miprometheus.models.vwm_model.output_unit import OutputUnit
 from miprometheus.models.vwm_model.memory_update_unit import memory_update
 
-# from miprometheus.utils.app_state import AppState
+from miprometheus.utils.app_state import AppState
 
 # needed for nltk.word.tokenize - do it once!
 nltk.download('punkt')
@@ -190,6 +190,8 @@ class VWM(Model):
 
             control_history.append((control_state, control_attention, temporal_class_weights))
 
+        self.frame_history = []
+
         # Loop over all elements along the SEQUENCE dimension.
         for f in range(images.size(0)):
 
@@ -200,27 +202,37 @@ class VWM(Model):
             feature_maps = self.image_encoder(images[f])
             feature_maps_proj = self.feature_maps_proj_layer(feature_maps)
 
-            # state history fo vizualisation
-            vwm_cell_hist = []
+            # state history
+            vwm_cell_hist = [None] * self.max_step
 
             # recurrent VWM cells
             for step in range(self.max_step):
-                summary_object, vwm_cell_state_other = self.vwm_cell(
-                    summary_object, step, control_history[step],
+                summary_object, vwm_cell_info = self.vwm_cell(
+                    summary_object, control_history[step],
                     feature_maps, feature_maps_proj, visual_working_memory)
 
-                vwm_cell_hist.append(vwm_cell_state_other)
+                vwm_cell_hist[step] = vwm_cell_info
 
             # VWM update
             for step in range(self.max_step):
                 # update VWM contents and write head
-                visual_object, read_head, do_replace, do_add_new = vwm_cell_hist[step]
+                visual_object = vwm_cell_hist[step]['vo']
+                read_head = vwm_cell_hist[step]['rhd']
+                do_replace = vwm_cell_hist[step]['do_r']
+                do_add_new = vwm_cell_hist[step]['do_a']
+
                 visual_working_memory, write_head = memory_update(
                     visual_working_memory, write_head,
                     visual_object, read_head, do_replace, do_add_new)
 
+                kw = dict(vwm=visual_working_memory, whd=write_head)
+                vwm_cell_hist[step].update(kw)
+
             # output unit
             logits_answer[:, f, :] = self.output_unit_answer(question_encoding, summary_object)
+
+            if AppState().visualize:
+                self.frame_history.append(vwm_cell_hist)
 
         return logits_answer, logits_pointing
 
@@ -456,9 +468,19 @@ class VWM(Model):
                 ans = s_answers[sample][f]
 
                 # loop over the k reasoning steps
-                for (step, visual_attention, control_attention, visual_working_memory,
-                     read_head, image_match, memory_match, write_head,
-                     temporal_class_weights) in self.frame_history[f]:
+                for step, tensor_dict in enumerate(self.frame_history[f]):
+
+                    numpy_dict = {key: x.clone().detach() for key, x in tensor_dict.items()}
+
+                    control_attention = numpy_dict['ca']
+                    temporal_class_weights = numpy_dict['tcw']
+                    visual_attention = numpy_dict['va']
+                    read_head = numpy_dict['rhd']
+                    image_match = numpy_dict['im_m']
+                    memory_match = numpy_dict['mem_m']
+                    visual_working_memory = numpy_dict['vwm']
+                    write_head = numpy_dict['whd']
+
                     # preprocess attention image, reshape
                     attention_size = int(np.sqrt(visual_attention.size(-1)))
 
