@@ -9,7 +9,7 @@ training:
 
   problem:
     batch_size: 2
-    tasks: &tasks [SimpleCompareColor]
+    tasks: &tasks [AndCompareShape]
     set: val
 
   dataloader: &dataloader
