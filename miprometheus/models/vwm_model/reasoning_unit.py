@@ -42,7 +42,7 @@ class ReasoningUnit(Module):
         super(ReasoningUnit, self).__init__()
 
         def two_layers_net():
-            return torch.nn.Sequential(linear(2 * dim, 2 * dim, bias=True),
+            return torch.nn.Sequential(linear(dim, 2 * dim, bias=True),
                                        torch.nn.ReLU(),
                                        linear(2 * dim, 1, bias=True),
                                        torch.nn.Sigmoid())
@@ -63,13 +63,13 @@ class ReasoningUnit(Module):
         """
 
         # the visual object validator
-        concat_read_visual = torch.cat([control_state, visual_object], dim=-1)
-        valid_vo = self.visual_object_validator(concat_read_visual)
+        # concat_read_visual = torch.cat([control_state, visual_object], dim=-1)
+        valid_vo = self.visual_object_validator(visual_object)
         valid_vo = valid_vo.squeeze(-1)
 
         # the memory object validator
-        concat_read_memory = torch.cat([control_state, memory_object], dim=-1)
-        valid_mo = self.memory_object_validator(concat_read_memory)
+        # concat_read_memory = torch.cat([control_state, memory_object], dim=-1)
+        valid_mo = self.memory_object_validator(memory_object)
         valid_mo = valid_mo.squeeze(-1)
 
         # get t_now, t_last, t_latest, t_none from temporal_class_weights
@@ -101,8 +101,8 @@ class ReasoningUnit(Module):
         # conditioned on temporal context, check if we have a valid memory object
         memory_match = valid_mo * temporal_test_3
 
-        print(f'vvo={valid_vo}; vmo={valid_mo}; ',
-              f'im={image_match}; mm={memory_match}; ',
-              f'do_r={do_replace}; do_a={do_add_new}')
+        # print(f'vvo={valid_vo}; vmo={valid_mo}; ',
+        #       f'im={image_match}; mm={memory_match}; ',
+        #       f'do_r={do_replace}; do_a={do_add_new}')
 
         return image_match, memory_match, do_replace, do_add_new

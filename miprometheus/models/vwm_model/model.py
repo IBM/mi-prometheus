@@ -135,7 +135,7 @@ class VWM(Model):
         :return: Predictions of the model.
         """
 
-        print('New Run')
+        # print('New Run')
         # Change the order of image dimensions, so we will loop over
         # dimension 0: sequence elements.
         images = data_dict['images']
@@ -429,7 +429,7 @@ class VWM(Model):
         question_words = s_questions[sample][0]
         words = nltk.word_tokenize(question_words)
 
-        color = 'inferno'
+        cmap_color = 'inferno'
 
         # get images dimensions
         width = images.size(3)
@@ -458,8 +458,7 @@ class VWM(Model):
 
             # initiate list of artists frames
             frames = []
-            pcm_params = {'edgecolor': 'black', 'linewidth': 1.4e-3}
-
+            
             # loop over the sequence of frames
             for f in range(images.size(1)):
 
@@ -503,7 +502,8 @@ class VWM(Model):
                     # Helper method to produce a heatmap, potentially annotated
                     def heatmap(ax, x, fs='medium', annotate=True, threshold=0.05):
                         artists.append(ax.pcolormesh(
-                            x, vmin=0.0, vmax=1.0, edgecolor='black', linewidth=1.4e-3))
+                            x, vmin=0.0, vmax=1.0, edgecolor='black', linewidth=1.4e-3,
+                            cmap=cmap_color))
 
                         if annotate:
                             for i in range(x.size(0)):
@@ -569,7 +569,7 @@ class VWM(Model):
                         interpolation='nearest',
                         aspect='auto',
                         alpha=0.5,
-                        cmap=color))
+                        cmap=cmap_color))
 
                     ######################################################################
                     # Bottom center: gates section.
@@ -584,7 +584,8 @@ class VWM(Model):
                     # Bottom Right: Memory section.
 
                     artists.append(ax_visual_working_memory.pcolormesh(
-                        visual_working_memory[sample], edgecolor='black', linewidth=1.4e-4))
+                        visual_working_memory[sample], edgecolor='black', linewidth=1.4e-4,
+                        vmin=0.0, vmax=1.0, cmap=cmap_color))
 
                     heatmap(ax_read_head, read_head[sample][:, None], fs='small')
                     num_ticks = np.arange(read_head[sample].size(0))
