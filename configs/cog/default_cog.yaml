@@ -19,7 +19,7 @@ training:
     data_folder: &data_folder '~/data/cog'
     set: train
     use_mask: &use_mask False
-    dataset_type: &dataset_type canonical
+    dataset_type: &dataset_type hard
   # Set optimizer.
   optimizer:
     name: Adam
