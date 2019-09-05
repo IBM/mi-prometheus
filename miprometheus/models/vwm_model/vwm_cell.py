@@ -102,5 +102,4 @@ class VWMCell(Module):
             mo=memory_object, rhd=read_head,
             im_m=image_match, mem_m=memory_match, do_r=do_replace, do_a=do_add_new)
 
-        # print()
         return new_summary_object, vwm_cell_info

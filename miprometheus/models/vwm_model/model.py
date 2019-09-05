@@ -135,7 +135,7 @@ class VWM(Model):
         :return: Predictions of the model.
         """
 
-        # print('New Run')
+        # print('============\nNew Run\n============')
         # Change the order of image dimensions, so we will loop over
         # dimension 0: sequence elements.
         images = data_dict['images']
@@ -227,6 +227,7 @@ class VWM(Model):
                     visual_object, read_head, do_replace, do_add_new)
 
                 kw = dict(vwm=visual_working_memory, whd=write_head)
+
                 vwm_cell_hist[step].update(kw)
 
             # output unit
@@ -234,6 +235,8 @@ class VWM(Model):
 
             if AppState().visualize:
                 self.frame_history.append(vwm_cell_hist)
+
+            # print('<<<End of frame>>>')
 
         return logits_answer, logits_pointing
 
@@ -317,7 +320,7 @@ class VWM(Model):
         # Bottom left: Image section.
         # Create a specific grid.
         gs_bottom_left = GridSpec(1, 2)
-        gs_bottom_left.update(wspace=0.04, hspace=0.0, bottom=0.02, top=0.50,
+        gs_bottom_left.update(wspace=0.04, hspace=0.0, bottom=0.05, top=0.50,
                               left=0.01, right=0.44)
 
         # Image.
@@ -355,7 +358,7 @@ class VWM(Model):
         # Bottom Right: Memory section.
         # Create a specific grid.
         gs_bottom_right = GridSpec(1, 20)
-        gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.02, top=0.50,
+        gs_bottom_right.update(wspace=0.5, hspace=0.0, bottom=0.05, top=0.50,
                                left=0.52, right=0.99)
 
         # Read attention.
@@ -368,7 +371,7 @@ class VWM(Model):
         # Memory
         ax_visual_working_memory = fig.add_subplot(gs_bottom_right[0, 4:18])
         ax_visual_working_memory.xaxis.set_major_locator(ticker.NullLocator())
-        ax_visual_working_memory.yaxis.set_ticklabels([])
+        ax_visual_working_memory.yaxis.set_major_locator(ticker.NullLocator())
         ax_visual_working_memory.set_title('Working Memory')
 
         # Write attention.
@@ -584,8 +587,10 @@ class VWM(Model):
                     # Bottom Right: Memory section.
 
                     artists.append(ax_visual_working_memory.pcolormesh(
-                        visual_working_memory[sample], edgecolor='black', linewidth=1.4e-4,
-                        vmin=0.0, vmax=1.0, cmap=cmap_color))
+                        visual_working_memory[sample],
+                        norm=matplotlib.colors.Normalize(vmin=-1., vmax=1., clip=True),
+                        # edgecolor='black', linewidth=1.4e-4,
+                        cmap='BrBG'))
 
                     heatmap(ax_read_head, read_head[sample][:, None], fs='small')
                     num_ticks = np.arange(read_head[sample].size(0))
@@ -593,6 +598,7 @@ class VWM(Model):
                     ax_read_head.set_yticklabels(num_ticks+1)
 
                     heatmap(ax_write_head, write_head[sample][:, None], fs='small')
+                    ax_write_head.set_yticks(num_ticks + 0.5, minor=False)
 
                     # Add "frames" to artist list
                     frames.append(artists)

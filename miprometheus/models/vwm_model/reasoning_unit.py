@@ -70,6 +70,8 @@ class ReasoningUnit(Module):
         # the memory object validator
         # concat_read_memory = torch.cat([control_state, memory_object], dim=-1)
         valid_mo = self.memory_object_validator(memory_object)
+        # print(f'Memory object = {memory_object}')
+
         valid_mo = valid_mo.squeeze(-1)
 
         # get t_now, t_last, t_latest, t_none from temporal_class_weights
