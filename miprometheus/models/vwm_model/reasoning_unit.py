@@ -59,6 +59,9 @@ class ReasoningUnit(Module):
         """
 
         # the visual object validator
+        # print(f'Beta={self.beta}\nGamma={self.gamma}\n')
+        # print(f'Ma={read_head}')
+
         new_beta = 1 + torch.nn.functional.softplus(self.beta)
         valid_vo = torch.logsumexp(visual_attention * new_beta, dim=-1)/new_beta
 
