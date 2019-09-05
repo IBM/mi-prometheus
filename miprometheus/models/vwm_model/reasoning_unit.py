@@ -23,7 +23,8 @@ __author__ = "Vincent Albouy, T.S. Jayram"
 
 import torch
 from torch.nn import Module
-from miprometheus.models.vwm_model.utils_VWM import linear
+# from miprometheus.models.vwm_model.utils_VWM import linear
+from miprometheus.utils.app_state import AppState
 
 
 class ReasoningUnit(Module):
@@ -41,38 +42,30 @@ class ReasoningUnit(Module):
         # call base constructor
         super(ReasoningUnit, self).__init__()
 
-        def two_layers_net():
-            return torch.nn.Sequential(linear(dim, 2 * dim, bias=True),
-                                       torch.nn.ReLU(),
-                                       linear(2 * dim, 1, bias=True),
-                                       torch.nn.Sigmoid())
+        dtype = AppState().dtype
+        self.beta = torch.nn.Parameter(torch.tensor(1.0).type(dtype))
+        self.gamma = torch.nn.Parameter(torch.tensor(1.0).type(dtype))
 
-        self.visual_object_validator = two_layers_net()
-        self.memory_object_validator = two_layers_net()
-
-    def forward(self, control_state, visual_object, memory_object, temporal_class_weights):
+    def forward(self, control_state, visual_attention, read_head, temporal_class_weights):
         """
         Forward pass of the ``ReasoningUnit``.
 
         :param control_state: last control state
-        :param visual_object: visual output
-        :param memory_object: memory output
+        :param visual_attention: visual attention
+        :param read_head: read head
         :param temporal_class_weights
 
         :return: image_match, memory_match, do_replace, do_add_new
         """
 
         # the visual object validator
-        # concat_read_visual = torch.cat([control_state, visual_object], dim=-1)
-        valid_vo = self.visual_object_validator(visual_object)
-        valid_vo = valid_vo.squeeze(-1)
+        new_beta = 1 + torch.nn.functional.softplus(self.beta)
+        valid_vo = torch.logsumexp(visual_attention * new_beta, dim=-1)/new_beta
 
         # the memory object validator
         # concat_read_memory = torch.cat([control_state, memory_object], dim=-1)
-        valid_mo = self.memory_object_validator(memory_object)
-        # print(f'Memory object = {memory_object}')
-
-        valid_mo = valid_mo.squeeze(-1)
+        new_gamma = 1 + torch.nn.functional.softplus(self.gamma)
+        valid_mo = torch.logsumexp(read_head * new_gamma, dim=-1)/new_gamma
 
         # get t_now, t_last, t_latest, t_none from temporal_class_weights
         t_now = temporal_class_weights[:, 0]

@@ -89,7 +89,7 @@ class VWMCell(Module):
 
         # reason about the objects
         image_match, memory_match, do_replace, do_add_new = self.reasoning_unit(
-            control_state, visual_object, memory_object, temporal_class_weights)
+            control_state, visual_attention, read_head, temporal_class_weights)
 
         # summary update Unit
         new_summary_object = self.summary_unit(
