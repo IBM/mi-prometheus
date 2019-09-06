@@ -338,8 +338,8 @@ class VWM(Model):
         ######################################################################
         # Bottom Center: gates section.
         # Create a specific grid - for gates.
-        gs_bottom_center = GridSpec(2, 1)
-        gs_bottom_center.update(wspace=0.0, hspace=1, bottom=0.15, top=0.30,
+        gs_bottom_center = GridSpec(4, 1)
+        gs_bottom_center.update(wspace=0.0, hspace=1, bottom=0.05, top=0.50,
                                 left=0.48, right=0.52)
 
         # Image gate.
@@ -348,11 +348,23 @@ class VWM(Model):
         ax_image_match.yaxis.set_major_locator(ticker.NullLocator())
         ax_image_match.set_title('Image Match')
 
-        # Image gate.
+        # Memory gate.
         ax_memory_match = fig.add_subplot(gs_bottom_center[1, 0])
         ax_memory_match.xaxis.set_major_locator(ticker.NullLocator())
         ax_memory_match.yaxis.set_major_locator(ticker.NullLocator())
         ax_memory_match.set_title('Memory Match')
+
+        # Replace gate.
+        ax_do_replace = fig.add_subplot(gs_bottom_center[2, 0])
+        ax_do_replace.xaxis.set_major_locator(ticker.NullLocator())
+        ax_do_replace.yaxis.set_major_locator(ticker.NullLocator())
+        ax_do_replace.set_title('Replace')
+
+        # Add new gate.
+        ax_do_add_new = fig.add_subplot(gs_bottom_center[3, 0])
+        ax_do_add_new.xaxis.set_major_locator(ticker.NullLocator())
+        ax_do_add_new.yaxis.set_major_locator(ticker.NullLocator())
+        ax_do_add_new.set_title('Add New')
 
         ######################################################################
         # Bottom Right: Memory section.
@@ -385,9 +397,9 @@ class VWM(Model):
                            figure=fig, color='black')
         l2 = lines.Line2D([0, 1], [0.58, 0.58], transform=fig.transFigure,
                           figure=fig, color='black')
-        l3 = lines.Line2D([0.5, 0.5], [0.0, 0.12], transform=fig.transFigure,
+        l3 = lines.Line2D([0.5, 0.5], [0.0, 0.03], transform=fig.transFigure,
                           figure=fig, color='black')
-        l4 = lines.Line2D([0.5, 0.5], [0.36, 0.58], transform=fig.transFigure,
+        l4 = lines.Line2D([0.5, 0.5], [0.54, 0.58], transform=fig.transFigure,
                           figure=fig, color='black')
         fig.lines.extend([l1, l2, l3, l4])
 
@@ -456,7 +468,7 @@ class VWM(Model):
             (ax_header_left_labels, ax_header_left, ax_header_right_labels, ax_header_right,
              ax_attention_question, ax_temporal_context,
              ax_image, ax_attention_image,
-             ax_image_match, ax_memory_match,
+             ax_image_match, ax_memory_match, ax_do_replace, ax_do_add_new,
              ax_read_head, ax_visual_working_memory, ax_write_head) = fig.axes
 
             # initiate list of artists frames
@@ -483,12 +495,13 @@ class VWM(Model):
                     control_attention = val_dict['ca']
                     temporal_class_weights = val_dict['tcw']
                     visual_attention = val_dict['va']
+                    do_replace = val_dict['do_r']
+                    do_add_new = val_dict['do_a']
                     read_head = val_dict['rhd']
                     image_match = val_dict['im_m']
                     memory_match = val_dict['mem_m']
                     visual_working_memory = val_dict['vwm']
                     write_head = val_dict['whd']
-
                     # preprocess attention image, reshape
                     attention_size = int(np.sqrt(visual_attention.size(-1)))
 
@@ -582,6 +595,12 @@ class VWM(Model):
 
                     # Memory gate.
                     heatmap(ax_memory_match, memory_match[[sample], None], fs='large')
+
+                    # Image gate.
+                    heatmap(ax_do_replace, do_replace[[sample], None], fs='large')
+
+                    # Memory gate.
+                    heatmap(ax_do_add_new, do_add_new[[sample], None], fs='large')
 
                     ######################################################################
                     # Bottom Right: Memory section.
