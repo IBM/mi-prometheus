@@ -133,6 +133,10 @@ class COG(VideoTextToClassProblem):
 		self.data_folder_main = os.path.expanduser(params['data_folder'])
 
 		self.set = params['set']
+
+		#aggragation flag
+		self.aggregated=params['aggregated']
+
 		assert self.set in ['val', 'test', 'train'], "set in configuration file must be one of 'val', 'test', or " \
 													 "'train', got {}".format(self.set)
 		self.dataset_type = params['dataset_type']
@@ -422,8 +426,8 @@ class COG(VideoTextToClassProblem):
 		targets_pointing = data_dict['targets_pointing']
 
 		#build dictionary to store acc families stats
-		training=False
-		if training:
+
+		if not self.aggregated:
 			categories = ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
 						  'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
 						  'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
