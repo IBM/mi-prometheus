@@ -422,8 +422,8 @@ class COG(VideoTextToClassProblem):
 		targets_pointing = data_dict['targets_pointing']
 
 		#build dictionary to store acc families stats
-
-		if self.training:
+		training=False
+		if training:
 			categories = ['AndCompareColor', 'AndCompareShape', 'AndSimpleCompareColor',
 						  'AndSimpleCompareShape', 'CompareColor', 'CompareShape', 'Exist',
 						  'ExistColor', 'ExistColorOf', 'ExistColorSpace', 'ExistLastColorSameShape',
@@ -833,7 +833,7 @@ class COG(VideoTextToClassProblem):
 		for key in categories_dic:
 			stat_col[key] = categories_dic[key][2]
 
-		print(categories_dic)
+#		print(categories_dic)
 
 
 
