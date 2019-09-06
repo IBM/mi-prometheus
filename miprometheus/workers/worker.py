@@ -201,7 +201,7 @@ class Worker(object):
         # Log the parsed flags.
         flags_str = 'Properly parsed command line arguments: \n'
         flags_str += '='*80 + '\n'
-        for arg in vars(self.flags): 
+        for arg in vars(self.flags):
             flags_str += "{}= {} \n".format(arg, getattr(self.flags, arg))
         flags_str += '='*80 + '\n'
         self.logger.info(flags_str)
@@ -210,7 +210,7 @@ class Worker(object):
         if self.unparsed:
             flags_str = 'Invalid command line arguments: \n'
             flags_str += '='*80 + '\n'
-            for arg in self.unparsed: 
+            for arg in self.unparsed:
                 flags_str += "{} \n".format(arg)
             flags_str += '='*80 + '\n'
             self.logger.warning(flags_str)
@@ -381,7 +381,7 @@ class Worker(object):
             try:
                 input('Press <Enter> to confirm and start the experiment\n')
             except KeyboardInterrupt:
-                exit(0)            
+                exit(0)
 
 
     def add_statistics(self, stat_col):
@@ -410,8 +410,8 @@ class Worker(object):
 
         # Add default statistical aggregators for the loss (indicating a formatting).
         # Represents the average loss, but stying with loss for TensorBoard "variable compatibility".
-        stat_agg.add_aggregator('loss', '{:12.10f}') 
-        stat_agg.add_aggregator('acc', '{:12.10f}') 
+        stat_agg.add_aggregator('loss', '{:12.10f}')
+        stat_agg.add_aggregator('acc', '{:12.10f}')
         stat_agg.add_aggregator('loss_min', '{:12.10f}')
         stat_agg.add_aggregator('loss_max', '{:12.10f}')
         stat_agg.add_aggregator('loss_std', '{:12.10f}')
@@ -563,7 +563,7 @@ class Worker(object):
         Enables computations on CUDA if GPU is available.
         Sets the default data types.
 
-        :param use_gpu: Command line flag indicating whether use GPU/CUDA or not. 
+        :param use_gpu: Command line flag indicating whether use GPU/CUDA or not.
 
         """
         # Determine if GPU/CUDA is available.
@@ -648,7 +648,7 @@ class Worker(object):
         :param export_to_log: If True, exports statistics to logger (DEFAULT: True)
         :type export_to_log: bool
 
-        """ 
+        """
         # Log to logger
         if export_to_log:
             self.logger.info(stat_obj.export_to_string(tag))
@@ -680,7 +680,7 @@ class Worker(object):
         :param export_to_log: If True, exports statistics to logger (DEFAULT: True)
         :type export_to_log: bool
 
-        """ 
+        """
         # Aggregate statistics.
         self.aggregate_statistics(stat_col, stat_agg)
         problem.aggregate_statistics(stat_col, stat_agg)
