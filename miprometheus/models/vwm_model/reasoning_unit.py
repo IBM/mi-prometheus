@@ -61,8 +61,8 @@ class ReasoningUnit(Module):
         :return: image_match, memory_match, do_replace, do_add_new
         """
 
-        va_aggregate = torch.sqrt(visual_attention).sum(dim=-1, keepdim=True)
-        rh_aggregate = torch.sqrt(read_head).sum(dim=-1, keepdim=True)
+        va_aggregate = (visual_attention * visual_attention).sum(dim=-1, keepdim=True)
+        rh_aggregate = (read_head * read_head).sum(dim=-1, keepdim=True)
 
         r_in = torch.cat([temporal_class_weights, va_aggregate, rh_aggregate], dim=-1)
         r_out = self.reasoning_module(r_in)
