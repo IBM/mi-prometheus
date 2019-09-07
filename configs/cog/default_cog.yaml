@@ -52,3 +52,5 @@ testing:
   data_folder: *data_folder
   set: test
   dataset_type: *dataset_type
+  aggregated: true
+
