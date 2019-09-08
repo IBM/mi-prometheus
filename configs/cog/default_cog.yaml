@@ -30,6 +30,7 @@ training:
     epoch_limit: 40
     episodes: 100000000
     episode_limit: 100000000
+    aggregated: true
 
 validation:
   partial_validation_interval: 200
@@ -42,13 +43,16 @@ validation:
     set: val
     use_mask: *use_mask
     dataset_type: *dataset_type
+    aggregated: true
 
 testing:
- problem:
-  name: *name
-  # Size of generated input: [batch_size x sequence_length x classes].
-  batch_size: *batch_size
-  tasks: *tasks
-  data_folder: *data_folder
-  set: test
-  dataset_type: *dataset_type
+  problem:
+    name: *name
+    # Size of generated input: [batch_size x sequence_length x classes].
+    batch_size: *batch_size
+    tasks: *tasks
+    data_folder: *data_folder
+    set: test
+    dataset_type: *dataset_type
+    aggregated: true
+
