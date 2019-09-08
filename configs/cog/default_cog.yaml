@@ -20,6 +20,7 @@ training:
     set: train
     use_mask: &use_mask False
     dataset_type: &dataset_type canonical
+    aggregated: true
   # Set optimizer.
   optimizer:
     name: Adam
@@ -30,7 +31,6 @@ training:
     epoch_limit: 40
     episodes: 100000000
     episode_limit: 100000000
-    aggregated: true
 
 validation:
   partial_validation_interval: 200
