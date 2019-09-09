@@ -20,6 +20,7 @@ training:
     set: train
     use_mask: &use_mask False
     dataset_type: &dataset_type hard
+    aggregated: true
   # Set optimizer.
   optimizer:
     name: Adam
@@ -42,15 +43,16 @@ validation:
     set: val
     use_mask: *use_mask
     dataset_type: *dataset_type
+    aggregated: true
 
 testing:
- problem:
-  name: *name
-  # Size of generated input: [batch_size x sequence_length x classes].
-  batch_size: *batch_size
-  tasks: *tasks
-  data_folder: *data_folder
-  set: test
-  dataset_type: *dataset_type
-  aggregated: true
+  problem:
+    name: *name
+    # Size of generated input: [batch_size x sequence_length x classes].
+    batch_size: *batch_size
+    tasks: *tasks
+    data_folder: *data_folder
+    set: test
+    dataset_type: *dataset_type
+    aggregated: true
 
