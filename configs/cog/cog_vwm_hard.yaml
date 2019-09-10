@@ -1,26 +1,15 @@
 # Load the COG config first.
 default_configs:
-  configs/cog/default_cog.yaml
+  configs/cog/cog_vwm.yaml
 
-model:
-  name: VWM
-  dim: 128
-  embed_hidden: 64
-  max_step: 8
-  slot : 8
-  classes : 49
-  words_embed_length : 64
-  nwords : 24
-  dropout: 0.15
-  save_intermediate: True
-
+training:
+  problem:
+    dataset_type: &dataset_type hard
 
 validation:
   problem:
-    batch_size: 400
+    dataset_type: *dataset_type
 
 testing:
   problem:
-    batch_size: 256
-    dataset_type: hard
-
+    dataset_type: *dataset_type
