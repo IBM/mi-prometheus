@@ -15,6 +15,7 @@ training:
     set: train
     use_mask: &use_mask False
     dataset_type: &dataset_type hard
+    aggregated: false
   # Set optimizer.
   optimizer:
     name: Adam
@@ -36,6 +37,7 @@ validation:
     set: val
     use_mask: *use_mask
     dataset_type: *dataset_type
+    aggregated: false
 
 testing:
  problem:
@@ -46,3 +48,4 @@ testing:
   data_folder: *data_folder
   set: test
   dataset_type: *dataset_type
+  aggregated: true
