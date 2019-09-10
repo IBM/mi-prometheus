@@ -23,4 +23,4 @@ testing:
   problem:
     batch_size: 256
     dataset_type: hard
-    aggregated: false
+
