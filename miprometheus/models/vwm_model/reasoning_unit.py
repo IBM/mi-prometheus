@@ -61,6 +61,9 @@ class ReasoningUnit(Module):
         :return: image_match, memory_match, do_replace, do_add_new
         """
 
+        # Compute a summary of each attention vector in [0,1]
+        # The more the attention is localized, the more the summary will be closer to 1
+
         va_aggregate = (visual_attention * visual_attention).sum(dim=-1, keepdim=True)
         rh_aggregate = (read_head * read_head).sum(dim=-1, keepdim=True)
 
