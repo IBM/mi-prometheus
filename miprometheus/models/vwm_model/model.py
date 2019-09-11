@@ -516,7 +516,7 @@ class VWM(Model):
 
                     ######################################################################
                     # Helper method to produce a heatmap, potentially annotated
-                    def heatmap(ax, x, fs='medium', annotate=True, threshold=0.05):
+                    def heatmap(ax, x, fs='medium', annotate=True, threshold=0.04):
                         artists.append(ax.pcolormesh(
                             x, vmin=0.0, vmax=1.0, edgecolor='black', linewidth=1.4e-3,
                             cmap=cmap_color))
@@ -570,7 +570,7 @@ class VWM(Model):
                     # Time context.
                     # temporal_class_weights given by order now, last, latest, none
                     # visualization in different order last, latest, now, none
-                    tcw_permute = temporal_class_weights[[[sample]], [[1, 2, 0, 3]]]
+                    tcw_permute = temporal_class_weights[[[sample]], [[2, 1, 0, 3]]]
                     heatmap(ax_temporal_context, tcw_permute)
 
                     ######################################################################

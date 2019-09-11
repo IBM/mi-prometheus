@@ -1,23 +1,11 @@
 # Load the COG config first.
 default_configs:
-  configs/cog/default_cog.yaml
-
-model:
-  name: VWM
-  dim: 128
-  embed_hidden: 64
-  max_step: 8
-  slot : 8
-  classes : 49
-  words_embed_length : 64
-  nwords : 24
-  dropout: 0.15
-  save_intermediate: True
+  configs/cog/cog_vwm.yaml
 
 testing:
   problem:
     batch_size: 1
-    tasks: [ SimpleCompareColor,
+    tasks: [ SimpleCompareShape,
              # AndCompareShape,
       # ExistLastObjectSameObject,
       # ExistColorSpace, ExistShapeSpace, ExistColorSpace,
