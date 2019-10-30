@@ -251,8 +251,8 @@ class CLEVR(ImageTextToClassProblem):
             'query_material': 'query_attribute'}
 
         # for storing the number of correct predictions & total number of questions per category
-        self.tuple_list = [[0, 0] for _ in range(len(self.categories .keys()))]
-        self.categories_stats = dict(zip(self.categories .keys(), self.tuple_list))
+        self.tuple_list = [[0, 0] for _ in range(len(self.categories))]
+        self.categories_stats = dict(zip(self.categories.keys(), self.tuple_list))
 
         # problem name
         self.name = 'CLEVR'
@@ -424,10 +424,10 @@ class CLEVR(ImageTextToClassProblem):
             self.dataset)
 
         if self.dataset == 'CLEVR' or self.dataset == 'CLEVR-Humans':
-            assert 'CLEVR_v1.0' in self.data_folder, "Indicated data_folder does not contains 'CLEVR_v1.0'." \
+            assert 'CLEVR_v1.0' in self.data_folder, "Indicated data_folder does not contain 'CLEVR_v1.0'." \
                                                      "Please correct it. Got: {}".format(self.data_folder)
         elif self.dataset == 'CoGenT':
-            assert 'CLEVR_CoGenT_v1.0' in self.data_folder, "Indicated data_folder does not contains " \
+            assert 'CLEVR_CoGenT_v1.0' in self.data_folder, "Indicated data_folder does not contain " \
                                                             "'CLEVR_CoGenT_v1.0'.Please correct it." \
                                                             "Got: {}".format(self.data_folder)
 
@@ -436,16 +436,15 @@ class CLEVR(ImageTextToClassProblem):
         if params['images']['raw_images']:
             self.image_source = os.path.join(self.data_folder, 'images', self.set)
         else:
-            assert bool(params['images']['feature_extractor']) is not False, "The images source is either the " \
-                                                                             "original images or features extracted:" \
-                                                                             " Cannot have 'raw_images'= False and " \
-                                                                             "no parameters in 'feature_extractor'."
+            assert bool(params['images']['feature_extractor']), "The images source is either the original images " \
+                                                                "or features extracted: Cannot have 'raw_images'= " \
+                                                                "False and no parameters in 'feature_extractor'."
             # passed, so can continue parsing params
             self.cnn_model = params['images']['feature_extractor']['cnn_model']
             self.image_source = os.path.join(self.data_folder, 'generated_files', self.cnn_model, self.set)
 
             assert self.cnn_model in dir(models), "Did not find specified cnn_model in torchvision.models." \
-                                                         " Available models: {}".format(dir(models))
+                                                  " Available models: {}".format(dir(models))
             # this is too complex to check, not doing it.
             self.num_blocks = params['images']['feature_extractor']['num_blocks']
 
@@ -554,26 +553,25 @@ class CLEVR(ImageTextToClassProblem):
             question_token = []
 
             for word in words:
-                try:
-                    question_token.append(word_dic[word])
-                except Exception:
+                token = word_dic.get(word, None)
+                if not token:  # new word, add it to the dict
                     question_token.append(word_index)
                     word_dic[word] = word_index
                     word_index += 1
+                else:
+                    question_token.append(token)
 
             answer_word = question['answer']
-            try:
-                answer = answer_dic[answer_word]
-            except Exception:
+            a_token = answer_dic.get(answer_word, None)
+            if not a_token:
                 answer = answer_index
                 answer_dic[answer_word] = answer_index
                 answer_index += 1
+            else:
+                answer = answer_dic[answer_word]
 
             # save sample params as a dict.
-            try:
-                question_type = index_to_family[str(question['question_family_index'])]
-            except Exception:
-                question_type = None
+            question_type = index_to_family.get(str(question['question_family_index']), None)
 
             result.append({'tokenized_question': question_token, 'answer': answer,
                            'string_question': question['question'], 'imgfile': question['image_filename'],
@@ -669,12 +667,12 @@ class CLEVR(ImageTextToClassProblem):
         extension = '.png' if self.raw_image else '.pt'
         with open(os.path.join(self.image_source, '{}_{}_{}{}'.format('CLEVR-CoGenT' if self.dataset=='CLEVR-CoGenT' else 'CLEVR',
                                                                       self.set, index, extension)), 'rb') as f:
-            try:
-                img = torch.load(f)  # for feature maps
-                img = torch.from_numpy(img).type(torch.FloatTensor).squeeze()
-            except Exception:
+            if self.raw_image:
                 img = Image.open(f).convert('RGB')  # for the original images
                 img = transforms.ToTensor()(img).type(torch.FloatTensor).squeeze()
+            else:
+                img = torch.load(f)  # for feature maps
+                img = torch.from_numpy(img).type(torch.FloatTensor).squeeze()
 
         # embed question
         if self.embedding_type == 'random':
@@ -728,21 +726,30 @@ class CLEVR(ImageTextToClassProblem):
         max_len = max(map(lambda x: x['questions_length'], batch))
         questions = torch.zeros(batch_size, max_len, self.embedding_dim).type(torch.FloatTensor)
 
-        for i, length in enumerate([item['questions_length'] for item in batch]):
-            questions[i, :length, :] = batch[i]['questions']
+        # create collecting data structures
+        images = torch.zeros(batch_size, *batch[0]['images'].shape).type(torch.FloatTensor)
+        targets = torch.zeros(batch_size, *batch[0]['targets'].shape).type(torch.FloatTensor)
+        questions_length, questions_string, index, imgfiles, questions_type = [], [], [], [], []
+
+        for idx, sample in enumerate(batch):
+            qlen = sample['questions_length']
+
+            images[idx] = sample['images']
+            questions[idx, :qlen, :] = sample['questions']
+            questions_length.append(qlen)
+            questions_string.append(sample['questions_string'])
+            questions_type.append(sample['questions_type'])
+            targets[idx] = sample['targets']
+            index.append(sample['index'])
+            imgfiles.append(sample['imgfiles'])
 
         # construct the DataDict and fill it with the batch
         data_dict = self.create_data_dict()
 
-        data_dict['images'] = torch.stack([item['images'] for item in batch]).type(torch.FloatTensor)
-        data_dict['questions'] = questions
-        data_dict['questions_length'] = [item['questions_length'] for item in batch]
-        data_dict['targets'] = torch.tensor([item['targets'] for item in batch]).type(torch.LongTensor)
-
-        data_dict['questions_string'] = [item['questions_string'] for item in batch]
-        data_dict['index'] = [item['index'] for item in batch]
-        data_dict['imgfiles'] = [item['imgfiles'] for item in batch]
-        data_dict['questions_type'] = [item['questions_type'] for item in batch]
+        for key, val in [('images', images), ('questions', questions), ('questions_length', questions_length),
+                         ('targets', targets), ('questions_string', questions_string), ('index', index),
+                         ('imgfiles', imgfiles), ('questions_type', questions_type)]:
+            data_dict[key] = val
 
         return data_dict
 
