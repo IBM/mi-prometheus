@@ -61,7 +61,6 @@ from torchvision import models
 from torchvision import transforms
 
 from miprometheus.utils.problems_utils.language import Language
-from miprometheus.utils.data_dict import DataDict
 
 from miprometheus.problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem
 
@@ -728,7 +727,7 @@ class CLEVR(ImageTextToClassProblem):
 
         # create collecting data structures
         images = torch.zeros(batch_size, *batch[0]['images'].shape).type(torch.FloatTensor)
-        targets = torch.zeros(batch_size, *batch[0]['targets'].shape).type(torch.FloatTensor)
+        targets = torch.zeros(batch_size).type(torch.FloatTensor)
         questions_length, questions_string, index, imgfiles, questions_type = [], [], [], [], []
 
         for idx, sample in enumerate(batch):
@@ -911,14 +910,14 @@ if __name__ == "__main__":
 
     from miprometheus.utils.param_interface import ParamInterface
     params = ParamInterface()
-    params.add_config_params({'settings': {'data_folder': '~/data/CLEVR_v1.0',
-                                           'set': 'train',
-                                           'dataset_variant': 'CLEVR'},
+    params.add_config_params({'settings': {'data_folder': '/Users/vincentmarois/Downloads/CLEVR_CoGenT_v1.0',
+                                           'set': 'trainA',
+                                           'dataset_variant': 'CLEVR-CoGenT'},
                               'images': {'raw_images': False,
                                          'feature_extractor': {'cnn_model': 'resnet101',
                                                                'num_blocks': 4}},
 
-                              'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
+                              'questions': {'embedding_type': 'random', 'embedding_dim': 300, 'embedding_source': 'CLEVR-CoGenT'}})
 
     # create problem
     clevr_dataset = CLEVR(params)
@@ -926,7 +925,7 @@ if __name__ == "__main__":
     batch_size = 64
 
     sample = clevr_dataset[0]
-    print(repr(sample))
+    # print(repr(sample))
     print('__getitem__ works.')
 
     # instantiate DataLoader object
@@ -944,8 +943,8 @@ if __name__ == "__main__":
     print('time taken to generate 200 batches of size {}: {}s'.format(batch_size, time.time() - s))
 
     # Display single sample (0) from batch.
-    batch = next(iter(problem))
-    print(batch)
+    # batch = next(iter(problem))
+    # print(batch)
     #clevr_dataset.show_sample(batch, 0)
 
     print('Unit test completed.')
