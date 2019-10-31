@@ -375,6 +375,9 @@ class CLEVR(ImageTextToClassProblem):
             if q['question_type'] in self.tasks:
                 self.data.append(q)
 
+        # create hashmap to collect the # of questions & correct predictions per task
+        self.task_scores = {task: [0, 0] for task in self.tasks}
+
         self.length = len(self.data)
 
         # Done! The actual question embedding is handled in __getitem__.
@@ -759,39 +762,72 @@ class CLEVR(ImageTextToClassProblem):
 
         return data_dict
 
-    def finalize_epoch(self, epoch):
+    def collect_statistics(self, stat_col: 'StatisticsCollector', data_dict: 'DataDict', logits: torch.Tensor) -> None:
         """
-        Empty for now.
+        Get the number of questions & correct predictions for each task.
 
-        Will call :py:func:`get_acc_per_family` to get the accuracy per family once it has been refactored.
+        :param stat_col: ``StatisticsCollector``.
+
+        :param data_dict: DataDict containing the targets and the mask.
+        :type data_dict: DataDict
+
+        :param logits: Predictions of the model.
+
+        """
+        # Collect statistics from ImageTextToClassProblem & other parent classes.
+        super(ImageTextToClassProblem, self).collect_statistics(stat_col, data_dict, logits)
+
+        self.collect_task_stats(data_dict, logits)
+
+    def add_aggregators(self, stat_agg: 'StatisticsAggregator') -> None:
+        """
+            Adds 2 entries per question tasks to ``stat_agg``:
+            - number of questions in this task,
+            - number of correct predictions for questions in this task.
+
+        This will allow to compute the accuracy per task at each epoch.
+
+        :param stat_agg: ``StatisticsAggregator``.
+
+        """
+        # Add aggregators from ImageTextToClassProblem & other parent classes.
+        super(ImageTextToClassProblem, self).add_aggregators(stat_agg)
+
+        # Add 'correct' & 'total' entries for each task
+        # accuracy for that task will be correct / total
+        for task in self.tasks:
+            stat_agg.add_aggregator('{}_total'.format(task), '{:06d}')
+            stat_agg.add_aggregator('{}_correct'.format(task), '{:06d}')
+
+    def aggregate_statistics(self, stat_col: 'StatisticsCollector', stat_agg: 'StatisticsAggregator') -> None:
+        """
+        Aggregate the 'correct' & 'total' entries for each task.
+
+        :param stat_col: ``StatisticsCollector``.
+
+        :param stat_agg: ``StatisticsAggregator``.
+
+        """
+        # Aggregate statistics from ImageTextToClassProblem & other parent classes.
+        super(ImageTextToClassProblem, self).aggregate_statistics(stat_col, stat_agg)
+
+        for task in self.tasks:
+            stat_agg['{}_total'.format(task)] = self.task_scores[task][0]
+            stat_agg['{}_correct'.format(task)] = self.task_scores[task][1]
+
+    def initialize_epoch(self, epoch: int) -> None:
+        """
+        Resets self.task_scores.
 
         :param epoch: current epoch index
         :type epoch: int
-
-        """
-        # self.get_acc_per_family()
-
-    def initialize_epoch(self, epoch):
-        """
-        Resets the accuracy per category counters.
-
-        :param epoch: current epoch index
-        :type epoch: int
         """
 
-        self.categories_stats = dict(zip(self.categories.keys(), self.tuple_list))
+        self.task_scores = {task: [0, 0] for task in self.tasks}
 
-    def get_acc_per_family(self, data_dict, logits):
+    def collect_task_stats(self, data_dict: 'DataDict', logits: torch.Tensor) -> None:
         """
-        Compute the accuracy per family for the current batch. Also accumulates
-        the number of correct predictions & questions per family in self.correct_pred_families (saved
-        to file).
-
-
-        .. note::
-
-            To refactor.
-
+        Adds in self.task_scores the number of questions & correct predictions per task for that batch.
 
         :param data_dict: DataDict({'images','questions', 'questions_length', 'questions_string', 'questions_type', \
         'targets', 'targets_string', 'index','imgfiles'})
@@ -801,36 +837,16 @@ class CLEVR(ImageTextToClassProblem):
         :type logits: :py:class:`torch.Tensor`
 
         """
-        # unpack the DataDict
-        question_types = data_dict['questions_type']
-        targets = data_dict['targets']
-
         # get correct predictions
-        pred = logits.max(1, keepdim=True)[1]
-        correct = pred.eq(targets.view_as(pred))
+        pred = logits.max(1, keepdim=True)[1]  # TODO: check return type of torch.max()
+        correct = pred.eq(data_dict['targets'].view_as(pred))
 
-        for i in range(correct.size(0)):
-            # update # of questions for the corresponding family
-            self.categories_stats[question_types[i]][1] += 1
+        for idx, task in enumerate(data_dict['questions_type']):
+            # update # of questions for the corresponding task
+            self.task_scores[task][0] += 1
 
-            # update the # of correct predictions for the corresponding family
-            if correct[i] == 1: self.categories_stats[question_types[i]][0] += 1
-
-        categories_list = ['query_attribute', 'compare_integer', 'count', 'compare_attribute', 'exist']
-        tuple_list_categories = [[0, 0] for _ in range(len(categories_list))]
-        dic_categories = dict(zip(categories_list, tuple_list_categories))
-
-        for category in categories_list:
-            for family in self.categories.keys():
-                if self.categories[family] == category:
-                    dic_categories[category][0] += self.categories_stats[family][0]
-                    dic_categories[category][1] += self.categories_stats[family][1]
-
-        with open(os.path.join(self.data_folder, 'generated_files',
-                               '{}_{}_categories_acc.csv'.format(self.dataset, self.set)), 'w') as f:
-            writer = csv.writer(f)
-        for key, value in self.categories_stats.items():
-            writer.writerow([key, value])
+            # update the # of correct predictions for the corresponding task
+            if correct[idx] == 1: self.task_scores[task][1] += 1
 
     def show_sample(self, data_dict, sample=0):
         """
