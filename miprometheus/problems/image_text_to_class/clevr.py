@@ -83,13 +83,15 @@ class CLEVR(ImageTextToClassProblem):
         >>>           'images': {'raw_images': False,
         >>>                      'feature_extractor': {'cnn_model': 'resnet101',
         >>>                                            'num_blocks': 4}},
-        >>>           'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
+        >>>           'questions': {'embedding_type': 'random', 'embedding_dim': 300,
+        >>>                         'tasks': ['Exist']}})
 
         >>> params = {'settings': {'data_folder': '~/data/CLEVR_v1.0',
         >>>                        'set': 'train',
         >>>                        'dataset_variant': 'CLEVR-Humans'},
         >>>           'images': {'raw_images': True},
-        >>>           'questions': {'embedding_type': 'glove.6B.300d'}}
+        >>>           'questions': {'embedding_type': 'glove.6B.300d',
+        >>>                        'tasks': ['Exist', 'Count', 'CompareInteger', 'CompareAttribute', 'QueryAttribute']}}
 
 
     ``params`` is separated in 3 sections:
@@ -181,6 +183,16 @@ class CLEVR(ImageTextToClassProblem):
                     `Should work for both the training & validation samples although only has been tested on validation \
                     samples so far`.
 
+            - ``tasks``: A list of the questions categories to use. The processed (i.e tokenized) questions will be \
+            added to the dataset if their `question_type` is present in this list. The 5 considered tasks are 'Exist', \
+            'Count', 'CompareInteger', 'CompareAttribute' and 'QueryAttribute'.
+
+                .. note::
+
+                    The questions are filtered once they have been tokenized, and the necessary dicts (\
+                    ``{'words': index}`` & ``{'answer': index}``) created. This is to ensures that all questions \
+                    will share common tokens, irrespective of the considered tasks.
+
 
     .. note::
 
@@ -190,7 +202,8 @@ class CLEVR(ImageTextToClassProblem):
         >>>                        'set': 'train',
         >>>                        'dataset_variant': 'CLEVR'},
         >>>           'images': {'raw_images': True},
-        >>>           'questions': {'embedding_type': 'random', 'embedding_dim': 300, 'embedding_source': 'CLEVR'}})
+        >>>           'questions': {'embedding_type': 'random', 'embedding_dim': 300, 'embedding_source': 'CLEVR',
+        >>>                        'tasks': ['Exist', 'Count', 'CompareInteger', 'CompareAttribute', 'QueryAttribute']}}
 
 
     """
@@ -233,26 +246,6 @@ class CLEVR(ImageTextToClassProblem):
                                  'imgfiles': {'size': [-1, -1], 'type': [list, str]}
                                  }
 
-        # to compute the accuracy per family
-        self.categories = {
-            'query_size': 'query_attribute',
-            'equal_size': 'compare_attribute',
-            'query_shape': 'query_attribute',
-            'query_color': 'query_attribute',
-            'greater_than': 'compare_integer',
-            'equal_material': 'compare_attribute',
-            'equal_color': 'compare_attribute',
-            'equal_shape': 'compare_attribute',
-            'less_than': 'compare_integer',
-            'count': 'count',
-            'exist': 'exist',
-            'equal_integer': 'compare_integer',
-            'query_material': 'query_attribute'}
-
-        # for storing the number of correct predictions & total number of questions per category
-        self.tuple_list = [[0, 0] for _ in range(len(self.categories))]
-        self.categories_stats = dict(zip(self.categories.keys(), self.tuple_list))
-
         # problem name
         self.name = 'CLEVR'
 
@@ -280,7 +273,7 @@ class CLEVR(ImageTextToClassProblem):
 
             # load questions
             with open(questions_filename, 'rb') as questions:
-                self.data = pickle.load(questions)
+                self.data_ = pickle.load(questions)
 
             # load word_dic & answer_dic
             with open(os.path.join(self.data_folder, 'generated_files', '{}_dics.pkl'.format(self.dataset)), 'rb') as f:
@@ -305,10 +298,10 @@ class CLEVR(ImageTextToClassProblem):
                         self.logger.info("Loaded the 'words': index & 'answer': index dicts from the "
                                          "embedding source '{}'.".format(self.embedding_source))
 
-                    self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
-                                                                                             word_dic=self.word_dic,
-                                                                                             answer_dic=self.answer_dic,
-                                                                                             save_to_file=False)
+                    self.data_, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
+                                                                                              word_dic=self.word_dic,
+                                                                                              answer_dic=self.answer_dic,
+                                                                                              save_to_file=False)
                 else:
                     # first generate the words dic using the training samples
                     self.logger.warning('We need to ensure that we use the same words-to-index & answers-to-index '
@@ -323,7 +316,7 @@ class CLEVR(ImageTextToClassProblem):
                     # then tokenize the questions using the created dictionaries from the training samples
                     self.logger.warning('We can now tokenize the validation questions using the dictionaries created from '
                                         'the training samples')
-                    self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
+                    self.data_, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
                                                                                              word_dic=self.word_dic,
                                                                                              answer_dic=self.answer_dic)
 
@@ -338,16 +331,15 @@ class CLEVR(ImageTextToClassProblem):
                         self.logger.info("Loaded the 'words': index & 'answer': index dicts from the "
                                          "embedding source '{}'.".format(self.embedding_source))
 
-                    self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
+                    self.data_, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
                                                                                              word_dic=self.word_dic,
                                                                                              answer_dic=self.answer_dic,
                                                                                              save_to_file=False)
                 else:
-                    self.data, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set, word_dic=None,
-                                                                                             answer_dic=None)
+                    self.data_, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set, word_dic=None,
+                                                                                              answer_dic=None)
 
-        # --> At this point, self.data contains the processed questions
-        self.length = len(self.data)
+        # --> At this point, self.data_ contains the processed questions
 
         # create the objects for the specified embeddings
         if self.embedding_type == 'random':
@@ -377,6 +369,14 @@ class CLEVR(ImageTextToClassProblem):
             # use the questions set to construct the embeddings vectors
             self.language.build_pretrained_vocab(self.questions, vectors=self.embedding_type)
 
+        # filter the qs based on their types (Exist, Count, CompareInteger, CompareAttribute, QueryAttribute)
+        self.data = []
+        for q in self.data_:
+            if q['question_type'] in self.tasks:
+                self.data.append(q)
+
+        self.length = len(self.data)
+
         # Done! The actual question embedding is handled in __getitem__.
 
     def parse_param_tree(self, params):
@@ -393,14 +393,15 @@ class CLEVR(ImageTextToClassProblem):
 
 
         """
-        # Set default parameters: load the original images & embed questions randomly
+        # Set default parameters: load the original images & embed all questions randomly
         params.add_default_params({'settings': {'data_folder': '~/data/CLEVR_v1.0',
                                                 'set': 'train',
                                                 'dataset_variant': 'CLEVR'},
                                    'images': {'raw_images': 'True'},
-                                   'questions': {'embedding_type': 'random',
-                                                 'embedding_dim': 300,
-                                                 'embedding_source': 'CLEVR'}
+                                   'questions': {'embedding_type': 'random', 'embedding_dim': 300,
+                                                 'embedding_source': 'CLEVR',
+                                                 'tasks': ['Exist', 'Count', 'CompareInteger', 'CompareAttribute',
+                                                           'QueryAttribute']}
                                    })
         # get the data_folder
         self.data_folder = os.path.expanduser(params['settings']['data_folder'])
@@ -477,6 +478,12 @@ class CLEVR(ImageTextToClassProblem):
         else:
             self.embedding_dim = int(self.embedding_type[:-4])
 
+        self.tasks = set(params['questions']['tasks'])
+        possible_tasks = {'Exist', 'Count', 'CompareInteger', 'CompareAttribute', 'QueryAttribute'}
+        assert self.tasks.issubset(possible_tasks), 'Unexpected tasks were detected. Available ones are {}, got {}.'\
+            .format(possible_tasks, self.tasks)
+        self.logger.info('Considering questions only in the {} categories.'.format(self.tasks))
+
     def generate_questions_dics(self, set, word_dic=None, answer_dic=None, save_to_file=True):
         """
         Loads the questions from the .json file, tokenize them, creates vocab dics and save that to files.
@@ -529,15 +536,15 @@ class CLEVR(ImageTextToClassProblem):
             data = json.load(f)
         self.logger.info('Loaded {} samples'.format(len(data['questions'])))
 
-        # load the dict question_family_type -> question_type: Will allow to plot the acc per question category
-        # If the file does not exist - create mapping.
-        if not os.path.isfile(os.path.join(self.data_folder, 'generated_files/index_to_family.json')):
-            mapping = '{"0": "equal_integer", "1": "less_than", "2": "greater_than", "3": "equal_integer", "4": "less_than", "5": "greater_than", "6": "equal_integer", "7": "less_than", "8": "greater_than", "9": "equal_size", "10": "equal_color", "11": "equal_material", "12": "equal_shape", "13": "equal_size", "14": "equal_size", "15": "equal_size", "16": "equal_color", "17": "equal_color", "18": "equal_color", "19": "equal_material", "20": "equal_material", "21": "equal_material", "22": "equal_shape", "23": "equal_shape", "24": "equal_shape", "25": "count", "26": "exist", "27": "query_size", "28": "query_shape", "29": "query_color", "30": "query_material", "31": "count", "32": "query_size", "33": "query_color", "34": "query_material", "35": "query_shape", "36": "exist", "37": "exist", "38": "exist", "39": "exist", "40": "count", "41": "count", "42": "count", "43": "count", "44": "exist", "45": "exist", "46": "exist", "47": "exist", "48": "count", "49": "count", "50": "count", "51": "count", "52": "query_color", "53": "query_material", "54": "query_shape", "55": "query_size", "56": "query_material", "57": "query_shape", "58": "query_size", "59": "query_color", "60": "query_shape", "61": "query_size", "62": "query_color", "63": "query_material", "64": "count", "65": "count", "66": "count", "67": "count", "68": "count", "69": "count", "70": "count", "71": "count", "72": "count", "73": "exist", "74": "query_size", "75": "query_color", "76": "query_material", "77": "query_shape", "78": "count", "79": "exist", "80": "query_size", "81": "query_color", "82": "query_material", "83": "query_shape", "84": "count", "85": "exist", "86": "query_shape", "87": "query_material", "88": "query_color", "89": "query_size"}'
-            with open(os.path.join(self.data_folder, 'generated_files/index_to_family.json'), 'w+') as f:
-                f.write(mapping)
+        # load the dict question_family_index -> task
+        # If the file does not exist - create it.
+        if not os.path.isfile(os.path.join(self.data_folder, 'generated_files/index_to_task.json')):
+            index_to_task = '{"0": "CompareInteger", "1": "CompareInteger", "2": "CompareInteger", "3": "CompareInteger", "4": "CompareInteger", "5": "CompareInteger", "6": "CompareInteger", "7": "CompareInteger", "8": "CompareInteger", "9": "CompareAttribute", "10": "CompareAttribute", "11": "CompareAttribute", "12": "CompareAttribute", "13": "CompareAttribute", "14": "CompareAttribute", "15": "CompareAttribute", "16": "CompareAttribute", "17": "CompareAttribute", "18": "CompareAttribute", "19": "CompareAttribute", "20": "CompareAttribute", "21": "CompareAttribute", "22": "CompareAttribute", "23": "CompareAttribute", "24": "CompareAttribute", "25": "Count", "26": "Exist", "27": "QueryAttribute", "28": "QueryAttribute", "29": "QueryAttribute", "30": "QueryAttribute", "31": "Count", "32": "QueryAttribute", "33": "QueryAttribute", "34": "QueryAttribute", "35": "QueryAttribute", "36": "Exist", "37": "Exist", "38": "Exist", "39": "Exist", "40": "Count", "41": "Count", "42": "Count", "43": "Count", "44": "Exist", "45": "Exist", "46": "Exist", "47": "Exist", "48": "Count", "49": "Count", "50": "Count", "51": "Count", "52": "QueryAttribute", "53": "QueryAttribute", "54": "QueryAttribute", "55": "QueryAttribute", "56": "QueryAttribute", "57": "QueryAttribute", "58": "QueryAttribute", "59": "QueryAttribute", "60": "QueryAttribute", "61": "QueryAttribute", "62": "QueryAttribute", "63": "QueryAttribute", "64": "Count", "65": "Count", "66": "Count", "67": "Count", "68": "Count", "69": "Count", "70": "Count", "71": "Count", "72": "Count", "73": "Exist", "74": "QueryAttribute", "75": "QueryAttribute", "76": "QueryAttribute", "77": "QueryAttribute", "78": "Count", "79": "Exist", "80": "QueryAttribute", "81": "QueryAttribute", "82": "QueryAttribute", "83": "QueryAttribute", "84": "Count", "85": "Exist", "86": "QueryAttribute", "87": "QueryAttribute", "88": "QueryAttribute", "89": "QueryAttribute"}'
+            with open(os.path.join(self.data_folder, 'generated_files/index_to_task.json'), 'w+') as f:
+                f.write(index_to_task)
         # Load dict.
-        with open(os.path.join(self.data_folder, 'generated_files/index_to_family.json')) as f:
-            index_to_family = json.load(f)
+        with open(os.path.join(self.data_folder, 'generated_files/index_to_task.json')) as f:
+            index_to_task = json.load(f)
 
         # start constructing vocab sets
         result = []
@@ -570,7 +577,7 @@ class CLEVR(ImageTextToClassProblem):
                 answer = answer_dic[answer_word]
 
             # save sample params as a dict.
-            question_type = index_to_family.get(str(question['question_family_index']), None)
+            question_type = index_to_task[str(question['question_family_index'])]
 
             result.append({'tokenized_question': question_token, 'answer': answer,
                            'string_question': question['question'], 'imgfile': question['image_filename'],
@@ -917,7 +924,9 @@ if __name__ == "__main__":
                                          'feature_extractor': {'cnn_model': 'resnet101',
                                                                'num_blocks': 4}},
 
-                              'questions': {'embedding_type': 'random', 'embedding_dim': 300, 'embedding_source': 'CLEVR-CoGenT'}})
+                              'questions': {'embedding_type': 'random', 'embedding_dim': 300, 'embedding_source': 'CLEVR-CoGenT',
+                                            'tasks': ['Exist', 'Count', 'CompareInteger', 'CompareAttribute', 'QueryAttribute']
+                                            }})
 
     # create problem
     clevr_dataset = CLEVR(params)
