@@ -838,7 +838,7 @@ class CLEVR(ImageTextToClassProblem):
 
         """
         # get correct predictions
-        pred = logits.max(1, keepdim=True)[1]  # TODO: check return type of torch.max()
+        pred = logits.max(1, keepdim=True)[1]
         correct = pred.eq(data_dict['targets'].view_as(pred))
 
         for idx, task in enumerate(data_dict['questions_type']):
