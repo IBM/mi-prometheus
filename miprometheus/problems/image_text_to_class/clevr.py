@@ -47,21 +47,18 @@
 """
 __author__ = "Vincent Marois"
 
+import os
+import pickle
+import numpy as np
+from PIL import Image
 import matplotlib.pyplot as plt
-from torch.utils.data import DataLoader
 
 import torch
-import numpy as np
-import os
-import csv
-import pickle
-from PIL import Image
-
 from torchvision import models
 from torchvision import transforms
+from torch.utils.data import DataLoader
 
 from miprometheus.utils.problems_utils.language import Language
-
 from miprometheus.problems.image_text_to_class.image_text_to_class_problem import ImageTextToClassProblem
 
 
@@ -954,7 +951,7 @@ if __name__ == "__main__":
 
     # instantiate DataLoader object
     problem = DataLoader(clevr_dataset, batch_size=batch_size, shuffle=False, collate_fn=clevr_dataset.collate_fn,
-                         num_workers=0, sampler=None)
+                         num_workers=4, sampler=None)
 
     import time
     s = time.time()
@@ -969,6 +966,6 @@ if __name__ == "__main__":
     # Display single sample (0) from batch.
     # batch = next(iter(problem))
     # print(batch)
-    #clevr_dataset.show_sample(batch, 0)
+    # clevr_dataset.show_sample(batch, 0)
 
     print('Unit test completed.')
