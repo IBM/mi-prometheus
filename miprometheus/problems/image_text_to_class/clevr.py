@@ -46,6 +46,12 @@
 
 """
 __author__ = "Vincent Marois"
+__credits__ = ["Tomasz Kornuta", "Vincent Albouy", "Younes Bouhadjar", "Vincent Marois"]
+__version__ = "0.2.0"
+__maintainer__ = "Vincent Marois"
+__email__ = "vincent.marois@ibm.com"
+__status__ = "Development"
+
 
 import os
 import pickle
@@ -537,15 +543,8 @@ class CLEVR(ImageTextToClassProblem):
             data = json.load(f)
         self.logger.info('Loaded {} samples.'.format(len(data['questions'])))
 
-        # load the dict question_family_index -> task. Create it if doesn't exist.
-        map_file = os.path.join(self.data_folder, 'generated_files/index_to_task.json')
-        if os.path.isfile(map_file):
-            with open(map_file) as f:
-                index_to_task = json.load(f)
-        else:
-            index_to_task = {"0": "CompareInteger", "1": "CompareInteger", "2": "CompareInteger", "3": "CompareInteger", "4": "CompareInteger", "5": "CompareInteger", "6": "CompareInteger", "7": "CompareInteger", "8": "CompareInteger", "9": "CompareAttribute", "10": "CompareAttribute", "11": "CompareAttribute", "12": "CompareAttribute", "13": "CompareAttribute", "14": "CompareAttribute", "15": "CompareAttribute", "16": "CompareAttribute", "17": "CompareAttribute", "18": "CompareAttribute", "19": "CompareAttribute", "20": "CompareAttribute", "21": "CompareAttribute", "22": "CompareAttribute", "23": "CompareAttribute", "24": "CompareAttribute", "25": "Count", "26": "Exist", "27": "QueryAttribute", "28": "QueryAttribute", "29": "QueryAttribute", "30": "QueryAttribute", "31": "Count", "32": "QueryAttribute", "33": "QueryAttribute", "34": "QueryAttribute", "35": "QueryAttribute", "36": "Exist", "37": "Exist", "38": "Exist", "39": "Exist", "40": "Count", "41": "Count", "42": "Count", "43": "Count", "44": "Exist", "45": "Exist", "46": "Exist", "47": "Exist", "48": "Count", "49": "Count", "50": "Count", "51": "Count", "52": "QueryAttribute", "53": "QueryAttribute", "54": "QueryAttribute", "55": "QueryAttribute", "56": "QueryAttribute", "57": "QueryAttribute", "58": "QueryAttribute", "59": "QueryAttribute", "60": "QueryAttribute", "61": "QueryAttribute", "62": "QueryAttribute", "63": "QueryAttribute", "64": "Count", "65": "Count", "66": "Count", "67": "Count", "68": "Count", "69": "Count", "70": "Count", "71": "Count", "72": "Count", "73": "Exist", "74": "QueryAttribute", "75": "QueryAttribute", "76": "QueryAttribute", "77": "QueryAttribute", "78": "Count", "79": "Exist", "80": "QueryAttribute", "81": "QueryAttribute", "82": "QueryAttribute", "83": "QueryAttribute", "84": "Count", "85": "Exist", "86": "QueryAttribute", "87": "QueryAttribute", "88": "QueryAttribute", "89": "QueryAttribute"}
-            with open(map_file, 'w+') as f:
-                json.dump(index_to_task, f)
+        # dict question_family_index -> task
+        index_to_task = {"0": "CompareInteger", "1": "CompareInteger", "2": "CompareInteger", "3": "CompareInteger", "4": "CompareInteger", "5": "CompareInteger", "6": "CompareInteger", "7": "CompareInteger", "8": "CompareInteger", "9": "CompareAttribute", "10": "CompareAttribute", "11": "CompareAttribute", "12": "CompareAttribute", "13": "CompareAttribute", "14": "CompareAttribute", "15": "CompareAttribute", "16": "CompareAttribute", "17": "CompareAttribute", "18": "CompareAttribute", "19": "CompareAttribute", "20": "CompareAttribute", "21": "CompareAttribute", "22": "CompareAttribute", "23": "CompareAttribute", "24": "CompareAttribute", "25": "Count", "26": "Exist", "27": "QueryAttribute", "28": "QueryAttribute", "29": "QueryAttribute", "30": "QueryAttribute", "31": "Count", "32": "QueryAttribute", "33": "QueryAttribute", "34": "QueryAttribute", "35": "QueryAttribute", "36": "Exist", "37": "Exist", "38": "Exist", "39": "Exist", "40": "Count", "41": "Count", "42": "Count", "43": "Count", "44": "Exist", "45": "Exist", "46": "Exist", "47": "Exist", "48": "Count", "49": "Count", "50": "Count", "51": "Count", "52": "QueryAttribute", "53": "QueryAttribute", "54": "QueryAttribute", "55": "QueryAttribute", "56": "QueryAttribute", "57": "QueryAttribute", "58": "QueryAttribute", "59": "QueryAttribute", "60": "QueryAttribute", "61": "QueryAttribute", "62": "QueryAttribute", "63": "QueryAttribute", "64": "Count", "65": "Count", "66": "Count", "67": "Count", "68": "Count", "69": "Count", "70": "Count", "71": "Count", "72": "Count", "73": "Exist", "74": "QueryAttribute", "75": "QueryAttribute", "76": "QueryAttribute", "77": "QueryAttribute", "78": "Count", "79": "Exist", "80": "QueryAttribute", "81": "QueryAttribute", "82": "QueryAttribute", "83": "QueryAttribute", "84": "Count", "85": "Exist", "86": "QueryAttribute", "87": "QueryAttribute", "88": "QueryAttribute", "89": "QueryAttribute"}
 
         # start constructing vocab sets
         result = []
@@ -911,10 +910,7 @@ class CLEVR(ImageTextToClassProblem):
             - data_dict with one added `predicted answer` key,
             - logits
 
-
         """
-        batch_size = logits.size(0)
-
         # get index of highest probability
         logits_indexes = torch.argmax(logits, dim=-1)
 
@@ -928,7 +924,7 @@ class CLEVR(ImageTextToClassProblem):
             setattr(self, 'idx_to_answer', idx_to_answer)
 
         preds, answers = [], []
-        for i in range(batch_size):
+        for i in range(logits.shape[0]):
             preds.append(self.idx_to_answer[int(logits_indexes[i].item())])
             answers.append(self.idx_to_answer[int(data_dict['targets'][i].item())])
 
