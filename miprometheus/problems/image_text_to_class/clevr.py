@@ -868,9 +868,18 @@ class CLEVR(ImageTextToClassProblem):
         imgfiles = data_dict['imgfiles']
 
         question = questions_string[sample]
-        answer = answers[sample]
-        answer = list(self.answer_dic.keys())[list(self.answer_dic.values()).index(answer.data)]  # dirty hack to go back from the
-        # value in a dict to the key.
+        answer = int(answers[sample].item())
+
+        if not hasattr(self, 'idx_to_answer'):
+            # create an array containing the answers (as str), with the indices corresponding to their tokens.
+            idx_to_answer = [0 for _ in range(len(self.answer_dic))]
+            for ans, idx in self.answer_dic.items():
+                idx_to_answer[idx] = ans
+
+            # store it as an attribute so that we can reuse it (will be created only once).
+            setattr(self, 'idx_to_answer', idx_to_answer)
+
+        answer = self.idx_to_answer[answer]
 
         # open image
         imgfile = imgfiles[sample]
@@ -904,23 +913,27 @@ class CLEVR(ImageTextToClassProblem):
 
 
         """
-
-        # unpack data_dict
-        answers = data_dict['targets']
-
         batch_size = logits.size(0)
 
         # get index of highest probability
         logits_indexes = torch.argmax(logits, dim=-1)
 
-        prediction_string = [list(self.answer_dic.keys())[list(self.answer_dic.values()).index(
-                logits_indexes[batch_num].data)] for batch_num in range(batch_size)]
+        if not hasattr(self, 'idx_to_answer'):
+            # create an array containing the answers (as str), with the indices corresponding to their tokens
+            idx_to_answer = [0 for _ in range(len(self.answer_dic))]
+            for ans, idx in self.answer_dic.items():
+                idx_to_answer[idx] = ans
 
-        answer_string = [list(self.answer_dic.keys())[list(self.answer_dic.values()).index(
-                answers[batch_num].data)] for batch_num in range(batch_size)]
+            # store it as an attribute so that we can reuse it (will be created only once).
+            setattr(self, 'idx_to_answer', idx_to_answer)
 
-        data_dict['targets_string'] = answer_string
-        data_dict['predictions_string'] = prediction_string
+        preds, answers = [], []
+        for i in range(batch_size):
+            preds.append(self.idx_to_answer[int(logits_indexes[i].item())])
+            answers.append(self.idx_to_answer[int(data_dict['targets'][i].item())])
+
+        data_dict['targets_string'] = preds
+        data_dict['predictions_string'] = answers
         data_dict['clevr_dir'] = self.data_folder
 
         return data_dict, logits
