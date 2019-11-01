@@ -252,22 +252,21 @@ class CLEVR(ImageTextToClassProblem):
         self.logger.info('Loading the {} samples from {}'.format(self.set, self.dataset))
 
         # check if the folder /generated_files in self.data_folder already exists, if not create it:
-        if not os.path.isdir(os.path.join(self.data_folder, 'generated_files')):
-            self.logger.warning('Folder {} not found, creating it.'.format(os.path.join(self.data_folder,
-                                                                                        'generated_files')))
-            os.mkdir(os.path.join(self.data_folder, 'generated_files'))
+        gen_files_folder = os.path.join(self.data_folder, 'generated_files')
+        if not os.path.isdir(gen_files_folder):
+            self.logger.warning('Folder {} not found, creating it.'.format(gen_files_folder))
+            os.mkdir(gen_files_folder)
 
         # check if the folder containing the images feature maps (processed by self.cnn_model) exists or not
-        # For the same self.set, this file is the same for CLEVR & CLEVR-Humans
-        # It will be different for CLEVR-CoGenT
+        # For the same self.set, this file is the same for CLEVR & CLEVR-Humans -- will be different for CoGenT
         if not params['images']['raw_images']:
-            if not os.path.isdir(os.path.join(self.data_folder, 'generated_files', self.cnn_model, self.set)):
+            if not os.path.isdir(os.path.join(gen_files_folder, self.cnn_model, self.set)):
                 self.logger.warning('Directory {} not found on disk, extracting the features for each image and storing'
-                                    ' them here.'.format(os.path.join(self.data_folder, 'generated_files', self.cnn_model, self.set)))
+                                    ' them here.'.format(os.path.join(gen_files_folder, self.cnn_model, self.set)))
                 self.generate_feature_maps_file()
 
         # check if the file containing the tokenized questions (& answers, image filename, type etc.) exists or not
-        questions_filename = os.path.join(self.data_folder, 'generated_files', '{}_{}_questions.pkl'.format(self.set, self.dataset))
+        questions_filename = os.path.join(gen_files_folder, '{}_{}_questions.pkl'.format(self.set, self.dataset))
         if os.path.isfile(questions_filename) and self.embedding_source == self.dataset:
             self.logger.info('The file {} already exists, loading it.'.format(questions_filename))
 
@@ -276,7 +275,7 @@ class CLEVR(ImageTextToClassProblem):
                 self.data_ = pickle.load(questions)
 
             # load word_dic & answer_dic
-            with open(os.path.join(self.data_folder, 'generated_files', '{}_dics.pkl'.format(self.dataset)), 'rb') as f:
+            with open(os.path.join(gen_files_folder, '{}_dics.pkl'.format(self.dataset)), 'rb') as f:
                 dic = pickle.load(f)
                 self.answer_dic = dic['answer_dic']
                 self.word_dic = dic['word_dic']
@@ -286,11 +285,11 @@ class CLEVR(ImageTextToClassProblem):
 
             # We need to ensure that we use the same words & answers dicts for both train & val, otherwise we do not
             # have the same reference.
-            if self.set == 'val' or self.set == 'valA' or self.set == 'valB':  # handle CoGenT
+            if self.set in {'val', 'valA', 'valB'}:  # handle CoGenT
 
                 if self.embedding_source != self.dataset:
                     # load the specified dicts and re-tokenize the questions but don't save them to file.
-                    with open(os.path.join(self.data_folder, 'generated_files', '{}_dics.pkl'.format(self.embedding_source)),
+                    with open(os.path.join(gen_files_folder, '{}_dics.pkl'.format(self.embedding_source)),
                               'rb') as f:
                         dic = pickle.load(f)
                         self.answer_dic = dic['answer_dic']
@@ -315,15 +314,15 @@ class CLEVR(ImageTextToClassProblem):
 
                     # then tokenize the questions using the created dictionaries from the training samples
                     self.logger.warning('We can now tokenize the validation questions using the dictionaries created from '
-                                        'the training samples')
+                                        'the training samples.')
                     self.data_, self.word_dic, self.answer_dic = self.generate_questions_dics(self.set,
                                                                                              word_dic=self.word_dic,
                                                                                              answer_dic=self.answer_dic)
 
-            elif self.set == 'train' or self.set == 'trainA':  # Can directly tokenize the questions
+            elif self.set in {'train', 'trainA'}:  # Can directly tokenize the questions
                 if self.embedding_source != self.dataset:
                     # load the specified dicts and re-tokenize the questions but don't save them to file.
-                    with open(os.path.join(self.data_folder, 'generated_files', '{}_dics.pkl'.format(self.embedding_source)),
+                    with open(os.path.join(gen_files_folder, '{}_dics.pkl'.format(self.embedding_source)),
                               'rb') as f:
                         dic = pickle.load(f)
                         self.answer_dic = dic['answer_dic']
@@ -343,26 +342,26 @@ class CLEVR(ImageTextToClassProblem):
 
         # create the objects for the specified embeddings
         if self.embedding_type == 'random':
-            self.logger.info('Constructing random embeddings using a uniform distribution')
+            self.logger.info('Constructing random embeddings using a uniform distribution.')
             # instantiate nn.Embeddings look-up-table with specified embedding_dim
-            self.n_vocab = len(self.word_dic)+1
+            self.n_vocab = len(self.word_dic) + 1  # account for padding
             self.embed_layer = torch.nn.Embedding(num_embeddings=self.n_vocab, embedding_dim=self.embedding_dim)
 
             # we have to make sure that the weights are the same during training and validation
-            weights_filepath = os.path.join(self.data_folder, 'generated_files', '{}_embedding_weights.pkl'.format(self.embedding_source))
+            weights_filepath = os.path.join(gen_files_folder, '{}_embedding_weights.pkl'.format(self.embedding_source))
             if os.path.isfile(weights_filepath):
                 self.logger.info('Found random embedding weights on file ({}), using them.'.format(weights_filepath))
                 with open(weights_filepath, 'rb') as f:
                     self.embed_layer.weight.data = pickle.load(f)
             else:
                 self.logger.warning('No weights found on file for random embeddings. Initializing them from a Uniform '
-                                    'distribution and saving to file in {}'.format(weights_filepath))
+                                    'distribution and saving to file in {}.'.format(weights_filepath))
                 self.embed_layer.weight.data.uniform_(0, 1)
                 with open(weights_filepath, 'wb') as f:
                     pickle.dump(self.embed_layer.weight.data, f)
 
         else:
-            self.logger.info('Constructing embeddings using {}'.format(self.embedding_type))
+            self.logger.info('Constructing embeddings using {}.'.format(self.embedding_type))
             # instantiate Language class
             self.language = Language('lang')
             self.questions = [q['string_question'] for q in self.data]
@@ -411,7 +410,7 @@ class CLEVR(ImageTextToClassProblem):
 
         # get the set descriptor
         self.set = params['settings']['set']
-        assert self.set in ['train', 'val', 'test', 'trainA', 'valA', 'valB'], "self.set must be in" \
+        assert self.set in {'train', 'val', 'test', 'trainA', 'valA', 'valB'}, "self.set must be in" \
                                                      " ['train', 'val', 'test' 'trainA', 'valA', 'valB'], got {}".format(self.set)
 
         # We don't handle the creation of the test set for now since the ground truth answers are not distributed.
@@ -422,7 +421,7 @@ class CLEVR(ImageTextToClassProblem):
 
         # get the dataset variant
         self.dataset = params['settings']['dataset_variant']
-        assert self.dataset in ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-Humans'], "dataset_variant must be " \
+        assert self.dataset in {'CLEVR', 'CLEVR-CoGenT', 'CLEVR-Humans'}, "dataset_variant must be " \
                                                                           "in ['CLEVR', 'CLEVR-CoGenT', 'CLEVR-Humans'], got {}".format(
             self.dataset)
 
@@ -453,12 +452,12 @@ class CLEVR(ImageTextToClassProblem):
 
         # get the questions parameters:
         self.embedding_type = params['questions']['embedding_type']
-        embedding_types = ["random", "charngram.100d", "fasttext.en.300d", "fasttext.simple.300d", "glove.42B.300d",
+        embedding_types = {"random", "charngram.100d", "fasttext.en.300d", "fasttext.simple.300d", "glove.42B.300d",
                            "glove.840B.300d", "glove.twitter.27B.25d", "glove.twitter.27B.50d",
                            "glove.twitter.27B.100d", "glove.twitter.27B.200d", "glove.6B.50d", "glove.6B.100d",
-                           "glove.6B.200d", "glove.6B.300d"]
+                           "glove.6B.200d", "glove.6B.300d"}
 
-        assert self.embedding_type in embedding_types, "Embedding type not found, available options are {}".format(
+        assert self.embedding_type in embedding_types, "Embedding type not found, available options are {}.".format(
             embedding_types)
         if self.embedding_type == 'random':
             self.embedding_dim = int(params['questions']['embedding_dim'])
@@ -537,17 +536,17 @@ class CLEVR(ImageTextToClassProblem):
         with open(question_file) as f:
             self.logger.info('Loading samples from {} ...'.format(question_file))
             data = json.load(f)
-        self.logger.info('Loaded {} samples'.format(len(data['questions'])))
+        self.logger.info('Loaded {} samples.'.format(len(data['questions'])))
 
-        # load the dict question_family_index -> task
-        # If the file does not exist - create it.
-        if not os.path.isfile(os.path.join(self.data_folder, 'generated_files/index_to_task.json')):
-            index_to_task = '{"0": "CompareInteger", "1": "CompareInteger", "2": "CompareInteger", "3": "CompareInteger", "4": "CompareInteger", "5": "CompareInteger", "6": "CompareInteger", "7": "CompareInteger", "8": "CompareInteger", "9": "CompareAttribute", "10": "CompareAttribute", "11": "CompareAttribute", "12": "CompareAttribute", "13": "CompareAttribute", "14": "CompareAttribute", "15": "CompareAttribute", "16": "CompareAttribute", "17": "CompareAttribute", "18": "CompareAttribute", "19": "CompareAttribute", "20": "CompareAttribute", "21": "CompareAttribute", "22": "CompareAttribute", "23": "CompareAttribute", "24": "CompareAttribute", "25": "Count", "26": "Exist", "27": "QueryAttribute", "28": "QueryAttribute", "29": "QueryAttribute", "30": "QueryAttribute", "31": "Count", "32": "QueryAttribute", "33": "QueryAttribute", "34": "QueryAttribute", "35": "QueryAttribute", "36": "Exist", "37": "Exist", "38": "Exist", "39": "Exist", "40": "Count", "41": "Count", "42": "Count", "43": "Count", "44": "Exist", "45": "Exist", "46": "Exist", "47": "Exist", "48": "Count", "49": "Count", "50": "Count", "51": "Count", "52": "QueryAttribute", "53": "QueryAttribute", "54": "QueryAttribute", "55": "QueryAttribute", "56": "QueryAttribute", "57": "QueryAttribute", "58": "QueryAttribute", "59": "QueryAttribute", "60": "QueryAttribute", "61": "QueryAttribute", "62": "QueryAttribute", "63": "QueryAttribute", "64": "Count", "65": "Count", "66": "Count", "67": "Count", "68": "Count", "69": "Count", "70": "Count", "71": "Count", "72": "Count", "73": "Exist", "74": "QueryAttribute", "75": "QueryAttribute", "76": "QueryAttribute", "77": "QueryAttribute", "78": "Count", "79": "Exist", "80": "QueryAttribute", "81": "QueryAttribute", "82": "QueryAttribute", "83": "QueryAttribute", "84": "Count", "85": "Exist", "86": "QueryAttribute", "87": "QueryAttribute", "88": "QueryAttribute", "89": "QueryAttribute"}'
-            with open(os.path.join(self.data_folder, 'generated_files/index_to_task.json'), 'w+') as f:
-                f.write(index_to_task)
-        # Load dict.
-        with open(os.path.join(self.data_folder, 'generated_files/index_to_task.json')) as f:
-            index_to_task = json.load(f)
+        # load the dict question_family_index -> task. Create it if doesn't exist.
+        map_file = os.path.join(self.data_folder, 'generated_files/index_to_task.json')
+        if os.path.isfile(map_file):
+            with open(map_file) as f:
+                index_to_task = json.load(f)
+        else:
+            index_to_task = {"0": "CompareInteger", "1": "CompareInteger", "2": "CompareInteger", "3": "CompareInteger", "4": "CompareInteger", "5": "CompareInteger", "6": "CompareInteger", "7": "CompareInteger", "8": "CompareInteger", "9": "CompareAttribute", "10": "CompareAttribute", "11": "CompareAttribute", "12": "CompareAttribute", "13": "CompareAttribute", "14": "CompareAttribute", "15": "CompareAttribute", "16": "CompareAttribute", "17": "CompareAttribute", "18": "CompareAttribute", "19": "CompareAttribute", "20": "CompareAttribute", "21": "CompareAttribute", "22": "CompareAttribute", "23": "CompareAttribute", "24": "CompareAttribute", "25": "Count", "26": "Exist", "27": "QueryAttribute", "28": "QueryAttribute", "29": "QueryAttribute", "30": "QueryAttribute", "31": "Count", "32": "QueryAttribute", "33": "QueryAttribute", "34": "QueryAttribute", "35": "QueryAttribute", "36": "Exist", "37": "Exist", "38": "Exist", "39": "Exist", "40": "Count", "41": "Count", "42": "Count", "43": "Count", "44": "Exist", "45": "Exist", "46": "Exist", "47": "Exist", "48": "Count", "49": "Count", "50": "Count", "51": "Count", "52": "QueryAttribute", "53": "QueryAttribute", "54": "QueryAttribute", "55": "QueryAttribute", "56": "QueryAttribute", "57": "QueryAttribute", "58": "QueryAttribute", "59": "QueryAttribute", "60": "QueryAttribute", "61": "QueryAttribute", "62": "QueryAttribute", "63": "QueryAttribute", "64": "Count", "65": "Count", "66": "Count", "67": "Count", "68": "Count", "69": "Count", "70": "Count", "71": "Count", "72": "Count", "73": "Exist", "74": "QueryAttribute", "75": "QueryAttribute", "76": "QueryAttribute", "77": "QueryAttribute", "78": "Count", "79": "Exist", "80": "QueryAttribute", "81": "QueryAttribute", "82": "QueryAttribute", "83": "QueryAttribute", "84": "Count", "85": "Exist", "86": "QueryAttribute", "87": "QueryAttribute", "88": "QueryAttribute", "89": "QueryAttribute"}
+            with open(map_file, 'w+') as f:
+                json.dump(index_to_task, f)
 
         # start constructing vocab sets
         result = []
