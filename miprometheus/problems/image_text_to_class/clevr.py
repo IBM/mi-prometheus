@@ -561,7 +561,7 @@ class CLEVR(ImageTextToClassProblem):
 
             for word in words:
                 token = word_dic.get(word, None)
-                if not token:  # new word, add it to the dict
+                if token is None:  # new word, add it to the dict
                     question_token.append(word_index)
                     word_dic[word] = word_index
                     word_index += 1
@@ -570,7 +570,7 @@ class CLEVR(ImageTextToClassProblem):
 
             answer_word = question['answer']
             a_token = answer_dic.get(answer_word, None)
-            if not a_token:
+            if a_token is None:
                 answer = answer_index
                 answer_dic[answer_word] = answer_index
                 answer_index += 1
