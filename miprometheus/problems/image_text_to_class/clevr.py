@@ -52,6 +52,7 @@ import pickle
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
+from typing import Dict, List, Tuple
 
 import torch
 from torchvision import models
@@ -205,7 +206,7 @@ class CLEVR(ImageTextToClassProblem):
 
     """
 
-    def __init__(self, params):
+    def __init__(self, params: 'ParamInterface') -> None:
         """
         Instantiate the CLEVR class.
 
@@ -378,7 +379,7 @@ class CLEVR(ImageTextToClassProblem):
 
         # Done! The actual question embedding is handled in __getitem__.
 
-    def parse_param_tree(self, params):
+    def parse_param_tree(self, params: 'ParamInterface') -> None:
         """
         Parses the parameters tree passed as input to the constructor.
 
@@ -483,7 +484,8 @@ class CLEVR(ImageTextToClassProblem):
             .format(possible_tasks, self.tasks)
         self.logger.info('Considering questions only in the {} categories.'.format(self.tasks))
 
-    def generate_questions_dics(self, set, word_dic=None, answer_dic=None, save_to_file=True):
+    def generate_questions_dics(self, set: str, word_dic: Dict = None, answer_dic: Dict = None, save_to_file:
+    bool = True) -> Tuple[List, Dict, Dict]:
         """
         Loads the questions from the .json file, tokenize them, creates vocab dics and save that to files.
 
@@ -602,7 +604,7 @@ class CLEVR(ImageTextToClassProblem):
         # return everything
         return result, word_dic, answer_dic
 
-    def generate_feature_maps_file(self):
+    def generate_feature_maps_file(self) -> None:
         """
         Uses :py:class:`miprometheus.utils.GenerateFeatureMaps` to pass the :py:class:`CLEVR` images through a \
         pretrained CNN model.
@@ -643,7 +645,7 @@ class CLEVR(ImageTextToClassProblem):
 
         self.logger.warning('Features successfully extracted and stored in {}.'.format(dir))
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> 'DataDict':
         """
         Getter method to access the dataset and return a sample.
 
@@ -705,7 +707,7 @@ class CLEVR(ImageTextToClassProblem):
 
         return data_dict
 
-    def collate_fn(self, batch):
+    def collate_fn(self, batch: List) -> 'DataDict':
         """
         Combines a list of DataDict (retrieved with :py:func:`__getitem__`) into a batch.
 
@@ -844,7 +846,7 @@ class CLEVR(ImageTextToClassProblem):
             # update the # of correct predictions for the corresponding task
             if correct[idx] == 1: self.task_scores[task][1] += 1
 
-    def show_sample(self, data_dict, sample=0):
+    def show_sample(self, data_dict: 'DataDict', sample: int = 0) -> None:
         """
 
         Show a sample of the current DataDict.
@@ -883,7 +885,7 @@ class CLEVR(ImageTextToClassProblem):
         # show visualization
         plt.show()
 
-    def plot_preprocessing(self, data_dict, logits):
+    def plot_preprocessing(self, data_dict: 'DataDict', logits: torch.Tensor) -> Tuple['DataDict', torch.Tensor]:
         """
         Recover the predicted answer (as a string) from the logits and adds it to the current DataDict.
         Will be used in ``models.model.Model.plot()``.
@@ -951,7 +953,7 @@ if __name__ == "__main__":
 
     # instantiate DataLoader object
     problem = DataLoader(clevr_dataset, batch_size=batch_size, shuffle=False, collate_fn=clevr_dataset.collate_fn,
-                         num_workers=4, sampler=None)
+                         num_workers=8, sampler=None)
 
     import time
     s = time.time()
