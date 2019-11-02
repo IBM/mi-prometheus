@@ -229,7 +229,7 @@ class CLEVR(ImageTextToClassProblem):
 
         # define the default_values dict: holds parameters values that a model may need.
         self.default_values = {
-            'num_classes': 28,
+            'nb_classes': 28,
             'height':  480 if params['images']['raw_images'] else 14,
             'width':  320 if params['images']['raw_images'] else 14,
             'depth':  3 if params['images']['raw_images'] else 1024,
