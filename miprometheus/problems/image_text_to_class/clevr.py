@@ -737,7 +737,7 @@ class CLEVR(ImageTextToClassProblem):
 
         # create collecting data structures
         images = torch.zeros(batch_size, *batch[0]['images'].shape).type(torch.FloatTensor)
-        targets = torch.zeros(batch_size).type(torch.FloatTensor)
+        targets = torch.zeros(batch_size).type(torch.LongTensor)
         questions_length, questions_string, index, imgfiles, questions_type = [], [], [], [], []
 
         for idx, sample in enumerate(batch):

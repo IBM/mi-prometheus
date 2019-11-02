@@ -75,24 +75,6 @@ class ImageTextToClassProblem(Problem):
         # set default loss function
         self.loss_function = nn.CrossEntropyLoss()
 
-    def evaluate_loss(self, data_dict, logits):
-        """
-        Calculates loss between the predictions / logits and targets (from ``data_dict``) using the selected \
-        loss function.
-
-        :param data_dict: DataDict containing (among others) inputs and targets.
-        :type data_dict: :py:class:`miprometheus.utils.DataDict`
-
-        :param logits: Predictions of the model.
-
-        :return: Loss.
-        """
-
-        # Compute loss using the provided loss function.
-        loss = self.loss_function(logits, data_dict['targets'].type(self.app_state.LongTensor))
-
-        return loss
-
     def calculate_accuracy(self, data_dict, logits):
         """
         Calculates the accuracy as the mean number of correct answers in a given batch.
