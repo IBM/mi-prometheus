@@ -775,7 +775,7 @@ class CLEVR(ImageTextToClassProblem):
 
         """
         # Collect statistics from ImageTextToClassProblem & other parent classes.
-        super(ImageTextToClassProblem, self).collect_statistics(stat_col, data_dict, logits)
+        super(CLEVR, self).collect_statistics(stat_col, data_dict, logits)
 
         self.collect_task_stats(data_dict, logits)
 
@@ -791,7 +791,7 @@ class CLEVR(ImageTextToClassProblem):
 
         """
         # Add aggregators from ImageTextToClassProblem & other parent classes.
-        super(ImageTextToClassProblem, self).add_aggregators(stat_agg)
+        super(CLEVR, self).add_aggregators(stat_agg)
 
         # Add 'correct' & 'total' entries for each task
         # accuracy for that task will be correct / total
@@ -809,7 +809,7 @@ class CLEVR(ImageTextToClassProblem):
 
         """
         # Aggregate statistics from ImageTextToClassProblem & other parent classes.
-        super(ImageTextToClassProblem, self).aggregate_statistics(stat_col, stat_agg)
+        super(CLEVR, self).aggregate_statistics(stat_col, stat_agg)
 
         for task in self.tasks:
             stat_agg['{}_total'.format(task)] = self.task_scores[task][0]
