@@ -728,6 +728,9 @@ class CLEVR(ImageTextToClassProblem):
         """
         batch_size = len(batch)
 
+        # sort the batch in decreasing order, for pack_padded_sequence
+        batch.sort(key=lambda q: q['questions_length'], reverse=True)
+
         # Get max question length, create tensor of shape [batch_size x maxQuestionLength x embedding]
         max_len = max(map(lambda x: x['questions_length'], batch))
         questions = torch.zeros(batch_size, max_len, self.embedding_dim).type(torch.FloatTensor)
