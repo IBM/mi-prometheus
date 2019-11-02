@@ -345,14 +345,17 @@ if __name__ == '__main__':
 
     from miprometheus.problems import CLEVR
     problem_params = ParamInterface()
-    problem_params.add_config_params({'settings': {'data_folder': '~/Downloads/CLEVR_v1.0',
-                                                   'set': 'train', 'dataset_variant': 'CLEVR'},
+    problem_params.add_config_params({'settings': {'data_folder': '~/data/CLEVR_CoGenT_v1.0',
+                                                   'set': 'trainA', 'dataset_variant': 'CLEVR-CoGenT'},
 
                                       'images': {'raw_images': False,
                                                  'feature_extractor': {'cnn_model': 'resnet101',
                                                                        'num_blocks': 4}},
 
-                                      'questions': {'embedding_type': 'random', 'embedding_dim': 300}})
+                                      'questions': {'embedding_type': 'random', 'embedding_dim': 300,
+                                                    'embedding_source': 'CLEVR-CoGenT',
+                                                    'tasks': ['Exist', 'Count', 'CompareInteger',
+                                                              'CompareAttribute', 'QueryAttribute']}})
 
     # create problem
     clevr_dataset = CLEVR(problem_params)
@@ -374,15 +377,12 @@ if __name__ == '__main__':
     print('Model {} instantiated.'.format(model.name))
     model.app_state.visualize = True
 
-    # perform handshaking between MAC & CLEVR
-    model.handshake_definitions(clevr_dataset.data_definitions)
-
     # generate a batch
     for i_batch, sample in enumerate(problem):
         print('Sample # {} - {}'.format(i_batch, sample['images'].shape), type(sample))
         logits = model(sample)
-        clevr_dataset.plot_preprocessing(sample, logits)
-        model.plot(sample, logits)
+        # clevr_dataset.plot_preprocessing(sample, logits)
+        # model.plot(sample, logits)
         print(logits.shape)
 
     print('Unit test completed.')
