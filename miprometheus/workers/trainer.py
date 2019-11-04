@@ -499,6 +499,9 @@ class Trainer(Worker):
         # Reset the statistics.
         self.validation_stat_col.empty()
 
+        # Inform the validation problem class that epoch has started.
+        self.validation_problem.initialize_epoch(epoch)
+
         with torch.no_grad():
             for ep, valid_batch in enumerate(self.validation_dataloader):
                 # 1. Perform forward step, get predictions and compute loss.
@@ -518,8 +521,12 @@ class Trainer(Worker):
         self.aggregate_and_export_statistics(self.model, self.validation_problem, 
                 self.validation_stat_col, self.validation_stat_agg, episode, '[Full Validation]')
 
+        # Inform the problem class that the epoch has ended.
+        self.validation_problem.finalize_epoch(epoch)
+
         # Return the average validation loss.
         return self.validation_stat_agg['loss']
+
 
 if __name__ == '__main__':
     print("The trainer.py file contains only an abstract base class. Please try to use the \
