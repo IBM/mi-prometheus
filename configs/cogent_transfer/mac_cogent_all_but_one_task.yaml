@@ -1,0 +1,85 @@
+# config file for the set of experiments "all-but-one-task" on CoGenT-A. 5 experiments in total.
+
+# Lists of tasks that will be executed in parallel.
+grid_tasks:
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on all but Exist
+      training:
+        problem:
+          questions:
+            tasks: ['Count', 'CompareInteger', 'CompareAttribute', 'QueryAttribute']
+      validation:
+        problem:
+          questions:
+            tasks: ['Count', 'CompareInteger', 'CompareAttribute', 'QueryAttribute']
+
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on all but Count
+      training:
+        problem:
+          questions:
+            tasks: ['Exist', 'CompareInteger', 'CompareAttribute', 'QueryAttribute']
+      validation:
+        problem:
+          questions:
+            tasks: ['Exist', 'CompareInteger', 'CompareAttribute', 'QueryAttribute']
+
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on all but CompareInteger
+      training:
+        problem:
+          questions:
+            tasks: ['Exist', 'Count', 'CompareAttribute', 'QueryAttribute']
+      validation:
+        problem:
+          questions:
+            tasks: ['Exist', 'Count', 'CompareAttribute', 'QueryAttribute']
+
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on all but CompareAttribute
+      training:
+        problem:
+          questions:
+            tasks: ['Exist', 'Count', 'CompareInteger', 'QueryAttribute']
+      validation:
+        problem:
+          questions:
+            tasks: ['Exist', 'Count', 'CompareInteger', 'QueryAttribute']
+
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on all but QueryAttribute
+      training:
+        problem:
+          questions:
+            tasks: ['Exist', 'Count', 'CompareInteger', 'CompareAttribute']
+      validation:
+        problem:
+          questions:
+            tasks: ['Exist', 'Count', 'CompareInteger', 'CompareAttribute']
+
+# Parameters that will be overwritten for all tasks.
+grid_overwrite:
+
+  # Training configuration.
+  training:
+    # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0
+  
+grid_settings:
+  # Set number of repetitions of each experiments.
+  experiment_repetitions: 1
+  # Set number of concurrent running experiments (will be limited by the actual number of available CPUs/GPUs).
+  max_concurrent_runs: 7
+  # Set trainer.
+  trainer: mip-offline-trainer

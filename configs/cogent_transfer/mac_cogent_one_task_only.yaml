@@ -1,0 +1,85 @@
+# config file for the set of experiments "all-but-one-task" on CoGenT-A. 5 experiments in total.
+
+# Lists of tasks that will be executed in parallel.
+grid_tasks:
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on Exist only
+      training:
+        problem:
+          questions:
+            tasks: ['Exist']
+      validation:
+        problem:
+          questions:
+            tasks: ['Exist']
+
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on Count only
+      training:
+        problem:
+          questions:
+            tasks: ['Count']
+      validation:
+        problem:
+          questions:
+            tasks: ['Count']
+
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on CompareInteger only
+      training:
+        problem:
+          questions:
+            tasks: ['CompareInteger']
+      validation:
+        problem:
+          questions:
+            tasks: ['CompareInteger']
+
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on CompareAttribute only
+      training:
+        problem:
+          questions:
+            tasks: ['CompareAttribute']
+      validation:
+        problem:
+          questions:
+            tasks: ['CompareAttribute']
+
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on QueryAttribute only
+      training:
+        problem:
+          questions:
+            tasks: ['QueryAttribute']
+      validation:
+        problem:
+          questions:
+            tasks: ['QueryAttribute']
+
+# Parameters that will be overwritten for all tasks.
+grid_overwrite:
+
+  # Training configuration.
+  training:
+    # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0
+  
+grid_settings:
+  # Set number of repetitions of each experiments.
+  experiment_repetitions: 1
+  # Set number of concurrent running experiments (will be limited by the actual number of available CPUs/GPUs).
+  max_concurrent_runs: 7
+  # Set trainer.
+  trainer: mip-offline-trainer
