@@ -15,57 +15,57 @@ grid_tasks:
           questions:
             tasks: ['Count', 'CompareInteger', 'CompareAttribute', 'QueryAttribute']
 
-  -
-    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
-
-    overwrite: # Train on all but Count
-      training:
-        problem:
-          questions:
-            tasks: ['Exist', 'CompareInteger', 'CompareAttribute', 'QueryAttribute']
-      validation:
-        problem:
-          questions:
-            tasks: ['Exist', 'CompareInteger', 'CompareAttribute', 'QueryAttribute']
-
-  -
-    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
-
-    overwrite: # Train on all but CompareInteger
-      training:
-        problem:
-          questions:
-            tasks: ['Exist', 'Count', 'CompareAttribute', 'QueryAttribute']
-      validation:
-        problem:
-          questions:
-            tasks: ['Exist', 'Count', 'CompareAttribute', 'QueryAttribute']
-
-  -
-    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
-
-    overwrite: # Train on all but CompareAttribute
-      training:
-        problem:
-          questions:
-            tasks: ['Exist', 'Count', 'CompareInteger', 'QueryAttribute']
-      validation:
-        problem:
-          questions:
-            tasks: ['Exist', 'Count', 'CompareInteger', 'QueryAttribute']
-
-  -
-    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
-
-    overwrite: # Train on all but QueryAttribute
-      training:
-        problem:
-          questions:
-            tasks: ['Exist', 'Count', 'CompareInteger', 'CompareAttribute']
-      validation:
-        problem:
-          questions:
-            tasks: ['Exist', 'Count', 'CompareInteger', 'CompareAttribute']
+#  -
+#    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+#
+#    overwrite: # Train on all but Count
+#      training:
+#        problem:
+#          questions:
+#            tasks: ['Exist', 'CompareInteger', 'CompareAttribute', 'QueryAttribute']
+#      validation:
+#        problem:
+#          questions:
+#            tasks: ['Exist', 'CompareInteger', 'CompareAttribute', 'QueryAttribute']
+#
+#  -
+#    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+#
+#    overwrite: # Train on all but CompareInteger
+#      training:
+#        problem:
+#          questions:
+#            tasks: ['Exist', 'Count', 'CompareAttribute', 'QueryAttribute']
+#      validation:
+#        problem:
+#          questions:
+#            tasks: ['Exist', 'Count', 'CompareAttribute', 'QueryAttribute']
+#
+#  -
+#    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+#
+#    overwrite: # Train on all but CompareAttribute
+#      training:
+#        problem:
+#          questions:
+#            tasks: ['Exist', 'Count', 'CompareInteger', 'QueryAttribute']
+#      validation:
+#        problem:
+#          questions:
+#            tasks: ['Exist', 'Count', 'CompareInteger', 'QueryAttribute']
+#
+#  -
+#    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+#
+#    overwrite: # Train on all but QueryAttribute
+#      training:
+#        problem:
+#          questions:
+#            tasks: ['Exist', 'Count', 'CompareInteger', 'CompareAttribute']
+#      validation:
+#        problem:
+#          questions:
+#            tasks: ['Exist', 'Count', 'CompareInteger', 'CompareAttribute']
 
 # Parameters that will be overwritten for all tasks.
 grid_overwrite:
