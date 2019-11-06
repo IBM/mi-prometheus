@@ -1,4 +1,4 @@
-# config file for the set of experiments "all-but-one-task" on CoGenT-A. 5 experiments in total.
+# config file for the set of experiments "one-task-only" on CoGenT-A. 5 experiments in total.
 
 # Lists of tasks that will be executed in parallel.
 grid_tasks:
@@ -10,10 +10,14 @@ grid_tasks:
         problem:
           questions:
             tasks: ['Exist']
+      sampler:
+        indices: '~/data/indices/cogent_exist_only_train.txt'
       validation:
         problem:
           questions:
             tasks: ['Exist']
+        sampler:
+          indices: '~/data/indices/cogent_exist_only_val.txt'
 
   -
     default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
@@ -23,10 +27,14 @@ grid_tasks:
         problem:
           questions:
             tasks: ['Count']
+        sampler:
+          indices: '~/data/indices/cogent_count_only_train.txt'
       validation:
         problem:
           questions:
             tasks: ['Count']
+        sampler:
+          indices: '~/data/indices/cogent_count_only_val.txt'
 
   -
     default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
@@ -36,10 +44,14 @@ grid_tasks:
         problem:
           questions:
             tasks: ['CompareInteger']
+        sampler:
+          indices: '~/data/indices/cogent_compint_only_train.txt'
       validation:
         problem:
           questions:
             tasks: ['CompareInteger']
+        sampler:
+          indices: '~/data/indices/cogent_compint_only_val.txt'
 
   -
     default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
@@ -49,10 +61,14 @@ grid_tasks:
         problem:
           questions:
             tasks: ['CompareAttribute']
+        sampler:
+          indices: '~/data/indices/cogent_compattr_only_train.txt'
       validation:
         problem:
           questions:
             tasks: ['CompareAttribute']
+        sampler:
+          indices: '~/data/indices/cogent_compattr_only_val.txt'
 
   -
     default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
@@ -62,10 +78,14 @@ grid_tasks:
         problem:
           questions:
             tasks: ['QueryAttribute']
+        sampler:
+          indices: '~/data/indices/cogent_queryattr_only_train.txt'
       validation:
         problem:
           questions:
             tasks: ['QueryAttribute']
+        sampler:
+          indices: '~/data/indices/cogent_queryattr_only_val.txt'
 
 # Parameters that will be overwritten for all tasks.
 grid_overwrite:
