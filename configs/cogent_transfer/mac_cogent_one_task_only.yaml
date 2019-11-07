@@ -10,8 +10,8 @@ grid_tasks:
         problem:
           questions:
             tasks: ['Exist']
-      sampler:
-        indices: '~/data/indices/cogent_exist_only_train.txt'
+        sampler:
+          indices: '~/data/indices/cogent_exist_only_train.txt'
       validation:
         problem:
           questions:
