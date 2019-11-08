@@ -1,0 +1,21 @@
+# Load the CoGenT config first.
+default_configs:
+    configs/cogent_transfer/default_cogent.yaml
+
+testing:
+    # specify the params combinations for 2 tests:
+    # CoGenT-valA, CoGenT-valB. Only 'set' changes.
+    multi_tests: {
+        set: ['valA', 'valB']
+        max_test_episodes: [-1, -1] # test over entire set.
+    }
+
+# Add the model parameters:
+model:
+    name: MACNetwork
+    dim: 512
+    embed_hidden: 300
+    max_step: 12
+    self_attention: False
+    memory_gate: False
+    dropout: 0.15
