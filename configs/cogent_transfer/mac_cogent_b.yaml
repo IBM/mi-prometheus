@@ -5,10 +5,9 @@ default_configs:
 testing:
     # specify the params combinations for 2 tests:
     # CoGenT-valA, CoGenT-valB. Only 'set' changes.
-    multi_tests: {
+    multi_tests:
         set: ['valA', 'valB']
         max_test_episodes: [-1, -1] # test over entire set.
-    }
 
 # Add the model parameters:
 model:
