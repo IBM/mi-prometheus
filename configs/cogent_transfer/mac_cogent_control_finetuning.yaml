@@ -1,5 +1,6 @@
 # config file for the set of finetuning experiments of the control model on CoGenT-A. 5 experiments in total.
 # We finetune the model trained on all tasks on each of the X task samples (from trainA) for one epoch separately.
+# We validate on the entire validation set (10% of trainA), and the best model is determined on the val loss.
 
 # Lists of tasks that will be executed in parallel.
 grid_tasks:
@@ -15,12 +16,6 @@ grid_tasks:
             tasks: ['Exist']
         sampler:
           indices: '~/data/indices/cogent_exist_only_train.txt'
-      validation:
-        problem:
-          questions:
-            tasks: ['Exist']
-        sampler:
-          indices: '~/data/indices/cogent_exist_only_val.txt'
 
   -
     default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
@@ -34,12 +29,6 @@ grid_tasks:
             tasks: ['Count']
         sampler:
           indices: '~/data/indices/cogent_count_only_train.txt'
-      validation:
-        problem:
-          questions:
-            tasks: ['Count']
-        sampler:
-          indices: '~/data/indices/cogent_count_only_val.txt'
 
   -
     default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
@@ -53,12 +42,6 @@ grid_tasks:
             tasks: ['CompareInteger']
         sampler:
           indices: '~/data/indices/cogent_compint_only_train.txt'
-      validation:
-        problem:
-          questions:
-            tasks: ['CompareInteger']
-        sampler:
-          indices: '~/data/indices/cogent_compint_only_val.txt'
 
   -
     default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
@@ -72,12 +55,6 @@ grid_tasks:
             tasks: ['CompareAttribute']
         sampler:
           indices: '~/data/indices/cogent_compattr_only_train.txt'
-      validation:
-        problem:
-          questions:
-            tasks: ['CompareAttribute']
-        sampler:
-          indices: '~/data/indices/cogent_compattr_only_val.txt'
 
   -
     default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
@@ -91,12 +68,6 @@ grid_tasks:
             tasks: ['QueryAttribute']
         sampler:
           indices: '~/data/indices/cogent_queryattr_only_train.txt'
-      validation:
-        problem:
-          questions:
-            tasks: ['QueryAttribute']
-        sampler:
-          indices: '~/data/indices/cogent_queryattr_only_val.txt'
 
 # Parameters that will be overwritten for all tasks.
 grid_overwrite:
@@ -109,6 +80,9 @@ grid_overwrite:
 
     terminal_conditions:
       epoch_limit: 1  # finetune for 1 epoch.
+
+  validation:  # increase validation frequency.
+    partial_validation_interval: 100
 
 
 grid_settings:
