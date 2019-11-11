@@ -1,0 +1,120 @@
+# config file for the set of finetuning experiments of the control model on CoGenT-A. 5 experiments in total.
+# We finetune the model trained on all tasks on each of the X task samples (from trainA) for one epoch separately.
+
+# Lists of tasks that will be executed in parallel.
+grid_tasks:
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on Exist for 1 epoch
+      model: # the mac model trained on all tasks
+        load: 'experiments/CLEVR/MACNetwork/20191105_115900_control_exp/models/model_best.pt'
+      training:
+        problem:
+          questions:
+            tasks: ['Exist']
+        sampler:
+          indices: '~/data/indices/cogent_exist_only_train.txt'
+      validation:
+        problem:
+          questions:
+            tasks: ['Exist']
+        sampler:
+          indices: '~/data/indices/cogent_exist_only_val.txt'
+
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on Count for 1 epoch
+      model: # the mac model trained on all tasks but Count
+        load: 'experiments/CLEVR/MACNetwork/20191105_115900_control_exp/models/model_best.pt'
+      training:
+        problem:
+          questions:
+            tasks: ['Count']
+        sampler:
+          indices: '~/data/indices/cogent_count_only_train.txt'
+      validation:
+        problem:
+          questions:
+            tasks: ['Count']
+        sampler:
+          indices: '~/data/indices/cogent_count_only_val.txt'
+
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on CompareInteger for 1 epoch
+      model: # the mac model trained on all tasks but CompareInteger
+        load: 'experiments/CLEVR/MACNetwork/20191105_115900_control_exp/models/model_best.pt'
+      training:
+        problem:
+          questions:
+            tasks: ['CompareInteger']
+        sampler:
+          indices: '~/data/indices/cogent_compint_only_train.txt'
+      validation:
+        problem:
+          questions:
+            tasks: ['CompareInteger']
+        sampler:
+          indices: '~/data/indices/cogent_compint_only_val.txt'
+
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on CompareAttribute for 1 epoch
+      model: # the mac model trained on all tasks but CompareAttribute
+        load: 'experiments/CLEVR/MACNetwork/20191105_115900_control_exp/models/model_best.pt'
+      training:
+        problem:
+          questions:
+            tasks: ['CompareAttribute']
+        sampler:
+          indices: '~/data/indices/cogent_compattr_only_train.txt'
+      validation:
+        problem:
+          questions:
+            tasks: ['CompareAttribute']
+        sampler:
+          indices: '~/data/indices/cogent_compattr_only_val.txt'
+
+  -
+    default_configs: configs/cogent_transfer/mac_cogent.yaml  # MAC on CoGenT
+
+    overwrite: # Train on QueryAttribute for 1 epoch
+      model: # the mac model trained on all tasks but QueryAttribute
+        load: 'experiments/CLEVR/MACNetwork/20191105_115900_control_exp/models/model_best.pt'
+      training:
+        problem:
+          questions:
+            tasks: ['QueryAttribute']
+        sampler:
+          indices: '~/data/indices/cogent_queryattr_only_train.txt'
+      validation:
+        problem:
+          questions:
+            tasks: ['QueryAttribute']
+        sampler:
+          indices: '~/data/indices/cogent_queryattr_only_val.txt'
+
+# Parameters that will be overwritten for all tasks.
+grid_overwrite:
+
+  # Training configuration.
+  training:
+    # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0
+
+    terminal_conditions:
+      epoch_limit: 1  # finetune for 1 epoch.
+
+
+grid_settings:
+  # Set number of repetitions of each experiments.
+  experiment_repetitions: 1
+  # Set number of concurrent running experiments (will be limited by the actual number of available CPUs/GPUs).
+  max_concurrent_runs: 7
+  # Set trainer.
+  trainer: mip-offline-trainer
