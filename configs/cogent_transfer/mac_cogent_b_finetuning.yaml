@@ -21,6 +21,13 @@ validation:
     partial_validation_interval: 100
 
 testing:
+    problem:
+        settings:
+            set: 'valB'
+    sampler:
+        name: 'SubsetRandomSampler'
+        indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_test_valB_indices.txt'
+
     # test on the CoGenT-B validation set, but on the complementary samples (not used for finetuning).
     # test on condition A. Simply point to a file containing all the indices of valA.
     multi_tests: {
