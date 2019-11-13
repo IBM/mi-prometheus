@@ -1,0 +1,44 @@
+# Load the CoGenT config first.
+default_configs:
+    configs/cogent_transfer/default_cogent.yaml
+
+training:
+    problem:
+        settings:
+            set: 'valB'  # finetune on CoGenT-B, on 30k samples indicated by the indices below.
+    sampler:
+        name: 'SubsetRandomSampler'
+        indices: '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_finetuning_valB_indices.txt'
+    terminal_conditions:
+        epoch_limit: 1  # finetune for 1 epoch.
+
+    # fix the seeds
+    seed_torch: 0
+    seed_numpy: 0
+
+validation:
+    # same validation set (10% of trainA) but validate on batch more often.
+    partial_validation_interval: 100
+
+testing:
+    # test on the CoGenT-B validation set, but on the complementary samples (not used for finetuning).
+    # test on condition A. Simply point to a file containing all the indices of valA.
+    multi_tests: {
+        set: ['valB', 'valA'],
+            indices: ['~/data/CLEVR_CoGenT_v1.0/vigil_cogent_test_valB_indices.txt',
+                      '~/data/CLEVR_CoGenT_v1.0/vigil_cogent_valA_full_indices.txt'],
+        max_test_episodes: [-1, -1]
+    }
+
+# Add the model parameters:
+model:
+    # load the CogenT-A trained model
+    load: 'experiments/CLEVR/MACNetwork/20191108_082839_cogentb_exp/models/model_best.pt'
+
+    name: MACNetwork
+    dim: 512
+    embed_hidden: 300
+    max_step: 12
+    self_attention: False
+    memory_gate: False
+    dropout: 0.15
