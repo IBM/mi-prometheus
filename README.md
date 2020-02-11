@@ -45,16 +45,34 @@ PyTorch is the main library used by MI-Prometheus for tensors computations.
 Please refer to the [official installation guide for PyTorch](https://github.com/pytorch/pytorch#installation) to install it.
 We currently do not officially support PyTorch >= v0.4.1 (especially the v1.0 preview), but intend to in the near future.
 
-To install MI-Prometheus, you can use the `setup.py` script with the following command:
+The recommended install procedure below assumes the creation of a new [Anaconda](https://docs.anaconda.com/anaconda/install/) environment.
 
+1. Install PyTorch 0.4.0.
+
+   With CUDA support:
+   ```sh
+   conda install conda install pytorch=0.4.0 cuda90 -c pytorch # For CUDA 9
+   ```
+   **Or** CPU only:
+   ```sh
+   conda install pytorch-cpu=0.4.0 cpuonly -c pytorch
+   ```
+2. Install PyYAML from Anaconda.
+   ```sh
+   conda install pyyaml
+   ```
+3. Install MI-Prometheus
+   ```sh
     python setup.py install
-
-If you are the developer, please call the following command instead:
-
+   ```
+   **Or** if you are the developer, please call the following command instead:
+   ```sh
     python setup.py develop
+   ```
+   This will enable you to change the code of existing problems/models/workers and run them by calling mip-* commands.
+   More in that subject can be found in [the setuptools documentation](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode). 
 
-This will enable you to change the code of existing problems/models/workers and run them by calling mip-* commands.
-More in that subject can be found in [the setuptools documentation](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode). We mainly develop on Ubuntu 16.04, but MI-Prometheus should work on macOS (10.14) as well.
+We mainly develop on Ubuntu 16.04, but MI-Prometheus should work on macOS (10.14) as well.
 
 We will upload MI-prometheus to [PyPI](https://pypi.org/) in the near future.
 
