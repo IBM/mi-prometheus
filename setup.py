@@ -154,15 +154,15 @@ setup(
     # dependencies to specific versions, or to specify sub-dependencies
     # (i.e. dependencies of your dependencies). This is overly-restrictive,
     # and prevents the user from gaining the benefit of dependency upgrades.
-    install_requires=['torchvision',  # v0.2.0 is needed for the doc build, but we are specifying it in docs/requirements.txt
+    install_requires=['torchvision==0.2.2',  # v0.2.0 is needed for the doc build, but we are specifying it in docs/requirements.txt
                       'torchtext',
                       'tensorboardX',
                       'matplotlib',
                       'pandas',
+                      'Pillow==5.4.1',
                       'numpy',
                       'psutil',
-                      'PyYAML',
-                      'tqdm',
+                      'tqdm==4.19.9',
                       'nltk',
                       'h5py',
                       'sphinx_rtd_theme',
