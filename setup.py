@@ -159,7 +159,7 @@ setup(
                       'tensorboardX',
                       'matplotlib',
                       'pandas',
-                      'Pillow==5.4.1',
+                      'Pillow==9.3.0',
                       'numpy',
                       'psutil',
                       'tqdm==4.19.9',
