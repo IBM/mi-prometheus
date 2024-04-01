@@ -321,5 +321,3 @@ You are encouraged if you would like to contribute! Please use the [issues](http
 * Vincent Albouy
 * T.S. Jayram (jayram@us.ibm.com)
 * Ahmet S. Ozcan
-
-[![HitCount](http://hits.dwyl.io/tkornut/ibm/mi-prometheus.svg)](http://hits.dwyl.io/tkornut/ibm/mi-prometheus)
